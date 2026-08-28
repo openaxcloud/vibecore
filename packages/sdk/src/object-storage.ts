@@ -61,6 +61,14 @@ function envOf(name: string): string | undefined {
   return typeof process !== 'undefined' ? process.env?.[name] : undefined;
 }
 
+function mutationIdempotencyKey(provided?: string): string {
+  if (provided && /^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/.test(provided)) return provided;
+  if (provided) throw new Error('ObjectStorageClient: idempotencyKey must contain 16 to 128 safe characters.');
+  return (
+    globalThis.crypto?.randomUUID?.() ?? `object-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
+}
+
 export class ObjectStorageClient {
   readonly #apiUrl: string;
   readonly #accessToken: string;
@@ -76,7 +84,9 @@ export class ObjectStorageClient {
       throw new Error('ObjectStorageClient: apiUrl is required (set OBJECT_STORAGE_API_URL or pass apiUrl).');
     }
     if (!accessToken) {
-      throw new Error('ObjectStorageClient: accessToken is required (set OBJECT_STORAGE_ACCESS_TOKEN or pass accessToken).');
+      throw new Error(
+        'ObjectStorageClient: accessToken is required (set OBJECT_STORAGE_ACCESS_TOKEN or pass accessToken).',
+      );
     }
     if (!projectId) {
       throw new Error('ObjectStorageClient: projectId is required (set PROJECT_ID or pass projectId).');
@@ -119,7 +129,11 @@ export class ObjectStorageClient {
 
     if (!response.ok) {
       const body = (json ?? {}) as { error?: string; code?: string };
-      throw new ObjectStorageError(body.error ?? `Request failed (${response.status})`, body.code ?? 'REQUEST_FAILED', response.status);
+      throw new ObjectStorageError(
+        body.error ?? `Request failed (${response.status})`,
+        body.code ?? 'REQUEST_FAILED',
+        response.status,
+      );
     }
 
     return json as T;
@@ -146,18 +160,31 @@ export class ObjectStorageClient {
   }
 
   /** Move/rename an object (copy + delete). */
-  move(input: { from: string; to: string }): Promise<{ moved: boolean; key: string }> {
-    return this.#request('/objects/move', { method: 'POST', body: JSON.stringify(input) });
+  move(input: { from: string; to: string; idempotencyKey?: string }): Promise<{ moved: boolean; key: string }> {
+    const { idempotencyKey, ...body } = input;
+    return this.#request('/objects/move', {
+      method: 'POST',
+      headers: { 'idempotency-key': mutationIdempotencyKey(idempotencyKey) },
+      body: JSON.stringify(body),
+    });
   }
 
   /** Delete a single object. */
-  delete(input: { key: string }): Promise<{ deleted: boolean; count: number }> {
-    return this.#request('/objects', { method: 'DELETE', body: JSON.stringify({ key: input.key }) });
+  delete(input: { key: string; idempotencyKey?: string }): Promise<{ deleted: boolean; count: number }> {
+    return this.#request('/objects', {
+      method: 'DELETE',
+      headers: { 'idempotency-key': mutationIdempotencyKey(input.idempotencyKey) },
+      body: JSON.stringify({ key: input.key }),
+    });
   }
 
   /** Delete every object under a prefix (a "folder"). */
-  deletePrefix(input: { prefix: string }): Promise<{ deleted: boolean; count: number }> {
-    return this.#request('/objects', { method: 'DELETE', body: JSON.stringify({ prefix: input.prefix }) });
+  deletePrefix(input: { prefix: string; idempotencyKey?: string }): Promise<{ deleted: boolean; count: number }> {
+    return this.#request('/objects', {
+      method: 'DELETE',
+      headers: { 'idempotency-key': mutationIdempotencyKey(input.idempotencyKey) },
+      body: JSON.stringify({ prefix: input.prefix }),
+    });
   }
 
   /** Convenience: upload bytes by fetching the signed URL and PUTting to it. */

@@ -149,6 +149,7 @@ async function seedCurrentReservedVm(input: Awaited<ReturnType<typeof setup>>) {
   });
   const deployment = await input.store.createDeployment({
     projectId: input.project.id,
+    expectedOrganizationId: input.project.organizationId,
     workspaceId: input.workspace.id,
     provider: 'server',
     environment: 'preview',

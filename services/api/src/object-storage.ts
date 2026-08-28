@@ -11,9 +11,8 @@
  * off, `resolveDefaultObjectStorage()` returns an inert service and every route
  * 404s, so this has zero effect on live traffic until the feature ships.
  */
+import { createHash } from 'node:crypto';
 import { Storage } from '@google-cloud/storage';
-
-import { appPublicEnglish } from './app-public-copy.js';
 
 /** Master kill-switch. Until this is `true` no object-storage endpoint does anything. */
 export function isObjectStorageEnabled(): boolean {
@@ -214,9 +213,25 @@ export interface ObjectStorage {
    * feature flag.
    */
   bucketExists(projectId: string): Promise<boolean>;
+  /**
+   * Live provider proof that immutable object generations survive a later
+   * overwrite. Implementations that cannot inspect this state must omit the
+   * method; recovery then fails closed instead of certifying ENSURE_BUCKET.
+   */
+  bucketVersioningEnabled?(projectId: string): Promise<boolean>;
   listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
-  createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
-  createDownloadUrl(projectId: string, input: { key: string; generation?: string }): Promise<SignedUrlResult>;
+  /** Exhaustive live + noncurrent generations; destructive prefix verification fails closed without it. */
+  listObjectVersions?(projectId: string, opts?: { prefix?: string }): Promise<ListObjectsResult>;
+  /** `expiresAt` is a durable DB-reserved upper bound; raw signers reject an omitted value. */
+  createUploadUrl(
+    projectId: string,
+    input: { key: string; contentType?: string; expiresAt?: string },
+  ): Promise<UploadUrlResult>;
+  /** `expiresAt` is a durable DB-reserved upper bound; raw signers reject an omitted value. */
+  createDownloadUrl(
+    projectId: string,
+    input: { key: string; generation?: string; expiresAt?: string },
+  ): Promise<SignedUrlResult>;
 
   /**
    * Server-side direct write (bytes originate on the server, e.g. an automatic
@@ -225,11 +240,28 @@ export interface ObjectStorage {
    */
   putObject(
     projectId: string,
-    input: { key: string; body: Uint8Array; contentType?: string },
-  ): Promise<{ key: string; size: number }>;
-  moveObject(projectId: string, input: { from: string; to: string }): Promise<{ moved: boolean; key: string }>;
-  deleteObject(projectId: string, input: { key: string }): Promise<{ deleted: boolean; count: number }>;
-  deletePrefix(projectId: string, input: { prefix: string }): Promise<{ deleted: boolean; count: number }>;
+    input: {
+      key: string;
+      body: Uint8Array;
+      contentType?: string;
+      /** Provider generation CAS; 0 means create-only. */
+      ifGenerationMatch?: string | 0;
+    },
+  ): Promise<{ key: string; size: number; generation?: string; contentHash?: string }>;
+  moveObject(
+    projectId: string,
+    input: { from: string; to: string; sourceGeneration?: string },
+    guard?: () => Promise<void>,
+  ): Promise<{ moved: boolean; key: string; generation?: string }>;
+  deleteObject(
+    projectId: string,
+    input: { key: string; generation?: string },
+  ): Promise<{ deleted: boolean; count: number }>;
+  deletePrefix(
+    projectId: string,
+    input: { prefix: string },
+    guard?: () => Promise<void>,
+  ): Promise<{ deleted: boolean; count: number }>;
   deleteBucket(projectId: string, guard?: () => Promise<void>): Promise<{ deleted: boolean; bucket: string }>;
   /** Complete, generation-pinned inventory for a physical-data remix. */
   inventoryProjectObjects(projectId: string): Promise<ObjectStorageInventory>;
@@ -257,17 +289,20 @@ export interface FileLike {
     generation?: string | number;
     md5Hash?: string;
     crc32c?: string;
+    metadata?: Record<string, string | undefined>;
   };
+  getMetadata?(): Promise<[NonNullable<FileLike['metadata']>]>;
   getSignedUrl(opts: Record<string, unknown>): Promise<[string]>;
   save(data: Uint8Array | Buffer | string, opts?: Record<string, unknown>): Promise<unknown>;
   copy(destination: FileLike, opts?: Record<string, unknown>): Promise<unknown>;
-  delete(): Promise<unknown>;
+  delete(opts?: Record<string, unknown>): Promise<unknown>;
 }
 
 export interface BucketLike {
   exists(): Promise<[boolean]>;
   create(opts: Record<string, unknown>): Promise<unknown>;
   setMetadata(metadata: Record<string, unknown>): Promise<unknown>;
+  getMetadata?(): Promise<[{ versioning?: { enabled?: boolean } }]>;
   getFiles(query: Record<string, unknown>): Promise<[FileLike[], unknown, { prefixes?: string[] } | undefined]>;
   file(name: string, opts?: { generation?: string | number }): FileLike;
   deleteFiles(opts: Record<string, unknown>): Promise<unknown>;
@@ -280,7 +315,7 @@ export interface StorageLike {
 
 /** Inert object storage: the default while the feature is off and in tests. */
 export class NoopObjectStorage implements ObjectStorage {
-  readonly active = false;
+  readonly active: boolean = false;
 
   async ensureBucket(projectId: string, _guard?: () => Promise<void>) {
     return { bucket: projectBucketName(projectId), created: false, location: OBJECT_STORAGE_LOCATION };
@@ -290,7 +325,15 @@ export class NoopObjectStorage implements ObjectStorage {
     return false;
   }
 
+  async bucketVersioningEnabled(): Promise<boolean> {
+    return false;
+  }
+
   async listObjects(): Promise<ListObjectsResult> {
+    return { objects: [], folders: [] };
+  }
+
+  async listObjectVersions(): Promise<ListObjectsResult> {
     return { objects: [], folders: [] };
   }
 
@@ -322,11 +365,16 @@ export class NoopObjectStorage implements ObjectStorage {
     return { deleted: false, bucket: projectBucketName(projectId) };
   }
 
-  async inventoryProjectObjects(): Promise<ObjectStorageInventory> {
+  async inventoryProjectObjects(_projectId: string): Promise<ObjectStorageInventory> {
     return { bucketExists: false, objects: [] };
   }
 
-  async cloneProjectObjects(): Promise<ObjectStorageInventory> {
+  async cloneProjectObjects(
+    _sourceProjectId: string,
+    _targetProjectId: string,
+    _inventory: ObjectStorageInventory,
+    _guard?: () => Promise<void>,
+  ): Promise<ObjectStorageInventory> {
     throw new ObjectStorageError('A real object-storage backend is required for a physical clone', 'BACKEND_REQUIRED');
   }
 }
@@ -337,12 +385,31 @@ export class GcsObjectStorage implements ObjectStorage {
 
   constructor(private readonly _storage: StorageLike) {}
 
+  private async verifyBucketVersioning(bucket: BucketLike, guard?: () => Promise<void>): Promise<void> {
+    /* The real GCS adapter always exposes getMetadata; bounded polling covers propagation. */
+    if (!bucket.getMetadata) {
+      throw new ObjectStorageError('Bucket object versioning cannot be inspected', 'VERSIONING_INSPECTION_REQUIRED');
+    }
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      await guard?.();
+      const [metadata] = await bucket.getMetadata();
+      if (metadata.versioning?.enabled === true) return;
+      if (attempt < 4) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 50 * (attempt + 1)));
+      }
+    }
+    throw new ObjectStorageError('Bucket object versioning could not be verified', 'VERSIONING_REQUIRED');
+  }
+
   async ensureBucket(projectId: string, guard?: () => Promise<void>) {
     const name = projectBucketName(projectId);
     const bucket = this._storage.bucket(name);
     const [exists] = await bucket.exists();
 
     if (exists) {
+      await guard?.();
+      await bucket.setMetadata({ versioning: { enabled: true } });
+      await this.verifyBucketVersioning(bucket, guard);
       return { bucket: name, created: false, location: OBJECT_STORAGE_LOCATION };
     }
 
@@ -352,6 +419,7 @@ export class GcsObjectStorage implements ObjectStorage {
     await bucket.create({
       location: OBJECT_STORAGE_LOCATION,
       uniformBucketLevelAccess: true,
+      versioning: { enabled: true },
       lifecycle: { rule: buildLifecycleRules() },
       labels: {
         'vibecore-project': projectId
@@ -360,6 +428,7 @@ export class GcsObjectStorage implements ObjectStorage {
           .slice(0, 63),
       },
     });
+    await this.verifyBucketVersioning(bucket, guard);
 
     return { bucket: name, created: true, location: OBJECT_STORAGE_LOCATION };
   }
@@ -368,6 +437,14 @@ export class GcsObjectStorage implements ObjectStorage {
     const [exists] = await this._storage.bucket(projectBucketName(projectId)).exists();
 
     return exists;
+  }
+
+  async bucketVersioningEnabled(projectId: string): Promise<boolean> {
+    const bucket = this._storage.bucket(projectBucketName(projectId));
+    const [exists] = await bucket.exists();
+    if (!exists || !bucket.getMetadata) return false;
+    const [metadata] = await bucket.getMetadata();
+    return metadata.versioning?.enabled === true;
   }
 
   async listObjects(projectId: string, opts: { prefix?: string; delimiter?: string } = {}) {
@@ -391,11 +468,13 @@ export class GcsObjectStorage implements ObjectStorage {
         contentType: file.metadata?.contentType ?? null,
         etag: file.metadata?.etag ?? null,
         generation: file.metadata?.generation === undefined ? null : String(file.metadata.generation),
-        contentHash: file.metadata?.md5Hash
-          ? `md5:${file.metadata.md5Hash}`
-          : file.metadata?.crc32c
-            ? `crc32c:${file.metadata.crc32c}`
-            : null,
+        contentHash: file.metadata?.metadata?.['vibecore-sha256']
+          ? `sha256:${file.metadata.metadata['vibecore-sha256']}`
+          : file.metadata?.md5Hash
+            ? `md5:${file.metadata.md5Hash}`
+            : file.metadata?.crc32c
+              ? `crc32c:${file.metadata.crc32c}`
+              : null,
       }));
 
     const folders = (apiResponse?.prefixes ?? []).slice().sort();
@@ -403,9 +482,42 @@ export class GcsObjectStorage implements ObjectStorage {
     return { objects, folders };
   }
 
-  async createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult> {
+  async listObjectVersions(projectId: string, opts: { prefix?: string } = {}): Promise<ListObjectsResult> {
+    const bucket = this._storage.bucket(projectBucketName(projectId));
+    const [files] = await bucket.getFiles({
+      prefix: opts.prefix || undefined,
+      versions: true,
+      autoPaginate: true,
+    });
+    const objects = files
+      .map((file) => ({
+        key: file.name,
+        size: Number(file.metadata?.size ?? 0),
+        updated: file.metadata?.updated ?? null,
+        contentType: file.metadata?.contentType ?? null,
+        etag: file.metadata?.etag ?? null,
+        generation: file.metadata?.generation === undefined ? null : String(file.metadata.generation),
+        contentHash: file.metadata?.metadata?.['vibecore-sha256']
+          ? `sha256:${file.metadata.metadata['vibecore-sha256']}`
+          : file.metadata?.md5Hash
+            ? `md5:${file.metadata.md5Hash}`
+            : file.metadata?.crc32c
+              ? `crc32c:${file.metadata.crc32c}`
+              : null,
+      }))
+      .sort(
+        (left, right) =>
+          left.key.localeCompare(right.key) || String(left.generation).localeCompare(String(right.generation)),
+      );
+    return { objects, folders: [] };
+  }
+
+  async createUploadUrl(
+    projectId: string,
+    input: { key: string; contentType?: string; expiresAt?: string },
+  ): Promise<UploadUrlResult> {
     const key = assertValidObjectKey(input.key);
-    const expiresMs = Date.now() + SIGNED_URL_TTL_MS;
+    const expiresMs = this.signedUrlExpiration(input.expiresAt);
     const contentType = input.contentType || 'application/octet-stream';
 
     const [url] = await this._storage
@@ -421,9 +533,12 @@ export class GcsObjectStorage implements ObjectStorage {
     };
   }
 
-  async createDownloadUrl(projectId: string, input: { key: string; generation?: string }): Promise<SignedUrlResult> {
+  async createDownloadUrl(
+    projectId: string,
+    input: { key: string; generation?: string; expiresAt?: string },
+  ): Promise<SignedUrlResult> {
     const key = assertValidObjectKey(input.key);
-    const expiresMs = Date.now() + SIGNED_URL_TTL_MS;
+    const expiresMs = this.signedUrlExpiration(input.expiresAt);
 
     const [url] = await this._storage
       .bucket(projectBucketName(projectId))
@@ -433,46 +548,163 @@ export class GcsObjectStorage implements ObjectStorage {
     return { url, expiresAt: new Date(expiresMs).toISOString() };
   }
 
+  private signedUrlExpiration(expiresAt: string | undefined): number {
+    const expiresMs = expiresAt ? Date.parse(expiresAt) : Number.NaN;
+    if (!Number.isFinite(expiresMs) || expiresMs <= Date.now()) {
+      throw new ObjectStorageError(
+        'A future database-reserved signed URL expiration is required',
+        'CAPABILITY_EXPIRY_REQUIRED',
+      );
+    }
+    return expiresMs;
+  }
+
   async putObject(
     projectId: string,
-    input: { key: string; body: Uint8Array; contentType?: string },
-  ): Promise<{ key: string; size: number }> {
+    input: {
+      key: string;
+      body: Uint8Array;
+      contentType?: string;
+      ifGenerationMatch?: string | 0;
+    },
+  ): Promise<{ key: string; size: number; generation?: string; contentHash?: string }> {
     const key = assertValidObjectKey(input.key);
     const contentType = input.contentType || 'application/octet-stream';
     const body = Buffer.from(input.body);
+    const file = this._storage.bucket(projectBucketName(projectId)).file(key);
 
-    await this._storage.bucket(projectBucketName(projectId)).file(key).save(body, { contentType, resumable: false });
+    const contentHash = `sha256:${createHash('sha256').update(body).digest('hex')}`;
+    await file.save(body, {
+      contentType,
+      resumable: false,
+      metadata: { 'vibecore-sha256': contentHash.slice('sha256:'.length) },
+      ...(input.ifGenerationMatch !== undefined
+        ? { preconditionOpts: { ifGenerationMatch: input.ifGenerationMatch } }
+        : {}),
+    });
+    const metadata = file.getMetadata ? (await file.getMetadata())[0] : file.metadata;
 
-    return { key, size: body.byteLength };
+    return {
+      key,
+      size: body.byteLength,
+      ...(metadata?.generation ? { generation: String(metadata.generation) } : {}),
+      contentHash,
+    };
   }
 
-  async moveObject(projectId: string, input: { from: string; to: string }) {
+  async moveObject(
+    projectId: string,
+    input: { from: string; to: string; sourceGeneration?: string },
+    guard?: () => Promise<void>,
+  ) {
     const from = assertValidObjectKey(input.from);
     const to = assertValidObjectKey(input.to);
     const bucket = this._storage.bucket(projectBucketName(projectId));
+    const sourceProbe = bucket.file(from);
+    const sourceMetadata = input.sourceGeneration
+      ? undefined
+      : sourceProbe.getMetadata
+        ? (await sourceProbe.getMetadata())[0]
+        : sourceProbe.metadata;
+    const sourceGeneration =
+      input.sourceGeneration ?? (sourceMetadata?.generation ? String(sourceMetadata.generation) : undefined);
 
-    await bucket.file(from).copy(bucket.file(to));
-    await bucket.file(from).delete();
+    if (!sourceGeneration) {
+      throw new ObjectStorageError('The source object has no immutable provider generation', 'SOURCE_UNPINNABLE');
+    }
+    /*
+     * @google-cloud/storage does not apply a made-up
+     * ifSourceGenerationMatch copy option. Pin the source URI itself to the
+     * immutable generation; the only copy precondition belongs to the target.
+     */
+    const source = bucket.file(from, { generation: sourceGeneration });
+    const target = bucket.file(to);
 
-    return { moved: true, key: to };
+    await guard?.();
+    await source.copy(target, {
+      preconditionOpts: { ifGenerationMatch: 0 },
+    });
+    await guard?.();
+    await source.delete({ ifGenerationMatch: sourceGeneration });
+    await guard?.();
+    const targetMetadata = target.getMetadata ? (await target.getMetadata())[0] : target.metadata;
+
+    return {
+      moved: true,
+      key: to,
+      ...(targetMetadata?.generation ? { generation: String(targetMetadata.generation) } : {}),
+    };
   }
 
-  async deleteObject(projectId: string, input: { key: string }) {
+  async deleteObject(projectId: string, input: { key: string; generation?: string }) {
     const key = assertValidObjectKey(input.key);
-
-    await this._storage.bucket(projectBucketName(projectId)).file(key).delete();
-
-    return { deleted: true, count: 1 };
+    try {
+      await this._storage
+        .bucket(projectBucketName(projectId))
+        .file(key, input.generation ? { generation: input.generation } : undefined)
+        .delete(input.generation ? { ifGenerationMatch: input.generation } : undefined);
+      return { deleted: true, count: 1 };
+    } catch (error) {
+      /* Provider 404 is the exact idempotent target state: nothing was deleted. */
+      if (error && typeof error === 'object' && 'code' in error && (error.code === 404 || error.code === '404')) {
+        return { deleted: false, count: 0 };
+      }
+      throw error;
+    }
   }
 
-  async deletePrefix(projectId: string, input: { prefix: string }) {
+  async deletePrefix(projectId: string, input: { prefix: string }, guard?: () => Promise<void>) {
     const prefix = assertValidObjectKey(input.prefix);
     const bucket = this._storage.bucket(projectBucketName(projectId));
-    const [files] = await bucket.getFiles({ prefix, autoPaginate: false, maxResults: 1000 });
+    let count = 0;
 
-    await Promise.all(files.map((file) => bucket.file(file.name).delete()));
+    /*
+     * A single maxResults=1000 page left every later object behind. Re-read the
+     * first page after deleting it instead of advancing a page token over a
+     * mutating listing; the loop terminates only from a live empty page.
+     */
+    while (true) {
+      await guard?.();
+      const [files] = await bucket.getFiles({
+        prefix,
+        versions: true,
+        autoPaginate: false,
+        maxResults: 1000,
+      });
 
-    return { deleted: true, count: files.length };
+      if (files.length === 0) break;
+      const pinned = files.map((file) => {
+        const generation = file.metadata?.generation;
+        if (generation === undefined || generation === null || String(generation).length === 0) {
+          throw new ObjectStorageError(
+            'Object generation history cannot be pinned for deletion',
+            'GENERATION_INSPECTION_REQUIRED',
+          );
+        }
+        return { key: file.name, generation: String(generation) };
+      });
+      await guard?.();
+      await Promise.all(
+        pinned.map(async (file) => {
+          try {
+            await bucket.file(file.key, { generation: file.generation }).delete({ ifGenerationMatch: file.generation });
+          } catch (error) {
+            if (
+              !error ||
+              typeof error !== 'object' ||
+              !('code' in error) ||
+              (error.code !== 404 && error.code !== '404')
+            ) {
+              throw error;
+            }
+          }
+        }),
+      );
+      count += pinned.length;
+      await guard?.();
+    }
+
+    return { deleted: true, count };
   }
 
   async deleteBucket(projectId: string, guard?: () => Promise<void>) {
@@ -489,7 +721,7 @@ export class GcsObjectStorage implements ObjectStorage {
      * ignores per-object failures), then remove the bucket itself.
      */
     await guard?.();
-    await bucket.deleteFiles({ force: true });
+    await bucket.deleteFiles({ force: true, versions: true });
     await guard?.();
     await bucket.delete();
 
@@ -526,8 +758,8 @@ export class GcsObjectStorage implements ObjectStorage {
       return { bucketExists: false, objects: [] };
     }
 
-    if (inventory.objects.some((object) => object.generation === null)) {
-      throw new ObjectStorageError('A source object has no immutable provider generation', 'SOURCE_UNPINNABLE');
+    if (inventory.objects.some((object) => object.generation === null || object.contentHash === null)) {
+      throw new ObjectStorageError('A source object has no immutable generation and checksum', 'SOURCE_UNPINNABLE');
     }
 
     await this.ensureBucket(targetProjectId, guard);
@@ -538,7 +770,7 @@ export class GcsObjectStorage implements ObjectStorage {
       await guard?.();
       const sourceFile = source.file(object.key, { generation: object.generation! });
       await sourceFile.copy(target.file(object.key), {
-        preconditionOpts: { ifSourceGenerationMatch: object.generation },
+        preconditionOpts: { ifGenerationMatch: 0 },
       });
     }
 
@@ -565,62 +797,6 @@ export class GcsObjectStorage implements ObjectStorage {
 
     return verified;
   }
-}
-
-/**
- * Block every mutation for a read-only shared target, including background
- * thumbnail writers. The physical remix service receives the raw adapter, so
- * target-only clone/compensation operations are not accidentally blocked.
- */
-export function guardSharedObjectStorageWrites(
-  storage: ObjectStorage,
-  isSharedReadOnly: (projectId: string) => Promise<boolean>,
-  withMutationFence?: <T>(projectIds: string[], effect: () => Promise<T>) => Promise<T>,
-): ObjectStorage {
-  const guard = async (projectId: string) => {
-    if (await isSharedReadOnly(projectId)) {
-      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
-    }
-  };
-
-  const withinMutationFences = async <T>(projectIds: string[], effect: () => Promise<T>): Promise<T> => {
-    if (!withMutationFence) return effect();
-
-    // Clones touch two physical buckets. Acquire every fence in one stable set
-    // so a source purge cannot race a copy-out and opposing clones cannot invert
-    // their lock order.
-    const ids = [...new Set(projectIds)].sort();
-    return withMutationFence(ids, effect);
-  };
-
-  const mutate = async <T>(projectId: string, effect: () => Promise<T>): Promise<T> => {
-    // Resolve the read-only share policy before opening the long-lived provider
-    // transaction; otherwise every mutation would need a second Prisma
-    // connection while the purge-fence connection is held.
-    await guard(projectId);
-    return withinMutationFences([projectId], effect);
-  };
-
-  return {
-    active: storage.active,
-    bucketExists: (projectId) => storage.bucketExists(projectId),
-    listObjects: (projectId, opts) => storage.listObjects(projectId, opts),
-    createDownloadUrl: (projectId, input) => storage.createDownloadUrl(projectId, input),
-    inventoryProjectObjects: (projectId) => storage.inventoryProjectObjects(projectId),
-    ensureBucket: (projectId) => mutate(projectId, () => storage.ensureBucket(projectId)),
-    createUploadUrl: (projectId, input) => mutate(projectId, () => storage.createUploadUrl(projectId, input)),
-    putObject: (projectId, input) => mutate(projectId, () => storage.putObject(projectId, input)),
-    moveObject: (projectId, input) => mutate(projectId, () => storage.moveObject(projectId, input)),
-    deleteObject: (projectId, input) => mutate(projectId, () => storage.deleteObject(projectId, input)),
-    deletePrefix: (projectId, input) => mutate(projectId, () => storage.deletePrefix(projectId, input)),
-    deleteBucket: (projectId) => mutate(projectId, () => storage.deleteBucket(projectId)),
-    cloneProjectObjects: async (sourceProjectId, targetProjectId, inventory, leaseGuard) => {
-      await guard(targetProjectId);
-      return withinMutationFences([sourceProjectId, targetProjectId], () =>
-        storage.cloneProjectObjects(sourceProjectId, targetProjectId, inventory, leaseGuard),
-      );
-    },
-  };
 }
 
 let cachedStorage: ObjectStorage | undefined;

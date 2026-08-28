@@ -94,6 +94,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     const { app, store, token, project } = await setup();
     const source = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -120,6 +121,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     const { app, store, token, project } = await setup();
     const source = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'BUILDING',
@@ -163,6 +165,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       const { app, store, token, project } = await setup({ databaseProvisioner });
       const source = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'static',
         environment: 'preview',
         status: 'READY',
@@ -256,6 +259,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
       const source = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',
@@ -310,6 +314,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
       const source = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',

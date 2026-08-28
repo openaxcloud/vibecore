@@ -15,7 +15,11 @@ class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
   corruptNextWrite = false;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     for (const file of files) bucket.set(file.path, file.content);
     if (this.corruptNextWrite && files[0]) {
@@ -23,10 +27,17 @@ class MemoryProjectStorage implements ProjectStorage {
       bucket.set(files[0].path, `${files[0].content}\ncorrupted-after-write`);
     }
     this.files.set(projectId, bucket);
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const updatedAt = new Date().toISOString();
     return [...(this.files.get(projectId) ?? new Map()).entries()].map(([path, content]) => ({
       path,
@@ -40,6 +51,9 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
   async exportZip() {
@@ -56,7 +70,14 @@ class MemoryProjectStorage implements ProjectStorage {
   async createSnapshot() {
     return { storageKey: 'snapshot', byteLength: 0, createdAt: new Date().toISOString() };
   }
-  async getSnapshotFiles() {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, _storageKey: string) {
     return [];
   }
   async restoreSnapshot() {
@@ -177,7 +198,9 @@ describe('GitHub / GitLab / Bitbucket repo import', () => {
       sourceType: 'gitlab',
       gitRepositoryUrl: 'https://gitlab.com/acme/private-app',
     });
-    const targetFiles = await projectStorage.listFiles(project.id);
+    const targetFiles = await projectStorage.listFiles(project.id, {
+      expectedOrganizationId: t.organization.id,
+    });
     expect(targetFiles.map((file) => file.content).join('\n')).not.toContain(importedSecret);
     expect(targetFiles.find((file) => file.path === '.env')?.content).toContain('API_SECRET=');
 

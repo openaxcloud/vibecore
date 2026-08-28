@@ -31,6 +31,7 @@ describe('GitCliProvider self-heals an invalid .git (PANEL_BACKEND_UNAVAILABLE f
     process.env.PROJECT_STORAGE_DIR = storage;
 
     const projectId = 'corrupt-git-project';
+    const scope = { expectedOrganizationId: 'org_corrupt_git_project' };
     const projectDir = join(storage, projectId);
 
     // Reproduce prod: a `.git` PATH exists but is NOT a valid repository.
@@ -40,12 +41,12 @@ describe('GitCliProvider self-heals an invalid .git (PANEL_BACKEND_UNAVAILABLE f
     const provider = new GitCliProvider();
 
     // Before the fix these threw "fatal: not a git repository" (→ 500 → banner).
-    const status = await provider.status(projectId);
+    const status = await provider.status(projectId, scope);
     expect(status.branch).toBeTruthy();
     // "0 changed" is fixed: the user's file surfaces as a real change.
     expect(status.changedFiles).toContain('Settings.tsx');
 
-    const branches = await provider.listBranches(projectId);
+    const branches = await provider.listBranches(projectId, scope);
     expect(Array.isArray(branches)).toBe(true);
   });
 
@@ -55,12 +56,13 @@ describe('GitCliProvider self-heals an invalid .git (PANEL_BACKEND_UNAVAILABLE f
     process.env.PROJECT_STORAGE_DIR = storage;
 
     const projectId = 'no-git-project';
+    const scope = { expectedOrganizationId: 'org_no_git_project' };
     const projectDir = join(storage, projectId);
     await mkdir(projectDir, { recursive: true });
     await writeFile(join(projectDir, 'App.tsx'), 'export default 1;\n');
 
     const provider = new GitCliProvider();
-    const status = await provider.status(projectId);
+    const status = await provider.status(projectId, scope);
 
     expect(status.changedFiles).toContain('App.tsx');
   });

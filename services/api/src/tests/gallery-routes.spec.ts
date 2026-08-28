@@ -21,20 +21,36 @@ class SnapshotProjectStorage implements ProjectStorage {
   readonly snapshots = new Map<string, ProjectFile[]>();
   private seq = 0;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     for (const file of files) bucket.set(file.path, file.content);
     this.files.set(projectId, bucket);
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
     return [...bucket.entries()].map(([path, content]) => ({ path, content, updatedAt }));
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    label?: string;
+    files: ProjectFile[];
+  }) {
     const storageKey = `snap-${(this.seq += 1)}`;
     // Deep-copy so a later live edit cannot mutate the pinned archive.
     this.snapshots.set(
@@ -44,7 +60,15 @@ class SnapshotProjectStorage implements ProjectStorage {
     return { id: storageKey, storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
-  async getSnapshotFiles(storageKey: string): Promise<ProjectFile[]> {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string): Promise<ProjectFile[]> {
     return (this.snapshots.get(storageKey) ?? []).map((f) => ({ ...f }));
   }
 
@@ -53,10 +77,15 @@ class SnapshotProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteFiles() {}
-  async exportZip() {
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {}
@@ -64,10 +93,21 @@ class SnapshotProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteObject() {}
-  async restoreSnapshot() {
+  async restoreSnapshot(
+    _input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    _guard?: () => Promise<void>,
+  ) {
     return [];
   }
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
 }
@@ -97,10 +137,15 @@ async function seedGallery() {
     files: ProjectFile[];
   }) => {
     const project = await store.createProject({ organizationId: org.id, name: opts.title, slug: opts.slug });
-    await projectStorage.writeFiles(project.id, opts.files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files: opts.files });
+    await projectStorage.writeFiles(project.id, opts.files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: org.id,
+      files: opts.files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       kind: 'manual',
       manifest: { files: opts.files.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -249,10 +294,15 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       { path: '.env', content: `PORT=3000\nSTRIPE_KEY=${SECRET_VALUE}\nDATABASE_URL=${ENV_VALUE}\n`, updatedAt: '' },
       { path: 'README.md', content: '# Paid App\n', updatedAt: '' },
     ];
-    await projectStorage.writeFiles(source.id, snapshotFiles);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    await projectStorage.writeFiles(source.id, snapshotFiles, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
+      files: snapshotFiles,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: { files: snapshotFiles.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -274,9 +324,11 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     });
 
     // ---- Mutate the LIVE source AFTER the snapshot: the pin must ignore this. ----
-    await projectStorage.writeFiles(source.id, [
-      { path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' },
-    ]);
+    await projectStorage.writeFiles(
+      source.id,
+      [{ path: 'src/app.ts', content: 'console.log("LIVE_EDIT_V2_AFTER_SNAPSHOT");\n' }],
+      { expectedOrganizationId: ctx.org.id },
+    );
 
     // The remixer: a DIFFERENT user + org.
     const remixer = await store.createUser({
@@ -323,7 +375,9 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
     expect(job?.state).toBe('COMPLETED');
 
     // (3) IMMUTABLE PIN: the clone reflects the SNAPSHOT (V1), NOT the later live edit (V2).
-    const cloneFiles = await projectStorage.listFiles(cloneId);
+    const cloneFiles = await projectStorage.listFiles(cloneId, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const appFile = cloneFiles.find((f) => f.path === 'src/app.ts');
     expect(appFile?.content).toContain('SNAPSHOT_V1');
     expect(appFile?.content).not.toContain('LIVE_EDIT_V2_AFTER_SNAPSHOT');
@@ -373,7 +427,9 @@ describe('POST /gallery/:slug/remix — pinned, secure fork into the remixer org
       v && typeof v === 'object' ? (v as Record<string, unknown>) : {};
 
     // ───────── SURFACE 1 · FILES (the clone's files, every one of them) ─────────
-    const cloneFiles = await projectStorage.listFiles(cloneId);
+    const cloneFiles = await projectStorage.listFiles(cloneId, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     for (const file of cloneFiles) {
       expect(hunt(file.content), `secret leaked into clone file ${file.path}`).toEqual([]);
     }
@@ -509,10 +565,15 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
       },
       { path: 'src/app.ts', content: 'export const CONTACT = "support@example.com";\n', updatedAt: '' },
     ];
-    await projectStorage.writeFiles(source.id, snapshotFiles);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files: snapshotFiles });
+    await projectStorage.writeFiles(source.id, snapshotFiles, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
+      files: snapshotFiles,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: { files: snapshotFiles.map((f) => f.path) },
       storageKey: archive.storageKey,
@@ -630,7 +691,9 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     expect(res.statusCode).toBe(201);
     const body = res.json();
 
-    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const cloneFiles = await projectStorage.listFiles(body.project.id, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const allText = cloneFiles.map((f) => f.content).join('\n');
 
     // NON-VACUITÉ : sans ça, un clone vide ferait passer toutes les négations.
@@ -673,7 +736,9 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05 
     expect(res.statusCode).toBe(201);
     const body = res.json();
 
-    const cloneFiles = await projectStorage.listFiles(body.project.id);
+    const cloneFiles = await projectStorage.listFiles(body.project.id, {
+      expectedOrganizationId: remixerOrg.id,
+    });
     const allText = cloneFiles.map((f) => f.content).join('\n');
     expect(allText).toContain(PII_EMAIL); // shipped as-is — author consented
     expect(body.remix.piiMaskedCount).toBe(0);
@@ -723,10 +788,15 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
     const org = await store.createOrganization({ name: 'Curator Org', slug: 'curator-org', ownerUserId: admin.id });
     const source = await store.createProject({ organizationId: org.id, name: 'Sample', slug: 'sample' });
     const files: ProjectFile[] = [{ path: 'index.js', content: 'console.log(1);\n', updatedAt: '' }];
-    await projectStorage.writeFiles(source.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
+    await projectStorage.writeFiles(source.id, files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: org.id,
       kind: 'manual',
       manifest: {},
       storageKey: archive.storageKey,
@@ -772,6 +842,7 @@ describe('POST /admin/gallery-listings — curator publish (no self-service)', (
     });
     const otherSnap = await store.createSnapshot({
       projectId: otherProject.id,
+      expectedOrganizationId: source.organizationId,
       kind: 'manual',
       manifest: {},
       storageKey: 'x',
@@ -828,10 +899,15 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const org = await store.createOrganization({ name: 'C2 Org', slug: 'c2-org', ownerUserId: admin.id });
     const source = await store.createProject({ organizationId: org.id, name: 'Sample2', slug: 'sample2' });
     const files: ProjectFile[] = [{ path: 'index.js', content: '1\n', updatedAt: '' }];
-    await projectStorage.writeFiles(source.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: source.id, files });
+    await projectStorage.writeFiles(source.id, files, { expectedOrganizationId: org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: source.id,
+      expectedOrganizationId: org.id,
+      files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: source.id,
+      expectedOrganizationId: org.id,
       kind: 'manual',
       manifest: {},
       storageKey: archive.storageKey,
@@ -901,10 +977,15 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const { store, projectStorage, app } = ctx;
     const project = await store.createProject({ organizationId: ctx.org.id, name: 'Forced', slug: 'forced' });
     const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
-    await projectStorage.writeFiles(project.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
+    await projectStorage.writeFiles(project.id, files, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: {},
       storageKey: archive.storageKey,
@@ -1022,10 +1103,15 @@ describe('Politique licence FAIL-CLOSED (directive 20/07)', () => {
     const { store, projectStorage, app } = ctx;
     const project = await store.createProject({ organizationId: ctx.org.id, name: 'Legacy', slug: 'legacy' });
     const files: ProjectFile[] = [{ path: 'a', content: '1', updatedAt: '' }];
-    await projectStorage.writeFiles(project.id, files);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, files });
+    await projectStorage.writeFiles(project.id, files, { expectedOrganizationId: ctx.org.id });
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
+      files,
+    });
     const snapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: ctx.org.id,
       kind: 'manual',
       manifest: {},
       storageKey: archive.storageKey,

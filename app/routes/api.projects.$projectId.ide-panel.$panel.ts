@@ -2051,6 +2051,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       try {
         const result = await apiRequest(request, `/projects/${projectId}/object-storage/bucket`, {
           method: 'DELETE',
+          headers: { 'idempotency-key': body.idempotencyKey || randomUUID() },
         });
         return json({ enabled: true, ok: true, ...(result as any) });
       } catch (error) {
@@ -2111,6 +2112,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       try {
         const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects/move`, {
           method: 'POST',
+          headers: { 'idempotency-key': body.idempotencyKey || randomUUID() },
           body: JSON.stringify({ from, to }),
         });
         return json({ enabled: true, ok: true, ...(result as any) });
@@ -2130,6 +2132,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       try {
         const result = await apiRequest(request, `/projects/${projectId}/object-storage/objects`, {
           method: 'DELETE',
+          headers: { 'idempotency-key': body.idempotencyKey || randomUUID() },
           body: JSON.stringify(payload),
         });
         return json({ enabled: true, ok: true, ...(result as any) });

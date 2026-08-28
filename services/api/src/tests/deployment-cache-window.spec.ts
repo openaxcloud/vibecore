@@ -177,6 +177,7 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
 
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',

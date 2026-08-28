@@ -29,20 +29,36 @@ class CheckpointStorage implements ProjectStorage {
   /** Test hook: next createSnapshot throws (failure-path proof). */
   failNextSnapshot = false;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     for (const file of files) bucket.set(file.path, file.content);
     this.files.set(projectId, bucket);
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
     return [...bucket.entries()].map(([path, content]) => ({ path, content, updatedAt }));
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    label?: string;
+    files: ProjectFile[];
+  }) {
     if (this.failNextSnapshot) {
       this.failNextSnapshot = false;
       throw new Error('injected snapshot failure');
@@ -60,7 +76,15 @@ class CheckpointStorage implements ProjectStorage {
     return { id: storageKey, storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
-  async getSnapshotFiles(storageKey: string): Promise<ProjectFile[]> {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string): Promise<ProjectFile[]> {
     return (this.snapshots.get(storageKey) ?? []).map((f) => ({ ...f }));
   }
 
@@ -68,13 +92,21 @@ class CheckpointStorage implements ProjectStorage {
     return undefined;
   }
   async deleteFiles() {}
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     this.files.delete(projectId);
   }
-  async exportZip() {
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {}
@@ -82,7 +114,15 @@ class CheckpointStorage implements ProjectStorage {
     return undefined;
   }
   async deleteObject() {}
-  async restoreSnapshot() {
+  async restoreSnapshot(
+    _input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    _guard?: () => Promise<void>,
+  ) {
     return [];
   }
 }
@@ -103,10 +143,14 @@ async function setup() {
   await store.createSession({ userId: user.id, token: 'ckpt-token', expiresAt: new Date(Date.now() + 3600_000) });
 
   const project = await store.createProject({ organizationId: org.id, name: 'Ckpt Project', slug: 'ckpt-project' });
-  await projectStorage.writeFiles(project.id, [
-    { path: 'src/app.ts', content: 'export const V = 1;\n' },
-    { path: 'README.md', content: '# checkpoint me\n' },
-  ]);
+  await projectStorage.writeFiles(
+    project.id,
+    [
+      { path: 'src/app.ts', content: 'export const V = 1;\n' },
+      { path: 'README.md', content: '# checkpoint me\n' },
+    ],
+    { expectedOrganizationId: org.id },
+  );
 
   return { app, store, projectStorage, org, project };
 }
@@ -253,7 +297,9 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
     const ckpt = created.json().checkpoint;
 
     // Modifier le projet APRÈS le checkpoint : le snapshot doit rester figé.
-    await projectStorage.writeFiles(project.id, [{ path: 'src/app.ts', content: 'export const V = 999;\n' }]);
+    await projectStorage.writeFiles(project.id, [{ path: 'src/app.ts', content: 'export const V = 999;\n' }], {
+      expectedOrganizationId: project.organizationId,
+    });
 
     const res = await app.inject({
       method: 'POST',
@@ -267,7 +313,9 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
     expect(body.targetProjectId).not.toBe(project.id); // jamais d'écrasement du source
 
     // Le projet jetable contient la version DU CHECKPOINT (V=1), pas la V=999.
-    const restored = await projectStorage.listFiles(body.targetProjectId);
+    const restored = await projectStorage.listFiles(body.targetProjectId, {
+      expectedOrganizationId: project.organizationId,
+    });
     expect(restored.find((f) => f.path === 'src/app.ts')?.content).toContain('V = 1');
   });
 

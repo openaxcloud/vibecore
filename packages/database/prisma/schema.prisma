@@ -314,63 +314,238 @@ model RolePermission {
   @@id([roleId, permissionId])
 }
 
+/// Provider-facing object-storage work is a durable saga. The kind is kept as
+/// an enum so an unknown producer cannot silently create an unrecoverable job;
+/// `payload.command` carries the extensible command inside each coarse kind.
+enum ObjectStorageOperationKind {
+  TENANT_MUTATION
+  SIGNED_UPLOAD_CAPABILITY
+  SIGNED_DOWNLOAD_CAPABILITY
+  PROJECT_TRANSFER
+  PROJECT_PERMANENT_DELETE
+  PROJECT_REMIX_CLONE
+  ACCOUNT_PURGE_ERASURE
+}
+
+/// PREPARED/FAILED_SAFE may be retried without assuming a provider effect.
+/// EFFECT_STARTED and VERIFYING are deliberately ambiguous after lease loss and
+/// may only enter recovery through a verify-first claim. MANUAL_RECOVERY is a
+/// durable freeze, never an automatic retry/unfreeze state.
+enum ObjectStorageOperationStatus {
+  PREPARED
+  EFFECT_STARTED
+  VERIFYING
+  COMMITTED
+  FAILED_SAFE
+  MANUAL_RECOVERY
+}
+
+enum ObjectStorageCapabilityReservationStatus {
+  RESERVED
+  ISSUED
+}
+
 model Project {
-  id                       String                       @id @default(cuid())
-  organizationId           String
-  name                     String
-  slug                     String
-  description              String?
-  sourceType               String                       @default("blank")
-  templateName             String?
-  gitRepositoryUrl         String?
-  gitDefaultBranch         String?
-  persistentVolumeClaim    String?
-  thumbnailUrl             String?
-  thumbnailUpdatedAt       DateTime?
-  deletedAt                DateTime?
-  createdAt                DateTime                     @default(now())
-  updatedAt                DateTime                     @updatedAt
-  organization             Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  environments             ProjectEnvironment[]
-  envVars                  ProjectEnvVar[]
-  secrets                  ProjectSecret[]
-  collaborators            ProjectCollaborator[]
-  activity                 ProjectActivity[]
-  templates                ProjectTemplate[]            @relation("ProjectTemplates")
-  galleryListings          GalleryListing[]             @relation("ProjectGalleryListings")
-  workspaces               Workspace[]
-  snapshots                ProjectSnapshot[]
-  manifestRevisions        ProjectManifestRevision[]
-  storageObjects           ProjectStorageObject[]
-  deployments              Deployment[]
-  reservedVmOperations     ReservedVmOperation[]
-  reservedVmBillingPeriods ReservedVmBillingPeriod[]
-  rollbackOperations       RollbackIdempotencyRequest[]
-  fileSnapshots            FileSnapshot[]
-  conversations            AiConversation[]
-  ideState                 ProjectIdeState?
-  collaborationPresence    CollaborationPresence[]
-  collaborationComments    CollaborationComment[]
-  shareLinks               ProjectShareLink[]
-  agentMemories            AgentMemory[]
-  agentMemoryPreferences   AgentMemoryPreference[]
-  agentPatchProposals      AgentPatchProposal[]
-  connectionLinks          ProjectConnectionLink[]
-  databaseInstances        DatabaseInstance[]
-  skills                   ProjectSkill[]
-  repairEvents             AgentRepairEvent[]
-  slugRedirects            ProjectSlugRedirect[]
-  runtimeWebSocketTickets  RuntimeWebSocketTicket[]
-  importJobs               ImportJob[]                  @relation("ImportJobTarget")
-  targetRemixJobs          RemixJob[]                   @relation("RemixJobTarget")
-  sourceRemixShares        RemixStorageShare[]          @relation("RemixStorageShareSourceProject")
-  targetRemixShares        RemixStorageShare[]          @relation("RemixStorageShareTargetProject")
-  cloudBinding             CloudProjectBinding?
-  checkpoints              ProjectCheckpoint[]
-  releaseManifests         ReleaseManifest[]
+  id                               String                               @id @default(cuid())
+  organizationId                   String
+  name                             String
+  slug                             String
+  description                      String?
+  sourceType                       String                               @default("blank")
+  templateName                     String?
+  gitRepositoryUrl                 String?
+  gitDefaultBranch                 String?
+  persistentVolumeClaim            String?
+  thumbnailUrl                     String?
+  thumbnailUpdatedAt               DateTime?
+  // Upper bound of every signed GCS capability ever returned for this project.
+  // Tenant transfer must wait until it is in the past before bucket-name reuse.
+  objectStorageCapabilityExpiresAt DateTime?
+  // Durable write/transfer freeze installed before permanent provider erasure.
+  // It is cleared automatically only while the exact pre-effect fences still
+  // match; an ambiguous provider outcome requires verification or manual work.
+  permanentDeletionStartedAt       DateTime?
+  deletedAt                        DateTime?
+  createdAt                        DateTime                             @default(now())
+  updatedAt                        DateTime                             @updatedAt
+  organization                     Organization                         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  environments                     ProjectEnvironment[]
+  envVars                          ProjectEnvVar[]
+  secrets                          ProjectSecret[]
+  collaborators                    ProjectCollaborator[]
+  activity                         ProjectActivity[]
+  templates                        ProjectTemplate[]                    @relation("ProjectTemplates")
+  galleryListings                  GalleryListing[]                     @relation("ProjectGalleryListings")
+  workspaces                       Workspace[]
+  snapshots                        ProjectSnapshot[]
+  manifestRevisions                ProjectManifestRevision[]
+  storageObjects                   ProjectStorageObject[]
+  deployments                      Deployment[]
+  reservedVmOperations             ReservedVmOperation[]
+  reservedVmBillingPeriods         ReservedVmBillingPeriod[]
+  rollbackOperations               RollbackIdempotencyRequest[]
+  fileSnapshots                    FileSnapshot[]
+  conversations                    AiConversation[]
+  ideState                         ProjectIdeState?
+  collaborationPresence            CollaborationPresence[]
+  collaborationComments            CollaborationComment[]
+  shareLinks                       ProjectShareLink[]
+  agentMemories                    AgentMemory[]
+  agentMemoryPreferences           AgentMemoryPreference[]
+  agentPatchProposals              AgentPatchProposal[]
+  connectionLinks                  ProjectConnectionLink[]
+  databaseInstances                DatabaseInstance[]
+  skills                           ProjectSkill[]
+  repairEvents                     AgentRepairEvent[]
+  slugRedirects                    ProjectSlugRedirect[]
+  runtimeWebSocketTickets          RuntimeWebSocketTicket[]
+  importJobs                       ImportJob[]                          @relation("ImportJobTarget")
+  targetRemixJobs                  RemixJob[]                           @relation("RemixJobTarget")
+  sourceRemixShares                RemixStorageShare[]                  @relation("RemixStorageShareSourceProject")
+  targetRemixShares                RemixStorageShare[]                  @relation("RemixStorageShareTargetProject")
+  cloudBinding                     CloudProjectBinding?
+  checkpoints                      ProjectCheckpoint[]
+  releaseManifests                 ReleaseManifest[]
+  objectStorageOperationScopes     ObjectStorageOperationProjectScope[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+}
+
+/// Cross-replica idempotency, ownership, and evidence ledger for every
+/// provider-facing object-storage effect. The scope hash is computed from the
+/// canonical sorted (projectId, expectedOrganizationId, expectedDeletedAt)
+/// tuples. idempotencyScopeHash omits mutable delete state so the same key with
+/// a changed observation conflicts instead of creating a second operation.
+model ObjectStorageOperation {
+  id                          String                               @id @default(cuid())
+  kind                        ObjectStorageOperationKind
+  status                      ObjectStorageOperationStatus         @default(PREPARED)
+  scopeHash                   String
+  idempotencyScopeHash        String
+  idempotencyKey              String
+  requestHash                 String
+  payload                     Json
+  preconditions               Json
+  evidence                    Json?
+  result                      Json?
+  reservedCapabilityExpiresAt DateTime?
+  ownerToken                  String?
+  fencingToken                BigInt                               @default(1)
+  leaseExpiresAt              DateTime?
+  attempts                    Int                                  @default(1)
+  lastErrorCode               String?
+  lastErrorMessage            String?
+  preparedAt                  DateTime                             @default(now())
+  effectStartedAt             DateTime?
+  verificationStartedAt       DateTime?
+  committedAt                 DateTime?
+  failedSafeAt                DateTime?
+  manualRecoveryAt            DateTime?
+  createdAt                   DateTime                             @default(now())
+  updatedAt                   DateTime                             @updatedAt
+  scopes                      ObjectStorageOperationProjectScope[]
+  pinnedObjects               ObjectStorageOperationPinnedObject[]
+  capabilityReservations      ObjectStorageCapabilityReservation[]
+  permanentDeletionReceipt    ProjectPermanentDeletionReceipt?
+
+  @@unique([idempotencyScopeHash, idempotencyKey])
+  @@index([scopeHash])
+  @@index([status, leaseExpiresAt])
+  @@index([kind, status, createdAt])
+  @@index([reservedCapabilityExpiresAt])
+}
+
+/// Exact immutable source inventory for a clone. Normalized rows avoid the
+/// operation JSON size ceiling and remain available for verify-first recovery.
+model ObjectStorageOperationPinnedObject {
+  operationId String
+  ordinal     Int
+  key         String
+  size        BigInt
+  generation  String
+  contentHash String
+  operation   ObjectStorageOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([operationId, ordinal])
+  @@unique([operationId, key])
+}
+
+/// Non-secret authorization ledger for signed URL issuance. The signature and
+/// URL never enter PostgreSQL: a committed reservation only proves that the
+/// project capability upper-bound was advanced before the provider was asked
+/// to sign. A lost HTTP response safely creates another monotonic reservation.
+model ObjectStorageCapabilityReservation {
+  id                     String                                   @id @default(cuid())
+  operationId            String
+  attempt                Int
+  fencingToken           BigInt
+  authorizationTokenHash String
+  method                 String
+  objectKeyHash          String
+  reservedExpiresAt      DateTime
+  status                 ObjectStorageCapabilityReservationStatus @default(RESERVED)
+  evidence               Json?
+  reservedAt             DateTime                                 @default(now())
+  issuedAt               DateTime?
+  operation              ObjectStorageOperation                   @relation(fields: [operationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([operationId, attempt])
+  @@unique([operationId, fencingToken])
+  @@index([status, reservedExpiresAt])
+  @@index([objectKeyHash, reservedAt])
+}
+
+/// Historical scope snapshot. `projectIdSnapshot` and
+/// `expectedOrganizationId` intentionally have no FK: evidence must remain
+/// queryable after either tenant or project deletion. The nullable Project FK
+/// exists only for efficient live fencing and becomes NULL on hard deletion.
+model ObjectStorageOperationProjectScope {
+  operationId                        String
+  ordinal                            Int
+  projectIdSnapshot                  String
+  projectId                          String?
+  expectedOrganizationId             String
+  expectedDeletedAt                  DateTime?
+  expectedPermanentDeletionStartedAt DateTime?
+  deletionFenceDeletedAt             DateTime?
+  createdAt                          DateTime               @default(now())
+  operation                          ObjectStorageOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  project                            Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@id([operationId, ordinal])
+  @@unique([operationId, projectIdSnapshot])
+  @@index([projectId])
+  @@index([projectIdSnapshot, createdAt])
+  @@index([expectedOrganizationId, createdAt])
+}
+
+/// Immutable replay receipt for permanent deletion. `projectId` is a snapshot,
+/// not a Project FK, so the receipt is inserted alongside the final Project
+/// deletion and remains independently queryable after every child cascade. Its
+/// compact proof is a tamper-evident commitment; cascaded rows are not retained
+/// as a receipt-side forensic preimage.
+model ProjectPermanentDeletionReceipt {
+  projectId              String                       @id
+  operationId            String                       @unique
+  organizationId         String
+  scopeHash              String
+  idempotencyScopeHash   String
+  idempotencyKey         String
+  requestHash            String
+  capabilityUpperBoundAt DateTime?
+  projectSnapshot        Json
+  state                  ObjectStorageOperationStatus @default(COMMITTED)
+  proof                  Json
+  result                 Json
+  deletedAt              DateTime
+  completedAt            DateTime
+  createdAt              DateTime                     @default(now())
+  operation              ObjectStorageOperation       @relation(fields: [operationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([idempotencyScopeHash, idempotencyKey])
+  @@index([organizationId, deletedAt])
+  @@index([requestHash])
 }
 
 // F13: preserves an old project slug after a rename so the previous canonical

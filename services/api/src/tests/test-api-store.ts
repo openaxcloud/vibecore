@@ -63,6 +63,40 @@ import {
   type LoginThrottleConfig,
 } from '../login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
+import { projectOrganizationChangedError, projectPhysicalMutationLockKey } from '../project-physical-mutation.js';
+import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from '../project-storage.js';
+import {
+  parseObjectStorageStaticArtifactSummary,
+  type ObjectStorageCheckpointBarrierAuthority,
+  type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageVerification,
+} from '../object-storage-operation.js';
+import {
+  assertObjectStorageCommandPreconditions,
+  assertValidObjectStorageCommand,
+  assertValidObjectStorageCommandIntent,
+  executeObjectStorageCommand,
+  objectStorageCloneIntentHash,
+  objectStorageCommandIdentity,
+  objectStorageCommandIntentHash,
+  objectStorageCommandMutationProjectIds,
+  objectStorageCommandProjectIds,
+  pinObjectStorageCommand,
+  pinObjectStorageCommandIntent,
+  verifyObjectStorageCommand,
+  type ObjectStorageCommandExecution,
+  type TenantObjectStorageCommand,
+  type TenantObjectStorageCommandIntent,
+} from '../object-storage-command.js';
+import {
+  assertValidObjectKey,
+  ObjectStorageError,
+  parseObjectStorageInventory,
+  SIGNED_URL_TTL_MS,
+  type ObjectStorage,
+  type ObjectStorageInventory,
+} from '../object-storage.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -143,6 +177,7 @@ import type {
   MembershipRecord,
   ResourceAccessGrantRecord,
   OAuthConnectionRecord,
+  ObjectStorageCapabilityCommand,
   ProjectConnectionLinkRecord,
   ProjectReleaseFence,
   ReconnectionAlertRecord,
@@ -158,6 +193,9 @@ import type {
   ProjectManifestRevisionRecord,
   ProjectReleaseBarrierLease,
   ProjectRecord,
+  ProjectPhysicalMutationScope,
+  ProjectPermanentDeletionReceiptRecord,
+  ProjectPermanentDeletionResult,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
   ChatShareRecord,
@@ -217,6 +255,69 @@ function canonicalClassifierCostMillicents(
 
 function sameNullable(left: string | undefined, right: string | undefined) {
   return (left ?? null) === (right ?? null);
+}
+
+function canonicalObjectStorageInventory(inventory: ObjectStorageInventory): ObjectStorageInventory {
+  return {
+    bucketExists: inventory.bucketExists,
+    objects: [...inventory.objects]
+      .map(({ key, size, generation, contentHash }) => ({ key, size, generation, contentHash }))
+      .sort((left, right) => left.key.localeCompare(right.key)),
+  };
+}
+
+function retainedRemixSourceInventory(value: unknown): ObjectStorageInventory {
+  const inventory = parseObjectStorageInventory(value);
+  if (
+    !inventory ||
+    inventory.objects.some(
+      (object) => object.generation === null || object.key === 'tmp' || object.key.startsWith('tmp/'),
+    )
+  ) {
+    throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+      code: 'REMIX_STORAGE_SNAPSHOT_UNPINNABLE',
+      statusCode: 409,
+    });
+  }
+  return canonicalObjectStorageInventory(inventory);
+}
+
+function assertPermanentDeletionProof(
+  proof: ObjectStorageVerification,
+  expectedStaticArtifactSummary: ObjectStorageStaticArtifactSummary,
+): void {
+  const filesystem = proof.evidence.filesystem as Record<string, unknown> | undefined;
+  const gcs = proof.evidence.gcs as Record<string, unknown> | undefined;
+  let staticArtifactSummary: ObjectStorageStaticArtifactSummary | undefined;
+  let expected: ObjectStorageStaticArtifactSummary | undefined;
+  try {
+    staticArtifactSummary = parseObjectStorageStaticArtifactSummary(filesystem?.staticArtifactSummary);
+    expected = parseObjectStorageStaticArtifactSummary(expectedStaticArtifactSummary);
+  } catch {
+    // The common incomplete-proof branch below supplies the public contract.
+  }
+  const complete =
+    proof.outcome === 'VERIFIED_ABSENT' &&
+    proof.evidence.schemaVersion === 'project-permanent-erasure-v1' &&
+    filesystem?.projectTreeAbsent === true &&
+    filesystem.workspaceTreesAbsent === true &&
+    filesystem.objectCacheAbsent === true &&
+    filesystem.staticSnapshotsAbsent === true &&
+    filesystem.staticAliasesAbsent === true &&
+    staticArtifactSummary !== undefined &&
+    expected !== undefined &&
+    staticArtifactSummary.count === expected.count &&
+    staticArtifactSummary.deletedCount === expected.deletedCount &&
+    staticArtifactSummary.retainedCount === expected.retainedCount &&
+    staticArtifactSummary.digest === expected.digest &&
+    gcs?.bucketAbsent === true &&
+    gcs.objectCount === 0;
+  if (!complete) {
+    throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE'), {
+      code: 'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
+      statusCode: 409,
+    });
+  }
 }
 
 function publicReservedVmOperation(operation: ReservedVmLease): ReservedVmOperationRecord {
@@ -291,6 +392,11 @@ export class TestApiStore implements ApiStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
   readonly projectStorageObjects = new Map<string, ProjectStorageObjectRecord>();
+  readonly objectStorageCapabilityExpiresAt = new Map<string, number>();
+  readonly objectStorageCommandReceipts = new Map<
+    string,
+    { requestHash: string; transportIntentHash?: string; execution: ObjectStorageCommandExecution }
+  >();
   readonly databaseInstances = new Map<string, DatabaseInstanceRecord>();
   readonly databaseSnapshots = new Map<string, DatabaseSnapshotRecord>();
   readonly databaseRestores = new Map<string, DatabaseRestoreRecord>();
@@ -452,6 +558,8 @@ export class TestApiStore implements ApiStore {
   readonly adminAuditLogs: AdminAuditLogRecord[] = [];
   /** Injectable authoritative clock used by expiry-sensitive store contracts. */
   databaseClockNowMs: number | undefined;
+  readonly projectPermanentDeletionReceipts = new Map<string, ProjectPermanentDeletionReceiptRecord>();
+  readonly #projectPermanentDeletionNameHashes = new Map<string, string>();
 
   async ping(): Promise<void> {
     // In-memory store is always reachable.
@@ -499,6 +607,120 @@ export class TestApiStore implements ApiStore {
     );
 
     return run;
+  }
+
+  private assertExpectedProjectTenant(
+    scope: ProjectPhysicalMutationScope,
+    options: { allowDeletedProject?: boolean; allowPermanentDeletion?: boolean } = {},
+  ): ProjectRecord {
+    const project = this.projects.get(scope.projectId);
+
+    if (
+      !project ||
+      (!options.allowDeletedProject && project.deletedAt) ||
+      project.organizationId !== scope.expectedOrganizationId
+    ) {
+      throw projectOrganizationChangedError();
+    }
+
+    if (project.permanentDeletionStartedAt && !options.allowPermanentDeletion) {
+      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_ACTIVE'), {
+        code: 'PROJECT_PERMANENT_DELETION_ACTIVE',
+        statusCode: 409,
+      });
+    }
+
+    return project;
+  }
+
+  private withProjectPhysicalBarriers<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
+    const orderedProjectIds = [...new Set(projectIds)].sort();
+    const acquire = (index: number): Promise<T> => {
+      const projectId = orderedProjectIds[index];
+      return projectId
+        ? this.withSerializedMutation(projectPhysicalMutationLockKey(projectId), () => acquire(index + 1))
+        : effect();
+    };
+
+    return acquire(0);
+  }
+
+  async withProjectPhysicalMutation<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalBarriers([scope.projectId], async () => {
+      await this.assertProjectStorageMutable(scope);
+      await this.assertProjectStorageMutable(scope);
+      return effect();
+    });
+  }
+
+  async withProjectPhysicalAccess<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalAccesses([scope], effect);
+  }
+
+  async withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T> {
+    const byProjectId = new Map<string, ProjectPhysicalMutationScope>();
+    for (const scope of scopes) {
+      const existing = byProjectId.get(scope.projectId);
+      if (existing && existing.expectedOrganizationId !== scope.expectedOrganizationId) {
+        throw projectOrganizationChangedError();
+      }
+      byProjectId.set(scope.projectId, existing ?? scope);
+    }
+    const orderedScopes = [...byProjectId.values()].sort((left, right) =>
+      left.projectId.localeCompare(right.projectId),
+    );
+    if (orderedScopes.length === 0) {
+      throw new TypeError('PROJECT_PHYSICAL_ACCESS_SCOPE_REQUIRED');
+    }
+
+    return this.withProjectPhysicalBarriers(
+      orderedScopes.map(({ projectId }) => projectId),
+      async () => {
+        for (const tenantScope of orderedScopes) {
+          await this.assertProjectStorageMutable(tenantScope);
+        }
+        for (const tenantScope of orderedScopes) {
+          await this.assertProjectStorageMutable(tenantScope);
+        }
+        return effect();
+      },
+    );
+  }
+
+  private async withProjectTenantMutation<T>(
+    scope: ProjectPhysicalMutationScope,
+    effect: () => Promise<T>,
+    options: {
+      allowActiveCheckpoint?: boolean;
+      allowDeletedProject?: boolean;
+      allowPermanentDeletion?: boolean;
+    } = {},
+  ): Promise<T> {
+    return this.withProjectPhysicalBarriers([scope.projectId], async () => {
+      await this.assertProjectTenantMutationAllowed(scope, options);
+      return effect();
+    });
+  }
+
+  private async assertProjectTenantMutationAllowed(
+    scope: ProjectPhysicalMutationScope,
+    options: {
+      allowActiveCheckpoint?: boolean;
+      allowDeletedProject?: boolean;
+      allowPermanentDeletion?: boolean;
+    } = {},
+  ): Promise<void> {
+    await this.assertProjectStorageMutable(scope, options);
+    if (!options.allowActiveCheckpoint && (await this.getActiveCheckpointBarrier(scope.projectId))) {
+      throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        statusCode: 423,
+      });
+    }
+  }
+
+  withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    return this.withProjectPhysicalBarriers([projectId], effect);
   }
 
   private _assertAccountPurgeMutationAllowed(scope: {
@@ -1042,29 +1264,328 @@ export class TestApiStore implements ApiStore {
     return this.purgeFrozenProjects.has(projectId);
   }
 
-  async withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
-    if (this.purgeFrozenProjects.has(projectId)) {
-      throw Object.assign(new Error('OBJECT_STORAGE_PURGE_FROZEN'), {
-        code: 'OBJECT_STORAGE_PURGE_FROZEN',
-        statusCode: 409,
-      });
-    }
-    return effect();
-  }
-
-  async withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
-    for (const projectId of projectIds) {
-      if (this.purgeFrozenProjects.has(projectId)) {
-        throw Object.assign(new Error('OBJECT_STORAGE_PURGE_FROZEN'), {
-          code: 'OBJECT_STORAGE_PURGE_FROZEN',
+  private async withTenantObjectStorageAfterPhysical<T>(
+    scope: ProjectPhysicalMutationScope,
+    effect: () => Promise<T>,
+    options: { allowActiveTargetShare?: boolean } = {},
+  ): Promise<T> {
+    return this.withSerializedMutation(`object-storage:${scope.projectId}`, async () => {
+      await this.assertProjectTenantMutationAllowed(scope);
+      if (!options.allowActiveTargetShare && (await this.getRemixStorageShareByTarget(scope.projectId))) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY')), {
+          code: 'SHARED_READ_ONLY',
           statusCode: 409,
         });
       }
-    }
-    return effect();
+      return effect();
+    });
   }
 
-  async assertProjectStorageMutable(projectId: string, workspaceId?: string) {
+  async issueSignedObjectStorageCapability<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ): Promise<T> {
+    return this.withProjectPhysicalMutation(command, () =>
+      this.issueSignedObjectStorageCapabilityWithinPhysicalAccess(command, signer),
+    );
+  }
+
+  async issueSignedObjectStorageCapabilityWithinPhysicalAccess<T extends { expiresAt: string }>(
+    command: ObjectStorageCapabilityCommand,
+    signer: (authorization: { expiresAt: string }) => Promise<T>,
+  ): Promise<T> {
+    if (assertValidObjectKey(command.objectKey) !== command.objectKey) {
+      throw new ObjectStorageError('Object keys must not contain surrounding whitespace', 'INVALID_KEY');
+    }
+    return this.withTenantObjectStorageAfterPhysical(command, async () => {
+      const reservedExpiresAt = new Date(Date.now() + SIGNED_URL_TTL_MS).toISOString();
+      const reservedExpiresAtMs = Date.parse(reservedExpiresAt);
+      this.objectStorageCapabilityExpiresAt.set(
+        command.projectId,
+        Math.max(this.objectStorageCapabilityExpiresAt.get(command.projectId) ?? 0, reservedExpiresAtMs),
+      );
+      const result = await signer({ expiresAt: reservedExpiresAt });
+      const expiresAt = Date.parse(result.expiresAt);
+
+      if (!Number.isFinite(expiresAt) || expiresAt > reservedExpiresAtMs) {
+        throw Object.assign(new Error('OBJECT_STORAGE_CAPABILITY_EXPIRY_INVALID'), {
+          code: 'OBJECT_STORAGE_CAPABILITY_EXPIRY_INVALID',
+          statusCode: 502,
+        });
+      }
+      return result;
+    });
+  }
+
+  async executeTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    command: TenantObjectStorageCommand;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+    transportIntentHash?: string;
+  }): Promise<ObjectStorageCommandExecution> {
+    assertValidObjectStorageCommand(input.command);
+    return this.withProjectPhysicalAccesses(input.scopes, async () => {
+      if (input.command.type !== 'CLONE_PROJECT') {
+        const command = await pinObjectStorageCommand(input.storage, input.command);
+        return this.executeTenantObjectStorageCommandWithinPhysicalAccess({ ...input, command });
+      }
+
+      const transportIntentHash = objectStorageCloneIntentHash(input.command);
+      if (input.transportIntentHash && input.transportIntentHash !== transportIntentHash) {
+        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID'), {
+          code: 'OBJECT_STORAGE_OPERATION_INTENT_HASH_INVALID',
+          statusCode: 400,
+        });
+      }
+      const replayCommitted = () =>
+        input.idempotencyKey
+          ? this.replayTenantObjectStorageCommandWithinPhysicalAccess({
+              scopes: input.scopes,
+              idempotencyKey: input.idempotencyKey,
+              transportIntentHash,
+            })
+          : Promise.resolve(undefined);
+      const existing = await replayCommitted();
+      if (existing) return existing;
+
+      let command: TenantObjectStorageCommand;
+      try {
+        command = await pinObjectStorageCommand(input.storage, input.command);
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+
+      try {
+        return await this.executeTenantObjectStorageCommandWithinPhysicalAccess({
+          ...input,
+          command,
+          transportIntentHash,
+        });
+      } catch (error) {
+        const racedReplay = await replayCommitted();
+        if (racedReplay) return racedReplay;
+        throw error;
+      }
+    });
+  }
+
+  async executeTenantObjectStorageIntent(input: {
+    scope: ProjectPhysicalMutationScope;
+    intent: TenantObjectStorageCommandIntent;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+  }): Promise<ObjectStorageCommandExecution> {
+    assertValidObjectStorageCommandIntent(input.intent);
+    if (input.intent.projectId !== input.scope.projectId) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH')), {
+        code: 'TENANT_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    const scopes = [input.scope];
+    const transportIntentHash = objectStorageCommandIntentHash(input.intent);
+
+    return this.withProjectPhysicalAccess(input.scope, async () => {
+      const replayCommitted = () =>
+        input.idempotencyKey
+          ? this.replayTenantObjectStorageCommandWithinPhysicalAccess({
+              scopes,
+              idempotencyKey: input.idempotencyKey,
+              transportIntentHash,
+            })
+          : Promise.resolve(undefined);
+      const existing = await replayCommitted();
+      if (existing) return existing;
+
+      let command: TenantObjectStorageCommand;
+      try {
+        command = await pinObjectStorageCommandIntent(input.storage, input.intent);
+      } catch (error) {
+        const replay = await replayCommitted();
+        if (replay) return replay;
+        throw error;
+      }
+
+      try {
+        return await this.executeTenantObjectStorageCommandWithinPhysicalAccess({
+          scopes,
+          command,
+          storage: input.storage,
+          transportIntentHash,
+          ...(input.idempotencyKey ? { idempotencyKey: input.idempotencyKey } : {}),
+        });
+      } catch (error) {
+        const replay = await replayCommitted();
+        if (replay) return replay;
+        throw error;
+      }
+    });
+  }
+
+  private async executeTenantObjectStorageCommandWithinPhysicalAccess(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    command: TenantObjectStorageCommand;
+    storage: ObjectStorage;
+    idempotencyKey?: string;
+    transportIntentHash?: string;
+  }): Promise<ObjectStorageCommandExecution> {
+    if (!input.storage.active) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_BACKEND_REQUIRED'), 'BACKEND_REQUIRED');
+    }
+    const expectedProjectIds = [...new Set(objectStorageCommandProjectIds(input.command))].sort();
+    const scopesByProjectId = new Map(input.scopes.map((scope) => [scope.projectId, scope]));
+    const scopes = [...scopesByProjectId.values()].sort((left, right) => left.projectId.localeCompare(right.projectId));
+    if (
+      scopes.length !== expectedProjectIds.length ||
+      scopes.some((scope, index) => scope.projectId !== expectedProjectIds[index])
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH')), {
+        code: 'TENANT_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          scopes: scopes.map(({ projectId, expectedOrganizationId }) => ({ projectId, expectedOrganizationId })),
+          command: objectStorageCommandIdentity(input.command),
+        }),
+      )
+      .digest('hex');
+    const receiptKey = input.idempotencyKey
+      ? `${scopes.map((scope) => `${scope.projectId}:${scope.expectedOrganizationId}`).join('|')}:${input.idempotencyKey}`
+      : id('objcmd');
+    const previous = this.objectStorageCommandReceipts.get(receiptKey);
+    if (previous) {
+      if (previous.requestHash !== requestHash) {
+        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+          code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return previous.execution;
+    }
+
+    const retainedSourceError = () =>
+      Object.assign(
+        new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_SOURCE_RETENTION_ACTIVE'),
+        { statusCode: 409 },
+      );
+    if (input.command.type !== 'ENSURE_BUCKET' && input.command.type !== 'CLONE_PROJECT') {
+      const sourceCommand = input.command;
+      const sourceShares = [...this.remixStorageShares.values()].filter(
+        (share) => share.sourceProjectId === sourceCommand.projectId && share.state === 'ACTIVE',
+      );
+      if (sourceCommand.type === 'DELETE_BUCKET' && sourceShares.length > 0) throw retainedSourceError();
+      for (const share of sourceShares) {
+        const inventory = parseObjectStorageInventory(share.sourceInventory);
+        if (!inventory) throw retainedSourceError();
+        const retained = inventory.objects.some((object) => {
+          switch (sourceCommand.type) {
+            case 'DELETE_OBJECT':
+              return (
+                sourceCommand.expectedObjectGeneration !== null &&
+                sourceCommand.expectedObjectGeneration !== undefined &&
+                object.key === sourceCommand.key &&
+                object.generation === sourceCommand.expectedObjectGeneration
+              );
+            case 'MOVE_OBJECT':
+              return object.key === sourceCommand.from && object.generation === sourceCommand.sourceGeneration;
+            case 'DELETE_PREFIX':
+              return object.key.startsWith(sourceCommand.prefix);
+            case 'PUT_OBJECT':
+              return object.key === sourceCommand.key;
+            default:
+              return false;
+          }
+        });
+        if (retained) throw retainedSourceError();
+      }
+    }
+
+    for (const projectId of objectStorageCommandMutationProjectIds(input.command)) {
+      if (await this.getRemixStorageShareByTarget(projectId)) {
+        throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+      }
+    }
+    await assertObjectStorageCommandPreconditions(input.storage, input.command);
+    const execution = await executeObjectStorageCommand(input.storage, input.command, async () => {
+      for (const scope of scopes) await this.assertProjectStorageMutable(scope);
+    });
+    await verifyObjectStorageCommand(input.storage, input.command, execution);
+    this.objectStorageCommandReceipts.set(receiptKey, {
+      requestHash,
+      ...(input.transportIntentHash ? { transportIntentHash: input.transportIntentHash } : {}),
+      execution,
+    });
+    return execution;
+  }
+
+  async replayTenantObjectStorageCommand(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    idempotencyKey: string;
+    transportIntentHash: string;
+  }): Promise<ObjectStorageCommandExecution | undefined> {
+    return this.withProjectPhysicalAccesses(input.scopes, () =>
+      this.replayTenantObjectStorageCommandWithinPhysicalAccess(input),
+    );
+  }
+
+  private async replayTenantObjectStorageCommandWithinPhysicalAccess(input: {
+    scopes: ProjectPhysicalMutationScope[];
+    idempotencyKey: string;
+    transportIntentHash: string;
+  }): Promise<ObjectStorageCommandExecution | undefined> {
+    const scopes = [...new Map(input.scopes.map((scope) => [scope.projectId, scope])).values()].sort((left, right) =>
+      left.projectId.localeCompare(right.projectId),
+    );
+    const receiptKey = `${scopes
+      .map((scope) => `${scope.projectId}:${scope.expectedOrganizationId}`)
+      .join('|')}:${input.idempotencyKey}`;
+    const previous = this.objectStorageCommandReceipts.get(receiptKey);
+    if (!previous) return undefined;
+    if (previous.transportIntentHash !== input.transportIntentHash) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+        code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    return previous.execution;
+  }
+
+  async reconcileObjectStorageOperations(): Promise<{
+    scanned: number;
+    failedSafe: number;
+    recovered: number;
+    deferred: number;
+    quarantined: number;
+    replayed: number;
+    busy: number;
+    operationIds: string[];
+  }> {
+    return {
+      scanned: 0,
+      failedSafe: 0,
+      recovered: 0,
+      deferred: 0,
+      quarantined: 0,
+      replayed: 0,
+      busy: 0,
+      operationIds: [],
+    };
+  }
+
+  async assertProjectStorageMutable(
+    scope: ProjectPhysicalMutationScope,
+    options: { allowDeletedProject?: boolean; allowPermanentDeletion?: boolean } = {},
+  ) {
+    const { projectId, workspaceId } = scope;
     if (
       this.purgeFrozenProjects.has(projectId) ||
       this.purgePlannedProjectIds.has(projectId) ||
@@ -1075,6 +1596,8 @@ export class TestApiStore implements ApiStore {
         statusCode: 409,
       });
     }
+
+    this.assertExpectedProjectTenant(scope, options);
   }
 
   async hasPurgeReceipt(userId: string) {
@@ -1578,81 +2101,91 @@ export class TestApiStore implements ApiStore {
 
   async updateProject(input: {
     projectId: string;
+    expectedOrganizationId: string;
     name?: string;
     description?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
   }) {
-    const project = this.projects.get(input.projectId);
+    return this.withProjectTenantMutation(input, async () => {
+      const project = this.assertExpectedProjectTenant(input);
 
-    if (!project) {
-      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
-    }
+      Object.assign(project, {
+        name: input.name ?? project.name,
+        description: input.description ?? project.description,
+        gitRepositoryUrl: input.gitRepositoryUrl ?? project.gitRepositoryUrl,
+        gitDefaultBranch: input.gitDefaultBranch ?? project.gitDefaultBranch,
+        updatedAt: now(),
+      });
 
-    Object.assign(project, {
-      name: input.name ?? project.name,
-      description: input.description ?? project.description,
-      gitRepositoryUrl: input.gitRepositoryUrl ?? project.gitRepositoryUrl,
-      gitDefaultBranch: input.gitDefaultBranch ?? project.gitDefaultBranch,
-      updatedAt: now(),
+      return project;
     });
-
-    return project;
   }
 
   readonly projectSlugRedirects: Array<{ projectId: string; oldSlug: string; expiresAt: Date }> = [];
 
-  async renameProjectSlug(input: { projectId: string; newSlug: string; redirectTtlDays?: number }) {
-    const project = this.projects.get(input.projectId);
+  async renameProjectSlug(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    newSlug: string;
+    redirectTtlDays?: number;
+  }) {
+    return this.withProjectTenantMutation(input, async () => {
+      const project = this.assertExpectedProjectTenant(input);
 
-    if (!project) {
-      throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
-    }
-
-    if (project.slug === input.newSlug) {
-      return project;
-    }
-
-    const clash = [...this.projects.values()].some(
-      (candidate) =>
-        candidate.organizationId === project.organizationId &&
-        candidate.slug === input.newSlug &&
-        candidate.id !== project.id,
-    );
-
-    if (clash) {
-      throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
-        statusCode: 409,
-        code: 'PROJECT_SLUG_TAKEN',
-      });
-    }
-
-    const ttlDays = input.redirectTtlDays ?? 30;
-    const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
-
-    const existing = this.projectSlugRedirects.find(
-      (row) => row.projectId === project.id && row.oldSlug === project.slug,
-    );
-
-    if (existing) {
-      existing.expiresAt = expiresAt;
-    } else {
-      this.projectSlugRedirects.push({ projectId: project.id, oldSlug: project.slug, expiresAt });
-    }
-
-    // Drop a self-redirect if renaming back to a previously-used slug.
-    for (let i = this.projectSlugRedirects.length - 1; i >= 0; i -= 1) {
-      const row = this.projectSlugRedirects[i];
-
-      if (row.projectId === project.id && row.oldSlug === input.newSlug) {
-        this.projectSlugRedirects.splice(i, 1);
+      if (project.slug === input.newSlug) {
+        return project;
       }
-    }
 
-    project.slug = input.newSlug;
-    project.updatedAt = now();
+      const clash = [...this.projects.values()].some(
+        (candidate) =>
+          candidate.organizationId === project.organizationId &&
+          candidate.slug === input.newSlug &&
+          candidate.id !== project.id,
+      );
 
-    return project;
+      if (clash) {
+        throw Object.assign(new Error('A project with this URL slug already exists in this organization.'), {
+          statusCode: 409,
+          code: 'PROJECT_SLUG_TAKEN',
+        });
+      }
+
+      const ttlDays = input.redirectTtlDays ?? 30;
+
+      if (!Number.isSafeInteger(ttlDays) || ttlDays < 1 || ttlDays > 10 * 365) {
+        throw Object.assign(new TypeError('PROJECT_SLUG_REDIRECT_TTL_INVALID'), {
+          code: 'PROJECT_SLUG_REDIRECT_TTL_INVALID',
+          statusCode: 400,
+        });
+      }
+
+      const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
+      const existing = this.projectSlugRedirects.find(
+        (row) => row.projectId === project.id && row.oldSlug === project.slug,
+      );
+
+      if (existing) {
+        existing.expiresAt = expiresAt;
+      } else {
+        this.projectSlugRedirects.push({ projectId: project.id, oldSlug: project.slug, expiresAt });
+      }
+
+      // Drop a self-redirect if renaming back to a previously-used slug.
+      for (let i = this.projectSlugRedirects.length - 1; i >= 0; i -= 1) {
+        const row = this.projectSlugRedirects[i];
+
+        if (row.projectId === project.id && row.oldSlug === input.newSlug) {
+          this.projectSlugRedirects.splice(i, 1);
+        }
+      }
+
+      project.slug = input.newSlug;
+      project.updatedAt = now();
+
+      return project;
+    });
   }
 
   async resolveProjectSlugRedirect(input: { organizationSlug: string; oldSlug: string; now?: Date }) {
@@ -1808,196 +2341,475 @@ export class TestApiStore implements ApiStore {
     return record;
   }
 
-  async softDeleteProject(projectId: string) {
-    if (
-      [...this.deployments.values()].some(
-        (deployment) =>
-          deployment.projectId === projectId &&
-          (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
-      ) ||
-      [...this.reservedVmOperations.values()].some(
-        (operation) => operation.projectId === projectId && ['PENDING', 'APPLYING'].includes(operation.status),
-      )
-    ) {
-      throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
-        code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
-        statusCode: 409,
-      });
-    }
-    const project = await this.updateProject({ projectId });
-    project.deletedAt = now();
-    project.updatedAt = now();
-
-    return project;
-  }
-
-  async restoreProject(projectId: string) {
-    const project = await this.updateProject({ projectId });
-    project.deletedAt = undefined;
-    project.updatedAt = now();
-
-    return project;
-  }
-
-  async hardDeleteProject(projectId: string) {
-    if (
-      [...this.deployments.values()].some(
-        (deployment) =>
-          deployment.projectId === projectId &&
-          (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
-      ) ||
-      [...this.reservedVmOperations.values()].some(
-        (operation) => operation.projectId === projectId && ['PENDING', 'APPLYING'].includes(operation.status),
-      )
-    ) {
-      throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
-        code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
-        statusCode: 409,
-      });
-    }
-    const project = await this.updateProject({ projectId });
-    this.projects.delete(projectId);
-    this.projectManifestRevisions.delete(projectId);
-
-    return project;
-  }
-
-  async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
-    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
-      const project = await this.updateProject({ projectId: input.projectId });
-
-      if (project.organizationId === input.targetOrganizationId) {
-        return project;
-      }
-
-      if (await this.getActiveCheckpointBarrier(project.id)) {
-        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
-          statusCode: 423,
-          code: 'CHECKPOINT_BARRIER_ACTIVE',
-        });
-      }
-
-      const hasManagedDatabase = [...this.databaseInstances.values()].some(
-        (instance) => instance.projectId === project.id && instance.status !== 'DELETED',
-      );
-      const hasActiveMigration = [...this.migrationExecutions.values()].some(
-        (execution) => execution.projectId === project.id && !['COMMITTED', 'FAILED_SAFE'].includes(execution.state),
-      );
-      const hasActiveImport = [...this.importJobs.values()].some(
-        (job) =>
-          job.targetProjectId === project.id && !['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
-      );
-      const hasActiveRemix = [...this.remixJobs.values()].some(
-        (job) =>
-          (job.sourceProjectId === project.id || job.targetProjectId === project.id) &&
-          !['COMPLETED', 'FAILED'].includes(job.state),
-      );
-      const hasActiveStorageShare = [...this.remixStorageShares.values()].some(
-        (share) =>
-          share.state === 'ACTIVE' && (share.sourceProjectId === project.id || share.targetProjectId === project.id),
-      );
-      const hasLiveDeployment = [...this.deployments.values()].some(
-        (deployment) => deployment.projectId === project.id && !['FAILED', 'CANCELED'].includes(deployment.status),
-      );
-      const hasNonTerminalReservedVmOperation = [...this.reservedVmOperations.values()].some(
-        (operation) => operation.projectId === project.id && !['COMPLETED', 'FAILED'].includes(operation.status),
-      );
-      const hasActiveWorkspace = [...this.workspaces.values()].some(
-        (workspace) =>
-          workspace.projectId === project.id && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
-      );
-
-      const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
-
+  async softDeleteProject(input: ProjectPhysicalMutationScope) {
+    return this.withProjectTenantMutation(input, async () => {
       if (
-        hasManagedDatabase ||
-        hasActiveMigration ||
-        hasActiveImport ||
-        hasActiveRemix ||
-        hasActiveStorageShare ||
-        hasLiveDeployment ||
-        hasNonTerminalReservedVmOperation ||
-        hasActiveWorkspace ||
-        hasReleaseManifest ||
-        this.cloudProjectBindingProjectIds.has(project.id)
+        [...this.deployments.values()].some(
+          (deployment) =>
+            deployment.projectId === input.projectId &&
+            (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
+        ) ||
+        [...this.reservedVmOperations.values()].some(
+          (operation) => operation.projectId === input.projectId && ['PENDING', 'APPLYING'].includes(operation.status),
+        )
       ) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+        throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
+          code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
           statusCode: 409,
-          code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
         });
       }
-
-      const sourceRevision = await this.getLatestProjectManifest(project.id);
-
-      const sourceManifest = sourceRevision
-        ? verifyStoredProjectManifestRevision(sourceRevision, project.id)
-        : createDefaultProjectManifest(project.id);
-
-      const detachedSeed = projectManifestForClone(sourceManifest, project.id, 'DETACH_EXTERNALS');
-
-      const detachedManifest = {
-        ...detachedSeed,
-        manifestVersion: (sourceRevision?.manifestVersion ?? 0) + 1,
-      } satisfies ProjectManifest;
-
-      for (const [grantId, grant] of this.resourceAccessGrants) {
-        if (
-          grant.resourceType === 'PROJECT' &&
-          grant.resourceId === project.id &&
-          ['PENDING_CONSENT', 'ACTIVE'].includes(grant.status)
-        ) {
-          this.resourceAccessGrants.set(grantId, {
-            ...grant,
-            status: 'REVOKED',
-            revokedAt: now(),
-            revokedByUserId: input.actorUserId,
-            revocationReason: 'PROJECT_TRANSFERRED',
-            updatedAt: now(),
-          });
-        }
-      }
-
-      for (const [collaboratorId, collaborator] of this.projectCollaborators) {
-        if (collaborator.projectId === project.id) this.projectCollaborators.delete(collaboratorId);
-      }
-      for (const [shareLinkId, shareLink] of this.projectShareLinks) {
-        if (shareLink.projectId === project.id) this.projectShareLinks.delete(shareLinkId);
-      }
-      for (const [tokenHash, share] of this.chatShares) {
-        if (share.projectId === project.id) this.chatShares.delete(tokenHash);
-      }
-      for (const [presenceId, presence] of this.collaborationPresence) {
-        if (presence.projectId === project.id) this.collaborationPresence.delete(presenceId);
-      }
-      const ideState = this.projectIdeStates.get(project.id);
-      if (ideState) {
-        this.projectIdeStates.set(project.id, {
-          ...ideState,
-          state: clearTenantScopedIdeCapabilities(ideState.state),
-          version: ideState.version + 1,
-          updatedAt: now(),
-        });
-      }
-
-      project.organizationId = input.targetOrganizationId;
+      const project = this.assertExpectedProjectTenant(input);
+      project.deletedAt = now();
       project.updatedAt = now();
 
-      const revision: ProjectManifestRevisionRecord = {
-        id: id('project_manifest'),
-        projectId: project.id,
-        schemaVersion: detachedManifest.schemaVersion,
-        manifestVersion: detachedManifest.manifestVersion,
-        digest: projectManifestDigest(detachedManifest),
-        manifest: detachedManifest,
-        createdByUserId: input.actorUserId,
-        createdAt: now(),
-      };
-
-      const revisions = this.projectManifestRevisions.get(project.id) ?? [];
-      revisions.push(revision);
-      this.projectManifestRevisions.set(project.id, revisions);
-
       return project;
+    });
+  }
+
+  async restoreProject(input: ProjectPhysicalMutationScope) {
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        const project = this.assertExpectedProjectTenant(input, { allowDeletedProject: true });
+        project.deletedAt = undefined;
+        project.updatedAt = now();
+
+        return project;
+      },
+      { allowDeletedProject: true },
+    );
+  }
+
+  private assertProjectStaticErasureFrozen(projectId: string) {
+    const project = this.projects.get(projectId);
+    if (!project?.permanentDeletionStartedAt) {
+      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE'), {
+        code: 'PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+    return project;
+  }
+
+  async resolveProjectStaticErasureInventory(projectId: string): Promise<ProjectStaticErasureInventory> {
+    this.assertProjectStaticErasureFrozen(projectId);
+    const deploymentIds = new Set(
+      [...this.deployments.values()]
+        .filter((deployment) => deployment.projectId === projectId && deployment.provider === 'static')
+        .map((deployment) => deployment.id),
+    );
+    const artifactRefs = new Set<string>();
+
+    for (const manifest of this.releaseManifests) {
+      if (manifest.projectId !== projectId || manifest.artifactKind !== 'static-snapshot') continue;
+      deploymentIds.add(manifest.deploymentId);
+      if (/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(manifest.artifactRef)) {
+        artifactRefs.add(manifest.artifactRef);
+      }
+    }
+
+    return {
+      projectId,
+      deploymentIds: [...deploymentIds].sort(),
+      artifacts: [...artifactRefs]
+        .sort()
+        .map((artifactRef) => this.staticArtifactAuthority(projectId, artifactRef))
+        .filter((artifact): artifact is ProjectStaticArtifactAuthority => artifact !== undefined),
+    };
+  }
+
+  private staticArtifactAuthority(projectId: string, artifactRef: string): ProjectStaticArtifactAuthority | undefined {
+    const matching = this.releaseManifests.filter(
+      (manifest) => manifest.artifactKind === 'static-snapshot' && manifest.artifactRef === artifactRef,
+    );
+    const projectReferenceCount = matching.filter((manifest) => manifest.projectId === projectId).length;
+    if (projectReferenceCount === 0) return undefined;
+    return {
+      artifactRef,
+      projectReferenceCount,
+      otherReferenceCount: matching.length - projectReferenceCount,
+    };
+  }
+
+  async resolveProjectStaticArtifactAuthority(
+    projectId: string,
+    artifactRef: string,
+  ): Promise<ProjectStaticArtifactAuthority | undefined> {
+    this.assertProjectStaticErasureFrozen(projectId);
+    if (!/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(artifactRef)) {
+      throw Object.assign(new Error('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID'), {
+        code: 'PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID',
+        statusCode: 400,
+      });
+    }
+    return this.staticArtifactAuthority(projectId, artifactRef);
+  }
+
+  async getProjectPermanentDeletionReceiptIdentity(projectId: string) {
+    const receipt = this.projectPermanentDeletionReceipts.get(projectId);
+    const expectedProjectNameHash = this.#projectPermanentDeletionNameHashes.get(projectId);
+    if (!receipt || !expectedProjectNameHash) return undefined;
+    return {
+      projectId: receipt.projectId,
+      organizationId: receipt.organizationId,
+      idempotencyKey: receipt.idempotencyKey,
+      requestHash: receipt.requestHash,
+      expectedProjectNameHash,
+    };
+  }
+
+  async replayProjectPermanentDeletion(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    idempotencyKey: string;
+    requestHash: string;
+  }): Promise<ProjectPermanentDeletionResult | undefined> {
+    const receipt = this.projectPermanentDeletionReceipts.get(input.projectId);
+    if (!receipt) return undefined;
+    if (receipt.organizationId !== input.expectedOrganizationId) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_RECEIPT_NOT_FOUND'), {
+        code: 'OBJECT_STORAGE_OPERATION_RECEIPT_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    if (receipt.idempotencyKey !== input.idempotencyKey || receipt.requestHash !== input.requestHash) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+        code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+        statusCode: 409,
+      });
+    }
+    return { ...receipt, project: { ...receipt.project }, proof: structuredClone(receipt.proof), replayed: true };
+  }
+
+  async hardDeleteProject(
+    input: ProjectPhysicalMutationScope & {
+      expectedProjectName: string;
+      idempotencyKey: string;
+      requestHash: string;
+      actorUserId: string;
+      ipAddress?: string;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      erasePhysical: (assertLease: () => Promise<void>) => Promise<void>;
+      verifyPhysicalAbsence: () => Promise<ObjectStorageVerification>;
+    },
+  ): Promise<ProjectPermanentDeletionResult> {
+    const expectedRequestHash = projectPermanentDeletionRequestHash({
+      projectId: input.projectId,
+      organizationId: input.expectedOrganizationId,
+      actorUserId: input.actorUserId,
+      expectedProjectName: input.expectedProjectName,
+    });
+    if (input.requestHash !== expectedRequestHash) {
+      throw Object.assign(new Error('PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH'), {
+        code: 'PROJECT_PERMANENT_DELETION_REQUEST_HASH_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    const existing = await this.replayProjectPermanentDeletion({
+      projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+    });
+    if (existing) return existing;
+
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        if (
+          [...this.remixStorageShares.values()].some(
+            (share) => share.sourceProjectId === input.projectId && share.state === 'ACTIVE',
+          )
+        ) {
+          throw Object.assign(
+            new ObjectStorageError(
+              appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'),
+              'SHARED_SOURCE_RETENTION_ACTIVE',
+            ),
+            { statusCode: 409 },
+          );
+        }
+        if (
+          [...this.deployments.values()].some(
+            (deployment) =>
+              deployment.projectId === input.projectId &&
+              (deployment.runtimeKind === 'reserved-vm' || Boolean(deployment.persistentStorageClaim)),
+          ) ||
+          [...this.reservedVmOperations.values()].some(
+            (operation) =>
+              operation.projectId === input.projectId && ['PENDING', 'APPLYING'].includes(operation.status),
+          )
+        ) {
+          throw Object.assign(new Error('PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED'), {
+            code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
+            statusCode: 409,
+          });
+        }
+        const project = this.assertExpectedProjectTenant(input, {
+          allowDeletedProject: true,
+          allowPermanentDeletion: true,
+        });
+        if (project.name !== input.expectedProjectName) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+            code: 'PROJECT_NAME_MISMATCH',
+            statusCode: 409,
+          });
+        }
+        const priorPermanentDeletionStartedAt = project.permanentDeletionStartedAt;
+        const priorDeletedAt = project.deletedAt;
+        project.permanentDeletionStartedAt ??= now();
+        project.deletedAt ??= now();
+        project.updatedAt = now();
+
+        const assertLease = async () => {
+          this.assertExpectedProjectTenant(input, {
+            allowDeletedProject: true,
+            allowPermanentDeletion: true,
+          });
+        };
+        let staticArtifactPlan: ObjectStorageStaticArtifactSummary;
+        try {
+          staticArtifactPlan = await input.preflightPhysicalErasure();
+          parseObjectStorageStaticArtifactSummary(staticArtifactPlan);
+          await assertLease();
+        } catch (error) {
+          project.permanentDeletionStartedAt = priorPermanentDeletionStartedAt;
+          project.deletedAt = priorDeletedAt;
+          project.updatedAt = now();
+          throw error;
+        }
+        await input.erasePhysical(assertLease);
+        await assertLease();
+        const proof = await input.verifyPhysicalAbsence();
+        assertPermanentDeletionProof(proof, staticArtifactPlan);
+        this.assertExpectedProjectTenant(input, {
+          allowDeletedProject: true,
+          allowPermanentDeletion: true,
+        });
+
+        const completedAt = now();
+        const projectRecordHash = createHash('sha256')
+          .update(JSON.stringify({ ...project }))
+          .digest('hex');
+        const receipt: ProjectPermanentDeletionReceiptRecord = {
+          projectId: project.id,
+          organizationId: project.organizationId,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          operationId: id('object_storage_operation'),
+          project: {
+            id: project.id,
+            organizationId: project.organizationId,
+            projectRecordHash,
+            state: 'PERMANENTLY_DELETED',
+            permanentDeletionStartedAt: project.permanentDeletionStartedAt,
+            deletedAt: project.deletedAt,
+          },
+          proof: { ...structuredClone(proof), verifiedAt: completedAt },
+          completedAt,
+        };
+        this.projectPermanentDeletionReceipts.set(project.id, receipt);
+        this.#projectPermanentDeletionNameHashes.set(
+          project.id,
+          createHash('sha256').update(input.expectedProjectName).digest('hex'),
+        );
+        this.auditLogs.push({
+          id: id('audit'),
+          organizationId: project.organizationId,
+          actorUserId: input.actorUserId,
+          action: 'project.hard_delete',
+          resourceType: 'project',
+          resourceId: project.id,
+          metadata: redactAuditMetadata({ operationId: receipt.operationId, idempotencyKey: input.idempotencyKey }),
+          ipAddress: input.ipAddress,
+          createdAt: completedAt,
+        });
+        this.projects.delete(input.projectId);
+        this.projectManifestRevisions.delete(input.projectId);
+
+        return { ...receipt, project: { ...receipt.project }, proof: structuredClone(receipt.proof), replayed: false };
+      },
+      { allowDeletedProject: true, allowPermanentDeletion: true },
+    );
+  }
+
+  async transferProject(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    targetOrganizationId: string;
+    actorUserId?: string;
+    assertExternalStorageDetached: () => Promise<void>;
+    validateTargetAdmission: () => Promise<void>;
+  }) {
+    return this.withProjectTenantMutation(input, async () => {
+      const current = this.assertExpectedProjectTenant(input);
+
+      if (current.organizationId === input.targetOrganizationId) {
+        return current;
+      }
+
+      /* Match Prisma: provider preflight is outside the object-storage DB lock. */
+      await input.assertExternalStorageDetached();
+
+      return this.withSerializedMutation(`projects:${input.targetOrganizationId}`, async () => {
+        await input.validateTargetAdmission();
+        return this.withTenantObjectStorageAfterPhysical(
+          input,
+          async () => {
+            const project = this.assertExpectedProjectTenant(input);
+
+            if ((this.objectStorageCapabilityExpiresAt.get(project.id) ?? 0) > Date.now()) {
+              throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE')), {
+                code: 'PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE',
+                statusCode: 409,
+              });
+            }
+
+            const hasManagedDatabase = [...this.databaseInstances.values()].some(
+              (instance) => instance.projectId === project.id && instance.status !== 'DELETED',
+            );
+            const hasActiveMigration = [...this.migrationExecutions.values()].some(
+              (execution) =>
+                execution.projectId === project.id && !['COMMITTED', 'FAILED_SAFE'].includes(execution.state),
+            );
+            const hasActiveImport = [...this.importJobs.values()].some(
+              (job) =>
+                job.targetProjectId === project.id &&
+                !['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
+            );
+            const hasActiveRemix = [...this.remixJobs.values()].some(
+              (job) =>
+                (job.sourceProjectId === project.id || job.targetProjectId === project.id) &&
+                !['COMPLETED', 'FAILED'].includes(job.state),
+            );
+            const hasActiveStorageShare = [...this.remixStorageShares.values()].some(
+              (share) =>
+                share.state === 'ACTIVE' &&
+                (share.sourceProjectId === project.id || share.targetProjectId === project.id),
+            );
+            const hasActiveWorkspace = [...this.workspaces.values()].some(
+              (workspace) =>
+                workspace.projectId === project.id && ['PENDING', 'STARTING', 'RUNNING'].includes(workspace.status),
+            );
+            const hasDeployment = [...this.deployments.values()].some(
+              (deployment) => deployment.projectId === project.id,
+            );
+            const hasNonTerminalReservedVmOperation = [...this.reservedVmOperations.values()].some(
+              (operation) => operation.projectId === project.id && !['COMPLETED', 'FAILED'].includes(operation.status),
+            );
+            const hasNonTerminalCheckpoint = [...this.projectCheckpoints.values()].some(
+              (checkpoint) =>
+                checkpoint.projectId === project.id &&
+                (!['COMMITTED', 'CLEANED', 'MANUAL_INTERVENTION', 'RELEASE_BARRIER'].includes(checkpoint.state) ||
+                  (checkpoint.state === 'RELEASE_BARRIER' &&
+                    (!checkpoint.barrierExpiresAt || Date.parse(checkpoint.barrierExpiresAt) > Date.now()))),
+            );
+            const hasProjectTemplate = [...this.projectTemplates.values()].some(
+              (template) => template.sourceProjectId === project.id,
+            );
+            const hasAiConversation = [...this.aiConversations.values()].some(
+              (conversation) => conversation.projectId === project.id,
+            );
+
+            const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
+
+            if (
+              hasManagedDatabase ||
+              hasActiveMigration ||
+              hasActiveImport ||
+              hasActiveRemix ||
+              hasActiveStorageShare ||
+              hasActiveWorkspace ||
+              hasDeployment ||
+              hasNonTerminalReservedVmOperation ||
+              hasNonTerminalCheckpoint ||
+              hasProjectTemplate ||
+              hasAiConversation ||
+              hasReleaseManifest ||
+              this.cloudProjectBindingProjectIds.has(project.id)
+            ) {
+              throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+                statusCode: 409,
+                code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
+              });
+            }
+
+            const sourceRevision = await this.getLatestProjectManifest(project.id);
+
+            const sourceManifest = sourceRevision
+              ? verifyStoredProjectManifestRevision(sourceRevision, project.id)
+              : createDefaultProjectManifest(project.id);
+
+            const detachedSeed = projectManifestForClone(sourceManifest, project.id, 'DETACH_EXTERNALS');
+
+            const detachedManifest = {
+              ...detachedSeed,
+              manifestVersion: (sourceRevision?.manifestVersion ?? 0) + 1,
+            } satisfies ProjectManifest;
+
+            for (const [grantId, grant] of this.resourceAccessGrants) {
+              if (
+                grant.resourceType === 'PROJECT' &&
+                grant.resourceId === project.id &&
+                ['PENDING_CONSENT', 'ACTIVE'].includes(grant.status)
+              ) {
+                this.resourceAccessGrants.set(grantId, {
+                  ...grant,
+                  status: 'REVOKED',
+                  revokedAt: now(),
+                  revokedByUserId: input.actorUserId,
+                  revocationReason: 'PROJECT_TRANSFERRED',
+                  updatedAt: now(),
+                });
+              }
+            }
+
+            for (const [collaboratorId, collaborator] of this.projectCollaborators) {
+              if (collaborator.projectId === project.id) this.projectCollaborators.delete(collaboratorId);
+            }
+            for (const [shareLinkId, shareLink] of this.projectShareLinks) {
+              if (shareLink.projectId === project.id) this.projectShareLinks.delete(shareLinkId);
+            }
+            for (const [tokenHash, share] of this.chatShares) {
+              if (share.projectId === project.id) this.chatShares.delete(tokenHash);
+            }
+            for (const [presenceId, presence] of this.collaborationPresence) {
+              if (presence.projectId === project.id) this.collaborationPresence.delete(presenceId);
+            }
+            const ideState = this.projectIdeStates.get(project.id);
+            if (ideState) {
+              this.projectIdeStates.set(project.id, {
+                ...ideState,
+                state: clearTenantScopedIdeCapabilities(ideState.state),
+                version: ideState.version + 1,
+                updatedAt: now(),
+              });
+            }
+
+            project.organizationId = input.targetOrganizationId;
+            project.updatedAt = now();
+
+            const revision: ProjectManifestRevisionRecord = {
+              id: id('project_manifest'),
+              projectId: project.id,
+              schemaVersion: detachedManifest.schemaVersion,
+              manifestVersion: detachedManifest.manifestVersion,
+              digest: projectManifestDigest(detachedManifest),
+              manifest: detachedManifest,
+              createdByUserId: input.actorUserId,
+              createdAt: now(),
+            };
+
+            const revisions = this.projectManifestRevisions.get(project.id) ?? [];
+            revisions.push(revision);
+            this.projectManifestRevisions.set(project.id, revisions);
+
+            return project;
+          },
+          { allowActiveTargetShare: true },
+        );
+      });
     });
   }
 
@@ -2036,14 +2848,34 @@ export class TestApiStore implements ApiStore {
 
   async createProjectTemplate(input: {
     sourceProjectId: string;
+    expectedSourceOrganizationId: string;
     organizationId: string;
     name: string;
     description?: string;
   }) {
-    const template: ProjectTemplateRecord = { id: id('template'), ...input, createdAt: now() };
-    this.projectTemplates.set(template.id, template);
+    if (input.organizationId !== input.expectedSourceOrganizationId) {
+      throw projectOrganizationChangedError();
+    }
 
-    return template;
+    return this.withProjectTenantMutation(
+      {
+        projectId: input.sourceProjectId,
+        expectedOrganizationId: input.expectedSourceOrganizationId,
+      },
+      async () => {
+        const template: ProjectTemplateRecord = {
+          id: id('template'),
+          sourceProjectId: input.sourceProjectId,
+          organizationId: input.organizationId,
+          name: input.name,
+          description: input.description,
+          createdAt: now(),
+        };
+        this.projectTemplates.set(template.id, template);
+
+        return template;
+      },
+    );
   }
 
   async listProjectTemplates(organizationId: string) {
@@ -2057,25 +2889,26 @@ export class TestApiStore implements ApiStore {
     value: string;
     scope?: EnvVarScope;
   }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
-    // Omitted scope defaults to production (pre-scope back-compat).
-    const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
-    const key = `${input.projectId}:${input.key}:${scope}`;
-    const existing = this.projectEnvVars.get(key);
+    return this.withProjectTenantMutation(input, async () => {
+      // Omitted scope defaults to production (pre-scope back-compat).
+      const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+      const key = `${input.projectId}:${input.key}:${scope}`;
+      const existing = this.projectEnvVars.get(key);
 
-    const envVar: ProjectEnvironmentRecord = {
-      id: existing?.id ?? id('env'),
-      projectId: input.projectId,
-      key: input.key,
-      value: input.value,
-      scope,
-      createdAt: existing?.createdAt ?? now(),
-      updatedAt: now(),
-    };
-    this.projectEnvVars.set(key, envVar);
+      const envVar: ProjectEnvironmentRecord = {
+        id: existing?.id ?? id('env'),
+        projectId: input.projectId,
+        key: input.key,
+        value: input.value,
+        scope,
+        createdAt: existing?.createdAt ?? now(),
+        updatedAt: now(),
+      };
+      this.projectEnvVars.set(key, envVar);
 
-    return envVar;
+      return envVar;
+    });
   }
 
   async listProjectEnvVars(projectId: string) {
@@ -2088,14 +2921,15 @@ export class TestApiStore implements ApiStore {
     key: string;
     scope?: EnvVarScope;
   }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
-    const targetScope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
-    const mapKey = `${input.projectId}:${input.key}:${targetScope}`;
-    const existing = this.projectEnvVars.get(mapKey);
-    this.projectEnvVars.delete(mapKey);
+    return this.withProjectTenantMutation(input, async () => {
+      const targetScope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+      const mapKey = `${input.projectId}:${input.key}:${targetScope}`;
+      const existing = this.projectEnvVars.get(mapKey);
+      this.projectEnvVars.delete(mapKey);
 
-    return existing;
+      return existing;
+    });
   }
 
   async upsertProjectSecret(input: {
@@ -2104,22 +2938,23 @@ export class TestApiStore implements ApiStore {
     key: string;
     valueEncrypted: string;
   }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
-    const key = `${input.projectId}:${input.key}`;
-    const existing = this.projectSecrets.get(key);
+    return this.withProjectTenantMutation(input, async () => {
+      const key = `${input.projectId}:${input.key}`;
+      const existing = this.projectSecrets.get(key);
 
-    const secret: ProjectSecretRecord = {
-      id: existing?.id ?? id('secret'),
-      projectId: input.projectId,
-      key: input.key,
-      valueEncrypted: input.valueEncrypted,
-      createdAt: existing?.createdAt ?? now(),
-      updatedAt: now(),
-    };
-    this.projectSecrets.set(key, secret);
+      const secret: ProjectSecretRecord = {
+        id: existing?.id ?? id('secret'),
+        projectId: input.projectId,
+        key: input.key,
+        valueEncrypted: input.valueEncrypted,
+        createdAt: existing?.createdAt ?? now(),
+        updatedAt: now(),
+      };
+      this.projectSecrets.set(key, secret);
 
-    return secret;
+      return secret;
+    });
   }
 
   async listProjectSecrets(projectId: string) {
@@ -2133,13 +2968,14 @@ export class TestApiStore implements ApiStore {
   }
 
   async deleteProjectSecret(input: { projectId: string; expectedOrganizationId: string; key: string }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
-    const mapKey = `${input.projectId}:${input.key}`;
-    const existing = this.projectSecrets.get(mapKey);
-    this.projectSecrets.delete(mapKey);
+    return this.withProjectTenantMutation(input, async () => {
+      const mapKey = `${input.projectId}:${input.key}`;
+      const existing = this.projectSecrets.get(mapKey);
+      this.projectSecrets.delete(mapKey);
 
-    return existing;
+      return existing;
+    });
   }
 
   private assertProjectTenantMutation(projectId: string, expectedOrganizationId: string) {
@@ -2892,14 +3728,28 @@ export class TestApiStore implements ApiStore {
 
   async recordProjectActivity(input: {
     projectId: string;
+    expectedOrganizationId: string;
     actorUserId?: string;
     action: string;
     metadata?: Record<string, unknown>;
   }) {
-    const activity: ProjectActivityRecord = { id: id('activity'), ...input, createdAt: now() };
-    this.projectActivity.set(activity.id, activity);
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        const activity: ProjectActivityRecord = {
+          id: id('activity'),
+          projectId: input.projectId,
+          ...(input.actorUserId !== undefined ? { actorUserId: input.actorUserId } : {}),
+          action: input.action,
+          ...(input.metadata !== undefined ? { metadata: input.metadata } : {}),
+          createdAt: now(),
+        };
+        this.projectActivity.set(activity.id, activity);
 
-    return activity;
+        return activity;
+      },
+      { allowActiveCheckpoint: true, allowDeletedProject: true },
+    );
   }
 
   async listProjectActivity(projectId: string, options: ProjectActivityListOptions = {}) {
@@ -3004,28 +3854,26 @@ export class TestApiStore implements ApiStore {
   }
 
   async updateWorkspaceGitRepositoryUrl(input: {
-    workspaceId: string;
-    expectedProjectId: string;
+    projectId: string;
     expectedOrganizationId: string;
+    workspaceId: string;
     gitRepositoryUrl: string | null;
   }) {
-    const workspace = this.workspaces.get(input.workspaceId);
+    return this.withProjectTenantMutation(input, async () => {
+      const workspace = this.workspaces.get(input.workspaceId);
 
-    if (!workspace || workspace.projectId !== input.expectedProjectId) {
-      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
-        statusCode: 409,
-        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
-      });
-    }
-    this.assertProjectTenantMutation(input.expectedProjectId, input.expectedOrganizationId);
+      if (!workspace || workspace.projectId !== input.projectId) {
+        throw Object.assign(new Error('Workspace not found'), { statusCode: 404, code: 'WORKSPACE_NOT_FOUND' });
+      }
 
-    const updated: WorkspaceRecord = {
-      ...workspace,
-      gitRepositoryUrl: input.gitRepositoryUrl ?? undefined,
-    };
-    this.workspaces.set(workspace.id, updated);
+      const updated: WorkspaceRecord = {
+        ...workspace,
+        gitRepositoryUrl: input.gitRepositoryUrl ?? undefined,
+      };
+      this.workspaces.set(workspace.id, updated);
 
-    return updated;
+      return updated;
+    });
   }
 
   async upsertCollaborationPresence(input: {
@@ -3274,6 +4122,7 @@ export class TestApiStore implements ApiStore {
   async upsertAgentPatchProposal(input: {
     id: string;
     projectId: string;
+    expectedOrganizationId: string;
     artifactId: string;
     messageId: string;
     actionId: string;
@@ -3285,34 +4134,36 @@ export class TestApiStore implements ApiStore {
     status: AgentPatchProposalStatus;
     error?: string;
   }) {
-    const existing = this.agentPatchProposals.get(input.id);
+    return this.withProjectTenantMutation(input, async () => {
+      const existing = this.agentPatchProposals.get(input.id);
 
-    if (existing && existing.projectId !== input.projectId) {
-      throw Object.assign(new Error('Agent patch proposal not found'), {
-        statusCode: 404,
-        code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
-      });
-    }
+      if (existing && existing.projectId !== input.projectId) {
+        throw Object.assign(new Error('Agent patch proposal not found'), {
+          statusCode: 404,
+          code: 'AGENT_PATCH_PROPOSAL_NOT_FOUND',
+        });
+      }
 
-    const proposal: AgentPatchProposalRecord = {
-      id: input.id,
-      projectId: input.projectId,
-      artifactId: input.artifactId,
-      messageId: input.messageId,
-      actionId: input.actionId,
-      filePath: input.filePath,
-      relativePath: input.relativePath,
-      originalContent: existing?.originalContent ?? input.originalContent,
-      proposedContent: input.proposedContent,
-      hunks: input.hunks,
-      status: input.status,
-      error: input.error,
-      createdAt: existing?.createdAt ?? now(),
-      updatedAt: now(),
-    };
-    this.agentPatchProposals.set(input.id, proposal);
+      const proposal: AgentPatchProposalRecord = {
+        id: input.id,
+        projectId: input.projectId,
+        artifactId: input.artifactId,
+        messageId: input.messageId,
+        actionId: input.actionId,
+        filePath: input.filePath,
+        relativePath: input.relativePath,
+        originalContent: existing?.originalContent ?? input.originalContent,
+        proposedContent: input.proposedContent,
+        hunks: input.hunks,
+        status: input.status,
+        error: input.error,
+        createdAt: existing?.createdAt ?? now(),
+        updatedAt: now(),
+      };
+      this.agentPatchProposals.set(input.id, proposal);
 
-    return proposal;
+      return proposal;
+    });
   }
 
   async listOpenAgentPatchProposals(projectId: string) {
@@ -3337,6 +4188,7 @@ export class TestApiStore implements ApiStore {
 
   async recordAgentRepairEvent(input: {
     projectId: string;
+    expectedOrganizationId: string;
     messageId?: string;
     artifactId?: string;
     actionId?: string;
@@ -3346,22 +4198,24 @@ export class TestApiStore implements ApiStore {
     validationError?: string;
     repairError?: string;
   }) {
-    const event: AgentRepairEventRecord = {
-      id: id('repair_event'),
-      projectId: input.projectId,
-      messageId: input.messageId,
-      artifactId: input.artifactId,
-      actionId: input.actionId,
-      relativePath: input.relativePath,
-      attempt: input.attempt ?? 1,
-      outcome: input.outcome,
-      validationError: input.validationError,
-      repairError: input.repairError,
-      createdAt: now(),
-    };
-    this.agentRepairEvents.push(event);
+    return this.withProjectTenantMutation(input, async () => {
+      const event: AgentRepairEventRecord = {
+        id: id('repair_event'),
+        projectId: input.projectId,
+        messageId: input.messageId,
+        artifactId: input.artifactId,
+        actionId: input.actionId,
+        relativePath: input.relativePath,
+        attempt: input.attempt ?? 1,
+        outcome: input.outcome,
+        validationError: input.validationError,
+        repairError: input.repairError,
+        createdAt: now(),
+      };
+      this.agentRepairEvents.push(event);
 
-    return event;
+      return event;
+    });
   }
 
   async listAgentRepairEvents(projectId: string, options?: { take?: number }) {
@@ -3416,11 +4270,18 @@ export class TestApiStore implements ApiStore {
       .map(([, row]) => row);
   }
 
-  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
-    const record = { skillId: input.skillId, enabled: input.enabled, updatedAt: new Date().toISOString() };
-    this.projectSkillOverrides.set(`${input.projectId}:${input.skillId}`, record);
+  async setProjectSkillEnabled(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    skillId: string;
+    enabled: boolean;
+  }) {
+    return this.withProjectTenantMutation(input, async () => {
+      const record = { skillId: input.skillId, enabled: input.enabled, updatedAt: new Date().toISOString() };
+      this.projectSkillOverrides.set(`${input.projectId}:${input.skillId}`, record);
 
-    return record;
+      return record;
+    });
   }
 
   readonly installedSkills = new Map<string, InstalledSkillRecord>();
@@ -3602,6 +4463,44 @@ export class TestApiStore implements ApiStore {
     return workspace;
   }
 
+  async latchProjectWorkspaceStart(input: {
+    workspaceId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    runtimeMode: string;
+    environment?: string;
+  }) {
+    return this.withProjectTenantMutation(input, async () => {
+      const existing = this.workspaces.get(input.workspaceId);
+
+      if (existing && existing.projectId !== input.projectId) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
+          statusCode: 403,
+          code: 'WORKSPACE_PROJECT_MISMATCH',
+        });
+      }
+
+      if (existing) {
+        existing.status = 'STARTING';
+        return existing;
+      }
+
+      const project = this.assertExpectedProjectTenant(input);
+      const workspace: WorkspaceRecord = {
+        id: input.workspaceId,
+        projectId: input.projectId,
+        name: `${project.name} runtime`,
+        runtimeMode: input.runtimeMode,
+        status: 'STARTING',
+        gitPath: `.vibecore-workspaces/${input.workspaceId}`,
+        environment: input.environment ?? 'development',
+        createdAt: now(),
+      };
+      this.workspaces.set(workspace.id, workspace);
+      return workspace;
+    });
+  }
+
   async getWorkspace(id: string) {
     return this.workspaces.get(id);
   }
@@ -3730,6 +4629,7 @@ export class TestApiStore implements ApiStore {
   async createSnapshot(input: {
     id?: string;
     projectId: string;
+    expectedOrganizationId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];
     manifest: unknown;
@@ -3739,51 +4639,60 @@ export class TestApiStore implements ApiStore {
     conversationId?: string;
     turnIndex?: number;
   }) {
-    if (input.id) {
-      const existing = this.snapshots.get(input.id);
+    return this.withProjectTenantMutation(input, async () => {
+      if (input.id) {
+        const existing = this.snapshots.get(input.id);
 
-      if (existing) {
-        if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
-          throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
-            statusCode: 409,
-            code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
-          });
+        if (existing) {
+          if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
+            throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
+              statusCode: 409,
+              code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
+            });
+          }
+
+          return existing;
         }
-
-        return existing;
       }
-    }
 
-    let latestManifest = await this.getLatestProjectManifest(input.projectId);
+      let latestManifest = await this.getLatestProjectManifest(input.projectId);
 
-    if (!latestManifest && this.projects.has(input.projectId)) {
-      const initial = createDefaultProjectManifest(input.projectId);
-      latestManifest = await this.createProjectManifestRevision({
+      if (!latestManifest && this.projects.has(input.projectId)) {
+        const initial = createDefaultProjectManifest(input.projectId);
+        latestManifest = await this.createProjectManifestRevisionAfterTenantLock({
+          projectId: input.projectId,
+          expectedOrganizationId: input.expectedOrganizationId,
+          schemaVersion: initial.schemaVersion,
+          manifestVersion: initial.manifestVersion,
+          digest: projectManifestDigest(initial),
+          manifest: initial,
+          createdByUserId: input.createdByUserId,
+        });
+      }
+
+      const manifestBase =
+        input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
+          ? (input.manifest as Record<string, unknown>)
+          : { snapshotData: input.manifest };
+      const snapshot: SnapshotRecord = {
+        ...(input.id ? { id: input.id } : { id: id('snapshot') }),
         projectId: input.projectId,
-        schemaVersion: initial.schemaVersion,
-        manifestVersion: initial.manifestVersion,
-        digest: projectManifestDigest(initial),
-        manifest: initial,
+        label: input.label,
+        kind: input.kind ?? 'manual',
+        manifest: latestManifest
+          ? { ...manifestBase, projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId) }
+          : manifestBase,
+        storageKey: input.storageKey,
+        byteLength: input.byteLength,
         createdByUserId: input.createdByUserId,
-      });
-    }
+        conversationId: input.conversationId,
+        turnIndex: input.turnIndex,
+        createdAt: now(),
+      };
+      this.snapshots.set(snapshot.id, snapshot);
 
-    const manifestBase =
-      input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
-        ? (input.manifest as Record<string, unknown>)
-        : { snapshotData: input.manifest };
-    const snapshot: SnapshotRecord = {
-      ...input,
-      manifest: latestManifest
-        ? { ...manifestBase, projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId) }
-        : manifestBase,
-      id: input.id ?? id('snapshot'),
-      kind: input.kind ?? 'manual',
-      createdAt: now(),
-    };
-    this.snapshots.set(snapshot.id, snapshot);
-
-    return snapshot;
+      return snapshot;
+    });
   }
 
   async getSnapshot(id: string) {
@@ -3795,27 +4704,38 @@ export class TestApiStore implements ApiStore {
   }
 
   async putProjectStorageObject(input: {
-    projectId?: string;
+    projectId: string;
+    expectedOrganizationId: string;
     key: string;
     kind: ProjectStorageObjectRecord['kind'];
     contentBase64: string;
     byteLength: number;
     contentHash: string;
   }) {
-    const existing = this.projectStorageObjects.get(input.key);
+    return this.withProjectTenantMutation(input, async () => {
+      const existing = this.projectStorageObjects.get(input.key);
 
-    const object: ProjectStorageObjectRecord = {
-      id: existing?.id ?? id('storage_object'),
-      ...input,
-      createdAt: existing?.createdAt ?? now(),
-    };
-    this.projectStorageObjects.set(input.key, object);
+      const object: ProjectStorageObjectRecord = {
+        id: existing?.id ?? id('storage_object'),
+        projectId: input.projectId,
+        key: input.key,
+        kind: input.kind,
+        contentBase64: input.contentBase64,
+        byteLength: input.byteLength,
+        contentHash: input.contentHash,
+        createdAt: existing?.createdAt ?? now(),
+      };
+      this.projectStorageObjects.set(input.key, object);
 
-    return object;
+      return object;
+    });
   }
 
-  async getProjectStorageObject(key: string) {
-    return this.projectStorageObjects.get(key);
+  async getProjectStorageObject(input: { projectId: string; expectedOrganizationId: string; key: string }) {
+    return this.withProjectPhysicalAccess(input, async () => {
+      const object = this.projectStorageObjects.get(input.key);
+      return object?.projectId === input.projectId ? object : undefined;
+    });
   }
 
   async aggregateStorageBytesByOrg() {
@@ -4079,32 +4999,31 @@ export class TestApiStore implements ApiStore {
     environment?: string;
     provisioningDeadlineAt?: string;
   }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
     if (input.organizationId !== input.expectedOrganizationId) {
-      throw Object.assign(new Error('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'), {
-        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
-        statusCode: 409,
-      });
+      throw projectOrganizationChangedError();
     }
-    const instance: DatabaseInstanceRecord = {
-      id: id('database_instance'),
-      projectId: input.projectId,
-      organizationId: input.organizationId,
-      environment: input.environment === 'production' ? 'production' : 'development',
-      status: 'PROVISIONING',
-      engine: 'postgres',
-      region: input.region,
-      sizeBytes: 0,
-      retentionDays: input.retentionDays,
-      pitrEnabled: input.retentionDays > 0,
-      provisioningDeadlineAt: input.provisioningDeadlineAt,
-      createdAt: now(),
-      updatedAt: now(),
-    };
-    this.databaseInstances.set(instance.id, instance);
 
-    return instance;
+    return this.withProjectTenantMutation(input, async () => {
+      const instance: DatabaseInstanceRecord = {
+        id: id('database_instance'),
+        projectId: input.projectId,
+        organizationId: input.expectedOrganizationId,
+        environment: input.environment === 'production' ? 'production' : 'development',
+        status: 'PROVISIONING',
+        engine: 'postgres',
+        region: input.region,
+        sizeBytes: 0,
+        retentionDays: input.retentionDays,
+        pitrEnabled: input.retentionDays > 0,
+        provisioningDeadlineAt: input.provisioningDeadlineAt,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      this.databaseInstances.set(instance.id, instance);
+
+      return instance;
+    });
   }
 
   async acquireDatabaseProvisioning(input: {
@@ -4116,41 +5035,59 @@ export class TestApiStore implements ApiStore {
     environment?: string;
     provisioningDeadlineAt: string;
   }) {
-    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
-    const environment = input.environment === 'production' ? 'production' : 'development';
-
-    /*
-     * Deliberately inspect and mutate the in-memory record without an await in
-     * between. This mirrors the single-row conditional UPDATE used by the
-     * Prisma store, so concurrency tests cannot grant two retry claims merely
-     * because this test double yielded at the wrong point.
-     */
-    const existing = Array.from(this.databaseInstances.values()).find(
-      (row) => row.projectId === input.projectId && row.environment === environment,
-    );
-
-    if (!existing) {
-      const instance = await this.createDatabaseInstance({ ...input, environment });
-
-      return { instance, acquired: true, created: true };
+    if (input.organizationId !== input.expectedOrganizationId) {
+      throw projectOrganizationChangedError();
     }
 
-    if (existing.status !== 'FAILED') {
-      return { instance: existing, acquired: false, created: false };
-    }
+    return this.withProjectTenantMutation(input, async () => {
+      const environment = input.environment === 'production' ? 'production' : 'development';
 
-    const instance: DatabaseInstanceRecord = {
-      ...existing,
-      status: 'PROVISIONING',
-      provisioningDeadlineAt: input.provisioningDeadlineAt,
-      lastErrorCode: undefined,
-      lastErrorAt: undefined,
-      updatedAt: now(),
-    };
-    this.databaseInstances.set(instance.id, instance);
+      /*
+       * Deliberately inspect and mutate the in-memory record without an await in
+       * between. This mirrors the Project-row lock used by the Prisma store.
+       */
+      const existing = Array.from(this.databaseInstances.values()).find(
+        (row) => row.projectId === input.projectId && row.environment === environment,
+      );
 
-    return { instance, acquired: true, created: false };
+      if (!existing) {
+        const instance: DatabaseInstanceRecord = {
+          id: id('database_instance'),
+          projectId: input.projectId,
+          organizationId: input.expectedOrganizationId,
+          environment,
+          status: 'PROVISIONING',
+          engine: 'postgres',
+          region: input.region,
+          sizeBytes: 0,
+          retentionDays: input.retentionDays,
+          pitrEnabled: input.retentionDays > 0,
+          provisioningDeadlineAt: input.provisioningDeadlineAt,
+          createdAt: now(),
+          updatedAt: now(),
+        };
+        this.databaseInstances.set(instance.id, instance);
+
+        return { instance, acquired: true, created: true };
+      }
+
+      if (existing.status !== 'FAILED') {
+        return { instance: existing, acquired: false, created: false };
+      }
+
+      const instance: DatabaseInstanceRecord = {
+        ...existing,
+        status: 'PROVISIONING',
+        provisioningDeadlineAt: input.provisioningDeadlineAt,
+        lastErrorCode: undefined,
+        lastErrorAt: undefined,
+        updatedAt: now(),
+      };
+      this.databaseInstances.set(instance.id, instance);
+
+      return { instance, acquired: true, created: false };
+    });
   }
 
   async completeDatabaseProvisioning(
@@ -4162,26 +5099,41 @@ export class TestApiStore implements ApiStore {
       valueEncrypted: string;
     },
   ) {
-    this.assertProjectTenantMutation(connection.projectId, connection.expectedOrganizationId);
     this._assertNoActiveProjectReleaseBarrier(connection.projectId);
-    const instance = this.databaseInstances.get(instanceId);
+    return this.withProjectTenantMutation(connection, async () => {
+      const instance = this.databaseInstances.get(instanceId);
 
-    if (!instance || instance.projectId !== connection.projectId || instance.status !== 'PROVISIONING') {
-      return undefined;
-    }
+      if (
+        !instance ||
+        instance.projectId !== connection.projectId ||
+        instance.organizationId !== connection.expectedOrganizationId ||
+        instance.status !== 'PROVISIONING'
+      ) {
+        return undefined;
+      }
 
-    const updated: DatabaseInstanceRecord = {
-      ...instance,
-      status: 'ACTIVE',
-      provisioningDeadlineAt: undefined,
-      lastErrorCode: undefined,
-      lastErrorAt: undefined,
-      updatedAt: now(),
-    };
-    await this.upsertProjectSecret(connection);
-    this.databaseInstances.set(instanceId, updated);
+      const updated: DatabaseInstanceRecord = {
+        ...instance,
+        status: 'ACTIVE',
+        provisioningDeadlineAt: undefined,
+        lastErrorCode: undefined,
+        lastErrorAt: undefined,
+        updatedAt: now(),
+      };
+      const secretKey = `${connection.projectId}:${connection.key}`;
+      const existingSecret = this.projectSecrets.get(secretKey);
+      this.projectSecrets.set(secretKey, {
+        id: existingSecret?.id ?? id('secret'),
+        projectId: connection.projectId,
+        key: connection.key,
+        valueEncrypted: connection.valueEncrypted,
+        createdAt: existingSecret?.createdAt ?? now(),
+        updatedAt: now(),
+      });
+      this.databaseInstances.set(instanceId, updated);
 
-    return updated;
+      return updated;
+    });
   }
 
   async failDatabaseProvisioning(
@@ -4303,6 +5255,7 @@ export class TestApiStore implements ApiStore {
 
   async createDeployment(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
@@ -4328,148 +5281,151 @@ export class TestApiStore implements ApiStore {
     finishedAt?: string;
     canceledAt?: string;
   }) {
-    if (input.reservedVm) {
-      const operationKey = `${input.projectId}:${input.reservedVm.idempotencyKey}`;
-      const replay = this.reservedVmOperations.get(operationKey);
+    return this.withProjectTenantMutation(input, async () => {
+      if (input.reservedVm) {
+        const operationKey = `${input.projectId}:${input.reservedVm.idempotencyKey}`;
+        const replay = this.reservedVmOperations.get(operationKey);
 
-      if (replay) {
-        if (replay.requestHash !== input.reservedVm.requestHash || replay.kind !== 'CREATE') {
-          throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
-            code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
-            statusCode: 409,
-          });
+        if (replay) {
+          if (replay.requestHash !== input.reservedVm.requestHash || replay.kind !== 'CREATE') {
+            throw Object.assign(new Error('RESERVED_VM_IDEMPOTENCY_CONFLICT'), {
+              code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+              statusCode: 409,
+            });
+          }
+          return this.deployments.get(replay.deploymentId)!;
         }
-        return this.deployments.get(replay.deploymentId)!;
-      }
-    }
-
-    const environment = input.environment ?? 'preview';
-
-    let accessPolicyVersion = input.accessPolicyVersion;
-
-    if (input.accessPolicy) {
-      const mode = normalizeDeploymentAccessMode(input.accessPolicy.mode);
-      const passwordHash = input.accessPolicy.passwordHash?.trim();
-
-      if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
-        throw new Error('DEPLOYMENT_ACCESS_PASSWORD_INVALID');
       }
 
-      accessPolicyVersion =
-        this.deploymentAccessPolicies
-          .filter((policy) => policy.projectId === input.projectId && policy.environment === environment)
-          .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
-      this.deploymentAccessPolicies.push({
-        id: id('access_policy'),
-        projectId: input.projectId,
-        environment,
-        version: accessPolicyVersion,
-        mode,
-        revision: id('access_revision'),
-        passwordHash,
-        createdByUserId: input.accessPolicy.createdByUserId,
-        createdAt: now(),
-      });
-    } else if (accessPolicyVersion === undefined) {
-      let legacy = this.deploymentAccessPolicies.find(
-        (policy) => policy.projectId === input.projectId && policy.environment === environment && policy.version === 1,
-      );
+      const environment = input.environment ?? 'preview';
 
-      if (!legacy) {
-        legacy = {
+      let accessPolicyVersion = input.accessPolicyVersion;
+
+      if (input.accessPolicy) {
+        const mode = normalizeDeploymentAccessMode(input.accessPolicy.mode);
+        const passwordHash = input.accessPolicy.passwordHash?.trim();
+
+        if ((mode === 'PASSWORD_PROTECTED') !== Boolean(passwordHash)) {
+          throw new Error('DEPLOYMENT_ACCESS_PASSWORD_INVALID');
+        }
+
+        accessPolicyVersion =
+          this.deploymentAccessPolicies
+            .filter((policy) => policy.projectId === input.projectId && policy.environment === environment)
+            .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
+        this.deploymentAccessPolicies.push({
           id: id('access_policy'),
           projectId: input.projectId,
           environment,
-          version: 1,
-          mode: 'PUBLIC',
-          revision: id('legacy_public'),
+          version: accessPolicyVersion,
+          mode,
+          revision: id('access_revision'),
+          passwordHash,
+          createdByUserId: input.accessPolicy.createdByUserId,
           createdAt: now(),
-        };
-        this.deploymentAccessPolicies.push(legacy);
+        });
+      } else if (accessPolicyVersion === undefined) {
+        let legacy = this.deploymentAccessPolicies.find(
+          (policy) =>
+            policy.projectId === input.projectId && policy.environment === environment && policy.version === 1,
+        );
+
+        if (!legacy) {
+          legacy = {
+            id: id('access_policy'),
+            projectId: input.projectId,
+            environment,
+            version: 1,
+            mode: 'PUBLIC',
+            revision: id('legacy_public'),
+            createdAt: now(),
+          };
+          this.deploymentAccessPolicies.push(legacy);
+        }
+
+        accessPolicyVersion = legacy.version;
+      } else if (
+        !this.deploymentAccessPolicies.some(
+          (policy) =>
+            policy.projectId === input.projectId &&
+            policy.environment === environment &&
+            policy.version === accessPolicyVersion,
+        )
+      ) {
+        throw new Error('DEPLOYMENT_ACCESS_POLICY_NOT_FOUND');
       }
 
-      accessPolicyVersion = legacy.version;
-    } else if (
-      !this.deploymentAccessPolicies.some(
-        (policy) =>
-          policy.projectId === input.projectId &&
-          policy.environment === environment &&
-          policy.version === accessPolicyVersion,
-      )
-    ) {
-      throw new Error('DEPLOYMENT_ACCESS_POLICY_NOT_FOUND');
-    }
-
-    const deployment: DeploymentRecord = {
-      id: id('deployment'),
-      projectId: input.projectId,
-      workspaceId: input.workspaceId,
-      provider: input.provider,
-      environment,
-      status: input.status ?? 'QUEUED',
-      url: input.url,
-      previewUrl: input.previewUrl,
-      productionUrl: input.productionUrl,
-      framework: input.framework,
-      buildCommand: input.buildCommand,
-      outputDirectory: input.outputDirectory,
-      branch: input.branch,
-      commitSha: input.commitSha,
-      customDomain: input.customDomain,
-      logs: input.logs ?? [],
-      metadata: input.metadata,
-      rolledBackFromId: input.rolledBackFromId,
-      parentDeploymentId: input.parentDeploymentId,
-      machineSize: input.machineSize,
-      runtimeKind: input.reservedVm ? 'reserved-vm' : 'autoscale',
-      runtimeVersion: 0,
-      reservedVmTier: input.reservedVm?.tier,
-      reservedVmPriceCents: input.reservedVm?.monthlyPriceCents,
-      reservedVmTermsVersion: input.reservedVm?.termsVersion,
-      reservedVmRateCardVersion: input.reservedVm?.rateCardVersion,
-      persistentStorageClaim: input.reservedVm ? `reserved-data-pending` : undefined,
-      accessPolicyVersion,
-      startedAt: input.startedAt,
-      finishedAt: input.finishedAt,
-      canceledAt: input.canceledAt,
-      createdAt: now(),
-      updatedAt: now(),
-    };
-    if (input.reservedVm) {
-      deployment.persistentStorageClaim = `reserved-data-${deployment.id}`;
-      const timestamp = now();
-      const operation: ReservedVmLease = {
-        id: id('reserved_operation'),
+      const deployment: DeploymentRecord = {
+        id: id('deployment'),
         projectId: input.projectId,
-        deploymentId: deployment.id,
-        organizationId: input.reservedVm.organizationId,
-        actorUserId: input.reservedVm.actorUserId,
-        idempotencyKey: input.reservedVm.idempotencyKey,
-        requestHash: input.reservedVm.requestHash,
-        kind: 'CREATE',
-        status: 'PENDING',
-        phase: 'RESERVED',
-        targetRuntimeKind: 'reserved-vm',
-        targetTier: input.reservedVm.tier,
-        targetMachineSize: input.reservedVm.tier,
-        targetCpuMillicores: Math.round(RESERVED_VM_TIERS[input.reservedVm.tier].vcpu * 1_000),
-        targetMemoryMb: RESERVED_VM_TIERS[input.reservedVm.tier].ramGb * 1_024,
-        targetPriceCents: input.reservedVm.monthlyPriceCents,
-        billingAmountCents: input.reservedVm.monthlyPriceCents,
-        termsVersion: input.reservedVm.termsVersion,
-        rateCardVersion: input.reservedVm.rateCardVersion,
-        expectedRuntimeVersion: 0,
-        billingReservationId: id('ledger_reservation'),
-        fencingToken: 0,
-        createdAt: timestamp,
-        updatedAt: timestamp,
+        workspaceId: input.workspaceId,
+        provider: input.provider,
+        environment,
+        status: input.status ?? 'QUEUED',
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        framework: input.framework,
+        buildCommand: input.buildCommand,
+        outputDirectory: input.outputDirectory,
+        branch: input.branch,
+        commitSha: input.commitSha,
+        customDomain: input.customDomain,
+        logs: input.logs ?? [],
+        metadata: input.metadata,
+        rolledBackFromId: input.rolledBackFromId,
+        parentDeploymentId: input.parentDeploymentId,
+        machineSize: input.machineSize,
+        runtimeKind: input.reservedVm ? 'reserved-vm' : 'autoscale',
+        runtimeVersion: 0,
+        reservedVmTier: input.reservedVm?.tier,
+        reservedVmPriceCents: input.reservedVm?.monthlyPriceCents,
+        reservedVmTermsVersion: input.reservedVm?.termsVersion,
+        reservedVmRateCardVersion: input.reservedVm?.rateCardVersion,
+        persistentStorageClaim: input.reservedVm ? `reserved-data-pending` : undefined,
+        accessPolicyVersion,
+        startedAt: input.startedAt,
+        finishedAt: input.finishedAt,
+        canceledAt: input.canceledAt,
+        createdAt: now(),
+        updatedAt: now(),
       };
-      this.reservedVmOperations.set(`${input.projectId}:${input.reservedVm.idempotencyKey}`, operation);
-    }
-    this.deployments.set(deployment.id, deployment);
-    this.reservedVmRuntimeFences.set(deployment.id, 0);
+      if (input.reservedVm) {
+        deployment.persistentStorageClaim = `reserved-data-${deployment.id}`;
+        const timestamp = now();
+        const operation: ReservedVmLease = {
+          id: id('reserved_operation'),
+          projectId: input.projectId,
+          deploymentId: deployment.id,
+          organizationId: input.reservedVm.organizationId,
+          actorUserId: input.reservedVm.actorUserId,
+          idempotencyKey: input.reservedVm.idempotencyKey,
+          requestHash: input.reservedVm.requestHash,
+          kind: 'CREATE',
+          status: 'PENDING',
+          phase: 'RESERVED',
+          targetRuntimeKind: 'reserved-vm',
+          targetTier: input.reservedVm.tier,
+          targetMachineSize: input.reservedVm.tier,
+          targetCpuMillicores: Math.round(RESERVED_VM_TIERS[input.reservedVm.tier].vcpu * 1_000),
+          targetMemoryMb: RESERVED_VM_TIERS[input.reservedVm.tier].ramGb * 1_024,
+          targetPriceCents: input.reservedVm.monthlyPriceCents,
+          billingAmountCents: input.reservedVm.monthlyPriceCents,
+          termsVersion: input.reservedVm.termsVersion,
+          rateCardVersion: input.reservedVm.rateCardVersion,
+          expectedRuntimeVersion: 0,
+          billingReservationId: id('ledger_reservation'),
+          fencingToken: 0,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        this.reservedVmOperations.set(`${input.projectId}:${input.reservedVm.idempotencyKey}`, operation);
+      }
+      this.deployments.set(deployment.id, deployment);
+      this.reservedVmRuntimeFences.set(deployment.id, 0);
 
-    return deployment;
+      return deployment;
+    });
   }
 
   async getDeployment(projectId: string, deploymentId: string) {
@@ -7453,6 +8409,20 @@ export class TestApiStore implements ApiStore {
 
   async createProjectManifestRevision(input: {
     projectId: string;
+    expectedOrganizationId: string;
+    schemaVersion: number;
+    manifestVersion: number;
+    digest: string;
+    manifest: ProjectManifest;
+    expectedDigest?: string;
+    createdByUserId?: string;
+  }): Promise<ProjectManifestRevisionRecord> {
+    return this.withProjectTenantMutation(input, () => this.createProjectManifestRevisionAfterTenantLock(input));
+  }
+
+  private async createProjectManifestRevisionAfterTenantLock(input: {
+    projectId: string;
+    expectedOrganizationId: string;
     schemaVersion: number;
     manifestVersion: number;
     digest: string;
@@ -7590,40 +8560,43 @@ export class TestApiStore implements ApiStore {
 
   async createProjectCheckpoint(input: {
     projectId: string;
+    expectedOrganizationId: string;
     createdByUserId?: string;
     idempotencyKey?: string;
     requestHash?: string;
   }) {
-    const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
+    return this.withProjectTenantMutation(input, async () => {
+      const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
 
-    const existing = input.idempotencyKey
-      ? [...this.projectCheckpoints.values()].find((row) => row.idempotencyKey === input.idempotencyKey)
-      : undefined;
+      const existing = input.idempotencyKey
+        ? [...this.projectCheckpoints.values()].find((row) => row.idempotencyKey === input.idempotencyKey)
+        : undefined;
 
-    if (existing) {
-      if (existing.projectId !== input.projectId || existing.requestHash !== requestHash) {
-        throw Object.assign(new Error('CHECKPOINT_IDEMPOTENCY_KEY_REUSED'), {
-          statusCode: 409,
-          code: 'IDEMPOTENCY_KEY_REUSED',
-        });
+      if (existing) {
+        if (existing.projectId !== input.projectId || existing.requestHash !== requestHash) {
+          throw Object.assign(new Error('CHECKPOINT_IDEMPOTENCY_KEY_REUSED'), {
+            statusCode: 409,
+            code: 'IDEMPOTENCY_KEY_REUSED',
+          });
+        }
+
+        return { id: existing.id, state: existing.state, replayed: true };
       }
 
-      return { id: existing.id, state: existing.state, replayed: true };
-    }
+      const row: typeof this.projectCheckpoints extends Map<string, infer Row> ? Row : never = {
+        id: id('ckpt'),
+        projectId: input.projectId,
+        state: 'PREPARING',
+        createdAt: now(),
+        createdByUserId: input.createdByUserId,
+        idempotencyKey: input.idempotencyKey,
+        requestHash,
+        barrierFence: 0,
+      };
+      this.projectCheckpoints.set(row.id, row);
 
-    const row: typeof this.projectCheckpoints extends Map<string, infer Row> ? Row : never = {
-      id: id('ckpt'),
-      projectId: input.projectId,
-      state: 'PREPARING',
-      createdAt: now(),
-      createdByUserId: input.createdByUserId,
-      idempotencyKey: input.idempotencyKey,
-      requestHash,
-      barrierFence: 0,
-    };
-    this.projectCheckpoints.set(row.id, row);
-
-    return { id: row.id, state: row.state, replayed: false };
+      return { id: row.id, state: row.state, replayed: false };
+    });
   }
 
   async acquireProjectCheckpointBarrier(input: {
@@ -7633,53 +8606,55 @@ export class TestApiStore implements ApiStore {
     ownerToken: string;
     ttlSeconds: number;
   }) {
-    const checkpoint = this.projectCheckpoints.get(input.checkpointId);
-    this._assertAccountPurgeMutationAllowed({
-      userIds: [checkpoint?.createdByUserId],
-      projectIds: [checkpoint?.projectId, input.projectId],
-    });
-    const at = Date.now();
+    return this.withSerializedMutation(projectPhysicalMutationLockKey(input.projectId), async () => {
+      const checkpoint = this.projectCheckpoints.get(input.checkpointId);
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [checkpoint?.createdByUserId],
+        projectIds: [checkpoint?.projectId, input.projectId],
+      });
+      const at = Date.now();
 
-    for (const candidate of this.projectCheckpoints.values()) {
-      if (
-        candidate.barrierProjectId === input.projectId &&
-        candidate.barrierExpiresAt &&
-        new Date(candidate.barrierExpiresAt).getTime() <= at
-      ) {
-        candidate.barrierProjectId = null;
-        candidate.barrierOwnerToken = null;
-        candidate.barrierExpiresAt = null;
-        candidate.barrierFence += 1;
+      for (const candidate of this.projectCheckpoints.values()) {
+        if (
+          candidate.barrierProjectId === input.projectId &&
+          candidate.barrierExpiresAt &&
+          new Date(candidate.barrierExpiresAt).getTime() <= at
+        ) {
+          candidate.barrierProjectId = null;
+          candidate.barrierOwnerToken = null;
+          candidate.barrierExpiresAt = null;
+          candidate.barrierFence += 1;
+        }
       }
-    }
 
-    const row = this.projectCheckpoints.get(input.checkpointId);
+      const row = this.projectCheckpoints.get(input.checkpointId);
 
-    const active = [...this.projectCheckpoints.values()].some(
-      (candidate) =>
-        candidate.barrierProjectId === input.projectId &&
-        candidate.barrierExpiresAt &&
-        new Date(candidate.barrierExpiresAt).getTime() > at,
-    );
+      const active = [...this.projectCheckpoints.values()].some(
+        (candidate) =>
+          candidate.barrierProjectId === input.projectId &&
+          candidate.barrierExpiresAt &&
+          new Date(candidate.barrierExpiresAt).getTime() > at,
+      );
 
-    if (!row || row.projectId !== input.projectId || !['PREPARING', 'QUIESCING'].includes(row.state) || active) {
-      return undefined;
-    }
+      if (!row || row.projectId !== input.projectId || !['PREPARING', 'QUIESCING'].includes(row.state) || active) {
+        return undefined;
+      }
 
-    row.state = 'BARRIER_ESTABLISHED';
-    row.logicalBarrierId = input.barrierId;
-    row.barrierProjectId = input.projectId;
-    row.barrierOwnerToken = input.ownerToken;
-    row.barrierFence += 1;
-    row.barrierExpiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
+      row.state = 'BARRIER_ESTABLISHED';
+      row.logicalBarrierId = input.barrierId;
+      row.barrierProjectId = input.projectId;
+      row.barrierOwnerToken = input.ownerToken;
+      row.barrierFence += 1;
+      row.barrierExpiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
 
-    return {
-      checkpointId: row.id,
-      barrierId: input.barrierId,
-      ownerToken: input.ownerToken,
-      fence: row.barrierFence,
-      expiresAt: row.barrierExpiresAt,
-    };
+      return {
+        checkpointId: row.id,
+        barrierId: input.barrierId,
+        ownerToken: input.ownerToken,
+        fence: row.barrierFence,
+        expiresAt: row.barrierExpiresAt,
+      };
+    });
   }
 
   async renewProjectCheckpointBarrier(input: {
@@ -7790,79 +8765,81 @@ export class TestApiStore implements ApiStore {
     ownerToken: string;
     ttlSeconds: number;
   }): Promise<ProjectReleaseBarrierLease | undefined> {
-    return this.withSerializedMutation(`project-release:${input.projectId}`, async () => {
-      const project = this.projects.get(input.projectId);
-      const manifest = await this.getLatestProjectManifest(input.projectId);
+    return this.withSerializedMutation(projectPhysicalMutationLockKey(input.projectId), () =>
+      this.withSerializedMutation(`project-release:${input.projectId}`, async () => {
+        const project = this.projects.get(input.projectId);
+        const manifest = await this.getLatestProjectManifest(input.projectId);
 
-      if (!project) {
-        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
-      }
-
-      if (project.organizationId !== input.expectedOrganizationId) {
-        throw Object.assign(new Error('Project organization changed before release.'), {
-          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
-          statusCode: 409,
-        });
-      }
-
-      if (!manifest || manifest.digest !== input.expectedManifestDigest) {
-        throw Object.assign(new Error('Project manifest changed before publish.'), {
-          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
-          statusCode: 409,
-        });
-      }
-
-      const at = Date.now();
-
-      for (const [idv, candidate] of this.projectCheckpoints) {
-        if (
-          candidate.state === 'RELEASE_BARRIER' &&
-          candidate.projectId === input.projectId &&
-          candidate.barrierExpiresAt &&
-          new Date(candidate.barrierExpiresAt).getTime() <= at
-        ) {
-          this.projectCheckpoints.delete(idv);
+        if (!project) {
+          throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
         }
-      }
 
-      if (
-        [...this.projectCheckpoints.values()].some(
-          (candidate) =>
-            candidate.barrierProjectId === input.projectId &&
+        if (project.organizationId !== input.expectedOrganizationId) {
+          throw Object.assign(new Error('Project organization changed before release.'), {
+            code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+            statusCode: 409,
+          });
+        }
+
+        if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+          throw Object.assign(new Error('Project manifest changed before publish.'), {
+            code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+            statusCode: 409,
+          });
+        }
+
+        const at = Date.now();
+
+        for (const [idv, candidate] of this.projectCheckpoints) {
+          if (
+            candidate.state === 'RELEASE_BARRIER' &&
+            candidate.projectId === input.projectId &&
             candidate.barrierExpiresAt &&
-            new Date(candidate.barrierExpiresAt).getTime() > at,
-        )
-      ) {
-        return undefined;
-      }
+            new Date(candidate.barrierExpiresAt).getTime() <= at
+          ) {
+            this.projectCheckpoints.delete(idv);
+          }
+        }
 
-      const checkpointId = id('release_barrier');
-      const barrierId = `release:${input.operationId}`;
-      const expiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
-      this.projectCheckpoints.set(checkpointId, {
-        id: checkpointId,
-        projectId: input.projectId,
-        state: 'RELEASE_BARRIER',
-        logicalBarrierId: barrierId,
-        requestHash: hashToken(
-          `${input.projectId}:${input.expectedOrganizationId}:${input.expectedManifestDigest}:${input.operationId}`,
-        ),
-        barrierProjectId: input.projectId,
-        barrierOwnerToken: input.ownerToken,
-        barrierFence: 1,
-        barrierExpiresAt: expiresAt,
-        createdAt: now(),
-      });
+        if (
+          [...this.projectCheckpoints.values()].some(
+            (candidate) =>
+              candidate.barrierProjectId === input.projectId &&
+              candidate.barrierExpiresAt &&
+              new Date(candidate.barrierExpiresAt).getTime() > at,
+          )
+        ) {
+          return undefined;
+        }
 
-      return {
-        checkpointId,
-        projectId: input.projectId,
-        barrierId,
-        ownerToken: input.ownerToken,
-        fence: 1,
-        expiresAt,
-      };
-    });
+        const checkpointId = id('release_barrier');
+        const barrierId = `release:${input.operationId}`;
+        const expiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
+        this.projectCheckpoints.set(checkpointId, {
+          id: checkpointId,
+          projectId: input.projectId,
+          state: 'RELEASE_BARRIER',
+          logicalBarrierId: barrierId,
+          requestHash: hashToken(
+            `${input.projectId}:${input.expectedOrganizationId}:${input.expectedManifestDigest}:${input.operationId}`,
+          ),
+          barrierProjectId: input.projectId,
+          barrierOwnerToken: input.ownerToken,
+          barrierFence: 1,
+          barrierExpiresAt: expiresAt,
+          createdAt: now(),
+        });
+
+        return {
+          checkpointId,
+          projectId: input.projectId,
+          barrierId,
+          ownerToken: input.ownerToken,
+          fence: 1,
+          expiresAt,
+        };
+      }),
+    );
   }
 
   async assertProjectReleaseBarrier(input: {
@@ -8399,6 +9376,7 @@ export class TestApiStore implements ApiStore {
     this.projectSecrets.set(secretKey, {
       id: existingSecret?.id ?? id('secret'),
       projectId: input.projectId,
+      expectedOrganizationId: input.organizationId,
       key: 'DATABASE_URL',
       valueEncrypted: input.valueEncrypted,
       createdAt: existingSecret?.createdAt ?? now(),
@@ -8599,27 +9577,76 @@ export class TestApiStore implements ApiStore {
     consentVersion: string;
     consentedByUserId?: string;
     sourceInventory: unknown;
+    prepareSourceRetention: () => Promise<ObjectStorageInventory>;
   }) {
-    this._assertAccountPurgeMutationAllowed({
-      userIds: [input.consentedByUserId],
-      organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
-      projectIds: [input.sourceProjectId, input.targetProjectId],
+    const sourceInventory = retainedRemixSourceInventory(input.sourceInventory);
+    const tenantScopes = [
+      { projectId: input.sourceProjectId, expectedOrganizationId: input.sourceOrganizationId },
+      { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
+
+    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+      const liveInventory = canonicalObjectStorageInventory(await input.prepareSourceRetention());
+      if (JSON.stringify(liveInventory) !== JSON.stringify(sourceInventory)) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+          code: 'REMIX_STORAGE_SOURCE_CHANGED',
+          statusCode: 409,
+        });
+      }
+      for (const scope of tenantScopes) {
+        await this.assertProjectTenantMutationAllowed(scope);
+      }
+      if (
+        [input.sourceProjectId, input.targetProjectId].some(
+          (projectId) => (this.objectStorageCapabilityExpiresAt.get(projectId) ?? 0) > Date.now(),
+        )
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_CAPABILITY_ACTIVE')), {
+          code: 'OBJECT_STORAGE_CAPABILITY_ACTIVE',
+          statusCode: 409,
+        });
+      }
+
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [input.consentedByUserId],
+        organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+        projectIds: [input.sourceProjectId, input.targetProjectId],
+      });
+      const existing = this.remixStorageShares.get(input.targetProjectId);
+
+      if (existing) {
+        if (
+          existing.sourceProjectId !== input.sourceProjectId ||
+          existing.sourceOrganizationId !== input.sourceOrganizationId ||
+          existing.targetOrganizationId !== input.targetOrganizationId ||
+          existing.consentVersion !== input.consentVersion ||
+          existing.state !== 'ACTIVE' ||
+          JSON.stringify(retainedRemixSourceInventory(existing.sourceInventory)) !== JSON.stringify(sourceInventory)
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+            statusCode: 409,
+            code: 'REMIX_STORAGE_SHARE_CONFLICT',
+          });
+        }
+        return existing;
+      }
+
+      const row: RemixStorageShareRecord = {
+        id: id('remix-share'),
+        sourceProjectId: input.sourceProjectId,
+        targetProjectId: input.targetProjectId,
+        sourceOrganizationId: input.sourceOrganizationId,
+        targetOrganizationId: input.targetOrganizationId,
+        consentVersion: input.consentVersion,
+        ...(input.consentedByUserId ? { consentedByUserId: input.consentedByUserId } : {}),
+        sourceInventory,
+        consentedAt: now(),
+        state: 'ACTIVE',
+      };
+      this.remixStorageShares.set(input.targetProjectId, row);
+
+      return row;
     });
-    const existing = this.remixStorageShares.get(input.targetProjectId);
-
-    if (existing) {
-      return existing;
-    }
-
-    const row: RemixStorageShareRecord = {
-      id: id('remix-share'),
-      ...input,
-      consentedAt: now(),
-      state: 'ACTIVE',
-    };
-    this.remixStorageShares.set(input.targetProjectId, row);
-
-    return row;
   }
 
   async getRemixStorageShareByTarget(targetProjectId: string) {
@@ -8629,24 +9656,34 @@ export class TestApiStore implements ApiStore {
 
   async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
     const share = this.remixStorageShares.get(input.targetProjectId);
-    this._assertAccountPurgeMutationAllowed({
-      userIds: [share?.consentedByUserId],
-      organizationIds: [share?.sourceOrganizationId, input.targetOrganizationId],
-      projectIds: [share?.sourceProjectId, input.targetProjectId],
+    const tenantScopes = [
+      { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
+      ...(share ? [{ projectId: share.sourceProjectId, expectedOrganizationId: share.sourceOrganizationId }] : []),
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
+
+    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+      for (const tenantScope of tenantScopes) {
+        await this.assertProjectTenantMutationAllowed(tenantScope);
+      }
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [share?.consentedByUserId],
+        organizationIds: [share?.sourceOrganizationId, input.targetOrganizationId],
+        projectIds: [share?.sourceProjectId, input.targetProjectId],
+      });
+
+      if (!share || share.targetOrganizationId !== input.targetOrganizationId || share.state !== 'ACTIVE') {
+        return undefined;
+      }
+
+      const revoked: RemixStorageShareRecord = {
+        ...share,
+        state: 'REVOKED',
+        revokedAt: now(),
+      };
+      this.remixStorageShares.set(input.targetProjectId, revoked);
+
+      return revoked;
     });
-
-    if (!share || share.targetOrganizationId !== input.targetOrganizationId || share.state !== 'ACTIVE') {
-      return undefined;
-    }
-
-    const revoked: RemixStorageShareRecord = {
-      ...share,
-      state: 'REVOKED',
-      revokedAt: now(),
-    };
-    this.remixStorageShares.set(input.targetProjectId, revoked);
-
-    return revoked;
   }
 
   async deleteClaimedRemixStorageShare(input: {
@@ -8656,25 +9693,37 @@ export class TestApiStore implements ApiStore {
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
-    this._assertAccountPurgeMutationAllowed({
-      userIds: [job?.actorUserId],
-      organizationIds: [input.organizationId],
-      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.targetProjectId],
+    const share = this.remixStorageShares.get(input.targetProjectId);
+    const tenantScopes = [
+      { projectId: input.targetProjectId, expectedOrganizationId: input.organizationId },
+      ...(share ? [{ projectId: share.sourceProjectId, expectedOrganizationId: share.sourceOrganizationId }] : []),
+    ].sort((left, right) => left.projectId.localeCompare(right.projectId));
+
+    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+      for (const tenantScope of tenantScopes) {
+        await this.assertProjectTenantMutationAllowed(tenantScope);
+      }
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [job?.actorUserId],
+        organizationIds: [input.organizationId],
+        projectIds: [job?.sourceProjectId, job?.targetProjectId, input.targetProjectId],
+      });
+
+      if (
+        !job ||
+        job.organizationId !== input.organizationId ||
+        job.state !== 'CLEANUP_PENDING' ||
+        job.operationToken !== input.operationToken ||
+        !job.operationExpiresAt ||
+        Date.parse(job.operationExpiresAt) <= Date.now() ||
+        job.targetProjectId !== input.targetProjectId ||
+        (share && share.targetOrganizationId !== input.organizationId)
+      ) {
+        return false;
+      }
+
+      return this.remixStorageShares.delete(input.targetProjectId);
     });
-
-    if (
-      !job ||
-      job.organizationId !== input.organizationId ||
-      job.state !== 'CLEANUP_PENDING' ||
-      job.operationToken !== input.operationToken ||
-      !job.operationExpiresAt ||
-      Date.parse(job.operationExpiresAt) <= Date.now() ||
-      job.targetProjectId !== input.targetProjectId
-    ) {
-      return false;
-    }
-
-    return this.remixStorageShares.delete(input.targetProjectId);
   }
 
   galleryListings = new Map<string, GalleryListingRecord>();
@@ -10472,11 +11521,30 @@ export class TestApiStore implements ApiStore {
     return updated;
   }
 
-  async createAiConversation(input: { projectId?: string; userId: string; title?: string }) {
-    const conversation: AiConversationRecord = { id: id('ai_conv'), ...input, createdAt: now() };
-    this.aiConversations.set(conversation.id, conversation);
+  async createAiConversation(
+    input:
+      | { projectId: string; expectedOrganizationId: string; userId: string; title?: string }
+      | { projectId?: undefined; expectedOrganizationId?: undefined; userId: string; title?: string },
+  ) {
+    const create = async () => {
+      const conversation: AiConversationRecord = {
+        id: id('ai_conv'),
+        projectId: input.projectId,
+        userId: input.userId,
+        title: input.title,
+        createdAt: now(),
+      };
+      this.aiConversations.set(conversation.id, conversation);
 
-    return conversation;
+      return conversation;
+    };
+
+    return input.projectId
+      ? this.withProjectTenantMutation(
+          { projectId: input.projectId, expectedOrganizationId: input.expectedOrganizationId },
+          create,
+        )
+      : create();
   }
 
   async getAiConversation(idValue: string) {

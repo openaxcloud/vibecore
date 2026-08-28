@@ -65,10 +65,11 @@ async function seedOrganizations(prisma: ReturnType<typeof createDatabaseClient>
   return { source, target };
 }
 
-async function seedManifest(store: PrismaApiStore, projectId: string) {
+async function seedManifest(store: PrismaApiStore, projectId: string, expectedOrganizationId: string) {
   const manifest = createDefaultProjectManifest(projectId);
   return store.createProjectManifestRevision({
     projectId,
+    expectedOrganizationId,
     schemaVersion: manifest.schemaVersion,
     manifestVersion: manifest.manifestVersion,
     digest: projectManifestDigest(manifest),
@@ -213,12 +214,18 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
     const project = await prismaA.project.create({
       data: { organizationId: organizations.source.id, name: 'Grant transfer', slug: `grant-transfer-${suffix()}` },
     });
-    await seedManifest(storeA, project.id);
+    await seedManifest(storeA, project.id, organizations.source.id);
 
     try {
       const settled = await timeout(
         Promise.allSettled([
-          storeA.transferProject({ projectId: project.id, targetOrganizationId: organizations.target.id }),
+          storeA.transferProject({
+            projectId: project.id,
+            expectedOrganizationId: organizations.source.id,
+            targetOrganizationId: organizations.target.id,
+            assertExternalStorageDetached: async () => undefined,
+            validateTargetAdmission: async () => undefined,
+          }),
           storeB.createResourceAccessGrant({
             organizationId: organizations.source.id,
             subjectType: 'USER',
@@ -249,7 +256,13 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         }),
       ).toBe(0);
 
-      await storeA.transferProject({ projectId: project.id, targetOrganizationId: organizations.source.id });
+      await storeA.transferProject({
+        projectId: project.id,
+        expectedOrganizationId: organizations.target.id,
+        targetOrganizationId: organizations.source.id,
+        assertExternalStorageDetached: async () => undefined,
+        validateTargetAdmission: async () => undefined,
+      });
       expect(
         await prismaA.resourceAccessGrant.count({
           where: { resourceType: 'PROJECT', resourceId: project.id, status: { not: 'REVOKED' } },
@@ -275,7 +288,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
     const other = await prisma.project.create({
       data: { organizationId: organizations.source.id, name: 'Other', slug: `transfer-other-${suffix()}` },
     });
-    const revision = await seedManifest(store, project.id);
+    const revision = await seedManifest(store, project.id, organizations.source.id);
     await prisma.projectCollaborator.create({
       data: { projectId: project.id, userId: collaborator.id, roleKey: 'viewer' },
     });
@@ -327,6 +340,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         setup: async () => {
           const row = await store.createDeployment({
             projectId: project.id,
+            expectedOrganizationId: organizations.source.id,
             provider: 'server',
             environment: 'preview',
             status: 'BUILDING',
@@ -410,7 +424,13 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         const cleanup = await candidate.setup();
 
         await expect(
-          store.transferProject({ projectId: project.id, targetOrganizationId: organizations.target.id }),
+          store.transferProject({
+            projectId: project.id,
+            expectedOrganizationId: organizations.source.id,
+            targetOrganizationId: organizations.target.id,
+            assertExternalStorageDetached: async () => undefined,
+            validateTargetAdmission: async () => undefined,
+          }),
           candidate.name,
         ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
         expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).organizationId).toBe(
@@ -443,7 +463,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
     const project = await prismaA.project.create({
       data: { organizationId: organizations.source.id, name: 'Release fence', slug: `release-fence-${suffix()}` },
     });
-    const revision = await seedManifest(storeA, project.id);
+    const revision = await seedManifest(storeA, project.id, organizations.source.id);
     const provisioning = await prismaA.databaseInstance.create({
       data: {
         projectId: project.id,
@@ -466,9 +486,16 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
       expect(lease).toBeDefined();
       const nextManifest = { ...createDefaultProjectManifest(project.id), manifestVersion: 2 };
       const attempts = await Promise.allSettled([
-        storeB.transferProject({ projectId: project.id, targetOrganizationId: organizations.target.id }),
+        storeB.transferProject({
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          targetOrganizationId: organizations.target.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
+        }),
         storeB.createProjectManifestRevision({
           projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
           schemaVersion: nextManifest.schemaVersion,
           manifestVersion: nextManifest.manifestVersion,
           expectedDigest: revision.digest,
@@ -545,6 +572,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
 
       const staleWorkerDeployment = await storeA.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: organizations.source.id,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
@@ -557,7 +585,13 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
       `;
 
       await expect(
-        storeB.transferProject({ projectId: project.id, targetOrganizationId: organizations.target.id }),
+        storeB.transferProject({
+          projectId: project.id,
+          expectedOrganizationId: organizations.source.id,
+          targetOrganizationId: organizations.target.id,
+          assertExternalStorageDetached: async () => undefined,
+          validateTargetAdmission: async () => undefined,
+        }),
       ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
       await expect(
         storeA.assertProjectReleaseBarrier({

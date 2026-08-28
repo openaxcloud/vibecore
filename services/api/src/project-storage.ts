@@ -1,10 +1,31 @@
 import { execFile as execFileCallback } from 'node:child_process';
-import { access, link, mkdir, readFile, readdir, rename, rm, stat, unlink, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { constants as fsConstants, type Dirent } from 'node:fs';
+import {
+  access,
+  link,
+  lstat,
+  mkdir,
+  open,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  stat,
+  unlink,
+  writeFile,
+} from 'node:fs/promises';
 import { hostname } from 'node:os';
-import { dirname, join, normalize, relative } from 'node:path';
+import { dirname, isAbsolute, join, normalize, relative, resolve, sep } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
 import { appPublicEnglish } from './app-public-copy.js';
+import {
+  objectStorageStaticArtifactSummary,
+  type ObjectStorageStaticArtifactDisposition,
+  type ObjectStorageStaticArtifactSummary,
+} from './object-storage-operation.js';
+import type { ProjectPhysicalMutationScope } from './store.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -107,7 +128,7 @@ export interface GitProvider {
   }): Promise<{ files: ProjectFile[]; defaultBranch: string; remoteUrl: string }>;
   status(
     projectId: string,
-    workspaceId?: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
 
     /*
      * The caller's current files. Passing them lets the provider refresh the git
@@ -129,6 +150,7 @@ export interface GitProvider {
   }>;
   commit(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     message: string;
     files: ProjectFile[];
@@ -138,23 +160,31 @@ export interface GitProvider {
   }): Promise<{ sha: string; message: string }>;
   push(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     branch: string;
   }): Promise<{ pushed: boolean; branch: string }>;
   pull(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     branch: string;
   }): Promise<{ pulled: boolean; branch: string; changedFiles: string[] }>;
   configureRemote?(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     remoteUrl: string;
   }): Promise<{ remote: string; remoteUrl: string }>;
-  removeRemote?(input: { projectId: string; workspaceId?: string }): Promise<{ removed: boolean }>;
-  listBranches(projectId: string, workspaceId?: string): Promise<string[]>;
+  removeRemote?(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+  }): Promise<{ removed: boolean }>;
+  listBranches(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>): Promise<string[]>;
   checkoutBranch(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     branch: string;
     create?: boolean;
@@ -162,29 +192,37 @@ export interface GitProvider {
   }): Promise<{ branch: string }>;
   stashPush(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     message?: string;
   }): Promise<{ stashed: boolean; output: string }>;
-  stashList(projectId: string, workspaceId?: string): Promise<Array<{ id: string; branch?: string; message: string }>>;
+  stashList(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+  ): Promise<Array<{ id: string; branch?: string; message: string }>>;
   stashApply(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     stashRef: string;
     drop?: boolean;
   }): Promise<{ applied: boolean; output: string }>;
   cherryPick(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     sha: string;
   }): Promise<{ picked: boolean; output: string }>;
   resolveConflict(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePath: string;
     strategy: 'ours' | 'theirs';
   }): Promise<{ resolved: boolean; filePath: string; strategy: 'ours' | 'theirs' }>;
   discard(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePaths?: string[];
   }): Promise<{ discarded: boolean; filePaths: string[] }>;
@@ -195,24 +233,34 @@ export interface GitProvider {
   commitDetail?(
     projectId: string,
     sha: string,
-    workspaceId?: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
   ): Promise<{ sha: string; files: Array<{ status: string; path: string }>; diff: string }>;
-  restoreCommit?(projectId: string, sha: string, workspaceId?: string): Promise<{ restored: boolean; sha: string }>;
+  restoreCommit?(
+    projectId: string,
+    sha: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+  ): Promise<{ restored: boolean; sha: string }>;
   conflictFile?(
     projectId: string,
     filePath: string,
-    workspaceId?: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
   ): Promise<{ filePath: string; content: string }>;
   markResolved?(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePath: string;
     content: string;
   }): Promise<{ resolved: boolean; filePath: string }>;
-  logGraph(projectId: string, limit?: number, workspaceId?: string): Promise<GitCommitNode[]>;
-  diff(projectId: string, filePath?: string, workspaceId?: string): Promise<string>;
+  logGraph(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    limit?: number,
+  ): Promise<GitCommitNode[]>;
+  diff(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>, filePath?: string): Promise<string>;
   blame(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePath: string;
     startLine?: number;
@@ -220,6 +268,7 @@ export interface GitProvider {
   }): Promise<GitBlameLine[]>;
   createPullRequest(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     title: string;
     body?: string;
@@ -232,14 +281,25 @@ export interface ProjectStorage {
   writeFiles(
     projectId: string,
     files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
-    workspaceId?: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     guard?: () => Promise<void>,
   ): Promise<ProjectFile[]>;
-  listFiles(projectId: string, workspaceId?: string): Promise<ProjectFile[]>;
-  exportZip(projectId: string): Promise<StoredArchive & { base64: string }>;
-  importZip(projectId: string, base64: string, options?: { replaceExisting?: boolean }): Promise<ProjectFile[]>;
+  listFiles(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>): Promise<ProjectFile[]>;
+  /** Caller already owns the project's physical/NFS barrier. Never expose directly to a route. */
+  listFilesWithinPhysicalAccess(projectId: string, workspaceId?: string): Promise<ProjectFile[]>;
+  exportZip(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+  ): Promise<StoredArchive & { base64: string }>;
+  importZip(
+    projectId: string,
+    base64: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    options?: { replaceExisting?: boolean },
+  ): Promise<ProjectFile[]>;
   createSnapshot(input: {
     projectId: string;
+    expectedOrganizationId: string;
     label?: string;
     files: ProjectFile[];
     /** Server-chosen deterministic key for crash-safe, idempotent snapshots. */
@@ -247,9 +307,15 @@ export interface ProjectStorage {
     /** Revalidate durable remix ownership immediately before every file-system mutation. */
     guard?: () => Promise<void>;
   }): Promise<StoredArchive>;
-  getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
+  getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+  ): Promise<ProjectFile[]>;
+  /** Caller already owns the project's physical/NFS barrier. */
+  getSnapshotFilesWithinPhysicalAccess(projectId: string, storageKey: string): Promise<ProjectFile[]>;
   restoreSnapshot(
-    input: { projectId: string; workspaceId?: string; files: ProjectFile[] },
+    input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; files: ProjectFile[] },
     guard?: () => Promise<void>,
   ): Promise<ProjectFile[]>;
   /**
@@ -257,11 +323,67 @@ export interface ProjectStorage {
    * deliberately separate from `restoreSnapshot([])`, which preserves `.git`
    * and secondary workspaces and therefore cannot certify rollback cleanup.
    */
-  deleteProjectFiles(projectId: string, guard?: () => Promise<void>): Promise<void>;
+  deleteProjectFiles(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    guard?: () => Promise<void>,
+  ): Promise<void>;
+  /**
+   * Permanent-delete primitive. The caller already owns the physical + NFS
+   * barriers and has durably frozen the Project row; never expose to a route
+   * without that store-owned fence.
+   */
+  eraseProjectDataWithinPhysicalAccess(projectId: string): Promise<void>;
+  /** Validate the complete DB authority before marking any irreversible provider effect started. */
+  prepareProjectStaticErasureWithinPhysicalAccess?(projectId: string): Promise<ObjectStorageStaticArtifactSummary>;
+  /** 0100 static-release implementation: erase aliases and only unshared content-addressed artifacts. */
+  eraseProjectStaticDataWithinPhysicalAccess?(projectId: string): Promise<void>;
+  /** Explicit capability bit: method presence alone is insufficient when no DB authority was injected. */
+  supportsProjectStaticErasure?(): boolean;
+  /** Live absence proof under the same already-owned physical + NFS barrier. */
+  verifyProjectDataAbsentWithinPhysicalAccess?(projectId: string): Promise<{
+    treeAbsent: boolean;
+    exportsAbsent: boolean;
+    snapshotsAbsent: boolean;
+    staticSnapshotsAbsent?: boolean;
+    staticAliasesAbsent?: boolean;
+    staticArtifactSummary?: ObjectStorageStaticArtifactSummary;
+  }>;
 }
 
-/** Executed while the cross-replica project lock is held, immediately before a tree mutation. */
-export type ProjectMutationGuard = (projectId: string, workspaceId?: string) => Promise<void>;
+export interface ProjectStaticArtifactAuthority {
+  /** Exact immutable ReleaseManifest reference owned by this project. */
+  artifactRef: string;
+  /** Must remain positive while the project's permanent-delete fence is held. */
+  projectReferenceCount: number;
+  /** Live ReleaseManifest rows for every other project. */
+  otherReferenceCount: number;
+}
+
+export interface ProjectStaticErasureInventory {
+  /** Binds an injected result to the requested tenant boundary. */
+  projectId: string;
+  /** Union of static Deployment ids and append-only ReleaseManifest deployment ids. */
+  deploymentIds: readonly string[];
+  /** One entry per unique content-addressed static artifact. */
+  artifacts: readonly ProjectStaticArtifactAuthority[];
+}
+
+/**
+ * Database authority for filesystem-only static erasure. The complete inventory
+ * is resolved before any mutation. Artifact retention is then refreshed while
+ * the corresponding digest lock is held, which closes manifest-append vs GC.
+ */
+export interface ProjectStaticErasureAuthority {
+  resolveInventory(projectId: string): Promise<ProjectStaticErasureInventory>;
+  resolveArtifact(projectId: string, artifactRef: string): Promise<ProjectStaticArtifactAuthority | undefined>;
+}
+
+/** Owns PostgreSQL + NFS serialization and revalidates tenant authority before mutation. */
+export type ProjectMutationCoordinator = <T>(
+  scope: ProjectPhysicalMutationScope,
+  effect: () => Promise<T>,
+) => Promise<T>;
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
 
@@ -313,6 +435,263 @@ function safeProjectPath(projectId: string, filePath = '') {
   return target;
 }
 
+const SAFE_STATIC_STORAGE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/u;
+const STATIC_ARTIFACT_REF = /^static-artifacts\/sha256\/([a-f0-9]{64})$/u;
+const STATIC_RECOVERY_MARKER = '.tmp-';
+const MAX_STATIC_ARTIFACT_DISPOSITIONS = 10_000;
+
+function staticErasureError(code: string, statusCode = 503): Error {
+  return Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), { code, statusCode });
+}
+
+function assertSafeStaticStorageId(value: string, kind: 'project' | 'deployment'): void {
+  if (!SAFE_STATIC_STORAGE_ID.test(value)) {
+    throw staticErasureError(`PROJECT_STATIC_ERASURE_INVALID_${kind.toUpperCase()}_ID`, 400);
+  }
+}
+
+function staticStorageRoot(): string {
+  return resolve(process.env.STATIC_DEPLOY_STORAGE_DIR ?? join(process.cwd(), '.vibecore-static-deployments'));
+}
+
+function staticChildPath(root: string, ...segments: string[]): string {
+  const target = resolve(root, ...segments);
+  const rel = relative(root, target);
+
+  if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_PATH_OUTSIDE_ROOT');
+  }
+
+  return target;
+}
+
+async function staticPathExists(target: string): Promise<boolean> {
+  try {
+    await lstat(target);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function readStaticNamespace(target: string): Promise<Dirent<string>[]> {
+  let metadata;
+
+  try {
+    metadata = await lstat(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+    throw error;
+  }
+
+  if (!metadata.isDirectory() || metadata.isSymbolicLink()) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_UNSAFE_NAMESPACE');
+  }
+
+  return readdir(target, { withFileTypes: true });
+}
+
+async function eraseStaticPath(target: string): Promise<void> {
+  try {
+    await rm(target, { recursive: true, force: true, maxRetries: 8, retryDelay: 125 });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+
+  if (await staticPathExists(target)) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_INCOMPLETE');
+  }
+}
+
+function staticRecoveryOwner(entryName: string, owners: ReadonlySet<string>): string | undefined {
+  if (owners.has(entryName)) return entryName;
+  const marker = entryName.indexOf(STATIC_RECOVERY_MARKER);
+  if (marker < 1) return undefined;
+  const owner = entryName.slice(0, marker);
+  return owners.has(owner) ? owner : undefined;
+}
+
+function staticStorageLockId(id: string): string {
+  assertSafeStaticStorageId(id, 'deployment');
+  return `static-${createHash('sha256').update(id, 'utf8').digest('hex')}`;
+}
+
+function withStaticStorageLock<T>(id: string, effect: () => Promise<T>): Promise<T> {
+  return withProjectLock(staticStorageLockId(id), effect);
+}
+
+function artifactDigest(artifactRef: string): string {
+  const digest = STATIC_ARTIFACT_REF.exec(artifactRef)?.[1];
+  if (!digest) throw staticErasureError('PROJECT_STATIC_ERASURE_ARTIFACT_REF_INVALID', 400);
+  return digest;
+}
+
+function validateStaticArtifactAuthority(
+  artifact: ProjectStaticArtifactAuthority,
+  expectedArtifactRef?: string,
+): ProjectStaticArtifactAuthority {
+  const digest = artifactDigest(artifact.artifactRef);
+
+  if (
+    (expectedArtifactRef !== undefined && artifact.artifactRef !== expectedArtifactRef) ||
+    !Number.isSafeInteger(artifact.projectReferenceCount) ||
+    artifact.projectReferenceCount < 1 ||
+    !Number.isSafeInteger(artifact.otherReferenceCount) ||
+    artifact.otherReferenceCount < 0
+  ) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_INVALID');
+  }
+
+  return {
+    artifactRef: `static-artifacts/sha256/${digest}`,
+    projectReferenceCount: artifact.projectReferenceCount,
+    otherReferenceCount: artifact.otherReferenceCount,
+  };
+}
+
+function validateStaticErasureInventory(
+  projectId: string,
+  inventory: ProjectStaticErasureInventory,
+): ProjectStaticErasureInventory {
+  assertSafeStaticStorageId(projectId, 'project');
+
+  if (
+    inventory.projectId !== projectId ||
+    !Array.isArray(inventory.deploymentIds) ||
+    !Array.isArray(inventory.artifacts)
+  ) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_INVALID');
+  }
+
+  if (inventory.artifacts.length > MAX_STATIC_ARTIFACT_DISPOSITIONS) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_ARTIFACT_INVENTORY_TOO_LARGE');
+  }
+
+  const deploymentIds = inventory.deploymentIds.map((deploymentId) => {
+    assertSafeStaticStorageId(deploymentId, 'deployment');
+    return deploymentId;
+  });
+  const artifacts = inventory.artifacts.map((artifact) => validateStaticArtifactAuthority(artifact));
+
+  if (
+    new Set(deploymentIds).size !== deploymentIds.length ||
+    new Set(artifacts.map((artifact) => artifact.artifactRef)).size !== artifacts.length
+  ) {
+    throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_INVALID');
+  }
+
+  return {
+    projectId,
+    deploymentIds: deploymentIds.sort((left, right) => left.localeCompare(right)),
+    artifacts: artifacts.sort((left, right) => left.artifactRef.localeCompare(right.artifactRef)),
+  };
+}
+
+async function ownedStaticEntries(
+  root: string,
+  owners: ReadonlySet<string>,
+): Promise<Array<{ owner: string; name: string; target: string }>> {
+  const entries = await readStaticNamespace(root);
+  return entries
+    .map((entry) => {
+      const owner = staticRecoveryOwner(entry.name, owners);
+      return owner ? { owner, name: entry.name, target: staticChildPath(root, entry.name) } : undefined;
+    })
+    .filter((entry): entry is { owner: string; name: string; target: string } => entry !== undefined)
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+async function readAliasTargetNoFollow(target: string): Promise<string | undefined> {
+  let metadata;
+
+  try {
+    metadata = await lstat(target);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+    throw error;
+  }
+
+  if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size > 512) return undefined;
+
+  let handle;
+  try {
+    handle = await open(target, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT' || code === 'ELOOP') return undefined;
+    throw error;
+  }
+
+  try {
+    const opened = await handle.stat();
+    if (!opened.isFile() || opened.size > 512) return undefined;
+    const targetId = (await handle.readFile('utf8')).trim();
+    return SAFE_STATIC_STORAGE_ID.test(targetId) ? targetId : undefined;
+  } finally {
+    await handle.close();
+  }
+}
+
+type RelevantStaticAlias = { entryName: string; sourceDeploymentId: string; lockId: string; target: string };
+
+async function staticAliasEntryIsRelevant(
+  aliasRoot: string,
+  entryName: string,
+  deploymentIds: ReadonlySet<string>,
+): Promise<boolean> {
+  const ownedSource = staticRecoveryOwner(entryName, deploymentIds);
+  if (ownedSource) return staticPathExists(staticChildPath(aliasRoot, entryName));
+  if (!SAFE_STATIC_STORAGE_ID.test(entryName)) return false;
+  const targetDeploymentId = await readAliasTargetNoFollow(staticChildPath(aliasRoot, entryName));
+  return targetDeploymentId !== undefined && deploymentIds.has(targetDeploymentId);
+}
+
+async function relevantStaticAliases(root: string, deploymentIds: ReadonlySet<string>): Promise<RelevantStaticAlias[]> {
+  const aliasRoot = staticChildPath(root, '.aliases');
+  const entries = await readStaticNamespace(aliasRoot);
+  const relevant: RelevantStaticAlias[] = [];
+
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    const ownedSource = staticRecoveryOwner(entry.name, deploymentIds);
+    const sourceDeploymentId = ownedSource ?? entry.name;
+    const target = staticChildPath(aliasRoot, entry.name);
+
+    if (ownedSource) {
+      relevant.push({ entryName: entry.name, sourceDeploymentId, lockId: ownedSource, target });
+      continue;
+    }
+
+    if (!SAFE_STATIC_STORAGE_ID.test(entry.name)) continue;
+    const targetDeploymentId = await readAliasTargetNoFollow(target);
+    if (targetDeploymentId && deploymentIds.has(targetDeploymentId)) {
+      relevant.push({ entryName: entry.name, sourceDeploymentId, lockId: entry.name, target });
+    }
+  }
+
+  return relevant;
+}
+
+async function eraseRelevantStaticAliases(root: string, deploymentIds: ReadonlySet<string>): Promise<void> {
+  for (let pass = 0; pass < 8; pass += 1) {
+    const aliases = await relevantStaticAliases(root, deploymentIds);
+    if (aliases.length === 0) return;
+    const aliasRoot = staticChildPath(root, '.aliases');
+
+    for (const alias of aliases) {
+      await withStaticStorageLock(alias.lockId, async () => {
+        if (await staticAliasEntryIsRelevant(aliasRoot, alias.entryName, deploymentIds)) {
+          await eraseStaticPath(alias.target);
+        }
+      });
+    }
+  }
+
+  if ((await relevantStaticAliases(root, deploymentIds)).length > 0) {
+    throw staticErasureError('PROJECT_STATIC_ALIAS_ERASURE_INCOMPLETE');
+  }
+}
+
 /*
  * Cross-replica advisory locking for project mutations.
  *
@@ -327,18 +706,18 @@ function safeProjectPath(projectId: string, filePath = '') {
  *     so flock(2) is a no-op there — link(2) on a unique temp file is
  *     the canonical NFSv3-safe primitive (see Filestore docs § locking).
  *
- * Reads (status, log, listFiles, …) intentionally skip the lock: git
- * reads tolerate writer races (worst case is a stale view that the next
- * refresh corrects) and serializing them would tank perceived latency.
+ * Tenant-visible reads (status, log, listFiles, snapshot objects, …) share the
+ * same lock through their access coordinator. This is stronger than ordinary
+ * read consistency: transfer must not let an A-authorized request observe bytes
+ * written later under B. `*WithinPhysicalAccess` helpers are the explicit,
+ * non-reentrant boundary for callers that already own that lock.
  */
 const PROJECT_MUTATION_QUEUE = new Map<string, Promise<unknown>>();
 const PROJECT_LOCK_OWNER = `${hostname()}-${process.pid}`;
 
 /*
- * Must exceed the longest single locked operation, else a legitimately-running
- * git op gets its lock declared stale and stolen mid-flight (concurrent writers
- * on one working tree → index.lock collisions / corrupt refs). git network ops
- * run with a 120s execFile timeout, so keep this comfortably above that.
+ * Crash-recovery window, not an effect duration limit. A live owner renews the
+ * inode mtime below; a dead pod stops heartbeating and becomes reclaimable.
  */
 const PROJECT_LOCK_STALE_MS = 180_000;
 const PROJECT_LOCK_ACQUIRE_TIMEOUT_MS = 60_000;
@@ -351,7 +730,17 @@ function locksRoot() {
 
 const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
-async function acquireFileLock(projectId: string): Promise<() => Promise<void>> {
+export interface ProjectFileLockOptions {
+  staleMs?: number;
+  acquireTimeoutMs?: number;
+  heartbeatMs?: number;
+  /** Deterministic test seam; production and ordinary callers use the env gate. */
+  forceFileLock?: boolean;
+  /** Test two logical replicas in one process without the local promise queue. */
+  bypassProcessQueue?: boolean;
+}
+
+async function acquireFileLock(projectId: string, options: ProjectFileLockOptions = {}): Promise<() => Promise<void>> {
   if (!SAFE_PROJECT_ID.test(projectId)) {
     throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
   }
@@ -372,13 +761,48 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
   await writeFile(sentinelPath, `${lockToken}\n${new Date().toISOString()}\n`, 'utf8');
 
   const startedAt = Date.now();
+  const staleMs = Math.max(30, options.staleMs ?? PROJECT_LOCK_STALE_MS);
+  const acquireTimeoutMs = Math.max(30, options.acquireTimeoutMs ?? PROJECT_LOCK_ACQUIRE_TIMEOUT_MS);
+  const heartbeatMs = Math.max(10, Math.min(options.heartbeatMs ?? Math.floor(staleMs / 3), Math.floor(staleMs / 2)));
 
   while (true) {
     try {
       await link(sentinelPath, lockPath);
+      const lockHandle = await open(lockPath, 'r+').catch(async (error) => {
+        const current = await readFile(lockPath, 'utf8').catch(() => '');
+        if (current.startsWith(lockToken)) await unlink(lockPath).catch(() => undefined);
+        throw error;
+      });
       await unlink(sentinelPath).catch(() => undefined);
 
+      let heartbeatLost = false;
+      let heartbeatInFlight = Promise.resolve();
+      const heartbeat = setInterval(() => {
+        heartbeatInFlight = heartbeatInFlight
+          .then(async () => {
+            const current = await readFile(lockPath, 'utf8').catch(() => '');
+
+            if (!current.startsWith(lockToken)) {
+              heartbeatLost = true;
+              clearInterval(heartbeat);
+              return;
+            }
+
+            const timestamp = new Date();
+            await lockHandle.utimes(timestamp, timestamp);
+          })
+          .catch(() => {
+            heartbeatLost = true;
+            clearInterval(heartbeat);
+          });
+      }, heartbeatMs);
+      heartbeat.unref?.();
+
       return async () => {
+        clearInterval(heartbeat);
+        await heartbeatInFlight;
+        await lockHandle.close().catch(() => undefined);
+
         /*
          * Only release the lock if it is still OURS. The previous unconditional
          * unlink could delete a DIFFERENT replica's live lock if ours had been
@@ -389,6 +813,13 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 
         if (current.startsWith(lockToken)) {
           await unlink(lockPath).catch(() => undefined);
+        }
+
+        if (heartbeatLost) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_LOCK_TIMEOUT', { projectId })), {
+            code: 'PROJECT_LOCK_LEASE_LOST',
+            statusCode: 503,
+          });
         }
       };
     } catch (error) {
@@ -401,7 +832,7 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 
       const stats = await stat(lockPath).catch(() => undefined);
 
-      if (stats && Date.now() - stats.mtimeMs > PROJECT_LOCK_STALE_MS) {
+      if (stats && Date.now() - stats.mtimeMs > staleMs) {
         /*
          * Atomic stale-steal: rename (not unlink) the stale lock to a unique
          * path so only ONE concurrent reclaimer wins. Losing reclaimers' rename
@@ -415,13 +846,28 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
           .catch(() => false);
 
         if (reclaimed) {
+          /*
+           * A heartbeat can race the stale stat above. Because the owner keeps
+           * an fd to the inode, its utimes also updates the atomically-renamed
+           * path. Re-check before destroying it and restore the hardlink when
+           * the lease refreshed during reclamation.
+           */
+          const afterRename = await stat(stolenPath).catch(() => undefined);
+          const refreshed =
+            Boolean(afterRename) &&
+            (afterRename!.mtimeMs > stats.mtimeMs || Date.now() - afterRename!.mtimeMs <= staleMs);
+
+          if (refreshed) {
+            await link(stolenPath, lockPath).catch(() => undefined);
+          }
+
           await unlink(stolenPath).catch(() => undefined);
         }
 
         continue;
       }
 
-      if (Date.now() - startedAt > PROJECT_LOCK_ACQUIRE_TIMEOUT_MS) {
+      if (Date.now() - startedAt > acquireTimeoutMs) {
         await unlink(sentinelPath).catch(() => undefined);
         throw Object.assign(new Error(appPublicEnglish('PROJECT_LOCK_TIMEOUT', { projectId })), {
           code: 'PROJECT_LOCK_TIMEOUT',
@@ -438,26 +884,35 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
   }
 }
 
-export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>): Promise<T> {
+export async function withProjectLock<T>(
+  projectId: string,
+  fn: () => Promise<T>,
+  options: ProjectFileLockOptions = {},
+): Promise<T> {
   /*
    * Disable cross-replica file locking in unit tests, which run many parallel
    * workers against tmp dirs. The in-memory queue still serializes per-process.
    */
-  const enableFileLock = process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test';
+  const enableFileLock =
+    options.forceFileLock === true ||
+    (process.env.VIBECORE_PROJECT_LOCK !== 'disabled' && process.env.NODE_ENV !== 'test');
+  const execute = async () => {
+    const release = enableFileLock ? await acquireFileLock(projectId, options) : async () => undefined;
+
+    try {
+      return await fn();
+    } finally {
+      await release();
+    }
+  };
+
+  if (options.bypassProcessQueue) {
+    return execute();
+  }
 
   const previous = PROJECT_MUTATION_QUEUE.get(projectId) ?? Promise.resolve();
 
-  const next = previous
-    .catch(() => undefined)
-    .then(async () => {
-      const release = enableFileLock ? await acquireFileLock(projectId) : async () => undefined;
-
-      try {
-        return await fn();
-      } finally {
-        await release();
-      }
-    });
+  const next = previous.catch(() => undefined).then(execute);
 
   PROJECT_MUTATION_QUEUE.set(projectId, next);
 
@@ -650,48 +1105,206 @@ export async function filesFromZip(
 
 export class LocalProjectStorage implements ProjectStorage {
   constructor(
-    private readonly mutationGuard?: ProjectMutationGuard,
-    /** `_objects` writes bypass checkpoint barriers but never account-purge fencing. */
-    private readonly objectMutationGuard?: ProjectMutationGuard,
+    private readonly mutationCoordinator?: ProjectMutationCoordinator,
+    /** `_objects` writes bypass checkpoint barriers but never tenant/purge fencing. */
+    private readonly objectMutationCoordinator?: ProjectMutationCoordinator,
+    /** Reads share transfer's physical barrier and revalidate the captured tenant. */
+    private readonly accessCoordinator?: ProjectMutationCoordinator,
+    /** Exact DB inventory/retention authority; filesystem paths alone carry no project id. */
+    private readonly staticErasureAuthority?: ProjectStaticErasureAuthority,
   ) {}
+
+  supportsProjectStaticErasure(): boolean {
+    return this.staticErasureAuthority !== undefined;
+  }
+
+  async prepareProjectStaticErasureWithinPhysicalAccess(
+    projectId: string,
+  ): Promise<ObjectStorageStaticArtifactSummary> {
+    const inventory = await this.resolveStaticErasureInventory(projectId);
+    const root = staticStorageRoot();
+    const deploymentIds = new Set(inventory.deploymentIds);
+    const dispositions: ObjectStorageStaticArtifactDisposition[] = [];
+
+    /*
+     * This runs while the permanent-delete caller owns the project physical and
+     * NFS barriers, but before EFFECT_STARTED. Validate every namespace that the
+     * destructive phase will traverse without following symlinks. A malformed
+     * mount/symlink therefore restores the Project deletion fence and leaves the
+     * tree, snapshots and provider bucket untouched.
+     */
+    await readStaticNamespace(root);
+    await ownedStaticEntries(root, deploymentIds);
+    await relevantStaticAliases(root, deploymentIds);
+
+    const artifactsRoot = staticChildPath(root, '.artifacts');
+    await readStaticNamespace(artifactsRoot);
+    const digestRoot = staticChildPath(artifactsRoot, 'sha256');
+    await readStaticNamespace(digestRoot);
+
+    for (const inventoryArtifact of inventory.artifacts) {
+      const digest = artifactDigest(inventoryArtifact.artifactRef);
+      await withStaticStorageLock(digest, async () => {
+        const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
+        await ownedStaticEntries(digestRoot, new Set([digest]));
+        if (live.otherReferenceCount === 0) {
+          dispositions.push({ digest, outcome: 'DELETED_UNREFERENCED', otherReferenceCount: 0 });
+          return;
+        }
+
+        const canonical = staticChildPath(digestRoot, digest);
+        let metadata;
+        try {
+          metadata = await lstat(canonical);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        }
+        if (!metadata?.isDirectory() || metadata.isSymbolicLink()) {
+          throw staticErasureError('PROJECT_STATIC_SHARED_ARTIFACT_MISSING');
+        }
+        dispositions.push({
+          digest,
+          outcome: 'RETAINED_BY_OTHER_MANIFEST',
+          otherReferenceCount: live.otherReferenceCount,
+        });
+      });
+    }
+
+    return objectStorageStaticArtifactSummary(dispositions);
+  }
+
+  private async resolveStaticErasureInventory(projectId: string): Promise<ProjectStaticErasureInventory> {
+    if (!this.staticErasureAuthority) {
+      throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_UNAVAILABLE');
+    }
+
+    return validateStaticErasureInventory(projectId, await this.staticErasureAuthority.resolveInventory(projectId));
+  }
+
+  private async resolveLiveStaticArtifact(
+    projectId: string,
+    artifactRef: string,
+  ): Promise<ProjectStaticArtifactAuthority> {
+    const artifact = await this.staticErasureAuthority?.resolveArtifact(projectId, artifactRef);
+    if (!artifact) throw staticErasureError('PROJECT_STATIC_ERASURE_AUTHORITY_CHANGED');
+    return validateStaticArtifactAuthority(artifact, artifactRef);
+  }
+
+  private async verifyProjectStaticDataAbsentWithinPhysicalAccess(projectId: string): Promise<{
+    staticSnapshotsAbsent: true;
+    staticAliasesAbsent: true;
+    staticArtifactSummary: ObjectStorageStaticArtifactSummary;
+  }> {
+    const inventory = await this.resolveStaticErasureInventory(projectId);
+    const root = staticStorageRoot();
+    const deploymentIds = new Set(inventory.deploymentIds);
+
+    if ((await ownedStaticEntries(root, deploymentIds)).length > 0) {
+      throw staticErasureError('PROJECT_STATIC_SNAPSHOT_ERASURE_INCOMPLETE');
+    }
+
+    if ((await relevantStaticAliases(root, deploymentIds)).length > 0) {
+      throw staticErasureError('PROJECT_STATIC_ALIAS_ERASURE_INCOMPLETE');
+    }
+
+    const artifactsRoot = staticChildPath(root, '.artifacts');
+    await readStaticNamespace(artifactsRoot);
+    const digestRoot = staticChildPath(artifactsRoot, 'sha256');
+    await readStaticNamespace(digestRoot);
+    const dispositions: ObjectStorageStaticArtifactDisposition[] = [];
+
+    for (const inventoryArtifact of inventory.artifacts) {
+      const digest = artifactDigest(inventoryArtifact.artifactRef);
+      const disposition = await withStaticStorageLock(digest, async () => {
+        const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
+        const entries = await ownedStaticEntries(digestRoot, new Set([digest]));
+        const canonical = staticChildPath(digestRoot, digest);
+        const canonicalExists = entries.some((entry) => entry.name === digest);
+        const recoveryExists = entries.some((entry) => entry.name !== digest);
+
+        if (recoveryExists) {
+          throw staticErasureError('PROJECT_STATIC_ARTIFACT_RECOVERY_ERASURE_INCOMPLETE');
+        }
+
+        if (live.otherReferenceCount === 0) {
+          if (canonicalExists) throw staticErasureError('PROJECT_STATIC_ARTIFACT_ERASURE_INCOMPLETE');
+          return {
+            digest,
+            outcome: 'DELETED_UNREFERENCED' as const,
+            otherReferenceCount: 0,
+          };
+        }
+
+        let metadata;
+        try {
+          metadata = await lstat(canonical);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        }
+
+        if (!canonicalExists || !metadata?.isDirectory() || metadata.isSymbolicLink()) {
+          throw staticErasureError('PROJECT_STATIC_SHARED_ARTIFACT_MISSING');
+        }
+
+        return {
+          digest,
+          outcome: 'RETAINED_BY_OTHER_MANIFEST' as const,
+          otherReferenceCount: live.otherReferenceCount,
+        };
+      });
+
+      dispositions.push(disposition);
+    }
+
+    return {
+      staticSnapshotsAbsent: true,
+      staticAliasesAbsent: true,
+      staticArtifactSummary: objectStorageStaticArtifactSummary(dispositions),
+    };
+  }
 
   private withTreeMutation<T>(
     projectId: string,
-    workspaceId: string | undefined,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     mutate: () => Promise<T>,
   ): Promise<T> {
-    return withProjectLock(projectId, async () => {
-      await this.mutationGuard?.(projectId, workspaceId);
-      return mutate();
-    });
+    const authority = { projectId, ...scope };
+
+    return this.mutationCoordinator ? this.mutationCoordinator(authority, mutate) : withProjectLock(projectId, mutate);
   }
 
   async writeFiles(
     projectId: string,
     files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
-    workspaceId?: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(projectId, workspaceId, async () => {
+    return this.withTreeMutation(projectId, scope, async () => {
       for (const file of files) {
-        const target = safeWorkspacePath(projectId, workspaceId, file.path);
+        const target = safeWorkspacePath(projectId, scope.workspaceId, file.path);
         await guard?.();
         await mkdir(dirname(target), { recursive: true });
         await guard?.();
         await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
-      return walkFiles(safeWorkspacePath(projectId, workspaceId));
+      return walkFiles(safeWorkspacePath(projectId, scope.workspaceId));
     });
   }
 
-  async listFiles(projectId: string, workspaceId?: string) {
+  async listFiles(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
+    const read = () => this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+    return this.accessCoordinator
+      ? this.accessCoordinator({ projectId, ...scope }, read)
+      : withProjectLock(projectId, read);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, workspaceId?: string) {
     return walkFiles(safeWorkspacePath(projectId, workspaceId));
   }
 
-  async exportZip(projectId: string) {
-    return withProjectLock(projectId, async () => {
-      await this.objectMutationGuard?.(projectId);
+  async exportZip(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
+    const mutate = async () => {
       const content = await archiveFiles(await walkFiles(safeProjectPath(projectId)));
       const storageKey = archiveKey('exports', projectId);
       const target = safeProjectPath('_objects', storageKey);
@@ -699,11 +1312,20 @@ export class LocalProjectStorage implements ProjectStorage {
       await writeFile(target, content);
 
       return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
-    });
+    };
+
+    return this.objectMutationCoordinator
+      ? this.objectMutationCoordinator({ projectId, ...scope }, mutate)
+      : withProjectLock(projectId, mutate);
   }
 
-  async importZip(projectId: string, base64: string, options: { replaceExisting?: boolean } = {}) {
-    return this.withTreeMutation(projectId, undefined, async () => {
+  async importZip(
+    projectId: string,
+    base64: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    options: { replaceExisting?: boolean } = {},
+  ) {
+    return this.withTreeMutation(projectId, scope, async () => {
       const files = await filesFromZipBase64(base64);
 
       if (options.replaceExisting) {
@@ -729,15 +1351,21 @@ export class LocalProjectStorage implements ProjectStorage {
 
   async createSnapshot(input: {
     projectId: string;
+    expectedOrganizationId: string;
     label?: string;
     files: ProjectFile[];
     storageKey?: string;
     guard?: () => Promise<void>;
   }) {
-    return withProjectLock(input.projectId, async () => {
-      await this.objectMutationGuard?.(input.projectId);
+    const mutate = async () => {
       const content = await archiveFiles(input.files);
-      const storageKey = input.storageKey ?? archiveKey('snapshots', input.projectId);
+      const storageKey = normalize(input.storageKey ?? archiveKey('snapshots', input.projectId)).replaceAll('\\', '/');
+      if (!storageKey.startsWith(`snapshots/${input.projectId}/`)) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'SNAPSHOT_STORAGE_PROJECT_MISMATCH',
+          statusCode: 409,
+        });
+      }
       const target = safeProjectPath('_objects', storageKey);
       await input.guard?.();
       await mkdir(dirname(target), { recursive: true });
@@ -745,12 +1373,37 @@ export class LocalProjectStorage implements ProjectStorage {
       await writeFile(target, content);
 
       return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
-    });
+    };
+
+    const scope = { projectId: input.projectId, expectedOrganizationId: input.expectedOrganizationId };
+
+    return this.objectMutationCoordinator
+      ? this.objectMutationCoordinator(scope, mutate)
+      : withProjectLock(input.projectId, mutate);
   }
 
-  async getSnapshotFiles(storageKey: string) {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+  ) {
+    const read = () => this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+    return this.accessCoordinator
+      ? this.accessCoordinator({ projectId, ...scope }, read)
+      : withProjectLock(projectId, read);
+  }
+
+  async getSnapshotFilesWithinPhysicalAccess(projectId: string, storageKey: string) {
+    const normalizedKey = normalize(storageKey).replaceAll('\\', '/');
+    if (!normalizedKey.startsWith(`snapshots/${projectId}/`)) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        code: 'SNAPSHOT_STORAGE_PROJECT_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
     const files = await filesFromZipBase64(
-      (await readFile(safeProjectPath('_objects', storageKey))).toString('base64'),
+      (await readFile(safeProjectPath('_objects', normalizedKey))).toString('base64'),
     );
 
     const updatedAt = now();
@@ -759,10 +1412,10 @@ export class LocalProjectStorage implements ProjectStorage {
   }
 
   async restoreSnapshot(
-    input: { projectId: string; workspaceId?: string; files: ProjectFile[] },
+    input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; files: ProjectFile[] },
     guard?: () => Promise<void>,
   ) {
-    return this.withTreeMutation(input.projectId, input.workspaceId, async () => {
+    return this.withTreeMutation(input.projectId, input, async () => {
       const target = safeWorkspacePath(input.projectId, input.workspaceId);
 
       /*
@@ -786,11 +1439,109 @@ export class LocalProjectStorage implements ProjectStorage {
     });
   }
 
-  async deleteProjectFiles(projectId: string, guard?: () => Promise<void>): Promise<void> {
-    await this.withTreeMutation(projectId, undefined, async () => {
+  async deleteProjectFiles(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    guard?: () => Promise<void>,
+  ): Promise<void> {
+    await this.withTreeMutation(projectId, scope, async () => {
       await guard?.();
       await resilientRm(safeProjectPath(projectId));
     });
+  }
+
+  async eraseProjectDataWithinPhysicalAccess(projectId: string): Promise<void> {
+    const targets = [
+      safeProjectPath(projectId),
+      safeProjectPath('_objects', `exports/${projectId}`),
+      safeProjectPath('_objects', `snapshots/${projectId}`),
+    ];
+
+    for (const target of targets) {
+      await resilientRm(target);
+    }
+
+    const remaining = (await Promise.all(targets.map((target) => pathExists(target)))).filter(Boolean).length;
+
+    if (remaining > 0) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_PHYSICAL_ERASURE_INCOMPLETE',
+        statusCode: 503,
+      });
+    }
+  }
+
+  async eraseProjectStaticDataWithinPhysicalAccess(projectId: string): Promise<void> {
+    const inventory = await this.resolveStaticErasureInventory(projectId);
+    const root = staticStorageRoot();
+    const deploymentIds = new Set(inventory.deploymentIds);
+    const snapshotEntries = await ownedStaticEntries(root, deploymentIds);
+
+    for (const entry of snapshotEntries) {
+      await withStaticStorageLock(entry.owner, () => eraseStaticPath(entry.target));
+    }
+
+    await eraseRelevantStaticAliases(root, deploymentIds);
+
+    const artifactsRoot = staticChildPath(root, '.artifacts');
+    await readStaticNamespace(artifactsRoot);
+    const digestRoot = staticChildPath(artifactsRoot, 'sha256');
+    await readStaticNamespace(digestRoot);
+
+    for (const inventoryArtifact of inventory.artifacts) {
+      const digest = artifactDigest(inventoryArtifact.artifactRef);
+
+      await withStaticStorageLock(digest, async () => {
+        const live = await this.resolveLiveStaticArtifact(projectId, inventoryArtifact.artifactRef);
+        const entries = await ownedStaticEntries(digestRoot, new Set([digest]));
+
+        for (const entry of entries) {
+          if (entry.name !== digest) await eraseStaticPath(entry.target);
+        }
+
+        const canonical = staticChildPath(digestRoot, digest);
+        if (live.otherReferenceCount === 0) {
+          await eraseStaticPath(canonical);
+          return;
+        }
+
+        let metadata;
+        try {
+          metadata = await lstat(canonical);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+        }
+
+        if (!metadata?.isDirectory() || metadata.isSymbolicLink()) {
+          throw staticErasureError('PROJECT_STATIC_SHARED_ARTIFACT_MISSING');
+        }
+      });
+    }
+
+    await this.verifyProjectStaticDataAbsentWithinPhysicalAccess(projectId);
+  }
+
+  async verifyProjectDataAbsentWithinPhysicalAccess(projectId: string) {
+    const [treeExists, exportsExist, snapshotsExist] = await Promise.all([
+      pathExists(safeProjectPath(projectId)),
+      pathExists(safeProjectPath('_objects', `exports/${projectId}`)),
+      pathExists(safeProjectPath('_objects', `snapshots/${projectId}`)),
+    ]);
+    /*
+     * Keep the local-only primitive composable for specialised providers. The
+     * permanent-delete route requires every static field to be present and true,
+     * so absence of the injected authority still fails closed in production.
+     */
+    const staticProof = this.staticErasureAuthority
+      ? await this.verifyProjectStaticDataAbsentWithinPhysicalAccess(projectId)
+      : {};
+
+    return {
+      treeAbsent: !treeExists,
+      exportsAbsent: !exportsExist,
+      snapshotsAbsent: !snapshotsExist,
+      ...staticProof,
+    };
   }
 }
 
@@ -850,17 +1601,16 @@ async function clearTreePreservingSecondaryWorkspaces(target: string) {
 }
 
 export class GitCliProvider implements GitProvider {
-  constructor(private readonly mutationGuard?: ProjectMutationGuard) {}
+  constructor(private readonly mutationCoordinator?: ProjectMutationCoordinator) {}
 
   private withMutationLock<T>(
     projectId: string,
-    workspaceId: string | undefined,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
     mutate: () => Promise<T>,
   ): Promise<T> {
-    return withProjectLock(projectId, async () => {
-      await this.mutationGuard?.(projectId, workspaceId);
-      return mutate();
-    });
+    return this.mutationCoordinator
+      ? this.mutationCoordinator({ projectId, ...scope }, mutate)
+      : withProjectLock(projectId, mutate);
   }
 
   private workspacePath(projectId: string, workspaceId?: string) {
@@ -1010,8 +1760,13 @@ export class GitCliProvider implements GitProvider {
    * create/configure `.git`. Keep the safe default fenced and locked; mutation
    * methods already holding the lock call gitLocked() directly.
    */
-  private git(projectId: string, args: string[], workspaceId?: string, raw = false): Promise<string> {
-    return this.withMutationLock(projectId, workspaceId, () => this.gitLocked(projectId, args, workspaceId, raw));
+  private git(
+    projectId: string,
+    scope: Omit<ProjectPhysicalMutationScope, 'projectId'>,
+    args: string[],
+    raw = false,
+  ): Promise<string> {
+    return this.withMutationLock(projectId, scope, () => this.gitLocked(projectId, args, scope.workspaceId, raw));
   }
 
   private async gitLocked(projectId: string, args: string[], workspaceId?: string, raw = false) {
@@ -1094,8 +1849,8 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async status(projectId: string, workspaceId?: string, files?: ProjectFile[]) {
-    return this.withMutationLock(projectId, workspaceId, () => this.statusLocked(projectId, workspaceId, files));
+  async status(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>, files?: ProjectFile[]) {
+    return this.withMutationLock(projectId, scope, () => this.statusLocked(projectId, scope.workspaceId, files));
   }
 
   private async statusLocked(projectId: string, workspaceId?: string, files?: ProjectFile[]) {
@@ -1158,6 +1913,7 @@ export class GitCliProvider implements GitProvider {
 
   async commit(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     message: string;
     files: ProjectFile[];
@@ -1165,7 +1921,7 @@ export class GitCliProvider implements GitProvider {
     authorName?: string;
     authorEmail?: string;
   }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+    return this.withMutationLock(input.projectId, input, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
 
       /*
@@ -1221,16 +1977,16 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async push(input: { projectId: string; workspaceId?: string; branch: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async push(input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; branch: string }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       await this.gitLocked(input.projectId, ['push', 'origin', input.branch], input.workspaceId);
 
       return { pushed: true, branch: input.branch };
     });
   }
 
-  async pull(input: { projectId: string; workspaceId?: string; branch: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async pull(input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; branch: string }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       try {
         await this.gitLocked(input.projectId, ['pull', 'origin', input.branch], input.workspaceId);
       } catch (error) {
@@ -1267,8 +2023,13 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async configureRemote(input: { projectId: string; workspaceId?: string; remoteUrl: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async configureRemote(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    remoteUrl: string;
+  }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const remotes = await this.gitLocked(input.projectId, ['remote'], input.workspaceId).catch(() => '');
 
       const args = remotes.split('\n').includes('origin')
@@ -1281,8 +2042,8 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async removeRemote(input: { projectId: string; workspaceId?: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async removeRemote(input: { projectId: string; expectedOrganizationId: string; workspaceId?: string }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const remotes = await this.gitLocked(input.projectId, ['remote'], input.workspaceId).catch(() => '');
 
       if (remotes.split('\n').includes('origin')) {
@@ -1294,8 +2055,8 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async listBranches(projectId: string, workspaceId?: string) {
-    const output = await this.git(projectId, ['branch', '--all', '--format=%(refname:short)'], workspaceId);
+  async listBranches(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
+    const output = await this.git(projectId, scope, ['branch', '--all', '--format=%(refname:short)']);
 
     return [
       ...new Set(
@@ -1313,12 +2074,13 @@ export class GitCliProvider implements GitProvider {
 
   async checkoutBranch(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     branch: string;
     create?: boolean;
     startPoint?: string;
   }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+    return this.withMutationLock(input.projectId, input, async () => {
       if (input.create) {
         await this.gitLocked(
           input.projectId,
@@ -1333,8 +2095,13 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async stashPush(input: { projectId: string; workspaceId?: string; message?: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async stashPush(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    message?: string;
+  }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const args = ['stash', 'push', '--include-untracked'];
 
       if (input.message) {
@@ -1347,8 +2114,8 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async stashList(projectId: string, workspaceId?: string) {
-    const output = await this.git(projectId, ['stash', 'list', '--format=%gd%x09%gs'], workspaceId);
+  async stashList(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
+    const output = await this.git(projectId, scope, ['stash', 'list', '--format=%gd%x09%gs']);
 
     return output
       .split('\n')
@@ -1361,8 +2128,14 @@ export class GitCliProvider implements GitProvider {
       });
   }
 
-  async stashApply(input: { projectId: string; workspaceId?: string; stashRef: string; drop?: boolean }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async stashApply(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    stashRef: string;
+    drop?: boolean;
+  }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const output = await this.gitLocked(
         input.projectId,
         ['stash', input.drop ? 'pop' : 'apply', input.stashRef],
@@ -1373,8 +2146,8 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async cherryPick(input: { projectId: string; workspaceId?: string; sha: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async cherryPick(input: { projectId: string; expectedOrganizationId: string; workspaceId?: string; sha: string }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const output = await this.gitLocked(input.projectId, ['cherry-pick', input.sha], input.workspaceId);
 
       return { picked: true, output };
@@ -1383,11 +2156,12 @@ export class GitCliProvider implements GitProvider {
 
   async resolveConflict(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePath: string;
     strategy: 'ours' | 'theirs';
   }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+    return this.withMutationLock(input.projectId, input, async () => {
       const filePath = input.filePath.replace(/^\/+/, '');
 
       await this.gitLocked(input.projectId, ['checkout', `--${input.strategy}`, '--', filePath], input.workspaceId);
@@ -1397,7 +2171,7 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async commitDetail(projectId: string, sha: string, workspaceId?: string) {
+  async commitDetail(projectId: string, sha: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
     // Strip to a safe revision token (hex sha / short sha) — never interpolate raw.
     const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
 
@@ -1405,11 +2179,14 @@ export class GitCliProvider implements GitProvider {
       return { sha: '', files: [] as Array<{ status: string; path: string }>, diff: '' };
     }
 
-    const namesOut = await this.git(
-      projectId,
-      ['diff-tree', '--no-commit-id', '--name-status', '-r', '-M', rev],
-      workspaceId,
-    ).catch(() => '');
+    const namesOut = await this.git(projectId, scope, [
+      'diff-tree',
+      '--no-commit-id',
+      '--name-status',
+      '-r',
+      '-M',
+      rev,
+    ]).catch(() => '');
 
     const files = namesOut
       .split('\n')
@@ -1421,12 +2198,12 @@ export class GitCliProvider implements GitProvider {
       })
       .filter((entry) => entry.path);
 
-    const diff = await this.git(projectId, ['show', '--format=', rev], workspaceId).catch(() => '');
+    const diff = await this.git(projectId, scope, ['show', '--format=', rev]).catch(() => '');
 
     return { sha: rev, files, diff };
   }
 
-  async restoreCommit(projectId: string, sha: string, workspaceId?: string) {
+  async restoreCommit(projectId: string, sha: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
     const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
 
     if (!rev) {
@@ -1436,30 +2213,38 @@ export class GitCliProvider implements GitProvider {
       });
     }
 
-    return this.withMutationLock(projectId, workspaceId, async () => {
+    return this.withMutationLock(projectId, scope, async () => {
       /*
        * Restore every tracked file to its state at <sha> (Replit's "Restore All").
        * `git checkout <sha> -- .` overwrites the working tree + index with that
        * commit's content WITHOUT moving HEAD, so the user can review and commit.
        */
-      await this.gitLocked(projectId, ['checkout', rev, '--', '.'], workspaceId);
+      await this.gitLocked(projectId, ['checkout', rev, '--', '.'], scope.workspaceId);
 
       return { restored: true, sha: rev };
     });
   }
 
-  async conflictFile(projectId: string, filePath: string, workspaceId?: string) {
-    const clean = filePath.replace(/^\/+/, '');
-    const target = safeWorkspacePath(projectId, workspaceId, clean);
-    // The working-tree file carries the <<<<<<< / ======= / >>>>>>> conflict
-    // markers during an unresolved merge; surface it verbatim for the editor.
-    const content = await readFile(target, 'utf8').catch(() => '');
+  async conflictFile(projectId: string, filePath: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>) {
+    return this.withMutationLock(projectId, scope, async () => {
+      const clean = filePath.replace(/^\/+/, '');
+      const target = safeWorkspacePath(projectId, scope.workspaceId, clean);
+      // The working-tree file carries the <<<<<<< / ======= / >>>>>>> conflict
+      // markers during an unresolved merge; surface it verbatim for the editor.
+      const content = await readFile(target, 'utf8').catch(() => '');
 
-    return { filePath: clean, content };
+      return { filePath: clean, content };
+    });
   }
 
-  async markResolved(input: { projectId: string; workspaceId?: string; filePath: string; content: string }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async markResolved(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    filePath: string;
+    content: string;
+  }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const clean = input.filePath.replace(/^\/+/, '');
       const target = safeWorkspacePath(input.projectId, input.workspaceId, clean);
 
@@ -1473,8 +2258,13 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async discard(input: { projectId: string; workspaceId?: string; filePaths?: string[] }) {
-    return this.withMutationLock(input.projectId, input.workspaceId, async () => {
+  async discard(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    filePaths?: string[];
+  }) {
+    return this.withMutationLock(input.projectId, input, async () => {
       const paths = (input.filePaths ?? []).map((path) => path.replace(/^\/+/, '')).filter(Boolean);
 
       /*
@@ -1500,17 +2290,13 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async logGraph(projectId: string, limit = 30, workspaceId?: string) {
-    const output = await this.git(
-      projectId,
-      [
-        'log',
-        `--max-count=${Math.max(1, Math.min(limit, 100))}`,
-        '--date=iso-strict',
-        '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
-      ],
-      workspaceId,
-    ).catch((error: any) => {
+  async logGraph(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>, limit = 30) {
+    const output = await this.git(projectId, scope, [
+      'log',
+      `--max-count=${Math.max(1, Math.min(limit, 100))}`,
+      '--date=iso-strict',
+      '--pretty=format:%H%x09%h%x09%P%x09%an%x09%ad%x09%D%x09%s',
+    ]).catch((error: any) => {
       const message = String(error?.stderr ?? error?.message ?? '');
 
       if (/does not have any commits yet|bad revision|unknown revision|ambiguous argument/i.test(message)) {
@@ -1538,8 +2324,8 @@ export class GitCliProvider implements GitProvider {
       });
   }
 
-  async diff(projectId: string, filePath?: string, workspaceId?: string) {
-    return this.git(projectId, ['diff', '--', ...(filePath ? [filePath] : [])], workspaceId).catch((error: any) => {
+  async diff(projectId: string, scope: Omit<ProjectPhysicalMutationScope, 'projectId'>, filePath?: string) {
+    return this.git(projectId, scope, ['diff', '--', ...(filePath ? [filePath] : [])]).catch((error: any) => {
       const message = String(error?.stderr ?? error?.message ?? '');
 
       if (/bad revision|unknown revision|ambiguous argument/i.test(message)) {
@@ -1552,6 +2338,7 @@ export class GitCliProvider implements GitProvider {
 
   async blame(input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     filePath: string;
     startLine?: number;
@@ -1561,11 +2348,13 @@ export class GitCliProvider implements GitProvider {
       input.startLine && input.endLine
         ? [`-L`, `${Math.max(1, input.startLine)},${Math.max(input.startLine, input.endLine)}`]
         : [];
-    const output = await this.git(
-      input.projectId,
-      ['blame', '--line-porcelain', ...range, '--', input.filePath.replace(/^\/+/, '')],
-      input.workspaceId,
-    );
+    const output = await this.git(input.projectId, input, [
+      'blame',
+      '--line-porcelain',
+      ...range,
+      '--',
+      input.filePath.replace(/^\/+/, ''),
+    ]);
 
     const lines: GitBlameLine[] = [];
 
@@ -1595,6 +2384,7 @@ export class GitCliProvider implements GitProvider {
 
   async createPullRequest(_input: {
     projectId: string;
+    expectedOrganizationId: string;
     workspaceId?: string;
     title: string;
     body?: string;

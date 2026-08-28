@@ -169,6 +169,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: project!.organizationId,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -287,6 +288,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
       });
       const deployment = await store.createDeployment({
         projectId,
+        expectedOrganizationId: project!.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
@@ -869,6 +871,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
 
     const v1 = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',

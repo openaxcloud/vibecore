@@ -50,6 +50,8 @@ function barrier(): WriteBarrierPort & { calls: number } {
   };
 }
 
+const physicalErasure = <T>(_projectId: string, effect: () => Promise<T>) => effect();
+
 function lease(): PurgeLeaseContext & { receipts: Map<string, Record<string, unknown>> } {
   const receipts = new Map<string, Record<string, unknown>>();
   return {
@@ -81,7 +83,13 @@ describe('account physical-storage erasure', () => {
 
     const result = await eraseSubjectStorage(
       { bucketProjectIds: ['project-1'], workspaceIds: ['workspace-1'] },
-      { objectStorage, workspaceVolumes: workspaces, writeBarrier, lease: purgeLease },
+      {
+        objectStorage,
+        workspaceVolumes: workspaces,
+        writeBarrier,
+        withProjectPhysicalErasure: physicalErasure,
+        lease: purgeLease,
+      },
     );
 
     expect(writeBarrier.calls).toBe(1);
@@ -144,7 +152,12 @@ describe('account physical-storage erasure', () => {
 
     const result = await eraseSubjectStorage(
       { bucketProjectIds: ['project-1'], workspaceIds: [] },
-      { objectStorage, writeBarrier: barrier(), lease: lease() },
+      {
+        objectStorage,
+        writeBarrier: barrier(),
+        withProjectPhysicalErasure: physicalErasure,
+        lease: lease(),
+      },
     );
 
     expect(result.verified).toBe(false);

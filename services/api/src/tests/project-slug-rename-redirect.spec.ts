@@ -2,9 +2,19 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
+import { NoopObjectStorage, type ObjectStorage } from '../object-storage.js';
 
 class QuietEmailProvider implements EmailProvider {
   async send() {}
+}
+
+function activeEmptyObjectStorage(): ObjectStorage {
+  const storage = new NoopObjectStorage();
+  return new Proxy(storage, {
+    get(target, property, receiver) {
+      return property === 'active' ? true : Reflect.get(target, property, receiver);
+    },
+  });
 }
 
 function buildTestApiApp(options: ApiAppOptions = {}) {
@@ -67,7 +77,7 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
 
   async function setup() {
     const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
+    const app = await buildTestApiApp({ store, objectStorage: activeEmptyObjectStorage() });
     const owner = await register(app, 'owner@example.com', 'Slug Org');
     const project = await createProject(app, owner.organization.id, owner.token, 'Alpha', 'alpha-one');
 
@@ -159,26 +169,47 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
   it('permanently deletes only when the name confirmation matches', async () => {
     const { app, owner, project } = await setup();
 
-    const wrong = await app.inject({
+    const missingIdempotencyKey = await app.inject({
       method: 'DELETE',
       url: `/projects/${project.id}/permanent`,
       headers: { authorization: `Bearer ${owner.token}` },
+      payload: { confirmName: 'Alpha' },
+    });
+    expect(missingIdempotencyKey.statusCode).toBe(400);
+    expect(missingIdempotencyKey.json()).toMatchObject({
+      code: 'PROJECT_PERMANENT_DELETE_IDEMPOTENCY_KEY_REQUIRED',
+    });
+
+    const wrong = await app.inject({
+      method: 'DELETE',
+      url: `/projects/${project.id}/permanent`,
+      headers: {
+        authorization: `Bearer ${owner.token}`,
+        'idempotency-key': `permanent-delete-${project.id}`,
+      },
       payload: { confirmName: 'Not The Name' },
     });
     expect(wrong.statusCode).toBe(400);
     expect(wrong.json()).toMatchObject({ code: 'PROJECT_NAME_MISMATCH' });
 
     // Project still exists.
-    expect(await app.inject({
-      method: 'GET',
-      url: `/projects/${project.id}`,
-      headers: { authorization: `Bearer ${owner.token}` },
-    }).then((r) => r.statusCode)).toBe(200);
+    expect(
+      await app
+        .inject({
+          method: 'GET',
+          url: `/projects/${project.id}`,
+          headers: { authorization: `Bearer ${owner.token}` },
+        })
+        .then((r) => r.statusCode),
+    ).toBe(200);
 
     const right = await app.inject({
       method: 'DELETE',
       url: `/projects/${project.id}/permanent`,
-      headers: { authorization: `Bearer ${owner.token}` },
+      headers: {
+        authorization: `Bearer ${owner.token}`,
+        'idempotency-key': `permanent-delete-${project.id}`,
+      },
       payload: { confirmName: 'Alpha' },
     });
     expect(right.statusCode).toBe(200);

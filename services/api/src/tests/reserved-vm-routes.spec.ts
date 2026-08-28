@@ -163,6 +163,7 @@ describe('Reserved VM deployment routes', () => {
     const keyId = 'reserved-key-id-sentinel-never-public';
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'server',
       status: 'READY',
       machineSize: 'dedicated-1',
@@ -214,6 +215,7 @@ describe('Reserved VM deployment routes', () => {
     const keyId = 'reserved-decommission-key-never-public';
     const initial = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'server',
       status: 'READY',
       machineSize: 'shared-0.5',
@@ -299,6 +301,7 @@ describe('Reserved VM deployment routes', () => {
     const { app, store, project, token } = await setup(false);
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'server',
       status: 'READY',
       machineSize: 'shared-0.5',
@@ -334,6 +337,7 @@ describe('Reserved VM deployment routes', () => {
     const { app, store, project, token } = await setup();
     const deployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'server',
       status: 'READY',
       machineSize: 'shared-0.5',

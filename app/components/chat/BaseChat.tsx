@@ -15961,6 +15961,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const [dragActive, setDragActive] = useState(false);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const folderInputRef = useRef<HTMLInputElement | null>(null);
+  const objectMutationKeysRef = useRef(new Map<string, string>());
 
   const postIntent = useCallback(
     async (fields: Record<string, string>): Promise<any> => {
@@ -16130,8 +16131,15 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       setWorking(true);
       setStatus(null);
 
+      const operationFingerprint = JSON.stringify(
+        Object.entries(fields).sort(([left], [right]) => left.localeCompare(right)),
+      );
+
+      const idempotencyKey = objectMutationKeysRef.current.get(operationFingerprint) ?? globalThis.crypto.randomUUID();
+      objectMutationKeysRef.current.set(operationFingerprint, idempotencyKey);
+
       try {
-        const result = await postIntent(fields);
+        const result = await postIntent({ ...fields, idempotencyKey });
 
         if (result && result.error) {
           console.warn('Object storage operation failed', { fields, serverError: result.error });
@@ -16140,6 +16148,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           return;
         }
 
+        objectMutationKeysRef.current.delete(operationFingerprint);
         setStatus(successMessage);
         await refresh(prefix);
       } catch (error) {

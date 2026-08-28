@@ -47,6 +47,25 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
   return buildApiApp({ emailProvider: new QuietEmailProvider(), ...options });
 }
 
+async function createDeploymentProject(store: TestApiStore, label: string) {
+  const user = await store.createUser({
+    email: `deploy-durability-${label}@example.test`,
+    name: 'Deploy Durability',
+    passwordHash: 'test-only-hash',
+  });
+  const organization = await store.createOrganization({
+    name: `Deploy Durability ${label}`,
+    slug: `deploy-durability-${label}`,
+    ownerUserId: user.id,
+  });
+
+  return store.createProject({
+    organizationId: organization.id,
+    name: `Deploy Durability ${label}`,
+    slug: `deploy-durability-project-${label}`,
+  });
+}
+
 describe('resolveDeployBuildTimeoutMs', () => {
   it('defaults to 10 minutes and honours a positive override', () => {
     expect(resolveDeployBuildTimeoutMs({})).toBe(DEFAULT_DEPLOY_BUILD_TIMEOUT_MS);
@@ -60,13 +79,34 @@ describe('resolveDeployBuildTimeoutMs', () => {
 describe('reapStaleDeployments', () => {
   it('fails stale QUEUED/BUILDING deployments and leaves a fresh one alone', async () => {
     const store = new TestApiStore();
+    const project = await createDeploymentProject(store, 'stale');
     const timeoutMs = 10 * 60 * 1000;
     const staleIso = new Date(Date.now() - timeoutMs - 60_000).toISOString();
 
-    const staleQueued = await store.createDeployment({ projectId: 'p1', provider: 'static', status: 'QUEUED' });
-    const staleBuilding = await store.createDeployment({ projectId: 'p1', provider: 'static', status: 'BUILDING' });
-    const fresh = await store.createDeployment({ projectId: 'p1', provider: 'static', status: 'BUILDING' });
-    const alreadyReady = await store.createDeployment({ projectId: 'p1', provider: 'static', status: 'READY' });
+    const staleQueued = await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'QUEUED',
+    });
+    const staleBuilding = await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'BUILDING',
+    });
+    const fresh = await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'BUILDING',
+    });
+    const alreadyReady = await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'READY',
+    });
 
     // Backdate the two stale rows past the timeout; leave `fresh` and the READY row current.
     store.deployments.get(staleQueued.id)!.updatedAt = staleIso;
@@ -81,20 +121,26 @@ describe('reapStaleDeployments', () => {
     expect(result.failed).toBe(2);
     expect(result.deploymentIds.sort()).toEqual([staleBuilding.id, staleQueued.id].sort());
 
-    expect((await store.getDeployment('p1', staleQueued.id))?.status).toBe('FAILED');
-    expect((await store.getDeployment('p1', staleBuilding.id))?.status).toBe('FAILED');
+    expect((await store.getDeployment(project.id, staleQueued.id))?.status).toBe('FAILED');
+    expect((await store.getDeployment(project.id, staleBuilding.id))?.status).toBe('FAILED');
     // Fresh in-flight build is untouched.
-    expect((await store.getDeployment('p1', fresh.id))?.status).toBe('BUILDING');
+    expect((await store.getDeployment(project.id, fresh.id))?.status).toBe('BUILDING');
     // Terminal row untouched.
-    expect((await store.getDeployment('p1', alreadyReady.id))?.status).toBe('READY');
+    expect((await store.getDeployment(project.id, alreadyReady.id))?.status).toBe('READY');
 
-    const failedRow = await store.getDeployment('p1', staleQueued.id);
+    const failedRow = await store.getDeployment(project.id, staleQueued.id);
     expect(JSON.stringify(failedRow?.logs)).toContain(appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'));
   });
 
   it('is a no-op when nothing is stale', async () => {
     const store = new TestApiStore();
-    await store.createDeployment({ projectId: 'p1', provider: 'static', status: 'BUILDING' });
+    const project = await createDeploymentProject(store, 'fresh');
+    await store.createDeployment({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      provider: 'static',
+      status: 'BUILDING',
+    });
 
     const result = await reapStaleDeployments(store, { timeoutMs: 10 * 60 * 1000 });
 
@@ -157,7 +203,7 @@ describe('internal deploy build + reap endpoints', () => {
     expect(project.statusCode).toBe(201);
     const projectId = (project.json() as { project: { id: string } }).project.id;
 
-    return { app, store, auth, projectId };
+    return { app, store, auth, projectId, organizationId: auth.organization.id };
   }
 
   async function exactStaticReleaseMetadata(store: TestApiStore, projectId: string) {
@@ -170,7 +216,7 @@ describe('internal deploy build + reap endpoints', () => {
   }
 
   it('drives a QUEUED deployment to READY with logs flushed', async () => {
-    const { app, store, auth, projectId } = await setup({
+    const { app, store, auth, projectId, organizationId } = await setup({
       staticBuildRunner: async (input) => {
         const root = await mkdtemp(join(tmpdir(), `vc-build-${input.projectId}-`));
         const outputDir = join(root, 'dist');
@@ -189,6 +235,7 @@ describe('internal deploy build + reap endpoints', () => {
     // same inputs on the job payload. Simulate the worker's internal call.
     const queued = await store.createDeployment({
       projectId,
+      expectedOrganizationId: organizationId,
       provider: 'static',
       status: 'QUEUED',
       buildCommand: 'npm run build',
@@ -220,7 +267,7 @@ describe('internal deploy build + reap endpoints', () => {
   });
 
   it('drives a QUEUED deployment to FAILED when the build fails', async () => {
-    const { app, store, auth, projectId } = await setup({
+    const { app, store, auth, projectId, organizationId } = await setup({
       staticBuildRunner: async () => ({
         ok: false,
         error: 'BUILD_FAILED',
@@ -232,6 +279,7 @@ describe('internal deploy build + reap endpoints', () => {
 
     const queued = await store.createDeployment({
       projectId,
+      expectedOrganizationId: organizationId,
       provider: 'static',
       status: 'QUEUED',
       buildCommand: 'npm run build',
@@ -312,14 +360,19 @@ describe('internal deploy build + reap endpoints', () => {
 
   it('is idempotent: a terminal deployment is a no-op (no rebuild on retry)', async () => {
     let runnerCalls = 0;
-    const { app, store, projectId } = await setup({
+    const { app, store, projectId, organizationId } = await setup({
       staticBuildRunner: async () => {
         runnerCalls += 1;
         return { ok: true, outputDir: undefined, logs: [] };
       },
     });
 
-    const done = await store.createDeployment({ projectId, provider: 'static', status: 'READY' });
+    const done = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: organizationId,
+      provider: 'static',
+      status: 'READY',
+    });
 
     const built = await app.inject({
       method: 'POST',
@@ -361,9 +414,16 @@ describe('internal deploy build + reap endpoints', () => {
 
   it('reaps a stale build via the internal reap endpoint', async () => {
     process.env.DEPLOY_BUILD_TIMEOUT_MS = '60000';
-    const { app, store, projectId } = await setup({ staticBuildRunner: async () => ({ ok: true, logs: [] }) });
+    const { app, store, projectId, organizationId } = await setup({
+      staticBuildRunner: async () => ({ ok: true, logs: [] }),
+    });
 
-    const stale = await store.createDeployment({ projectId, provider: 'static', status: 'BUILDING' });
+    const stale = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: organizationId,
+      provider: 'static',
+      status: 'BUILDING',
+    });
     store.deployments.get(stale.id)!.updatedAt = new Date(Date.now() - 120_000).toISOString();
 
     const reaped = await app.inject({

@@ -71,6 +71,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
 
   const previous = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: project.organizationId,
     provider: 'static',
     environment: 'preview',
     status: 'READY',
@@ -79,6 +80,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
   });
   const current = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: project.organizationId,
     provider: 'static',
     environment: 'preview',
     status: 'READY',
@@ -543,6 +545,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       });
       const created = await store.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'READY',

@@ -77,7 +77,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
     });
     const projectId = (project.json() as { project: { id: string } }).project.id;
 
-    return { app, store, auth, projectId };
+    return { app, store, auth, projectId, organizationId: auth.organization.id };
   }
 
   async function driveBuild(app: any, projectId: string, deploymentId: string, userId: string) {
@@ -101,12 +101,17 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
     // Workspace-pod seam reports the pod could not be reached (post provision + poll).
     const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({ handled: false as const }));
 
-    const { app, store, auth, projectId } = await setup({
+    const { app, store, auth, projectId, organizationId } = await setup({
       staticBuildRunner: inApiBuildSpy,
       buildStaticInWorkspacePod: podBuild,
     });
 
-    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const queued = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: organizationId,
+      provider: 'static',
+      status: 'QUEUED',
+    });
     const built = await driveBuild(app, projectId, queued.id, auth.user.id);
 
     expect(built.statusCode).toBe(200);
@@ -130,7 +135,11 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       await mkdir(outputDir, { recursive: true });
       await writeFile(join(outputDir, 'index.html'), '<!doctype html><h1>Pod build</h1>', 'utf8');
       progress?.onPhase?.('building');
-      progress?.onLog?.({ timestamp: new Date().toISOString(), level: 'info', message: 'Workspace deploy: built in pod' });
+      progress?.onLog?.({
+        timestamp: new Date().toISOString(),
+        level: 'info',
+        message: 'Workspace deploy: built in pod',
+      });
 
       return {
         handled: true as const,
@@ -143,18 +152,55 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       };
     });
 
-    const { app, store, auth, projectId } = await setup({
+    const { app, store, auth, projectId, organizationId } = await setup({
       staticBuildRunner: inApiBuildSpy,
       buildStaticInWorkspacePod: podBuild,
     });
 
-    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const queued = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: organizationId,
+      provider: 'static',
+      status: 'QUEUED',
+    });
     const built = await driveBuild(app, projectId, queued.id, auth.user.id);
 
     expect(built.statusCode).toBe(200);
     expect(built.json().deployment.status).toBe('READY');
     expect(built.json().deployment.url).toContain(`/static-deployments/${queued.id}/`);
 
+    expect(podBuild).toHaveBeenCalledTimes(1);
+    expect(inApiBuildSpy).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  it('redeploy also fails closed when the pod is unreachable and never invokes the api-pod runner', async () => {
+    const inApiBuildSpy = vi.fn(async () => ({ ok: true as const, outputDir: undefined, logs: [] }));
+    const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({ handled: false as const }));
+    const { app, store, auth, projectId, organizationId } = await setup({
+      staticBuildRunner: inApiBuildSpy,
+      buildStaticInWorkspacePod: podBuild,
+    });
+    const source = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: organizationId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      buildCommand: 'npm run build',
+      outputDirectory: 'dist',
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${source.id}/redeploy`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json().deployment.status).toBe('FAILED');
+    expect(JSON.stringify(response.json().deployment.logs)).toContain('Workspace is starting — please retry');
     expect(podBuild).toHaveBeenCalledTimes(1);
     expect(inApiBuildSpy).not.toHaveBeenCalled();
 

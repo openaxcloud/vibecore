@@ -5,6 +5,9 @@ import { ThumbnailCapturer } from './thumbnail-capture.js';
 function fakeStorage() {
   const puts: Array<{ projectId: string; key: string; bytes: number }> = [];
   const storage = {
+    async ensureBucket(projectId: string) {
+      return { bucket: `vc-${projectId}`, created: false, location: 'EU' };
+    },
     async putObject(projectId: string, input: { key: string; body: Uint8Array }) {
       puts.push({ projectId, key: input.key, bytes: input.body.byteLength });
 
@@ -31,7 +34,10 @@ describe('ThumbnailCapturer', () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
 
-    const ok = await cap.capture('proj-1', 'https://ws-1.preview.e-code.ai/');
+    const ok = await cap.capture(
+      { projectId: 'proj-1', expectedOrganizationId: 'org-1' },
+      'https://ws-1.preview.e-code.ai/',
+    );
 
     expect(ok).toBe(true);
     const [url, init] = fetchImpl.mock.calls[0];
@@ -48,7 +54,7 @@ describe('ThumbnailCapturer', () => {
     const cap = new ThumbnailCapturer({ storage, fetchImpl: fetchImpl as unknown as typeof fetch });
 
     expect(cap.enabled).toBe(false);
-    expect(await cap.capture('p', 'https://x/')).toBe(false);
+    expect(await cap.capture({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).toBe(false);
     expect(fetchImpl).not.toHaveBeenCalled();
     expect(puts).toHaveLength(0);
   });
@@ -66,10 +72,10 @@ describe('ThumbnailCapturer', () => {
       debounceMs: 60_000,
     });
 
-    expect(await cap.capture('p', 'https://x/')).toBe(true);
-    expect(await cap.capture('p', 'https://x/')).toBe(false); // within window
+    expect(await cap.capture({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).toBe(true);
+    expect(await cap.capture({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).toBe(false); // within window
     clock += 60_001;
-    expect(await cap.capture('p', 'https://x/')).toBe(true); // window elapsed
+    expect(await cap.capture({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).toBe(true); // window elapsed
 
     expect(puts).toHaveLength(2);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
@@ -85,7 +91,7 @@ describe('ThumbnailCapturer', () => {
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
 
-    expect(await cap.capture('p', 'https://x/')).toBe(false);
+    expect(await cap.capture({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).toBe(false);
     expect(puts).toHaveLength(0);
   });
 
@@ -97,7 +103,7 @@ describe('ThumbnailCapturer', () => {
       fetchImpl: (() => Promise.reject(new Error('network'))) as unknown as typeof fetch,
     });
 
-    expect(() => cap.schedule('p', 'https://x/')).not.toThrow();
+    expect(() => cap.schedule({ projectId: 'p', expectedOrganizationId: 'org' }, 'https://x/')).not.toThrow();
     await Promise.resolve();
   });
 });

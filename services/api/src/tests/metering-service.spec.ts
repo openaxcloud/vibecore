@@ -18,6 +18,7 @@ describe('meterAllObjectStorage (daily sweep)', () => {
     // 60 GiB stored → one day = 60/30 = 2 GiB-months (ceil → metered as 2).
     await store.putProjectStorageObject({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       key: 'k1',
       kind: 'snapshot',
       contentBase64: '',
@@ -47,6 +48,7 @@ describe('meterAllObjectStorage (daily sweep)', () => {
     const GIB = 1024 ** 3;
     await store.putProjectStorageObject({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       key: 'k1',
       kind: 'snapshot',
       contentBase64: '',

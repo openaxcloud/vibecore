@@ -46,6 +46,7 @@ async function fixture() {
   });
   const deployment = await store.createDeployment({
     projectId: project.id,
+    expectedOrganizationId: project.organizationId,
     provider: 'server',
     environment: 'preview',
     status: 'BUILDING',

@@ -31,7 +31,11 @@ class MemoryProjectStorage implements ProjectStorage {
   snapshotGate: Promise<void> | null = null;
   corruptNextWrite = false;
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
 
     for (const file of files) {
@@ -43,10 +47,17 @@ class MemoryProjectStorage implements ProjectStorage {
     }
     this.files.set(projectId, bucket);
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, _scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
 
@@ -58,13 +69,21 @@ class MemoryProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteFiles() {}
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     this.files.delete(projectId);
   }
-  async exportZip() {
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async exportZip(_projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
-  async importZip() {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ) {
     return [];
   }
   async writeObject() {}
@@ -72,7 +91,12 @@ class MemoryProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteObject() {}
-  async createSnapshot(input: { projectId: string; files: ProjectFile[]; storageKey?: string }) {
+  async createSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    files: ProjectFile[];
+    storageKey?: string;
+  }) {
     if (this.snapshotGate) await this.snapshotGate;
     const storageKey = input.storageKey ?? `snapshots/${input.projectId}/snapshot.zip`;
     this.snapshots.set(
@@ -81,10 +105,25 @@ class MemoryProjectStorage implements ProjectStorage {
     );
     return { storageKey, byteLength: 0, createdAt: new Date().toISOString() };
   }
-  async getSnapshotFiles(storageKey: string) {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string) {
     return (this.snapshots.get(storageKey) ?? []).map((file) => ({ ...file }));
   }
-  async restoreSnapshot() {
+  async restoreSnapshot(
+    _input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      workspaceId?: string;
+      files: ProjectFile[];
+    },
+    _guard?: () => Promise<void>,
+  ) {
     return [];
   }
 }
@@ -209,18 +248,22 @@ async function setup(options: { objectStorage?: ObjectStorage } = {}) {
     value: ENV_VALUE,
   });
 
-  await projectStorage.writeFiles(source.id, [
-    { path: 'src/app.ts', content: 'console.log("hello");\n' },
-    { path: '.env', content: `PORT=3000\nSTRIPE_KEY=${SECRET_VALUE}\nDATABASE_URL=${ENV_VALUE}\n` },
-    { path: 'README.md', content: '# Source project\n' },
-  ]);
+  await projectStorage.writeFiles(
+    source.id,
+    [
+      { path: 'src/app.ts', content: 'console.log("hello");\n' },
+      { path: '.env', content: `PORT=3000\nSTRIPE_KEY=${SECRET_VALUE}\nDATABASE_URL=${ENV_VALUE}\n` },
+      { path: 'README.md', content: '# Source project\n' },
+    ],
+    { expectedOrganizationId: org.id },
+  );
 
   return { app, store, projectStorage, org, source };
 }
 
 describe('POST /projects/:id/remix — secure fork, secret never enters the clone', () => {
   it('remixes a project WITH a secret and the secret value is NOWHERE in the clone', async () => {
-    const { app, store, projectStorage, source } = await setup();
+    const { app, store, projectStorage, org, source } = await setup();
 
     const res = await app.inject({
       method: 'POST',
@@ -250,7 +293,7 @@ describe('POST /projects/:id/remix — secure fork, secret never enters the clon
     // ---- THE PROOF: actively SEARCH for the secret value in every clone surface ----
 
     // (a) Clone FILES: the whole cloned artifact must not contain either value.
-    const cloneFiles = await projectStorage.listFiles(cloneId);
+    const cloneFiles = await projectStorage.listFiles(cloneId, { expectedOrganizationId: org.id });
     const allFileText = cloneFiles.map((f) => f.content).join('\n');
     expect(allFileText).not.toContain(SECRET_VALUE);
     expect(allFileText).not.toContain(ENV_VALUE);
@@ -279,7 +322,9 @@ describe('POST /projects/:id/remix — secure fork, secret never enters the clon
     const snapshot = await store.getSnapshot(job!.sourceSnapshotId!);
     expect(snapshot).toBeDefined();
     if (!snapshot?.storageKey) throw new Error('remix source snapshot archive was not persisted');
-    const snapshotFiles = await projectStorage.getSnapshotFiles(snapshot.storageKey);
+    const snapshotFiles = await projectStorage.getSnapshotFiles(source.id, snapshot.storageKey, {
+      expectedOrganizationId: org.id,
+    });
     const snapshotText = snapshotFiles.map((file) => file.content).join('\n');
     expect(snapshotText).not.toContain(SECRET_VALUE);
     expect(snapshotText).not.toContain(ENV_VALUE);
@@ -542,9 +587,11 @@ describe('POST /projects/:id/duplicate — exact source pin and hidden atomic ta
       payload: { expectedDigest: initial.digest, manifest: nextManifest },
     });
     expect(advanced.statusCode).toBe(200);
-    await projectStorage.writeFiles(source.id, [
-      { path: 'src/app.ts', content: 'console.log("changed after exact pin");\n' },
-    ]);
+    await projectStorage.writeFiles(
+      source.id,
+      [{ path: 'src/app.ts', content: 'console.log("changed after exact pin");\n' }],
+      { expectedOrganizationId: org.id },
+    );
     releaseTargetClaim();
 
     const response = await duplicate;
@@ -561,19 +608,23 @@ describe('POST /projects/:id/duplicate — exact source pin and hidden atomic ta
     const targetManifest = verifyStoredProjectManifestRevision(targetRevision!, targetId);
     expect(targetManifest).toMatchObject({ manifestVersion: 1, scopes: initial.manifest.scopes });
     expect(targetManifest.scopes).not.toContain('source:advanced-after-pin');
-    const targetFiles = await projectStorage.listFiles(targetId);
+    const targetFiles = await projectStorage.listFiles(targetId, { expectedOrganizationId: org.id });
     expect(targetFiles.find((file) => file.path === 'src/app.ts')?.content).toBe('console.log("hello");\n');
     expect(targetFiles.find((file) => file.path === '.env')?.content).toContain(SECRET_VALUE);
     expect(targetFiles.find((file) => file.path === '.env')?.content).toContain(ENV_VALUE);
-    expect((await projectStorage.listFiles(source.id)).find((file) => file.path === 'src/app.ts')?.content).toContain(
-      'changed after exact pin',
-    );
+    expect(
+      (
+        await projectStorage.listFiles(source.id, {
+          expectedOrganizationId: org.id,
+        })
+      ).find((file) => file.path === 'src/app.ts')?.content,
+    ).toContain('changed after exact pin');
     expect((await store.getLatestProjectManifest(source.id))?.manifestVersion).toBe(2);
   });
 
   it('fails closed on target digest corruption and removes every partial target surface', async () => {
     const { app, store, projectStorage, org, source } = await setup();
-    const sourceBefore = await projectStorage.listFiles(source.id);
+    const sourceBefore = await projectStorage.listFiles(source.id, { expectedOrganizationId: org.id });
     projectStorage.corruptNextWrite = true;
 
     const response = await app.inject({
@@ -590,9 +641,13 @@ describe('POST /projects/:id/duplicate — exact source pin and hidden atomic ta
     expect(store.projects.size).toBe(1);
     expect([...store.projectManifestRevisions.keys()]).toEqual([source.id]);
     expect([...projectStorage.files.keys()]).toEqual([source.id]);
-    expect((await projectStorage.listFiles(source.id)).map(({ path, content }) => ({ path, content }))).toEqual(
-      sourceBefore.map(({ path, content }) => ({ path, content })),
-    );
+    expect(
+      (
+        await projectStorage.listFiles(source.id, {
+          expectedOrganizationId: org.id,
+        })
+      ).map(({ path, content }) => ({ path, content })),
+    ).toEqual(sourceBefore.map(({ path, content }) => ({ path, content })));
     const failedJob = [...store.remixJobs.values()].find((job) => job.id === response.json().duplicateJobId);
     expect(failedJob).toMatchObject({ state: 'FAILED', targetProjectId: undefined });
   });

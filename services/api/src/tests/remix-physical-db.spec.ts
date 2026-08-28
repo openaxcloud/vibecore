@@ -39,22 +39,35 @@ const runDbTests = (await canReachDatabase()) ? describe : describe.skip;
 class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, ProjectFile[]>();
 
-  async writeFiles(projectId: string, files: ProjectFile[]) {
+  async writeFiles(
+    projectId: string,
+    files: ProjectFile[],
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     const cloned = files.map((file) => ({ ...file }));
     this.files.set(projectId, cloned);
     return cloned;
   }
 
-  async listFiles(projectId: string) {
+  async listFiles(projectId: string, scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string) {
     return this.files.get(projectId)?.map((file) => ({ ...file })) ?? [];
   }
 
-  async deleteProjectFiles(projectId: string) {
+  async deleteProjectFiles(projectId: string, _scope: { expectedOrganizationId: string; workspaceId?: string }) {
+    this.files.delete(projectId);
+  }
+
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
 
   async createSnapshot(input: {
     projectId: string;
+    expectedOrganizationId: string;
     files: ProjectFile[];
     storageKey?: string;
   }): Promise<StoredArchive> {
@@ -66,19 +79,40 @@ class MemoryProjectStorage implements ProjectStorage {
     return { storageKey, byteLength: 1, createdAt: new Date().toISOString() };
   }
 
-  async getSnapshotFiles(storageKey: string) {
-    return this.listFiles(storageKey);
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
   }
 
-  async restoreSnapshot(input: { projectId: string; files: ProjectFile[] }) {
-    return this.writeFiles(input.projectId, input.files);
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, storageKey: string) {
+    return this.listFilesWithinPhysicalAccess(storageKey);
   }
 
-  async exportZip(): Promise<StoredArchive & { base64: string }> {
+  async restoreSnapshot(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    files: ProjectFile[];
+  }) {
+    return this.writeFiles(input.projectId, input.files, input);
+  }
+
+  async exportZip(
+    _projectId: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<StoredArchive & { base64: string }> {
     throw new Error('not used');
   }
 
-  async importZip(): Promise<ProjectFile[]> {
+  async importZip(
+    _projectId: string,
+    _base64: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+    _options?: { replaceExisting?: boolean },
+  ): Promise<ProjectFile[]> {
     throw new Error('not used');
   }
 }
@@ -203,7 +237,23 @@ function serviceDeps(
   return {
     store,
     projectStorage,
-    objectStorage,
+    readObjectStorageInventory: (scope: { projectId: string; expectedOrganizationId: string }) =>
+      store.withProjectPhysicalAccess(scope, async () => ({
+        inventory: await objectStorage.inventoryProjectObjects(scope.projectId),
+        authoritySourceProjectId: scope.projectId,
+        authoritySourceOrganizationId: scope.expectedOrganizationId,
+      })),
+    prepareObjectStorageShareSource: async (scope: { projectId: string; expectedOrganizationId: string }) => {
+      if (await objectStorage.bucketExists(scope.projectId)) {
+        await objectStorage.ensureBucket(scope.projectId);
+      }
+      return objectStorage.inventoryProjectObjects(scope.projectId);
+    },
+    executeObjectStorageCommand: (input: {
+      scopes: Array<{ projectId: string; expectedOrganizationId: string }>;
+      command: Parameters<PrismaApiStore['executeTenantObjectStorageCommand']>[0]['command'];
+      idempotencyKey: string;
+    }) => store.executeTenantObjectStorageCommand({ ...input, storage: objectStorage }),
     databaseProvisioner,
     ensureProjectQuota: async () => undefined,
     createSourceSnapshot: async ({
@@ -217,21 +267,32 @@ function serviceDeps(
     }) => {
       const snapshotId = `snapshot:${sourceProjectId}:${remixJobId}`;
       const snapshotHash = remixFileSnapshotHash(files);
+      const sourceProject = await store.getProject(sourceProjectId);
+
+      if (!sourceProject) {
+        throw new Error(`Missing source project ${sourceProjectId}`);
+      }
+
       const archive = await projectStorage.createSnapshot({
         projectId: sourceProjectId,
+        expectedOrganizationId: sourceProject.organizationId,
         files,
         storageKey: snapshotId,
       });
       const snapshot = await store.createSnapshot({
         id: snapshotId,
         projectId: sourceProjectId,
+        expectedOrganizationId: sourceProject.organizationId,
         manifest: { snapshotHash, testCapture: true },
         storageKey: archive.storageKey,
         byteLength: archive.byteLength,
       });
       return { snapshotId: snapshot.id, snapshotHash };
     },
-    loadSourceSnapshot: (snapshotId: string) => projectStorage.listFiles(snapshotId),
+    loadSourceSnapshot: (snapshotId: string, sourceProjectId: string, sourceOrganizationId: string) =>
+      projectStorage.getSnapshotFiles(sourceProjectId, snapshotId, {
+        expectedOrganizationId: sourceOrganizationId,
+      }),
     buildTargetIdeState: (files: ProjectFile[]) => ({ files }),
     recordCompleted: async () => undefined,
   };
@@ -292,7 +353,10 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
       expect(replay.kind === 'completed' ? replay.project.id : undefined).toBe(
         completed[0].kind === 'completed' ? completed[0].project.id : undefined,
       );
-      const cloned = replay.kind === 'completed' ? await projectStorage.listFiles(replay.project.id) : [];
+      const cloned =
+        replay.kind === 'completed'
+          ? await projectStorage.listFiles(replay.project.id, { expectedOrganizationId: organization.id })
+          : [];
       expect(cloned.find((file) => file.path === '.env')?.content).toContain('SHORT_TOKEN= # detached on remix');
       expect(JSON.stringify(cloned)).not.toContain('abc');
     } finally {
@@ -390,6 +454,7 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
       expect(claimed).toBeDefined();
       const sourceSnapshot = await storeA.createSnapshot({
         projectId: source.id,
+        expectedOrganizationId: organization.id,
         manifest: { snapshotHash: remixFileSnapshotHash([]), testCapture: true },
         storageKey: `snapshot:finalize:${suffix}`,
         byteLength: 0,

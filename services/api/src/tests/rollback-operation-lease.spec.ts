@@ -239,15 +239,31 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('atomically fails a pre-effect deployment before persisting an error response', async () => {
     const store = new TestApiStore();
+    const owner = await store.createUser({
+      email: 'rollback-pre-effect@example.test',
+      passwordHash: 'test-only-hash',
+    });
+    const organization = await store.createOrganization({
+      name: 'Rollback Pre Effect',
+      slug: 'rollback-pre-effect',
+      ownerUserId: owner.id,
+    });
+    const project = await store.createProject({
+      organizationId: organization.id,
+      name: 'Rollback Pre Effect',
+      slug: 'rollback-pre-effect',
+    });
     const sourceDeployment = await store.createDeployment({
-      projectId: 'project-pre-effect',
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
       metadata: releaseMetadata(),
     });
     const currentDeployment = await store.createDeployment({
-      projectId: 'project-pre-effect',
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -256,7 +272,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
 
     const source = await store.createReleaseManifest({
-      projectId: 'project-pre-effect',
+      projectId: project.id,
       deploymentId: sourceDeployment.id,
       environment: 'preview',
       version: 1,
@@ -269,7 +285,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       projectManifestDigest: PROJECT_MANIFEST_DIGEST,
     });
     await store.createReleaseManifest({
-      projectId: 'project-pre-effect',
+      projectId: project.id,
       deploymentId: currentDeployment.id,
       environment: 'preview',
       version: 2,
@@ -283,7 +299,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
 
     const acquired = await store.acquireRollbackOperation({
-      projectId: 'project-pre-effect',
+      projectId: project.id,
       actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'pre-effect-key',
       requestFingerprint: FINGERPRINT,
@@ -304,7 +320,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       fence: { operationId: operation.id, ownerToken: 'owner-pre-effect', fencingToken: 1 },
       deployment: {
         id: 'deployment-pre-effect',
-        projectId: 'project-pre-effect',
+        projectId: project.id,
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
@@ -330,10 +346,10 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       responseBody: { code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING' },
     });
 
-    expect((await store.getDeployment('project-pre-effect', 'deployment-pre-effect'))?.status).toBe('FAILED');
+    expect((await store.getDeployment(project.id, 'deployment-pre-effect'))?.status).toBe('FAILED');
     await expect(
       store.acquireRollbackOperation({
-        projectId: 'project-pre-effect',
+        projectId: project.id,
         actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'pre-effect-key',
         requestFingerprint: FINGERPRINT,
@@ -360,6 +376,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     const projectManifestDigest = (await store.getLatestProjectManifest(project.id))!.digest;
     const sourceDeployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -367,6 +384,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
     const currentDeployment = await store.createDeployment({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',

@@ -429,17 +429,20 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
-  guardSharedObjectStorageWrites,
   listPinnedInventoryObjects,
   ObjectStorageError,
   parseObjectStorageInventory,
   type ObjectStorage,
+  type ObjectStorageInventory,
   isObjectStorageEnabled,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { type TenantObjectStorageCommandIntent } from './object-storage-command.js';
+import type { ObjectStorageCheckpointBarrierAuthority } from './object-storage-operation.js';
 import { PrismaApiStore } from './prisma-store.js';
 import { withProjectReleaseBarrier, type ProjectReleaseGuard } from './project-release-barrier.js';
+import { projectPermanentDeletionRequestHash } from './project-permanent-deletion.js';
 import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
@@ -459,6 +462,7 @@ import {
   type FileEncoding,
   type GitProvider,
   type ProjectFile,
+  type ProjectMutationCoordinator,
   type ProjectStorage,
   type StoredArchive,
   withProjectLock,
@@ -559,6 +563,7 @@ import {
   type ProjectReleaseFence,
   type ProviderConfigRecord,
   type ReleasePlanEntitlementsPin,
+  type RemixStorageShareRecord,
   type RollbackLeaseFence,
   type ServerImageReleaseCommitInput,
   type ServerImageReleaseCommitResult,
@@ -622,7 +627,7 @@ declare module 'fastify' {
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
 
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
-    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
+    objectStorageGrant?: { projectId: string; organizationId: string; userId?: string; workspaceId?: string };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -1073,7 +1078,7 @@ const projectIdeStateSchema = z.object({
 });
 
 // F13: optional name confirmation on permanent delete (type-to-confirm guard).
-const projectDeleteConfirmSchema = z.object({ confirmName: z.string().optional() });
+const projectDeleteConfirmSchema = z.object({ confirmName: z.string().min(1).max(255) });
 
 const agentPatchProposalParams = z.object({
   projectId: z.string().min(1),
@@ -2135,7 +2140,7 @@ function parse<T>(schema: ZodSchema<T>, value: unknown): T {
 
 async function currentProjectManifest(
   store: ApiStore,
-  project: Pick<ProjectRecord, 'id'>,
+  project: Pick<ProjectRecord, 'id' | 'organizationId'>,
 ): Promise<{ manifest: ProjectManifest; digest: string }> {
   let revision = await store.getLatestProjectManifest(project.id);
 
@@ -2148,6 +2153,7 @@ async function currentProjectManifest(
     const manifest = createDefaultProjectManifest(project.id);
     revision = await store.createProjectManifestRevision({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       schemaVersion: manifest.schemaVersion,
       manifestVersion: manifest.manifestVersion,
       digest: projectManifestDigest(manifest),
@@ -2163,7 +2169,7 @@ async function currentProjectManifest(
 
 async function deploymentProjectManifestIsCurrent(
   store: ApiStore,
-  project: Pick<ProjectRecord, 'id'>,
+  project: Pick<ProjectRecord, 'id' | 'organizationId'>,
   deployment: Pick<DeploymentRecord, 'metadata'>,
 ): Promise<boolean> {
   const boundDigest = (deployment.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
@@ -3775,6 +3781,7 @@ function authenticateObjectStorageGrant(request: FastifyRequest): 'granted' | 'n
  */
 function buildWorkspaceObjectStorage(input: {
   projectId: string;
+  organizationId: string;
   userId?: string;
   workspaceId: string;
 }): { apiUrl: string; accessToken: string } | undefined {
@@ -3794,6 +3801,7 @@ function buildWorkspaceObjectStorage(input: {
   const accessToken = signObjectStorageAccessToken({
     payload: {
       projectId: input.projectId,
+      organizationId: input.organizationId,
       userId: input.userId,
       workspaceId: input.workspaceId,
       expiresAt: Date.now() + ttlMs,
@@ -5544,6 +5552,7 @@ function projectFilesMatch(left: ProjectFile[], right: Array<{ path: string; con
 async function syncProjectStorageWithFileManifest(
   projectStorage: ProjectStorage,
   projectId: string,
+  expectedOrganizationId: string,
   existingFiles: ProjectFile[],
   files: Array<{ path: string; content: string }>,
   workspaceId?: string,
@@ -5556,6 +5565,7 @@ async function syncProjectStorageWithFileManifest(
   return projectStorage.restoreSnapshot(
     {
       projectId,
+      expectedOrganizationId,
       workspaceId,
       files: projectFilesWithUpdatedAt(files),
     },
@@ -5621,13 +5631,20 @@ async function ensureProjectStorageFromIdeState(
   store: ApiStore,
   projectStorage: ProjectStorage,
   projectId: string,
+  expectedOrganizationId: string,
 ): Promise<ProjectFile[]> {
-  const existingFiles = await projectStorage.listFiles(projectId);
+  const existingFiles = await projectStorage.listFiles(projectId, { expectedOrganizationId });
   const ideState = await store.getProjectIdeState(projectId);
   const persistedManifest = projectFileManifestFromPersistedIdeState(ideState);
 
   if (persistedManifest.exists) {
-    return syncProjectStorageWithFileManifest(projectStorage, projectId, existingFiles, persistedManifest.files);
+    return syncProjectStorageWithFileManifest(
+      projectStorage,
+      projectId,
+      expectedOrganizationId,
+      existingFiles,
+      persistedManifest.files,
+    );
   }
 
   if (existingFiles.length > 0) {
@@ -5640,7 +5657,7 @@ async function ensureProjectStorageFromIdeState(
     return existingFiles;
   }
 
-  return projectStorage.writeFiles(projectId, recoveredFiles);
+  return projectStorage.writeFiles(projectId, recoveredFiles, { expectedOrganizationId });
 }
 
 /*
@@ -5684,10 +5701,11 @@ async function listProjectFilesIncludingIdeState(
   store: ApiStore,
   projectStorage: ProjectStorage,
   projectId: string,
+  expectedOrganizationId: string,
   workspaceId?: string,
   guard?: () => Promise<void>,
 ): Promise<ProjectFile[]> {
-  const existingFiles = await projectStorage.listFiles(projectId, workspaceId);
+  const existingFiles = await projectStorage.listFiles(projectId, { expectedOrganizationId, workspaceId });
 
   /*
    * Prefer the workspace-scoped IDE state so committing on workspace B uses the
@@ -5706,6 +5724,7 @@ async function listProjectFilesIncludingIdeState(
     return syncProjectStorageWithFileManifest(
       projectStorage,
       projectId,
+      expectedOrganizationId,
       existingFiles,
       persistedManifest.files,
       workspaceId,
@@ -5736,7 +5755,7 @@ async function listProjectFilesIncludingIdeState(
   }
 
   if (missingFiles.length) {
-    await projectStorage.writeFiles(projectId, missingFiles, workspaceId, guard);
+    await projectStorage.writeFiles(projectId, missingFiles, { expectedOrganizationId, workspaceId }, guard);
   }
 
   return [...mergedFiles.values()];
@@ -7465,8 +7484,9 @@ async function findInFlightDeploymentForCwd(
   return undefined;
 }
 
-async function commitInitialScaffold(gitProvider: GitProvider, projectId: string) {
-  const status = await gitProvider.status(projectId);
+async function commitInitialScaffold(gitProvider: GitProvider, projectId: string, expectedOrganizationId: string) {
+  const scope = { expectedOrganizationId };
+  const status = await gitProvider.status(projectId, scope);
 
   if (status.changedFiles.length === 0) {
     return undefined;
@@ -7474,6 +7494,7 @@ async function commitInitialScaffold(gitProvider: GitProvider, projectId: string
 
   return gitProvider.commit({
     projectId,
+    expectedOrganizationId,
     message: appPublicEnglish('GIT_INITIAL_COMMIT_MESSAGE'),
     files: [],
   });
@@ -9966,6 +9987,18 @@ function rollbackIdempotencyKey(request: FastifyRequest): string | undefined {
   return key.length >= 1 && key.length <= 200 ? key : undefined;
 }
 
+function requireObjectStorageIdempotencyKey(request: FastifyRequest): string {
+  const header = request.headers['idempotency-key'];
+  const key = (Array.isArray(header) ? header[0] : header)?.trim();
+  if (!key || !/^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/.test(key)) {
+    throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED')), {
+      code: 'OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED',
+      statusCode: 400,
+    });
+  }
+  return key;
+}
+
 function rollbackRequestFingerprint(environment: string): string {
   return createHash('sha256')
     .update(JSON.stringify({ operation: 'rollback-to-previous', environment }))
@@ -10336,13 +10369,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const accountPurgeStorageGuard = (projectId: string, workspaceId?: string) =>
-    store.assertProjectStorageMutable(projectId, workspaceId);
+  const physicalMutationCoordinator: ProjectMutationCoordinator = (scope, effect) =>
+    store.withProjectPhysicalMutation(scope, effect);
 
-  const projectTreeMutationGuard = async (projectId: string, workspaceId?: string) => {
-    await accountPurgeStorageGuard(projectId, workspaceId);
-    await checkpointMutationGuard(projectId);
-  };
+  const physicalAccessCoordinator: ProjectMutationCoordinator = (scope, effect) =>
+    store.withProjectPhysicalAccess(scope, effect);
+
+  const projectTreeMutationCoordinator: ProjectMutationCoordinator = (scope, effect) =>
+    store.withProjectPhysicalMutation(scope, async () => {
+      await checkpointMutationGuard(scope.projectId);
+      return effect();
+    });
 
   if (options.projectStorage && isProduction) {
     throw Object.assign(new Error(appPublicEnglish('UNSAFE_PROJECT_STORAGE_ADAPTER')), {
@@ -10350,8 +10387,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   }
 
+  const staticErasureAuthority = {
+    resolveInventory: (projectId: string) => store.resolveProjectStaticErasureInventory(projectId),
+    resolveArtifact: (projectId: string, artifactRef: string) =>
+      store.resolveProjectStaticArtifactAuthority(projectId, artifactRef),
+  };
+
   const rawProjectStorage =
-    options.projectStorage ?? new LocalProjectStorage(accountPurgeStorageGuard, accountPurgeStorageGuard);
+    options.projectStorage ??
+    new LocalProjectStorage(
+      physicalMutationCoordinator,
+      physicalMutationCoordinator,
+      physicalAccessCoordinator,
+      staticErasureAuthority,
+    );
 
   /*
    * Production's LocalProjectStorage executes the database guard WHILE its
@@ -10360,9 +10409,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * non-production test seam only, because a proxy cannot move a guard inside
    * an unknown adapter's mutation critical section.
    */
-  const projectStorage = options.projectStorage
+  const projectStorage: ProjectStorage = options.projectStorage
     ? withCheckpointBarrier(rawProjectStorage, checkpointBarrierLookup)
-    : new LocalProjectStorage(projectTreeMutationGuard, accountPurgeStorageGuard);
+    : new LocalProjectStorage(
+        projectTreeMutationCoordinator,
+        physicalMutationCoordinator,
+        physicalAccessCoordinator,
+        staticErasureAuthority,
+      );
 
   const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
   const migrationApplier = options.migrationApplier ?? createPostgresMigrationApplier();
@@ -10552,7 +10606,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await lease.release();
     }
   };
-  const gitProvider = options.gitProvider ?? new GitCliProvider(projectTreeMutationGuard);
+  const gitProvider = options.gitProvider ?? new GitCliProvider(projectTreeMutationCoordinator);
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
 
   /*
@@ -16419,6 +16473,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     request: any,
     authorized: { workspaceId: string; projectId: string; organizationId: string },
   ) => {
+    /*
+     * Durable linearization point: a transfer that commits first makes this
+     * exact-tenant latch fail before the manager sees a request. If this latch
+     * wins, transfer observes STARTING and refuses until the runtime is stopped.
+     */
+    await store.latchProjectWorkspaceStart({
+      workspaceId: authorized.workspaceId,
+      projectId: authorized.projectId,
+      expectedOrganizationId: authorized.organizationId,
+      runtimeMode: 'remote-kubernetes',
+    });
+
     const [projectEnvVars, projectSecrets] = await Promise.all([
       store.listProjectEnvVars(authorized.projectId),
       store.listProjectSecrets(authorized.projectId),
@@ -16444,20 +16510,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         nixStorePvcName: nixStorePvcForProject(authorized.projectId),
         objectStorage: buildWorkspaceObjectStorage({
           projectId: authorized.projectId,
+          organizationId: authorized.organizationId,
           userId: request.currentUser?.id,
           workspaceId: authorized.workspaceId,
         }),
       }),
-    }).catch(() => undefined);
-
-    await store
-      .updateWorkspaceStatus({
-        workspaceId: authorized.workspaceId,
-        expectedProjectId: authorized.projectId,
-        expectedOrganizationId: authorized.organizationId,
-        status: 'STARTING',
-      })
-      .catch(() => undefined);
+    }).catch((error) => {
+      request.log?.warn?.(
+        { err: error, projectId: authorized.projectId, workspaceId: authorized.workspaceId },
+        'workspace cold-start request failed after durable STARTING latch',
+      );
+    });
 
     emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
   };
@@ -16936,53 +16999,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
 
-  const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {
-    const existing = await store.getWorkspace(workspaceId);
-
-    if (existing) {
-      if (existing.projectId !== project.id) {
-        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
-          statusCode: 403,
-          code: 'WORKSPACE_PROJECT_MISMATCH',
-        });
-      }
-
-      return existing;
-    }
-
-    try {
-      return await store.createWorkspace({
-        id: workspaceId,
-        projectId: project.id,
-        expectedOrganizationId: project.organizationId,
-        name: `${project.name} runtime`,
-        runtimeMode: 'remote-kubernetes',
-      });
-    } catch (error) {
-      /*
-       * The workspace id is deterministic per (project, user), so two
-       * concurrent requests (e.g. two browser tabs) can both pass the
-       * getWorkspace check above and race into createWorkspace — the second
-       * insert collides on the unique id and previously surfaced as a 500.
-       * Re-read and reuse the row the winner just created instead.
-       */
-      const raced = await store.getWorkspace(workspaceId);
-
-      if (raced) {
-        if (raced.projectId !== project.id) {
-          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_PROJECT_MISMATCH')), {
-            statusCode: 403,
-            code: 'WORKSPACE_PROJECT_MISMATCH',
-          });
-        }
-
-        return raced;
-      }
-
-      throw error;
-    }
-  };
-
   /*
    * Server-side runtime reseed reconciliation.
    *
@@ -17014,6 +17030,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const reconcileRuntimeSeedFromPersisted = async (
     workspaceId: string,
     projectId: string,
+    expectedOrganizationId: string,
   ): Promise<{ seeded: boolean; reason: string; missing?: number; diverged?: number }> => {
     let existingTree: unknown;
 
@@ -17031,7 +17048,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let files: ProjectFile[];
 
     try {
-      files = await ensureProjectStorageFromIdeState(store, projectStorage, projectId);
+      files = await ensureProjectStorageFromIdeState(store, projectStorage, projectId, expectedOrganizationId);
     } catch {
       return { seeded: false, reason: 'persisted-read-failed' };
     }
@@ -17123,9 +17140,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Fire the reseed reconciliation without ever letting it break the start/restart
    * response. Records a metric so the flaky-loop fix is observable in prod.
    */
-  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
+  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string, expectedOrganizationId: string) => {
     try {
-      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
+      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId, expectedOrganizationId);
 
       if (result.seeded) {
         metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
@@ -17197,7 +17214,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const ensureLocalRuntimeWorkspace = async (authorized: {
     workspaceId: string;
     projectId: string;
-    organizationId?: string;
+    organizationId: string;
   }) => {
     if (!localRuntimeFallbackEnabled()) {
       throw Object.assign(new Error(appPublicEnglish('WORKSPACE_MANAGER_UNAVAILABLE')), {
@@ -17209,7 +17226,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const root = localRuntimeRoot(authorized.workspaceId);
     await mkdir(root, { recursive: true });
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId);
+    const files = await listProjectFilesIncludingIdeState(
+      store,
+      projectStorage,
+      authorized.projectId,
+      authorized.organizationId,
+    );
 
     for (const file of files) {
       const target = localRuntimeFilePath(root, file.path);
@@ -17234,7 +17256,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const runLocalRuntimeCommand = async (
-    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    authorized: { workspaceId: string; projectId: string; organizationId: string },
     body: z.infer<typeof runtimeCommandSchema>,
   ) => {
     const root = await ensureLocalRuntimeWorkspace(authorized);
@@ -17665,7 +17687,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const localRuntimeLogsSnapshot = async (authorized: {
     workspaceId: string;
     projectId: string;
-    organizationId?: string;
+    organizationId: string;
   }) => {
     const root = await ensureLocalRuntimeWorkspace(authorized);
 
@@ -18462,7 +18484,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const persistProjectArchiveObject = async (
     archive: StoredArchive,
-    input: { projectId: string; kind: 'export' | 'snapshot' | 'before-ai-change' | 'runtime' },
+    input: {
+      projectId: string;
+      expectedOrganizationId: string;
+      kind: 'export' | 'snapshot' | 'before-ai-change' | 'runtime';
+    },
   ) => {
     if (!archive.base64) {
       return undefined;
@@ -18470,6 +18496,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const object = await store.putProjectStorageObject({
       projectId: input.projectId,
+      expectedOrganizationId: input.expectedOrganizationId,
       key: archive.storageKey,
       kind: input.kind,
       contentBase64: archive.base64,
@@ -18487,7 +18514,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return object;
   };
 
-  const getSnapshotFiles = async (snapshot: SnapshotRecord): Promise<ProjectFile[]> => {
+  const getSnapshotFiles = async (snapshot: SnapshotRecord, expectedOrganizationId: string): Promise<ProjectFile[]> => {
     if (!snapshot.storageKey) {
       metrics.increment('project_snapshot_restore_failures_total', { reason: 'missing_storage_key' });
       throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_STORAGE_KEY_MISSING')), {
@@ -18497,7 +18524,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     try {
-      const files = await projectStorage.getSnapshotFiles(snapshot.storageKey);
+      const files = await projectStorage.getSnapshotFiles(snapshot.projectId, snapshot.storageKey, {
+        expectedOrganizationId,
+      });
 
       if (files.length > 0) {
         return files;
@@ -18514,7 +18543,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
     }
 
-    const object = await store.getProjectStorageObject(snapshot.storageKey);
+    const object = await store.getProjectStorageObject({
+      projectId: snapshot.projectId,
+      expectedOrganizationId,
+      key: snapshot.storageKey,
+    });
 
     if (!object) {
       metrics.increment('project_snapshot_restore_failures_total', { reason: 'durable_archive_missing' });
@@ -18553,12 +18586,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     reason: string,
     association?: { conversationId?: string; turnIndex?: number },
   ) => {
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, label: reason, files });
-    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      label: reason,
+      files,
+    });
+    await persistProjectArchiveObject(archive, {
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      kind: 'before-ai-change',
+    });
 
     return store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       label: reason,
       kind: 'before-ai-change',
       manifest: { files: publicFiles(files), excludesRuntimeSecrets: true },
@@ -18750,9 +18793,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const gitWorkspaceId = await resolveGitWorkspaceId(store, project.id, input.workspaceId);
       output = await gitProvider.commit({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         workspaceId: gitWorkspaceId,
         message: input.message ?? appPublicCopy('AI_CHANGES_COMMIT_MESSAGE', transactionalLocaleForRequest(request)),
-        files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, gitWorkspaceId),
+        files: await listProjectFilesIncludingIdeState(
+          store,
+          projectStorage,
+          project.id,
+          project.organizationId,
+          gitWorkspaceId,
+        ),
       });
     } else if (toolName === 'deploy_project') {
       /*
@@ -18772,6 +18822,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           return store.createDeployment({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             provider: input.provider ?? 'manual',
             accessPolicy: {
               mode: deploymentAccessActivationEnabled(isProduction) ? 'INVITE_ONLY' : 'PUBLIC',
@@ -18943,26 +18994,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       /*
-       * Persist the burst claim BEFORE asking the manager or making a dormant
-       * row active. A storage outage can never create an unmetered start.
+       * Create/rebind the deterministic workspace row and persist STARTING under
+       * exact source-tenant authority before any manager effect. The Project row
+       * lock linearizes this with transfer; STARTING then remains a durable
+       * transfer blocker for the whole external provisioning lifetime.
        */
+      const record = await store.latchProjectWorkspaceStart({
+        workspaceId,
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        runtimeMode: 'remote-kubernetes',
+      });
+
+      /* A storage outage can never create an unmetered start. */
       await recordTenantWorkspaceStart(request, orgIdForQuota);
-
-      const record = await ensureRuntimeWorkspaceRecord(workspaceId, project);
-
-      /*
-       * Claim a new active slot inside the lock. A brand-new record is PENDING;
-       * reopening STOPPED/FAILED must be flipped to a counted state before the
-       * lock is released.
-       */
-      if (!currentlyActive && !['PENDING', 'STARTING', 'RUNNING'].includes(record.status as string)) {
-        await store.updateWorkspaceStatus({
-          workspaceId: record.id,
-          expectedProjectId: authorized.projectId,
-          expectedOrganizationId: authorized.organizationId,
-          status: 'STARTING',
-        });
-      }
 
       return record;
     });
@@ -18970,7 +19015,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     /*
      * BLOCKER #6: seed the lifecycle trail with STARTING now that the Workspace
-     * row EXISTS (ensureRuntimeWorkspaceRecord just created/loaded it) — emitting
+     * row EXISTS (the tenant latch just created/loaded it) — emitting
      * before this point hit the workspaceId FK and was silently dropped. A warm
      * reopen already sitting at RUNNING makes RUNNING->STARTING illegal, which the
      * machine drops; a genuine (re)provision records STARTING as intended.
@@ -19015,6 +19060,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           nixStorePvcName: nixStorePvcForProject(authorized.projectId),
           objectStorage: buildWorkspaceObjectStorage({
             projectId: authorized.projectId,
+            organizationId: authorized.organizationId,
             userId: request.currentUser?.id,
             workspaceId: authorized.workspaceId,
           }),
@@ -19149,7 +19195,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
        * already carries its files. Best-effort; never blocks the start response.
        */
-      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId, authorized.organizationId);
     }
 
     return runtimeSession(
@@ -19260,26 +19306,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           await ensureQuota(request, restartOrgId, 'workspaces.active');
         }
 
+        /*
+         * Persist STARTING under exact tenant authority before the manager
+         * restart. This is both the active-slot claim and the durable transfer
+         * fence for the external runtime effect.
+         */
+        await store.latchProjectWorkspaceStart({
+          workspaceId: authorized.workspaceId,
+          projectId: authorized.projectId,
+          expectedOrganizationId: restartOrgId,
+          runtimeMode: 'remote-kubernetes',
+        });
+        restartClaimedActiveSlot = !currentlyActive;
+
         /* Every explicit restart consumes the hourly start wall, active or not. */
         await recordTenantWorkspaceStart(request, restartOrgId);
-
-        /*
-         * Claim the active slot INSIDE the lock by flipping the record to a
-         * counted state (STARTING). Without a state write here the lock is inert:
-         * concurrent restarts each pass the same count and all bypass the limit
-         * (countActiveWorkspaces counts PENDING/STARTING/RUNNING). The manager
-         * restart below reconciles to RUNNING/FAILED; the catch resets on error.
-         */
-        if (!currentlyActive) {
-          await store.updateWorkspaceStatus({
-            workspaceId: authorized.workspaceId,
-            expectedProjectId: authorized.projectId,
-            expectedOrganizationId: authorized.organizationId,
-            status: 'STARTING',
-          });
-          restartClaimedActiveSlot = true;
-        }
       });
+    } else {
+      throw tenantGuardrailUnavailableError();
     }
 
     /*
@@ -19325,6 +19369,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           allowedSecrets,
           objectStorage: buildWorkspaceObjectStorage({
             projectId: authorized.projectId,
+            organizationId: authorized.organizationId,
             userId: request.currentUser?.id,
             workspaceId: authorized.workspaceId,
           }),
@@ -19415,7 +19460,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
-      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
+      await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId, authorized.organizationId);
     }
 
     return runtimeSession(authorized.workspaceId, managerWorkspace?.status === 'FAILED' ? 'failed' : 'running', {
@@ -23192,12 +23237,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const files = await projectStorage.writeFiles(
       project.id,
       starterFiles({ sourceType: 'blank', name: project.name, locale: transactionalLocaleForRequest(request) }),
+      { expectedOrganizationId: project.organizationId },
     );
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
+    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.create',
       metadata: { sourceType: 'blank' },
@@ -23313,9 +23360,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     });
 
-    const files = await projectStorage.writeFiles(project.id, templateFiles);
+    const files = await projectStorage.writeFiles(project.id, templateFiles, {
+      expectedOrganizationId: project.organizationId,
+    });
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
-    await commitInitialScaffold(gitProvider, project.id);
+    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
     await recordUsage(request, orgId, 'projects.count');
 
     /*
@@ -23327,6 +23376,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const conversation = await store.createAiConversation({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         userId: request.currentUser!.id,
         title: appPublicCopy('TEMPLATE_GETTING_STARTED_TITLE', locale, { projectName: project.name }),
       });
@@ -23341,6 +23391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.create_from_template',
       metadata: { templateName: body.templateName },
@@ -23392,6 +23443,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         model: body.model,
         locale,
       }),
+      { expectedOrganizationId: project.organizationId },
     );
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id);
 
@@ -23418,10 +23470,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
       }),
     );
-    await commitInitialScaffold(gitProvider, project.id);
+    await commitInitialScaffold(gitProvider, project.id, project.organizationId);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.create_from_ai',
     });
@@ -23564,10 +23617,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await leaseManager.guard();
 
       if (job.targetProjectId) {
-        await projectStorage.deleteProjectFiles(job.targetProjectId, () => leaseManager.guard());
+        await projectStorage.deleteProjectFiles(
+          job.targetProjectId,
+          { expectedOrganizationId: job.organizationId },
+          () => leaseManager.guard(),
+        );
         await leaseManager.guard();
 
-        if ((await projectStorage.listFiles(job.targetProjectId)).length !== 0) {
+        if (
+          (await projectStorage.listFiles(job.targetProjectId, { expectedOrganizationId: job.organizationId }))
+            .length !== 0
+        ) {
           throw Object.assign(new Error(appPublicEnglish('IMPORT_CLEANUP_FILES_REMAIN')), {
             statusCode: 409,
             code: 'IMPORT_CLEANUP_FILES_REMAIN',
@@ -24178,7 +24238,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return reply.code(200).send({
         project,
-        files: publicFiles(await projectStorage.listFiles(project.id)),
+        files: publicFiles(
+          await projectStorage.listFiles(project.id, { expectedOrganizationId: project.organizationId }),
+        ),
         import: {
           importJobId,
           state: 'COMMITTED',
@@ -24375,13 +24437,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         `import-target-effect:${project.id}`,
         async () => {
           await operationLeaseManager!.guard();
-          await projectStorage.writeFiles(project.id, targetFiles, undefined, () => operationLeaseManager!.guard());
+          await projectStorage.writeFiles(
+            project.id,
+            targetFiles,
+            { expectedOrganizationId: project.organizationId },
+            () => operationLeaseManager!.guard(),
+          );
           await operationLeaseManager!.guard();
           if (durableTarget?.initializeGitScaffold) {
-            await commitInitialScaffold(gitProvider, project.id);
+            await commitInitialScaffold(gitProvider, project.id, project.organizationId);
             await operationLeaseManager!.guard();
           }
-          verifiedFiles = await projectStorage.listFiles(project.id);
+          verifiedFiles = await projectStorage.listFiles(project.id, {
+            expectedOrganizationId: project.organizationId,
+          });
           const expectedFileHash = durableTarget?.expectedFileHash ?? checkpointFilesHash(targetFiles);
           if (checkpointFilesHash(verifiedFiles) !== expectedFileHash) {
             throw new ImportInvariantError(
@@ -24458,6 +24527,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await store
           .recordProjectActivity({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             actorUserId: request.currentUser!.id,
             action: durableTarget.completionAction,
             metadata: completionMetadata,
@@ -24913,6 +24983,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const revision = await store.createProjectManifestRevision({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       schemaVersion: manifest.schemaVersion,
       manifestVersion: manifest.manifestVersion,
       digest,
@@ -24926,6 +24997,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (current.digest !== revision.digest) {
       await store.recordProjectActivity({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         actorUserId: request.currentUser!.id,
         action: 'project.manifest.update',
         metadata: {
@@ -24961,13 +25033,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
 
     return {
       project,
       workspace: (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null,
       files: publicFiles(files),
-      git: await gitProvider.status(project.id),
+      git: await gitProvider.status(project.id, { expectedOrganizationId: project.organizationId }),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
 
       /*
@@ -24991,7 +25063,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const workspace = (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null;
-    const storageFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const storageFiles = await listProjectFilesIncludingIdeState(
+      store,
+      projectStorage,
+      project.id,
+      project.organizationId,
+    );
     const filesByPath = new Map(storageFiles.map((file) => [file.path, file]));
 
     if (workspace) {
@@ -25026,7 +25103,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       project,
       workspace,
       files: publicFiles(files),
-      git: await gitProvider.status(project.id),
+      git: await gitProvider.status(project.id, { expectedOrganizationId: project.organizationId }),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
       ...summarizeProjectPackages(files),
     };
@@ -25101,10 +25178,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * source of truth for what install will use) drives the decision.
      */
     const filesByPath = new Map(
-      (await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId)).map((file) => [
-        file.path,
-        file,
-      ]),
+      (
+        await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId, authorized.organizationId)
+      ).map((file) => [file.path, file]),
     );
 
     try {
@@ -25214,7 +25290,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         updatedAt: project.updatedAt,
         sourceType: project.sourceType,
       },
-      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id),
+      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId),
       locale,
     });
 
@@ -25328,6 +25404,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (shouldRecordActivity) {
       await store.recordProjectActivity({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         actorUserId: request.currentUser!.id,
         action: 'project.ide_state.save',
         metadata: {
@@ -25439,6 +25516,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const project = await requireProject(request, store, workspace.projectId, 'projects:read');
       await store.recordProjectActivity({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         actorUserId: request.currentUser!.id,
         action: 'workspace.ide_state.save',
         metadata: {
@@ -25485,6 +25563,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const proposal = await store.upsertAgentPatchProposal({
       id: proposalId,
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       artifactId: body.artifactId,
       messageId: body.messageId,
       actionId: body.actionId,
@@ -25542,7 +25621,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.body ?? {},
     );
 
-    return { event: await store.recordAgentRepairEvent({ projectId: project.id, ...body }) };
+    return {
+      event: await store.recordAgentRepairEvent({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        ...body,
+      }),
+    };
   });
 
   /* -------- Multi-agent consensus records (read-only; powers the Agent Studio panel) -------- */
@@ -25603,7 +25688,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('SKILL_NOT_FOUND'), code: 'SKILL_NOT_FOUND' });
     }
 
-    await store.setProjectSkillEnabled({ projectId: project.id, skillId, enabled });
+    await store.setProjectSkillEnabled({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      skillId,
+      enabled,
+    });
 
     return reply.send({
       skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id), locale),
@@ -26169,7 +26259,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const { slug: requestedSlug, ...metadata } = parse(projectSettingsSchema, request.body);
 
-    let updated = await store.updateProject({ projectId: project.id, ...metadata });
+    let updated = await store.updateProject({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      ...metadata,
+    });
 
     /*
      * F13 slug rename. Normalize to the same canonical form the URL router uses
@@ -26187,9 +26281,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       if (normalizedSlug !== project.slug) {
-        updated = await store.renameProjectSlug({ projectId: project.id, newSlug: normalizedSlug });
+        updated = await store.renameProjectSlug({
+          projectId: project.id,
+          expectedOrganizationId: project.organizationId,
+          newSlug: normalizedSlug,
+        });
         await store.recordProjectActivity({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           actorUserId: request.currentUser!.id,
           action: 'project.slug.rename',
           metadata: { from: project.slug, to: normalizedSlug },
@@ -26199,6 +26298,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.settings.update',
     });
@@ -26219,7 +26319,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
 
     return {
       files: publicFiles(files),
@@ -26242,7 +26342,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
 
     return { revision: projectFilesRevision(files) };
   });
@@ -26261,15 +26361,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
-    const files = await projectStorage.importZip(project.id, body.zipBase64, {
-      replaceExisting: body.replaceExisting === true,
-    });
+    const files = await projectStorage.importZip(
+      project.id,
+      body.zipBase64,
+      { expectedOrganizationId: project.organizationId },
+      { replaceExisting: body.replaceExisting === true },
+    );
     await persistProjectFileManifest(store, project.id, project.organizationId, files, request.currentUser!.id, {
       clearRecoveredChatFiles: body.replaceExisting === true,
     });
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.files.import_zip',
       metadata: { files: files.length, replaceExisting: body.replaceExisting === true },
@@ -26292,11 +26396,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id);
+    const files = await ensureProjectStorageFromIdeState(store, projectStorage, project.id, project.organizationId);
     const archive = await archiveProjectFiles(project.id, files);
-    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'export' });
+    await persistProjectArchiveObject(archive, {
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      kind: 'export',
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.export_zip',
       metadata: { storageKey: archive.storageKey },
@@ -26340,6 +26449,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.env.upsert',
       metadata: { key: body.key, scope: envVar.scope },
@@ -26376,6 +26486,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.env.delete',
       metadata: { key: body.key, scope: envVar.scope },
@@ -26416,12 +26527,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, undefined);
 
     const files = generateAuthScaffoldFiles(transactionalLocaleForRequest(request));
-    const existingPaths = new Set((await projectStorage.listFiles(project.id, workspaceId)).map((file) => file.path));
+    const existingPaths = new Set(
+      (
+        await projectStorage.listFiles(project.id, {
+          expectedOrganizationId: project.organizationId,
+          workspaceId,
+        })
+      ).map((file) => file.path),
+    );
     const toWrite = files.filter((file) => !existingPaths.has(file.path));
     const skipped = files.filter((file) => existingPaths.has(file.path)).map((file) => file.path);
 
     if (toWrite.length) {
-      await projectStorage.writeFiles(project.id, toWrite, workspaceId);
+      await projectStorage.writeFiles(project.id, toWrite, {
+        expectedOrganizationId: project.organizationId,
+        workspaceId,
+      });
 
       // Best-effort: surface the new files in the running pod immediately.
       if (workspaceId) {
@@ -26451,6 +26572,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.auth.scaffold',
       metadata: { written: toWrite.length, skipped: skipped.length },
@@ -26518,6 +26640,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.secret.upsert',
       metadata: { key: body.key },
@@ -26563,6 +26686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.secret.delete',
       metadata: { key: body.key },
@@ -26685,6 +26809,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'database.schema.inspect',
       metadata: { key: connection.key, kind: connection.kind },
@@ -26706,6 +26831,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'database.query.readonly',
       metadata: { key: connection.key, kind: connection.kind, rowCount: result.rowCount },
@@ -26803,6 +26929,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const collaborator = claim.collaborator;
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaborator.add',
       metadata: { userId: targetUser.id, roleKey: body.roleKey },
@@ -26845,6 +26972,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaborator.remove',
       metadata: { userId: params.userId },
@@ -26989,6 +27117,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.comment',
       metadata: { filePath: comment.filePath, line: comment.line },
@@ -27112,6 +27241,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.document.edit',
       metadata: { filePath, version: document.version },
@@ -27182,6 +27312,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.terminal_permission',
       metadata: { userId: body.userId, allowed: body.allowed },
@@ -27261,6 +27392,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.share_link.create',
       metadata: { roleKey, expiresAt: link.expiresAt },
@@ -27306,6 +27438,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.share_link.revoke',
       metadata: { shareLinkId: id },
@@ -27396,6 +27529,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (redeemed) {
       await store.recordProjectActivity({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         actorUserId: userId,
         action: 'project.collaboration.share_link.redeem',
         metadata: { roleKey: link.roleKey },
@@ -27601,6 +27735,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.collaboration.ai_conversation.share',
       metadata: aiConversation,
@@ -27842,6 +27977,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            */
           await store.recordProjectActivity({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             actorUserId: request.currentUser!.id,
             action: 'project.collaboration.comment',
             metadata: { filePath: comment.filePath, line: comment.line },
@@ -27971,9 +28107,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
-    const deleted = await store.softDeleteProject(project.id);
+    const deleted = await store.softDeleteProject({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.soft_delete',
     });
@@ -28007,10 +28147,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await ensureTenantAdmission(request, project.organizationId, 'project.create', { action: 'project.create' });
       await ensureQuota(request, project.organizationId, 'projects.count');
 
-      return store.restoreProject(project.id);
+      return store.restoreProject({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+      });
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.restore',
     });
@@ -28024,46 +28168,158 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { project: restored };
   });
   app.delete('/projects/:projectId/permanent', async (request) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
-      { allowDeleted: true },
-    );
+    const projectId = parse(projectParams, request.params).projectId;
+    const rawIdempotencyKey = request.headers['idempotency-key'];
+    const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+    if (!idempotencyKey || !/^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/.test(idempotencyKey)) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_PERMANENT_DELETE_IDEMPOTENCY_KEY_REQUIRED')), {
+        statusCode: 400,
+        code: 'PROJECT_PERMANENT_DELETE_IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
+
+    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
+    const replayIdentity = await store.getProjectPermanentDeletionReceiptIdentity(projectId);
+
+    if (replayIdentity) {
+      await requireOrg(request, store, replayIdentity.organizationId, 'projects:write');
+
+      const confirmationHash = createHash('sha256').update(confirmation.confirmName).digest('hex');
+      if (confirmationHash !== replayIdentity.expectedProjectNameHash) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+          statusCode: 400,
+          code: 'PROJECT_NAME_MISMATCH',
+        });
+      }
+
+      const requestHash = projectPermanentDeletionRequestHash({
+        projectId,
+        organizationId: replayIdentity.organizationId,
+        actorUserId: request.currentUser!.id,
+        expectedProjectName: confirmation.confirmName,
+      });
+      const replay = await store.replayProjectPermanentDeletion({
+        projectId,
+        expectedOrganizationId: replayIdentity.organizationId,
+        idempotencyKey,
+        requestHash,
+      });
+
+      if (!replay) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROJECT_PERMANENT_DELETION_RECEIPT_MISSING',
+          statusCode: 503,
+        });
+      }
+
+      return { project: replay.project, replayed: true, completedAt: replay.completedAt };
+    }
+
+    const project = await requireProject(request, store, projectId, 'projects:write', { allowDeleted: true });
 
     // Permanent destruction — same real-org-membership bar as soft delete/restore.
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
     /*
-     * F13 defense-in-depth: when the client sends a name confirmation (the
-     * type-to-confirm danger zone does), it MUST match the project name exactly.
+     * F13 defense-in-depth: the mandatory type-to-confirm value MUST match the
+     * current project name exactly.
      * Guards against a mis-scoped/replayed delete even if the UI check is bypassed.
      */
-    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
-
-    if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
+    if (confirmation.confirmName !== project.name) {
       throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
         statusCode: 400,
         code: 'PROJECT_NAME_MISMATCH',
       });
     }
 
-    const deleted = await store.hardDeleteProject(project.id);
+    const objectStorage = resolveRawObjectStorage();
 
-    /*
-     * No recordProjectActivity here: the project's activity rows cascade-deleted
-     * with it, so the org-scoped audit log is the durable trace of this action.
-     */
-    await audit(request, store, {
+    if (!objectStorage.active) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_OBJECT_STORAGE_BACKEND_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    if (
+      projectStorage.supportsProjectStaticErasure?.() !== true ||
+      !projectStorage.prepareProjectStaticErasureWithinPhysicalAccess ||
+      !projectStorage.eraseProjectStaticDataWithinPhysicalAccess ||
+      !projectStorage.verifyProjectDataAbsentWithinPhysicalAccess
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_STATIC_ERASURE_VERIFIER_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    const requestHash = projectPermanentDeletionRequestHash({
+      projectId: project.id,
       organizationId: project.organizationId,
-      action: 'project.hard_delete',
-      resourceType: 'project',
-      resourceId: project.id,
-      metadata: { name: project.name },
+      actorUserId: request.currentUser!.id,
+      expectedProjectName: project.name,
     });
 
-    return { project: deleted };
+    const deleted = await store.hardDeleteProject({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      expectedProjectName: project.name,
+      idempotencyKey,
+      requestHash,
+      actorUserId: request.currentUser!.id,
+      ipAddress: request.ip,
+      preflightPhysicalErasure: () => projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(project.id),
+      erasePhysical: async (assertLease) => {
+        await assertLease();
+        await projectStorage.eraseProjectDataWithinPhysicalAccess(project.id);
+        await assertLease();
+        await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(project.id);
+        await assertLease();
+        await objectStorage.deleteBucket(project.id, assertLease);
+      },
+      verifyPhysicalAbsence: async () => {
+        const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(project.id);
+        const bucketStillExists = await objectStorage.bucketExists(project.id);
+        const objectCount = bucketStillExists ? (await objectStorage.listObjects(project.id)).objects.length : 0;
+
+        if (
+          !filesystem.treeAbsent ||
+          !filesystem.exportsAbsent ||
+          !filesystem.snapshotsAbsent ||
+          filesystem.staticSnapshotsAbsent !== true ||
+          filesystem.staticAliasesAbsent !== true ||
+          !filesystem.staticArtifactSummary ||
+          bucketStillExists ||
+          objectCount > 0
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'PROJECT_PHYSICAL_ERASURE_INCOMPLETE',
+            statusCode: 503,
+          });
+        }
+
+        return {
+          outcome: 'VERIFIED_ABSENT' as const,
+          verifiedAt: new Date().toISOString(),
+          verifier: 'api-project-permanent-delete-v1',
+          evidence: {
+            schemaVersion: 'project-permanent-erasure-v1',
+            filesystem: {
+              projectTreeAbsent: filesystem.treeAbsent,
+              workspaceTreesAbsent: filesystem.treeAbsent,
+              objectCacheAbsent: filesystem.exportsAbsent,
+              staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
+              staticAliasesAbsent: filesystem.staticAliasesAbsent,
+              staticArtifactSummary: filesystem.staticArtifactSummary,
+            },
+            gcs: { bucketAbsent: true, objectCount: 0 },
+          },
+        };
+      },
+    });
+
+    return { project: deleted.project, replayed: deleted.replayed, completedAt: deleted.completedAt };
   });
   app.post('/projects/:projectId/transfer', async (request) => {
     const project = await requireProject(
@@ -28090,18 +28346,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * concurrent transfers/duplicates into the same org can't both pass the gate
      * and exceed the plan limit (TOCTOU). Matches the create handlers.
      */
-    const transferred = await store.withSerializedMutation(`projects:${body.targetOrganizationId}`, async () => {
-      await ensureTenantAdmission(request, body.targetOrganizationId, 'project.create', { action: 'project.create' });
-      await ensureQuota(request, body.targetOrganizationId, 'projects.count');
+    const transferred = await store.transferProject({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      targetOrganizationId: body.targetOrganizationId,
+      actorUserId: request.currentUser!.id,
+      assertExternalStorageDetached: async () => {
+        const objectStorage = resolveRawObjectStorage();
 
-      return store.transferProject({
-        projectId: project.id,
-        targetOrganizationId: body.targetOrganizationId,
-        actorUserId: request.currentUser!.id,
-      });
+        if (!objectStorage.active) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'PROJECT_OBJECT_STORAGE_BACKEND_UNAVAILABLE',
+            statusCode: 503,
+          });
+        }
+
+        if (!(await objectStorage.bucketExists(project.id))) return;
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_OBJECT_STORAGE_ACTIVE')), {
+          code: 'PROJECT_TRANSFER_OBJECT_STORAGE_ACTIVE',
+          statusCode: 409,
+        });
+      },
+      validateTargetAdmission: async () => {
+        await ensureTenantAdmission(request, body.targetOrganizationId, 'project.create', {
+          action: 'project.create',
+        });
+        await ensureQuota(request, body.targetOrganizationId, 'projects.count');
+      },
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: transferred.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'project.transfer',
       metadata: { from: project.organizationId, to: body.targetOrganizationId },
@@ -28232,6 +28507,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const ckpt = await store.createProjectCheckpoint({
       projectId,
+      expectedOrganizationId: checkpointProject.organizationId,
       createdByUserId: request.currentUser?.id,
       idempotencyKey,
       requestHash,
@@ -28361,11 +28637,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
       await leaseManager.guard();
 
-      const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
+      const files = await listProjectFilesIncludingIdeState(
+        store,
+        rawProjectStorage,
+        projectId,
+        checkpointProject.organizationId,
+      );
       await leaseManager.guard();
 
       const archive = await rawProjectStorage.createSnapshot({
         projectId,
+        expectedOrganizationId: checkpointProject.organizationId,
         label: appPublicEnglish('CHECKPOINT_SNAPSHOT_LABEL', { barrierId }),
         files,
       });
@@ -28375,6 +28657,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const fileSnapshot = await store.createSnapshot({
         projectId,
+        expectedOrganizationId: checkpointProject.organizationId,
         kind: 'manual',
         manifest: {
           checkpoint: true,
@@ -28465,7 +28748,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
       await leaseManager.guard();
 
-      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      const reread = await projectStorage.getSnapshotFiles(projectId, archive.storageKey, {
+        expectedOrganizationId: checkpointProject.organizationId,
+      });
       await leaseManager.guard();
 
       const rereadHash = checkpointFilesHash(reread);
@@ -28691,7 +28976,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('CHECKPOINT_SNAPSHOT_MISSING'), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
     }
 
-    const files = await getSnapshotFiles(snapshot);
+    const files = await getSnapshotFiles(snapshot, project.organizationId);
     const restoredHash = checkpointFilesHash(files);
     const matches = restoredHash === manifest.contentHashes.files;
 
@@ -28710,7 +28995,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         initialManifest: pinnedProjectManifest.manifest,
       });
     });
-    await projectStorage.writeFiles(target.id, files);
+    await projectStorage.writeFiles(target.id, files, { expectedOrganizationId: target.organizationId });
 
     await audit(request, store, {
       action: 'project.checkpoint.restore_verify',
@@ -28785,7 +29070,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('CHECKPOINT_SNAPSHOT_MISSING'), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
     }
 
-    const files = await getSnapshotFiles(snapshot);
+    const files = await getSnapshotFiles(snapshot, project.organizationId);
 
     /*
      * Do not short-circuit from an unfenced pre-read when the tree already
@@ -28875,7 +29160,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
-      safetyFiles = await getSnapshotFiles(safetySnapshot);
+      safetyFiles = await getSnapshotFiles(safetySnapshot, project.organizationId);
 
       if (checkpointFilesHash(safetyFiles) !== safetyManifest.contentHashes.files) {
         throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH')), {
@@ -28891,15 +29176,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const hashProjectTree = async () => {
-      const current = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
+      const current = await listProjectFilesIncludingIdeState(
+        store,
+        rawProjectStorage,
+        project.id,
+        project.organizationId,
+      );
       const hash = checkpointFilesHash(current);
 
       return { current, hash };
     };
     const rollbackToSafety = async () => {
       await safetyLeaseManager.guard();
-      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files: safetyFiles }, () =>
-        safetyLeaseManager.guard(),
+      await rawProjectStorage.restoreSnapshot(
+        { projectId: project.id, expectedOrganizationId: project.organizationId, files: safetyFiles },
+        () => safetyLeaseManager.guard(),
       );
       await safetyLeaseManager.guard();
 
@@ -28913,7 +29204,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       await safetyLeaseManager.guard();
-      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files }, () => safetyLeaseManager.guard());
+      await rawProjectStorage.restoreSnapshot(
+        { projectId: project.id, expectedOrganizationId: project.organizationId, files },
+        () => safetyLeaseManager.guard(),
+      );
       await safetyLeaseManager.guard();
 
       // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
@@ -28965,6 +29259,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       await store.recordProjectActivity({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         actorUserId: request.currentUser!.id,
         action: 'project.checkpoint.restore',
         metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
@@ -29096,6 +29391,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const captureRemixSourceSnapshot = async (input: {
     remixJobId: string;
     sourceProjectId: string;
+    sourceOrganizationId: string;
     actorUserId?: string;
     guard: () => Promise<void>;
     prepare: (files: ProjectFile[]) => PreparedRemixSourceArtifact;
@@ -29118,7 +29414,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw new RemixInvariantError('Pinned source snapshot conflicts with the remix job', 'REMIX_SNAPSHOT_CONFLICT');
       }
       readProjectManifestSnapshotPin(existing.manifest, input.sourceProjectId);
-      const files = await getSnapshotFiles(existing);
+      const files = await getSnapshotFiles(existing, input.sourceOrganizationId);
       if (remixFileSnapshotHash(files) !== manifest.snapshotHash) {
         throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
       }
@@ -29133,7 +29429,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (existing) return existing;
 
     const sourceProject = await store.getProject(input.sourceProjectId);
-    if (!sourceProject) {
+    if (!sourceProject || sourceProject.organizationId !== input.sourceOrganizationId) {
       throw new RemixInvariantError('Source project is unavailable', 'REMIX_SOURCE_UNAVAILABLE');
     }
 
@@ -29143,6 +29439,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const checkpoint = await store.createProjectCheckpoint({
       projectId: input.sourceProjectId,
+      expectedOrganizationId: sourceProject.organizationId,
       createdByUserId: input.actorUserId,
       idempotencyKey: `remix-source-pin:${snapshotId}:${randomUUID()}`,
       requestHash: createHash('sha256').update(`${snapshotId}:${storageKey}`).digest('hex'),
@@ -29187,6 +29484,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         store,
         rawProjectStorage,
         input.sourceProjectId,
+        sourceProject.organizationId,
         undefined,
         guard,
       );
@@ -29197,17 +29495,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const snapshotHash = remixFileSnapshotHash(prepared.files);
       const archive = await rawProjectStorage.createSnapshot({
         projectId: input.sourceProjectId,
+        expectedOrganizationId: sourceProject.organizationId,
         label: appPublicEnglish('REMIX_SOURCE_PIN_STORAGE_LABEL'),
         files: prepared.files,
         storageKey,
         guard,
       });
       await guard();
-      await persistProjectArchiveObject(archive, { projectId: input.sourceProjectId, kind: 'snapshot' });
+      await persistProjectArchiveObject(archive, {
+        projectId: input.sourceProjectId,
+        expectedOrganizationId: sourceProject.organizationId,
+        kind: 'snapshot',
+      });
       await guard();
       const snapshot = await store.createSnapshot({
         id: snapshotId,
         projectId: input.sourceProjectId,
+        expectedOrganizationId: sourceProject.organizationId,
         label: appPublicEnglish('REMIX_SOURCE_PIN_LABEL'),
         kind: 'manual',
         manifest: {
@@ -29227,7 +29531,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw new RemixInvariantError('Source manifest changed during snapshot capture', 'REMIX_SNAPSHOT_CONFLICT');
       }
       await guard();
-      const verifiedFiles = await getSnapshotFiles(snapshot);
+      const verifiedFiles = await getSnapshotFiles(snapshot, input.sourceOrganizationId);
       if (remixFileSnapshotHash(verifiedFiles) !== snapshotHash) {
         throw new RemixInvariantError('Pinned source snapshot digest mismatch', 'REMIX_SNAPSHOT_DIGEST_MISMATCH');
       }
@@ -29293,11 +29597,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         // target-only clone/compensation, but it must never bypass account-purge
         // fencing: a source copy racing erasure could otherwise move subject
         // data outside the captured purge inventory.
-        objectStorage: guardSharedObjectStorageWrites(
-          resolveRawObjectStorage(),
-          async () => false,
-          (projectIds, effect) => store.withObjectStorageProjectMutations(projectIds, effect),
-        ),
+        readObjectStorageInventory: async (scope) => {
+          const source = await store.getProject(scope.projectId);
+          if (!source || source.organizationId !== scope.expectedOrganizationId) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+              code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+              statusCode: 409,
+            });
+          }
+          return withStorageReadAuthority(source, async (authority) => ({
+            inventory:
+              authority.inventory ??
+              (await resolveRawObjectStorage().inventoryProjectObjects(authority.sourceProject.id)),
+            authoritySourceProjectId: authority.sourceProject.id,
+            authoritySourceOrganizationId: authority.sourceProject.organizationId,
+          }));
+        },
+        prepareObjectStorageShareSource: async (scope) => {
+          const source = await store.getProject(scope.projectId);
+          if (!source || source.organizationId !== scope.expectedOrganizationId) {
+            throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+              code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+              statusCode: 409,
+            });
+          }
+          const storage = resolveRawObjectStorage();
+          if (!storage.active) {
+            throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_BACKEND_REQUIRED'), 'BACKEND_REQUIRED');
+          }
+          if (await storage.bucketExists(scope.projectId)) {
+            await storage.ensureBucket(scope.projectId);
+          }
+          return storage.inventoryProjectObjects(scope.projectId);
+        },
+        executeObjectStorageCommand: ({ scopes, command, idempotencyKey }) =>
+          store.executeTenantObjectStorageCommand({
+            scopes,
+            command,
+            idempotencyKey,
+            storage: resolveRawObjectStorage(),
+          }),
         databaseProvisioner,
         ensureProjectQuota: async (organizationId) => {
           await ensureTenantAdmission(params.request, organizationId, 'project.create', { action: 'project.create' });
@@ -29337,18 +29676,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const archive = await projectStorage.createSnapshot({
             projectId: sourceProjectId,
+            expectedOrganizationId: params.sourceProject.organizationId,
             label: appPublicEnglish('REMIX_SOURCE_PIN_STORAGE_LABEL'),
             files,
             storageKey,
             guard,
           });
           await guard();
-          await persistProjectArchiveObject(archive, { projectId: sourceProjectId, kind: 'snapshot' });
+          await persistProjectArchiveObject(archive, {
+            projectId: sourceProjectId,
+            expectedOrganizationId: params.sourceProject.organizationId,
+            kind: 'snapshot',
+          });
           await guard();
 
           const snapshot = await store.createSnapshot({
             id: snapshotId,
             projectId: sourceProjectId,
+            expectedOrganizationId: params.sourceProject.organizationId,
             label: appPublicEnglish('REMIX_SOURCE_PIN_LABEL'),
             kind: 'manual',
             manifest: {
@@ -29364,7 +29709,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           return { snapshotId: snapshot.id, snapshotHash };
         },
-        loadSourceSnapshot: async (snapshotId, sourceProjectId) => {
+        loadSourceSnapshot: async (snapshotId, sourceProjectId, sourceOrganizationId) => {
           const snapshot = await store.getSnapshot(snapshotId);
 
           if (!snapshot || snapshot.projectId !== sourceProjectId) {
@@ -29373,7 +29718,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           readProjectManifestSnapshotPin(snapshot.manifest, sourceProjectId);
 
-          return getSnapshotFiles(snapshot);
+          return getSnapshotFiles(snapshot, sourceOrganizationId);
         },
         buildTargetIdeState: (files) =>
           mergeProjectIdeState(undefined, {
@@ -29788,7 +30133,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('GALLERY_PINNED_RELEASE_UNAVAILABLE'), code: 'GALLERY_SNAPSHOT_MISSING' });
     }
 
-    const sourceFiles = await getSnapshotFiles(snapshot);
+    const sourceFiles = await getSnapshotFiles(snapshot, sourceProject.organizationId);
 
     /*
      * VERSIONED license capture (I-RMX-3): what the remixer accepted is pinned
@@ -30136,6 +30481,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await store
           .recordProjectActivity({
             projectId: result.project.id,
+            expectedOrganizationId: result.project.organizationId,
             actorUserId: request.currentUser!.id,
             action: 'project.duplicate',
             metadata: { sourceProjectId: project.id, sourceSnapshotId: result.job.sourceSnapshotId ?? null },
@@ -30178,6 +30524,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const template = await store.createProjectTemplate({
       sourceProjectId: project.id,
+      expectedSourceOrganizationId: project.organizationId,
       organizationId: project.organizationId,
       name: body.name,
       description: body.description,
@@ -30266,7 +30613,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
+      files: publicFiles(
+        await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId),
+      ),
     };
   });
   app.get('/files/:workspaceId/metadata', async (request) => {
@@ -30282,7 +30631,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       workspaceId: workspace.id,
       projectId: project.id,
-      files: publicFiles(await listProjectFilesIncludingIdeState(store, projectStorage, project.id)),
+      files: publicFiles(
+        await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId),
+      ),
     };
   });
 
@@ -30313,13 +30664,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(createSnapshotSchema, request.body);
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
-    const archive = await projectStorage.createSnapshot({ projectId: project.id, label: body.label, files });
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      label: body.label,
+      files,
+    });
 
     const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
 
     await persistProjectArchiveObject(archive, {
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       kind: body.kind === 'before-ai-change' ? 'before-ai-change' : 'snapshot',
     });
 
@@ -30339,6 +30696,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return store.createSnapshot({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         label: body.label,
         kind: body.kind,
         manifest: {
@@ -30360,6 +30718,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: `snapshot.${body.kind}.create`,
       metadata: { snapshotId: snapshot.id },
@@ -30381,17 +30740,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, project.organizationId);
 
     const archive = await projectStorage.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       label: appPublicEnglish('SNAPSHOT_BEFORE_AI_CHANGE'),
       files,
     });
 
     const snapshotSizeMb = Math.ceil((archive.byteLength ?? 0) / 1_048_576);
 
-    await persistProjectArchiveObject(archive, { projectId: project.id, kind: 'before-ai-change' });
+    await persistProjectArchiveObject(archive, {
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      kind: 'before-ai-change',
+    });
 
     /*
      * Serialize quota check + row insert (snapshots.count / snapshots.sizeMb TOCTOU);
@@ -30406,6 +30770,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return store.createSnapshot({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         label: appPublicEnglish('SNAPSHOT_BEFORE_AI_CHANGE'),
         kind: 'before-ai-change',
         manifest: { files: publicFiles(files), excludesRuntimeSecrets: true },
@@ -30423,6 +30788,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'snapshot.before_ai_change.create',
       metadata: { snapshotId: snapshot.id },
@@ -30463,8 +30829,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const snapshotFiles = await getSnapshotFiles(snapshot);
-    const currentFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const snapshotFiles = await getSnapshotFiles(snapshot, project.organizationId);
+    const currentFiles = await listProjectFilesIncludingIdeState(
+      store,
+      projectStorage,
+      project.id,
+      project.organizationId,
+    );
 
     const currentByPath = new Map(currentFiles.map((file) => [file.path, file]));
     const added: Array<{ path: string; sizeBytes: number }> = [];
@@ -30529,7 +30900,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const snapshotFiles = await getSnapshotFiles(snapshot);
+    const snapshotFiles = await getSnapshotFiles(snapshot, project.organizationId);
 
     /*
      * Safety snapshot (E25): archive the CURRENT state before it is
@@ -30539,18 +30910,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * createBeforeAiSnapshot system path (no quota gate — blocking the escape
      * hatch on snapshots.count would leave the user unable to undo a restore).
      */
-    const currentFiles = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+    const currentFiles = await listProjectFilesIncludingIdeState(
+      store,
+      projectStorage,
+      project.id,
+      project.organizationId,
+    );
     const safetyLabel = `Before restore of ${snapshot.label ?? snapshot.id}`;
 
     const safetyArchive = await projectStorage.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       label: safetyLabel,
       files: currentFiles,
     });
-    await persistProjectArchiveObject(safetyArchive, { projectId: project.id, kind: 'snapshot' });
+    await persistProjectArchiveObject(safetyArchive, {
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      kind: 'snapshot',
+    });
 
     const safetySnapshot = await store.createSnapshot({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       label: safetyLabel,
       kind: 'automatic',
       manifest: { files: publicFiles(currentFiles), excludesRuntimeSecrets: true, safetyForSnapshotId: snapshot.id },
@@ -30559,7 +30941,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       createdByUserId: request.currentUser!.id,
     });
 
-    const restored = await projectStorage.restoreSnapshot({ projectId: project.id, files: snapshotFiles });
+    const restored = await projectStorage.restoreSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      files: snapshotFiles,
+    });
     await persistProjectFileManifest(store, project.id, project.organizationId, restored, request.currentUser!.id, {
       clearRecoveredChatFiles: true,
     });
@@ -30576,6 +30962,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'snapshot.restore',
       metadata: { snapshotId, safetySnapshotId: safetySnapshot.id },
@@ -30638,6 +31025,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const conversation = await store.createAiConversation({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       userId: request.currentUser!.id,
       title: body.title,
     });
@@ -31816,6 +32204,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       conversationId = (
         await store.createAiConversation({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           userId: request.currentUser!.id,
           title: appPublicCopy('AI_TOOL_CONVERSATION_TITLE', transactionalLocaleForRequest(request), { toolName }),
         })
@@ -35683,6 +36072,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   objectStorage: options.objectStorage ?? resolveDefaultObjectStorage(),
                   workspaceVolumes: createAccountPurgeWorkspaceEraser(),
                   writeBarrier: createAccountPurgeWriteBarrier(),
+                  withProjectPhysicalErasure: (projectId, effect) =>
+                    store.withProjectPhysicalErasure(projectId, () => withProjectLock(projectId, effect)),
                   lease,
                   log: app.log as unknown as { warn(object: unknown, message?: string): void },
                 },
@@ -35709,6 +36100,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   lease,
                   isStaticArtifactRetainedOutsidePurge: (artifactRef) =>
                     store.isReleaseArtifactRetainedOutsideProjects(artifactRef, inventory.bucketProjectIds),
+                },
+                {
+                  lease,
+                  withProjectPhysicalErasure: (projectId, effect) =>
+                    store.withProjectPhysicalErasure(projectId, effect),
                 },
               );
 
@@ -36962,9 +37358,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * The same list is what `commit` receives, so the panel and the commit agree
      * on what "changed" means.
      */
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId);
+    const files = await listProjectFilesIncludingIdeState(
+      store,
+      projectStorage,
+      project.id,
+      project.organizationId,
+      workspaceId,
+    );
 
-    return { status: await gitProvider.status(project.id, workspaceId, files) };
+    return {
+      status: await gitProvider.status(
+        project.id,
+        { expectedOrganizationId: project.organizationId, workspaceId },
+        files,
+      ),
+    };
   });
   app.post('/projects/:projectId/git/commit', async (request) => {
     const project = await requireProject(
@@ -36979,15 +37387,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const commit = await gitProvider.commit({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       message: body.message,
-      files: await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId),
+      files: await listProjectFilesIncludingIdeState(
+        store,
+        projectStorage,
+        project.id,
+        project.organizationId,
+        workspaceId,
+      ),
       selectedFiles: body.files,
       authorName: body.authorName,
       authorEmail: body.authorEmail,
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.commit',
       metadata: { sha: commit.sha, workspaceId: body.workspaceId },
@@ -37013,9 +37429,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    const result = await gitProvider.push({ projectId: project.id, workspaceId, branch });
+    const result = await gitProvider.push({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      branch,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.push',
       metadata: { branch, workspaceId: body.workspaceId },
@@ -37041,9 +37463,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(gitBranchSchema, request.body ?? {});
     const branch = body.branch ?? 'main';
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    const result = await gitProvider.pull({ projectId: project.id, workspaceId, branch });
+    const result = await gitProvider.pull({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      branch,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.pull',
       metadata: { branch, workspaceId: body.workspaceId },
@@ -37074,7 +37502,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(gitRemoteSchema, request.body ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    const remote = await gitProvider.configureRemote({ projectId: project.id, workspaceId, remoteUrl: body.remoteUrl });
+    const remote = await gitProvider.configureRemote({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      remoteUrl: body.remoteUrl,
+    });
 
     /*
      * When the caller targets a specific (non-primary) workspace, store the
@@ -37088,6 +37521,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (workspaceId) {
       updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         workspaceId,
         expectedProjectId: project.id,
         expectedOrganizationId: project.organizationId,
@@ -37099,12 +37534,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ? project
       : await store.updateProject({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           gitRepositoryUrl: body.remoteUrl,
           gitDefaultBranch: body.branch,
         });
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.remote.configure',
       metadata: {
@@ -37143,7 +37580,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(z.object({ workspaceId: workspaceIdField }), request.body ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    await gitProvider.removeRemote({ projectId: project.id, workspaceId });
+    await gitProvider.removeRemote({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+    });
 
     /*
      * Clear the stored remote so the pane returns to its no-remote state. An empty
@@ -37154,19 +37595,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (workspaceId) {
       updatedWorkspace = await store.updateWorkspaceGitRepositoryUrl({
-        workspaceId,
-        expectedProjectId: project.id,
+        projectId: project.id,
         expectedOrganizationId: project.organizationId,
+        workspaceId,
         gitRepositoryUrl: null,
       });
     }
 
     const updatedProject = workspaceId
       ? project
-      : await store.updateProject({ projectId: project.id, gitRepositoryUrl: '' });
+      : await store.updateProject({
+          projectId: project.id,
+          expectedOrganizationId: project.organizationId,
+          gitRepositoryUrl: '',
+        });
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.remote.remove',
       metadata: { workspaceId: body.workspaceId },
@@ -37193,7 +37639,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
     return {
-      branches: await gitProvider.listBranches(project.id, workspaceId),
+      branches: await gitProvider.listBranches(project.id, {
+        expectedOrganizationId: project.organizationId,
+        workspaceId,
+      }),
       selected: project.gitDefaultBranch ?? 'main',
     };
   });
@@ -37210,6 +37659,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const result = await gitProvider.checkoutBranch({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       branch: body.branch,
       create: body.create,
@@ -37217,6 +37667,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: body.create ? 'git.branch.create' : 'git.branch.checkout',
       metadata: { branch: body.branch, workspaceId: body.workspaceId },
@@ -37242,7 +37693,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { commits: await gitProvider.logGraph(project.id, 40, workspaceId) };
+    return {
+      commits: await gitProvider.logGraph(
+        project.id,
+        { expectedOrganizationId: project.organizationId, workspaceId },
+        40,
+      ),
+    };
   });
   app.get('/projects/:projectId/git/stashes', async (request) => {
     const project = await requireProject(
@@ -37255,7 +37712,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { stashes: await gitProvider.stashList(project.id, workspaceId) };
+    return {
+      stashes: await gitProvider.stashList(project.id, {
+        expectedOrganizationId: project.organizationId,
+        workspaceId,
+      }),
+    };
   });
   app.post('/projects/:projectId/git/stash', async (request) => {
     const project = await requireProject(
@@ -37267,9 +37729,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(gitStashSchema, request.body ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    const result = await gitProvider.stashPush({ projectId: project.id, workspaceId, message: body.message });
+    const result = await gitProvider.stashPush({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      message: body.message,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.stash.push',
       metadata: { message: body.message, workspaceId: body.workspaceId },
@@ -37290,12 +37758,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const result = await gitProvider.stashApply({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       stashRef: body.stashRef,
       drop: body.drop,
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: body.drop ? 'git.stash.pop' : 'git.stash.apply',
       metadata: { stashRef: body.stashRef, workspaceId: body.workspaceId },
@@ -37313,9 +37783,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const body = parse(gitCherryPickSchema, request.body ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
-    const result = await gitProvider.cherryPick({ projectId: project.id, workspaceId, sha: body.sha });
+    const result = await gitProvider.cherryPick({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      sha: body.sha,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.cherry-pick',
       metadata: { sha: body.sha, workspaceId: body.workspaceId },
@@ -37336,12 +37812,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const result = await gitProvider.resolveConflict({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       filePath: body.filePath,
       strategy: body.strategy,
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.conflict.resolve',
       metadata: { filePath: body.filePath, strategy: body.strategy, workspaceId: body.workspaceId },
@@ -37367,9 +37845,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(gitDiscardSchema, request.body ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
 
-    const result = await gitProvider.discard({ projectId: project.id, workspaceId, filePaths: body.filePaths });
+    const result = await gitProvider.discard({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+      filePaths: body.filePaths,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.discard',
       metadata: { count: body.filePaths?.length ?? 'all', workspaceId: body.workspaceId },
@@ -37395,7 +37879,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { sha: params.sha, files: [], diff: '' };
     }
 
-    return gitProvider.commitDetail(project.id, params.sha, workspaceId);
+    return gitProvider.commitDetail(project.id, params.sha, {
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+    });
   });
 
   app.post('/projects/:projectId/git/restore', async (request, reply) => {
@@ -37415,9 +37902,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('GIT_RESTORE_UNSUPPORTED'), code: 'GIT_RESTORE_UNSUPPORTED' });
     }
 
-    const result = await gitProvider.restoreCommit(project.id, body.sha, workspaceId);
+    const result = await gitProvider.restoreCommit(project.id, body.sha, {
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+    });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.restore',
       metadata: { sha: body.sha, workspaceId: body.workspaceId },
@@ -37448,7 +37939,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { filePath: query.filePath, content: '' };
     }
 
-    return gitProvider.conflictFile(project.id, query.filePath, workspaceId);
+    return gitProvider.conflictFile(project.id, query.filePath, {
+      expectedOrganizationId: project.organizationId,
+      workspaceId,
+    });
   });
 
   app.post('/projects/:projectId/git/conflicts/mark-resolved', async (request, reply) => {
@@ -37470,12 +37964,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const result = await gitProvider.markResolved({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       filePath: body.filePath,
       content: body.content,
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.conflict.mark_resolved',
       metadata: { filePath: body.filePath, workspaceId: body.workspaceId },
@@ -37502,7 +37998,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitDiffQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { diff: await gitProvider.diff(project.id, query.filePath, workspaceId) };
+    return {
+      diff: await gitProvider.diff(
+        project.id,
+        { expectedOrganizationId: project.organizationId, workspaceId },
+        query.filePath,
+      ),
+    };
   });
   app.get('/projects/:projectId/git/blame', async (request) => {
     const project = await requireProject(
@@ -37518,6 +38020,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return {
       blame: await gitProvider.blame({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         workspaceId,
         filePath: query.filePath,
         startLine: query.startLine,
@@ -37538,6 +38041,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const pullRequest = await gitProvider.createPullRequest({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       workspaceId,
       title: body.title,
       body: body.body,
@@ -37546,6 +38050,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'git.pr.create',
       metadata: { url: pullRequest.url },
@@ -37937,6 +38442,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'database.provision.requested',
       metadata: { databaseInstanceId: acquisition.instance.id, environment, tier },
@@ -38159,6 +38665,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     await store.recordProjectActivity({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       actorUserId: request.currentUser!.id,
       action: 'database.restore.request',
       metadata: { restoreId: restore.id, targetTimestamp: new Date(targetTimestampMs).toISOString() },
@@ -38214,15 +38721,232 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
 
-  let guardedObjectStorage: ObjectStorage | undefined;
-
-  const resolveObjectStorage = (): ObjectStorage => {
-    guardedObjectStorage ??= guardSharedObjectStorageWrites(
-      resolveRawObjectStorage(),
-      async (projectId) => Boolean(await store.getRemixStorageShareByTarget(projectId)),
-      (projectIds, effect) => store.withObjectStorageProjectMutations(projectIds, effect),
+  const withTenantObjectStorageAccess = <T>(
+    project: ProjectRecord,
+    effect: (storage: ObjectStorage) => Promise<T>,
+  ): Promise<T> =>
+    store.withProjectPhysicalAccess(
+      { projectId: project.id, expectedOrganizationId: project.organizationId },
+      async () => {
+        /* Share creation owns the same physical lock, so this is an in-fence policy read. */
+        if (await store.getRemixStorageShareByTarget(project.id)) {
+          throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+        }
+        return effect(resolveRawObjectStorage());
+      },
     );
-    return guardedObjectStorage;
+
+  const executeTenantObjectStorageCommand = async (
+    project: ProjectRecord,
+    intent: TenantObjectStorageCommandIntent,
+    idempotencyKey?: string,
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority,
+  ) => {
+    if (intent.projectId !== project.id) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH'), 'TENANT_SCOPE_MISMATCH');
+    }
+    const execution = await store.executeTenantObjectStorageIntent({
+      scope: { projectId: project.id, expectedOrganizationId: project.organizationId },
+      intent,
+      storage: resolveRawObjectStorage(),
+      ...(idempotencyKey ? { idempotencyKey } : {}),
+      ...(checkpointBarrierAuthority ? { checkpointBarrierAuthority } : {}),
+    });
+    return execution.result;
+  };
+
+  const issueSignedObjectStorageCapability = <T extends { expiresAt: string }>(
+    project: ProjectRecord,
+    command: { method: 'GET' | 'PUT'; objectKey: string; generation?: string; contentType?: string },
+    signer: (storage: ObjectStorage, expiresAt: string) => Promise<T>,
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority,
+  ): Promise<T> =>
+    store.issueSignedObjectStorageCapability(
+      {
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        ...command,
+        ...(checkpointBarrierAuthority ? { checkpointBarrierAuthority } : {}),
+      },
+      ({ expiresAt }) => signer(resolveRawObjectStorage(), expiresAt),
+    );
+
+  const issueOwnedObjectStorageCapability = async <T extends { expiresAt: string }>(
+    project: ProjectRecord,
+    command: { method: 'GET' | 'PUT'; objectKey: string; generation?: string; contentType?: string },
+    signer: (storage: ObjectStorage, expiresAt: string) => Promise<T>,
+    checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority,
+  ): Promise<T> => {
+    if (await store.getRemixStorageShareByTarget(project.id)) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+    }
+    return issueSignedObjectStorageCapability(project, command, signer, checkpointBarrierAuthority);
+  };
+
+  const tenantObjectStorageForProject = (project: ProjectRecord, releaseGuard?: ProjectReleaseGuard): ObjectStorage => {
+    const raw = resolveRawObjectStorage();
+    const checkpointBarrierAuthority: ObjectStorageCheckpointBarrierAuthority | undefined = releaseGuard
+      ? {
+          kind: 'RELEASE_BARRIER',
+          projectId: project.id,
+          checkpointId: releaseGuard.lease.checkpointId,
+          barrierId: releaseGuard.lease.barrierId,
+          ownerTokenHash: createHash('sha256').update(releaseGuard.lease.ownerToken).digest('hex'),
+          fence: releaseGuard.lease.fence,
+          expectedOrganizationId: releaseGuard.fence.expectedOrganizationId,
+          expectedManifestDigest: releaseGuard.fence.expectedManifestDigest,
+        }
+      : undefined;
+    const requireScopedProject = (projectId: string) => {
+      if (projectId !== project.id) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
+        });
+      }
+    };
+
+    return new Proxy(raw, {
+      get(target, property, receiver) {
+        if (property === 'createUploadUrl') {
+          return async (projectId: string, input: { key: string; contentType?: string }) => {
+            requireScopedProject(projectId);
+            await executeTenantObjectStorageCommand(
+              project,
+              { type: 'ENSURE_BUCKET', projectId },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+            return issueOwnedObjectStorageCapability(
+              project,
+              {
+                method: 'PUT',
+                objectKey: input.key,
+                ...(input.contentType ? { contentType: input.contentType } : {}),
+              },
+              (storage, expiresAt) => storage.createUploadUrl(projectId, { ...input, expiresAt }),
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'createDownloadUrl') {
+          return async (projectId: string, input: { key: string; generation?: string }) => {
+            requireScopedProject(projectId);
+            return issueOwnedObjectStorageCapability(
+              project,
+              {
+                method: 'GET',
+                objectKey: input.key,
+                ...(input.generation ? { generation: input.generation } : {}),
+              },
+              (storage, expiresAt) => storage.createDownloadUrl(projectId, { ...input, expiresAt }),
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'bucketExists' || property === 'listObjects' || property === 'inventoryProjectObjects') {
+          return async (projectId: string, ...args: unknown[]) => {
+            requireScopedProject(projectId);
+            const method = Reflect.get(target, property, receiver) as (...methodArgs: unknown[]) => Promise<unknown>;
+            return withTenantObjectStorageAccess(project, () => method.call(target, projectId, ...args));
+          };
+        }
+
+        if (property === 'ensureBucket' || property === 'deleteBucket') {
+          return async (projectId: string, guard?: () => Promise<void>) => {
+            requireScopedProject(projectId);
+            await guard?.();
+            const result = await executeTenantObjectStorageCommand(
+              project,
+              {
+                type: property === 'ensureBucket' ? 'ENSURE_BUCKET' : 'DELETE_BUCKET',
+                projectId,
+              },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+            await guard?.();
+            return result;
+          };
+        }
+
+        if (property === 'putObject') {
+          return async (projectId: string, input: { key: string; body: Uint8Array; contentType?: string }) => {
+            requireScopedProject(projectId);
+            return executeTenantObjectStorageCommand(
+              project,
+              {
+                type: 'PUT_OBJECT',
+                projectId,
+                key: input.key,
+                body: input.body,
+                ...(input.contentType ? { contentType: input.contentType } : {}),
+              },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'moveObject') {
+          return async (projectId: string, input: { from: string; to: string }) => {
+            requireScopedProject(projectId);
+            return executeTenantObjectStorageCommand(
+              project,
+              { type: 'MOVE_OBJECT', projectId, ...input },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'deleteObject') {
+          return async (projectId: string, input: { key: string }) => {
+            requireScopedProject(projectId);
+            return executeTenantObjectStorageCommand(
+              project,
+              {
+                type: 'DELETE_OBJECT',
+                projectId,
+                key: input.key,
+              },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'deletePrefix') {
+          return async (projectId: string, input: { prefix: string }) => {
+            requireScopedProject(projectId);
+            return executeTenantObjectStorageCommand(
+              project,
+              {
+                type: 'DELETE_PREFIX',
+                projectId,
+                prefix: input.prefix,
+              },
+              undefined,
+              checkpointBarrierAuthority,
+            );
+          };
+        }
+
+        if (property === 'cloneProjectObjects') {
+          return async () => {
+            throw new ObjectStorageError(
+              appPublicEnglish('OBJECT_STORAGE_TENANT_SCOPE_MISMATCH'),
+              'TENANT_SCOPE_MISMATCH',
+            );
+          };
+        }
+
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === 'function' ? value.bind(target) : value;
+      },
+    });
   };
 
   /*
@@ -38231,7 +38955,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * never throws into the request flow; captures are debounced per project.
    */
   const thumbnailCapturer =
-    options.thumbnailCapturer ?? createThumbnailCapturer(resolveObjectStorage(), app.log as unknown as ThumbnailLogger);
+    options.thumbnailCapturer ??
+    createThumbnailCapturer(resolveRawObjectStorage(), app.log as unknown as ThumbnailLogger, async (scope, body) => {
+      const project = await store.getProject(scope.projectId);
+      if (!project || project.organizationId !== scope.expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+          statusCode: 409,
+        });
+      }
+      await executeTenantObjectStorageCommand(project, { type: 'ENSURE_BUCKET', projectId: project.id });
+      await executeTenantObjectStorageCommand(project, {
+        type: 'PUT_OBJECT',
+        projectId: project.id,
+        key: PROJECT_THUMBNAIL_KEY,
+        body,
+        contentType: 'image/png',
+      });
+    });
 
   const requireObjectStorageProject = async (
     request: FastifyRequest,
@@ -38246,10 +38987,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (request.objectStorageGrant?.projectId === projectId) {
       const project = await store.getProject(projectId);
 
-      if (!project) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_NOT_FOUND')), {
-          statusCode: 404,
-          code: 'PROJECT_NOT_FOUND',
+      if (!project || project.organizationId !== request.objectStorageGrant.organizationId) {
+        throw Object.assign(new Error(appPublicEnglish('UNAUTHORIZED')), {
+          statusCode: 401,
+          code: 'AUTH_REQUIRED',
         });
       }
 
@@ -38259,27 +39000,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return requireProject(request, store, projectId, permission);
   };
 
-  const resolveStorageReadAuthority = async (project: ProjectRecord) => {
-    const share = await store.getRemixStorageShareByTarget(project.id);
+  const withStorageReadAuthority = async <T>(
+    project: ProjectRecord,
+    effect: (authority: {
+      sourceProject: ProjectRecord;
+      inventory?: ObjectStorageInventory;
+      share?: RemixStorageShareRecord;
+    }) => Promise<T>,
+  ): Promise<T> => {
+    const observedShare = await store.getRemixStorageShareByTarget(project.id);
 
-    if (!share) {
-      return { sourceProjectId: project.id };
+    if (!observedShare) {
+      return store.withProjectPhysicalAccess(
+        { projectId: project.id, expectedOrganizationId: project.organizationId },
+        async () => {
+          /* A share created after the optimistic lookup changes the read authority. */
+          if (await store.getRemixStorageShareByTarget(project.id)) {
+            throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARE_INVALID'), 'SHARE_INVALID');
+          }
+          return effect({ sourceProject: project });
+        },
+      );
     }
 
-    const source = await store.getProject(share.sourceProjectId);
-    const inventory = parseObjectStorageInventory(share.sourceInventory);
+    return store.withProjectPhysicalAccesses(
+      [
+        { projectId: project.id, expectedOrganizationId: project.organizationId },
+        {
+          projectId: observedShare.sourceProjectId,
+          expectedOrganizationId: observedShare.sourceOrganizationId,
+        },
+      ],
+      async () => {
+        const [lockedShare, source] = await Promise.all([
+          store.getRemixStorageShareByTarget(project.id),
+          store.getProject(observedShare.sourceProjectId),
+        ]);
+        const inventory = parseObjectStorageInventory(lockedShare?.sourceInventory);
 
-    if (
-      !source ||
-      source.organizationId !== share.sourceOrganizationId ||
-      project.organizationId !== share.targetOrganizationId ||
-      share.targetProjectId !== project.id ||
-      !inventory
-    ) {
-      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARE_INVALID'), 'SHARE_INVALID');
-    }
+        if (
+          !lockedShare ||
+          !source ||
+          source.organizationId !== lockedShare.sourceOrganizationId ||
+          project.organizationId !== lockedShare.targetOrganizationId ||
+          lockedShare.targetProjectId !== project.id ||
+          !inventory
+        ) {
+          throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARE_INVALID'), 'SHARE_INVALID');
+        }
 
-    return { sourceProjectId: source.id, inventory, share };
+        return effect({ sourceProject: source, inventory, share: lockedShare });
+      },
+    );
   };
 
   /*
@@ -38296,14 +39068,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:read');
 
     try {
-      const authority = await resolveStorageReadAuthority(project);
-      return reply.send({
-        enabled: true,
-        provisioned: authority.inventory
-          ? authority.inventory.bucketExists
-          : await resolveObjectStorage().bucketExists(project.id),
-        mode: authority.inventory ? 'SHARED_READ_ONLY' : 'OWNED',
-      });
+      return reply.send(
+        await withStorageReadAuthority(project, async (authority) => ({
+          enabled: true,
+          provisioned: authority.inventory
+            ? authority.inventory.bucketExists
+            : await resolveRawObjectStorage().bucketExists(project.id),
+          mode: authority.inventory ? 'SHARED_READ_ONLY' : 'OWNED',
+        })),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -38347,7 +39120,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     try {
-      return reply.send(await resolveObjectStorage().ensureBucket(project.id));
+      return reply.send(
+        await executeTenantObjectStorageCommand(project, { type: 'ENSURE_BUCKET', projectId: project.id }),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -38359,9 +39134,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+    const idempotencyKey = requireObjectStorageIdempotencyKey(request);
 
     try {
-      return reply.send(await resolveObjectStorage().deleteBucket(project.id));
+      return reply.send(
+        await executeTenantObjectStorageCommand(
+          project,
+          { type: 'DELETE_BUCKET', projectId: project.id },
+          idempotencyKey,
+        ),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -38380,11 +39162,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      const authority = await resolveStorageReadAuthority(project);
       return reply.send(
-        authority.inventory
-          ? listPinnedInventoryObjects(authority.inventory, query)
-          : await resolveObjectStorage().listObjects(project.id, query),
+        await withStorageReadAuthority(project, (authority) =>
+          authority.inventory
+            ? Promise.resolve(listPinnedInventoryObjects(authority.inventory, query))
+            : resolveRawObjectStorage().listObjects(project.id, query),
+        ),
       );
     } catch (error) {
       return sendObjectStorageError(reply, error);
@@ -38404,7 +39187,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveObjectStorage().createUploadUrl(project.id, body));
+      await executeTenantObjectStorageCommand(project, { type: 'ENSURE_BUCKET', projectId: project.id });
+      return reply.send(
+        await issueOwnedObjectStorageCapability(
+          project,
+          {
+            method: 'PUT',
+            objectKey: body.key,
+            ...(body.contentType ? { contentType: body.contentType } : {}),
+          },
+          (storage, expiresAt) => storage.createUploadUrl(project.id, { ...body, expiresAt }),
+        ),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -38419,22 +39213,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(z.object({ key: z.string().min(1).max(1024) }), request.query ?? {});
 
     try {
-      const authority = await resolveStorageReadAuthority(project);
-
-      if (!authority.inventory) {
-        return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
-      }
-
-      const pinned = authority.inventory.objects.find((object) => object.key === query.key);
-
-      if (!pinned?.generation) {
-        throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_OBJECT_NOT_FOUND'), 'OBJECT_NOT_IN_SHARE');
-      }
-
       return reply.send(
-        await resolveObjectStorage().createDownloadUrl(authority.sourceProjectId, {
-          key: pinned.key,
-          generation: pinned.generation,
+        await withStorageReadAuthority(project, async (authority) => {
+          const pinned = authority.inventory?.objects.find((object) => object.key === query.key);
+
+          if (authority.inventory && !pinned?.generation) {
+            throw new ObjectStorageError(
+              appPublicEnglish('OBJECT_STORAGE_SHARED_OBJECT_NOT_FOUND'),
+              'OBJECT_NOT_IN_SHARE',
+            );
+          }
+
+          return store.issueSignedObjectStorageCapabilityWithinPhysicalAccess(
+            {
+              projectId: authority.sourceProject.id,
+              expectedOrganizationId: authority.sourceProject.organizationId,
+              method: 'GET',
+              objectKey: pinned?.key ?? query.key,
+              ...(pinned?.generation ? { generation: pinned.generation } : {}),
+            },
+            ({ expiresAt }) =>
+              resolveRawObjectStorage().createDownloadUrl(
+                authority.sourceProject.id,
+                pinned ? { key: pinned.key, generation: pinned.generation!, expiresAt } : { ...query, expiresAt },
+              ),
+          );
         }),
       );
     } catch (error) {
@@ -38448,6 +39251,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+    const idempotencyKey = requireObjectStorageIdempotencyKey(request);
 
     const body = parse(
       z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),
@@ -38455,7 +39259,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveObjectStorage().moveObject(project.id, body));
+      return reply.send(
+        await executeTenantObjectStorageCommand(
+          project,
+          { type: 'MOVE_OBJECT', projectId: project.id, ...body },
+          idempotencyKey,
+        ),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -38467,6 +39277,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+    const idempotencyKey = requireObjectStorageIdempotencyKey(request);
 
     const body = parse(
       z
@@ -38478,11 +39289,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      const storage = resolveObjectStorage();
-
       const result = body.prefix
-        ? await storage.deletePrefix(project.id, { prefix: body.prefix })
-        : await storage.deleteObject(project.id, { key: body.key! });
+        ? await executeTenantObjectStorageCommand(
+            project,
+            { type: 'DELETE_PREFIX', projectId: project.id, prefix: body.prefix },
+            idempotencyKey,
+          )
+        : await executeTenantObjectStorageCommand(
+            project,
+            { type: 'DELETE_OBJECT', projectId: project.id, key: body.key! },
+            idempotencyKey,
+          );
 
       return reply.send(result);
     } catch (error) {
@@ -38504,18 +39321,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     try {
-      const storage = resolveObjectStorage();
-
       /*
        * Ensure the bucket exists first so the browser's PUT to the signed URL
        * can't 404 for a project that has never used object storage before. The
        * key is server-pinned, so a caller can only ever overwrite this one
        * object — it can't smuggle an arbitrary key into the bucket here.
        */
-      await storage.ensureBucket(project.id);
-
+      await executeTenantObjectStorageCommand(project, { type: 'ENSURE_BUCKET', projectId: project.id });
       return reply.send(
-        await storage.createUploadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY, contentType: 'image/png' }),
+        await issueOwnedObjectStorageCapability(
+          project,
+          { method: 'PUT', objectKey: PROJECT_THUMBNAIL_KEY, contentType: 'image/png' },
+          (storage, expiresAt) =>
+            storage.createUploadUrl(project.id, {
+              key: PROJECT_THUMBNAIL_KEY,
+              contentType: 'image/png',
+              expiresAt,
+            }),
+        ),
       );
     } catch (error) {
       return sendObjectStorageError(reply, error);
@@ -38530,8 +39353,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:read');
 
     try {
-      const storage = resolveObjectStorage();
-
       /*
        * Only sign a URL when a screenshot has actually been captured, so a
        * project with none 404s and the card keeps its "No preview yet" state
@@ -38545,7 +39366,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
       const { objects } = await withStorageDeadline(
-        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        withTenantObjectStorageAccess(project, (storage) =>
+          storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        ),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
       );
 
@@ -38555,7 +39378,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return reply.send(
         await withStorageDeadline(
-          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
+          issueSignedObjectStorageCapability(
+            project,
+            { method: 'GET', objectKey: PROJECT_THUMBNAIL_KEY },
+            (rawStorage, expiresAt) =>
+              rawStorage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY, expiresAt }),
+          ),
           THUMBNAIL_LOOKUP_DEADLINE_MS,
         ),
       );
@@ -38598,7 +39426,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(202).send({ scheduled: false, enabled: false });
     }
 
-    thumbnailCapturer.schedule(project.id, body.url);
+    thumbnailCapturer.schedule({ projectId: project.id, expectedOrganizationId: project.organizationId }, body.url);
 
     return reply.code(202).send({ scheduled: true, enabled: true });
   });
@@ -39289,7 +40117,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                   const objectStorage = (() => {
                     try {
-                      return resolveObjectStorage();
+                      return tenantObjectStorageForProject(project, releaseGuard);
                     } catch {
                       return null;
                     }
@@ -40336,9 +41164,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             staticBuildLogs = staticBuild.logs;
 
             if (staticBuild.ok && staticBuild.outputDir) {
+              const outputDir = staticBuild.outputDir;
               try {
-                await snapshotStaticBuild(queued.id, staticBuild.outputDir, () =>
-                  store.assertProjectStorageMutable(project.id),
+                await store.withProjectPhysicalMutation(
+                  { projectId: project.id, expectedOrganizationId: project.organizationId },
+                  () => snapshotStaticBuild(queued.id, outputDir),
                 );
                 staticBuildLogs.push({
                   timestamp: new Date().toISOString(),
@@ -40525,6 +41355,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
           await store.recordProjectActivity({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             actorUserId: request.currentUser?.id,
             action: 'deployment.create',
             metadata: {
@@ -40540,7 +41371,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * debounced, inert unless the screenshotter is configured).
            */
           if (ready.url) {
-            thumbnailCapturer.schedule(project.id, ready.url);
+            thumbnailCapturer.schedule(
+              { projectId: project.id, expectedOrganizationId: project.organizationId },
+              ready.url,
+            );
           }
 
           return ready;
@@ -40677,7 +41511,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({ path: ECODE_LOCK_FILENAME, content }),
     });
-    await projectStorage.writeFiles(project.id, [{ path: ECODE_LOCK_FILENAME, content }]);
+    await projectStorage.writeFiles(project.id, [{ path: ECODE_LOCK_FILENAME, content }], {
+      expectedOrganizationId: project.organizationId,
+    });
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'runtime.nix-lock.write',
@@ -41096,7 +41932,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let boundMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
 
     try {
-      boundMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
+      boundMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, {
+        expectedOrganizationId: project.organizationId,
+        workspaceId: secondaryWorkspaceId,
+      });
     } catch (error) {
       const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
       return sendLinearizedCreateGateFailure(error instanceof MigrationManifestError ? 409 : 503, {
@@ -41160,6 +41999,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return {
         queued: await store.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           workspaceId: persistedWorkspaceId,
           provider: body.provider,
           environment: body.environment,
@@ -41983,6 +42823,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     requireInternalSecret(request);
 
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+    let objectStorageRecovery:
+      | Awaited<ReturnType<ApiStore['reconcileObjectStorageOperations']>>
+      | { error: string; code: string };
+    try {
+      const storage = resolveRawObjectStorage();
+      if (!storage.active) {
+        objectStorageRecovery = {
+          error: appPublicEnglish('OBJECT_STORAGE_BACKEND_REQUIRED'),
+          code: 'OBJECT_STORAGE_BACKEND_REQUIRED',
+        };
+      } else {
+        objectStorageRecovery = await store.reconcileObjectStorageOperations({
+          storage,
+          batchSize: 100,
+          maxCandidates: 2_000,
+        });
+      }
+    } catch (error) {
+      request.log.error({ err: error }, 'object-storage operation recovery sweep failed');
+      objectStorageRecovery = {
+        error: error instanceof Error ? error.message : String(error),
+        code:
+          error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+            ? error.code
+            : 'OBJECT_STORAGE_RECOVERY_FAILED',
+      };
+    }
     let reservedVmCreateCancellationRecovery:
       | { claimed: false }
       | { claimed: true; deploymentId: string; operationId: string; status: 'CANCELED' }
@@ -42614,6 +43481,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       ...reaped,
+      objectStorageRecovery,
       runtimeMetering,
       publicationExpiry,
       reservedVmCreateCancellationRecovery,
@@ -43670,7 +44538,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
           migrationPlan = Object.prototype.hasOwnProperty.call(sourceMetadata, 'publishMigrationPlan')
             ? parsePinnedPublishMigrationPlan(sourceMetadata.publishMigrationPlan)
-            : await collectPublishMigrationPlan(projectStorage, project.id, source.workspaceId);
+            : await collectPublishMigrationPlan(projectStorage, project.id, {
+                expectedOrganizationId: project.organizationId,
+                workspaceId: source.workspaceId,
+              });
         } catch (error) {
           const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
           request.log?.warn?.({ err: error, projectId: project.id, code }, 'publish migration plan refused');
@@ -44081,6 +44952,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             const publishedInput = {
               ...publishedBase,
+              expectedOrganizationId: project.organizationId,
               metadata: {
                 ...((publishedBase.metadata ?? {}) as Record<string, unknown>),
                 projectManifestDigest: expectedManifestDigest,
@@ -44412,8 +45284,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
           }
 
-          const publishedFiles = await projectStorage.listFiles(project.id, source.workspaceId);
-          await projectStorage.writeFiles(project.id, publishedFiles, prodWorkspace.id);
+          const publishedFiles = await projectStorage.listFiles(project.id, {
+            expectedOrganizationId: project.organizationId,
+            workspaceId: source.workspaceId,
+          });
+          await projectStorage.writeFiles(project.id, publishedFiles, {
+            expectedOrganizationId: project.organizationId,
+            workspaceId: prodWorkspace.id,
+          });
         } catch (error) {
           request.log?.warn?.({ err: error }, 'prod workspace checkout on publish failed (non-fatal)');
         }
@@ -44565,7 +45443,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let redeployMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
 
     try {
-      redeployMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
+      redeployMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, {
+        expectedOrganizationId: project.organizationId,
+        workspaceId: secondaryWorkspaceId,
+      });
     } catch (error) {
       const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
       return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
@@ -44710,6 +45591,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
         await store.recordProjectActivity({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           actorUserId: request.currentUser?.id,
           action: 'deployment.redeploy',
           metadata: { deploymentId: source.id, operationId: created.operation.id, inPlace: true, queued },
@@ -44759,6 +45641,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return {
         queued: await store.createDeployment({
           projectId: project.id,
+          expectedOrganizationId: project.organizationId,
           workspaceId: source.workspaceId,
           provider: source.provider,
           environment: source.environment,
@@ -44873,8 +45756,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (source.provider === 'static') {
       /*
-       * P1: build in the workspace pod (see create handler); fall back to the
-       * in-process API-pod build only when the pod is unreachable.
+       * P1: production rebuilds only in the workspace pod. An unreachable pod
+       * is a clean failed deployment; it must never fall back to reading and
+       * executing a stale project tree inside the API pod.
        */
       const redeployBody = {
         buildCommand: source.buildCommand ?? 'npm run build',
@@ -44883,29 +45767,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         artifactSizeLimitMb: sourceArtifactSizeLimitMb,
       };
 
-      const workspaceAttempt = useWorkspacePodBuild
-        ? await buildStaticInWorkspacePod(request, project, redeployBody, redeploy.id)
-        : { handled: false as const };
-      workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+      let staticBuild: RunStaticBuildResult;
 
-      const staticBuild = workspaceAttempt.handled
-        ? workspaceAttempt.result
-        : await staticBuildRunner({
-            projectId: project.id,
-            workspaceId: secondaryWorkspaceId,
-            buildCommand: redeployBody.buildCommand,
-            outputDirectory: redeployBody.outputDirectory,
-            envVars: sourceEnvVars,
-            timeoutSeconds: sourceTimeoutSeconds,
-            artifactSizeLimitMb: sourceArtifactSizeLimitMb,
-          });
+      if (useWorkspacePodBuild) {
+        const workspaceAttempt = await buildStaticInWorkspacePod(request, project, redeployBody, redeploy.id);
+        workspaceBuildTempDir = workspaceAttempt.handled ? workspaceAttempt.tempDir : undefined;
+
+        if (workspaceAttempt.handled) {
+          staticBuild = workspaceAttempt.result;
+        } else {
+          const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
+          staticBuild = {
+            ok: false,
+            error: message,
+            logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
+          };
+        }
+      } else {
+        staticBuild = await staticBuildRunner({
+          projectId: project.id,
+          workspaceId: secondaryWorkspaceId,
+          buildCommand: redeployBody.buildCommand,
+          outputDirectory: redeployBody.outputDirectory,
+          envVars: sourceEnvVars,
+          timeoutSeconds: sourceTimeoutSeconds,
+          artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+        });
+      }
 
       rebuildLogs.push(...staticBuild.logs);
 
       if (staticBuild.ok && staticBuild.outputDir) {
+        const outputDir = staticBuild.outputDir;
         try {
-          await snapshotStaticBuild(redeploy.id, staticBuild.outputDir, () =>
-            store.assertProjectStorageMutable(project.id),
+          await store.withProjectPhysicalMutation(
+            { projectId: project.id, expectedOrganizationId: project.organizationId },
+            () => snapshotStaticBuild(redeploy.id, outputDir),
           );
           rebuildLogs.push({
             timestamp: new Date().toISOString(),
@@ -45094,7 +45991,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * unless the screenshotter is configured).
      */
     if (ready.url) {
-      thumbnailCapturer.schedule(project.id, ready.url);
+      thumbnailCapturer.schedule({ projectId: project.id, expectedOrganizationId: project.organizationId }, ready.url);
     }
 
     return reply
@@ -45603,11 +46500,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               fencingToken: operation.fencingToken,
             });
             await leaseManager.guard();
-            await restoreStaticArtifactInto(previous.artifactRef, previous.artifactDigest, rollback.id, async () => {
-              await releaseGuard.assert();
-              await leaseManager.guard();
-              await store.assertProjectStorageMutable(project.id);
-            });
+            await store.withProjectPhysicalMutation(
+              { projectId: project.id, expectedOrganizationId: project.organizationId },
+              () =>
+                restoreStaticArtifactInto(previous.artifactRef, previous.artifactDigest, rollback.id, async () => {
+                  await releaseGuard.assert();
+                  await leaseManager.guard();
+                  await store.assertProjectStorageMutable(project.id);
+                }),
+            );
             await leaseManager.guard();
 
             const restoredDigest = await computeStaticSnapshotDigest(rollback.id);
@@ -46232,6 +47133,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           return store.createDeployment({
             projectId: project.id,
+            expectedOrganizationId: project.organizationId,
             workspaceId: target.workspaceId,
             provider: target.provider,
             environment: target.environment,

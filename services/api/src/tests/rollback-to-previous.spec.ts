@@ -98,14 +98,19 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
   /** Materialise a static deployment: a READY row, its on-disk snapshot, and its manifest. */
   async function publishStatic(store: TestApiStore, projectId: string, version: number, marker: string) {
+    const project = await store.getProject(projectId);
     const projectManifest = await store.getLatestProjectManifest(projectId);
 
+    if (!project) {
+      throw new Error('TEST_PROJECT_MISSING');
+    }
     if (!projectManifest) {
       throw new Error('TEST_PROJECT_MANIFEST_MISSING');
     }
 
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -438,6 +443,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     if (!projectManifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
     const created = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'READY',
@@ -635,9 +641,12 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       fencingToken: 1,
     });
     const project = await store.getProject(projectId);
+
+    if (!project) throw new Error('TEST_PROJECT_MISSING');
+
     const release = await acquireTestProjectReleaseFence(store, {
       projectId,
-      organizationId: project!.organizationId,
+      organizationId: project.organizationId,
     });
     await store.commitStaticRollbackRelease({
       operationId: operation.id,
@@ -667,6 +676,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     });
     await store.createProjectManifestRevision({
       projectId,
+      expectedOrganizationId: project.organizationId,
       schemaVersion: changedManifest.schemaVersion,
       manifestVersion: changedManifest.manifestVersion,
       digest: projectManifestDigest(changedManifest),

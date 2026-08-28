@@ -12,6 +12,7 @@ import { TestApiStore } from './test-api-store.js';
 const execFile = promisify(execFileCallback);
 
 const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
+const TEST_ORGANIZATION_ID = 'org_git_cli_provider';
 
 afterEach(() => {
   if (previousProjectStorageDir === undefined) {
@@ -28,6 +29,7 @@ describe('GitCliProvider.createPullRequest', () => {
     await expect(
       provider.createPullRequest({
         projectId: 'project-without-remote',
+        expectedOrganizationId: TEST_ORGANIZATION_ID,
         title: 'Add feature',
         sourceBranch: 'feature',
         targetBranch: 'main',
@@ -54,10 +56,22 @@ describe('GitCliProvider.commit', () => {
     const provider = new GitCliProvider();
 
     // First commit succeeds (README is new).
-    await provider.commit({ projectId, message: 'Initial', files: [] });
+    await provider.commit({
+      projectId,
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
+      message: 'Initial',
+      files: [],
+    });
 
     // Second commit with no changes must not bubble a raw git failure.
-    await expect(provider.commit({ projectId, message: 'No-op', files: [] })).rejects.toMatchObject({
+    await expect(
+      provider.commit({
+        projectId,
+        expectedOrganizationId: TEST_ORGANIZATION_ID,
+        message: 'No-op',
+        files: [],
+      }),
+    ).rejects.toMatchObject({
       statusCode: 400,
       code: 'GIT_NOTHING_TO_COMMIT',
     });
@@ -89,8 +103,9 @@ describe('GitCliProvider workspace isolation', () => {
     await writeFile(join(projectDir, 'README.md'), '# User project\n');
 
     const provider = new GitCliProvider();
-    const status = await provider.status(projectId);
-    const emptyGraph = await provider.logGraph(projectId, 5);
+    const scope = { expectedOrganizationId: TEST_ORGANIZATION_ID };
+    const status = await provider.status(projectId, scope);
+    const emptyGraph = await provider.logGraph(projectId, scope, 5);
 
     expect(status.branch).toBe('main');
     expect(status.changedFiles).toEqual(['README.md']);
@@ -99,10 +114,11 @@ describe('GitCliProvider workspace isolation', () => {
 
     const commit = await provider.commit({
       projectId,
+      expectedOrganizationId: TEST_ORGANIZATION_ID,
       message: 'Initial user project',
       files: [],
     });
-    const graph = await provider.logGraph(projectId, 5);
+    const graph = await provider.logGraph(projectId, scope, 5);
 
     expect(commit.message).toBe('Initial user project');
     expect(graph).toHaveLength(1);
@@ -359,6 +375,7 @@ describe('GitCliProvider workspace isolation', () => {
 
     const commit = await gitProvider.commit({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       workspaceId: workspaceB.id,
       message: 'workspace-b-only-commit',
       files: [],

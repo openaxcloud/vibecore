@@ -18,7 +18,11 @@ class MemoryProjectStorage implements ProjectStorage {
   readonly files = new Map<string, Map<string, string>>();
   writeCalls: string[] = [];
 
-  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>) {
+  async writeFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
     this.writeCalls.push(projectId);
 
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
@@ -28,10 +32,17 @@ class MemoryProjectStorage implements ProjectStorage {
     }
     this.files.set(projectId, bucket);
 
-    return this.listFiles(projectId);
+    return this.listFiles(projectId, scope);
   }
 
-  async listFiles(projectId: string): Promise<ProjectFile[]> {
+  async listFiles(
+    projectId: string,
+    scope: { expectedOrganizationId: string; workspaceId?: string },
+  ): Promise<ProjectFile[]> {
+    return this.listFilesWithinPhysicalAccess(projectId, scope.workspaceId);
+  }
+
+  async listFilesWithinPhysicalAccess(projectId: string, _workspaceId?: string): Promise<ProjectFile[]> {
     const bucket = this.files.get(projectId) ?? new Map<string, string>();
     const updatedAt = new Date().toISOString();
 
@@ -43,6 +54,9 @@ class MemoryProjectStorage implements ProjectStorage {
   }
   async deleteFiles() {}
   async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
+  async eraseProjectDataWithinPhysicalAccess(projectId: string) {
     this.files.delete(projectId);
   }
   async exportZip() {
@@ -59,7 +73,14 @@ class MemoryProjectStorage implements ProjectStorage {
   async createSnapshot() {
     return { storageKey: 'snap', byteLength: 0, createdAt: new Date().toISOString() };
   }
-  async getSnapshotFiles() {
+  async getSnapshotFiles(
+    projectId: string,
+    storageKey: string,
+    _scope: { expectedOrganizationId: string; workspaceId?: string },
+  ) {
+    return this.getSnapshotFilesWithinPhysicalAccess(projectId, storageKey);
+  }
+  async getSnapshotFilesWithinPhysicalAccess(_projectId: string, _storageKey: string) {
     return [];
   }
   async restoreSnapshot() {
@@ -335,7 +356,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect(projectStorage.writeCalls).toEqual([targetId]);
 
     // Search the committed target for the secret — must be absent; key kept.
-    const files = await projectStorage.listFiles(targetId);
+    const files = await projectStorage.listFiles(targetId, { expectedOrganizationId: org.id });
     const allText = files.map((f) => f.content).join('\n');
     expect(allText).not.toContain(IMPORTED_SECRET);
 
@@ -371,7 +392,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect(committed.statusCode).toBe(201);
 
     const targetId = committed.json().project.id;
-    const files = await projectStorage.listFiles(targetId);
+    const files = await projectStorage.listFiles(targetId, { expectedOrganizationId: org.id });
 
     // The user OWNED the call to keep it — no silent deletion, value present.
     expect(files.find((f) => f.path === '.env')!.content).toContain(IMPORTED_SECRET);

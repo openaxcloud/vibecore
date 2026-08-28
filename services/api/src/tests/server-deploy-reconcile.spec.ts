@@ -157,6 +157,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     const host = 'd-reconcileready.preview.e-code.ai';
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -187,6 +188,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
 
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -214,6 +216,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
 
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -248,6 +251,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -282,6 +286,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -433,6 +438,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -442,6 +448,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     const nextManifest = { ...createDefaultProjectManifest(projectId), manifestVersion: 2 };
     await store.createProjectManifestRevision({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       schemaVersion: nextManifest.schemaVersion,
       manifestVersion: nextManifest.manifestVersion,
       expectedDigest: builtManifestDigest,
@@ -486,6 +493,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
@@ -514,6 +522,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     });
     const deployment = await store.createDeployment({
       projectId,
+      expectedOrganizationId: auth.organization.id,
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',

@@ -53,6 +53,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
       const promotion = pins.promotion;
       const deployment = await storeA.createDeployment({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',

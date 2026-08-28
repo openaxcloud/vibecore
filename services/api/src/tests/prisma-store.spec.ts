@@ -333,6 +333,7 @@ runPrismaTests('PrismaApiStore integration', () => {
       });
       await storeA.createSnapshot({
         projectId: project.id,
+        expectedOrganizationId: organization.id,
         kind: 'manual',
         manifest: { files: ['README.md'] },
         storageKey: `snapshots/${suffix}.zip`,

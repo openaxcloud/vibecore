@@ -8,27 +8,46 @@ const SECRET = 'unit-test-object-storage-secret';
 describe('object-storage access token', () => {
   it('round-trips a valid token', () => {
     const token = signObjectStorageAccessToken({
-      payload: { projectId: 'proj_1', userId: 'user_1', workspaceId: 'ws_1', expiresAt: Date.now() + 60_000 },
+      payload: {
+        projectId: 'proj_1',
+        organizationId: 'org_1',
+        userId: 'user_1',
+        workspaceId: 'ws_1',
+        expiresAt: Date.now() + 60_000,
+      },
       secret: SECRET,
     });
 
-    const result = verifyObjectStorageAccessToken({ token, secret: SECRET, expectedProjectId: 'proj_1' });
+    const result = verifyObjectStorageAccessToken({
+      token,
+      secret: SECRET,
+      expectedProjectId: 'proj_1',
+      expectedOrganizationId: 'org_1',
+    });
     expect(result.ok).toBe(true);
     expect(result.payload).toMatchObject({ projectId: 'proj_1', userId: 'user_1' });
   });
 
   it('rejects a tampered signature, wrong project, expiry and missing token', () => {
     const token = signObjectStorageAccessToken({
-      payload: { projectId: 'proj_1', expiresAt: Date.now() + 60_000 },
+      payload: { projectId: 'proj_1', organizationId: 'org_1', expiresAt: Date.now() + 60_000 },
       secret: SECRET,
     });
 
     expect(verifyObjectStorageAccessToken({ token: `${token}x`, secret: SECRET }).reason).toBe('invalid_signature');
     expect(verifyObjectStorageAccessToken({ token, secret: 'other-secret' }).reason).toBe('invalid_signature');
-    expect(verifyObjectStorageAccessToken({ token, secret: SECRET, expectedProjectId: 'proj_2' }).reason).toBe('project_mismatch');
+    expect(verifyObjectStorageAccessToken({ token, secret: SECRET, expectedProjectId: 'proj_2' }).reason).toBe(
+      'project_mismatch',
+    );
+    expect(verifyObjectStorageAccessToken({ token, secret: SECRET, expectedOrganizationId: 'org_2' }).reason).toBe(
+      'organization_mismatch',
+    );
     expect(verifyObjectStorageAccessToken({ token: undefined, secret: SECRET }).reason).toBe('missing');
 
-    const expired = signObjectStorageAccessToken({ payload: { projectId: 'p', expiresAt: Date.now() - 1 }, secret: SECRET });
+    const expired = signObjectStorageAccessToken({
+      payload: { projectId: 'p', organizationId: 'org', expiresAt: Date.now() - 1 },
+      secret: SECRET,
+    });
     expect(verifyObjectStorageAccessToken({ token: expired, secret: SECRET }).reason).toBe('expired');
   });
 });
@@ -62,13 +81,22 @@ describe('ObjectStorageClient', () => {
     expect((await client.getUploadUrl({ key: 'k', contentType: 'text/plain' })).url).toBe('https://signed/put');
     expect((await client.getDownloadUrl({ key: 'k' })).url).toBe('https://signed/get');
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/projects/proj_1/object-storage/objects/upload-url');
-    expect(fetchMock.mock.calls[1][0]).toBe('https://api.test/projects/proj_1/object-storage/objects/download-url?key=k');
+    expect(fetchMock.mock.calls[1][0]).toBe(
+      'https://api.test/projects/proj_1/object-storage/objects/download-url?key=k',
+    );
   });
 
   it('uploads bytes through the signed URL', async () => {
     const fetchMock = vi
       .fn()
-      .mockResolvedValueOnce(jsonResponse({ url: 'https://signed/put', method: 'PUT', headers: { 'Content-Type': 'text/plain' }, expiresAt: 'x' }))
+      .mockResolvedValueOnce(
+        jsonResponse({
+          url: 'https://signed/put',
+          method: 'PUT',
+          headers: { 'Content-Type': 'text/plain' },
+          expiresAt: 'x',
+        }),
+      )
       .mockResolvedValueOnce(new Response(null, { status: 200 }));
     const client = new ObjectStorageClient({ ...opts, fetch: fetchMock as unknown as typeof fetch });
 
@@ -81,11 +109,14 @@ describe('ObjectStorageClient', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({ error: 'nope', code: 'INVALID_KEY' }, 400));
     const client = new ObjectStorageClient({ ...opts, fetch: fetchMock as unknown as typeof fetch });
 
-    await expect(client.delete({ key: '../escape' })).rejects.toMatchObject({
+    await expect(client.delete({ key: '../escape', idempotencyKey: 'object-delete-test-0001' })).rejects.toMatchObject({
       name: 'ObjectStorageError',
       code: 'INVALID_KEY',
       status: 400,
     });
+    expect((fetchMock.mock.calls[0][1].headers as Record<string, string>)['idempotency-key']).toBe(
+      'object-delete-test-0001',
+    );
   });
 
   it('requires apiUrl/accessToken/projectId', () => {
@@ -106,7 +137,9 @@ describe('unified Client + helpers', () => {
     expect(getDatabaseUrl('production')).toBe('postgres://prod');
     expect(getSecret('MY_SECRET')).toBe('s3cr3t');
 
-    const client = new Client({ objectStorage: { apiUrl: 'u', accessToken: 't', projectId: 'p', fetch: vi.fn() as unknown as typeof fetch } });
+    const client = new Client({
+      objectStorage: { apiUrl: 'u', accessToken: 't', projectId: 'p', fetch: vi.fn() as unknown as typeof fetch },
+    });
     expect(client.database.url).toBe('postgres://dev');
     expect(client.database.productionUrl).toBe('postgres://prod');
     expect(client.secrets.get('MY_SECRET')).toBe('s3cr3t');
