@@ -514,6 +514,16 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+
+  /*
+   * En sombre les canoniques passent déjà AA sur leur propre teinte
+   * (6,04 / 6,10 / 4,82 / 5,27) : la variante y vaut le canonique, pour que
+   * `--status-*-text` résolve dans les deux thèmes sans exception.
+   */
+  --vc-ide-accent-success-on-tint: var(--vc-ide-accent-success);
+  --vc-ide-accent-warning-on-tint: var(--vc-ide-accent-warning);
+  --vc-ide-accent-error-on-tint: var(--vc-ide-accent-error);
+  --vc-ide-accent-action-on-tint: var(--vc-ide-accent-action);
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
@@ -595,10 +605,10 @@ html:has(.vc-app-shell-grid) body {
    * action). Le rouge d'erreur / l'orange d'alerte ont ainsi la même valeur
    * partout, clair comme sombre.
    */
-  --status-success-text: var(--vc-ide-accent-success);
-  --status-warning-text: var(--vc-ide-accent-warning);
-  --status-error-text: var(--vc-ide-accent-error);
-  --status-info-text: var(--vc-ide-accent-action);
+  --status-success-text: var(--vc-ide-accent-success-on-tint);
+  --status-warning-text: var(--vc-ide-accent-warning-on-tint);
+  --status-error-text: var(--vc-ide-accent-error-on-tint);
+  --status-info-text: var(--vc-ide-accent-action-on-tint);
 
   /* Tinted status backgrounds (badges, alert banners) derived from the text tokens. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 14%, transparent);
@@ -852,6 +862,17 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
   --vc-ide-accent-warning: #a16207;
+
+  /*
+   * Variantes « sur teinte » : même famille que les canoniques ci-dessus, mais
+   * assombries pour rester lisibles quand le texte est posé sur sa propre
+   * couleur à 14-16 %. Ratios obtenus : 5,61 / 5,44 / 5,37 / 5,67 sur la teinte,
+   * 6,61 / 6,40 / 6,47 / 6,70 sur le panneau nu.
+   */
+  --vc-ide-accent-success-on-tint: #0d6b39;
+  --vc-ide-accent-warning-on-tint: #9a4708;
+  --vc-ide-accent-error-on-tint: #b91c1c;
+  --vc-ide-accent-action-on-tint: #1d4ed8;
   --vc-ide-accent: var(--vc-ide-accent-action);
   --vc-ide-accent-primary: var(--vc-ide-accent-action);
   --vc-ide-accent-green: var(--vc-ide-accent-success);
@@ -912,11 +933,26 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-text-hover: #a33c00;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  /* UNIF lot 4 (audit K1) — alias de la famille canonique `--vc-ide-accent-*` (cf. bloc sombre). */
-  --status-success-text: var(--vc-ide-accent-success);
-  --status-warning-text: var(--vc-ide-accent-warning);
-  --status-error-text: var(--vc-ide-accent-error);
-  --status-info-text: var(--vc-ide-accent-action);
+  /*
+   * UNIF lot 4 (audit K1) — alias de la famille canonique `--vc-ide-accent-*`,
+   * via la variante `-on-tint`.
+   *
+   * Pourquoi une variante plutôt que le canonique directement : chaque
+   * `--status-*-bg` est dérivé de son texte à 14-16 %, donc la couleur se pose
+   * sur SA PROPRE teinte — la surface la plus défavorable. Mesuré en clair, les
+   * quatre canoniques y tombaient sous AA (succès 4,32, avertissement 4,27,
+   * erreur 4,07, information 4,24 pour 4,5 requis).
+   *
+   * Assombrir les canoniques eux-mêmes aurait corrigé ces quatre jauges au prix
+   * de toute l'interface : `--vc-ide-accent-action` porte 656 usages (boutons
+   * primaires, liens, anneau de focus). La variante ne touche que le texte de
+   * statut, et l'unification est préservée — ce sont toujours des alias, jamais
+   * des littéraux.
+   */
+  --status-success-text: var(--vc-ide-accent-success-on-tint);
+  --status-warning-text: var(--vc-ide-accent-warning-on-tint);
+  --status-error-text: var(--vc-ide-accent-error-on-tint);
+  --status-info-text: var(--vc-ide-accent-action-on-tint);
 
   /* Tinted status backgrounds (badges, alert banners) — lighter on light theme. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 10%, transparent);
@@ -8733,7 +8769,14 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1;
 }
 
-.bolt-project-ide-rail-label {
+/*
+ * RPL-IDE-001.5 — the dock is a 48 px icon column, so the label and the shortcut
+ * hint stay available to assistive tech (and to `aria-keyshortcuts`) while the
+ * visible affordance is the tooltip, as in Replit. Rendering "⌘P" inside the
+ * column would blow the rail's width apart at every viewport.
+ */
+.bolt-project-ide-rail-label,
+.bolt-project-ide-rail-shortcut {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -8741,6 +8784,26 @@ body :where(.lucide, svg[data-lucide]) {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+/*
+ * RPL-IDE-001.5 — "All tools" is pinned to the foot of the dock and separated
+ * from the shortcuts above it, so the nine docked tools can scroll independently
+ * without ever pushing it out of reach on a short viewport.
+ */
+.bolt-project-ide-rail-footer {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-ide-rail-item-all-tools[aria-expanded='true'],
+.bolt-project-ide-rail-item-all-tools:hover {
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-ide-rail-item:hover,
@@ -9225,6 +9288,33 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 84px;
   max-width: clamp(180px, 18vw, 240px);
   scroll-snap-align: start;
+}
+
+/*
+ * RPL-IDE-001.4 — insertion caret shown while a tab is dragged over the strip,
+ * so the drop slot is visible before release. Uses the IDE accent token, which
+ * is already defined per theme, so the caret reads in light and dark alike.
+ */
+.bolt-project-tab[data-drop-before='true']::before,
+.bolt-project-tab[data-drop-after='true']::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 28%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bolt-project-tab[data-drop-before='true']::before {
+  left: -1px;
+}
+
+.bolt-project-tab[data-drop-after='true']::after {
+  right: -1px;
 }
 
 .bolt-project-tab-main {
@@ -15042,10 +15132,14 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 6px;
 }
 
+/*
+ * RPL-IDE-001.6 — portalled to <body>, so `fixed` with a JS-computed anchor.
+ * In the normal flow the menu was clipped by the 40 px tab bar (and eight more
+ * `overflow: hidden` ancestors above it) down to a single visible item.
+ */
 .bolt-project-tab-actions-menu {
-  position: absolute;
-  right: 0;
-  top: 32px;
+  position: fixed;
+  z-index: 200;
 }
 
 .bolt-project-tab-actions-menu button {
@@ -15069,6 +15163,48 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-actions-menu button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+/*
+ * RPL-IDE-001.6 — Window / Pane / Tab scopes. The menu now has real groups, so
+ * they need to lay out like the flat button list used to, and the whole menu
+ * needs to cap its height: with several panes open the Tab group grows a "Move
+ * tab to …" entry per destination, which on a 812 px-tall phone would otherwise
+ * run off the bottom of the screen with no way to reach the last item.
+ */
+.bolt-project-tab-actions-menu {
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bolt-project-tab-actions-menu [role='group'] {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-tab-actions-menu [role='group'] + [role='group'] {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-tab-actions-group-label {
+  margin: 0;
+  padding: 4px 8px 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Keyboard navigation must be visible, not just functional. */
+.bolt-project-tab-actions-menu button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: -2px;
 }
 
 .bolt-project-bottom-terminal {
@@ -26711,82 +26847,265 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 }
 
 /*
- * SCR-007 — l'orange de marque reste EXACT partout où il passe déjà (aplats
- * sans texte, bordures, icônes, anneaux de focus, gros texte). Les deux seuls
- * emplois qui échouaient à WCAG AA sont ceux où cet orange porte, ou EST, du
- * texte de taille normale — et tous deux venaient d'un JETON, pas d'une classe
- * orange écrite en dur, ce qui les rendait invisibles à un audit par classes :
+ * RPL-IDE-001.7 — Resources panel (RAM / CPU / Storage) beside the app name.
  *
- *   1. Fond du bouton primaire sous texte blanc. `.bg-primary` résout
- *      `hsl(var(--primary))` = #F56505 ; blanc dessus = 3,11:1 (seuil 4,5).
- *      On ne touche PAS `--primary` (il sert aussi aux bordures, aux icônes et
- *      au gros texte, qui passent) : on ne réécrit le fond que lorsque
- *      l'élément porte AUSSI `.text-primary-foreground`, c'est-à-dire
- *      exactement « aplat primaire + texte blanc ». Blanc sur #c2410c = 5,18:1.
- *
- *   2. Orange-texte-sur-blanc (liens « Lire la suite » et cie).
- *      `.text-ecode-accent` résout le jeton de REMPLISSAGE `--ecode-accent`
- *      (#F26207) = 3,22:1 sur blanc, alors que le jeton de TEXTE conforme
- *      `--ecode-accent-text` existe déjà et vaut #c74e00 (4,65:1) en clair et
- *      #ff8a3d (8,16:1) en sombre. Le défaut était que l'utilitaire de texte
- *      ne pointait pas sur le jeton de texte. On l'y branche.
- *
- * Le sélecteur est préfixé par `html` (spécificité 0,1,1) pour l'emporter sur
- * l'utilitaire généré (0,1,0) quel que soit l'ordre des feuilles.
+ * Every colour is an existing IDE token, so the panel follows the theme in both
+ * light and dark without a second set of rules. The trigger degrades by width:
+ * label + value on desktop, value only on tablet, icon only on mobile — the
+ * topbar has a fixed height and cannot afford to wrap.
  */
-html .bg-primary.text-primary-foreground {
-  background-color: var(--vc-action-primary-strong);
+.vc-resources {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
 }
 
-html .bg-primary.text-primary-foreground:hover {
-  background-color: var(--vc-action-primary-strong-hover);
-
-  /*
-   * `hover:brightness-110` ECLAIRCIT le fond : #c2410c x 1,1 redescend à
-   * 4,41:1. Le survol doit assombrir, pas éclaircir — d'où le filtre annulé.
-   */
-  filter: none;
+.vc-resources-trigger {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
 }
 
-html .text-ecode-accent {
-  color: var(--ecode-accent-text);
+.vc-resources-trigger:hover,
+.vc-resources-trigger:focus-visible,
+.vc-resources-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 20%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
-html .hover\:text-ecode-accent-hover:hover {
-  color: var(--ecode-accent-text-hover);
+.vc-resources-trigger-icon {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.vc-resources-trigger-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vc-resources-trigger-value {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 /*
- * SCR-007 (suite) — `bg-[var(--x)]/NN` ne teinte RIEN.
- *
- * Mesuré en direct sur `/mobile` : la carte sélectionnée porte
- * `bg-[var(--ecode-accent)]/10` et sa couleur calculée est
- * `rgb(242, 98, 7)` — l'orange PLEIN, pas un voile à 10 %. L'alpha d'un
- * utilitaire arbitraire est appliqué via `--un-bg-opacity`, mécanisme qui ne
- * peut pas mordre sur une couleur passée en `var()` : la teinte est
- * silencieusement perdue et l'aplat sort opaque.
- *
- * Double conséquence : la carte s'affiche comme un pavé orange plein au lieu
- * d'un léger voile (défaut visuel), et son texte secondaire slate
- * `rgb(51,65,85)` tombe à 3,22:1 (seuil 4,5). `color-mix` applique la teinte
- * réellement demandée, ce qui corrige l'aspect ET le contraste d'un coup.
+ * Portalled to <body> and positioned from the trigger's rect: the topbar slot
+ * this panel anchors to is 32 px tall with `overflow: hidden`, so an in-flow
+ * absolute panel was clipped to nothing (proved live at 1440 — 280x94 popover
+ * inside a 32 px clipping ancestor). `fixed` + a body portal escapes the nine
+ * `overflow: hidden` ancestors between the trigger and the document.
  */
-html .bg-\[var\(--ecode-accent\)\]\/5 {
-  background-color: color-mix(in srgb, var(--ecode-accent) 5%, transparent);
+.vc-resources-popover {
+  position: fixed;
+  z-index: 200;
+  display: grid;
+  width: min(280px, calc(100vw - 24px));
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 12px;
 }
 
-html .bg-\[var\(--ecode-accent\)\]\/10 {
-  background-color: color-mix(in srgb, var(--ecode-accent) 10%, transparent);
+.vc-resources-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
 }
 
-html .bg-\[var\(--ecode-accent\)\]\/15 {
-  background-color: color-mix(in srgb, var(--ecode-accent) 15%, transparent);
+.vc-resources-refresh {
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted);
 }
 
-html .bg-\[var\(--ecode-accent\)\]\/20 {
-  background-color: color-mix(in srgb, var(--ecode-accent) 20%, transparent);
+.vc-resources-refresh:hover,
+.vc-resources-refresh:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
 }
 
-html .bg-\[var\(--ecode-accent\)\]\/25 {
-  background-color: color-mix(in srgb, var(--ecode-accent) 25%, transparent);
+.vc-resources-state {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.vc-resources-list {
+  display: grid;
+  margin: 0;
+  gap: 10px;
+}
+
+.vc-resources-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+
+.vc-resources-row dt {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vc-resources-row dd {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.vc-resources-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+}
+
+.vc-resources-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  transition: width 240ms ease;
+}
+
+.vc-resources-row[data-tone='warning'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-warning);
+}
+
+.vc-resources-row[data-tone='critical'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-error);
+}
+
+.vc-resources-captured {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+}
+
+/* Tablet: drop the word, keep the number — it is the actionable part. */
+@media (max-width: 1024px) {
+  .vc-resources-trigger-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+}
+
+/* Mobile: icon only, and the popover anchors to the viewport edge, not the button. */
+@media (max-width: 767px) {
+  .vc-resources-trigger-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+
+  .vc-resources-trigger {
+    padding: 3px 6px;
+  }
+
+  .vc-resources-popover {
+    width: min(280px, calc(100vw - 16px));
+  }
+}
+
+/*
+ * RPL-IDE-001.8 — Spotlight. The surface is the command palette (same engine,
+ * same keyboard model); what makes it Spotlight is the project header and the
+ * fact that the app name opens it. Styling stays on IDE tokens so the header
+ * follows the theme with the rest of the palette.
+ */
+.bolt-project-spotlight-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  padding: 12px 14px;
+}
+
+.bolt-project-spotlight-head > [class*='i-ph:'] {
+  flex: 0 0 auto;
+  color: var(--vc-ide-accent-action);
+  font-size: 18px;
+}
+
+.bolt-project-spotlight-head > span {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.bolt-project-spotlight-head strong {
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-spotlight-head small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+/* The app name is a real target: it must look and focus like one. */
+.bolt-project-spotlight-trigger {
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bolt-project-spotlight-trigger:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bolt-project-spotlight-trigger:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+}
+
+/* Mobile: the header must not eat the list on a short viewport. */
+@media (max-width: 767px) {
+  .bolt-project-spotlight-head {
+    padding: 10px 12px;
+  }
+
+  .bolt-project-spotlight-head small {
+    display: none;
+  }
 }

@@ -81,10 +81,25 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
     expect(baseChatCode).toContain("from '~/components/project-ide/panel-meta'");
   });
 
-  it('la palette « + » tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
+  /*
+   * RPL-IDE-001.5 a déplacé la source : la palette ne porte plus ses entrées en
+   * dur, elle les dérive de `project-editor-tool-catalog.ts`. L'intention
+   * d'UNIF-05 est inchangée — une seule source pour les icônes de panneaux — et
+   * c'est donc le catalogue qu'on vérifie désormais. La règle n'est pas
+   * assouplie : le catalogue redéclarait 29 icônes littérales, dont 5
+   * DIVERGEAIENT du registre (preview, object-storage, packages, workflows,
+   * secrets), soit exactement la dérive que cette porte existe pour empêcher.
+   */
+  it('le catalogue des outils tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
+    const catalog = readFileSync(join(__dirname, '..', 'chat', 'project-editor-tool-catalog.ts'), 'utf8');
+
+    expect(catalog).not.toContain("'i-ph:");
+    expect((catalog.match(/icon: panelIcon\('/g) ?? []).length).toBeGreaterThanOrEqual(25);
+  });
+
+  it('la palette « + » ne réintroduit aucun littéral i-ph', () => {
     const tools = extractBlock('const tools: Array<[IdeWorkspacePanel | IdeRightPanel', '];');
     expect(tools).not.toContain("'i-ph:");
-    expect((tools.match(/panelIcon\('/g) ?? []).length).toBeGreaterThanOrEqual(25);
   });
 
   it('le rail gauche tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
@@ -107,8 +122,15 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
   });
 
   it('la palette nomme l’éditeur comme l’onglet (T2 — plus de « Code »)', () => {
-    const tools = extractBlock('const tools: Array<[IdeWorkspacePanel | IdeRightPanel', '];');
-    expect(tools).toContain("panelTitle('editor', t)");
-    expect(tools).not.toContain('baseChatAst.common.code');
+    /*
+     * L'appel passe désormais par `toolDisplayTitle`, qui délègue à
+     * `panelTitle` — SAUF pour le terminal, dont le libellé de marque est gelé.
+     * Ce qui compte n'a pas changé : aucune exception ne doit renvoyer « Code »
+     * pour l'éditeur, sans quoi la palette et l'onglet nomment différemment le
+     * même panneau.
+     */
+    expect(baseChatCode).toContain('toolDisplayTitle(tool.id, t)');
+    expect(baseChatCode).not.toMatch(/tool === 'editor'[\s\S]{0,120}baseChatAst\.common\.code/);
+    expect(baseChatCode).toMatch(/function toolDisplayTitle[\s\S]{0,600}return panelTitle\(tool, t\)/);
   });
 });

@@ -1121,7 +1121,7 @@
       "id": "api-auth-metric-reason-identifiers",
       "path": "services/api/src/app.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:invalid_credentials|mfa_required|invalid_mfa|suspended|sso_enforced)$",
+      "textPattern": "^(?:invalid_credentials|mfa_required|invalid_mfa|account_locked|suspended|sso_enforced)$",
       "justification": "These values are low-cardinality auth_failures_total metric labels. Login responses use the locale-aware app-public catalogue and do not expose metric dimensions.",
       "owner": "auth-observability-and-i18n",
       "expiresOn": "2027-08-05"
@@ -1422,6 +1422,51 @@
       "justification": "These are machine discriminants on the guard's verdict object (`reason:`), never rendered: no component reads `reason`, and the halt notice shown to the user comes from the workbenchRuntime.patch.* catalogue in both locales.",
       "owner": "runtime-platform-and-i18n",
       "expiresOn": "2027-08-24"
+    },
+    {
+      "id": "api-checkpoint-internal-state-reasons",
+      "path": "services/api/src/app.ts",
+      "rule": "*",
+      "textPattern": "^(?:quiesce inadmissible|quiesce without finite timeout \\+ guaranteed thaw|checkpoint inadmissible|manifest not visible)$",
+      "justification": "Checkpoint state-machine inadmissibility reasons. Written to ProjectCheckpoint.error or carried by a typed Error whose CODE (CHECKPOINT_INADMISSIBLE, CHECKPOINT_UNVERIFIED) is what the caller sees. Never rendered: translating them would hide the technical reason from audit without helping any user.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-checkpoint-snapshot-label",
+      "path": "services/api/src/app.ts",
+      "rule": "*",
+      "textPattern": "^checkpoint \\{…\\}$",
+      "justification": "Storage snapshot label (`checkpoint <barrierId>`), an internal identifier correlated with logs — not user-facing copy.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-lifecycle-admissibility-reasons",
+      "path": "services/api/src/lifecycle-state-machines.ts",
+      "rule": "*",
+      "textPattern": "^(?:no components|\\{…\\} component snapshot\\(s\\) unverified|components snapshotted under different logical barriers \\(not the same instant\\)|promotion \\{…\\} is \\{…\\}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release|\\{…\\} attachment\\(s\\) not relinked into the tenant repo|Binary Authorization is \\{…\\}, not PASSED|un snapshot de pod seul n'est jamais un checkpoint projet \\(plan §15\\)|composant FILES manquant|base provisionnée mais composant DATABASE absent sans dépendance déclarée)$",
+      "justification": "Lifecycle state-machine admissibility reasons. Returned in `reason` and consumed by audit and tests; the API converts them into stable codes before any response. Translating them would break audit correlation while never reaching a screen.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-db-migration-internal-reasons",
+      "path": "services/api/src/db-migration-execution.ts",
+      "rule": "*",
+      "textPattern": "^(?:backup en phase \\{…\\}|backup non abouti avant \\{…\\} ms \\(phase=\\{…\\}\\)|inconnue|moteur \\{…\\} : pas de DDL transactionnel, un échec partiel ne serait pas annulable|une migration est déjà active sur \\{…\\}/\\{…\\}|backup refusé par le provisionneur — aucune instruction exécutée|le backup n'a pas pu être lancé — migration refusée, la base est intacte|backup non vérifié|backup non vérifié \\(\\{…\\}\\) — migration refusée, aucune instruction exécutée|aboutissement non observé|migration annulée, base inchangée : \\{…\\}|COMMIT non confirmé — état de la base indéterminé, reprise manuelle requise|COMMIT non confirmé : l'état du schéma est indéterminé, reprise manuelle requise)$",
+      "justification": "Technical reasons of the publish-migration state machine. Written to DBMigrationExecution.error and to the audit entry, and returned to the caller only under `detail`; the rendered message now comes from the catalogue, keyed on the stable MIGRATION_* code. Translating these would break audit correlation with the recorded state.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-database-provisioner-internal",
+      "path": "services/api/src/database-provisioner.ts",
+      "rule": "*",
+      "textPattern": "^(?:\\{…\\}:production|provisionneur inactif : aucun backup réel|SHARED_TENANT_UNAVAILABLE|Backup CR \\{…\\} introuvable|manager (?:apply|get|getSecret) failed: \\{…\\})$",
+      "justification": "Provisioner-internal identifiers and operator diagnostics (Kubernetes CR names, manager call failures, a resource key). They reach logs and audit, never a screen; the API converts provisioner failures into stable codes before answering.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
     }
   ]
 }

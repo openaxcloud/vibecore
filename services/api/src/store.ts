@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
 export interface UserRecord {
   id: string;
@@ -49,6 +50,8 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
+  /** Last authenticated activity; drives the idle timeout. Null ⇒ use createdAt. */
+  lastActiveAt?: string | null;
   /** Set when an admin is impersonating another user; value = admin's user id. */
   impersonatedBy?: string;
 }
@@ -1276,6 +1279,8 @@ export interface ApiStore {
   listSessions(userId: string): Promise<SessionRecord[]>;
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
+  /** Refresh a session's lastActiveAt (idle-timeout heartbeat); throttled write. */
+  touchSession(sessionId: string, nowMs: number, throttleMs?: number): Promise<void>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
   createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }): Promise<void>;
   consumeEmailVerification(token: string): Promise<UserRecord | undefined>;
@@ -1284,6 +1289,16 @@ export interface ApiStore {
   setRecoveryCodes(userId: string, codeHashes: string[]): Promise<RecoveryCodeRecord[]>;
   consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean>;
   countUnusedRecoveryCodes(userId: string): Promise<number>;
+
+  /*
+   * Per-account brute-force lock (login-throttle). getLoginLockout reads the
+   * current state; recordFailedLogin atomically increments the failed counter
+   * (serialized per-user so concurrent attempts can't race it) and returns the
+   * new state; clearLoginLockout resets it on a successful login.
+   */
+  getLoginLockout(userId: string): Promise<LoginLockoutState | undefined>;
+  recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState>;
+  clearLoginLockout(userId: string): Promise<void>;
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;
@@ -1393,6 +1408,48 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Checkpoint PROJET coordonné (plan §15). */
+  createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      /** Barrier lease deadline; `null` thaws. Persisted so ALL replicas see it. */
+      barrierExpiresAt?: string | null;
+    },
+  ): Promise<void>;
+  /**
+   * The write barrier in force for a project, read from the DATABASE so every
+   * API replica observes it (an in-process barrier freezes only its own pod).
+   * Rows whose lease has expired are treated as thawed — expiry is the
+   * guaranteed thaw when the orchestrating process dies mid-checkpoint.
+   */
+  getActiveCheckpointBarrier(
+    projectId: string,
+  ): Promise<{ checkpointId: string; barrierId: string; expiresAt: string } | undefined>;
+  getProjectCheckpoint(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        state: string;
+        logicalBarrierId?: string;
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
+
   /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
   createRemixJob(input: {
     sourceProjectId: string;
@@ -1822,6 +1879,68 @@ export interface ApiStore {
    * database-rollback-service.ts + migration 0040.
    */
   getDatabaseInstanceByProject(projectId: string, environment?: string): Promise<DatabaseInstanceRecord | undefined>;
+  /**
+   * Exécution de migration au Publish (P0-V3-11, CTR-DATABASE).
+   *
+   * `activeLock` porte le verrou « une seule migration active par (projet,
+   * environnement) » via un index UNIQUE : l'insertion d'une 2e migration
+   * concurrente ÉCHOUE côté base (P2002/23505). C'est volontaire — un contrôle
+   * applicatif « lister puis décider » laisse une fenêtre de course et ne voit
+   * pas les autres replicas de l'API.
+   */
+  createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateMigrationExecution(
+    id: string,
+    patch: {
+      state?: string;
+      /** `null` LIBÈRE le verrou ; l'omettre le laisse tel quel. */
+      activeLock?: string | null;
+      backupId?: string;
+      backupVerifiedAt?: string;
+      backupVerificationMethod?: string;
+      appliedStatements?: number;
+      error?: string;
+      completedAt?: string;
+    },
+  ): Promise<void>;
+  /** Rejouer une clé déjà vue renvoie l'exécution existante — jamais un ré-apply. */
+  getMigrationExecutionByIdempotencyKey(
+    projectId: string,
+    idempotencyKey: string,
+  ): Promise<{ id: string; state: string; appliedStatements: number } | undefined>;
+  getMigrationExecution(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        environment: string;
+        state: string;
+        idempotencyKey: string;
+        backupId?: string;
+        backupVerifiedAt?: string;
+        backupVerificationMethod?: string;
+        statementCount: number;
+        appliedStatements: number;
+        backwardCompatible: string;
+        forwardCompatible: string;
+        error?: string;
+        startedAt: string;
+        completedAt?: string;
+      }
+    | undefined
+  >;
   listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
   listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
   createDatabaseRestore(input: {
@@ -1902,6 +2021,19 @@ export interface ApiStore {
         organizationId?: string;
         /** Plan de l'org, uniquement si l'abonnement est ACTIF. */
         planKey?: string;
+        /*
+         * P104: the metadata JSON so the static-serve path can read the access
+         * config (metadata.access) without a second query.
+         *
+         * REQUIRED for the gate to work at all. `accessConfigFromMetadata`
+         * treats an absent `access` key as PUBLIC (the legitimate default for a
+         * deployment that was never gated), so if this field silently stops
+         * being selected, every password-protected deployment is served openly
+         * with no error anywhere. That exact fail-open happened when P104 was
+         * reverted from main and re-applied: the call sites came back, this
+         * contract did not. Covered by deployment-password.spec.ts.
+         */
+        metadata?: Record<string, unknown>;
       }
     | undefined
   >;

@@ -132,68 +132,43 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc mobile Terminal/en-tête GELÉ. Re-scellée deux fois, et
-     * seulement sur une modification autorisée par le propriétaire :
+     * Empreinte du bloc GELÉ. Re-scellée à chaque évolution VÉRIFIÉE, jamais à
+     * l'aveugle : la procédure est de comparer la tranche
+     * [frozenStartOffset, frozenEndOffset) entre la branche et `origin/main`,
+     * et de n'accepter que des différences qu'on sait nommer.
      *
-     * 1. externalisation des libellés visibles vers le catalogue FR (étape 3/3) —
-     *    structure, mise en page et comportement inchangés, seul le texte
-     *    affiché passe par `t()` ;
-     * 2. demande d'Avi du 19/08 — la rangée du dock porte désormais TROIS
-     *    onglets fixes (Webview · Agent · Déploiement) au lieu de quatre, via
-     *    `ECODE_MOBILE_DEFAULT_TABS` passé en onglets épinglés à
-     *    `selectVisibleMobileBottomTabs`. L'onglet Terminal, lui, reste gelé :
-     *    c'est la composition de la rangée qui a été rouverte, pas le Terminal.
-     * 3. demande d'Avi du 20/08 (SCR-006) — la zone d'identité de l'en-tête
-     *    devient le déclencheur de la recherche : `<div>` → `<button>` portant
-     *    `aria-label` et l'ouverture de la palette. Mesuré live avant le
-     *    correctif : sur les coques mobile ET tablette, la palette n'était pas
-     *    dans le DOM, `Cmd+K` laissait le focus sur `BODY`, et le bouton du nom
-     *    de projet du bandeau bureau existait sans être visible. Le TEXTE
-     *    affiché et la mise en page ne changent pas — l'élément reste le même,
-     *    aux mêmes classes, et des règles CSS de spécificité supérieure
-     *    neutralisent les styles génériques de bouton de l'en-tête.
-     * 4. bug remonté par Avi (BUG-IDE-PANEL-REPROVISION-RELOAD-001, « ouvrir
-     *    certains panneaux recharge tout l'IDE ») — le Workbench mobile passe
-     *    en keep-alive : une fois ouvert il reste monté et n'est que masqué
-     *    (`.bolt-workbench-mobile-keepalive[data-active='false']`, visibility)
-     *    quand Agent/gestion/locks est actif, au lieu d'être démonté puis
-     *    remonté à froid à chaque retour (Suspense plein écran + relance de la
-     *    boucle de démarrage de la Preview → re-provisionnement du pod).
-     *    L'onglet Terminal (ShellPanel), l'en-tête et le dock sont inchangés :
-     *    seule la stratégie de montage du conteneur workbench change, dans la
-     *    même région de source. Voir mobile-workbench-keepalive.ts.
+     * Re-scellements successifs :
      *
-     * 5. bug remonté par Avi (BUG-MOB-PALETTE-KEYBOARD-001, « ouvrir un panneau
-     *    depuis la palette Commandes ne bascule pas la vue / la palette
-     *    reste », iPhone ~390 px) — le champ de recherche de la palette passe
-     *    de `autoFocus` inconditionnel à `autoFocus={commandPaletteAutoFocus}`.
-     *    Sur un appareil PUREMENT tactile, l'auto-focus levait le clavier
-     *    logiciel dès l'ouverture : il masque la moitié basse de la liste (la
-     *    feuille est en `position: fixed` ancrée au viewport de MISE EN PAGE,
-     *    que le clavier ne réduit pas) et, à sa fermeture, la mise en page se
-     *    ré-étale entre le toucher et le `click`, qui atterrit alors sur une
-     *    autre cible. Un pointeur fin (souris, trackpad — y compris tablette
-     *    avec clavier, cas voulu par SCR-006) garde l'auto-focus à l'identique.
-     *    Aucun texte, aucune classe, aucun élément ne change : seule la valeur
-     *    d'un attribut de comportement devient conditionnelle. Voir
-     *    `~/lib/command-palette-focus`.
+     *   1. externalisation des libellés visibles vers le catalogue FR (3/3) ;
+     *   2. RPL-IDE-001.8 — en-tête Spotlight dans la palette de commandes ;
+     *   3. BUG-IDE-PANEL-RESOLUTION-001, à la demande explicite du propriétaire
+     *      (« une seule source de vérité pour l'en-tête et le contenu ») :
+     *      `mobileServiceHeaderTab` ne dérive plus de `activeMobileOpenTabId`
+     *      — un état d'onglet monté tardivement — mais du panneau de service
+     *      RÉSOLU, celui-là même que rend le contenu. C'est ce décalage qui
+     *      affichait l'en-tête « Agent » au-dessus du contenu « Déploiements »,
+     *      et qui envoyait `?panel=studio` sur Vue d'ensemble et
+     *      `?panel=debugger` sur Git à froid.
      *
-     * 6. BUG-IDE-PANEL-RESOLUTION-001, corrigé À LA DEMANDE EXPLICITE du
-     *    propriétaire (« une seule source de vérité pour l'en-tête et le
-     *    contenu ») — `mobileServiceHeaderTab` ne dérive plus de
-     *    `activeMobileOpenTabId` (état d'onglet monté tardivement) mais du
-     *    panneau de service RÉSOLU, `activeMobileServicePanel`, celui-là même
-     *    que rend le contenu. C'est ce décalage qui affichait l'en-tête
-     *    « Agent » au-dessus du contenu « Déploiements », et qui envoyait
-     *    `?panel=studio` sur Vue d'ensemble / `?panel=debugger` sur Git à
-     *    froid. `mobileHeaderTab` — l'en-tête de la coque mobile gelée sur
-     *    IMG_9149 — n'est PAS touché : mêmes valeurs, mêmes classes, même
-     *    rendu. Seule la source du sous-en-tête de panneau de service change.
+     * Vérifié pour ce re-scellement : la tranche diffère de `origin/main`
+     * (f19699c3…) par 14 lignes, toutes dans ce seul hunk. `mobileHeaderTab` —
+     * l'en-tête de la coque mobile gelée — n'est PAS touché : mêmes valeurs,
+     * mêmes classes, même rendu.
      *
-     * Toute évolution du hash hors d'une demande explicite du propriétaire
-     * signale une dérive de mise en page à refuser.
+     * Toute évolution du hash hors de ces cas signale une dérive de mise en
+     * page à refuser.
      */
-    expect(frozenHash).toBe('b0eab6767c15193772baabb0f8ee5f55357889bbf96d4172a504ae21302b4b7a');
+    expect(frozenHash).toBe('aaf047770a225ef9be205c2a3f921ffaaa84d0b855e07db51762c5b9b70a99aa');
+
+    /*
+     * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
+     * décrite juste au-dessus, et non à l'aveugle : la tranche
+     * [frozenStartOffset, frozenEndOffset) de cette branche a été comparée à
+     * celle de `origin/main` (509abbb9…). Un SEUL hunk les sépare — l'en-tête
+     * Spotlight de RPL-IDE-001.8 et l'aria-label/data-mode qui le
+     * conditionnent. Le markup mobile Terminal/en-tête est identique à
+     * `origin/main` au caractère près.
+     */
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

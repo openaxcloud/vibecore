@@ -19,6 +19,14 @@ export type PrismaPromise<T> = $Public.PrismaPromise<T>
  */
 export type User = $Result.DefaultSelection<Prisma.$UserPayload>
 /**
+ * Model AccountLockout
+ * * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
+ *  * the per-IP login rate limit). One row per user; the failed-login counter is
+ *  * incremented atomically in a row-locked transaction so concurrent attempts can't
+ *  * race it. See login-throttle.ts for the pure state machine.
+ */
+export type AccountLockout = $Result.DefaultSelection<Prisma.$AccountLockoutPayload>
+/**
  * Model Account
  * 
  */
@@ -643,6 +651,14 @@ export type AgentRoutingCard = $Result.DefaultSelection<Prisma.$AgentRoutingCard
  */
 export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
 /**
+ * Model ProjectCheckpoint
+ * Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
+ * + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
+ * seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
+ * AgentCheckpoint (facturation par requête agent).
+ */
+export type ProjectCheckpoint = $Result.DefaultSelection<Prisma.$ProjectCheckpointPayload>
+/**
  * Model RemixJob
  * A secure project remix (fork) run. Tracks the normative state machine
  * (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
@@ -726,6 +742,15 @@ export type WorkspaceLifecycleEvent = $Result.DefaultSelection<Prisma.$Workspace
  * 
  */
 export type WorkspacePostMortem = $Result.DefaultSelection<Prisma.$WorkspacePostMortemPayload>
+/**
+ * Model DBMigrationExecution
+ * Exécution d'une migration de schéma sur la base d'un projet, au moment du
+ * Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
+ * données : cette table porte le verrou, la preuve de backup et la machine à
+ * états, en base et non en mémoire de processus — l'API tourne en 2..6 replicas
+ * (values-prod.yaml), donc un verrou in-process ne verrouille rien.
+ */
+export type DBMigrationExecution = $Result.DefaultSelection<Prisma.$DBMigrationExecutionPayload>
 
 /**
  * Enums
@@ -1167,6 +1192,16 @@ export class PrismaClient<
     * ```
     */
   get user(): Prisma.UserDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.accountLockout`: Exposes CRUD operations for the **AccountLockout** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AccountLockouts
+    * const accountLockouts = await prisma.accountLockout.findMany()
+    * ```
+    */
+  get accountLockout(): Prisma.AccountLockoutDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.account`: Exposes CRUD operations for the **Account** model.
@@ -2259,6 +2294,16 @@ export class PrismaClient<
   get agentCallLog(): Prisma.AgentCallLogDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectCheckpoint`: Exposes CRUD operations for the **ProjectCheckpoint** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectCheckpoints
+    * const projectCheckpoints = await prisma.projectCheckpoint.findMany()
+    * ```
+    */
+  get projectCheckpoint(): Prisma.ProjectCheckpointDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.remixJob`: Exposes CRUD operations for the **RemixJob** model.
     * Example usage:
     * ```ts
@@ -2377,6 +2422,16 @@ export class PrismaClient<
     * ```
     */
   get workspacePostMortem(): Prisma.WorkspacePostMortemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dBMigrationExecution`: Exposes CRUD operations for the **DBMigrationExecution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DBMigrationExecutions
+    * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany()
+    * ```
+    */
+  get dBMigrationExecution(): Prisma.DBMigrationExecutionDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2812,6 +2867,7 @@ export namespace Prisma {
 
   export const ModelName: {
     User: 'User',
+    AccountLockout: 'AccountLockout',
     Account: 'Account',
     Session: 'Session',
     Organization: 'Organization',
@@ -2921,6 +2977,7 @@ export namespace Prisma {
     ScheduledTaskRun: 'ScheduledTaskRun',
     AgentRoutingCard: 'AgentRoutingCard',
     AgentCallLog: 'AgentCallLog',
+    ProjectCheckpoint: 'ProjectCheckpoint',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
     GalleryListing: 'GalleryListing',
@@ -2932,7 +2989,8 @@ export namespace Prisma {
     LedgerReconciliationRun: 'LedgerReconciliationRun',
     PreviewReadinessBeacon: 'PreviewReadinessBeacon',
     WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
-    WorkspacePostMortem: 'WorkspacePostMortem'
+    WorkspacePostMortem: 'WorkspacePostMortem',
+    DBMigrationExecution: 'DBMigrationExecution'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2948,7 +3006,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -3023,6 +3081,80 @@ export namespace Prisma {
           count: {
             args: Prisma.UserCountArgs<ExtArgs>
             result: $Utils.Optional<UserCountAggregateOutputType> | number
+          }
+        }
+      }
+      AccountLockout: {
+        payload: Prisma.$AccountLockoutPayload<ExtArgs>
+        fields: Prisma.AccountLockoutFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AccountLockoutFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AccountLockoutFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          findFirst: {
+            args: Prisma.AccountLockoutFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AccountLockoutFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          findMany: {
+            args: Prisma.AccountLockoutFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          create: {
+            args: Prisma.AccountLockoutCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          createMany: {
+            args: Prisma.AccountLockoutCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AccountLockoutCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          delete: {
+            args: Prisma.AccountLockoutDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          update: {
+            args: Prisma.AccountLockoutUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          deleteMany: {
+            args: Prisma.AccountLockoutDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AccountLockoutUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AccountLockoutUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>[]
+          }
+          upsert: {
+            args: Prisma.AccountLockoutUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AccountLockoutPayload>
+          }
+          aggregate: {
+            args: Prisma.AccountLockoutAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAccountLockout>
+          }
+          groupBy: {
+            args: Prisma.AccountLockoutGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AccountLockoutGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AccountLockoutCountArgs<ExtArgs>
+            result: $Utils.Optional<AccountLockoutCountAggregateOutputType> | number
           }
         }
       }
@@ -11076,6 +11208,80 @@ export namespace Prisma {
           }
         }
       }
+      ProjectCheckpoint: {
+        payload: Prisma.$ProjectCheckpointPayload<ExtArgs>
+        fields: Prisma.ProjectCheckpointFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectCheckpointFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectCheckpointFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectCheckpointFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectCheckpointFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectCheckpointCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectCheckpointCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectCheckpointCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectCheckpointDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          update: {
+            args: Prisma.ProjectCheckpointUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectCheckpointDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectCheckpointUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectCheckpointUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectCheckpointAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectCheckpoint>
+          }
+          groupBy: {
+            args: Prisma.ProjectCheckpointGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectCheckpointGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectCheckpointCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectCheckpointCountAggregateOutputType> | number
+          }
+        }
+      }
       RemixJob: {
         payload: Prisma.$RemixJobPayload<ExtArgs>
         fields: Prisma.RemixJobFieldRefs
@@ -11964,6 +12170,80 @@ export namespace Prisma {
           }
         }
       }
+      DBMigrationExecution: {
+        payload: Prisma.$DBMigrationExecutionPayload<ExtArgs>
+        fields: Prisma.DBMigrationExecutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DBMigrationExecutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          findFirst: {
+            args: Prisma.DBMigrationExecutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          findMany: {
+            args: Prisma.DBMigrationExecutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          create: {
+            args: Prisma.DBMigrationExecutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          createMany: {
+            args: Prisma.DBMigrationExecutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          delete: {
+            args: Prisma.DBMigrationExecutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          update: {
+            args: Prisma.DBMigrationExecutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.DBMigrationExecutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DBMigrationExecutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          upsert: {
+            args: Prisma.DBMigrationExecutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          aggregate: {
+            args: Prisma.DBMigrationExecutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDBMigrationExecution>
+          }
+          groupBy: {
+            args: Prisma.DBMigrationExecutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DBMigrationExecutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DBMigrationExecutionCountArgs<ExtArgs>
+            result: $Utils.Optional<DBMigrationExecutionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -12073,6 +12353,7 @@ export namespace Prisma {
   }
   export type GlobalOmitConfig = {
     user?: UserOmit
+    accountLockout?: AccountLockoutOmit
     account?: AccountOmit
     session?: SessionOmit
     organization?: OrganizationOmit
@@ -12182,6 +12463,7 @@ export namespace Prisma {
     scheduledTaskRun?: ScheduledTaskRunOmit
     agentRoutingCard?: AgentRoutingCardOmit
     agentCallLog?: AgentCallLogOmit
+    projectCheckpoint?: ProjectCheckpointOmit
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
     galleryListing?: GalleryListingOmit
@@ -12194,6 +12476,7 @@ export namespace Prisma {
     previewReadinessBeacon?: PreviewReadinessBeaconOmit
     workspaceLifecycleEvent?: WorkspaceLifecycleEventOmit
     workspacePostMortem?: WorkspacePostMortemOmit
+    dBMigrationExecution?: DBMigrationExecutionOmit
   }
 
   /* Types for Logging */
@@ -14035,6 +14318,7 @@ export namespace Prisma {
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
+    loginLockout?: boolean | User$loginLockoutArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -14124,6 +14408,7 @@ export namespace Prisma {
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
+    loginLockout?: boolean | User$loginLockoutArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -14165,6 +14450,7 @@ export namespace Prisma {
       aiMessageFeedback: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
       spendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
       agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
+      loginLockout: Prisma.$AccountLockoutPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14608,6 +14894,7 @@ export namespace Prisma {
     aiMessageFeedback<T extends User$aiMessageFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, User$aiMessageFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     spendLimits<T extends User$spendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, User$spendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    loginLockout<T extends User$loginLockoutArgs<ExtArgs> = {}>(args?: Subset<T, User$loginLockoutArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -15831,6 +16118,25 @@ export namespace Prisma {
   }
 
   /**
+   * User.loginLockout
+   */
+  export type User$loginLockoutArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    where?: AccountLockoutWhereInput
+  }
+
+  /**
    * User without action
    */
   export type UserDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -15846,6 +16152,1103 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: UserInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AccountLockout
+   */
+
+  export type AggregateAccountLockout = {
+    _count: AccountLockoutCountAggregateOutputType | null
+    _avg: AccountLockoutAvgAggregateOutputType | null
+    _sum: AccountLockoutSumAggregateOutputType | null
+    _min: AccountLockoutMinAggregateOutputType | null
+    _max: AccountLockoutMaxAggregateOutputType | null
+  }
+
+  export type AccountLockoutAvgAggregateOutputType = {
+    failedCount: number | null
+  }
+
+  export type AccountLockoutSumAggregateOutputType = {
+    failedCount: number | null
+  }
+
+  export type AccountLockoutMinAggregateOutputType = {
+    userId: string | null
+    failedCount: number | null
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AccountLockoutMaxAggregateOutputType = {
+    userId: string | null
+    failedCount: number | null
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AccountLockoutCountAggregateOutputType = {
+    userId: number
+    failedCount: number
+    firstFailedAt: number
+    lockedUntil: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AccountLockoutAvgAggregateInputType = {
+    failedCount?: true
+  }
+
+  export type AccountLockoutSumAggregateInputType = {
+    failedCount?: true
+  }
+
+  export type AccountLockoutMinAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+  }
+
+  export type AccountLockoutMaxAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+  }
+
+  export type AccountLockoutCountAggregateInputType = {
+    userId?: true
+    failedCount?: true
+    firstFailedAt?: true
+    lockedUntil?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AccountLockoutAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AccountLockout to aggregate.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AccountLockouts
+    **/
+    _count?: true | AccountLockoutCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AccountLockoutAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AccountLockoutSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AccountLockoutMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AccountLockoutMaxAggregateInputType
+  }
+
+  export type GetAccountLockoutAggregateType<T extends AccountLockoutAggregateArgs> = {
+        [P in keyof T & keyof AggregateAccountLockout]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAccountLockout[P]>
+      : GetScalarType<T[P], AggregateAccountLockout[P]>
+  }
+
+
+
+
+  export type AccountLockoutGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AccountLockoutWhereInput
+    orderBy?: AccountLockoutOrderByWithAggregationInput | AccountLockoutOrderByWithAggregationInput[]
+    by: AccountLockoutScalarFieldEnum[] | AccountLockoutScalarFieldEnum
+    having?: AccountLockoutScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AccountLockoutCountAggregateInputType | true
+    _avg?: AccountLockoutAvgAggregateInputType
+    _sum?: AccountLockoutSumAggregateInputType
+    _min?: AccountLockoutMinAggregateInputType
+    _max?: AccountLockoutMaxAggregateInputType
+  }
+
+  export type AccountLockoutGroupByOutputType = {
+    userId: string
+    failedCount: number
+    firstFailedAt: Date | null
+    lockedUntil: Date | null
+    updatedAt: Date
+    _count: AccountLockoutCountAggregateOutputType | null
+    _avg: AccountLockoutAvgAggregateOutputType | null
+    _sum: AccountLockoutSumAggregateOutputType | null
+    _min: AccountLockoutMinAggregateOutputType | null
+    _max: AccountLockoutMaxAggregateOutputType | null
+  }
+
+  type GetAccountLockoutGroupByPayload<T extends AccountLockoutGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AccountLockoutGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AccountLockoutGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AccountLockoutGroupByOutputType[P]>
+            : GetScalarType<T[P], AccountLockoutGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AccountLockoutSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["accountLockout"]>
+
+  export type AccountLockoutSelectScalar = {
+    userId?: boolean
+    failedCount?: boolean
+    firstFailedAt?: boolean
+    lockedUntil?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AccountLockoutOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"userId" | "failedCount" | "firstFailedAt" | "lockedUntil" | "updatedAt", ExtArgs["result"]["accountLockout"]>
+  export type AccountLockoutInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AccountLockoutIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AccountLockoutIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $AccountLockoutPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AccountLockout"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      userId: string
+      failedCount: number
+      firstFailedAt: Date | null
+      lockedUntil: Date | null
+      updatedAt: Date
+    }, ExtArgs["result"]["accountLockout"]>
+    composites: {}
+  }
+
+  type AccountLockoutGetPayload<S extends boolean | null | undefined | AccountLockoutDefaultArgs> = $Result.GetResult<Prisma.$AccountLockoutPayload, S>
+
+  type AccountLockoutCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AccountLockoutFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AccountLockoutCountAggregateInputType | true
+    }
+
+  export interface AccountLockoutDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AccountLockout'], meta: { name: 'AccountLockout' } }
+    /**
+     * Find zero or one AccountLockout that matches the filter.
+     * @param {AccountLockoutFindUniqueArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AccountLockoutFindUniqueArgs>(args: SelectSubset<T, AccountLockoutFindUniqueArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AccountLockout that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AccountLockoutFindUniqueOrThrowArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AccountLockoutFindUniqueOrThrowArgs>(args: SelectSubset<T, AccountLockoutFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AccountLockout that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindFirstArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AccountLockoutFindFirstArgs>(args?: SelectSubset<T, AccountLockoutFindFirstArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AccountLockout that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindFirstOrThrowArgs} args - Arguments to find a AccountLockout
+     * @example
+     * // Get one AccountLockout
+     * const accountLockout = await prisma.accountLockout.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AccountLockoutFindFirstOrThrowArgs>(args?: SelectSubset<T, AccountLockoutFindFirstOrThrowArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AccountLockouts that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AccountLockouts
+     * const accountLockouts = await prisma.accountLockout.findMany()
+     * 
+     * // Get first 10 AccountLockouts
+     * const accountLockouts = await prisma.accountLockout.findMany({ take: 10 })
+     * 
+     * // Only select the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.findMany({ select: { userId: true } })
+     * 
+     */
+    findMany<T extends AccountLockoutFindManyArgs>(args?: SelectSubset<T, AccountLockoutFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AccountLockout.
+     * @param {AccountLockoutCreateArgs} args - Arguments to create a AccountLockout.
+     * @example
+     * // Create one AccountLockout
+     * const AccountLockout = await prisma.accountLockout.create({
+     *   data: {
+     *     // ... data to create a AccountLockout
+     *   }
+     * })
+     * 
+     */
+    create<T extends AccountLockoutCreateArgs>(args: SelectSubset<T, AccountLockoutCreateArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AccountLockouts.
+     * @param {AccountLockoutCreateManyArgs} args - Arguments to create many AccountLockouts.
+     * @example
+     * // Create many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AccountLockoutCreateManyArgs>(args?: SelectSubset<T, AccountLockoutCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AccountLockouts and returns the data saved in the database.
+     * @param {AccountLockoutCreateManyAndReturnArgs} args - Arguments to create many AccountLockouts.
+     * @example
+     * // Create many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AccountLockouts and only return the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.createManyAndReturn({
+     *   select: { userId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AccountLockoutCreateManyAndReturnArgs>(args?: SelectSubset<T, AccountLockoutCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AccountLockout.
+     * @param {AccountLockoutDeleteArgs} args - Arguments to delete one AccountLockout.
+     * @example
+     * // Delete one AccountLockout
+     * const AccountLockout = await prisma.accountLockout.delete({
+     *   where: {
+     *     // ... filter to delete one AccountLockout
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AccountLockoutDeleteArgs>(args: SelectSubset<T, AccountLockoutDeleteArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AccountLockout.
+     * @param {AccountLockoutUpdateArgs} args - Arguments to update one AccountLockout.
+     * @example
+     * // Update one AccountLockout
+     * const accountLockout = await prisma.accountLockout.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AccountLockoutUpdateArgs>(args: SelectSubset<T, AccountLockoutUpdateArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AccountLockouts.
+     * @param {AccountLockoutDeleteManyArgs} args - Arguments to filter AccountLockouts to delete.
+     * @example
+     * // Delete a few AccountLockouts
+     * const { count } = await prisma.accountLockout.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AccountLockoutDeleteManyArgs>(args?: SelectSubset<T, AccountLockoutDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AccountLockouts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AccountLockoutUpdateManyArgs>(args: SelectSubset<T, AccountLockoutUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AccountLockouts and returns the data updated in the database.
+     * @param {AccountLockoutUpdateManyAndReturnArgs} args - Arguments to update many AccountLockouts.
+     * @example
+     * // Update many AccountLockouts
+     * const accountLockout = await prisma.accountLockout.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AccountLockouts and only return the `userId`
+     * const accountLockoutWithUserIdOnly = await prisma.accountLockout.updateManyAndReturn({
+     *   select: { userId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AccountLockoutUpdateManyAndReturnArgs>(args: SelectSubset<T, AccountLockoutUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AccountLockout.
+     * @param {AccountLockoutUpsertArgs} args - Arguments to update or create a AccountLockout.
+     * @example
+     * // Update or create a AccountLockout
+     * const accountLockout = await prisma.accountLockout.upsert({
+     *   create: {
+     *     // ... data to create a AccountLockout
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AccountLockout we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AccountLockoutUpsertArgs>(args: SelectSubset<T, AccountLockoutUpsertArgs<ExtArgs>>): Prisma__AccountLockoutClient<$Result.GetResult<Prisma.$AccountLockoutPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AccountLockouts.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutCountArgs} args - Arguments to filter AccountLockouts to count.
+     * @example
+     * // Count the number of AccountLockouts
+     * const count = await prisma.accountLockout.count({
+     *   where: {
+     *     // ... the filter for the AccountLockouts we want to count
+     *   }
+     * })
+    **/
+    count<T extends AccountLockoutCountArgs>(
+      args?: Subset<T, AccountLockoutCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AccountLockoutCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AccountLockout.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AccountLockoutAggregateArgs>(args: Subset<T, AccountLockoutAggregateArgs>): Prisma.PrismaPromise<GetAccountLockoutAggregateType<T>>
+
+    /**
+     * Group by AccountLockout.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AccountLockoutGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AccountLockoutGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AccountLockoutGroupByArgs['orderBy'] }
+        : { orderBy?: AccountLockoutGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AccountLockoutGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAccountLockoutGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AccountLockout model
+   */
+  readonly fields: AccountLockoutFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AccountLockout.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AccountLockoutClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AccountLockout model
+   */
+  interface AccountLockoutFieldRefs {
+    readonly userId: FieldRef<"AccountLockout", 'String'>
+    readonly failedCount: FieldRef<"AccountLockout", 'Int'>
+    readonly firstFailedAt: FieldRef<"AccountLockout", 'DateTime'>
+    readonly lockedUntil: FieldRef<"AccountLockout", 'DateTime'>
+    readonly updatedAt: FieldRef<"AccountLockout", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AccountLockout findUnique
+   */
+  export type AccountLockoutFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout findUniqueOrThrow
+   */
+  export type AccountLockoutFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout findFirst
+   */
+  export type AccountLockoutFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout findFirstOrThrow
+   */
+  export type AccountLockoutFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockout to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout findMany
+   */
+  export type AccountLockoutFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter, which AccountLockouts to fetch.
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AccountLockouts to fetch.
+     */
+    orderBy?: AccountLockoutOrderByWithRelationInput | AccountLockoutOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AccountLockouts.
+     */
+    cursor?: AccountLockoutWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AccountLockouts from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AccountLockouts.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AccountLockouts.
+     */
+    distinct?: AccountLockoutScalarFieldEnum | AccountLockoutScalarFieldEnum[]
+  }
+
+  /**
+   * AccountLockout create
+   */
+  export type AccountLockoutCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AccountLockout.
+     */
+    data: XOR<AccountLockoutCreateInput, AccountLockoutUncheckedCreateInput>
+  }
+
+  /**
+   * AccountLockout createMany
+   */
+  export type AccountLockoutCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AccountLockouts.
+     */
+    data: AccountLockoutCreateManyInput | AccountLockoutCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AccountLockout createManyAndReturn
+   */
+  export type AccountLockoutCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * The data used to create many AccountLockouts.
+     */
+    data: AccountLockoutCreateManyInput | AccountLockoutCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AccountLockout update
+   */
+  export type AccountLockoutUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AccountLockout.
+     */
+    data: XOR<AccountLockoutUpdateInput, AccountLockoutUncheckedUpdateInput>
+    /**
+     * Choose, which AccountLockout to update.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout updateMany
+   */
+  export type AccountLockoutUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AccountLockouts.
+     */
+    data: XOR<AccountLockoutUpdateManyMutationInput, AccountLockoutUncheckedUpdateManyInput>
+    /**
+     * Filter which AccountLockouts to update
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AccountLockout updateManyAndReturn
+   */
+  export type AccountLockoutUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * The data used to update AccountLockouts.
+     */
+    data: XOR<AccountLockoutUpdateManyMutationInput, AccountLockoutUncheckedUpdateManyInput>
+    /**
+     * Filter which AccountLockouts to update
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AccountLockout upsert
+   */
+  export type AccountLockoutUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AccountLockout to update in case it exists.
+     */
+    where: AccountLockoutWhereUniqueInput
+    /**
+     * In case the AccountLockout found by the `where` argument doesn't exist, create a new AccountLockout with this data.
+     */
+    create: XOR<AccountLockoutCreateInput, AccountLockoutUncheckedCreateInput>
+    /**
+     * In case the AccountLockout was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AccountLockoutUpdateInput, AccountLockoutUncheckedUpdateInput>
+  }
+
+  /**
+   * AccountLockout delete
+   */
+  export type AccountLockoutDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
+    /**
+     * Filter which AccountLockout to delete.
+     */
+    where: AccountLockoutWhereUniqueInput
+  }
+
+  /**
+   * AccountLockout deleteMany
+   */
+  export type AccountLockoutDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AccountLockouts to delete
+     */
+    where?: AccountLockoutWhereInput
+    /**
+     * Limit how many AccountLockouts to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AccountLockout without action
+   */
+  export type AccountLockoutDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AccountLockout
+     */
+    select?: AccountLockoutSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AccountLockout
+     */
+    omit?: AccountLockoutOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AccountLockoutInclude<ExtArgs> | null
   }
 
 
@@ -16931,6 +18334,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -16946,6 +18350,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -16961,6 +18366,7 @@ export namespace Prisma {
     rotatedAt: number
     revokedAt: number
     lastReauthAt: number
+    lastActiveAt: number
     impersonatedBy: number
     ipAddress: number
     userAgent: number
@@ -16978,6 +18384,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -16993,6 +18400,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -17008,6 +18416,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -17096,6 +18505,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -17128,6 +18538,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -17144,6 +18555,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -17160,6 +18572,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -17176,13 +18589,14 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
   }
 
-  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
+  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "lastActiveAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -17207,6 +18621,7 @@ export namespace Prisma {
       rotatedAt: Date | null
       revokedAt: Date | null
       lastReauthAt: Date | null
+      lastActiveAt: Date | null
       impersonatedBy: string | null
       ipAddress: string | null
       userAgent: string | null
@@ -17643,6 +19058,7 @@ export namespace Prisma {
     readonly rotatedAt: FieldRef<"Session", 'DateTime'>
     readonly revokedAt: FieldRef<"Session", 'DateTime'>
     readonly lastReauthAt: FieldRef<"Session", 'DateTime'>
+    readonly lastActiveAt: FieldRef<"Session", 'DateTime'>
     readonly impersonatedBy: FieldRef<"Session", 'String'>
     readonly ipAddress: FieldRef<"Session", 'String'>
     readonly userAgent: FieldRef<"Session", 'String'>
@@ -140680,6 +142096,1108 @@ export namespace Prisma {
 
 
   /**
+   * Model ProjectCheckpoint
+   */
+
+  export type AggregateProjectCheckpoint = {
+    _count: ProjectCheckpointCountAggregateOutputType | null
+    _min: ProjectCheckpointMinAggregateOutputType | null
+    _max: ProjectCheckpointMaxAggregateOutputType | null
+  }
+
+  export type ProjectCheckpointMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    state: string | null
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    barrierExpiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectCheckpointMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    state: string | null
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    barrierExpiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectCheckpointCountAggregateOutputType = {
+    id: number
+    projectId: number
+    state: number
+    logicalBarrierId: number
+    consistencyLevel: number
+    manifest: number
+    error: number
+    expiresAt: number
+    createdByUserId: number
+    barrierExpiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectCheckpointMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectCheckpointMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectCheckpointCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    manifest?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectCheckpointAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectCheckpoint to aggregate.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectCheckpoints
+    **/
+    _count?: true | ProjectCheckpointCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectCheckpointMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectCheckpointMaxAggregateInputType
+  }
+
+  export type GetProjectCheckpointAggregateType<T extends ProjectCheckpointAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectCheckpoint]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectCheckpoint[P]>
+      : GetScalarType<T[P], AggregateProjectCheckpoint[P]>
+  }
+
+
+
+
+  export type ProjectCheckpointGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectCheckpointWhereInput
+    orderBy?: ProjectCheckpointOrderByWithAggregationInput | ProjectCheckpointOrderByWithAggregationInput[]
+    by: ProjectCheckpointScalarFieldEnum[] | ProjectCheckpointScalarFieldEnum
+    having?: ProjectCheckpointScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectCheckpointCountAggregateInputType | true
+    _min?: ProjectCheckpointMinAggregateInputType
+    _max?: ProjectCheckpointMaxAggregateInputType
+  }
+
+  export type ProjectCheckpointGroupByOutputType = {
+    id: string
+    projectId: string
+    state: string
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    manifest: JsonValue | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    barrierExpiresAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectCheckpointCountAggregateOutputType | null
+    _min: ProjectCheckpointMinAggregateOutputType | null
+    _max: ProjectCheckpointMaxAggregateOutputType | null
+  }
+
+  type GetProjectCheckpointGroupByPayload<T extends ProjectCheckpointGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectCheckpointGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectCheckpointGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectCheckpointGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectCheckpointGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectCheckpointSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectCheckpointOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "state" | "logicalBarrierId" | "consistencyLevel" | "manifest" | "error" | "expiresAt" | "createdByUserId" | "barrierExpiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectCheckpoint"]>
+
+  export type $ProjectCheckpointPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectCheckpoint"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      state: string
+      logicalBarrierId: string | null
+      /**
+       * crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
+       * would require quiescing the in-pod writers (dev server, terminal, agent),
+       * which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
+       */
+      consistencyLevel: string | null
+      /**
+       * { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
+       */
+      manifest: Prisma.JsonValue | null
+      error: string | null
+      expiresAt: Date | null
+      createdByUserId: string | null
+      /**
+       * Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
+       * process memory: the API runs 2..6 replicas (values-prod.yaml), so an
+       * in-process barrier is invisible to the other replicas and freezes nothing.
+       * A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
+       * process holding the checkpoint dies mid-flight.
+       */
+      barrierExpiresAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectCheckpoint"]>
+    composites: {}
+  }
+
+  type ProjectCheckpointGetPayload<S extends boolean | null | undefined | ProjectCheckpointDefaultArgs> = $Result.GetResult<Prisma.$ProjectCheckpointPayload, S>
+
+  type ProjectCheckpointCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectCheckpointFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectCheckpointCountAggregateInputType | true
+    }
+
+  export interface ProjectCheckpointDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectCheckpoint'], meta: { name: 'ProjectCheckpoint' } }
+    /**
+     * Find zero or one ProjectCheckpoint that matches the filter.
+     * @param {ProjectCheckpointFindUniqueArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectCheckpointFindUniqueArgs>(args: SelectSubset<T, ProjectCheckpointFindUniqueArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectCheckpoint that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectCheckpointFindUniqueOrThrowArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectCheckpointFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectCheckpoint that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindFirstArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectCheckpointFindFirstArgs>(args?: SelectSubset<T, ProjectCheckpointFindFirstArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectCheckpoint that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindFirstOrThrowArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectCheckpointFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectCheckpointFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectCheckpoints that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectCheckpoints
+     * const projectCheckpoints = await prisma.projectCheckpoint.findMany()
+     * 
+     * // Get first 10 ProjectCheckpoints
+     * const projectCheckpoints = await prisma.projectCheckpoint.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectCheckpointFindManyArgs>(args?: SelectSubset<T, ProjectCheckpointFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectCheckpoint.
+     * @param {ProjectCheckpointCreateArgs} args - Arguments to create a ProjectCheckpoint.
+     * @example
+     * // Create one ProjectCheckpoint
+     * const ProjectCheckpoint = await prisma.projectCheckpoint.create({
+     *   data: {
+     *     // ... data to create a ProjectCheckpoint
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectCheckpointCreateArgs>(args: SelectSubset<T, ProjectCheckpointCreateArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectCheckpoints.
+     * @param {ProjectCheckpointCreateManyArgs} args - Arguments to create many ProjectCheckpoints.
+     * @example
+     * // Create many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectCheckpointCreateManyArgs>(args?: SelectSubset<T, ProjectCheckpointCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectCheckpoints and returns the data saved in the database.
+     * @param {ProjectCheckpointCreateManyAndReturnArgs} args - Arguments to create many ProjectCheckpoints.
+     * @example
+     * // Create many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectCheckpoints and only return the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectCheckpointCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectCheckpointCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectCheckpoint.
+     * @param {ProjectCheckpointDeleteArgs} args - Arguments to delete one ProjectCheckpoint.
+     * @example
+     * // Delete one ProjectCheckpoint
+     * const ProjectCheckpoint = await prisma.projectCheckpoint.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectCheckpoint
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectCheckpointDeleteArgs>(args: SelectSubset<T, ProjectCheckpointDeleteArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectCheckpoint.
+     * @param {ProjectCheckpointUpdateArgs} args - Arguments to update one ProjectCheckpoint.
+     * @example
+     * // Update one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectCheckpointUpdateArgs>(args: SelectSubset<T, ProjectCheckpointUpdateArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectCheckpoints.
+     * @param {ProjectCheckpointDeleteManyArgs} args - Arguments to filter ProjectCheckpoints to delete.
+     * @example
+     * // Delete a few ProjectCheckpoints
+     * const { count } = await prisma.projectCheckpoint.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectCheckpointDeleteManyArgs>(args?: SelectSubset<T, ProjectCheckpointDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectCheckpoints.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectCheckpointUpdateManyArgs>(args: SelectSubset<T, ProjectCheckpointUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectCheckpoints and returns the data updated in the database.
+     * @param {ProjectCheckpointUpdateManyAndReturnArgs} args - Arguments to update many ProjectCheckpoints.
+     * @example
+     * // Update many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectCheckpoints and only return the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectCheckpointUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectCheckpoint.
+     * @param {ProjectCheckpointUpsertArgs} args - Arguments to update or create a ProjectCheckpoint.
+     * @example
+     * // Update or create a ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.upsert({
+     *   create: {
+     *     // ... data to create a ProjectCheckpoint
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectCheckpoint we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectCheckpointUpsertArgs>(args: SelectSubset<T, ProjectCheckpointUpsertArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectCheckpoints.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointCountArgs} args - Arguments to filter ProjectCheckpoints to count.
+     * @example
+     * // Count the number of ProjectCheckpoints
+     * const count = await prisma.projectCheckpoint.count({
+     *   where: {
+     *     // ... the filter for the ProjectCheckpoints we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectCheckpointCountArgs>(
+      args?: Subset<T, ProjectCheckpointCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectCheckpointCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectCheckpoint.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectCheckpointAggregateArgs>(args: Subset<T, ProjectCheckpointAggregateArgs>): Prisma.PrismaPromise<GetProjectCheckpointAggregateType<T>>
+
+    /**
+     * Group by ProjectCheckpoint.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectCheckpointGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectCheckpointGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectCheckpointGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectCheckpointGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectCheckpointGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectCheckpoint model
+   */
+  readonly fields: ProjectCheckpointFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectCheckpoint.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectCheckpointClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectCheckpoint model
+   */
+  interface ProjectCheckpointFieldRefs {
+    readonly id: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly projectId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly state: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly logicalBarrierId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly consistencyLevel: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly manifest: FieldRef<"ProjectCheckpoint", 'Json'>
+    readonly error: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly expiresAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly createdByUserId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly barrierExpiresAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectCheckpoint findUnique
+   */
+  export type ProjectCheckpointFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint findUniqueOrThrow
+   */
+  export type ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint findFirst
+   */
+  export type ProjectCheckpointFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint findFirstOrThrow
+   */
+  export type ProjectCheckpointFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint findMany
+   */
+  export type ProjectCheckpointFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoints to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint create
+   */
+  export type ProjectCheckpointCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectCheckpoint.
+     */
+    data: XOR<ProjectCheckpointCreateInput, ProjectCheckpointUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectCheckpoint createMany
+   */
+  export type ProjectCheckpointCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectCheckpoints.
+     */
+    data: ProjectCheckpointCreateManyInput | ProjectCheckpointCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectCheckpoint createManyAndReturn
+   */
+  export type ProjectCheckpointCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectCheckpoints.
+     */
+    data: ProjectCheckpointCreateManyInput | ProjectCheckpointCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectCheckpoint update
+   */
+  export type ProjectCheckpointUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectCheckpoint.
+     */
+    data: XOR<ProjectCheckpointUpdateInput, ProjectCheckpointUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectCheckpoint to update.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint updateMany
+   */
+  export type ProjectCheckpointUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectCheckpoints.
+     */
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectCheckpoints to update
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectCheckpoint updateManyAndReturn
+   */
+  export type ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectCheckpoints.
+     */
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectCheckpoints to update
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectCheckpoint upsert
+   */
+  export type ProjectCheckpointUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectCheckpoint to update in case it exists.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+    /**
+     * In case the ProjectCheckpoint found by the `where` argument doesn't exist, create a new ProjectCheckpoint with this data.
+     */
+    create: XOR<ProjectCheckpointCreateInput, ProjectCheckpointUncheckedCreateInput>
+    /**
+     * In case the ProjectCheckpoint was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectCheckpointUpdateInput, ProjectCheckpointUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectCheckpoint delete
+   */
+  export type ProjectCheckpointDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Filter which ProjectCheckpoint to delete.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint deleteMany
+   */
+  export type ProjectCheckpointDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectCheckpoints to delete
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectCheckpoint without action
+   */
+  export type ProjectCheckpointDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model RemixJob
    */
 
@@ -154705,6 +157223,1285 @@ export namespace Prisma {
 
 
   /**
+   * Model DBMigrationExecution
+   */
+
+  export type AggregateDBMigrationExecution = {
+    _count: DBMigrationExecutionCountAggregateOutputType | null
+    _avg: DBMigrationExecutionAvgAggregateOutputType | null
+    _sum: DBMigrationExecutionSumAggregateOutputType | null
+    _min: DBMigrationExecutionMinAggregateOutputType | null
+    _max: DBMigrationExecutionMaxAggregateOutputType | null
+  }
+
+  export type DBMigrationExecutionAvgAggregateOutputType = {
+    statementCount: number | null
+    appliedStatements: number | null
+  }
+
+  export type DBMigrationExecutionSumAggregateOutputType = {
+    statementCount: number | null
+    appliedStatements: number | null
+  }
+
+  export type DBMigrationExecutionMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    state: string | null
+    idempotencyKey: string | null
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string | null
+    forwardCompatible: string | null
+    statementsSha256: string | null
+    statementCount: number | null
+    appliedStatements: number | null
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DBMigrationExecutionMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    state: string | null
+    idempotencyKey: string | null
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string | null
+    forwardCompatible: string | null
+    statementsSha256: string | null
+    statementCount: number | null
+    appliedStatements: number | null
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DBMigrationExecutionCountAggregateOutputType = {
+    id: number
+    projectId: number
+    organizationId: number
+    environment: number
+    state: number
+    idempotencyKey: number
+    activeLock: number
+    backupId: number
+    backupVerifiedAt: number
+    backupVerificationMethod: number
+    backwardCompatible: number
+    forwardCompatible: number
+    statementsSha256: number
+    statementCount: number
+    appliedStatements: number
+    deploymentId: number
+    createdByUserId: number
+    error: number
+    startedAt: number
+    completedAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type DBMigrationExecutionAvgAggregateInputType = {
+    statementCount?: true
+    appliedStatements?: true
+  }
+
+  export type DBMigrationExecutionSumAggregateInputType = {
+    statementCount?: true
+    appliedStatements?: true
+  }
+
+  export type DBMigrationExecutionMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+  }
+
+  export type DBMigrationExecutionMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+  }
+
+  export type DBMigrationExecutionCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type DBMigrationExecutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DBMigrationExecution to aggregate.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DBMigrationExecutions
+    **/
+    _count?: true | DBMigrationExecutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DBMigrationExecutionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DBMigrationExecutionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DBMigrationExecutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DBMigrationExecutionMaxAggregateInputType
+  }
+
+  export type GetDBMigrationExecutionAggregateType<T extends DBMigrationExecutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateDBMigrationExecution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDBMigrationExecution[P]>
+      : GetScalarType<T[P], AggregateDBMigrationExecution[P]>
+  }
+
+
+
+
+  export type DBMigrationExecutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DBMigrationExecutionWhereInput
+    orderBy?: DBMigrationExecutionOrderByWithAggregationInput | DBMigrationExecutionOrderByWithAggregationInput[]
+    by: DBMigrationExecutionScalarFieldEnum[] | DBMigrationExecutionScalarFieldEnum
+    having?: DBMigrationExecutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DBMigrationExecutionCountAggregateInputType | true
+    _avg?: DBMigrationExecutionAvgAggregateInputType
+    _sum?: DBMigrationExecutionSumAggregateInputType
+    _min?: DBMigrationExecutionMinAggregateInputType
+    _max?: DBMigrationExecutionMaxAggregateInputType
+  }
+
+  export type DBMigrationExecutionGroupByOutputType = {
+    id: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state: string
+    idempotencyKey: string
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string
+    forwardCompatible: string
+    statementsSha256: string | null
+    statementCount: number
+    appliedStatements: number
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date
+    completedAt: Date | null
+    updatedAt: Date
+    _count: DBMigrationExecutionCountAggregateOutputType | null
+    _avg: DBMigrationExecutionAvgAggregateOutputType | null
+    _sum: DBMigrationExecutionSumAggregateOutputType | null
+    _min: DBMigrationExecutionMinAggregateOutputType | null
+    _max: DBMigrationExecutionMaxAggregateOutputType | null
+  }
+
+  type GetDBMigrationExecutionGroupByPayload<T extends DBMigrationExecutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DBMigrationExecutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DBMigrationExecutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DBMigrationExecutionGroupByOutputType[P]>
+            : GetScalarType<T[P], DBMigrationExecutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DBMigrationExecutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type DBMigrationExecutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "state" | "idempotencyKey" | "activeLock" | "backupId" | "backupVerifiedAt" | "backupVerificationMethod" | "backwardCompatible" | "forwardCompatible" | "statementsSha256" | "statementCount" | "appliedStatements" | "deploymentId" | "createdByUserId" | "error" | "startedAt" | "completedAt" | "updatedAt", ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type $DBMigrationExecutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DBMigrationExecution"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      organizationId: string
+      /**
+       * development | production — le verrou est par ENVIRONNEMENT (I-MIG-2).
+       */
+      environment: string
+      /**
+       * PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
+       * échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
+       */
+      state: string
+      /**
+       * Rejouer la même clé ne ré-applique JAMAIS la migration : la ligne existante
+       * est renvoyée telle quelle (unique avec projectId).
+       */
+      idempotencyKey: string
+      /**
+       * LE VERROU (I-MIG-2). Vaut `<projectId>:<environment>` tant que l'exécution
+       * est active, puis repasse à NULL en état terminal. Un index UNIQUE porte
+       * dessus : Postgres considérant les NULL comme distincts, autant de lignes
+       * terminées qu'on veut coexistent, mais une SEULE active par (projet, env).
+       * C'est le SGBD qui refuse la 2e migration concurrente, pas une vérification
+       * applicative sujette aux courses entre replicas.
+       */
+      activeLock: string | null
+      /**
+       * Preuve de backup (I-MIG-1). `backupVerifiedAt` n'est renseigné qu'après
+       * observation de l'ABOUTISSEMENT du backup, jamais à la soumission du CR.
+       */
+      backupId: string | null
+      backupVerifiedAt: Date | null
+      /**
+       * COMMENT la vérification a été faite — un booléen seul laisserait croire à
+       * une preuve qui n'a pas eu lieu.
+       */
+      backupVerificationMethod: string | null
+      /**
+       * Compatibilité DÉCLARÉE, jamais supposée (I-MIG-3) : true | false | UNKNOWN.
+       */
+      backwardCompatible: string
+      forwardCompatible: string
+      /**
+       * Empreinte des instructions planifiées + nombre réellement appliqué.
+       */
+      statementsSha256: string | null
+      statementCount: number
+      appliedStatements: number
+      deploymentId: string | null
+      createdByUserId: string | null
+      error: string | null
+      startedAt: Date
+      completedAt: Date | null
+      updatedAt: Date
+    }, ExtArgs["result"]["dBMigrationExecution"]>
+    composites: {}
+  }
+
+  type DBMigrationExecutionGetPayload<S extends boolean | null | undefined | DBMigrationExecutionDefaultArgs> = $Result.GetResult<Prisma.$DBMigrationExecutionPayload, S>
+
+  type DBMigrationExecutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DBMigrationExecutionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DBMigrationExecutionCountAggregateInputType | true
+    }
+
+  export interface DBMigrationExecutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DBMigrationExecution'], meta: { name: 'DBMigrationExecution' } }
+    /**
+     * Find zero or one DBMigrationExecution that matches the filter.
+     * @param {DBMigrationExecutionFindUniqueArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DBMigrationExecutionFindUniqueArgs>(args: SelectSubset<T, DBMigrationExecutionFindUniqueArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DBMigrationExecution that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DBMigrationExecutionFindUniqueOrThrowArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DBMigrationExecutionFindUniqueOrThrowArgs>(args: SelectSubset<T, DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DBMigrationExecution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindFirstArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DBMigrationExecutionFindFirstArgs>(args?: SelectSubset<T, DBMigrationExecutionFindFirstArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DBMigrationExecution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindFirstOrThrowArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DBMigrationExecutionFindFirstOrThrowArgs>(args?: SelectSubset<T, DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DBMigrationExecutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DBMigrationExecutions
+     * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany()
+     * 
+     * // Get first 10 DBMigrationExecutions
+     * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DBMigrationExecutionFindManyArgs>(args?: SelectSubset<T, DBMigrationExecutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DBMigrationExecution.
+     * @param {DBMigrationExecutionCreateArgs} args - Arguments to create a DBMigrationExecution.
+     * @example
+     * // Create one DBMigrationExecution
+     * const DBMigrationExecution = await prisma.dBMigrationExecution.create({
+     *   data: {
+     *     // ... data to create a DBMigrationExecution
+     *   }
+     * })
+     * 
+     */
+    create<T extends DBMigrationExecutionCreateArgs>(args: SelectSubset<T, DBMigrationExecutionCreateArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DBMigrationExecutions.
+     * @param {DBMigrationExecutionCreateManyArgs} args - Arguments to create many DBMigrationExecutions.
+     * @example
+     * // Create many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DBMigrationExecutionCreateManyArgs>(args?: SelectSubset<T, DBMigrationExecutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DBMigrationExecutions and returns the data saved in the database.
+     * @param {DBMigrationExecutionCreateManyAndReturnArgs} args - Arguments to create many DBMigrationExecutions.
+     * @example
+     * // Create many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DBMigrationExecutions and only return the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DBMigrationExecutionCreateManyAndReturnArgs>(args?: SelectSubset<T, DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DBMigrationExecution.
+     * @param {DBMigrationExecutionDeleteArgs} args - Arguments to delete one DBMigrationExecution.
+     * @example
+     * // Delete one DBMigrationExecution
+     * const DBMigrationExecution = await prisma.dBMigrationExecution.delete({
+     *   where: {
+     *     // ... filter to delete one DBMigrationExecution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DBMigrationExecutionDeleteArgs>(args: SelectSubset<T, DBMigrationExecutionDeleteArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DBMigrationExecution.
+     * @param {DBMigrationExecutionUpdateArgs} args - Arguments to update one DBMigrationExecution.
+     * @example
+     * // Update one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DBMigrationExecutionUpdateArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DBMigrationExecutions.
+     * @param {DBMigrationExecutionDeleteManyArgs} args - Arguments to filter DBMigrationExecutions to delete.
+     * @example
+     * // Delete a few DBMigrationExecutions
+     * const { count } = await prisma.dBMigrationExecution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DBMigrationExecutionDeleteManyArgs>(args?: SelectSubset<T, DBMigrationExecutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DBMigrationExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DBMigrationExecutionUpdateManyArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DBMigrationExecutions and returns the data updated in the database.
+     * @param {DBMigrationExecutionUpdateManyAndReturnArgs} args - Arguments to update many DBMigrationExecutions.
+     * @example
+     * // Update many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DBMigrationExecutions and only return the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DBMigrationExecutionUpdateManyAndReturnArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DBMigrationExecution.
+     * @param {DBMigrationExecutionUpsertArgs} args - Arguments to update or create a DBMigrationExecution.
+     * @example
+     * // Update or create a DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.upsert({
+     *   create: {
+     *     // ... data to create a DBMigrationExecution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DBMigrationExecution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DBMigrationExecutionUpsertArgs>(args: SelectSubset<T, DBMigrationExecutionUpsertArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DBMigrationExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionCountArgs} args - Arguments to filter DBMigrationExecutions to count.
+     * @example
+     * // Count the number of DBMigrationExecutions
+     * const count = await prisma.dBMigrationExecution.count({
+     *   where: {
+     *     // ... the filter for the DBMigrationExecutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends DBMigrationExecutionCountArgs>(
+      args?: Subset<T, DBMigrationExecutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DBMigrationExecutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DBMigrationExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DBMigrationExecutionAggregateArgs>(args: Subset<T, DBMigrationExecutionAggregateArgs>): Prisma.PrismaPromise<GetDBMigrationExecutionAggregateType<T>>
+
+    /**
+     * Group by DBMigrationExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DBMigrationExecutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DBMigrationExecutionGroupByArgs['orderBy'] }
+        : { orderBy?: DBMigrationExecutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DBMigrationExecutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDBMigrationExecutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DBMigrationExecution model
+   */
+  readonly fields: DBMigrationExecutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DBMigrationExecution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DBMigrationExecutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DBMigrationExecution model
+   */
+  interface DBMigrationExecutionFieldRefs {
+    readonly id: FieldRef<"DBMigrationExecution", 'String'>
+    readonly projectId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly organizationId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly environment: FieldRef<"DBMigrationExecution", 'String'>
+    readonly state: FieldRef<"DBMigrationExecution", 'String'>
+    readonly idempotencyKey: FieldRef<"DBMigrationExecution", 'String'>
+    readonly activeLock: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backupId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backupVerifiedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly backupVerificationMethod: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backwardCompatible: FieldRef<"DBMigrationExecution", 'String'>
+    readonly forwardCompatible: FieldRef<"DBMigrationExecution", 'String'>
+    readonly statementsSha256: FieldRef<"DBMigrationExecution", 'String'>
+    readonly statementCount: FieldRef<"DBMigrationExecution", 'Int'>
+    readonly appliedStatements: FieldRef<"DBMigrationExecution", 'Int'>
+    readonly deploymentId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly createdByUserId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly error: FieldRef<"DBMigrationExecution", 'String'>
+    readonly startedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly completedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly updatedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DBMigrationExecution findUnique
+   */
+  export type DBMigrationExecutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution findUniqueOrThrow
+   */
+  export type DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution findFirst
+   */
+  export type DBMigrationExecutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution findFirstOrThrow
+   */
+  export type DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution findMany
+   */
+  export type DBMigrationExecutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecutions to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution create
+   */
+  export type DBMigrationExecutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data needed to create a DBMigrationExecution.
+     */
+    data: XOR<DBMigrationExecutionCreateInput, DBMigrationExecutionUncheckedCreateInput>
+  }
+
+  /**
+   * DBMigrationExecution createMany
+   */
+  export type DBMigrationExecutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DBMigrationExecutions.
+     */
+    data: DBMigrationExecutionCreateManyInput | DBMigrationExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DBMigrationExecution createManyAndReturn
+   */
+  export type DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to create many DBMigrationExecutions.
+     */
+    data: DBMigrationExecutionCreateManyInput | DBMigrationExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DBMigrationExecution update
+   */
+  export type DBMigrationExecutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data needed to update a DBMigrationExecution.
+     */
+    data: XOR<DBMigrationExecutionUpdateInput, DBMigrationExecutionUncheckedUpdateInput>
+    /**
+     * Choose, which DBMigrationExecution to update.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution updateMany
+   */
+  export type DBMigrationExecutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DBMigrationExecutions.
+     */
+    data: XOR<DBMigrationExecutionUpdateManyMutationInput, DBMigrationExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DBMigrationExecutions to update
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution updateManyAndReturn
+   */
+  export type DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to update DBMigrationExecutions.
+     */
+    data: XOR<DBMigrationExecutionUpdateManyMutationInput, DBMigrationExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DBMigrationExecutions to update
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution upsert
+   */
+  export type DBMigrationExecutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The filter to search for the DBMigrationExecution to update in case it exists.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+    /**
+     * In case the DBMigrationExecution found by the `where` argument doesn't exist, create a new DBMigrationExecution with this data.
+     */
+    create: XOR<DBMigrationExecutionCreateInput, DBMigrationExecutionUncheckedCreateInput>
+    /**
+     * In case the DBMigrationExecution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DBMigrationExecutionUpdateInput, DBMigrationExecutionUncheckedUpdateInput>
+  }
+
+  /**
+   * DBMigrationExecution delete
+   */
+  export type DBMigrationExecutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter which DBMigrationExecution to delete.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution deleteMany
+   */
+  export type DBMigrationExecutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DBMigrationExecutions to delete
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution without action
+   */
+  export type DBMigrationExecutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -154738,6 +158535,17 @@ export namespace Prisma {
   export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
 
 
+  export const AccountLockoutScalarFieldEnum: {
+    userId: 'userId',
+    failedCount: 'failedCount',
+    firstFailedAt: 'firstFailedAt',
+    lockedUntil: 'lockedUntil',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AccountLockoutScalarFieldEnum = (typeof AccountLockoutScalarFieldEnum)[keyof typeof AccountLockoutScalarFieldEnum]
+
+
   export const AccountScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -154758,6 +158566,7 @@ export namespace Prisma {
     rotatedAt: 'rotatedAt',
     revokedAt: 'revokedAt',
     lastReauthAt: 'lastReauthAt',
+    lastActiveAt: 'lastActiveAt',
     impersonatedBy: 'impersonatedBy',
     ipAddress: 'ipAddress',
     userAgent: 'userAgent',
@@ -156399,6 +160208,24 @@ export namespace Prisma {
   export type AgentCallLogScalarFieldEnum = (typeof AgentCallLogScalarFieldEnum)[keyof typeof AgentCallLogScalarFieldEnum]
 
 
+  export const ProjectCheckpointScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    state: 'state',
+    logicalBarrierId: 'logicalBarrierId',
+    consistencyLevel: 'consistencyLevel',
+    manifest: 'manifest',
+    error: 'error',
+    expiresAt: 'expiresAt',
+    createdByUserId: 'createdByUserId',
+    barrierExpiresAt: 'barrierExpiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectCheckpointScalarFieldEnum = (typeof ProjectCheckpointScalarFieldEnum)[keyof typeof ProjectCheckpointScalarFieldEnum]
+
+
   export const RemixJobScalarFieldEnum: {
     id: 'id',
     sourceProjectId: 'sourceProjectId',
@@ -156610,6 +160437,33 @@ export namespace Prisma {
   };
 
   export type WorkspacePostMortemScalarFieldEnum = (typeof WorkspacePostMortemScalarFieldEnum)[keyof typeof WorkspacePostMortemScalarFieldEnum]
+
+
+  export const DBMigrationExecutionScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    environment: 'environment',
+    state: 'state',
+    idempotencyKey: 'idempotencyKey',
+    activeLock: 'activeLock',
+    backupId: 'backupId',
+    backupVerifiedAt: 'backupVerifiedAt',
+    backupVerificationMethod: 'backupVerificationMethod',
+    backwardCompatible: 'backwardCompatible',
+    forwardCompatible: 'forwardCompatible',
+    statementsSha256: 'statementsSha256',
+    statementCount: 'statementCount',
+    appliedStatements: 'appliedStatements',
+    deploymentId: 'deploymentId',
+    createdByUserId: 'createdByUserId',
+    error: 'error',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type DBMigrationExecutionScalarFieldEnum = (typeof DBMigrationExecutionScalarFieldEnum)[keyof typeof DBMigrationExecutionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -157104,6 +160958,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
+    loginLockout?: XOR<AccountLockoutNullableScalarRelationFilter, AccountLockoutWhereInput> | null
   }
 
   export type UserOrderByWithRelationInput = {
@@ -157154,6 +161009,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackOrderByRelationAggregateInput
     spendLimits?: UserSpendLimitOrderByRelationAggregateInput
     agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
+    loginLockout?: AccountLockoutOrderByWithRelationInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -157207,6 +161063,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
+    loginLockout?: XOR<AccountLockoutNullableScalarRelationFilter, AccountLockoutWhereInput> | null
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -157247,6 +161104,63 @@ export namespace Prisma {
     lastActiveAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
+  }
+
+  export type AccountLockoutWhereInput = {
+    AND?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    OR?: AccountLockoutWhereInput[]
+    NOT?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    userId?: StringFilter<"AccountLockout"> | string
+    failedCount?: IntFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeFilter<"AccountLockout"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type AccountLockoutOrderByWithRelationInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrderInput | SortOrder
+    lockedUntil?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type AccountLockoutWhereUniqueInput = Prisma.AtLeast<{
+    userId?: string
+    AND?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    OR?: AccountLockoutWhereInput[]
+    NOT?: AccountLockoutWhereInput | AccountLockoutWhereInput[]
+    failedCount?: IntFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeFilter<"AccountLockout"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "userId">
+
+  export type AccountLockoutOrderByWithAggregationInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrderInput | SortOrder
+    lockedUntil?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: AccountLockoutCountOrderByAggregateInput
+    _avg?: AccountLockoutAvgOrderByAggregateInput
+    _max?: AccountLockoutMaxOrderByAggregateInput
+    _min?: AccountLockoutMinOrderByAggregateInput
+    _sum?: AccountLockoutSumOrderByAggregateInput
+  }
+
+  export type AccountLockoutScalarWhereWithAggregatesInput = {
+    AND?: AccountLockoutScalarWhereWithAggregatesInput | AccountLockoutScalarWhereWithAggregatesInput[]
+    OR?: AccountLockoutScalarWhereWithAggregatesInput[]
+    NOT?: AccountLockoutScalarWhereWithAggregatesInput | AccountLockoutScalarWhereWithAggregatesInput[]
+    userId?: StringWithAggregatesFilter<"AccountLockout"> | string
+    failedCount?: IntWithAggregatesFilter<"AccountLockout"> | number
+    firstFailedAt?: DateTimeNullableWithAggregatesFilter<"AccountLockout"> | Date | string | null
+    lockedUntil?: DateTimeNullableWithAggregatesFilter<"AccountLockout"> | Date | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"AccountLockout"> | Date | string
   }
 
   export type AccountWhereInput = {
@@ -157317,6 +161231,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -157333,6 +161248,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -157352,6 +161268,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -157368,6 +161285,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -157389,6 +161307,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
     ipAddress?: StringNullableWithAggregatesFilter<"Session"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"Session"> | string | null
@@ -165941,6 +169860,93 @@ export namespace Prisma {
     source?: StringWithAggregatesFilter<"AgentCallLog"> | string
   }
 
+  export type ProjectCheckpointWhereInput = {
+    AND?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    OR?: ProjectCheckpointWhereInput[]
+    NOT?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    id?: StringFilter<"ProjectCheckpoint"> | string
+    projectId?: StringFilter<"ProjectCheckpoint"> | string
+    state?: StringFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableFilter<"ProjectCheckpoint">
+    error?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierExpiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+  }
+
+  export type ProjectCheckpointOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrderInput | SortOrder
+    consistencyLevel?: SortOrderInput | SortOrder
+    manifest?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    barrierExpiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    OR?: ProjectCheckpointWhereInput[]
+    NOT?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    projectId?: StringFilter<"ProjectCheckpoint"> | string
+    state?: StringFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableFilter<"ProjectCheckpoint">
+    error?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierExpiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+  }, "id">
+
+  export type ProjectCheckpointOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrderInput | SortOrder
+    consistencyLevel?: SortOrderInput | SortOrder
+    manifest?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    barrierExpiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectCheckpointCountOrderByAggregateInput
+    _max?: ProjectCheckpointMaxOrderByAggregateInput
+    _min?: ProjectCheckpointMinOrderByAggregateInput
+  }
+
+  export type ProjectCheckpointScalarWhereWithAggregatesInput = {
+    AND?: ProjectCheckpointScalarWhereWithAggregatesInput | ProjectCheckpointScalarWhereWithAggregatesInput[]
+    OR?: ProjectCheckpointScalarWhereWithAggregatesInput[]
+    NOT?: ProjectCheckpointScalarWhereWithAggregatesInput | ProjectCheckpointScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    state?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableWithAggregatesFilter<"ProjectCheckpoint">
+    error?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    barrierExpiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectCheckpoint"> | Date | string
+  }
+
   export type RemixJobWhereInput = {
     AND?: RemixJobWhereInput | RemixJobWhereInput[]
     OR?: RemixJobWhereInput[]
@@ -167025,6 +171031,141 @@ export namespace Prisma {
     capturedAt?: DateTimeWithAggregatesFilter<"WorkspacePostMortem"> | Date | string
   }
 
+  export type DBMigrationExecutionWhereInput = {
+    AND?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    OR?: DBMigrationExecutionWhereInput[]
+    NOT?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    id?: StringFilter<"DBMigrationExecution"> | string
+    projectId?: StringFilter<"DBMigrationExecution"> | string
+    organizationId?: StringFilter<"DBMigrationExecution"> | string
+    environment?: StringFilter<"DBMigrationExecution"> | string
+    state?: StringFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringFilter<"DBMigrationExecution"> | string
+    activeLock?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+  }
+
+  export type DBMigrationExecutionOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    backupId?: SortOrderInput | SortOrder
+    backupVerifiedAt?: SortOrderInput | SortOrder
+    backupVerificationMethod?: SortOrderInput | SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrderInput | SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    activeLock?: string
+    projectId_idempotencyKey?: DBMigrationExecutionProjectIdIdempotencyKeyCompoundUniqueInput
+    AND?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    OR?: DBMigrationExecutionWhereInput[]
+    NOT?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    projectId?: StringFilter<"DBMigrationExecution"> | string
+    organizationId?: StringFilter<"DBMigrationExecution"> | string
+    environment?: StringFilter<"DBMigrationExecution"> | string
+    state?: StringFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringFilter<"DBMigrationExecution"> | string
+    backupId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+  }, "id" | "projectId_idempotencyKey" | "activeLock">
+
+  export type DBMigrationExecutionOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    backupId?: SortOrderInput | SortOrder
+    backupVerifiedAt?: SortOrderInput | SortOrder
+    backupVerificationMethod?: SortOrderInput | SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrderInput | SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: DBMigrationExecutionCountOrderByAggregateInput
+    _avg?: DBMigrationExecutionAvgOrderByAggregateInput
+    _max?: DBMigrationExecutionMaxOrderByAggregateInput
+    _min?: DBMigrationExecutionMinOrderByAggregateInput
+    _sum?: DBMigrationExecutionSumOrderByAggregateInput
+  }
+
+  export type DBMigrationExecutionScalarWhereWithAggregatesInput = {
+    AND?: DBMigrationExecutionScalarWhereWithAggregatesInput | DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    OR?: DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    NOT?: DBMigrationExecutionScalarWhereWithAggregatesInput | DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    projectId?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    organizationId?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    environment?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    state?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    activeLock?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backupId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableWithAggregatesFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntWithAggregatesFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntWithAggregatesFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeWithAggregatesFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"DBMigrationExecution"> | Date | string
+  }
+
   export type UserCreateInput = {
     id?: string
     email: string
@@ -167073,6 +171214,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -167123,6 +171265,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -167173,6 +171316,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -167223,6 +171367,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -167273,6 +171418,61 @@ export namespace Prisma {
     preferences?: NullableJsonNullValueInput | InputJsonValue
     lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutCreateInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutLoginLockoutInput
+  }
+
+  export type AccountLockoutUncheckedCreateInput = {
+    userId: string
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUpdateInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutLoginLockoutNestedInput
+  }
+
+  export type AccountLockoutUncheckedUpdateInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutCreateManyInput = {
+    userId: string
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUpdateManyMutationInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutUncheckedUpdateManyInput = {
+    userId?: StringFieldUpdateOperationsInput | string
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -167339,6 +171539,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -167355,6 +171556,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -167369,6 +171571,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -167385,6 +171588,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -167400,6 +171604,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -167414,6 +171619,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -167429,6 +171635,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -176773,6 +180980,111 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
   }
 
+  export type ProjectCheckpointCreateInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointCreateManyInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RemixJobCreateInput = {
     id?: string
     sourceProjectId: string
@@ -178016,6 +182328,174 @@ export namespace Prisma {
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DBMigrationExecutionCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionCreateManyInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -178291,6 +182771,11 @@ export namespace Prisma {
     every?: AgentRoutingCardWhereInput
     some?: AgentRoutingCardWhereInput
     none?: AgentRoutingCardWhereInput
+  }
+
+  export type AccountLockoutNullableScalarRelationFilter = {
+    is?: AccountLockoutWhereInput | null
+    isNot?: AccountLockoutWhereInput | null
   }
 
   export type SortOrderInput = {
@@ -178573,9 +183058,68 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
+  export type IntFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntFilter<$PrismaModel> | number
+  }
+
   export type UserScalarRelationFilter = {
     is?: UserWhereInput
     isNot?: UserWhereInput
+  }
+
+  export type AccountLockoutCountOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutAvgOrderByAggregateInput = {
+    failedCount?: SortOrder
+  }
+
+  export type AccountLockoutMaxOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutMinOrderByAggregateInput = {
+    userId?: SortOrder
+    failedCount?: SortOrder
+    firstFailedAt?: SortOrder
+    lockedUntil?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AccountLockoutSumOrderByAggregateInput = {
+    failedCount?: SortOrder
+  }
+
+  export type IntWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel>
+    in?: number[] | ListIntFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedIntFilter<$PrismaModel>
+    _min?: NestedIntFilter<$PrismaModel>
+    _max?: NestedIntFilter<$PrismaModel>
   }
 
   export type AccountProviderProviderAccountIdCompoundUniqueInput = {
@@ -178616,6 +183160,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -178631,6 +183176,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -178646,6 +183192,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -179257,17 +183804,6 @@ export namespace Prisma {
     expiresAt?: SortOrder
     createdAt?: SortOrder
   }
-
-  export type IntFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntFilter<$PrismaModel> | number
-  }
   export type JsonFilter<$PrismaModel = never> =
     | PatchUndefined<
         Either<Required<JsonFilterBase<$PrismaModel>>, Exclude<keyof Required<JsonFilterBase<$PrismaModel>>, 'path'>>,
@@ -179400,22 +183936,6 @@ export namespace Prisma {
     embeddingDimensions?: SortOrder
     importance?: SortOrder
     accessCount?: SortOrder
-  }
-
-  export type IntWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel>
-    in?: number[] | ListIntFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel>
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedIntFilter<$PrismaModel>
-    _min?: NestedIntFilter<$PrismaModel>
-    _max?: NestedIntFilter<$PrismaModel>
   }
   export type JsonWithAggregatesFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -184097,6 +188617,49 @@ export namespace Prisma {
     routingCardVersion?: SortOrder
   }
 
+  export type ProjectCheckpointCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    manifest?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
   export type RemixJobCountOrderByAggregateInput = {
     id?: SortOrder
     sourceProjectId?: SortOrder
@@ -184833,6 +189396,93 @@ export namespace Prisma {
     capturedAt?: SortOrder
   }
 
+  export type DBMigrationExecutionProjectIdIdempotencyKeyCompoundUniqueInput = {
+    projectId: string
+    idempotencyKey: string
+  }
+
+  export type DBMigrationExecutionCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionAvgOrderByAggregateInput = {
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+  }
+
+  export type DBMigrationExecutionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionSumOrderByAggregateInput = {
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+  }
+
   export type AccountCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -185060,6 +189710,12 @@ export namespace Prisma {
     connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
   }
 
+  export type AccountLockoutCreateNestedOneWithoutUserInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    connect?: AccountLockoutWhereUniqueInput
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -185285,6 +189941,12 @@ export namespace Prisma {
     connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
     createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
     connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+  }
+
+  export type AccountLockoutUncheckedCreateNestedOneWithoutUserInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    connect?: AccountLockoutWhereUniqueInput
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -185761,6 +190423,16 @@ export namespace Prisma {
     deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
   }
 
+  export type AccountLockoutUpdateOneWithoutUserNestedInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    upsert?: AccountLockoutUpsertWithoutUserInput
+    disconnect?: AccountLockoutWhereInput | boolean
+    delete?: AccountLockoutWhereInput | boolean
+    connect?: AccountLockoutWhereUniqueInput
+    update?: XOR<XOR<AccountLockoutUpdateToOneWithWhereWithoutUserInput, AccountLockoutUpdateWithoutUserInput>, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -186213,6 +190885,38 @@ export namespace Prisma {
     update?: AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput[]
     updateMany?: AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput | AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput[]
     deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
+  }
+
+  export type AccountLockoutUncheckedUpdateOneWithoutUserNestedInput = {
+    create?: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    connectOrCreate?: AccountLockoutCreateOrConnectWithoutUserInput
+    upsert?: AccountLockoutUpsertWithoutUserInput
+    disconnect?: AccountLockoutWhereInput | boolean
+    delete?: AccountLockoutWhereInput | boolean
+    connect?: AccountLockoutWhereUniqueInput
+    update?: XOR<XOR<AccountLockoutUpdateToOneWithWhereWithoutUserInput, AccountLockoutUpdateWithoutUserInput>, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
+  export type UserCreateNestedOneWithoutLoginLockoutInput = {
+    create?: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginLockoutInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type IntFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
+  }
+
+  export type UserUpdateOneRequiredWithoutLoginLockoutNestedInput = {
+    create?: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLoginLockoutInput
+    upsert?: UserUpsertWithoutLoginLockoutInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLoginLockoutInput, UserUpdateWithoutLoginLockoutInput>, UserUncheckedUpdateWithoutLoginLockoutInput>
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -188945,14 +193649,6 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutSlugRedirectsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutSlugRedirectsInput, ProjectUpdateWithoutSlugRedirectsInput>, ProjectUncheckedUpdateWithoutSlugRedirectsInput>
-  }
-
-  export type IntFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type AgentMemoryUpdatetagsInput = {
@@ -192090,17 +196786,6 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel>
     in?: number[] | ListIntFieldRefInput<$PrismaModel>
@@ -192115,6 +196800,17 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
   export type NestedJsonFilter<$PrismaModel = never> =
     | PatchUndefined<
@@ -192642,6 +197338,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -192656,6 +197353,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -193631,6 +198329,25 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AccountLockoutCreateWithoutUserInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutUncheckedCreateWithoutUserInput = {
+    failedCount?: number
+    firstFailedAt?: Date | string | null
+    lockedUntil?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type AccountLockoutCreateOrConnectWithoutUserInput = {
+    where: AccountLockoutWhereUniqueInput
+    create: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -193686,6 +198403,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -194654,6 +199372,247 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AgentRoutingCard"> | Date | string
   }
 
+  export type AccountLockoutUpsertWithoutUserInput = {
+    update: XOR<AccountLockoutUpdateWithoutUserInput, AccountLockoutUncheckedUpdateWithoutUserInput>
+    create: XOR<AccountLockoutCreateWithoutUserInput, AccountLockoutUncheckedCreateWithoutUserInput>
+    where?: AccountLockoutWhereInput
+  }
+
+  export type AccountLockoutUpdateToOneWithWhereWithoutUserInput = {
+    where?: AccountLockoutWhereInput
+    data: XOR<AccountLockoutUpdateWithoutUserInput, AccountLockoutUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AccountLockoutUpdateWithoutUserInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AccountLockoutUncheckedUpdateWithoutUserInput = {
+    failedCount?: IntFieldUpdateOperationsInput | number
+    firstFailedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserCreateWithoutLoginLockoutInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutLoginLockoutInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutLoginLockoutInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+  }
+
+  export type UserUpsertWithoutLoginLockoutInput = {
+    update: XOR<UserUpdateWithoutLoginLockoutInput, UserUncheckedUpdateWithoutLoginLockoutInput>
+    create: XOR<UserCreateWithoutLoginLockoutInput, UserUncheckedCreateWithoutLoginLockoutInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutLoginLockoutInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutLoginLockoutInput, UserUncheckedUpdateWithoutLoginLockoutInput>
+  }
+
+  export type UserUpdateWithoutLoginLockoutInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutLoginLockoutInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -194701,6 +199660,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -194750,6 +199710,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -194815,6 +199776,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -194864,6 +199826,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -194913,6 +199876,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -194962,6 +199926,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -195027,6 +199992,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -195076,6 +200042,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -197179,6 +202146,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -197228,6 +202196,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -197411,6 +202380,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -197460,6 +202430,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -199799,6 +204770,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -199848,6 +204820,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -199913,6 +204886,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -199962,6 +204936,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -200379,6 +205354,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -200428,6 +205404,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -200671,6 +205648,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -200720,6 +205698,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -201048,6 +206027,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -201097,6 +206077,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -201257,6 +206238,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -201306,6 +206288,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -202548,6 +207531,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -202597,6 +207581,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -202757,6 +207742,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -202806,6 +207792,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -202944,6 +207931,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -202993,6 +207981,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -203153,6 +208142,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -203202,6 +208192,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -203340,6 +208331,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -203389,6 +208381,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -203549,6 +208542,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -203598,6 +208592,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -203736,6 +208731,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -203785,6 +208781,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -203945,6 +208942,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -203994,6 +208992,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -204132,6 +209131,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -204181,6 +209181,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -204341,6 +209342,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -204390,6 +209392,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -206005,6 +211008,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -206054,6 +211058,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -206214,6 +211219,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -206263,6 +211269,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -206889,6 +211896,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -206938,6 +211946,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -207098,6 +212107,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -207147,6 +212157,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -207196,6 +212207,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -207245,6 +212257,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -207310,6 +212323,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -207359,6 +212373,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -208727,6 +213742,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -208776,6 +213792,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -208964,6 +213981,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -209013,6 +214031,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -209351,6 +214370,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -209400,6 +214420,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -209465,6 +214486,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -209514,6 +214536,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -210020,6 +215043,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -210069,6 +215093,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -210255,6 +215280,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -210304,6 +215330,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -210625,6 +215652,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -210674,6 +215702,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -210739,6 +215768,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -210788,6 +215818,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -210837,6 +215868,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -210886,6 +215918,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -210951,6 +215984,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -211000,6 +216034,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -211049,6 +216084,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -211098,6 +216134,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -211163,6 +216200,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -211212,6 +216250,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -212454,6 +217493,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -212503,6 +217543,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -212663,6 +217704,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -212712,6 +217754,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -212761,6 +217804,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -212810,6 +217854,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -212875,6 +217920,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -212924,6 +217970,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -213080,6 +218127,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -213129,6 +218177,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -213348,6 +218397,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -213397,6 +218447,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -213541,6 +218592,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -213590,6 +218642,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -213655,6 +218708,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -213704,6 +218758,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -213824,6 +218879,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -213873,6 +218929,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -214100,6 +219157,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -214149,6 +219207,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -214453,6 +219512,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -214502,6 +219562,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -214654,6 +219715,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -214703,6 +219765,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -214979,6 +220042,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -215028,6 +220092,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -215247,6 +220312,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -215296,6 +220362,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -215434,6 +220501,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -215483,6 +220551,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -215701,6 +220770,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -215750,6 +220820,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -216111,6 +221182,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -216160,6 +221232,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -216225,6 +221298,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -216274,6 +221348,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -216323,6 +221398,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -216372,6 +221448,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -216526,6 +221603,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -216575,6 +221653,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -217666,6 +222745,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -217715,6 +222795,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -217875,6 +222956,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -217924,6 +223006,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -218794,6 +223877,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
@@ -218843,6 +223927,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
@@ -218908,6 +223993,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
@@ -218957,6 +224043,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutGalleryListingsInput = {
@@ -219095,6 +224182,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutCreateNestedOneWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutGalleryListingsInput = {
@@ -219144,6 +224232,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    loginLockout?: AccountLockoutUncheckedCreateNestedOneWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutGalleryListingsInput = {
@@ -219304,6 +224393,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUpdateOneWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGalleryListingsInput = {
@@ -219353,6 +224443,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
   export type LedgerEntryCreateWithoutAccountInput = {
@@ -219986,6 +225077,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -220338,6 +225430,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220352,6 +225445,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -220366,6 +225460,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
