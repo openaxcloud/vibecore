@@ -30,22 +30,22 @@
 
 export type ConsistencyLevel = 'crash-consistent' | 'application-consistent' | 'transaction-consistent' | 'UNKNOWN';
 
-/** Niveaux que l'implémentation actuelle sait effectivement déclarer. */
-export type DeclaredConsistencyLevel = Exclude<ConsistencyLevel, 'transaction-consistent'>;
-
 /**
  * Niveaux que ce système n'a PAS le droit d'émettre tant que le mécanisme
  * correspondant n'est pas implémenté ET prouvé. Le test
  * `checkpoint-consistency.spec.ts` échoue si un niveau d'ici apparaît dans un
  * manifeste — la sur-revendication devient une erreur de CI, pas une revue.
  */
-export const NEVER_CLAIMED: readonly ConsistencyLevel[] = [
+export const NEVER_CLAIMED = [
   // Exigerait de quiescer les écrivains in-pod (dev server / terminal / agent).
   'application-consistent',
 
   // Exigerait en plus un instant commun fichiers↔base sous la même barrière.
   'transaction-consistent',
-] as const;
+] as const satisfies readonly ConsistencyLevel[];
+
+/** Les niveaux non prouvés sont également impossibles à émettre au typecheck. */
+export type DeclaredConsistencyLevel = Exclude<ConsistencyLevel, (typeof NEVER_CLAIMED)[number]>;
 
 /** Ce que la barrière atteint pour un projet donné, au moment du checkpoint. */
 export interface BarrierScope {

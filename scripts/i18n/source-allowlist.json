@@ -1406,6 +1406,24 @@
       "expiresOn": "2027-08-05"
     },
     {
+      "id": "api-storage-transfer-machine-error-codes",
+      "path": "services/api/src/prisma-store.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID|PROJECT_TRANSFER_RECEIPT_CORRUPT|OBJECT_STORAGE_VERSION_GC_OPERATION_UNAVAILABLE|PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT|OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT|PROJECT_TRANSFER_OWNERSHIP_EPOCH_COMMIT_FAILED)$",
+      "justification": "These byte-stable Error messages are machine codes for fail-closed transfer and object-storage replay. HTTP handlers map their code to catalogue copy or the generic localized failure before serialization; the raw strings remain private control-flow identifiers.",
+      "owner": "storage-transfer-and-i18n",
+      "expiresOn": "2027-08-28"
+    },
+    {
+      "id": "api-object-storage-recovery-operator-evidence",
+      "path": "services/api/src/prisma-store.ts",
+      "rule": "*",
+      "textPattern": "^(?:Provider generation preconditions changed before effect|An active share references an absent bucket|Claimed version GC schedule has no operation|Claimed version GC operation is absent|Version GC requires manual recovery)$",
+      "justification": "These strings are durable recovery evidence for operators and audit logs. Public retries and manual-recovery responses use localized stable codes; this diagnostic prose is never rendered as product copy.",
+      "owner": "object-storage-and-i18n",
+      "expiresOn": "2027-08-28"
+    },
+    {
       "id": "payg-ledger-persisted-system-reason",
       "path": "services/api/src/prisma-store.ts",
       "rule": "visible-object-copy",
@@ -1431,6 +1449,33 @@
       "justification": "These are machine discriminants on the guard's verdict object (`reason:`), never rendered: no component reads `reason`, and the halt notice shown to the user comes from the workbenchRuntime.patch.* catalogue in both locales.",
       "owner": "runtime-platform-and-i18n",
       "expiresOn": "2027-08-24"
+    },
+    {
+      "id": "api-checkpoint-internal-state-reasons",
+      "path": "services/api/src/app.ts",
+      "rule": "*",
+      "textPattern": "^(?:quiesce inadmissible|quiesce without finite timeout \\+ guaranteed thaw|checkpoint inadmissible|manifest not visible)$",
+      "justification": "Checkpoint state-machine inadmissibility reasons. Written to ProjectCheckpoint.error or carried by a typed Error whose CODE (CHECKPOINT_INADMISSIBLE, CHECKPOINT_UNVERIFIED) is what the caller sees. Never rendered: translating them would hide the technical reason from audit without helping any user.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-checkpoint-snapshot-label",
+      "path": "services/api/src/app.ts",
+      "rule": "*",
+      "textPattern": "^checkpoint \\{…\\}$",
+      "justification": "Storage snapshot label (`checkpoint <barrierId>`), an internal identifier correlated with logs — not user-facing copy.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-lifecycle-admissibility-reasons",
+      "path": "services/api/src/lifecycle-state-machines.ts",
+      "rule": "*",
+      "textPattern": "^(?:no components|\\{…\\} component snapshot\\(s\\) unverified|components snapshotted under different logical barriers \\(not the same instant\\)|promotion \\{…\\} is \\{…\\}, not PROMOTION_COMMITTED — an incomplete promotion can never become a release|\\{…\\} attachment\\(s\\) not relinked into the tenant repo|Binary Authorization is \\{…\\}, not PASSED|un snapshot de pod seul n'est jamais un checkpoint projet \\(plan §15\\)|composant FILES manquant|base provisionnée mais composant DATABASE absent sans dépendance déclarée)$",
+      "justification": "Lifecycle state-machine admissibility reasons. Returned in `reason` and consumed by audit and tests; the API converts them into stable codes before any response. Translating them would break audit correlation while never reaching a screen.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
     }
   ]
 }

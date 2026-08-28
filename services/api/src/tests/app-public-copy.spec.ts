@@ -391,6 +391,21 @@ describe('credit-ledger persistence source guard', () => {
       file: 'services/api/src/prisma-store.ts',
       path: prismaStorePath,
       expected: [
+        // Typed machine codes used for fail-closed transfer and storage replay.
+        // Public handlers map them to catalogue copy before serialization.
+        'PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID',
+        'PROJECT_TRANSFER_RECEIPT_CORRUPT',
+        'OBJECT_STORAGE_VERSION_GC_OPERATION_UNAVAILABLE',
+        'PROJECT_TRANSFER_OPERATION_IDENTITY_CORRUPT',
+        'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+        'PROJECT_TRANSFER_OWNERSHIP_EPOCH_COMMIT_FAILED',
+        // Durable recovery evidence retained for operators and never rendered
+        // as response copy.
+        'Provider generation preconditions changed before effect',
+        'An active share references an absent bucket',
+        'Claimed version GC schedule has no operation',
+        'Claimed version GC operation is absent',
+        'Version GC requires manual recovery',
         // Persisted platform-generated ledger reason localized at the HTTP boundary.
         'PAYG overage (billed to Stripe metered usage)',
       ],
@@ -404,14 +419,24 @@ describe('credit-ledger persistence source guard', () => {
       expect(new Set(result.findings.map((finding: { text: string }) => finding.text))).toEqual(new Set(expected));
 
       if (file === 'services/api/src/prisma-store.ts') {
-        // Machine invariants must stay invisible to the copy scanner even when
-        // their byte-exact codes are preserved by typed constants.
-        expect(result.findings).toEqual([
-          expect.objectContaining({
-            rule: 'visible-object-copy',
-            text: 'PAYG overage (billed to Stripe metered usage)',
-          }),
-        ]);
+        // Persisted prose is either operator-only recovery evidence or the one
+        // ledger reason localized at the HTTP boundary. Typed machine codes
+        // remain classified separately as error-message findings.
+        expect(
+          new Set(
+            result.findings
+              .filter((finding: { rule: string }) => finding.rule === 'visible-object-copy')
+              .map((finding: { text: string }) => finding.text),
+          ),
+        ).toEqual(
+          new Set([
+            'An active share references an absent bucket',
+            'Claimed version GC schedule has no operation',
+            'Claimed version GC operation is absent',
+            'Version GC requires manual recovery',
+            'PAYG overage (billed to Stripe metered usage)',
+          ]),
+        );
       }
     },
   );

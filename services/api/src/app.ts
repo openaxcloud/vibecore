@@ -18779,6 +18779,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: string;
       expectedOrganizationId: string;
       kind: 'export' | 'snapshot' | 'before-ai-change' | 'runtime';
+      checkpointBarrierAuthority?: ProjectCheckpointLease;
     },
   ) => {
     if (!archive.base64) {
@@ -18793,6 +18794,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       contentBase64: archive.base64,
       byteLength: archive.byteLength,
       contentHash: createHash('sha256').update(Buffer.from(archive.base64, 'base64')).digest('hex'),
+      checkpointBarrierAuthority: input.checkpointBarrierAuthority,
     });
 
     metrics.increment('project_archive_objects_total', {
@@ -20238,29 +20240,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(204).send();
   });
 
-  /*
-   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+  /**
+   * SCR-008 / RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's
+   * Resources panel. Read inside the workspace container (cgroup + statfs)
+   * rather than from metrics-server: it is the accounting the kernel actually
+   * enforces and the only place the PVC's real usage exists.
    *
-   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
-   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
-   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
-   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
-   * ligne d'affichage secondaire.
+   * Deliberately no local-runtime fallback: a number from the API pod's own
+   * cgroup would describe the platform, not the user's workspace. When the
+   * agent cannot answer, the panel receives an explicit localized error.
    */
-  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     try {
-      return await agentRequest(authorized.workspaceId, '/resources');
-    } catch {
-      return {
-        memory: { used: null, limit: null },
-        cpu: { ratio: null, limitCores: null },
-        storage: { used: null, limit: null },
-        measuredAt: new Date().toISOString(),
-        unavailable: true,
-      };
+      return await agentRequest<{
+        capturedAt: string;
+        memory: { usedBytes: number; limitBytes: number | null; source: string } | null;
+        cpu: { usedPercent: number; limitCores: number | null; sampleMs: number; source: string } | null;
+        storage: { usedBytes: number; totalBytes: number; path: string } | null;
+      }>(authorized.workspaceId, '/resources');
+    } catch (error) {
+      request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
+      return reply.code(503).send({
+        error: message,
+        message,
+        code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
+      });
     }
   });
 
@@ -28966,6 +28975,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         storageKey: archive.storageKey,
         byteLength: archive.byteLength,
         createdByUserId: request.currentUser?.id,
+        checkpointBarrierAuthority: lease,
       });
 
       const filesConsistency = declareFilesConsistency(barrierScope);
@@ -29804,6 +29814,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         projectId: input.sourceProjectId,
         expectedOrganizationId: sourceProject.organizationId,
         kind: 'snapshot',
+        checkpointBarrierAuthority: lease,
       });
       await guard();
       const snapshot = await store.createSnapshot({
@@ -29823,6 +29834,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         storageKey: archive.storageKey,
         byteLength: archive.byteLength,
         createdByUserId: input.actorUserId,
+        checkpointBarrierAuthority: lease,
       });
       const snapshotPin = readProjectManifestSnapshotPin(snapshot.manifest, input.sourceProjectId);
       if (snapshotPin.digest !== pinnedManifest.digest) {

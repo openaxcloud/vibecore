@@ -492,6 +492,20 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
       expectedOrganizationId: project.organizationId,
     });
 
+    const archive = await projectStorage.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      files: [{ path: 'a.txt', content: 'ancienne version\n', updatedAt: '' }],
+    });
+    const snap = await store.createSnapshot({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      kind: 'manual',
+      manifest: { files: [] },
+      storageKey: archive.storageKey,
+      byteLength: archive.byteLength,
+    });
+
     const ckpt = await store.createProjectCheckpoint({
       projectId: project.id,
       expectedOrganizationId: project.organizationId,
@@ -513,20 +527,6 @@ describe('P0-V3-09 — la barrière est PARTAGÉE et posée au point d étrangle
      * étant désormais DANS le stockage, la route est couverte sans l'avoir
      * modifiée — ~35 routes mutent l'arbre, 2 seulement étaient gardées.
      */
-    const archive = await projectStorage.createSnapshot({
-      projectId: project.id,
-      expectedOrganizationId: project.organizationId,
-      files: [{ path: 'a.txt', content: 'ancienne version\n', updatedAt: '' }],
-    });
-    const snap = await store.createSnapshot({
-      projectId: project.id,
-      expectedOrganizationId: project.organizationId,
-      kind: 'manual',
-      manifest: { files: [] },
-      storageKey: archive.storageKey,
-      byteLength: archive.byteLength,
-    });
-
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/snapshots/${snap.id}/restore`,

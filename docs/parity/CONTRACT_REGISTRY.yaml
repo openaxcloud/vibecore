@@ -8,9 +8,9 @@ contracts:
   - contractId: CTR-BILLING-LEDGER
     file: BILLING_LEDGER_CONTRACT.md
     contractVersion: 2
-    refusalReasonV1: "shadow wallet pas ledger double-entrée"
+    refusalReasonV1: 'shadow wallet pas ledger double-entrée'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "PR #28 NON MERGÉE (mig 0078, triggers immutabilité, 39 tests dont 7 Postgres réels, I-LED-1..5)"
+    anchor: 'PR #28 NON MERGÉE (mig 0078, triggers immutabilité, 39 tests dont 7 Postgres réels, I-LED-1..5)'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
   - contractId: CTR-IMPORT-REMIX
@@ -18,129 +18,130 @@ contracts:
     contractVersion: 2
     refusalReasonV1: "2 machines contradictoires ; le code + 15 tests prouvent encore l'ancienne"
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "PR #27 NON MERGÉE (UNE machine 14 états, e2e machine dédié, billing de sûreté idempotent) ; remix mergé prod"
+    anchor: 'PR #27 NON MERGÉE (UNE machine 14 états, e2e machine dédié, billing de sûreté idempotent) ; remix mergé prod'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
   - contractId: CTR-GALLERY-COMMUNITY
     file: GALLERY_COMMUNITY_CONTRACT.md
     contractVersion: 2
-    refusalReasonV1: "hash obsolète + décision ouverte"
+    refusalReasonV1: 'hash obsolète + décision ouverte'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "les 2 motifs levés ET signés (P0-LS-04/P0-A2-10 CLOSED, reçu RR-20260720-CODEX-02) ; fail-closed en prod (7e001f3d)"
+    anchor: 'les 2 motifs levés ET signés (P0-LS-04/P0-A2-10 CLOSED, reçu RR-20260720-CODEX-02) ; fail-closed en prod (7e001f3d)'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
   - contractId: CTR-DEPLOYMENT-TYPES
     file: DEPLOYMENT_TYPES_CONTRACT.md
     contractVersion: 2
-    refusalReasonV1: "preuve Static absente / Reserved non commencé / Scheduled hors E2E"
+    refusalReasonV1: 'preuve Static absente / Reserved non commencé / Scheduled hors E2E'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "Autoscale+Scheduled prouvés live ; Static/Reserved déclarés honnêtement (E2E à produire / non commencé)"
+    anchor: 'Autoscale+Scheduled prouvés live ; Static/Reserved déclarés honnêtement (E2E à produire / non commencé)'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "Static : preuve E2E dédiée ; Reserved VM : chantier ACT-31"
+    openDependencies: 'Static : preuve E2E dédiée ; Reserved VM : chantier ACT-31'
   - contractId: CTR-RELEASE-PUBLISH
     file: RELEASE_PUBLISH_CONTRACT.md
     contractVersion: 2
-    refusalReasonV1: "pas de ReleaseCatalog/Manifest persistant ni UI live"
+    refusalReasonV1: 'pas de ReleaseCatalog/Manifest persistant ni UI live'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "pipeline publish + rollback digest prouvés live ; machine PROMOTION_*"
+    anchor: 'pipeline publish + rollback digest prouvés live ; machine PROMOTION_*'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "ReleaseCatalog persistant + UI live (chantier)"
+    openDependencies: 'ReleaseCatalog persistant + UI live (chantier)'
   - contractId: CTR-PROJECT-MANIFEST-SCHEMA
     file: PROJECT_MANIFEST_SCHEMA.json
     contractVersion: 2
-    refusalReasonV1: "accepte contre-exemples + PENDING_COMMIT"
+    refusalReasonV1: 'accepte contre-exemples + PENDING_COMMIT'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "schéma v3 durci : additionalProperties false, allOf EXÉCUTABLE (≤1 MOBILE_APP), minLength/minItems, PENDING_COMMIT purgé (x-repoCommit était littéralement cette chaîne)"
+    anchor: 'schéma v3 durci : additionalProperties false, allOf EXÉCUTABLE (≤1 MOBILE_APP), minLength/minItems, PENDING_COMMIT purgé (x-repoCommit était littéralement cette chaîne)'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
   - contractId: CTR-DOMAIN-MODEL
     file: DOMAIN_MODEL.md
     contractVersion: 2
-    refusalReasonV1: "modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles"
+    refusalReasonV1: 'modèle Import ancien + CloudTenant incomplet + Checkpoint/Release faibles'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "§2 Import aligné sur LA machine (PR #27) ; remix/licence en prod"
+    anchor: '§2 Import aligné sur LA machine (PR #27) ; remix/licence en prod'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "CloudTenant complet (CT-10/11) ; Checkpoint câblage réel"
+    openDependencies: 'CloudTenant complet (CT-10/11) ; Checkpoint câblage réel'
   - contractId: CTR-IDENTITY-COLLABORATION
     file: IDENTITY_COLLABORATION_CONTRACT.md
     contractVersion: 1
-    refusalReasonV1: "Group/Guest/AccessGrant non implémentés"
+    refusalReasonV1: 'Group/Guest/AccessGrant non implémentés'
     hardeningStatus: BLOCKED_ON_CHANTIER
-    blockedBy: "implémentation Group/Guest/AccessGrant (P0-EX-07 : P124 réel = PARTIAL, sans entité Guest)"
+    blockedBy: 'implémentation Group/Guest/AccessGrant (P0-EX-07 : P124 réel = PARTIAL, sans entité Guest)'
     expectedReviewer: OpenAI-Codex
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
     contractVersion: 7
-    refusalReasonV1: "format lock incompatible + rotation inconnue"
-    refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
+    refusalReasonV1: 'format lock incompatible + rotation inconnue'
+    refusalReasonV2: 'format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes'
     reviewReceiptIdV2: RR-20260721-CODEX-04
-    refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
-    refusalReasonV4: "négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée"
-    refusalReasonV5: "8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs"
+    refusalReasonV3: 'lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)'
+    refusalReasonV4: 'négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée'
+    refusalReasonV5: '8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs'
     reviewReceiptIdV5: RR-20260731-CODEX-08
-    refusalReasonV6: "Refs .log corrigées, revendication UI retirée, code typé préservé + tests. MAIS la preuve live du code typé porte sur le 409 de /nix-lock, PAS sur un publish exécuté avec l image contenant le correctif (le publish live a tourné sur une image antérieure, statut/log ne contient que le message). Une preuve future après déploiement ne vaut pas une preuve présente. Correction : 1) merger/déployer le correctif ; 2) rejouer ACTIVE→READY/200, REVOKED→publish FAILED avec statut/log du deployment contenant littéralement ECODE_LOCK_GENERATION_REVOKED + URL 410, restauration→READY/200 ; 3) archiver artefacts + hashes."
+    refusalReasonV6: 'Refs .log corrigées, revendication UI retirée, code typé préservé + tests. MAIS la preuve live du code typé porte sur le 409 de /nix-lock, PAS sur un publish exécuté avec l image contenant le correctif (le publish live a tourné sur une image antérieure, statut/log ne contient que le message). Une preuve future après déploiement ne vaut pas une preuve présente. Correction : 1) merger/déployer le correctif ; 2) rejouer ACTIVE→READY/200, REVOKED→publish FAILED avec statut/log du deployment contenant littéralement ECODE_LOCK_GENERATION_REVOKED + URL 410, restauration→READY/200 ; 3) archiver artefacts + hashes.'
     reviewReceiptIdV6: RR-20260802-CODEX-09
     acceptedIndividualEvidence:
       - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
-        scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."
+        scope: 'PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat.'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "v7 (RR-09): code typé ECODE_LOCK_GENERATION_REVOKED capturé DANS LE LOG DU DEPLOYMENT d un publish sur l image CORRIGÉE déployée (merge #57 05319065, api 05319065be) — 03/08 : ACTIVE→READY/200, REVOKED→FAILED (log deployment contient le code littéral)+URL 410, restauré→READY/200, prod==main vérifié. Artefacts docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/"
+    anchor: 'v7 (RR-09): code typé ECODE_LOCK_GENERATION_REVOKED capturé DANS LE LOG DU DEPLOYMENT d un publish sur l image CORRIGÉE déployée (merge #57 05319065, api 05319065be) — 03/08 : ACTIVE→READY/200, REVOKED→FAILED (log deployment contient le code littéral)+URL 410, restauré→READY/200, prod==main vérifié. Artefacts docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/'
     expectedReviewer: OpenAI-Codex
     signatureResult: SIGNED
     reviewer: OpenAI-Codex
-    signedAt: "2026-08-04"
+    signedAt: '2026-08-04'
     reviewReceiptId: RR-20260804-CODEX-10
     reviewReceiptIdV7: RR-20260804-CODEX-10
-    signedScope: "v7 (§D du reçu, verbatim) : « Réserve RR-09 levée. Artefacts : publish sur image corrigée 05319065be — ACTIVE→READY/200 ; REVOKED→FAILED ; log persistant du deployment contient littéralement ECODE_LOCK_GENERATION_REVOKED ; URL du deployment refusé → 410 ; restauration→READY/200. » Reçu COMPLET : docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md (sha256 7832522b…)."
+    signedScope: 'v7 (§D du reçu, verbatim) : « Réserve RR-09 levée. Artefacts : publish sur image corrigée 05319065be — ACTIVE→READY/200 ; REVOKED→FAILED ; log persistant du deployment contient littéralement ECODE_LOCK_GENERATION_REVOKED ; URL du deployment refusé → 410 ; restauration→READY/200. » Reçu COMPLET : docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md (sha256 7832522b…).'
     openDependencies: "l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature, hors portée signée)"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
-    refusalReasonV1: "couvre pod/PVC pas la factory tenant GCP"
+    refusalReasonV1: 'couvre pod/PVC pas la factory tenant GCP'
     hardeningStatus: BLOCKED_ON_CHANTIER
-    blockedBy: "chantier CloudTenant/Factory GCP (CT-10/CT-11 restants ; preuves LIVE partielles zone/cloud-tenant-factory-iam)"
+    blockedBy: 'chantier CloudTenant/Factory GCP (CT-10/CT-11 restants ; preuves LIVE partielles zone/cloud-tenant-factory-iam)'
     expectedReviewer: OpenAI-Codex
     signatureResult: REFUSED_V1
   - contractId: CTR-IAM-POLICY-BASELINE
     file: IAM_POLICY_BASELINE.md
     contractVersion: 2
-    refusalReasonV1: "inventaire non exhaustif sans tests négatifs"
+    refusalReasonV1: 'inventaire non exhaustif sans tests négatifs'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "2 tests négatifs réels prouvés (revoke→deny 215s ; exec CI interdit)"
+    anchor: '2 tests négatifs réels prouvés (revoke→deny 215s ; exec CI interdit)'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "inventaire exhaustif + négatif PAR identité + WIF 3 chemins (chantier D)"
+    openDependencies: 'inventaire exhaustif + négatif PAR identité + WIF 3 chemins (chantier D)'
   - contractId: CTR-CHECKPOINT
     file: CHECKPOINT_CONTRACT.md
     contractVersion: 4
-    refusalReasonV1: "tests unitaires mais aucun câblage réel"
+    refusalReasonV1: 'tests unitaires mais aucun câblage réel'
+    refusalReasonV2: 'barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué (P0-V3-09)'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "Mergé 150d54782 : migration 0089, endpoints réels, barrière PostgreSQL DB-clock multi-réplicas, restore hashé et fencé ; aucune preuve live revendiquée"
+    anchor: 'Mergé 150d54782 : migration 0089, endpoints réels, barrière PostgreSQL DB-clock multi-réplicas, restore hashé et fencé ; aucune preuve live revendiquée'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "snapshot DB physique CNPG dormant (DB_ROLLBACK_ENABLED) + preuve PITR live (PR-DR)"
+    openDependencies: 'couverture BASE non prouvée (backup CNPG soumis, ni attendu ni rejoué ; PITR live à jouer) + gel des écrivains in-pod non implémenté + instant commun fichiers↔base non implémenté'
   - contractId: CTR-SECURITY-PRIVACY
     file: SECURITY_PRIVACY_COMPLIANCE.md
     contractVersion: 2
-    refusalReasonV1: "threat model/rétention incomplets"
+    refusalReasonV1: 'threat model/rétention incomplets'
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "acquis prouvés ancrés : masquage PII prod, fail-closed licence, gitleaks bloquant, gVisor/NetworkPolicy"
+    anchor: 'acquis prouvés ancrés : masquage PII prod, fail-closed licence, gitleaks bloquant, gVisor/NetworkPolicy'
     expectedReviewer: OpenAI-Codex
     signatureResult: PENDING_REVIEW
-    openDependencies: "threat model formel + rétention/effacement (chantier)"
+    openDependencies: 'threat model formel + rétention/effacement (chantier)'
   - contractId: CTR-OPERATIONS-DR
     file: OPERATIONS_DR.md
     contractVersion: 1
-    refusalReasonV1: "SLO/astreinte/chaos/RTO-RPO non prouvés"
-    notSubmittedForWholeContractSignature: true   # décision RR-08 — aucun reviewer sur le contrat entier
-    remainingObligations: "astreinte outillée ; réplication cross-région ; RTO applicatif complet (reçu RR-08)"
+    refusalReasonV1: 'SLO/astreinte/chaos/RTO-RPO non prouvés'
+    notSubmittedForWholeContractSignature: true # décision RR-08 — aucun reviewer sur le contrat entier
+    remainingObligations: 'astreinte outillée ; réplication cross-région ; RTO applicatif complet (reçu RR-08)'
     acceptedIndividualEvidence:
       - evidenceId: EVID-DR-SNAPSHOT-001
-        scope: "PORTÉE LIMITÉE (reçu RR-08) : policy Terraform quotidienne rétention 7 j + attache observée sur les disques PRÉSENTS + snapshot compatible scheduler + script idempotent. LIMITES verbatim : pas de CronJob d attache continue démontré (NE PAS prétendre couverture automatique des futurs disques) ; archiver aussi la sortie JSON brute gcloud compute snapshots describe / Cloud Audit Logs. Ne signe PAS le contrat."
+        scope: 'PORTÉE LIMITÉE (reçu RR-08) : policy Terraform quotidienne rétention 7 j + attache observée sur les disques PRÉSENTS + snapshot compatible scheduler + script idempotent. LIMITES verbatim : pas de CronJob d attache continue démontré (NE PAS prétendre couverture automatique des futurs disques) ; archiver aussi la sortie JSON brute gcloud compute snapshots describe / Cloud Audit Logs. Ne signe PAS le contrat.'
     hardeningStatus: BLOCKED_ON_CHANTIER
     blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
     expectedReviewer: OpenAI-Codex

@@ -25,6 +25,7 @@ import type {
 } from './object-storage-command.js';
 import type { ObjectStorage, ObjectStorageInventory } from './object-storage.js';
 import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from './project-storage.js';
+import type { ProjectCheckpointLease } from './checkpoint-lease.js';
 
 export interface UserRecord {
   id: string;
@@ -3442,6 +3443,8 @@ export interface ApiStore {
     createdByUserId?: string;
     conversationId?: string;
     turnIndex?: number;
+    /** Exact live barrier that owns this checkpoint-internal write. */
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
@@ -3453,6 +3456,8 @@ export interface ApiStore {
     contentBase64: string;
     byteLength: number;
     contentHash: string;
+    /** Exact live barrier that owns this checkpoint-internal write. */
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }): Promise<ProjectStorageObjectRecord>;
   getProjectStorageObject(input: {
     projectId: string;

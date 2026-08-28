@@ -111,6 +111,28 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
         organizationId: organization.id,
       });
 
+      await expect(
+        storeB.createSnapshot({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          kind: 'manual',
+          manifest: { files: [] },
+          checkpointBarrierAuthority: { ...lease!, ownerToken: `forged-${suffix()}` },
+        }),
+      ).rejects.toMatchObject({ code: 'CHECKPOINT_BARRIER_LOST', statusCode: 409 });
+      expect(await prismaA.projectSnapshot.count({ where: { projectId: project.id } })).toBe(0);
+
+      await expect(
+        storeA.createSnapshot({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          kind: 'manual',
+          manifest: { files: [] },
+          checkpointBarrierAuthority: lease!,
+        }),
+      ).resolves.toMatchObject({ projectId: project.id, kind: 'manual' });
+      expect(await prismaA.projectSnapshot.count({ where: { projectId: project.id } })).toBe(1);
+
       await storeA.releaseProjectCheckpointBarrier({
         checkpointId: checkpoint.id,
         ownerToken: lease!.ownerToken,
@@ -179,6 +201,13 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
       });
       expect(await storeB.getActiveCheckpointBarrier(project.id)).toMatchObject({
         checkpointId: (leaseA ?? leaseB)!.checkpointId,
+      });
+
+      const winner = (leaseA ?? leaseB)!;
+      await storeA.releaseProjectCheckpointBarrier({
+        checkpointId: winner.checkpointId,
+        ownerToken: winner.ownerToken,
+        fence: winner.fence,
       });
 
       const keyed = await storeA.createProjectCheckpoint({

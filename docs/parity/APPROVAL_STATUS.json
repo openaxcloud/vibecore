@@ -357,8 +357,8 @@
       "done": 4
     },
     "e2e": {
-      "total": 12,
-      "proven": 12
+      "total": 13,
+      "proven": 13
     },
     "p1": {
       "total": 40,
@@ -1002,6 +1002,12 @@
       "evidenceId": "docs/deploy-evidence/2026-07-16-zone-autoscale/",
       "fileCount": 10,
       "evidenceSha256": "997a83259c7d02d9add5ec05edc053e86e0cafbc996dc5291d50f9072399f184"
+    },
+    {
+      "proofId": "E2E-SCHEDULED-01",
+      "evidenceId": "docs/deploy-evidence/2026-07-15-phase-b/REPORT.md",
+      "fileCount": 1,
+      "evidenceSha256": "a34758bc5c32ab921e59ccc5c829399f53ededd5ab28866ce54006e82e90e062"
     },
     {
       "proofId": "E2E-AGM-A",

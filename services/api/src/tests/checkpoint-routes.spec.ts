@@ -164,7 +164,7 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
       url: `/projects/${project.id}/checkpoints`,
       headers: auth('ckpt-token'),
     });
-    expect(res.statusCode).toBe(201);
+    expect(res.statusCode, JSON.stringify(res.json())).toBe(201);
     const ckpt = res.json().checkpoint;
 
     expect(ckpt.state).toBe('COMMITTED');

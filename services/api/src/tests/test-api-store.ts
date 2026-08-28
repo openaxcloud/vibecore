@@ -11,6 +11,7 @@ import {
 } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
+import type { ProjectCheckpointLease } from '../checkpoint-lease.js';
 import {
   anonymizedEmail,
   buildErasureProof,
@@ -741,6 +742,7 @@ export class TestApiStore implements ApiStore {
       allowActiveCheckpoint?: boolean;
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
+      checkpointBarrierAuthority?: ProjectCheckpointLease;
     } = {},
   ): Promise<T> {
     return this.withProjectPhysicalBarriers([scope.projectId], async () => {
@@ -755,10 +757,28 @@ export class TestApiStore implements ApiStore {
       allowActiveCheckpoint?: boolean;
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
+      checkpointBarrierAuthority?: ProjectCheckpointLease;
     } = {},
   ): Promise<void> {
     await this.assertProjectStorageMutable(scope, options);
-    if (!options.allowActiveCheckpoint && (await this.getActiveCheckpointBarrier(scope.projectId))) {
+    if (options.checkpointBarrierAuthority) {
+      const row = this.projectCheckpoints.get(options.checkpointBarrierAuthority.checkpointId);
+      if (
+        !row ||
+        row.projectId !== scope.projectId ||
+        row.barrierProjectId !== scope.projectId ||
+        row.logicalBarrierId !== options.checkpointBarrierAuthority.barrierId ||
+        row.barrierOwnerToken !== options.checkpointBarrierAuthority.ownerToken ||
+        row.barrierFence !== options.checkpointBarrierAuthority.fence ||
+        !row.barrierExpiresAt ||
+        new Date(row.barrierExpiresAt).getTime() <= Date.now()
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+          code: 'CHECKPOINT_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+    } else if (!options.allowActiveCheckpoint && (await this.getActiveCheckpointBarrier(scope.projectId))) {
       throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
         code: 'CHECKPOINT_BARRIER_ACTIVE',
         statusCode: 423,
@@ -4835,61 +4855,66 @@ export class TestApiStore implements ApiStore {
     createdByUserId?: string;
     conversationId?: string;
     turnIndex?: number;
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }) {
-    return this.withProjectTenantMutation(input, async () => {
-      if (input.id) {
-        const existing = this.snapshots.get(input.id);
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        if (input.id) {
+          const existing = this.snapshots.get(input.id);
 
-        if (existing) {
-          if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
-            throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
-              statusCode: 409,
-              code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
-            });
+          if (existing) {
+            if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
+              throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
+                statusCode: 409,
+                code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
+              });
+            }
+
+            return existing;
           }
-
-          return existing;
         }
-      }
 
-      let latestManifest = await this.getLatestProjectManifest(input.projectId);
+        let latestManifest = await this.getLatestProjectManifest(input.projectId);
 
-      if (!latestManifest && this.projects.has(input.projectId)) {
-        const initial = createDefaultProjectManifest(input.projectId);
-        latestManifest = await this.createProjectManifestRevisionAfterTenantLock({
+        if (!latestManifest && this.projects.has(input.projectId)) {
+          const initial = createDefaultProjectManifest(input.projectId);
+          latestManifest = await this.createProjectManifestRevisionAfterTenantLock({
+            projectId: input.projectId,
+            expectedOrganizationId: input.expectedOrganizationId,
+            schemaVersion: initial.schemaVersion,
+            manifestVersion: initial.manifestVersion,
+            digest: projectManifestDigest(initial),
+            manifest: initial,
+            createdByUserId: input.createdByUserId,
+          });
+        }
+
+        const manifestBase =
+          input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
+            ? (input.manifest as Record<string, unknown>)
+            : { snapshotData: input.manifest };
+        const snapshot: SnapshotRecord = {
+          ...(input.id ? { id: input.id } : { id: id('snapshot') }),
           projectId: input.projectId,
-          expectedOrganizationId: input.expectedOrganizationId,
-          schemaVersion: initial.schemaVersion,
-          manifestVersion: initial.manifestVersion,
-          digest: projectManifestDigest(initial),
-          manifest: initial,
+          label: input.label,
+          kind: input.kind ?? 'manual',
+          manifest: latestManifest
+            ? { ...manifestBase, projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId) }
+            : manifestBase,
+          storageKey: input.storageKey,
+          byteLength: input.byteLength,
           createdByUserId: input.createdByUserId,
-        });
-      }
+          conversationId: input.conversationId,
+          turnIndex: input.turnIndex,
+          createdAt: now(),
+        };
+        this.snapshots.set(snapshot.id, snapshot);
 
-      const manifestBase =
-        input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
-          ? (input.manifest as Record<string, unknown>)
-          : { snapshotData: input.manifest };
-      const snapshot: SnapshotRecord = {
-        ...(input.id ? { id: input.id } : { id: id('snapshot') }),
-        projectId: input.projectId,
-        label: input.label,
-        kind: input.kind ?? 'manual',
-        manifest: latestManifest
-          ? { ...manifestBase, projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId) }
-          : manifestBase,
-        storageKey: input.storageKey,
-        byteLength: input.byteLength,
-        createdByUserId: input.createdByUserId,
-        conversationId: input.conversationId,
-        turnIndex: input.turnIndex,
-        createdAt: now(),
-      };
-      this.snapshots.set(snapshot.id, snapshot);
-
-      return snapshot;
-    });
+        return snapshot;
+      },
+      { checkpointBarrierAuthority: input.checkpointBarrierAuthority },
+    );
   }
 
   async getSnapshot(id: string) {
@@ -4908,24 +4933,29 @@ export class TestApiStore implements ApiStore {
     contentBase64: string;
     byteLength: number;
     contentHash: string;
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }) {
-    return this.withProjectTenantMutation(input, async () => {
-      const existing = this.projectStorageObjects.get(input.key);
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        const existing = this.projectStorageObjects.get(input.key);
 
-      const object: ProjectStorageObjectRecord = {
-        id: existing?.id ?? id('storage_object'),
-        projectId: input.projectId,
-        key: input.key,
-        kind: input.kind,
-        contentBase64: input.contentBase64,
-        byteLength: input.byteLength,
-        contentHash: input.contentHash,
-        createdAt: existing?.createdAt ?? now(),
-      };
-      this.projectStorageObjects.set(input.key, object);
+        const object: ProjectStorageObjectRecord = {
+          id: existing?.id ?? id('storage_object'),
+          projectId: input.projectId,
+          key: input.key,
+          kind: input.kind,
+          contentBase64: input.contentBase64,
+          byteLength: input.byteLength,
+          contentHash: input.contentHash,
+          createdAt: existing?.createdAt ?? now(),
+        };
+        this.projectStorageObjects.set(input.key, object);
 
-      return object;
-    });
+        return object;
+      },
+      { checkpointBarrierAuthority: input.checkpointBarrierAuthority },
+    );
   }
 
   async getProjectStorageObject(input: { projectId: string; expectedOrganizationId: string; key: string }) {

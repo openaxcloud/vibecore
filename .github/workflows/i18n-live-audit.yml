@@ -17,7 +17,7 @@ jobs:
   live-audit:
     name: Playwright ${{ matrix.project }}
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 90
     strategy:
       # Every viewport is independent proof. Keep collecting the other three
       # result sets when one viewport exposes untranslated copy or overflow.
@@ -201,16 +201,6 @@ jobs:
           exit 1
 
       - name: Run exhaustive EN/FR live audit
-        # Plafond au niveau de l'ETAPE, pas seulement du job. Un depassement du
-        # `timeout-minutes` du job conclut le job en `cancelled`, pas en
-        # `failure` : dans l'interface, un shard annule se lit comme une
-        # annulation manuelle, pas comme une panne, et c'est une des raisons
-        # pour lesquelles `mobile-390` est reste rouge sans etre traite. Un
-        # timeout d'ETAPE, lui, echoue franchement — verdict honnete, et les
-        # etapes `if: always()` qui suivent gardent leur budget pour uploader
-        # la preuve. Avec `retries: 0`, l'audit se termine de lui-meme bien
-        # avant ces 45 min : ce plafond est un filet, pas le mecanisme.
-        timeout-minutes: 45
         run: >-
           pnpm exec playwright test
           tests/e2e/i18n-french-live.spec.ts

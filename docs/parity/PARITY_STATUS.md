@@ -1,11 +1,11 @@
 # PARITY_STATUS — vue GÉNÉRÉE (ne pas éditer : modifier les registres ou PARITY_STATUS_NOTES.md puis régénérer)
 
 schemaVersion: 2
-repoCommit: bbb07daa
+repoCommit: b1b49447
 généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 
 **Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: contractsPresent`
-**Attestation CI** : run 33134373269 (2026-08-28T02:03:37Z, commit bbb07daa) — verte.
+**Attestation CI** : run 33146819235 (2026-08-28T06:07:11Z, commit b1b49447) — verte.
 
 | Niveau | État |
 |---|---|
@@ -21,7 +21,7 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | publicLaunchReady | ❌ FAIL (betaReady not passed … +34) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 65 (25 OPEN · 5 PROVEN · 35 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 122 work items · claims non ancrées 0 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 65 (25 OPEN · 5 PROVEN · 35 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 13/13 · constats 336 → 122 work items · claims non ancrées 0 · uiGaps [publish, rollback]
 
 ---
 

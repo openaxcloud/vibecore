@@ -14,6 +14,7 @@ import { createDatabaseClient, getDatabaseUrl, Prisma, type DatabaseClient } fro
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
 import { appPublicEnglish } from './app-public-copy.js';
+import type { ProjectCheckpointLease } from './checkpoint-lease.js';
 import { LedgerStore } from './ledger-store.js';
 import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
 import type { PurgeStorageDeps } from './account-purge.js';
@@ -1846,6 +1847,31 @@ async function assertNoActiveProjectReleaseBarrier(tx: Prisma.TransactionClient,
     throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
       code: 'CHECKPOINT_BARRIER_ACTIVE',
       statusCode: 423,
+    });
+  }
+}
+
+async function assertOwnedProjectCheckpointBarrier(
+  tx: Prisma.TransactionClient,
+  projectId: string,
+  authority: ProjectCheckpointLease,
+): Promise<void> {
+  const rows = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "ProjectCheckpoint"
+    WHERE "id" = ${authority.checkpointId}
+      AND "projectId" = ${projectId}
+      AND "barrierProjectId" = ${projectId}
+      AND "logicalBarrierId" = ${authority.barrierId}
+      AND "barrierOwnerToken" = ${authority.ownerToken}
+      AND "barrierFence" = ${authority.fence}
+      AND "barrierExpiresAt" > clock_timestamp()
+    LIMIT 1
+  `;
+
+  if (!rows[0]) {
+    throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+      code: 'CHECKPOINT_BARRIER_LOST',
+      statusCode: 409,
     });
   }
 }
@@ -4871,6 +4897,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
       allowedObjectStorageOperationId?: string;
+      checkpointBarrierAuthority?: ProjectCheckpointLease;
     } = {},
   ): Promise<void> {
     await this.accountPurge.assertProjectStorageMutable(tx, scope.projectId, scope.workspaceId);
@@ -4920,7 +4947,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     await assertNoActiveObjectStorageOperation(tx, [scope.projectId], options.allowedObjectStorageOperationId);
 
-    if (!options.allowActiveCheckpoint) {
+    if (options.checkpointBarrierAuthority) {
+      await assertOwnedProjectCheckpointBarrier(tx, scope.projectId, options.checkpointBarrierAuthority);
+    } else if (!options.allowActiveCheckpoint) {
       await assertNoActiveProjectReleaseBarrier(tx, scope.projectId);
     }
   }
@@ -12353,10 +12382,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     createdByUserId?: string;
     conversationId?: string;
     turnIndex?: number;
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        await this.lockExpectedProjectTenantMutation(tx, input);
+        await this.lockExpectedProjectTenantMutation(tx, input, {
+          checkpointBarrierAuthority: input.checkpointBarrierAuthority,
+        });
 
         let latestManifestRow = await tx.projectManifestRevision.findFirst({
           where: { projectId: input.projectId },
@@ -12450,9 +12482,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     contentBase64: string;
     byteLength: number;
     contentHash: string;
+    checkpointBarrierAuthority?: ProjectCheckpointLease;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      await this.lockExpectedProjectTenantMutation(tx, input);
+      await this.lockExpectedProjectTenantMutation(tx, input, {
+        checkpointBarrierAuthority: input.checkpointBarrierAuthority,
+      });
       return mapProjectStorageObject(
         await tx.projectStorageObject.upsert({
           where: { key: input.key },
