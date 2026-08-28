@@ -219,6 +219,53 @@ async function seedCurrentReservedVm(input: Awaited<ReturnType<typeof setup>>) {
   return { deployment: durable, oldDigest, sourceRepo, targetRepo };
 }
 
+function installReadyReservedVmStatusProbe() {
+  globalThis.fetch = vi.fn(async (url: string | URL | Request) => {
+    if (/\/server-deployments\/[^/]+\/status$/u.test(String(url))) {
+      return new Response(JSON.stringify({ exists: true, readyReplicas: 1, replicas: 1 }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+
+    return new Response('not found', { status: 404 });
+  }) as typeof fetch;
+}
+
+async function queueRecoverableRedeploy(runtime: Awaited<ReturnType<typeof setup>>, idempotencyKey: string) {
+  const seeded = await seedCurrentReservedVm(runtime);
+  const response = await runtime.app.inject({
+    method: 'POST',
+    url: `/projects/${runtime.project.id}/deployments/${seeded.deployment.id}/redeploy`,
+    headers: { authorization: `Bearer ${runtime.token}`, 'idempotency-key': idempotencyKey },
+  });
+
+  expect(response.statusCode, response.body).toBe(202);
+  expect(response.json()).toMatchObject({ queued: false, retryable: true });
+  return seeded;
+}
+
+function corruptRedeployRecoveryMetadata(runtime: Awaited<ReturnType<typeof setup>>, deploymentId: string) {
+  const deployment = runtime.store.deployments.get(deploymentId);
+  if (!deployment) throw new Error('Missing Reserved VM recovery fixture');
+  deployment.metadata = {
+    ...((deployment.metadata ?? {}) as Record<string, unknown>),
+    reservedVmRedeploy: undefined,
+  };
+}
+
+function recoveryState(runtime: Awaited<ReturnType<typeof setup>>, idempotencyKey: string) {
+  const operation = runtime.store.reservedVmOperations.get(`${runtime.project.id}:${idempotencyKey}`);
+  const recovery = operation?.response?.recovery;
+  return {
+    operation,
+    recovery:
+      recovery && typeof recovery === 'object' && !Array.isArray(recovery)
+        ? (recovery as Record<string, unknown>)
+        : undefined,
+  };
+}
+
 beforeEach(() => {
   process.env.INTERNAL_API_SHARED_SECRET = 'reserved-redeploy-internal-secret';
   process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.test';
@@ -804,6 +851,177 @@ describe('Reserved VM durable in-place redeploy', () => {
       userId: runtime.user.id,
     });
 
+    await runtime.app.close();
+  });
+
+  it('durably defers poisoned recovery metadata and continues to the healthy operation behind it', async () => {
+    let recoveryEnabled = false;
+    const enqueueDeployJob = vi.fn(async (job: DeployBuildJobData) => {
+      if (!recoveryEnabled) {
+        throw Object.assign(new Error('Redis unavailable'), { code: 'QUEUE_DOWN' });
+      }
+      return `recovered-${job.operationKey}`;
+    });
+    const runtime = await setup({ enqueueDeployJob });
+    installReadyReservedVmStatusProbe();
+    const poisonedKey = 'reserved-redeploy-poison-oldest-0001';
+    const healthyKey = 'reserved-redeploy-after-poison-0002';
+    const poisoned = await queueRecoverableRedeploy(runtime, poisonedKey);
+    const healthy = await queueRecoverableRedeploy(runtime, healthyKey);
+    corruptRedeployRecoveryMetadata(runtime, poisoned.deployment.id);
+    recoveryEnabled = true;
+    const managerEffect = vi.fn(async () => new Response('unexpected manager effect', { status: 500 }));
+    globalThis.fetch = managerEffect as typeof fetch;
+
+    const recovery = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+
+    expect(recovery.statusCode, recovery.body).toBe(200);
+    expect(recovery.json().reservedVmRedeployRecovery).toEqual({
+      claimed: true,
+      deploymentId: healthy.deployment.id,
+      operationId: expect.any(String),
+      jobId: `recovered-${healthyKey}`,
+    });
+    expect(enqueueDeployJob).toHaveBeenCalledTimes(3);
+    expect(enqueueDeployJob.mock.calls[2]?.[0]).toMatchObject({
+      deploymentId: healthy.deployment.id,
+      operationKey: healthyKey,
+    });
+    expect(recoveryState(runtime, poisonedKey)).toMatchObject({
+      operation: {
+        status: 'APPLYING',
+        errorCode: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+        leaseOwner: undefined,
+      },
+      recovery: { attempts: 1, retryClass: 'MANUAL', deferredUntil: expect.any(String) },
+    });
+    expect(managerEffect).not.toHaveBeenCalled();
+    await runtime.app.close();
+  });
+
+  it('persists transient recovery backoff and retries only after its durable deadline', async () => {
+    let mode: 'INITIAL_FAILURE' | 'TRANSIENT_FAILURE' | 'SUCCESS' = 'INITIAL_FAILURE';
+    const enqueueDeployJob = vi.fn(async (job: DeployBuildJobData) => {
+      if (mode !== 'SUCCESS') {
+        throw Object.assign(new Error(mode === 'TRANSIENT_FAILURE' ? 'Redis still unavailable' : 'Redis unavailable'), {
+          code: 'QUEUE_DOWN',
+        });
+      }
+      return `recovered-${job.operationKey}`;
+    });
+    const runtime = await setup({ enqueueDeployJob });
+    installReadyReservedVmStatusProbe();
+    const idempotencyKey = 'reserved-redeploy-transient-backoff-0001';
+    const seeded = await queueRecoverableRedeploy(runtime, idempotencyKey);
+    mode = 'TRANSIENT_FAILURE';
+
+    const firstRecovery = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+
+    expect(firstRecovery.statusCode, firstRecovery.body).toBe(200);
+    expect(recoveryState(runtime, idempotencyKey)).toMatchObject({
+      operation: {
+        status: 'APPLYING',
+        errorCode: 'QUEUE_DOWN',
+        errorMessage: 'Redis still unavailable',
+        leaseOwner: undefined,
+      },
+      recovery: { attempts: 1, retryClass: 'TRANSIENT', deferredUntil: expect.any(String) },
+    });
+    const deferred = recoveryState(runtime, idempotencyKey).operation;
+    expect(Date.parse(deferred?.leaseExpiresAt ?? '')).toBeGreaterThan(Date.now());
+
+    const beforeDeadline = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+    expect(beforeDeadline.statusCode, beforeDeadline.body).toBe(200);
+    expect(beforeDeadline.json().reservedVmRedeployRecovery).toEqual({ claimed: false });
+    expect(enqueueDeployJob).toHaveBeenCalledTimes(2);
+
+    if (!deferred) throw new Error('Missing transient recovery operation');
+    deferred.leaseExpiresAt = new Date(Date.now() - 1_000).toISOString();
+    mode = 'SUCCESS';
+    const afterDeadline = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+
+    expect(afterDeadline.statusCode, afterDeadline.body).toBe(200);
+    expect(afterDeadline.json().reservedVmRedeployRecovery).toEqual({
+      claimed: true,
+      deploymentId: seeded.deployment.id,
+      operationId: expect.any(String),
+      jobId: `recovered-${idempotencyKey}`,
+    });
+    expect(enqueueDeployJob).toHaveBeenCalledTimes(3);
+    expect(recoveryState(runtime, idempotencyKey)).toMatchObject({
+      operation: { errorCode: 'QUEUE_DOWN', errorMessage: 'Redis still unavailable' },
+      recovery: { attempts: 1, retryClass: 'TRANSIENT' },
+    });
+    await runtime.app.close();
+  });
+
+  it('bounds poison recovery to eight candidates per tick without starving the ninth candidate forever', async () => {
+    const enqueueDeployJob = vi.fn(async () => {
+      throw Object.assign(new Error('Redis unavailable'), { code: 'QUEUE_DOWN' });
+    });
+    const runtime = await setup({ enqueueDeployJob });
+    installReadyReservedVmStatusProbe();
+    const candidates: Array<{ idempotencyKey: string; deploymentId: string }> = [];
+
+    for (let index = 0; index < 9; index += 1) {
+      const idempotencyKey = `reserved-redeploy-poison-batch-${String(index).padStart(2, '0')}`;
+      const seeded = await queueRecoverableRedeploy(runtime, idempotencyKey);
+      corruptRedeployRecoveryMetadata(runtime, seeded.deployment.id);
+      candidates.push({ idempotencyKey, deploymentId: seeded.deployment.id });
+    }
+    const managerEffect = vi.fn(async () => new Response('unexpected manager effect', { status: 500 }));
+    globalThis.fetch = managerEffect as typeof fetch;
+
+    const firstTick = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+
+    expect(firstTick.statusCode, firstTick.body).toBe(200);
+    expect(candidates.filter(({ idempotencyKey }) => recoveryState(runtime, idempotencyKey).recovery)).toHaveLength(8);
+    const ninthBeforeNextTick = recoveryState(runtime, candidates[8]!.idempotencyKey);
+    expect(ninthBeforeNextTick.operation?.status).toBe('PENDING');
+    expect(ninthBeforeNextTick.operation?.leaseOwner).toBeUndefined();
+    expect(ninthBeforeNextTick.operation?.leaseExpiresAt).toBeUndefined();
+    expect(ninthBeforeNextTick.recovery).toBeUndefined();
+
+    const secondTick = await runtime.app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+      payload: {},
+    });
+
+    expect(secondTick.statusCode, secondTick.body).toBe(200);
+    expect(candidates.filter(({ idempotencyKey }) => recoveryState(runtime, idempotencyKey).recovery)).toHaveLength(9);
+    expect(recoveryState(runtime, candidates[8]!.idempotencyKey)).toMatchObject({
+      operation: { errorCode: 'RESERVED_VM_REDEPLOY_METADATA_INVALID', leaseOwner: undefined },
+      recovery: { attempts: 1, retryClass: 'MANUAL' },
+    });
+    expect(enqueueDeployJob).toHaveBeenCalledTimes(9);
+    expect(managerEffect).not.toHaveBeenCalled();
     await runtime.app.close();
   });
 

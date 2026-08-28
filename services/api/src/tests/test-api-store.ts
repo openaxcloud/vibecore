@@ -4982,6 +4982,59 @@ export class TestApiStore implements ApiStore {
     return { operation: claimed, deployment };
   }
 
+  async deferReservedVmRecovery(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+    retryClass: 'TRANSIENT' | 'MANUAL';
+  }) {
+    const entry = [...this.reservedVmOperations.entries()].find(([, operation]) => operation.id === input.operationId);
+    const operation = entry?.[1];
+    if (
+      !entry ||
+      !operation ||
+      !['PENDING', 'APPLYING'].includes(operation.status) ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken ||
+      !operation.leaseExpiresAt ||
+      Date.parse(operation.leaseExpiresAt) <= Date.now()
+    ) {
+      throw Object.assign(new Error('RESERVED_VM_OPERATION_FENCE_LOST'), {
+        code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+        statusCode: 409,
+      });
+    }
+    const priorRecovery =
+      operation.response?.recovery &&
+      typeof operation.response.recovery === 'object' &&
+      !Array.isArray(operation.response.recovery)
+        ? (operation.response.recovery as Record<string, unknown>)
+        : {};
+    const attempts =
+      typeof priorRecovery.attempts === 'number' && Number.isSafeInteger(priorRecovery.attempts)
+        ? Math.min(30, priorRecovery.attempts + 1)
+        : 1;
+    const delayMs =
+      input.retryClass === 'MANUAL' ? 24 * 60 * 60_000 : Math.min(5 * 60_000, 5_000 * 2 ** Math.min(6, attempts - 1));
+    const deferredUntil = new Date(Date.now() + delayMs).toISOString();
+    const deferred: ReservedVmLease = {
+      ...operation,
+      leaseOwner: undefined,
+      leaseExpiresAt: deferredUntil,
+      errorCode: input.errorCode.replace(/[^A-Za-z0-9_.:-]/gu, '_').slice(0, 120) || 'RECOVERY_FAILED',
+      errorMessage: input.errorMessage.replace(/[\r\n\t]+/gu, ' ').slice(0, 1_000),
+      response: {
+        ...(operation.response ?? {}),
+        recovery: { attempts, retryClass: input.retryClass, deferredUntil },
+      },
+      updatedAt: now(),
+    };
+    this.reservedVmOperations.set(entry[0], deferred);
+    return deferred;
+  }
+
   private _assertNoActiveProjectReleaseBarrier(projectId: string): void {
     const active = [...this.projectCheckpoints.values()].some(
       (checkpoint) =>

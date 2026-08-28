@@ -103,6 +103,11 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     type: 'counter',
   },
   {
+    name: 'reserved_vm_recovery_deferred_total',
+    help: 'Reserved VM recovery operations deferred with durable backoff by kind, retry class and code.',
+    type: 'counter',
+  },
+  {
     name: 'static_artifact_gc_runs_total',
     help: 'Bounded static artifact garbage-collection sweeps by outcome.',
     type: 'counter',

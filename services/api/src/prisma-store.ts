@@ -10595,8 +10595,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           leaseOwner: ownerToken,
           leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
           fencingToken: deploymentFence.runtimeFencingToken,
-          errorCode: null,
-          errorMessage: null,
         },
       });
       return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment), acquired: true };
@@ -10817,13 +10815,86 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           leaseOwner: ownerToken,
           leaseExpiresAt: databaseLeaseExpiry(now, input.ttlMs),
           fencingToken: deploymentFence.runtimeFencingToken,
-          errorCode: null,
-          errorMessage: null,
         },
       });
       const deployment = await tx.deployment.findUniqueOrThrow({ where: { id: operation.deploymentId } });
 
       return { operation: mapReservedVmOperation(claimed), deployment: mapDeployment(deployment) };
+    });
+  }
+
+  async deferReservedVmRecovery(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    errorCode: string;
+    errorMessage: string;
+    retryClass: 'TRANSIENT' | 'MANUAL';
+  }): Promise<ReservedVmLease> {
+    const ownerToken = requireReservedVmLeaseOwner(input.ownerToken);
+    const errorCode = input.errorCode.replace(/[^A-Za-z0-9_.:-]/gu, '_').slice(0, 120) || 'RECOVERY_FAILED';
+    const errorMessage = input.errorMessage.replace(/[\r\n\t]+/gu, ' ').slice(0, 1_000);
+
+    return this.prisma.$transaction(async (tx) => {
+      const preliminary = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const actorUserId = requireReservedVmActor(preliminary.actorUserId);
+      await assertAccountPurgeMutationAllowed(tx, {
+        userIds: [actorUserId],
+        organizationIds: [preliminary.organizationId],
+        projectIds: [preliminary.projectId],
+      });
+      await tx.$queryRaw`SELECT "id" FROM "ReservedVmOperation" WHERE "id" = ${input.operationId} FOR UPDATE`;
+      const operation = await tx.reservedVmOperation.findUniqueOrThrow({ where: { id: input.operationId } });
+      const now = await databaseNow(tx);
+
+      if (
+        !['PENDING', 'APPLYING'].includes(operation.status) ||
+        operation.leaseOwner !== ownerToken ||
+        operation.fencingToken !== input.fencingToken ||
+        !operation.leaseExpiresAt ||
+        operation.leaseExpiresAt <= now
+      ) {
+        throw Object.assign(reservedVmStoreError('RESERVED_VM_OPERATION_FENCE_LOST'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      const response =
+        operation.response && typeof operation.response === 'object' && !Array.isArray(operation.response)
+          ? (operation.response as Record<string, unknown>)
+          : {};
+      const priorRecovery =
+        response.recovery && typeof response.recovery === 'object' && !Array.isArray(response.recovery)
+          ? (response.recovery as Record<string, unknown>)
+          : {};
+      const priorAttempts =
+        typeof priorRecovery.attempts === 'number' && Number.isSafeInteger(priorRecovery.attempts)
+          ? priorRecovery.attempts
+          : 0;
+      const attempts = Math.min(30, Math.max(0, priorAttempts) + 1);
+      const delayMs =
+        input.retryClass === 'MANUAL' ? 24 * 60 * 60_000 : Math.min(5 * 60_000, 5_000 * 2 ** Math.min(6, attempts - 1));
+
+      const deferred = await tx.reservedVmOperation.update({
+        where: { id: operation.id },
+        data: {
+          leaseOwner: null,
+          leaseExpiresAt: new Date(now.getTime() + delayMs),
+          errorCode,
+          errorMessage,
+          response: {
+            ...response,
+            recovery: {
+              attempts,
+              retryClass: input.retryClass,
+              deferredUntil: new Date(now.getTime() + delayMs).toISOString(),
+            },
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return mapReservedVmOperation(deferred);
     });
   }
 
