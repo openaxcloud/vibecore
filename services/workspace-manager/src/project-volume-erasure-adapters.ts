@@ -19,7 +19,6 @@ import {
 
 const SERVICE_ACCOUNT_DIRECTORY = '/var/run/secrets/kubernetes.io/serviceaccount';
 const DEFAULT_REQUEST_TIMEOUT_MS = 25_000;
-const DEFAULT_MAX_KUBERNETES_PAGES = 100;
 const MAX_KUBERNETES_OBJECT_BYTES = 2 * 1024 * 1024;
 const MAX_KUBERNETES_LIST_BYTES = 16 * 1024 * 1024;
 const MAX_GCE_RESPONSE_BYTES = 1024 * 1024;
@@ -95,6 +94,31 @@ const pvListSchema = z
   })
   .passthrough();
 
+export async function collectProjectPersistentVolumePages(
+  loadPage: (continuation: string | undefined) => Promise<{
+    items: readonly ProjectPersistentVolume[];
+    continuation?: string;
+  }>,
+): Promise<readonly ProjectPersistentVolume[]> {
+  const volumes: ProjectPersistentVolume[] = [];
+  let continuation: string | undefined;
+  const seenContinuations = new Set<string>();
+  for (;;) {
+    const page = await loadPage(continuation);
+    volumes.push(...page.items);
+    continuation = page.continuation;
+    if (!continuation) return volumes;
+    if (seenContinuations.has(continuation)) {
+      throw adapterError(
+        'VOLUME_ERASURE_KUBERNETES_LIST_INCOMPLETE',
+        'Kubernetes repeated a PV continuation token.',
+        503,
+      );
+    }
+    seenContinuations.add(continuation);
+  }
+}
+
 function adapterError(code: string, message: string, statusCode = 502, cause?: unknown): ProjectVolumeErasureError {
   return new ProjectVolumeErasureError(code, message, statusCode, cause === undefined ? undefined : { cause });
 }
@@ -127,7 +151,6 @@ export interface InClusterProjectVolumeKubernetesAdapterOptions {
   tokenFile?: string;
   certificateAuthorityFile?: string;
   timeoutMs?: number;
-  maxListPages?: number;
 }
 
 /**
@@ -142,7 +165,6 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
   readonly #tokenFile: string;
   readonly #certificateAuthorityFile: string;
   readonly #timeoutMs: number;
-  readonly #maxListPages: number;
 
   constructor(options: InClusterProjectVolumeKubernetesAdapterOptions = {}) {
     this.#host = options.host ?? process.env.KUBERNETES_SERVICE_HOST ?? '';
@@ -151,7 +173,6 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
     this.#tokenFile = options.tokenFile ?? `${SERVICE_ACCOUNT_DIRECTORY}/token`;
     this.#certificateAuthorityFile = options.certificateAuthorityFile ?? `${SERVICE_ACCOUNT_DIRECTORY}/ca.crt`;
     this.#timeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
-    this.#maxListPages = options.maxListPages ?? DEFAULT_MAX_KUBERNETES_PAGES;
 
     if (
       !this.#host ||
@@ -160,10 +181,7 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
       this.#port < 1 ||
       this.#port > 65_535 ||
       !Number.isInteger(this.#timeoutMs) ||
-      this.#timeoutMs < 1 ||
-      !Number.isInteger(this.#maxListPages) ||
-      this.#maxListPages < 1 ||
-      this.#maxListPages > 1_000
+      this.#timeoutMs < 1
     ) {
       throw adapterError(
         'VOLUME_ERASURE_KUBERNETES_CONFIG_INVALID',
@@ -353,11 +371,7 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
   }
 
   async listPersistentVolumes(): Promise<readonly ProjectPersistentVolume[]> {
-    const volumes: ProjectPersistentVolume[] = [];
-
-    let continuation: string | undefined;
-
-    for (let page = 0; page < this.#maxListPages; page += 1) {
+    return collectProjectPersistentVolumePages(async (continuation) => {
       const query = new URLSearchParams({ limit: '500' });
 
       if (continuation) {
@@ -385,19 +399,8 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
         throw adapterError('VOLUME_ERASURE_KUBERNETES_RESPONSE_INVALID', 'Kubernetes PV list shape is invalid.', 502);
       }
 
-      volumes.push(...parsed.data.items);
-      continuation = parsed.data.metadata.continue;
-
-      if (!continuation) {
-        return volumes;
-      }
-    }
-
-    throw adapterError(
-      'VOLUME_ERASURE_KUBERNETES_LIST_INCOMPLETE',
-      'Kubernetes PV pagination exceeded its bound.',
-      503,
-    );
+      return { items: parsed.data.items, continuation: parsed.data.metadata.continue };
+    });
   }
 
   deletePersistentVolumeClaim(namespace: string, name: string, exact: ExactKubernetesDelete): Promise<void> {
@@ -479,7 +482,12 @@ export interface GcePersistentDiskAdapterOptions {
   allowedProjects?: readonly string[];
 }
 
-/** Real Compute Engine REST adapter for zonal and regional GKE PD CSI handles. */
+/**
+ * Real Compute Engine REST adapter for zonal and regional GKE PD CSI handles.
+ * GCE exposes no resource-ID CAS delete: correctness therefore also requires
+ * the caller's durable CSI-creation quiescence authority. Only privileged GCP
+ * administrators able to bypass that control plane sit outside this boundary.
+ */
 export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAdapter {
   readonly csiDriver = GCE_PD_CSI_DRIVER;
   readonly #tokenProvider: GoogleAccessTokenProvider;
@@ -602,6 +610,29 @@ export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAd
 
     const handle = parseGcePersistentDiskHandle(input.volumeHandle);
     this.#assertAllowed(handle);
+    const assertCreationQuiescence = async () => {
+      try {
+        await input.assertCreationQuiescence();
+      } catch (error) {
+        throw adapterError(
+          'VOLUME_ERASURE_CREATION_QUIESCENCE_CAPABILITY_UNAVAILABLE',
+          'Durable CSI creation quiescence is unavailable.',
+          503,
+          error,
+        );
+      }
+    };
+    await assertCreationQuiescence();
+    const immediatelyBeforeDelete = await this.inspect(input.volumeHandle);
+    if (!immediatelyBeforeDelete.exists) return;
+    if (immediatelyBeforeDelete.resourceId !== input.expectedResourceId) {
+      throw adapterError(
+        'VOLUME_ERASURE_PROVIDER_VOLUME_REPLACED',
+        'The GCE disk identity changed before deletion.',
+        409,
+      );
+    }
+    await assertCreationQuiescence();
     const url = this.#diskUrl(handle);
     url.searchParams.set('requestId', input.requestId);
 

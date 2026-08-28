@@ -72,7 +72,7 @@ function hardDeleteProject(
       outcome: 'VERIFIED_ABSENT',
       verifier: 'project-manifest-db-test',
       evidence: {
-        schemaVersion: 'project-permanent-erasure-v2',
+        schemaVersion: 'project-permanent-erasure-v3',
         filesystem: {
           projectTreeAbsent: true,
           workspaceTreesAbsent: true,

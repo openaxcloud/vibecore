@@ -20,11 +20,15 @@ import {
 import { StaticProjectVolumeProviderResolver } from './project-volume-erasure-adapters.js';
 import type {
   ExactKubernetesDelete,
+  ExactProviderVolumeDelete,
+  ProjectPersistentVolume,
   ProjectPersistentVolumeClaim,
+  ProjectStorageClass,
   ProjectVolumeErasureEntryEvidence,
   ProjectVolumeErasureEvidence,
   ProjectVolumeErasureInventory,
   ProjectVolumeKubernetesAdapter,
+  ProjectVolumeProviderAdapter,
 } from './project-volume-erasure.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
@@ -232,9 +236,9 @@ class TestWorkspaceStore implements WorkspaceStore {
     return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
   }
 
-  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
+  async executeProvisionEffect<T>(workspaceId: string, effect: (assertAuthority: () => Promise<void>) => Promise<T>) {
     if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
-    return effect();
+    return effect(async () => undefined);
   }
 
   async executeProjectProvisionEffect<T>(
@@ -415,6 +419,14 @@ class TestWorkspaceStore implements WorkspaceStore {
       ownershipEpoch: 0,
       namespace,
       state: 'PREPARED',
+      quiescenceSnapshot: {
+        schemaVersion: 1,
+        projectId: lease.projectId,
+        organizationId: lease.expectedOrganizationId,
+        ownershipEpoch: 0,
+        effects: [],
+      },
+      quiescenceHash: 'a'.repeat(64),
       sourceSnapshot: {
         snapshotId: lease.operationId,
         completeness: 'all-active-references-for-candidate-claims',
@@ -468,9 +480,25 @@ class TestWorkspaceStore implements WorkspaceStore {
     };
     return this.volumePlan;
   }
+
+  async assertProjectVolumeCreationQuiescence() {}
+
+  async recordProjectVolumeFinalScan(
+    lease: WorkspaceProjectDeletionLease,
+    evidence: import('./project-volume-erasure.js').ProjectVolumeErasureFinalScanEvidence,
+  ) {
+    this.volumePlan = {
+      ...this.volumePlan!,
+      finalScanEvidence: evidence,
+      finalScanFencingToken: lease.fencingToken,
+    };
+    return this.volumePlan;
+  }
 }
 
 class TestProjectVolumeKubernetes implements ProjectVolumeKubernetesAdapter {
+  readonly pvs = new Map<string, ProjectPersistentVolume>();
+
   constructor(private readonly k8s: TestWorkspaceK8sClient) {}
 
   async getPersistentVolumeClaim(namespace: string, name: string): Promise<ProjectPersistentVolumeClaim | undefined> {
@@ -486,28 +514,69 @@ class TestProjectVolumeKubernetes implements ProjectVolumeKubernetesAdapter {
         resourceVersion: object.metadata.resourceVersion ?? '1',
         labels: object.metadata.labels,
       },
-      spec: {},
+      spec: { volumeName: `pv-${name}`, storageClassName: 'test-csi' },
+      status: { phase: 'Bound' },
     };
   }
-  async getPersistentVolume() {
-    return undefined;
+  async getPersistentVolume(name: string) {
+    return this.pvs.get(name);
   }
   async listPersistentVolumes() {
-    return [];
+    for (const object of this.k8s.objects.values()) {
+      if (object.kind !== 'PersistentVolumeClaim') continue;
+      const namespace = object.metadata.namespace ?? 'workspaces';
+      const name = object.metadata.name;
+      const pvName = `pv-${name}`;
+      if (!this.pvs.has(pvName)) {
+        this.pvs.set(pvName, {
+          apiVersion: 'v1',
+          kind: 'PersistentVolume',
+          metadata: {
+            name: pvName,
+            uid: `uid-${pvName}`,
+            resourceVersion: '1',
+          },
+          spec: {
+            claimRef: { namespace, name, uid: `uid-${name}` },
+            storageClassName: 'test-csi',
+            persistentVolumeReclaimPolicy: 'Delete',
+            csi: { driver: 'test.csi.vibecore.ai', volumeHandle: `test/${namespace}/${name}` },
+          },
+          status: { phase: 'Bound' },
+        });
+      }
+    }
+    return [...this.pvs.values()];
   }
-  async getStorageClass() {
-    return undefined;
+  async getStorageClass(): Promise<ProjectStorageClass> {
+    return {
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { name: 'test-csi', uid: 'uid-test-csi', resourceVersion: '1' },
+      provisioner: 'test.csi.vibecore.ai',
+      reclaimPolicy: 'Delete',
+    };
   }
   async deletePersistentVolumeClaim(namespace: string, name: string, _exact: ExactKubernetesDelete) {
     await this.k8s.delete('PersistentVolumeClaim', namespace, name);
   }
-  async deletePersistentVolume() {}
+  async deletePersistentVolume(name: string) {
+    this.pvs.delete(name);
+  }
+}
+
+class TestProjectVolumeProvider implements ProjectVolumeProviderAdapter {
+  readonly csiDriver = 'test.csi.vibecore.ai';
+  async inspect() {
+    return { exists: false as const };
+  }
+  async deleteExact(_input: ExactProviderVolumeDelete) {}
 }
 
 function testVolumeErasure(k8s: TestWorkspaceK8sClient) {
   return {
     kubernetes: new TestProjectVolumeKubernetes(k8s),
-    providers: new StaticProjectVolumeProviderResolver(),
+    providers: new StaticProjectVolumeProviderResolver([new TestProjectVolumeProvider()]),
   };
 }
 
@@ -667,11 +736,10 @@ describe('WorkspaceManager', () => {
         persistentVolumeClaimsAbsent: true,
       },
       volumes: {
-        schemaVersion: 1,
+        schemaVersion: 'project-volume-erasure-receipt-v1',
         entryCount: 3,
         erasedEntryCount: 2,
         alreadyAbsentEntryCount: 1,
-        sharedExclusionCount: 0,
         persistentVolumeClaimsAbsent: true,
         persistentVolumesAbsent: true,
         providerVolumesAbsent: true,
