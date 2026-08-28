@@ -11,6 +11,7 @@ import type { ObjectStorage } from '../object-storage.js';
 import { PrismaApiStore } from '../prisma-store.js';
 import { LocalProjectStorage, type ProjectStaticErasureAuthority } from '../project-storage.js';
 import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 async function canReachDatabase() {
@@ -545,6 +546,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
           projectDeletionAttempts += 1;
           projectDeletionKeys.push(authority.idempotencyKey);
           let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
+          let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
           await expect(
             prisma.purgeEffect.findUnique({
               where: {
@@ -594,16 +596,18 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
                 }
                 await projectStorage.eraseProjectDataWithinPhysicalAccess(authority.projectId);
                 await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(authority.projectId);
+                registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, authority.projectId);
                 volumeProof = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
                   operationId: lease.operationId,
                   projectId: authority.projectId,
                   organizationId: authority.expectedOrganizationId,
-                  ownershipEpoch: authority.ownershipEpoch,
+                  ownershipEpoch: authority.expectedOwnershipEpoch,
                   fencingToken: lease.fencingToken,
                 });
               },
-              verifyPhysicalAbsence: async (assertLease) => {
+              verifyPhysicalAbsence: async (assertLease, lease) => {
                 await assertLease();
+                registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, authority.projectId);
                 const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(
                   authority.projectId,
                 );
@@ -629,6 +633,13 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
                       staticArtifactSummary: filesystem.staticArtifactSummary,
                     },
                     gcs: { bucketAbsent: true, objectCount: 0 },
+                    projectImages: {
+                      schemaVersion: 1,
+                      projectId: authority.projectId,
+                      operationId: lease.operationId,
+                      cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+                      registry: registryReceipt,
+                    },
                     workspaceManager: {
                       schemaVersion: 'workspace-project-erasure-v3',
                       projectId: authority.projectId,
@@ -1353,6 +1364,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
             ...liveAuthority!,
             ownerToken: `forged-${suffix()}`,
           },
+          ...emptyManagedDatabaseErasureCallbacks(),
           preflightPhysicalErasure: async () => {
             permanentDeleteEffect();
             throw new Error('unreachable');
