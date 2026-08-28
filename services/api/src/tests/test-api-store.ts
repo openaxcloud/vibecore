@@ -8392,17 +8392,28 @@ export class TestApiStore implements ApiStore {
     projectId: string,
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+    releaseFence?: ProjectReleaseFence,
   ) {
-    const deployment = await this.getDeployment(projectId, deploymentId);
+    const update = async () => {
+      const deployment = await this.getDeployment(projectId, deploymentId);
 
-    if (!deployment) {
-      throw new Error(`Deployment not found: ${deploymentId}`);
-    }
+      if (!deployment) {
+        throw new Error(`Deployment not found: ${deploymentId}`);
+      }
 
-    const updated: DeploymentRecord = { ...deployment, ...input, updatedAt: now() };
-    this.deployments.set(updated.id, updated);
+      const updated: DeploymentRecord = { ...deployment, ...input, updatedAt: now() };
+      this.deployments.set(updated.id, updated);
 
-    return updated;
+      return updated;
+    };
+
+    return releaseFence
+      ? this.withProjectTenantMutation(
+          { projectId, expectedOrganizationId: releaseFence.expectedOrganizationId },
+          update,
+          { releaseFence },
+        )
+      : update();
   }
 
   async listDeployments(projectId: string) {

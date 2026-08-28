@@ -4134,6 +4134,12 @@ export interface ApiStore {
     projectId: string,
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+    /**
+     * Required when the caller is executing inside a project release barrier.
+     * The store revalidates this authority in the same transaction as the row
+     * mutation, closing the guard.assert() -> update TOCTOU window.
+     */
+    releaseFence?: ProjectReleaseFence,
   ): Promise<DeploymentRecord>;
   listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
 

@@ -21,6 +21,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
     const prismaB = createDatabaseClient();
 
     let organizationId: string | undefined;
+    let release: Awaited<ReturnType<typeof acquireTestProjectReleaseFence>> | undefined;
 
     try {
       const storeA = new PrismaApiStore(prismaA);
@@ -36,7 +37,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
       });
 
       const imageRef = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${project.id.toLowerCase()}`;
-      const release = await acquireTestProjectReleaseFence(storeA, {
+      release = await acquireTestProjectReleaseFence(storeA, {
         projectId: project.id,
         organizationId: organization.id,
       });
@@ -54,6 +55,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
       const deployment = await storeA.createDeployment({
         projectId: project.id,
         expectedOrganizationId: project.organizationId,
+        releaseFence: release.releaseFence,
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
@@ -86,6 +88,26 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         releaseFence: release.releaseFence,
       };
 
+      await expect(
+        storeB.updateDeployment(
+          project.id,
+          deployment.id,
+          { metadata: { ...(deployment.metadata as Record<string, unknown>), fenceMarker: 'exact' } },
+          release.releaseFence,
+        ),
+      ).resolves.toMatchObject({ metadata: { fenceMarker: 'exact' } });
+      await expect(
+        storeB.updateDeployment(
+          project.id,
+          deployment.id,
+          { metadata: { ...(deployment.metadata as Record<string, unknown>), fenceMarker: 'forged' } },
+          { ...release.releaseFence, ownerToken: 'forged-release-owner' },
+        ),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+      expect((await prismaA.deployment.findUniqueOrThrow({ where: { id: deployment.id } })).metadata).toMatchObject({
+        fenceMarker: 'exact',
+      });
+
       const [first, second] = await Promise.all([
         storeA.commitServerImageRelease(input),
         storeB.commitServerImageRelease(input),
@@ -101,7 +123,25 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         /SERVER_RELEASE_PROMOTION_NOT_COMMITTED/u,
       );
       expect(await prismaA.releaseManifest.count({ where: { deploymentId: deployment.id } })).toBe(1);
+
+      await prismaA.$executeRaw`
+        UPDATE "ProjectCheckpoint"
+        SET "barrierExpiresAt" = clock_timestamp() - INTERVAL '1 second'
+        WHERE "id" = ${release.releaseFence.checkpointId}
+      `;
+      await expect(
+        storeB.updateDeployment(
+          project.id,
+          deployment.id,
+          { metadata: { ...(deployment.metadata as Record<string, unknown>), fenceMarker: 'lost' } },
+          release.releaseFence,
+        ),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+      expect((await prismaA.deployment.findUniqueOrThrow({ where: { id: deployment.id } })).metadata).not.toMatchObject(
+        { fenceMarker: 'lost' },
+      );
     } finally {
+      await release?.release().catch(() => false);
       if (organizationId) {
         await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
       }
