@@ -3,14 +3,14 @@
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
 fileCount: 173
-generatedAt: "2026-08-28T03:11:41Z"
-generatedFromCommit: 90ce7b4a380ab206ca86d4a2855c3aa288c7bbc2
-mergedCommit: 90ce7b4a380ab206ca86d4a2855c3aa288c7bbc2
+generatedAt: "2026-08-28T04:24:04Z"
+generatedFromCommit: 214f6f723e66b6c4f4c51f6b6f097dc993e185ea
+mergedCommit: 214f6f723e66b6c4f4c51f6b6f097dc993e185ea
 validation:
   workflow: Parity registries
-  runId: 33137359147
-  runDate: "2026-08-28T03:11:41Z"
-  runCommit: 90ce7b4a380ab206ca86d4a2855c3aa288c7bbc2
+  runId: 33141670316
+  runDate: "2026-08-28T04:24:04Z"
+  runCommit: 214f6f723e66b6c4f4c51f6b6f097dc993e185ea
   source: docs/parity/CI_ATTESTATION.yaml
 documents:
   - file: A2_12_DEDUP_SEMANTIQUE_20260720.md
@@ -74,9 +74,9 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: CI_ATTESTATION.yaml
-    sha256: "413650fa859bb4a5cb3effb315d7578dcb0e8bfef4480deba52976bf5dc41615"
+    sha256: "4bdc8f9d0d1cfc0b0488389cd73df31ed1e5a996bb3c8f68b9bae03eb05d1589"
     schemaVersion: 1
-    repoCommit: 90ce7b4a
+    repoCommit: 214f6f72
     reviewer: UNKNOWN
   - file: COMPONENT_KIND_REGISTRY.yaml
     sha256: "8c7c016fb581d5ecfecc6b054f834a3b099c32c361229ffdaf84f86b54dc0891"
@@ -179,7 +179,7 @@ documents:
     repoCommit: af24d4fe
     reviewer: UNKNOWN
   - file: IMPLEMENTATION_STATUS.yaml
-    sha256: "f975bc33c47ca7e0319fe560c0e8244956cc3b1fc01291db98983fd5a4fcc563"
+    sha256: "d3e7b0cf7d59d120aab9fdb68d46978c493c2ebade7b5a0d131c310b1b3fe3a0"
     schemaVersion: 2
     repoCommit: null
     reviewer: UNKNOWN
@@ -234,9 +234,9 @@ documents:
     repoCommit: af9e4e83
     reviewer: UNKNOWN
   - file: PARITY_STATUS.md
-    sha256: "19d1a1c0f4e1b7b7a48542cb366fe1e1aef129c7c1dbe6907efcb225fe055beb"
+    sha256: "0dcfc3e2fadb11cfa8d0ca09251368f622336e78453c9e81d45b561f2f926b5a"
     schemaVersion: 2
-    repoCommit: 90ce7b4a
+    repoCommit: 214f6f72
     reviewer: UNKNOWN
   - file: PARITY_STATUS_NOTES.md
     sha256: "a14ce6eade730143bea186e3e22042efd9a2b3300248fe80b0faeb32d75f58cd"
