@@ -144,6 +144,8 @@ export interface ServerImagePromotionInput {
 }
 
 export interface ServerImagePromotionRuntime {
+  /** Exact packages mutated by promote; production uses this for session fences. */
+  packageRepositories(input: ServerImagePromotionInput): readonly string[];
   promote(input: ServerImagePromotionInput): Promise<PromotionResult>;
 }
 
@@ -153,6 +155,26 @@ export class LiveServerImagePromotionRuntime implements ServerImagePromotionRunt
     private readonly _adapter: RegistryAdapter = new ArtifactRegistryOciAdapter(),
     private readonly _binaryAuthorization: BinaryAuthorizationClient = new BinaryAuthorizationClient(),
   ) {}
+
+  packageRepositories(input: ServerImagePromotionInput): readonly string[] {
+    const tenant = this._config.tenants.get(input.organizationId);
+    if (!tenant || !IDENTIFIER_RE.test(input.projectId)) {
+      throw new ServerImagePromotionError(
+        !tenant ? 'PROMOTION_TENANT_UNCONFIGURED' : 'PROMOTION_PROJECT_INVALID',
+        'Artifact promotion package authority is unavailable.',
+      );
+    }
+    const packageName = `p-${input.projectId.toLowerCase()}`;
+    const source = `${this._config.sourceRepository.original}/${packageName}`;
+    const target = `${tenant.targetRepository.original}/${packageName}`;
+    if (input.source.repo !== source) {
+      throw new ServerImagePromotionError(
+        'PROMOTION_SOURCE_SCOPE_MISMATCH',
+        'Built image does not belong to the configured project repository.',
+      );
+    }
+    return [source, target];
+  }
 
   async promote(input: ServerImagePromotionInput): Promise<PromotionResult> {
     const tenant = this._config.tenants.get(input.organizationId);

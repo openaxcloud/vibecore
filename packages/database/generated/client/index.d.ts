@@ -136,6 +136,15 @@ export type ObjectStorageVersionGcSchedule = $Result.DefaultSelection<Prisma.$Ob
  */
 export type ProjectPermanentDeletionReceipt = $Result.DefaultSelection<Prisma.$ProjectPermanentDeletionReceiptPayload>
 /**
+ * Model ProjectRegistryErasure
+ * Exact, durable Artifact Registry inventory and compact verified receipt for
+ * one permanent-delete saga. The inventory is captured only after all Cloud
+ * Build producers are terminal, then becomes immutable before the first
+ * registry mutation. It intentionally survives the Project cascade through
+ * the retained ObjectStorageOperation.
+ */
+export type ProjectRegistryErasure = $Result.DefaultSelection<Prisma.$ProjectRegistryErasurePayload>
+/**
  * Model ProjectSlugRedirect
  *
  */
@@ -311,6 +320,15 @@ export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentE
  *
  */
 export type ReleaseManifest = $Result.DefaultSelection<Prisma.$ReleaseManifestPayload>
+/**
+ * Model AppImageBuildOperation
+ * Durable Cloud Build producer identity. The row is committed before the
+ * provider POST and retained until project permanent deletion has obtained a
+ * fresh terminal/cancellation proof and completed the exact registry sweep.
+ * `operationTag` is the only safe reconciliation key when the POST response is
+ * lost; source/target package identities are non-secret and immutable.
+ */
+export type AppImageBuildOperation = $Result.DefaultSelection<Prisma.$AppImageBuildOperationPayload>
 /**
  * Model RollbackIdempotencyRequest
  *
@@ -1126,6 +1144,27 @@ export const ProjectRuntimeEffectState: {
 export type ProjectRuntimeEffectState = (typeof ProjectRuntimeEffectState)[keyof typeof ProjectRuntimeEffectState]
 
 
+export const AppImageBuildPhase: {
+  PREPARED: 'PREPARED',
+  SUBMITTING: 'SUBMITTING',
+  IDENTIFIED: 'IDENTIFIED',
+  TERMINAL: 'TERMINAL',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED'
+};
+
+export type AppImageBuildPhase = (typeof AppImageBuildPhase)[keyof typeof AppImageBuildPhase]
+
+
+export const ProjectRegistryErasureState: {
+  PREPARED: 'PREPARED',
+  ERASING: 'ERASING',
+  VERIFIED: 'VERIFIED'
+};
+
+export type ProjectRegistryErasureState = (typeof ProjectRegistryErasureState)[keyof typeof ProjectRegistryErasureState]
+
+
 export const TicketMessageAuthor: {
   USER: 'USER',
   ADMIN: 'ADMIN',
@@ -1493,6 +1532,14 @@ export const ProjectPermanentDeletionArtifactState: typeof $Enums.ProjectPermane
 export type ProjectRuntimeEffectState = $Enums.ProjectRuntimeEffectState
 
 export const ProjectRuntimeEffectState: typeof $Enums.ProjectRuntimeEffectState
+
+export type AppImageBuildPhase = $Enums.AppImageBuildPhase
+
+export const AppImageBuildPhase: typeof $Enums.AppImageBuildPhase
+
+export type ProjectRegistryErasureState = $Enums.ProjectRegistryErasureState
+
+export const ProjectRegistryErasureState: typeof $Enums.ProjectRegistryErasureState
 
 export type TicketMessageAuthor = $Enums.TicketMessageAuthor
 
@@ -1914,6 +1961,16 @@ export class PrismaClient<
   get projectPermanentDeletionReceipt(): Prisma.ProjectPermanentDeletionReceiptDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectRegistryErasure`: Exposes CRUD operations for the **ProjectRegistryErasure** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectRegistryErasures
+    * const projectRegistryErasures = await prisma.projectRegistryErasure.findMany()
+    * ```
+    */
+  get projectRegistryErasure(): Prisma.ProjectRegistryErasureDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.projectSlugRedirect`: Exposes CRUD operations for the **ProjectSlugRedirect** model.
     * Example usage:
     * ```ts
@@ -2252,6 +2309,16 @@ export class PrismaClient<
     * ```
     */
   get releaseManifest(): Prisma.ReleaseManifestDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.appImageBuildOperation`: Exposes CRUD operations for the **AppImageBuildOperation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AppImageBuildOperations
+    * const appImageBuildOperations = await prisma.appImageBuildOperation.findMany()
+    * ```
+    */
+  get appImageBuildOperation(): Prisma.AppImageBuildOperationDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.rollbackIdempotencyRequest`: Exposes CRUD operations for the **RollbackIdempotencyRequest** model.
@@ -3775,6 +3842,7 @@ export namespace Prisma {
     ObjectStorageOperationProjectScope: 'ObjectStorageOperationProjectScope',
     ObjectStorageVersionGcSchedule: 'ObjectStorageVersionGcSchedule',
     ProjectPermanentDeletionReceipt: 'ProjectPermanentDeletionReceipt',
+    ProjectRegistryErasure: 'ProjectRegistryErasure',
     ProjectSlugRedirect: 'ProjectSlugRedirect',
     AgentMemory: 'AgentMemory',
     AgentMemoryPreference: 'AgentMemoryPreference',
@@ -3809,6 +3877,7 @@ export namespace Prisma {
     ReservedVmBillingPeriod: 'ReservedVmBillingPeriod',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
+    AppImageBuildOperation: 'AppImageBuildOperation',
     RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
     DeploymentAccessPolicy: 'DeploymentAccessPolicy',
     DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',
@@ -3931,7 +4000,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectRegistryErasure" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "appImageBuildOperation" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5338,6 +5407,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectPermanentDeletionReceiptCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectPermanentDeletionReceiptCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectRegistryErasure: {
+        payload: Prisma.$ProjectRegistryErasurePayload<ExtArgs>
+        fields: Prisma.ProjectRegistryErasureFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectRegistryErasureFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectRegistryErasureFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectRegistryErasureFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectRegistryErasureFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectRegistryErasureFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectRegistryErasureCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectRegistryErasureCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectRegistryErasureCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectRegistryErasureDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          update: {
+            args: Prisma.ProjectRegistryErasureUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectRegistryErasureDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectRegistryErasureUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectRegistryErasureUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectRegistryErasureUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectRegistryErasurePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectRegistryErasureAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectRegistryErasure>
+          }
+          groupBy: {
+            args: Prisma.ProjectRegistryErasureGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRegistryErasureGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectRegistryErasureCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectRegistryErasureCountAggregateOutputType> | number
           }
         }
       }
@@ -7838,6 +7981,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ReleaseManifestCountArgs<ExtArgs>
             result: $Utils.Optional<ReleaseManifestCountAggregateOutputType> | number
+          }
+        }
+      }
+      AppImageBuildOperation: {
+        payload: Prisma.$AppImageBuildOperationPayload<ExtArgs>
+        fields: Prisma.AppImageBuildOperationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AppImageBuildOperationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AppImageBuildOperationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          findFirst: {
+            args: Prisma.AppImageBuildOperationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AppImageBuildOperationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          findMany: {
+            args: Prisma.AppImageBuildOperationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>[]
+          }
+          create: {
+            args: Prisma.AppImageBuildOperationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          createMany: {
+            args: Prisma.AppImageBuildOperationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AppImageBuildOperationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>[]
+          }
+          delete: {
+            args: Prisma.AppImageBuildOperationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          update: {
+            args: Prisma.AppImageBuildOperationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          deleteMany: {
+            args: Prisma.AppImageBuildOperationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AppImageBuildOperationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AppImageBuildOperationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>[]
+          }
+          upsert: {
+            args: Prisma.AppImageBuildOperationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AppImageBuildOperationPayload>
+          }
+          aggregate: {
+            args: Prisma.AppImageBuildOperationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAppImageBuildOperation>
+          }
+          groupBy: {
+            args: Prisma.AppImageBuildOperationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AppImageBuildOperationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AppImageBuildOperationCountArgs<ExtArgs>
+            result: $Utils.Optional<AppImageBuildOperationCountAggregateOutputType> | number
           }
         }
       }
@@ -15886,6 +16103,7 @@ export namespace Prisma {
     objectStorageOperationProjectScope?: ObjectStorageOperationProjectScopeOmit
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleOmit
     projectPermanentDeletionReceipt?: ProjectPermanentDeletionReceiptOmit
+    projectRegistryErasure?: ProjectRegistryErasureOmit
     projectSlugRedirect?: ProjectSlugRedirectOmit
     agentMemory?: AgentMemoryOmit
     agentMemoryPreference?: AgentMemoryPreferenceOmit
@@ -15920,6 +16138,7 @@ export namespace Prisma {
     reservedVmBillingPeriod?: ReservedVmBillingPeriodOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
+    appImageBuildOperation?: AppImageBuildOperationOmit
     rollbackIdempotencyRequest?: RollbackIdempotencyRequestOmit
     deploymentAccessPolicy?: DeploymentAccessPolicyOmit
     deploymentAccessExchangeTicket?: DeploymentAccessExchangeTicketOmit
@@ -17028,6 +17247,7 @@ export namespace Prisma {
     releaseManifests: number
     objectStorageOperationScopes: number
     runtimeEffects: number
+    appImageBuilds: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -17068,6 +17288,7 @@ export namespace Prisma {
     releaseManifests?: boolean | ProjectCountOutputTypeCountReleaseManifestsArgs
     objectStorageOperationScopes?: boolean | ProjectCountOutputTypeCountObjectStorageOperationScopesArgs
     runtimeEffects?: boolean | ProjectCountOutputTypeCountRuntimeEffectsArgs
+    appImageBuilds?: boolean | ProjectCountOutputTypeCountAppImageBuildsArgs
   }
 
   // Custom InputTypes
@@ -17338,6 +17559,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountRuntimeEffectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectRuntimeEffectWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountAppImageBuildsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AppImageBuildOperationWhereInput
   }
 
 
@@ -32217,6 +32445,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
     objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
     runtimeEffects?: boolean | Project$runtimeEffectsArgs<ExtArgs>
+    appImageBuilds?: boolean | Project$appImageBuildsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -32328,6 +32557,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: boolean | Project$objectStorageOperationScopesArgs<ExtArgs>
     objectStorageVersionGcSchedule?: boolean | Project$objectStorageVersionGcScheduleArgs<ExtArgs>
     runtimeEffects?: boolean | Project$runtimeEffectsArgs<ExtArgs>
+    appImageBuilds?: boolean | Project$appImageBuildsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -32381,6 +32611,7 @@ export namespace Prisma {
       objectStorageOperationScopes: Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>[]
       objectStorageVersionGcSchedule: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs> | null
       runtimeEffects: Prisma.$ProjectRuntimeEffectPayload<ExtArgs>[]
+      appImageBuilds: Prisma.$AppImageBuildOperationPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -32836,6 +33067,7 @@ export namespace Prisma {
     objectStorageOperationScopes<T extends Project$objectStorageOperationScopesArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageOperationScopesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageOperationProjectScopePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     objectStorageVersionGcSchedule<T extends Project$objectStorageVersionGcScheduleArgs<ExtArgs> = {}>(args?: Subset<T, Project$objectStorageVersionGcScheduleArgs<ExtArgs>>): Prisma__ObjectStorageVersionGcScheduleClient<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     runtimeEffects<T extends Project$runtimeEffectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeEffectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRuntimeEffectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    appImageBuilds<T extends Project$appImageBuildsArgs<ExtArgs> = {}>(args?: Subset<T, Project$appImageBuildsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -34229,6 +34461,30 @@ export namespace Prisma {
   }
 
   /**
+   * Project.appImageBuilds
+   */
+  export type Project$appImageBuildsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    where?: AppImageBuildOperationWhereInput
+    orderBy?: AppImageBuildOperationOrderByWithRelationInput | AppImageBuildOperationOrderByWithRelationInput[]
+    cursor?: AppImageBuildOperationWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AppImageBuildOperationScalarFieldEnum | AppImageBuildOperationScalarFieldEnum[]
+  }
+
+  /**
    * Project without action
    */
   export type ProjectDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -34607,6 +34863,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    registryErasure?: boolean | ObjectStorageOperation$registryErasureArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["objectStorageOperation"]>
@@ -34706,6 +34963,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    registryErasure?: boolean | ObjectStorageOperation$registryErasureArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -34721,6 +34979,7 @@ export namespace Prisma {
       permanentDeletionArtifacts: Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>[]
       capabilityReservations: Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>[]
       permanentDeletionReceipt: Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs> | null
+      registryErasure: Prisma.$ProjectRegistryErasurePayload<ExtArgs> | null
       versionGcSchedules: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -35150,6 +35409,7 @@ export namespace Prisma {
     permanentDeletionArtifacts<T extends ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     capabilityReservations<T extends ObjectStorageOperation$capabilityReservationsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     permanentDeletionReceipt<T extends ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionReceiptClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    registryErasure<T extends ObjectStorageOperation$registryErasureArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$registryErasureArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     versionGcSchedules<T extends ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -35735,6 +35995,25 @@ export namespace Prisma {
      */
     include?: ProjectPermanentDeletionReceiptInclude<ExtArgs> | null
     where?: ProjectPermanentDeletionReceiptWhereInput
+  }
+
+  /**
+   * ObjectStorageOperation.registryErasure
+   */
+  export type ObjectStorageOperation$registryErasureArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    where?: ProjectRegistryErasureWhereInput
   }
 
   /**
@@ -43982,6 +44261,1126 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectPermanentDeletionReceiptInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectRegistryErasure
+   */
+
+  export type AggregateProjectRegistryErasure = {
+    _count: ProjectRegistryErasureCountAggregateOutputType | null
+    _min: ProjectRegistryErasureMinAggregateOutputType | null
+    _max: ProjectRegistryErasureMaxAggregateOutputType | null
+  }
+
+  export type ProjectRegistryErasureMinAggregateOutputType = {
+    operationId: string | null
+    projectIdSnapshot: string | null
+    inventoryHash: string | null
+    state: $Enums.ProjectRegistryErasureState | null
+    preparedAt: Date | null
+    effectStartedAt: Date | null
+    verifiedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectRegistryErasureMaxAggregateOutputType = {
+    operationId: string | null
+    projectIdSnapshot: string | null
+    inventoryHash: string | null
+    state: $Enums.ProjectRegistryErasureState | null
+    preparedAt: Date | null
+    effectStartedAt: Date | null
+    verifiedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectRegistryErasureCountAggregateOutputType = {
+    operationId: number
+    projectIdSnapshot: number
+    inventoryHash: number
+    inventory: number
+    state: number
+    receipt: number
+    preparedAt: number
+    effectStartedAt: number
+    verifiedAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectRegistryErasureMinAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    inventoryHash?: true
+    state?: true
+    preparedAt?: true
+    effectStartedAt?: true
+    verifiedAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectRegistryErasureMaxAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    inventoryHash?: true
+    state?: true
+    preparedAt?: true
+    effectStartedAt?: true
+    verifiedAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectRegistryErasureCountAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    inventoryHash?: true
+    inventory?: true
+    state?: true
+    receipt?: true
+    preparedAt?: true
+    effectStartedAt?: true
+    verifiedAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectRegistryErasureAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRegistryErasure to aggregate.
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRegistryErasures to fetch.
+     */
+    orderBy?: ProjectRegistryErasureOrderByWithRelationInput | ProjectRegistryErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectRegistryErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRegistryErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRegistryErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectRegistryErasures
+    **/
+    _count?: true | ProjectRegistryErasureCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectRegistryErasureMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectRegistryErasureMaxAggregateInputType
+  }
+
+  export type GetProjectRegistryErasureAggregateType<T extends ProjectRegistryErasureAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectRegistryErasure]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectRegistryErasure[P]>
+      : GetScalarType<T[P], AggregateProjectRegistryErasure[P]>
+  }
+
+
+
+
+  export type ProjectRegistryErasureGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectRegistryErasureWhereInput
+    orderBy?: ProjectRegistryErasureOrderByWithAggregationInput | ProjectRegistryErasureOrderByWithAggregationInput[]
+    by: ProjectRegistryErasureScalarFieldEnum[] | ProjectRegistryErasureScalarFieldEnum
+    having?: ProjectRegistryErasureScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectRegistryErasureCountAggregateInputType | true
+    _min?: ProjectRegistryErasureMinAggregateInputType
+    _max?: ProjectRegistryErasureMaxAggregateInputType
+  }
+
+  export type ProjectRegistryErasureGroupByOutputType = {
+    operationId: string
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonValue
+    state: $Enums.ProjectRegistryErasureState
+    receipt: JsonValue | null
+    preparedAt: Date
+    effectStartedAt: Date | null
+    verifiedAt: Date | null
+    updatedAt: Date
+    _count: ProjectRegistryErasureCountAggregateOutputType | null
+    _min: ProjectRegistryErasureMinAggregateOutputType | null
+    _max: ProjectRegistryErasureMaxAggregateOutputType | null
+  }
+
+  type GetProjectRegistryErasureGroupByPayload<T extends ProjectRegistryErasureGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectRegistryErasureGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectRegistryErasureGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectRegistryErasureGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectRegistryErasureGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectRegistryErasureSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    inventoryHash?: boolean
+    inventory?: boolean
+    state?: boolean
+    receipt?: boolean
+    preparedAt?: boolean
+    effectStartedAt?: boolean
+    verifiedAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRegistryErasure"]>
+
+  export type ProjectRegistryErasureSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    inventoryHash?: boolean
+    inventory?: boolean
+    state?: boolean
+    receipt?: boolean
+    preparedAt?: boolean
+    effectStartedAt?: boolean
+    verifiedAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRegistryErasure"]>
+
+  export type ProjectRegistryErasureSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    inventoryHash?: boolean
+    inventory?: boolean
+    state?: boolean
+    receipt?: boolean
+    preparedAt?: boolean
+    effectStartedAt?: boolean
+    verifiedAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectRegistryErasure"]>
+
+  export type ProjectRegistryErasureSelectScalar = {
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    inventoryHash?: boolean
+    inventory?: boolean
+    state?: boolean
+    receipt?: boolean
+    preparedAt?: boolean
+    effectStartedAt?: boolean
+    verifiedAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectRegistryErasureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "projectIdSnapshot" | "inventoryHash" | "inventory" | "state" | "receipt" | "preparedAt" | "effectStartedAt" | "verifiedAt" | "updatedAt", ExtArgs["result"]["projectRegistryErasure"]>
+  export type ProjectRegistryErasureInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectRegistryErasureIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectRegistryErasureIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectRegistryErasurePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectRegistryErasure"
+    objects: {
+      operation: Prisma.$ObjectStorageOperationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      projectIdSnapshot: string
+      inventoryHash: string
+      inventory: Prisma.JsonValue
+      state: $Enums.ProjectRegistryErasureState
+      receipt: Prisma.JsonValue | null
+      preparedAt: Date
+      effectStartedAt: Date | null
+      verifiedAt: Date | null
+      updatedAt: Date
+    }, ExtArgs["result"]["projectRegistryErasure"]>
+    composites: {}
+  }
+
+  type ProjectRegistryErasureGetPayload<S extends boolean | null | undefined | ProjectRegistryErasureDefaultArgs> = $Result.GetResult<Prisma.$ProjectRegistryErasurePayload, S>
+
+  type ProjectRegistryErasureCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectRegistryErasureFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectRegistryErasureCountAggregateInputType | true
+    }
+
+  export interface ProjectRegistryErasureDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectRegistryErasure'], meta: { name: 'ProjectRegistryErasure' } }
+    /**
+     * Find zero or one ProjectRegistryErasure that matches the filter.
+     * @param {ProjectRegistryErasureFindUniqueArgs} args - Arguments to find a ProjectRegistryErasure
+     * @example
+     * // Get one ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectRegistryErasureFindUniqueArgs>(args: SelectSubset<T, ProjectRegistryErasureFindUniqueArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectRegistryErasure that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectRegistryErasureFindUniqueOrThrowArgs} args - Arguments to find a ProjectRegistryErasure
+     * @example
+     * // Get one ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectRegistryErasureFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectRegistryErasureFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRegistryErasure that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureFindFirstArgs} args - Arguments to find a ProjectRegistryErasure
+     * @example
+     * // Get one ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectRegistryErasureFindFirstArgs>(args?: SelectSubset<T, ProjectRegistryErasureFindFirstArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectRegistryErasure that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureFindFirstOrThrowArgs} args - Arguments to find a ProjectRegistryErasure
+     * @example
+     * // Get one ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectRegistryErasureFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectRegistryErasureFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectRegistryErasures that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectRegistryErasures
+     * const projectRegistryErasures = await prisma.projectRegistryErasure.findMany()
+     *
+     * // Get first 10 ProjectRegistryErasures
+     * const projectRegistryErasures = await prisma.projectRegistryErasure.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const projectRegistryErasureWithOperationIdOnly = await prisma.projectRegistryErasure.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ProjectRegistryErasureFindManyArgs>(args?: SelectSubset<T, ProjectRegistryErasureFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectRegistryErasure.
+     * @param {ProjectRegistryErasureCreateArgs} args - Arguments to create a ProjectRegistryErasure.
+     * @example
+     * // Create one ProjectRegistryErasure
+     * const ProjectRegistryErasure = await prisma.projectRegistryErasure.create({
+     *   data: {
+     *     // ... data to create a ProjectRegistryErasure
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectRegistryErasureCreateArgs>(args: SelectSubset<T, ProjectRegistryErasureCreateArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectRegistryErasures.
+     * @param {ProjectRegistryErasureCreateManyArgs} args - Arguments to create many ProjectRegistryErasures.
+     * @example
+     * // Create many ProjectRegistryErasures
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectRegistryErasureCreateManyArgs>(args?: SelectSubset<T, ProjectRegistryErasureCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectRegistryErasures and returns the data saved in the database.
+     * @param {ProjectRegistryErasureCreateManyAndReturnArgs} args - Arguments to create many ProjectRegistryErasures.
+     * @example
+     * // Create many ProjectRegistryErasures
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectRegistryErasures and only return the `operationId`
+     * const projectRegistryErasureWithOperationIdOnly = await prisma.projectRegistryErasure.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectRegistryErasureCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectRegistryErasureCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectRegistryErasure.
+     * @param {ProjectRegistryErasureDeleteArgs} args - Arguments to delete one ProjectRegistryErasure.
+     * @example
+     * // Delete one ProjectRegistryErasure
+     * const ProjectRegistryErasure = await prisma.projectRegistryErasure.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectRegistryErasure
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectRegistryErasureDeleteArgs>(args: SelectSubset<T, ProjectRegistryErasureDeleteArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectRegistryErasure.
+     * @param {ProjectRegistryErasureUpdateArgs} args - Arguments to update one ProjectRegistryErasure.
+     * @example
+     * // Update one ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectRegistryErasureUpdateArgs>(args: SelectSubset<T, ProjectRegistryErasureUpdateArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectRegistryErasures.
+     * @param {ProjectRegistryErasureDeleteManyArgs} args - Arguments to filter ProjectRegistryErasures to delete.
+     * @example
+     * // Delete a few ProjectRegistryErasures
+     * const { count } = await prisma.projectRegistryErasure.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectRegistryErasureDeleteManyArgs>(args?: SelectSubset<T, ProjectRegistryErasureDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRegistryErasures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectRegistryErasures
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectRegistryErasureUpdateManyArgs>(args: SelectSubset<T, ProjectRegistryErasureUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectRegistryErasures and returns the data updated in the database.
+     * @param {ProjectRegistryErasureUpdateManyAndReturnArgs} args - Arguments to update many ProjectRegistryErasures.
+     * @example
+     * // Update many ProjectRegistryErasures
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectRegistryErasures and only return the `operationId`
+     * const projectRegistryErasureWithOperationIdOnly = await prisma.projectRegistryErasure.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectRegistryErasureUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectRegistryErasureUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectRegistryErasure.
+     * @param {ProjectRegistryErasureUpsertArgs} args - Arguments to update or create a ProjectRegistryErasure.
+     * @example
+     * // Update or create a ProjectRegistryErasure
+     * const projectRegistryErasure = await prisma.projectRegistryErasure.upsert({
+     *   create: {
+     *     // ... data to create a ProjectRegistryErasure
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectRegistryErasure we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectRegistryErasureUpsertArgs>(args: SelectSubset<T, ProjectRegistryErasureUpsertArgs<ExtArgs>>): Prisma__ProjectRegistryErasureClient<$Result.GetResult<Prisma.$ProjectRegistryErasurePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectRegistryErasures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureCountArgs} args - Arguments to filter ProjectRegistryErasures to count.
+     * @example
+     * // Count the number of ProjectRegistryErasures
+     * const count = await prisma.projectRegistryErasure.count({
+     *   where: {
+     *     // ... the filter for the ProjectRegistryErasures we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectRegistryErasureCountArgs>(
+      args?: Subset<T, ProjectRegistryErasureCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectRegistryErasureCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectRegistryErasure.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectRegistryErasureAggregateArgs>(args: Subset<T, ProjectRegistryErasureAggregateArgs>): Prisma.PrismaPromise<GetProjectRegistryErasureAggregateType<T>>
+
+    /**
+     * Group by ProjectRegistryErasure.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectRegistryErasureGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectRegistryErasureGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectRegistryErasureGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectRegistryErasureGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectRegistryErasureGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectRegistryErasureGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectRegistryErasure model
+   */
+  readonly fields: ProjectRegistryErasureFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectRegistryErasure.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectRegistryErasureClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends ObjectStorageOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperationDefaultArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectRegistryErasure model
+   */
+  interface ProjectRegistryErasureFieldRefs {
+    readonly operationId: FieldRef<"ProjectRegistryErasure", 'String'>
+    readonly projectIdSnapshot: FieldRef<"ProjectRegistryErasure", 'String'>
+    readonly inventoryHash: FieldRef<"ProjectRegistryErasure", 'String'>
+    readonly inventory: FieldRef<"ProjectRegistryErasure", 'Json'>
+    readonly state: FieldRef<"ProjectRegistryErasure", 'ProjectRegistryErasureState'>
+    readonly receipt: FieldRef<"ProjectRegistryErasure", 'Json'>
+    readonly preparedAt: FieldRef<"ProjectRegistryErasure", 'DateTime'>
+    readonly effectStartedAt: FieldRef<"ProjectRegistryErasure", 'DateTime'>
+    readonly verifiedAt: FieldRef<"ProjectRegistryErasure", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectRegistryErasure", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectRegistryErasure findUnique
+   */
+  export type ProjectRegistryErasureFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRegistryErasure to fetch.
+     */
+    where: ProjectRegistryErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectRegistryErasure findUniqueOrThrow
+   */
+  export type ProjectRegistryErasureFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRegistryErasure to fetch.
+     */
+    where: ProjectRegistryErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectRegistryErasure findFirst
+   */
+  export type ProjectRegistryErasureFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRegistryErasure to fetch.
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRegistryErasures to fetch.
+     */
+    orderBy?: ProjectRegistryErasureOrderByWithRelationInput | ProjectRegistryErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRegistryErasures.
+     */
+    cursor?: ProjectRegistryErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRegistryErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRegistryErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRegistryErasures.
+     */
+    distinct?: ProjectRegistryErasureScalarFieldEnum | ProjectRegistryErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRegistryErasure findFirstOrThrow
+   */
+  export type ProjectRegistryErasureFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRegistryErasure to fetch.
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRegistryErasures to fetch.
+     */
+    orderBy?: ProjectRegistryErasureOrderByWithRelationInput | ProjectRegistryErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectRegistryErasures.
+     */
+    cursor?: ProjectRegistryErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRegistryErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRegistryErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRegistryErasures.
+     */
+    distinct?: ProjectRegistryErasureScalarFieldEnum | ProjectRegistryErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRegistryErasure findMany
+   */
+  export type ProjectRegistryErasureFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectRegistryErasures to fetch.
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectRegistryErasures to fetch.
+     */
+    orderBy?: ProjectRegistryErasureOrderByWithRelationInput | ProjectRegistryErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectRegistryErasures.
+     */
+    cursor?: ProjectRegistryErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectRegistryErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectRegistryErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectRegistryErasures.
+     */
+    distinct?: ProjectRegistryErasureScalarFieldEnum | ProjectRegistryErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectRegistryErasure create
+   */
+  export type ProjectRegistryErasureCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectRegistryErasure.
+     */
+    data: XOR<ProjectRegistryErasureCreateInput, ProjectRegistryErasureUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectRegistryErasure createMany
+   */
+  export type ProjectRegistryErasureCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectRegistryErasures.
+     */
+    data: ProjectRegistryErasureCreateManyInput | ProjectRegistryErasureCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectRegistryErasure createManyAndReturn
+   */
+  export type ProjectRegistryErasureCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectRegistryErasures.
+     */
+    data: ProjectRegistryErasureCreateManyInput | ProjectRegistryErasureCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRegistryErasure update
+   */
+  export type ProjectRegistryErasureUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectRegistryErasure.
+     */
+    data: XOR<ProjectRegistryErasureUpdateInput, ProjectRegistryErasureUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectRegistryErasure to update.
+     */
+    where: ProjectRegistryErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectRegistryErasure updateMany
+   */
+  export type ProjectRegistryErasureUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectRegistryErasures.
+     */
+    data: XOR<ProjectRegistryErasureUpdateManyMutationInput, ProjectRegistryErasureUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRegistryErasures to update
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * Limit how many ProjectRegistryErasures to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRegistryErasure updateManyAndReturn
+   */
+  export type ProjectRegistryErasureUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectRegistryErasures.
+     */
+    data: XOR<ProjectRegistryErasureUpdateManyMutationInput, ProjectRegistryErasureUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectRegistryErasures to update
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * Limit how many ProjectRegistryErasures to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectRegistryErasure upsert
+   */
+  export type ProjectRegistryErasureUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectRegistryErasure to update in case it exists.
+     */
+    where: ProjectRegistryErasureWhereUniqueInput
+    /**
+     * In case the ProjectRegistryErasure found by the `where` argument doesn't exist, create a new ProjectRegistryErasure with this data.
+     */
+    create: XOR<ProjectRegistryErasureCreateInput, ProjectRegistryErasureUncheckedCreateInput>
+    /**
+     * In case the ProjectRegistryErasure was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectRegistryErasureUpdateInput, ProjectRegistryErasureUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectRegistryErasure delete
+   */
+  export type ProjectRegistryErasureDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectRegistryErasure to delete.
+     */
+    where: ProjectRegistryErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectRegistryErasure deleteMany
+   */
+  export type ProjectRegistryErasureDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectRegistryErasures to delete
+     */
+    where?: ProjectRegistryErasureWhereInput
+    /**
+     * Limit how many ProjectRegistryErasures to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectRegistryErasure without action
+   */
+  export type ProjectRegistryErasureDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectRegistryErasure
+     */
+    select?: ProjectRegistryErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectRegistryErasure
+     */
+    omit?: ProjectRegistryErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectRegistryErasureInclude<ExtArgs> | null
   }
 
 
@@ -83957,6 +85356,1463 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ReleaseManifestInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AppImageBuildOperation
+   */
+
+  export type AggregateAppImageBuildOperation = {
+    _count: AppImageBuildOperationCountAggregateOutputType | null
+    _avg: AppImageBuildOperationAvgAggregateOutputType | null
+    _sum: AppImageBuildOperationSumAggregateOutputType | null
+    _min: AppImageBuildOperationMinAggregateOutputType | null
+    _max: AppImageBuildOperationMaxAggregateOutputType | null
+  }
+
+  export type AppImageBuildOperationAvgAggregateOutputType = {
+    ownershipEpoch: number | null
+    timeoutSeconds: number | null
+  }
+
+  export type AppImageBuildOperationSumAggregateOutputType = {
+    ownershipEpoch: number | null
+    timeoutSeconds: number | null
+  }
+
+  export type AppImageBuildOperationMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    deploymentId: string | null
+    phase: $Enums.AppImageBuildPhase | null
+    operationTag: string | null
+    intentHash: string | null
+    gcpProject: string | null
+    region: string | null
+    sourceBucket: string | null
+    sourceObject: string | null
+    imageUri: string | null
+    sourceRepository: string | null
+    sourceTag: string | null
+    buildServiceAccount: string | null
+    timeoutSeconds: number | null
+    providerBuildId: string | null
+    providerStatus: string | null
+    logUrl: string | null
+    imageDigest: string | null
+    targetRepository: string | null
+    targetDigest: string | null
+    lastErrorCode: string | null
+    submissionStartedAt: Date | null
+    identifiedAt: Date | null
+    terminalAt: Date | null
+    promotionRecordedAt: Date | null
+    cancelledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AppImageBuildOperationMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    deploymentId: string | null
+    phase: $Enums.AppImageBuildPhase | null
+    operationTag: string | null
+    intentHash: string | null
+    gcpProject: string | null
+    region: string | null
+    sourceBucket: string | null
+    sourceObject: string | null
+    imageUri: string | null
+    sourceRepository: string | null
+    sourceTag: string | null
+    buildServiceAccount: string | null
+    timeoutSeconds: number | null
+    providerBuildId: string | null
+    providerStatus: string | null
+    logUrl: string | null
+    imageDigest: string | null
+    targetRepository: string | null
+    targetDigest: string | null
+    lastErrorCode: string | null
+    submissionStartedAt: Date | null
+    identifiedAt: Date | null
+    terminalAt: Date | null
+    promotionRecordedAt: Date | null
+    cancelledAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AppImageBuildOperationCountAggregateOutputType = {
+    id: number
+    projectId: number
+    organizationId: number
+    ownershipEpoch: number
+    deploymentId: number
+    phase: number
+    operationTag: number
+    intentHash: number
+    gcpProject: number
+    region: number
+    sourceBucket: number
+    sourceObject: number
+    imageUri: number
+    sourceRepository: number
+    sourceTag: number
+    buildServiceAccount: number
+    timeoutSeconds: number
+    providerBuildId: number
+    providerStatus: number
+    logUrl: number
+    imageDigest: number
+    targetRepository: number
+    targetDigest: number
+    promotionReferences: number
+    cancellationProof: number
+    lastErrorCode: number
+    submissionStartedAt: number
+    identifiedAt: number
+    terminalAt: number
+    promotionRecordedAt: number
+    cancelledAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AppImageBuildOperationAvgAggregateInputType = {
+    ownershipEpoch?: true
+    timeoutSeconds?: true
+  }
+
+  export type AppImageBuildOperationSumAggregateInputType = {
+    ownershipEpoch?: true
+    timeoutSeconds?: true
+  }
+
+  export type AppImageBuildOperationMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    deploymentId?: true
+    phase?: true
+    operationTag?: true
+    intentHash?: true
+    gcpProject?: true
+    region?: true
+    sourceBucket?: true
+    sourceObject?: true
+    imageUri?: true
+    sourceRepository?: true
+    sourceTag?: true
+    buildServiceAccount?: true
+    timeoutSeconds?: true
+    providerBuildId?: true
+    providerStatus?: true
+    logUrl?: true
+    imageDigest?: true
+    targetRepository?: true
+    targetDigest?: true
+    lastErrorCode?: true
+    submissionStartedAt?: true
+    identifiedAt?: true
+    terminalAt?: true
+    promotionRecordedAt?: true
+    cancelledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AppImageBuildOperationMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    deploymentId?: true
+    phase?: true
+    operationTag?: true
+    intentHash?: true
+    gcpProject?: true
+    region?: true
+    sourceBucket?: true
+    sourceObject?: true
+    imageUri?: true
+    sourceRepository?: true
+    sourceTag?: true
+    buildServiceAccount?: true
+    timeoutSeconds?: true
+    providerBuildId?: true
+    providerStatus?: true
+    logUrl?: true
+    imageDigest?: true
+    targetRepository?: true
+    targetDigest?: true
+    lastErrorCode?: true
+    submissionStartedAt?: true
+    identifiedAt?: true
+    terminalAt?: true
+    promotionRecordedAt?: true
+    cancelledAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AppImageBuildOperationCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    deploymentId?: true
+    phase?: true
+    operationTag?: true
+    intentHash?: true
+    gcpProject?: true
+    region?: true
+    sourceBucket?: true
+    sourceObject?: true
+    imageUri?: true
+    sourceRepository?: true
+    sourceTag?: true
+    buildServiceAccount?: true
+    timeoutSeconds?: true
+    providerBuildId?: true
+    providerStatus?: true
+    logUrl?: true
+    imageDigest?: true
+    targetRepository?: true
+    targetDigest?: true
+    promotionReferences?: true
+    cancellationProof?: true
+    lastErrorCode?: true
+    submissionStartedAt?: true
+    identifiedAt?: true
+    terminalAt?: true
+    promotionRecordedAt?: true
+    cancelledAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AppImageBuildOperationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AppImageBuildOperation to aggregate.
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AppImageBuildOperations to fetch.
+     */
+    orderBy?: AppImageBuildOperationOrderByWithRelationInput | AppImageBuildOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: AppImageBuildOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AppImageBuildOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AppImageBuildOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned AppImageBuildOperations
+    **/
+    _count?: true | AppImageBuildOperationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: AppImageBuildOperationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: AppImageBuildOperationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: AppImageBuildOperationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: AppImageBuildOperationMaxAggregateInputType
+  }
+
+  export type GetAppImageBuildOperationAggregateType<T extends AppImageBuildOperationAggregateArgs> = {
+        [P in keyof T & keyof AggregateAppImageBuildOperation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAppImageBuildOperation[P]>
+      : GetScalarType<T[P], AggregateAppImageBuildOperation[P]>
+  }
+
+
+
+
+  export type AppImageBuildOperationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AppImageBuildOperationWhereInput
+    orderBy?: AppImageBuildOperationOrderByWithAggregationInput | AppImageBuildOperationOrderByWithAggregationInput[]
+    by: AppImageBuildOperationScalarFieldEnum[] | AppImageBuildOperationScalarFieldEnum
+    having?: AppImageBuildOperationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AppImageBuildOperationCountAggregateInputType | true
+    _avg?: AppImageBuildOperationAvgAggregateInputType
+    _sum?: AppImageBuildOperationSumAggregateInputType
+    _min?: AppImageBuildOperationMinAggregateInputType
+    _max?: AppImageBuildOperationMaxAggregateInputType
+  }
+
+  export type AppImageBuildOperationGroupByOutputType = {
+    id: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId: string | null
+    providerStatus: string | null
+    logUrl: string | null
+    imageDigest: string | null
+    targetRepository: string | null
+    targetDigest: string | null
+    promotionReferences: JsonValue | null
+    cancellationProof: JsonValue | null
+    lastErrorCode: string | null
+    submissionStartedAt: Date | null
+    identifiedAt: Date | null
+    terminalAt: Date | null
+    promotionRecordedAt: Date | null
+    cancelledAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: AppImageBuildOperationCountAggregateOutputType | null
+    _avg: AppImageBuildOperationAvgAggregateOutputType | null
+    _sum: AppImageBuildOperationSumAggregateOutputType | null
+    _min: AppImageBuildOperationMinAggregateOutputType | null
+    _max: AppImageBuildOperationMaxAggregateOutputType | null
+  }
+
+  type GetAppImageBuildOperationGroupByPayload<T extends AppImageBuildOperationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AppImageBuildOperationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AppImageBuildOperationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AppImageBuildOperationGroupByOutputType[P]>
+            : GetScalarType<T[P], AppImageBuildOperationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AppImageBuildOperationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    deploymentId?: boolean
+    phase?: boolean
+    operationTag?: boolean
+    intentHash?: boolean
+    gcpProject?: boolean
+    region?: boolean
+    sourceBucket?: boolean
+    sourceObject?: boolean
+    imageUri?: boolean
+    sourceRepository?: boolean
+    sourceTag?: boolean
+    buildServiceAccount?: boolean
+    timeoutSeconds?: boolean
+    providerBuildId?: boolean
+    providerStatus?: boolean
+    logUrl?: boolean
+    imageDigest?: boolean
+    targetRepository?: boolean
+    targetDigest?: boolean
+    promotionReferences?: boolean
+    cancellationProof?: boolean
+    lastErrorCode?: boolean
+    submissionStartedAt?: boolean
+    identifiedAt?: boolean
+    terminalAt?: boolean
+    promotionRecordedAt?: boolean
+    cancelledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["appImageBuildOperation"]>
+
+  export type AppImageBuildOperationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    deploymentId?: boolean
+    phase?: boolean
+    operationTag?: boolean
+    intentHash?: boolean
+    gcpProject?: boolean
+    region?: boolean
+    sourceBucket?: boolean
+    sourceObject?: boolean
+    imageUri?: boolean
+    sourceRepository?: boolean
+    sourceTag?: boolean
+    buildServiceAccount?: boolean
+    timeoutSeconds?: boolean
+    providerBuildId?: boolean
+    providerStatus?: boolean
+    logUrl?: boolean
+    imageDigest?: boolean
+    targetRepository?: boolean
+    targetDigest?: boolean
+    promotionReferences?: boolean
+    cancellationProof?: boolean
+    lastErrorCode?: boolean
+    submissionStartedAt?: boolean
+    identifiedAt?: boolean
+    terminalAt?: boolean
+    promotionRecordedAt?: boolean
+    cancelledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["appImageBuildOperation"]>
+
+  export type AppImageBuildOperationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    deploymentId?: boolean
+    phase?: boolean
+    operationTag?: boolean
+    intentHash?: boolean
+    gcpProject?: boolean
+    region?: boolean
+    sourceBucket?: boolean
+    sourceObject?: boolean
+    imageUri?: boolean
+    sourceRepository?: boolean
+    sourceTag?: boolean
+    buildServiceAccount?: boolean
+    timeoutSeconds?: boolean
+    providerBuildId?: boolean
+    providerStatus?: boolean
+    logUrl?: boolean
+    imageDigest?: boolean
+    targetRepository?: boolean
+    targetDigest?: boolean
+    promotionReferences?: boolean
+    cancellationProof?: boolean
+    lastErrorCode?: boolean
+    submissionStartedAt?: boolean
+    identifiedAt?: boolean
+    terminalAt?: boolean
+    promotionRecordedAt?: boolean
+    cancelledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["appImageBuildOperation"]>
+
+  export type AppImageBuildOperationSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    deploymentId?: boolean
+    phase?: boolean
+    operationTag?: boolean
+    intentHash?: boolean
+    gcpProject?: boolean
+    region?: boolean
+    sourceBucket?: boolean
+    sourceObject?: boolean
+    imageUri?: boolean
+    sourceRepository?: boolean
+    sourceTag?: boolean
+    buildServiceAccount?: boolean
+    timeoutSeconds?: boolean
+    providerBuildId?: boolean
+    providerStatus?: boolean
+    logUrl?: boolean
+    imageDigest?: boolean
+    targetRepository?: boolean
+    targetDigest?: boolean
+    promotionReferences?: boolean
+    cancellationProof?: boolean
+    lastErrorCode?: boolean
+    submissionStartedAt?: boolean
+    identifiedAt?: boolean
+    terminalAt?: boolean
+    promotionRecordedAt?: boolean
+    cancelledAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AppImageBuildOperationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "ownershipEpoch" | "deploymentId" | "phase" | "operationTag" | "intentHash" | "gcpProject" | "region" | "sourceBucket" | "sourceObject" | "imageUri" | "sourceRepository" | "sourceTag" | "buildServiceAccount" | "timeoutSeconds" | "providerBuildId" | "providerStatus" | "logUrl" | "imageDigest" | "targetRepository" | "targetDigest" | "promotionReferences" | "cancellationProof" | "lastErrorCode" | "submissionStartedAt" | "identifiedAt" | "terminalAt" | "promotionRecordedAt" | "cancelledAt" | "createdAt" | "updatedAt", ExtArgs["result"]["appImageBuildOperation"]>
+  export type AppImageBuildOperationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AppImageBuildOperationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type AppImageBuildOperationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $AppImageBuildOperationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AppImageBuildOperation"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      organizationId: string
+      ownershipEpoch: number
+      deploymentId: string
+      phase: $Enums.AppImageBuildPhase
+      operationTag: string
+      intentHash: string
+      gcpProject: string
+      region: string
+      sourceBucket: string
+      sourceObject: string
+      imageUri: string
+      sourceRepository: string
+      sourceTag: string
+      buildServiceAccount: string
+      timeoutSeconds: number
+      providerBuildId: string | null
+      providerStatus: string | null
+      logUrl: string | null
+      imageDigest: string | null
+      targetRepository: string | null
+      targetDigest: string | null
+      promotionReferences: Prisma.JsonValue | null
+      cancellationProof: Prisma.JsonValue | null
+      lastErrorCode: string | null
+      submissionStartedAt: Date | null
+      identifiedAt: Date | null
+      terminalAt: Date | null
+      promotionRecordedAt: Date | null
+      cancelledAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["appImageBuildOperation"]>
+    composites: {}
+  }
+
+  type AppImageBuildOperationGetPayload<S extends boolean | null | undefined | AppImageBuildOperationDefaultArgs> = $Result.GetResult<Prisma.$AppImageBuildOperationPayload, S>
+
+  type AppImageBuildOperationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AppImageBuildOperationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AppImageBuildOperationCountAggregateInputType | true
+    }
+
+  export interface AppImageBuildOperationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AppImageBuildOperation'], meta: { name: 'AppImageBuildOperation' } }
+    /**
+     * Find zero or one AppImageBuildOperation that matches the filter.
+     * @param {AppImageBuildOperationFindUniqueArgs} args - Arguments to find a AppImageBuildOperation
+     * @example
+     * // Get one AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AppImageBuildOperationFindUniqueArgs>(args: SelectSubset<T, AppImageBuildOperationFindUniqueArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AppImageBuildOperation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AppImageBuildOperationFindUniqueOrThrowArgs} args - Arguments to find a AppImageBuildOperation
+     * @example
+     * // Get one AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AppImageBuildOperationFindUniqueOrThrowArgs>(args: SelectSubset<T, AppImageBuildOperationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AppImageBuildOperation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationFindFirstArgs} args - Arguments to find a AppImageBuildOperation
+     * @example
+     * // Get one AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AppImageBuildOperationFindFirstArgs>(args?: SelectSubset<T, AppImageBuildOperationFindFirstArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AppImageBuildOperation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationFindFirstOrThrowArgs} args - Arguments to find a AppImageBuildOperation
+     * @example
+     * // Get one AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AppImageBuildOperationFindFirstOrThrowArgs>(args?: SelectSubset<T, AppImageBuildOperationFindFirstOrThrowArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AppImageBuildOperations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AppImageBuildOperations
+     * const appImageBuildOperations = await prisma.appImageBuildOperation.findMany()
+     *
+     * // Get first 10 AppImageBuildOperations
+     * const appImageBuildOperations = await prisma.appImageBuildOperation.findMany({ take: 10 })
+     *
+     * // Only select the `id`
+     * const appImageBuildOperationWithIdOnly = await prisma.appImageBuildOperation.findMany({ select: { id: true } })
+     *
+     */
+    findMany<T extends AppImageBuildOperationFindManyArgs>(args?: SelectSubset<T, AppImageBuildOperationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AppImageBuildOperation.
+     * @param {AppImageBuildOperationCreateArgs} args - Arguments to create a AppImageBuildOperation.
+     * @example
+     * // Create one AppImageBuildOperation
+     * const AppImageBuildOperation = await prisma.appImageBuildOperation.create({
+     *   data: {
+     *     // ... data to create a AppImageBuildOperation
+     *   }
+     * })
+     *
+     */
+    create<T extends AppImageBuildOperationCreateArgs>(args: SelectSubset<T, AppImageBuildOperationCreateArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AppImageBuildOperations.
+     * @param {AppImageBuildOperationCreateManyArgs} args - Arguments to create many AppImageBuildOperations.
+     * @example
+     * // Create many AppImageBuildOperations
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends AppImageBuildOperationCreateManyArgs>(args?: SelectSubset<T, AppImageBuildOperationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AppImageBuildOperations and returns the data saved in the database.
+     * @param {AppImageBuildOperationCreateManyAndReturnArgs} args - Arguments to create many AppImageBuildOperations.
+     * @example
+     * // Create many AppImageBuildOperations
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many AppImageBuildOperations and only return the `id`
+     * const appImageBuildOperationWithIdOnly = await prisma.appImageBuildOperation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends AppImageBuildOperationCreateManyAndReturnArgs>(args?: SelectSubset<T, AppImageBuildOperationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AppImageBuildOperation.
+     * @param {AppImageBuildOperationDeleteArgs} args - Arguments to delete one AppImageBuildOperation.
+     * @example
+     * // Delete one AppImageBuildOperation
+     * const AppImageBuildOperation = await prisma.appImageBuildOperation.delete({
+     *   where: {
+     *     // ... filter to delete one AppImageBuildOperation
+     *   }
+     * })
+     *
+     */
+    delete<T extends AppImageBuildOperationDeleteArgs>(args: SelectSubset<T, AppImageBuildOperationDeleteArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AppImageBuildOperation.
+     * @param {AppImageBuildOperationUpdateArgs} args - Arguments to update one AppImageBuildOperation.
+     * @example
+     * // Update one AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends AppImageBuildOperationUpdateArgs>(args: SelectSubset<T, AppImageBuildOperationUpdateArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AppImageBuildOperations.
+     * @param {AppImageBuildOperationDeleteManyArgs} args - Arguments to filter AppImageBuildOperations to delete.
+     * @example
+     * // Delete a few AppImageBuildOperations
+     * const { count } = await prisma.appImageBuildOperation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends AppImageBuildOperationDeleteManyArgs>(args?: SelectSubset<T, AppImageBuildOperationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AppImageBuildOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AppImageBuildOperations
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends AppImageBuildOperationUpdateManyArgs>(args: SelectSubset<T, AppImageBuildOperationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AppImageBuildOperations and returns the data updated in the database.
+     * @param {AppImageBuildOperationUpdateManyAndReturnArgs} args - Arguments to update many AppImageBuildOperations.
+     * @example
+     * // Update many AppImageBuildOperations
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more AppImageBuildOperations and only return the `id`
+     * const appImageBuildOperationWithIdOnly = await prisma.appImageBuildOperation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends AppImageBuildOperationUpdateManyAndReturnArgs>(args: SelectSubset<T, AppImageBuildOperationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AppImageBuildOperation.
+     * @param {AppImageBuildOperationUpsertArgs} args - Arguments to update or create a AppImageBuildOperation.
+     * @example
+     * // Update or create a AppImageBuildOperation
+     * const appImageBuildOperation = await prisma.appImageBuildOperation.upsert({
+     *   create: {
+     *     // ... data to create a AppImageBuildOperation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AppImageBuildOperation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AppImageBuildOperationUpsertArgs>(args: SelectSubset<T, AppImageBuildOperationUpsertArgs<ExtArgs>>): Prisma__AppImageBuildOperationClient<$Result.GetResult<Prisma.$AppImageBuildOperationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AppImageBuildOperations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationCountArgs} args - Arguments to filter AppImageBuildOperations to count.
+     * @example
+     * // Count the number of AppImageBuildOperations
+     * const count = await prisma.appImageBuildOperation.count({
+     *   where: {
+     *     // ... the filter for the AppImageBuildOperations we want to count
+     *   }
+     * })
+    **/
+    count<T extends AppImageBuildOperationCountArgs>(
+      args?: Subset<T, AppImageBuildOperationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AppImageBuildOperationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AppImageBuildOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AppImageBuildOperationAggregateArgs>(args: Subset<T, AppImageBuildOperationAggregateArgs>): Prisma.PrismaPromise<GetAppImageBuildOperationAggregateType<T>>
+
+    /**
+     * Group by AppImageBuildOperation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AppImageBuildOperationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends AppImageBuildOperationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AppImageBuildOperationGroupByArgs['orderBy'] }
+        : { orderBy?: AppImageBuildOperationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AppImageBuildOperationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAppImageBuildOperationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AppImageBuildOperation model
+   */
+  readonly fields: AppImageBuildOperationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AppImageBuildOperation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AppImageBuildOperationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AppImageBuildOperation model
+   */
+  interface AppImageBuildOperationFieldRefs {
+    readonly id: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly projectId: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly organizationId: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly ownershipEpoch: FieldRef<"AppImageBuildOperation", 'Int'>
+    readonly deploymentId: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly phase: FieldRef<"AppImageBuildOperation", 'AppImageBuildPhase'>
+    readonly operationTag: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly intentHash: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly gcpProject: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly region: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly sourceBucket: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly sourceObject: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly imageUri: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly sourceRepository: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly sourceTag: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly buildServiceAccount: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly timeoutSeconds: FieldRef<"AppImageBuildOperation", 'Int'>
+    readonly providerBuildId: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly providerStatus: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly logUrl: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly imageDigest: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly targetRepository: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly targetDigest: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly promotionReferences: FieldRef<"AppImageBuildOperation", 'Json'>
+    readonly cancellationProof: FieldRef<"AppImageBuildOperation", 'Json'>
+    readonly lastErrorCode: FieldRef<"AppImageBuildOperation", 'String'>
+    readonly submissionStartedAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly identifiedAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly terminalAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly promotionRecordedAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly cancelledAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly createdAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+    readonly updatedAt: FieldRef<"AppImageBuildOperation", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * AppImageBuildOperation findUnique
+   */
+  export type AppImageBuildOperationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which AppImageBuildOperation to fetch.
+     */
+    where: AppImageBuildOperationWhereUniqueInput
+  }
+
+  /**
+   * AppImageBuildOperation findUniqueOrThrow
+   */
+  export type AppImageBuildOperationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which AppImageBuildOperation to fetch.
+     */
+    where: AppImageBuildOperationWhereUniqueInput
+  }
+
+  /**
+   * AppImageBuildOperation findFirst
+   */
+  export type AppImageBuildOperationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which AppImageBuildOperation to fetch.
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AppImageBuildOperations to fetch.
+     */
+    orderBy?: AppImageBuildOperationOrderByWithRelationInput | AppImageBuildOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AppImageBuildOperations.
+     */
+    cursor?: AppImageBuildOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AppImageBuildOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AppImageBuildOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AppImageBuildOperations.
+     */
+    distinct?: AppImageBuildOperationScalarFieldEnum | AppImageBuildOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AppImageBuildOperation findFirstOrThrow
+   */
+  export type AppImageBuildOperationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which AppImageBuildOperation to fetch.
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AppImageBuildOperations to fetch.
+     */
+    orderBy?: AppImageBuildOperationOrderByWithRelationInput | AppImageBuildOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for AppImageBuildOperations.
+     */
+    cursor?: AppImageBuildOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AppImageBuildOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AppImageBuildOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AppImageBuildOperations.
+     */
+    distinct?: AppImageBuildOperationScalarFieldEnum | AppImageBuildOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AppImageBuildOperation findMany
+   */
+  export type AppImageBuildOperationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter, which AppImageBuildOperations to fetch.
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of AppImageBuildOperations to fetch.
+     */
+    orderBy?: AppImageBuildOperationOrderByWithRelationInput | AppImageBuildOperationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing AppImageBuildOperations.
+     */
+    cursor?: AppImageBuildOperationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` AppImageBuildOperations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` AppImageBuildOperations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of AppImageBuildOperations.
+     */
+    distinct?: AppImageBuildOperationScalarFieldEnum | AppImageBuildOperationScalarFieldEnum[]
+  }
+
+  /**
+   * AppImageBuildOperation create
+   */
+  export type AppImageBuildOperationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AppImageBuildOperation.
+     */
+    data: XOR<AppImageBuildOperationCreateInput, AppImageBuildOperationUncheckedCreateInput>
+  }
+
+  /**
+   * AppImageBuildOperation createMany
+   */
+  export type AppImageBuildOperationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AppImageBuildOperations.
+     */
+    data: AppImageBuildOperationCreateManyInput | AppImageBuildOperationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AppImageBuildOperation createManyAndReturn
+   */
+  export type AppImageBuildOperationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * The data used to create many AppImageBuildOperations.
+     */
+    data: AppImageBuildOperationCreateManyInput | AppImageBuildOperationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AppImageBuildOperation update
+   */
+  export type AppImageBuildOperationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AppImageBuildOperation.
+     */
+    data: XOR<AppImageBuildOperationUpdateInput, AppImageBuildOperationUncheckedUpdateInput>
+    /**
+     * Choose, which AppImageBuildOperation to update.
+     */
+    where: AppImageBuildOperationWhereUniqueInput
+  }
+
+  /**
+   * AppImageBuildOperation updateMany
+   */
+  export type AppImageBuildOperationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AppImageBuildOperations.
+     */
+    data: XOR<AppImageBuildOperationUpdateManyMutationInput, AppImageBuildOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which AppImageBuildOperations to update
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * Limit how many AppImageBuildOperations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AppImageBuildOperation updateManyAndReturn
+   */
+  export type AppImageBuildOperationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * The data used to update AppImageBuildOperations.
+     */
+    data: XOR<AppImageBuildOperationUpdateManyMutationInput, AppImageBuildOperationUncheckedUpdateManyInput>
+    /**
+     * Filter which AppImageBuildOperations to update
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * Limit how many AppImageBuildOperations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AppImageBuildOperation upsert
+   */
+  export type AppImageBuildOperationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AppImageBuildOperation to update in case it exists.
+     */
+    where: AppImageBuildOperationWhereUniqueInput
+    /**
+     * In case the AppImageBuildOperation found by the `where` argument doesn't exist, create a new AppImageBuildOperation with this data.
+     */
+    create: XOR<AppImageBuildOperationCreateInput, AppImageBuildOperationUncheckedCreateInput>
+    /**
+     * In case the AppImageBuildOperation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AppImageBuildOperationUpdateInput, AppImageBuildOperationUncheckedUpdateInput>
+  }
+
+  /**
+   * AppImageBuildOperation delete
+   */
+  export type AppImageBuildOperationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
+    /**
+     * Filter which AppImageBuildOperation to delete.
+     */
+    where: AppImageBuildOperationWhereUniqueInput
+  }
+
+  /**
+   * AppImageBuildOperation deleteMany
+   */
+  export type AppImageBuildOperationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AppImageBuildOperations to delete
+     */
+    where?: AppImageBuildOperationWhereInput
+    /**
+     * Limit how many AppImageBuildOperations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AppImageBuildOperation without action
+   */
+  export type AppImageBuildOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AppImageBuildOperation
+     */
+    select?: AppImageBuildOperationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AppImageBuildOperation
+     */
+    omit?: AppImageBuildOperationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AppImageBuildOperationInclude<ExtArgs> | null
   }
 
 
@@ -209153,6 +212009,22 @@ export namespace Prisma {
   export type ProjectPermanentDeletionReceiptScalarFieldEnum = (typeof ProjectPermanentDeletionReceiptScalarFieldEnum)[keyof typeof ProjectPermanentDeletionReceiptScalarFieldEnum]
 
 
+  export const ProjectRegistryErasureScalarFieldEnum: {
+    operationId: 'operationId',
+    projectIdSnapshot: 'projectIdSnapshot',
+    inventoryHash: 'inventoryHash',
+    inventory: 'inventory',
+    state: 'state',
+    receipt: 'receipt',
+    preparedAt: 'preparedAt',
+    effectStartedAt: 'effectStartedAt',
+    verifiedAt: 'verifiedAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectRegistryErasureScalarFieldEnum = (typeof ProjectRegistryErasureScalarFieldEnum)[keyof typeof ProjectRegistryErasureScalarFieldEnum]
+
+
   export const ProjectSlugRedirectScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -209739,6 +212611,45 @@ export namespace Prisma {
   };
 
   export type ReleaseManifestScalarFieldEnum = (typeof ReleaseManifestScalarFieldEnum)[keyof typeof ReleaseManifestScalarFieldEnum]
+
+
+  export const AppImageBuildOperationScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    ownershipEpoch: 'ownershipEpoch',
+    deploymentId: 'deploymentId',
+    phase: 'phase',
+    operationTag: 'operationTag',
+    intentHash: 'intentHash',
+    gcpProject: 'gcpProject',
+    region: 'region',
+    sourceBucket: 'sourceBucket',
+    sourceObject: 'sourceObject',
+    imageUri: 'imageUri',
+    sourceRepository: 'sourceRepository',
+    sourceTag: 'sourceTag',
+    buildServiceAccount: 'buildServiceAccount',
+    timeoutSeconds: 'timeoutSeconds',
+    providerBuildId: 'providerBuildId',
+    providerStatus: 'providerStatus',
+    logUrl: 'logUrl',
+    imageDigest: 'imageDigest',
+    targetRepository: 'targetRepository',
+    targetDigest: 'targetDigest',
+    promotionReferences: 'promotionReferences',
+    cancellationProof: 'cancellationProof',
+    lastErrorCode: 'lastErrorCode',
+    submissionStartedAt: 'submissionStartedAt',
+    identifiedAt: 'identifiedAt',
+    terminalAt: 'terminalAt',
+    promotionRecordedAt: 'promotionRecordedAt',
+    cancelledAt: 'cancelledAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AppImageBuildOperationScalarFieldEnum = (typeof AppImageBuildOperationScalarFieldEnum)[keyof typeof AppImageBuildOperationScalarFieldEnum]
 
 
   export const RollbackIdempotencyRequestScalarFieldEnum: {
@@ -211764,6 +214675,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProjectRegistryErasureState'
+   */
+  export type EnumProjectRegistryErasureStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectRegistryErasureState'>
+
+
+
+  /**
+   * Reference to a field of type 'ProjectRegistryErasureState[]'
+   */
+  export type ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectRegistryErasureState[]'>
+
+
+
+  /**
    * Reference to a field of type 'Float'
    */
   export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -211858,6 +214783,20 @@ export namespace Prisma {
    * Reference to a field of type 'DeploymentStatus[]'
    */
   export type ListEnumDeploymentStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'DeploymentStatus[]'>
+
+
+
+  /**
+   * Reference to a field of type 'AppImageBuildPhase'
+   */
+  export type EnumAppImageBuildPhaseFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppImageBuildPhase'>
+
+
+
+  /**
+   * Reference to a field of type 'AppImageBuildPhase[]'
+   */
+  export type ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'AppImageBuildPhase[]'>
 
 
 
@@ -213280,6 +216219,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
     objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
     runtimeEffects?: ProjectRuntimeEffectListRelationFilter
+    appImageBuilds?: AppImageBuildOperationListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -213342,6 +216282,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeOrderByRelationAggregateInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleOrderByWithRelationInput
     runtimeEffects?: ProjectRuntimeEffectOrderByRelationAggregateInput
+    appImageBuilds?: AppImageBuildOperationOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -213408,6 +216349,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeListRelationFilter
     objectStorageVersionGcSchedule?: XOR<ObjectStorageVersionGcScheduleNullableScalarRelationFilter, ObjectStorageVersionGcScheduleWhereInput> | null
     runtimeEffects?: ProjectRuntimeEffectListRelationFilter
+    appImageBuilds?: AppImageBuildOperationListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -213496,6 +216438,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    registryErasure?: XOR<ProjectRegistryErasureNullableScalarRelationFilter, ProjectRegistryErasureWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }
 
@@ -213532,6 +216475,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanOrderByRelationAggregateInput
     capabilityReservations?: ObjectStorageCapabilityReservationOrderByRelationAggregateInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptOrderByWithRelationInput
+    registryErasure?: ProjectRegistryErasureOrderByWithRelationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleOrderByRelationAggregateInput
   }
 
@@ -213572,6 +216516,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    registryErasure?: XOR<ProjectRegistryErasureNullableScalarRelationFilter, ProjectRegistryErasureWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }, "id" | "idempotencyScopeHash_idempotencyKey">
 
@@ -214243,6 +217188,86 @@ export namespace Prisma {
     deletedAt?: DateTimeWithAggregatesFilter<"ProjectPermanentDeletionReceipt"> | Date | string
     completedAt?: DateTimeWithAggregatesFilter<"ProjectPermanentDeletionReceipt"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"ProjectPermanentDeletionReceipt"> | Date | string
+  }
+
+  export type ProjectRegistryErasureWhereInput = {
+    AND?: ProjectRegistryErasureWhereInput | ProjectRegistryErasureWhereInput[]
+    OR?: ProjectRegistryErasureWhereInput[]
+    NOT?: ProjectRegistryErasureWhereInput | ProjectRegistryErasureWhereInput[]
+    operationId?: StringFilter<"ProjectRegistryErasure"> | string
+    projectIdSnapshot?: StringFilter<"ProjectRegistryErasure"> | string
+    inventoryHash?: StringFilter<"ProjectRegistryErasure"> | string
+    inventory?: JsonFilter<"ProjectRegistryErasure">
+    state?: EnumProjectRegistryErasureStateFilter<"ProjectRegistryErasure"> | $Enums.ProjectRegistryErasureState
+    receipt?: JsonNullableFilter<"ProjectRegistryErasure">
+    preparedAt?: DateTimeFilter<"ProjectRegistryErasure"> | Date | string
+    effectStartedAt?: DateTimeNullableFilter<"ProjectRegistryErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectRegistryErasure"> | Date | string | null
+    updatedAt?: DateTimeFilter<"ProjectRegistryErasure"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }
+
+  export type ProjectRegistryErasureOrderByWithRelationInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    inventoryHash?: SortOrder
+    inventory?: SortOrder
+    state?: SortOrder
+    receipt?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    effectStartedAt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    operation?: ObjectStorageOperationOrderByWithRelationInput
+  }
+
+  export type ProjectRegistryErasureWhereUniqueInput = Prisma.AtLeast<{
+    operationId?: string
+    inventoryHash?: string
+    AND?: ProjectRegistryErasureWhereInput | ProjectRegistryErasureWhereInput[]
+    OR?: ProjectRegistryErasureWhereInput[]
+    NOT?: ProjectRegistryErasureWhereInput | ProjectRegistryErasureWhereInput[]
+    projectIdSnapshot?: StringFilter<"ProjectRegistryErasure"> | string
+    inventory?: JsonFilter<"ProjectRegistryErasure">
+    state?: EnumProjectRegistryErasureStateFilter<"ProjectRegistryErasure"> | $Enums.ProjectRegistryErasureState
+    receipt?: JsonNullableFilter<"ProjectRegistryErasure">
+    preparedAt?: DateTimeFilter<"ProjectRegistryErasure"> | Date | string
+    effectStartedAt?: DateTimeNullableFilter<"ProjectRegistryErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectRegistryErasure"> | Date | string | null
+    updatedAt?: DateTimeFilter<"ProjectRegistryErasure"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }, "operationId" | "inventoryHash">
+
+  export type ProjectRegistryErasureOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    inventoryHash?: SortOrder
+    inventory?: SortOrder
+    state?: SortOrder
+    receipt?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    effectStartedAt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectRegistryErasureCountOrderByAggregateInput
+    _max?: ProjectRegistryErasureMaxOrderByAggregateInput
+    _min?: ProjectRegistryErasureMinOrderByAggregateInput
+  }
+
+  export type ProjectRegistryErasureScalarWhereWithAggregatesInput = {
+    AND?: ProjectRegistryErasureScalarWhereWithAggregatesInput | ProjectRegistryErasureScalarWhereWithAggregatesInput[]
+    OR?: ProjectRegistryErasureScalarWhereWithAggregatesInput[]
+    NOT?: ProjectRegistryErasureScalarWhereWithAggregatesInput | ProjectRegistryErasureScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ProjectRegistryErasure"> | string
+    projectIdSnapshot?: StringWithAggregatesFilter<"ProjectRegistryErasure"> | string
+    inventoryHash?: StringWithAggregatesFilter<"ProjectRegistryErasure"> | string
+    inventory?: JsonWithAggregatesFilter<"ProjectRegistryErasure">
+    state?: EnumProjectRegistryErasureStateWithAggregatesFilter<"ProjectRegistryErasure"> | $Enums.ProjectRegistryErasureState
+    receipt?: JsonNullableWithAggregatesFilter<"ProjectRegistryErasure">
+    preparedAt?: DateTimeWithAggregatesFilter<"ProjectRegistryErasure"> | Date | string
+    effectStartedAt?: DateTimeNullableWithAggregatesFilter<"ProjectRegistryErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"ProjectRegistryErasure"> | Date | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectRegistryErasure"> | Date | string
   }
 
   export type ProjectSlugRedirectWhereInput = {
@@ -217333,6 +220358,205 @@ export namespace Prisma {
     planEntitlements?: JsonNullableWithAggregatesFilter<"ReleaseManifest">
     projectManifestDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
+  }
+
+  export type AppImageBuildOperationWhereInput = {
+    AND?: AppImageBuildOperationWhereInput | AppImageBuildOperationWhereInput[]
+    OR?: AppImageBuildOperationWhereInput[]
+    NOT?: AppImageBuildOperationWhereInput | AppImageBuildOperationWhereInput[]
+    id?: StringFilter<"AppImageBuildOperation"> | string
+    projectId?: StringFilter<"AppImageBuildOperation"> | string
+    organizationId?: StringFilter<"AppImageBuildOperation"> | string
+    ownershipEpoch?: IntFilter<"AppImageBuildOperation"> | number
+    deploymentId?: StringFilter<"AppImageBuildOperation"> | string
+    phase?: EnumAppImageBuildPhaseFilter<"AppImageBuildOperation"> | $Enums.AppImageBuildPhase
+    operationTag?: StringFilter<"AppImageBuildOperation"> | string
+    intentHash?: StringFilter<"AppImageBuildOperation"> | string
+    gcpProject?: StringFilter<"AppImageBuildOperation"> | string
+    region?: StringFilter<"AppImageBuildOperation"> | string
+    sourceBucket?: StringFilter<"AppImageBuildOperation"> | string
+    sourceObject?: StringFilter<"AppImageBuildOperation"> | string
+    imageUri?: StringFilter<"AppImageBuildOperation"> | string
+    sourceRepository?: StringFilter<"AppImageBuildOperation"> | string
+    sourceTag?: StringFilter<"AppImageBuildOperation"> | string
+    buildServiceAccount?: StringFilter<"AppImageBuildOperation"> | string
+    timeoutSeconds?: IntFilter<"AppImageBuildOperation"> | number
+    providerBuildId?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    providerStatus?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    logUrl?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    imageDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetRepository?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    promotionReferences?: JsonNullableFilter<"AppImageBuildOperation">
+    cancellationProof?: JsonNullableFilter<"AppImageBuildOperation">
+    lastErrorCode?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    submissionStartedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    identifiedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    terminalAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    promotionRecordedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type AppImageBuildOperationOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    deploymentId?: SortOrder
+    phase?: SortOrder
+    operationTag?: SortOrder
+    intentHash?: SortOrder
+    gcpProject?: SortOrder
+    region?: SortOrder
+    sourceBucket?: SortOrder
+    sourceObject?: SortOrder
+    imageUri?: SortOrder
+    sourceRepository?: SortOrder
+    sourceTag?: SortOrder
+    buildServiceAccount?: SortOrder
+    timeoutSeconds?: SortOrder
+    providerBuildId?: SortOrderInput | SortOrder
+    providerStatus?: SortOrderInput | SortOrder
+    logUrl?: SortOrderInput | SortOrder
+    imageDigest?: SortOrderInput | SortOrder
+    targetRepository?: SortOrderInput | SortOrder
+    targetDigest?: SortOrderInput | SortOrder
+    promotionReferences?: SortOrderInput | SortOrder
+    cancellationProof?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    submissionStartedAt?: SortOrderInput | SortOrder
+    identifiedAt?: SortOrderInput | SortOrder
+    terminalAt?: SortOrderInput | SortOrder
+    promotionRecordedAt?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type AppImageBuildOperationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    operationTag?: string
+    projectId_deploymentId?: AppImageBuildOperationProjectIdDeploymentIdCompoundUniqueInput
+    gcpProject_region_providerBuildId?: AppImageBuildOperationGcpProjectRegionProviderBuildIdCompoundUniqueInput
+    AND?: AppImageBuildOperationWhereInput | AppImageBuildOperationWhereInput[]
+    OR?: AppImageBuildOperationWhereInput[]
+    NOT?: AppImageBuildOperationWhereInput | AppImageBuildOperationWhereInput[]
+    projectId?: StringFilter<"AppImageBuildOperation"> | string
+    organizationId?: StringFilter<"AppImageBuildOperation"> | string
+    ownershipEpoch?: IntFilter<"AppImageBuildOperation"> | number
+    deploymentId?: StringFilter<"AppImageBuildOperation"> | string
+    phase?: EnumAppImageBuildPhaseFilter<"AppImageBuildOperation"> | $Enums.AppImageBuildPhase
+    intentHash?: StringFilter<"AppImageBuildOperation"> | string
+    gcpProject?: StringFilter<"AppImageBuildOperation"> | string
+    region?: StringFilter<"AppImageBuildOperation"> | string
+    sourceBucket?: StringFilter<"AppImageBuildOperation"> | string
+    sourceObject?: StringFilter<"AppImageBuildOperation"> | string
+    imageUri?: StringFilter<"AppImageBuildOperation"> | string
+    sourceRepository?: StringFilter<"AppImageBuildOperation"> | string
+    sourceTag?: StringFilter<"AppImageBuildOperation"> | string
+    buildServiceAccount?: StringFilter<"AppImageBuildOperation"> | string
+    timeoutSeconds?: IntFilter<"AppImageBuildOperation"> | number
+    providerBuildId?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    providerStatus?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    logUrl?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    imageDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetRepository?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    promotionReferences?: JsonNullableFilter<"AppImageBuildOperation">
+    cancellationProof?: JsonNullableFilter<"AppImageBuildOperation">
+    lastErrorCode?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    submissionStartedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    identifiedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    terminalAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    promotionRecordedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "operationTag" | "projectId_deploymentId" | "gcpProject_region_providerBuildId">
+
+  export type AppImageBuildOperationOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    deploymentId?: SortOrder
+    phase?: SortOrder
+    operationTag?: SortOrder
+    intentHash?: SortOrder
+    gcpProject?: SortOrder
+    region?: SortOrder
+    sourceBucket?: SortOrder
+    sourceObject?: SortOrder
+    imageUri?: SortOrder
+    sourceRepository?: SortOrder
+    sourceTag?: SortOrder
+    buildServiceAccount?: SortOrder
+    timeoutSeconds?: SortOrder
+    providerBuildId?: SortOrderInput | SortOrder
+    providerStatus?: SortOrderInput | SortOrder
+    logUrl?: SortOrderInput | SortOrder
+    imageDigest?: SortOrderInput | SortOrder
+    targetRepository?: SortOrderInput | SortOrder
+    targetDigest?: SortOrderInput | SortOrder
+    promotionReferences?: SortOrderInput | SortOrder
+    cancellationProof?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    submissionStartedAt?: SortOrderInput | SortOrder
+    identifiedAt?: SortOrderInput | SortOrder
+    terminalAt?: SortOrderInput | SortOrder
+    promotionRecordedAt?: SortOrderInput | SortOrder
+    cancelledAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AppImageBuildOperationCountOrderByAggregateInput
+    _avg?: AppImageBuildOperationAvgOrderByAggregateInput
+    _max?: AppImageBuildOperationMaxOrderByAggregateInput
+    _min?: AppImageBuildOperationMinOrderByAggregateInput
+    _sum?: AppImageBuildOperationSumOrderByAggregateInput
+  }
+
+  export type AppImageBuildOperationScalarWhereWithAggregatesInput = {
+    AND?: AppImageBuildOperationScalarWhereWithAggregatesInput | AppImageBuildOperationScalarWhereWithAggregatesInput[]
+    OR?: AppImageBuildOperationScalarWhereWithAggregatesInput[]
+    NOT?: AppImageBuildOperationScalarWhereWithAggregatesInput | AppImageBuildOperationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    projectId?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    organizationId?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    ownershipEpoch?: IntWithAggregatesFilter<"AppImageBuildOperation"> | number
+    deploymentId?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    phase?: EnumAppImageBuildPhaseWithAggregatesFilter<"AppImageBuildOperation"> | $Enums.AppImageBuildPhase
+    operationTag?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    intentHash?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    gcpProject?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    region?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    sourceBucket?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    sourceObject?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    imageUri?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    sourceRepository?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    sourceTag?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    buildServiceAccount?: StringWithAggregatesFilter<"AppImageBuildOperation"> | string
+    timeoutSeconds?: IntWithAggregatesFilter<"AppImageBuildOperation"> | number
+    providerBuildId?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    providerStatus?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    logUrl?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    imageDigest?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    targetRepository?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    targetDigest?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    promotionReferences?: JsonNullableWithAggregatesFilter<"AppImageBuildOperation">
+    cancellationProof?: JsonNullableWithAggregatesFilter<"AppImageBuildOperation">
+    lastErrorCode?: StringNullableWithAggregatesFilter<"AppImageBuildOperation"> | string | null
+    submissionStartedAt?: DateTimeNullableWithAggregatesFilter<"AppImageBuildOperation"> | Date | string | null
+    identifiedAt?: DateTimeNullableWithAggregatesFilter<"AppImageBuildOperation"> | Date | string | null
+    terminalAt?: DateTimeNullableWithAggregatesFilter<"AppImageBuildOperation"> | Date | string | null
+    promotionRecordedAt?: DateTimeNullableWithAggregatesFilter<"AppImageBuildOperation"> | Date | string | null
+    cancelledAt?: DateTimeNullableWithAggregatesFilter<"AppImageBuildOperation"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"AppImageBuildOperation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AppImageBuildOperation"> | Date | string
   }
 
   export type RollbackIdempotencyRequestWhereInput = {
@@ -227791,6 +231015,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -227852,6 +231077,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -227913,6 +231139,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -227974,6 +231201,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -228071,6 +231299,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -228107,6 +231336,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -228143,6 +231373,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -228179,6 +231410,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -228916,6 +232148,96 @@ export namespace Prisma {
     deletedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     completedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRegistryErasureCreateInput = {
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonNullValueInput | InputJsonValue
+    state?: $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    updatedAt?: Date | string
+    operation: ObjectStorageOperationCreateNestedOneWithoutRegistryErasureInput
+  }
+
+  export type ProjectRegistryErasureUncheckedCreateInput = {
+    operationId: string
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonNullValueInput | InputJsonValue
+    state?: $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRegistryErasureUpdateInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutRegistryErasureNestedInput
+  }
+
+  export type ProjectRegistryErasureUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRegistryErasureCreateManyInput = {
+    operationId: string
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonNullValueInput | InputJsonValue
+    state?: $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRegistryErasureUpdateManyMutationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRegistryErasureUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectSlugRedirectCreateInput = {
@@ -232231,6 +235553,257 @@ export namespace Prisma {
     planEntitlements?: NullableJsonNullValueInput | InputJsonValue
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationCreateInput = {
+    id: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutAppImageBuildsInput
+  }
+
+  export type AppImageBuildOperationUncheckedCreateInput = {
+    id: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AppImageBuildOperationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutAppImageBuildsNestedInput
+  }
+
+  export type AppImageBuildOperationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationCreateManyInput = {
+    id: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AppImageBuildOperationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RollbackIdempotencyRequestCreateInput = {
@@ -244067,6 +247640,12 @@ export namespace Prisma {
     none?: ProjectRuntimeEffectWhereInput
   }
 
+  export type AppImageBuildOperationListRelationFilter = {
+    every?: AppImageBuildOperationWhereInput
+    some?: AppImageBuildOperationWhereInput
+    none?: AppImageBuildOperationWhereInput
+  }
+
   export type ProjectEnvironmentOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -244132,6 +247711,10 @@ export namespace Prisma {
   }
 
   export type ProjectRuntimeEffectOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AppImageBuildOperationOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -244286,6 +247869,11 @@ export namespace Prisma {
   export type ProjectPermanentDeletionReceiptNullableScalarRelationFilter = {
     is?: ProjectPermanentDeletionReceiptWhereInput | null
     isNot?: ProjectPermanentDeletionReceiptWhereInput | null
+  }
+
+  export type ProjectRegistryErasureNullableScalarRelationFilter = {
+    is?: ProjectRegistryErasureWhereInput | null
+    isNot?: ProjectRegistryErasureWhereInput | null
   }
 
   export type ObjectStorageVersionGcScheduleListRelationFilter = {
@@ -244958,6 +248546,58 @@ export namespace Prisma {
     deletedAt?: SortOrder
     completedAt?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type EnumProjectRegistryErasureStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRegistryErasureState | EnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel> | $Enums.ProjectRegistryErasureState
+  }
+
+  export type ProjectRegistryErasureCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    inventoryHash?: SortOrder
+    inventory?: SortOrder
+    state?: SortOrder
+    receipt?: SortOrder
+    preparedAt?: SortOrder
+    effectStartedAt?: SortOrder
+    verifiedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectRegistryErasureMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    inventoryHash?: SortOrder
+    state?: SortOrder
+    preparedAt?: SortOrder
+    effectStartedAt?: SortOrder
+    verifiedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectRegistryErasureMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    inventoryHash?: SortOrder
+    state?: SortOrder
+    preparedAt?: SortOrder
+    effectStartedAt?: SortOrder
+    verifiedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EnumProjectRegistryErasureStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRegistryErasureState | EnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRegistryErasureStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectRegistryErasureState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel>
   }
 
   export type ProjectSlugRedirectProjectIdOldSlugCompoundUniqueInput = {
@@ -246853,6 +250493,148 @@ export namespace Prisma {
   export type ReleaseManifestSumOrderByAggregateInput = {
     version?: SortOrder
     accessPolicyVersion?: SortOrder
+  }
+
+  export type EnumAppImageBuildPhaseFilter<$PrismaModel = never> = {
+    equals?: $Enums.AppImageBuildPhase | EnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel> | $Enums.AppImageBuildPhase
+  }
+
+  export type AppImageBuildOperationProjectIdDeploymentIdCompoundUniqueInput = {
+    projectId: string
+    deploymentId: string
+  }
+
+  export type AppImageBuildOperationGcpProjectRegionProviderBuildIdCompoundUniqueInput = {
+    gcpProject: string
+    region: string
+    providerBuildId: string
+  }
+
+  export type AppImageBuildOperationCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    deploymentId?: SortOrder
+    phase?: SortOrder
+    operationTag?: SortOrder
+    intentHash?: SortOrder
+    gcpProject?: SortOrder
+    region?: SortOrder
+    sourceBucket?: SortOrder
+    sourceObject?: SortOrder
+    imageUri?: SortOrder
+    sourceRepository?: SortOrder
+    sourceTag?: SortOrder
+    buildServiceAccount?: SortOrder
+    timeoutSeconds?: SortOrder
+    providerBuildId?: SortOrder
+    providerStatus?: SortOrder
+    logUrl?: SortOrder
+    imageDigest?: SortOrder
+    targetRepository?: SortOrder
+    targetDigest?: SortOrder
+    promotionReferences?: SortOrder
+    cancellationProof?: SortOrder
+    lastErrorCode?: SortOrder
+    submissionStartedAt?: SortOrder
+    identifiedAt?: SortOrder
+    terminalAt?: SortOrder
+    promotionRecordedAt?: SortOrder
+    cancelledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AppImageBuildOperationAvgOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    timeoutSeconds?: SortOrder
+  }
+
+  export type AppImageBuildOperationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    deploymentId?: SortOrder
+    phase?: SortOrder
+    operationTag?: SortOrder
+    intentHash?: SortOrder
+    gcpProject?: SortOrder
+    region?: SortOrder
+    sourceBucket?: SortOrder
+    sourceObject?: SortOrder
+    imageUri?: SortOrder
+    sourceRepository?: SortOrder
+    sourceTag?: SortOrder
+    buildServiceAccount?: SortOrder
+    timeoutSeconds?: SortOrder
+    providerBuildId?: SortOrder
+    providerStatus?: SortOrder
+    logUrl?: SortOrder
+    imageDigest?: SortOrder
+    targetRepository?: SortOrder
+    targetDigest?: SortOrder
+    lastErrorCode?: SortOrder
+    submissionStartedAt?: SortOrder
+    identifiedAt?: SortOrder
+    terminalAt?: SortOrder
+    promotionRecordedAt?: SortOrder
+    cancelledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AppImageBuildOperationMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    deploymentId?: SortOrder
+    phase?: SortOrder
+    operationTag?: SortOrder
+    intentHash?: SortOrder
+    gcpProject?: SortOrder
+    region?: SortOrder
+    sourceBucket?: SortOrder
+    sourceObject?: SortOrder
+    imageUri?: SortOrder
+    sourceRepository?: SortOrder
+    sourceTag?: SortOrder
+    buildServiceAccount?: SortOrder
+    timeoutSeconds?: SortOrder
+    providerBuildId?: SortOrder
+    providerStatus?: SortOrder
+    logUrl?: SortOrder
+    imageDigest?: SortOrder
+    targetRepository?: SortOrder
+    targetDigest?: SortOrder
+    lastErrorCode?: SortOrder
+    submissionStartedAt?: SortOrder
+    identifiedAt?: SortOrder
+    terminalAt?: SortOrder
+    promotionRecordedAt?: SortOrder
+    cancelledAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AppImageBuildOperationSumOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    timeoutSeconds?: SortOrder
+  }
+
+  export type EnumAppImageBuildPhaseWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AppImageBuildPhase | EnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumAppImageBuildPhaseWithAggregatesFilter<$PrismaModel> | $Enums.AppImageBuildPhase
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel>
+    _max?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel>
   }
 
   export type RollbackIdempotencyRequestProjectIdIdempotencyKeyCompoundUniqueInput = {
@@ -257090,6 +260872,13 @@ export namespace Prisma {
     connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
   }
 
+  export type AppImageBuildOperationCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput> | AppImageBuildOperationCreateWithoutProjectInput[] | AppImageBuildOperationUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AppImageBuildOperationCreateOrConnectWithoutProjectInput | AppImageBuildOperationCreateOrConnectWithoutProjectInput[]
+    createMany?: AppImageBuildOperationCreateManyProjectInputEnvelope
+    connect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -257362,6 +261151,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectRuntimeEffectCreateOrConnectWithoutProjectInput | ProjectRuntimeEffectCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectRuntimeEffectCreateManyProjectInputEnvelope
     connect?: ProjectRuntimeEffectWhereUniqueInput | ProjectRuntimeEffectWhereUniqueInput[]
+  }
+
+  export type AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput> | AppImageBuildOperationCreateWithoutProjectInput[] | AppImageBuildOperationUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AppImageBuildOperationCreateOrConnectWithoutProjectInput | AppImageBuildOperationCreateOrConnectWithoutProjectInput[]
+    createMany?: AppImageBuildOperationCreateManyProjectInputEnvelope
+    connect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -257916,6 +261712,20 @@ export namespace Prisma {
     deleteMany?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
   }
 
+  export type AppImageBuildOperationUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput> | AppImageBuildOperationCreateWithoutProjectInput[] | AppImageBuildOperationUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AppImageBuildOperationCreateOrConnectWithoutProjectInput | AppImageBuildOperationCreateOrConnectWithoutProjectInput[]
+    upsert?: AppImageBuildOperationUpsertWithWhereUniqueWithoutProjectInput | AppImageBuildOperationUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AppImageBuildOperationCreateManyProjectInputEnvelope
+    set?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    disconnect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    delete?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    connect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    update?: AppImageBuildOperationUpdateWithWhereUniqueWithoutProjectInput | AppImageBuildOperationUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AppImageBuildOperationUpdateManyWithWhereWithoutProjectInput | AppImageBuildOperationUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AppImageBuildOperationScalarWhereInput | AppImageBuildOperationScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -258460,6 +262270,20 @@ export namespace Prisma {
     deleteMany?: ProjectRuntimeEffectScalarWhereInput | ProjectRuntimeEffectScalarWhereInput[]
   }
 
+  export type AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput> | AppImageBuildOperationCreateWithoutProjectInput[] | AppImageBuildOperationUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: AppImageBuildOperationCreateOrConnectWithoutProjectInput | AppImageBuildOperationCreateOrConnectWithoutProjectInput[]
+    upsert?: AppImageBuildOperationUpsertWithWhereUniqueWithoutProjectInput | AppImageBuildOperationUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: AppImageBuildOperationCreateManyProjectInputEnvelope
+    set?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    disconnect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    delete?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    connect?: AppImageBuildOperationWhereUniqueInput | AppImageBuildOperationWhereUniqueInput[]
+    update?: AppImageBuildOperationUpdateWithWhereUniqueWithoutProjectInput | AppImageBuildOperationUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: AppImageBuildOperationUpdateManyWithWhereWithoutProjectInput | AppImageBuildOperationUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: AppImageBuildOperationScalarWhereInput | AppImageBuildOperationScalarWhereInput[]
+  }
+
   export type ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput = {
     create?: XOR<ObjectStorageOperationProjectScopeCreateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput> | ObjectStorageOperationProjectScopeCreateWithoutOperationInput[] | ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput | ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput[]
@@ -258499,6 +262323,12 @@ export namespace Prisma {
     create?: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
     connectOrCreate?: ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
+  }
+
+  export type ProjectRegistryErasureCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectRegistryErasureCreateOrConnectWithoutOperationInput
+    connect?: ProjectRegistryErasureWhereUniqueInput
   }
 
   export type ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput = {
@@ -258547,6 +262377,12 @@ export namespace Prisma {
     create?: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
     connectOrCreate?: ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
+  }
+
+  export type ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectRegistryErasureCreateOrConnectWithoutOperationInput
+    connect?: ProjectRegistryErasureWhereUniqueInput
   }
 
   export type ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput = {
@@ -258652,6 +262488,16 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
   }
 
+  export type ProjectRegistryErasureUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectRegistryErasureCreateOrConnectWithoutOperationInput
+    upsert?: ProjectRegistryErasureUpsertWithoutOperationInput
+    disconnect?: ProjectRegistryErasureWhereInput | boolean
+    delete?: ProjectRegistryErasureWhereInput | boolean
+    connect?: ProjectRegistryErasureWhereUniqueInput
+    update?: XOR<XOR<ProjectRegistryErasureUpdateToOneWithWhereWithoutOperationInput, ProjectRegistryErasureUpdateWithoutOperationInput>, ProjectRegistryErasureUncheckedUpdateWithoutOperationInput>
+  }
+
   export type ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput = {
     create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
@@ -258744,6 +262590,16 @@ export namespace Prisma {
     delete?: ProjectPermanentDeletionReceiptWhereInput | boolean
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectRegistryErasureCreateOrConnectWithoutOperationInput
+    upsert?: ProjectRegistryErasureUpsertWithoutOperationInput
+    disconnect?: ProjectRegistryErasureWhereInput | boolean
+    delete?: ProjectRegistryErasureWhereInput | boolean
+    connect?: ProjectRegistryErasureWhereUniqueInput
+    update?: XOR<XOR<ProjectRegistryErasureUpdateToOneWithWhereWithoutOperationInput, ProjectRegistryErasureUpdateWithoutOperationInput>, ProjectRegistryErasureUncheckedUpdateWithoutOperationInput>
   }
 
   export type ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput = {
@@ -258908,6 +262764,24 @@ export namespace Prisma {
     upsert?: ObjectStorageOperationUpsertWithoutPermanentDeletionReceiptInput
     connect?: ObjectStorageOperationWhereUniqueInput
     update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutPermanentDeletionReceiptInput, ObjectStorageOperationUpdateWithoutPermanentDeletionReceiptInput>, ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionReceiptInput>
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutRegistryErasureInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedCreateWithoutRegistryErasureInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutRegistryErasureInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type EnumProjectRegistryErasureStateFieldUpdateOperationsInput = {
+    set?: $Enums.ProjectRegistryErasureState
+  }
+
+  export type ObjectStorageOperationUpdateOneRequiredWithoutRegistryErasureNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedCreateWithoutRegistryErasureInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutRegistryErasureInput
+    upsert?: ObjectStorageOperationUpsertWithoutRegistryErasureInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutRegistryErasureInput, ObjectStorageOperationUpdateWithoutRegistryErasureInput>, ObjectStorageOperationUncheckedUpdateWithoutRegistryErasureInput>
   }
 
   export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
@@ -260262,6 +264136,24 @@ export namespace Prisma {
     upsert?: ProjectUpsertWithoutReleaseManifestsInput
     connect?: ProjectWhereUniqueInput
     update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutReleaseManifestsInput, ProjectUpdateWithoutReleaseManifestsInput>, ProjectUncheckedUpdateWithoutReleaseManifestsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutAppImageBuildsInput = {
+    create?: XOR<ProjectCreateWithoutAppImageBuildsInput, ProjectUncheckedCreateWithoutAppImageBuildsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAppImageBuildsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type EnumAppImageBuildPhaseFieldUpdateOperationsInput = {
+    set?: $Enums.AppImageBuildPhase
+  }
+
+  export type ProjectUpdateOneRequiredWithoutAppImageBuildsNestedInput = {
+    create?: XOR<ProjectCreateWithoutAppImageBuildsInput, ProjectUncheckedCreateWithoutAppImageBuildsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutAppImageBuildsInput
+    upsert?: ProjectUpsertWithoutAppImageBuildsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutAppImageBuildsInput, ProjectUpdateWithoutAppImageBuildsInput>, ProjectUncheckedUpdateWithoutAppImageBuildsInput>
   }
 
   export type ProjectCreateNestedOneWithoutRollbackOperationsInput = {
@@ -264407,6 +268299,23 @@ export namespace Prisma {
     _max?: NestedEnumObjectStorageVersionGcStatusFilter<$PrismaModel>
   }
 
+  export type NestedEnumProjectRegistryErasureStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRegistryErasureState | EnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel> | $Enums.ProjectRegistryErasureState
+  }
+
+  export type NestedEnumProjectRegistryErasureStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectRegistryErasureState | EnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectRegistryErasureState[] | ListEnumProjectRegistryErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectRegistryErasureStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectRegistryErasureState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectRegistryErasureStateFilter<$PrismaModel>
+  }
+
   export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel>
     in?: number[] | ListFloatFieldRefInput<$PrismaModel>
@@ -264523,6 +268432,23 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumDeploymentStatusFilter<$PrismaModel>
     _max?: NestedEnumDeploymentStatusFilter<$PrismaModel>
+  }
+
+  export type NestedEnumAppImageBuildPhaseFilter<$PrismaModel = never> = {
+    equals?: $Enums.AppImageBuildPhase | EnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel> | $Enums.AppImageBuildPhase
+  }
+
+  export type NestedEnumAppImageBuildPhaseWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.AppImageBuildPhase | EnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    in?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    notIn?: $Enums.AppImageBuildPhase[] | ListEnumAppImageBuildPhaseFieldRefInput<$PrismaModel>
+    not?: NestedEnumAppImageBuildPhaseWithAggregatesFilter<$PrismaModel> | $Enums.AppImageBuildPhase
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel>
+    _max?: NestedEnumAppImageBuildPhaseFilter<$PrismaModel>
   }
 
   export type NestedEnumSubscriptionStatusFilter<$PrismaModel = never> = {
@@ -269257,6 +273183,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -269317,6 +273244,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -274949,6 +278877,86 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AppImageBuildOperationCreateWithoutProjectInput = {
+    id: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AppImageBuildOperationUncheckedCreateWithoutProjectInput = {
+    id: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AppImageBuildOperationCreateOrConnectWithoutProjectInput = {
+    where: AppImageBuildOperationWhereUniqueInput
+    create: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AppImageBuildOperationCreateManyProjectInputEnvelope = {
+    data: AppImageBuildOperationCreateManyProjectInput | AppImageBuildOperationCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -276103,6 +280111,61 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ProjectRuntimeEffect"> | Date | string
   }
 
+  export type AppImageBuildOperationUpsertWithWhereUniqueWithoutProjectInput = {
+    where: AppImageBuildOperationWhereUniqueInput
+    update: XOR<AppImageBuildOperationUpdateWithoutProjectInput, AppImageBuildOperationUncheckedUpdateWithoutProjectInput>
+    create: XOR<AppImageBuildOperationCreateWithoutProjectInput, AppImageBuildOperationUncheckedCreateWithoutProjectInput>
+  }
+
+  export type AppImageBuildOperationUpdateWithWhereUniqueWithoutProjectInput = {
+    where: AppImageBuildOperationWhereUniqueInput
+    data: XOR<AppImageBuildOperationUpdateWithoutProjectInput, AppImageBuildOperationUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type AppImageBuildOperationUpdateManyWithWhereWithoutProjectInput = {
+    where: AppImageBuildOperationScalarWhereInput
+    data: XOR<AppImageBuildOperationUpdateManyMutationInput, AppImageBuildOperationUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type AppImageBuildOperationScalarWhereInput = {
+    AND?: AppImageBuildOperationScalarWhereInput | AppImageBuildOperationScalarWhereInput[]
+    OR?: AppImageBuildOperationScalarWhereInput[]
+    NOT?: AppImageBuildOperationScalarWhereInput | AppImageBuildOperationScalarWhereInput[]
+    id?: StringFilter<"AppImageBuildOperation"> | string
+    projectId?: StringFilter<"AppImageBuildOperation"> | string
+    organizationId?: StringFilter<"AppImageBuildOperation"> | string
+    ownershipEpoch?: IntFilter<"AppImageBuildOperation"> | number
+    deploymentId?: StringFilter<"AppImageBuildOperation"> | string
+    phase?: EnumAppImageBuildPhaseFilter<"AppImageBuildOperation"> | $Enums.AppImageBuildPhase
+    operationTag?: StringFilter<"AppImageBuildOperation"> | string
+    intentHash?: StringFilter<"AppImageBuildOperation"> | string
+    gcpProject?: StringFilter<"AppImageBuildOperation"> | string
+    region?: StringFilter<"AppImageBuildOperation"> | string
+    sourceBucket?: StringFilter<"AppImageBuildOperation"> | string
+    sourceObject?: StringFilter<"AppImageBuildOperation"> | string
+    imageUri?: StringFilter<"AppImageBuildOperation"> | string
+    sourceRepository?: StringFilter<"AppImageBuildOperation"> | string
+    sourceTag?: StringFilter<"AppImageBuildOperation"> | string
+    buildServiceAccount?: StringFilter<"AppImageBuildOperation"> | string
+    timeoutSeconds?: IntFilter<"AppImageBuildOperation"> | number
+    providerBuildId?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    providerStatus?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    logUrl?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    imageDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetRepository?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    targetDigest?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    promotionReferences?: JsonNullableFilter<"AppImageBuildOperation">
+    cancellationProof?: JsonNullableFilter<"AppImageBuildOperation">
+    lastErrorCode?: StringNullableFilter<"AppImageBuildOperation"> | string | null
+    submissionStartedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    identifiedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    terminalAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    promotionRecordedAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    cancelledAt?: DateTimeNullableFilter<"AppImageBuildOperation"> | Date | string | null
+    createdAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+    updatedAt?: DateTimeFilter<"AppImageBuildOperation"> | Date | string
+  }
+
   export type ObjectStorageOperationProjectScopeCreateWithoutOperationInput = {
     ordinal: number
     projectIdSnapshot: string
@@ -276296,6 +280359,35 @@ export namespace Prisma {
   export type ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput = {
     where: ProjectPermanentDeletionReceiptWhereUniqueInput
     create: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
+  }
+
+  export type ProjectRegistryErasureCreateWithoutOperationInput = {
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonNullValueInput | InputJsonValue
+    state?: $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRegistryErasureUncheckedCreateWithoutOperationInput = {
+    projectIdSnapshot: string
+    inventoryHash: string
+    inventory: JsonNullValueInput | InputJsonValue
+    state?: $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type ProjectRegistryErasureCreateOrConnectWithoutOperationInput = {
+    where: ProjectRegistryErasureWhereUniqueInput
+    create: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
   }
 
   export type ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput = {
@@ -276525,6 +280617,41 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectRegistryErasureUpsertWithoutOperationInput = {
+    update: XOR<ProjectRegistryErasureUpdateWithoutOperationInput, ProjectRegistryErasureUncheckedUpdateWithoutOperationInput>
+    create: XOR<ProjectRegistryErasureCreateWithoutOperationInput, ProjectRegistryErasureUncheckedCreateWithoutOperationInput>
+    where?: ProjectRegistryErasureWhereInput
+  }
+
+  export type ProjectRegistryErasureUpdateToOneWithWhereWithoutOperationInput = {
+    where?: ProjectRegistryErasureWhereInput
+    data: XOR<ProjectRegistryErasureUpdateWithoutOperationInput, ProjectRegistryErasureUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ProjectRegistryErasureUpdateWithoutOperationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectRegistryErasureUncheckedUpdateWithoutOperationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    inventoryHash?: StringFieldUpdateOperationsInput | string
+    inventory?: JsonNullValueInput | InputJsonValue
+    state?: EnumProjectRegistryErasureStateFieldUpdateOperationsInput | $Enums.ProjectRegistryErasureState
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput = {
     where: ObjectStorageVersionGcScheduleWhereUniqueInput
     update: XOR<ObjectStorageVersionGcScheduleUpdateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutLastOperationInput>
@@ -276594,6 +280721,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276629,6 +280757,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276680,6 +280809,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276715,6 +280845,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276750,6 +280881,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276785,6 +280917,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276836,6 +280969,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276871,6 +281005,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276906,6 +281041,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276941,6 +281077,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276992,6 +281129,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277027,6 +281165,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277062,6 +281201,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277097,6 +281237,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277148,6 +281289,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277183,6 +281325,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277218,6 +281361,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277253,6 +281397,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277319,6 +281464,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutObjectStorageOperationScopesInput = {
@@ -277379,6 +281525,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutObjectStorageOperationScopesInput = {
@@ -277429,6 +281576,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277464,6 +281612,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277536,6 +281685,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutObjectStorageOperationScopesInput = {
@@ -277596,6 +281746,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutObjectStorageVersionGcScheduleInput = {
@@ -277656,6 +281807,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutObjectStorageVersionGcScheduleInput = {
@@ -277716,6 +281868,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutObjectStorageVersionGcScheduleInput = {
@@ -277756,6 +281909,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput = {
@@ -277791,6 +281945,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput = {
@@ -277867,6 +282022,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutObjectStorageVersionGcScheduleInput = {
@@ -277927,6 +282083,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ObjectStorageOperationUpsertWithoutVersionGcSchedulesInput = {
@@ -277973,6 +282130,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput = {
@@ -278008,6 +282166,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPermanentDeletionReceiptInput = {
@@ -278042,6 +282201,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -278077,6 +282237,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    registryErasure?: ProjectRegistryErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -278128,6 +282289,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -278163,6 +282325,167 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    registryErasure?: ProjectRegistryErasureUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationCreateWithoutRegistryErasureInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutRegistryErasureInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutRegistryErasureInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedCreateWithoutRegistryErasureInput>
+  }
+
+  export type ObjectStorageOperationUpsertWithoutRegistryErasureInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedUpdateWithoutRegistryErasureInput>
+    create: XOR<ObjectStorageOperationCreateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedCreateWithoutRegistryErasureInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutRegistryErasureInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutRegistryErasureInput, ObjectStorageOperationUncheckedUpdateWithoutRegistryErasureInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutRegistryErasureInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutRegistryErasureInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -278224,6 +282547,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -278284,6 +282608,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -278360,6 +282685,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -278420,6 +282746,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -278956,6 +283283,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -279016,6 +283344,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -279092,6 +283421,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -279152,6 +283482,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -279444,6 +283775,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -279504,6 +283836,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -279824,6 +284157,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -279884,6 +284218,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -279944,6 +284279,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -280004,6 +284340,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -280211,6 +284548,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -280271,6 +284609,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -280468,6 +284807,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -280528,6 +284868,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -280604,6 +284945,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -280664,6 +285006,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -280724,6 +285067,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -280784,6 +285128,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -280860,6 +285205,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -280920,6 +285266,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -280980,6 +285327,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -281040,6 +285388,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -281116,6 +285465,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -281176,6 +285526,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -281236,6 +285587,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -281296,6 +285648,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -281372,6 +285725,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -281432,6 +285786,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -281492,6 +285847,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -281552,6 +285908,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -281628,6 +285985,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -281688,6 +286046,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -281748,6 +286107,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -281808,6 +286168,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -281884,6 +286245,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -281944,6 +286306,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -282004,6 +286367,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -282064,6 +286428,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -282271,6 +286636,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -282331,6 +286697,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -282528,6 +286895,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -282588,6 +286956,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -282795,6 +287164,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -282855,6 +287225,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -283052,6 +287423,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -283112,6 +287484,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -283319,6 +287692,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -283379,6 +287753,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -283576,6 +287951,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -283636,6 +288012,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -283843,6 +288220,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -283903,6 +288281,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -284100,6 +288479,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -284160,6 +288540,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -284367,6 +288748,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -284427,6 +288809,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -286147,6 +290530,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -286207,6 +290591,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -286384,6 +290769,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -286444,6 +290830,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -286611,6 +290998,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -286671,6 +291059,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -286934,6 +291323,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -286994,6 +291384,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -287516,6 +291907,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -287576,6 +291968,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -287695,6 +292088,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -287755,6 +292149,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -287864,6 +292259,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -287924,6 +292320,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -288131,6 +292528,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -288191,6 +292589,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -288388,6 +292787,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutManifestRevisionsInput = {
@@ -288448,6 +292848,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutManifestRevisionsInput = {
@@ -288524,6 +292925,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutManifestRevisionsInput = {
@@ -288584,6 +292986,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -288644,6 +293047,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -288704,6 +293108,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -288780,6 +293185,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -288840,6 +293246,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -288900,6 +293307,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -288960,6 +293368,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -289254,6 +293663,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -289314,6 +293724,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -289494,6 +293905,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmOperationsInput = {
@@ -289554,6 +293966,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmOperationsInput = {
@@ -289919,6 +294332,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmOperationsInput = {
@@ -289979,6 +294393,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmOperationsInput = {
@@ -290346,6 +294761,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReservedVmBillingPeriodsInput = {
@@ -290406,6 +294822,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReservedVmBillingPeriodsInput = {
@@ -290771,6 +295188,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReservedVmBillingPeriodsInput = {
@@ -290831,6 +295249,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentUpsertWithoutReservedVmBillingPeriodsInput = {
@@ -291316,6 +295735,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutReleaseManifestsInput = {
@@ -291376,6 +295796,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutReleaseManifestsInput = {
@@ -291452,6 +295873,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutReleaseManifestsInput = {
@@ -291509,6 +295931,267 @@ export namespace Prisma {
     targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
     cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
     checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectCreateWithoutAppImageBuildsInput = {
+    id?: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutAppImageBuildsInput = {
+    id?: string
+    organizationId: string
+    ownershipEpoch?: number
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    objectStorageCapabilityExpiresAt?: Date | string | null
+    permanentDeletionStartedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmOperations?: ReservedVmOperationUncheckedCreateNestedManyWithoutProjectInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedCreateNestedManyWithoutProjectInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    targetRemixJobs?: RemixJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    sourceRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutSourceProjectInput
+    targetRemixShares?: RemixStorageShareUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+    releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutAppImageBuildsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutAppImageBuildsInput, ProjectUncheckedCreateWithoutAppImageBuildsInput>
+  }
+
+  export type ProjectUpsertWithoutAppImageBuildsInput = {
+    update: XOR<ProjectUpdateWithoutAppImageBuildsInput, ProjectUncheckedUpdateWithoutAppImageBuildsInput>
+    create: XOR<ProjectCreateWithoutAppImageBuildsInput, ProjectUncheckedCreateWithoutAppImageBuildsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutAppImageBuildsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutAppImageBuildsInput, ProjectUncheckedUpdateWithoutAppImageBuildsInput>
+  }
+
+  export type ProjectUpdateWithoutAppImageBuildsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
+    objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
+    objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutAppImageBuildsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    objectStorageCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    permanentDeletionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmOperations?: ReservedVmOperationUncheckedUpdateManyWithoutProjectNestedInput
+    reservedVmBillingPeriods?: ReservedVmBillingPeriodUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackOperations?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    targetRemixJobs?: RemixJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    sourceRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutSourceProjectNestedInput
+    targetRemixShares?: RemixStorageShareUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+    releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
@@ -291572,6 +296255,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRollbackOperationsInput = {
@@ -291632,6 +296316,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRollbackOperationsInput = {
@@ -291839,6 +296524,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRollbackOperationsInput = {
@@ -291899,6 +296585,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutRollbackOperationsInput = {
@@ -294214,6 +298901,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -294274,6 +298962,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -294509,6 +299198,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -294569,6 +299259,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -296936,6 +301627,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -296996,6 +301688,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -297209,6 +301902,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -297269,6 +301963,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -301657,6 +306352,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeEffectsInput = {
@@ -301717,6 +306413,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedCreateNestedManyWithoutProjectInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeEffectsInput = {
@@ -301823,6 +306520,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeEffectsInput = {
@@ -301883,6 +306581,7 @@ export namespace Prisma {
     releaseManifests?: ReleaseManifestUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectRuntimeEffectTargetUpsertWithWhereUniqueWithoutEffectInput = {
@@ -302533,6 +307232,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -302593,6 +307293,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -302853,6 +307554,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -302913,6 +307615,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -306356,6 +311059,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -306416,6 +311120,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -306644,6 +311349,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -306704,6 +311410,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -307510,6 +312217,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCheckpointsInput = {
@@ -307570,6 +312278,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCheckpointsInput = {
@@ -307777,6 +312486,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCheckpointsInput = {
@@ -307837,6 +312547,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCheckpointsInput = {
@@ -308034,6 +312745,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixJobsInput = {
@@ -308094,6 +312806,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixJobsInput = {
@@ -308252,6 +312965,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixJobsInput = {
@@ -308312,6 +313026,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseInstanceUpsertWithoutRemixJobsAsTargetInput = {
@@ -308466,6 +313181,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSourceRemixSharesInput = {
@@ -308526,6 +313242,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSourceRemixSharesInput = {
@@ -308591,6 +313308,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTargetRemixSharesInput = {
@@ -308651,6 +313369,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTargetRemixSharesInput = {
@@ -309144,6 +313863,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSourceRemixSharesInput = {
@@ -309204,6 +313924,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUpsertWithoutTargetRemixSharesInput = {
@@ -309275,6 +313996,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTargetRemixSharesInput = {
@@ -309335,6 +314057,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutRemixStorageSharesAsSourceInput = {
@@ -309994,6 +314717,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutImportJobsInput = {
@@ -310054,6 +314778,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutImportJobsInput = {
@@ -310403,6 +315128,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutImportJobsInput = {
@@ -310463,6 +315189,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ImportCreditReservationUpsertWithoutImportJobInput = {
@@ -310682,6 +315409,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -310742,6 +315470,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -310949,6 +315678,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -311009,6 +315739,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -313326,6 +318057,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCloudBindingInput = {
@@ -313386,6 +318118,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutProjectInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedCreateNestedOneWithoutProjectInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedCreateNestedManyWithoutProjectInput
+    appImageBuilds?: AppImageBuildOperationUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCloudBindingInput = {
@@ -313707,6 +318440,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCloudBindingInput = {
@@ -313767,6 +318501,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type CloudProjectFactoryEventUpsertWithWhereUniqueWithoutBindingInput = {
@@ -319562,6 +324297,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -319622,6 +324358,7 @@ export namespace Prisma {
     objectStorageOperationScopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutProjectNestedInput
     objectStorageVersionGcSchedule?: ObjectStorageVersionGcScheduleUncheckedUpdateOneWithoutProjectNestedInput
     runtimeEffects?: ProjectRuntimeEffectUncheckedUpdateManyWithoutProjectNestedInput
+    appImageBuilds?: AppImageBuildOperationUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -321568,6 +326305,41 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type AppImageBuildOperationCreateManyProjectInput = {
+    id: string
+    organizationId: string
+    ownershipEpoch: number
+    deploymentId: string
+    phase?: $Enums.AppImageBuildPhase
+    operationTag: string
+    intentHash: string
+    gcpProject: string
+    region: string
+    sourceBucket: string
+    sourceObject: string
+    imageUri: string
+    sourceRepository: string
+    sourceTag: string
+    buildServiceAccount: string
+    timeoutSeconds: number
+    providerBuildId?: string | null
+    providerStatus?: string | null
+    logUrl?: string | null
+    imageDigest?: string | null
+    targetRepository?: string | null
+    targetDigest?: string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: string | null
+    submissionStartedAt?: Date | string | null
+    identifiedAt?: Date | string | null
+    terminalAt?: Date | string | null
+    promotionRecordedAt?: Date | string | null
+    cancelledAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -323353,6 +328125,111 @@ export namespace Prisma {
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     providerReceipt?: NullableJsonNullValueInput | InputJsonValue
     operatorQuiescenceHash?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AppImageBuildOperationUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    deploymentId?: StringFieldUpdateOperationsInput | string
+    phase?: EnumAppImageBuildPhaseFieldUpdateOperationsInput | $Enums.AppImageBuildPhase
+    operationTag?: StringFieldUpdateOperationsInput | string
+    intentHash?: StringFieldUpdateOperationsInput | string
+    gcpProject?: StringFieldUpdateOperationsInput | string
+    region?: StringFieldUpdateOperationsInput | string
+    sourceBucket?: StringFieldUpdateOperationsInput | string
+    sourceObject?: StringFieldUpdateOperationsInput | string
+    imageUri?: StringFieldUpdateOperationsInput | string
+    sourceRepository?: StringFieldUpdateOperationsInput | string
+    sourceTag?: StringFieldUpdateOperationsInput | string
+    buildServiceAccount?: StringFieldUpdateOperationsInput | string
+    timeoutSeconds?: IntFieldUpdateOperationsInput | number
+    providerBuildId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    logUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    imageDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    targetRepository?: NullableStringFieldUpdateOperationsInput | string | null
+    targetDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    promotionReferences?: NullableJsonNullValueInput | InputJsonValue
+    cancellationProof?: NullableJsonNullValueInput | InputJsonValue
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    submissionStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    identifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    terminalAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    promotionRecordedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cancelledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

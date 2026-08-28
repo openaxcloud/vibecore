@@ -10,6 +10,7 @@ import {
   projectManifestDigest,
   verifyStoredProjectManifestRevision,
 } from '../project-manifest.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -37,6 +38,7 @@ function hardDeleteProject(
   project: { id: string; organizationId: string; name: string },
   actorUserId: string,
 ) {
+  let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
   return store.hardDeleteProject({
     projectId: project.id,
     expectedOrganizationId: project.organizationId,
@@ -50,41 +52,48 @@ function hardDeleteProject(
       expectedProjectName: project.name,
     }),
     preflightPhysicalErasure: async () => emptyStaticArtifactSummary,
-    erasePhysical: async () => undefined,
-    verifyPhysicalAbsence: async () => ({
-      outcome: 'VERIFIED_ABSENT',
-      verifier: 'project-manifest-db-test',
-      evidence: {
-        schemaVersion: 'project-permanent-erasure-v1',
-        filesystem: {
-          projectTreeAbsent: true,
-          workspaceTreesAbsent: true,
-          objectCacheAbsent: true,
-          staticSnapshotsAbsent: true,
-          staticAliasesAbsent: true,
-          staticArtifactSummary: emptyStaticArtifactSummary,
-        },
-        gcs: { bucketAbsent: true, objectCount: 0 },
-        workspaceManager: {
-          schemaVersion: 'workspace-project-erasure-v2',
-          projectId: project.id,
-          organizationId: project.organizationId,
-          databaseInventoryRetained: true,
-          runtimeEffectsDrained: true,
-          kubernetes: {
-            deploymentsAbsent: true,
-            replicaSetsAbsent: true,
-            podsAbsent: true,
-            servicesAbsent: true,
-            endpointsAbsent: true,
-            endpointSlicesAbsent: true,
-            ingressesAbsent: true,
-            ownedRuntimeSecretsAbsent: true,
-            persistentVolumeClaimsAbsent: true,
+    erasePhysical: async (_assertLease, lease) => {
+      registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, project.id);
+    },
+    verifyPhysicalAbsence: async (_assertLease, lease) => {
+      registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, project.id);
+      return {
+        outcome: 'VERIFIED_ABSENT',
+        verifier: 'project-manifest-db-test',
+        evidence: {
+          schemaVersion: 'project-permanent-erasure-v2',
+          filesystem: {
+            projectTreeAbsent: true,
+            workspaceTreesAbsent: true,
+            objectCacheAbsent: true,
+            staticSnapshotsAbsent: true,
+            staticAliasesAbsent: true,
+            staticArtifactSummary: emptyStaticArtifactSummary,
+          },
+          gcs: { bucketAbsent: true, objectCount: 0 },
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          artifactRegistry: registryReceipt!,
+          workspaceManager: {
+            schemaVersion: 'workspace-project-erasure-v2',
+            projectId: project.id,
+            organizationId: project.organizationId,
+            databaseInventoryRetained: true,
+            runtimeEffectsDrained: true,
+            kubernetes: {
+              deploymentsAbsent: true,
+              replicaSetsAbsent: true,
+              podsAbsent: true,
+              servicesAbsent: true,
+              endpointsAbsent: true,
+              endpointSlicesAbsent: true,
+              ingressesAbsent: true,
+              ownedRuntimeSecretsAbsent: true,
+              persistentVolumeClaimsAbsent: true,
+            },
           },
         },
-      },
-    }),
+      };
+    },
   });
 }
 

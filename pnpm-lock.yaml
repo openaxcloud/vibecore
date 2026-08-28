@@ -1102,6 +1102,9 @@ importers:
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       tsx:
         specifier: ^4.21.0
         version: 4.21.0

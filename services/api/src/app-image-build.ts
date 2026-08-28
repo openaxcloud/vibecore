@@ -58,6 +58,24 @@ export interface AppImageBuildSpec {
   timeoutSeconds?: number;
 }
 
+/** Immutable, non-secret identity of every field that can change provider output. */
+export function appImageBuildIntentHash(spec: AppImageBuildSpec): string {
+  const canonical = JSON.stringify([
+    spec.gcpProject,
+    spec.region,
+    spec.sourceBucket,
+    spec.sourceObject,
+    spec.imageUri,
+    spec.cosignKmsKey,
+    spec.buildServiceAccount,
+    spec.baseImage,
+    spec.buildCommand,
+    spec.startCommand,
+    spec.timeoutSeconds ?? 600,
+  ]);
+  return `sha256:${createHash('sha256').update(canonical, 'utf8').digest('hex')}`;
+}
+
 export interface AppImageBuildDeps {
   fetchImpl?: typeof fetch;
 
@@ -103,7 +121,8 @@ export type DurableAppImageBuildState =
   | { phase: 'PREPARED' }
   | { phase: 'SUBMITTING' }
   | { phase: 'IDENTIFIED'; buildId: string; logUrl?: string }
-  | { phase: 'TERMINAL'; buildId: string; providerStatus: AppImageBuildTerminalStatus; logUrl?: string };
+  | { phase: 'TERMINAL'; buildId: string; providerStatus: AppImageBuildTerminalStatus; logUrl?: string }
+  | { phase: 'REJECTED' };
 
 export interface DurableAppImageBuildLifecycle extends AppImageBuildAuthority {
   /** Stable, non-secret id generated and persisted before this function runs. */
@@ -199,8 +218,15 @@ export interface AppImageBuildCancellationProof {
    */
   requiresRegistrySweep: true;
   lateSuccess: boolean;
+  digest?: string;
   logUrl?: string;
 }
+
+/** Immutable provider identity needed to inspect/cancel an existing build. */
+export type AppImageBuildProviderIdentity = Pick<
+  AppImageBuildSpec,
+  'gcpProject' | 'region' | 'sourceBucket' | 'sourceObject' | 'imageUri' | 'buildServiceAccount' | 'timeoutSeconds'
+>;
 
 export type AppImageBuildCancellationResult =
   | { ok: true; proof: AppImageBuildCancellationProof }
@@ -266,7 +292,7 @@ function cloudBuildBase(spec: Pick<AppImageBuildSpec, 'gcpProject' | 'region'>):
 
 function matchesDurableBuildIdentity(
   build: CloudBuildResource,
-  spec: AppImageBuildSpec,
+  spec: AppImageBuildProviderIdentity,
   operationTag: string,
 ): build is CloudBuildResource & { id: string } {
   return (
@@ -294,6 +320,11 @@ type CloudBuildSubmissionResult =
   | { kind: 'rejected'; status: number; detail: string }
   | { kind: 'uncertain'; error: string };
 
+/* These responses prove Cloud Build rejected the request before creating a
+ * producer. Timeouts, conflicts, throttling and every 5xx are ambiguous: an
+ * intermediary may have lost the response after Google accepted the POST. */
+const DEFINITIVE_CLOUD_BUILD_CREATE_REJECTIONS = new Set([400, 401, 403, 404, 405, 413, 415, 422]);
+
 async function submitCloudBuild(input: {
   url: string;
   headers: Record<string, string>;
@@ -313,10 +344,19 @@ async function submitCloudBuild(input: {
   }
 
   if (!response.ok) {
+    const detail = (await response.text().catch(() => '')).slice(0, 500);
+
+    if (!DEFINITIVE_CLOUD_BUILD_CREATE_REJECTIONS.has(response.status)) {
+      return {
+        kind: 'uncertain',
+        error: `Cloud Build create returned an ambiguous HTTP ${response.status}${detail ? `: ${detail}` : ''}`,
+      };
+    }
+
     return {
       kind: 'rejected',
       status: response.status,
-      detail: (await response.text().catch(() => '')).slice(0, 500),
+      detail,
     };
   }
 
@@ -334,7 +374,7 @@ async function submitCloudBuild(input: {
 }
 
 async function reconcileTaggedBuild(input: {
-  spec: AppImageBuildSpec;
+  spec: AppImageBuildProviderIdentity;
   operationTag: string;
   token: string;
   fetchImpl: typeof fetch;
@@ -671,6 +711,12 @@ export async function runAppImageBuild(
       await lifecycle.markSubmissionStarted({ operationTag });
     } else if (state.phase === 'SUBMITTING') {
       shouldSubmit = false;
+    } else if (state.phase === 'REJECTED') {
+      return {
+        ok: false,
+        code: 'CLOUD_BUILD_CREATE_FAILED',
+        error: 'The durable Cloud Build submission was definitively rejected.',
+      };
     } else {
       shouldSubmit = false;
       buildId = state.buildId;
@@ -907,7 +953,7 @@ export async function runAppImageBuild(
  * so hard deletion must run its registry sweep after this proof.
  */
 export async function cancelAppImageBuildAndWait(
-  spec: AppImageBuildSpec,
+  spec: AppImageBuildProviderIdentity,
   reference: { operationId: string; buildId?: string },
   deps: AppImageBuildCancellationDeps,
 ): Promise<AppImageBuildCancellationResult> {
@@ -1080,6 +1126,10 @@ export async function cancelAppImageBuildAndWait(
     };
   }
 
+  const observedDigest =
+    observation.kind === 'ok'
+      ? observation.build.results?.images?.find((image) => image.name === spec.imageUri)?.digest
+      : undefined;
   const proof: AppImageBuildCancellationProof = {
     buildId,
     providerStatus: status,
@@ -1088,6 +1138,7 @@ export async function cancelAppImageBuildAndWait(
     cancelRequestAccepted,
     requiresRegistrySweep: true,
     lateSuccess: status === 'SUCCESS',
+    ...(observedDigest ? { digest: observedDigest } : {}),
     ...(logUrl ? { logUrl } : {}),
   };
 

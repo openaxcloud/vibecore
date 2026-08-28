@@ -6,11 +6,16 @@ import type { PromotionResult } from '../artifact-promotion.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
 import { buildPublishedDeploymentInput, canPublishDeployment } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
+import type { ServerImagePromotionInput } from '../server-image-promotion.js';
 import type { DeploymentRecord } from '../store.js';
 import { TestApiStore } from './test-api-store.js';
 
 class TestEmailProvider implements EmailProvider {
   async send() {}
+}
+
+function testPromotionRepositories(input: ServerImagePromotionInput): readonly string[] {
+  return [input.source.repo, `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`];
 }
 
 const READY_PREVIEW = {
@@ -240,7 +245,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         };
       });
       const { app, store, token, project, projectManifestDigest } = await setup({
-        serverImagePromotionRuntime: { promote },
+        serverImagePromotionRuntime: { packageRepositories: testPromotionRepositories, promote },
       });
       globalThis.fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
         const href = String(url);
@@ -308,7 +313,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     try {
       globalThis.fetch = vi.fn() as unknown as typeof fetch;
       const { app, store, token, project, projectManifestDigest } = await setup({
-        serverImagePromotionRuntime: { promote },
+        serverImagePromotionRuntime: { packageRepositories: testPromotionRepositories, promote },
       });
       const digest = `sha256:${'a'.repeat(64)}`;
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
