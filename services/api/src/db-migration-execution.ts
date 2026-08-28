@@ -544,6 +544,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
 
     const submitted = await input.provisioner.takeSnapshot({
       projectId: input.projectId,
+      organizationId: input.organizationId,
       environment: input.environment,
       snapshotId,
     });

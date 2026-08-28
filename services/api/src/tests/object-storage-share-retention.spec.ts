@@ -23,6 +23,7 @@ import {
 } from '../object-storage.js';
 import { PrismaApiStore } from '../prisma-store.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 
 function suffix(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -701,6 +702,7 @@ runDbTests('SHARE_WITH_CONSENT source generation retention', () => {
             actorUserId: permanentDeleteRequest.actorUserId,
             expectedProjectName: permanentDeleteRequest.expectedProjectName,
           }),
+          ...emptyManagedDatabaseErasureCallbacks(),
           preflightPhysicalErasure,
           erasePhysical,
           verifyPhysicalAbsence,

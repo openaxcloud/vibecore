@@ -246,13 +246,35 @@ class TestK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
 
   async apply(object: K8sObject) {
-    this.objects.set(`${object.metadata.namespace}:${object.kind}:${object.metadata.name}`, object);
-    return object;
+    const persisted = {
+      ...object,
+      metadata: {
+        ...object.metadata,
+        uid: object.metadata.uid ?? `uid-${object.kind}-${object.metadata.name}`,
+        resourceVersion: object.metadata.resourceVersion ?? '1',
+      },
+    };
+    this.objects.set(`${object.metadata.namespace}:${object.kind}:${object.metadata.name}`, persisted);
+    return persisted;
   }
 
   async delete(kind: string, namespace: string, name: string) {
     this.objects.delete(`${namespace}:${kind}:${name}`);
     this.namespaces.push(namespace);
+  }
+
+  async deleteFenced(
+    kind: string,
+    namespace: string,
+    name: string,
+    expectedResourceVersion: string,
+    expectedUid?: string,
+  ) {
+    const object = await this.get(kind, namespace, name);
+    if (!object || object.metadata.resourceVersion !== expectedResourceVersion || object.metadata.uid !== expectedUid) {
+      throw new Error('KUBERNETES_RESOURCE_PRECONDITION_CONFLICT');
+    }
+    await this.delete(kind, namespace, name);
   }
 
   async get(kind: string, namespace: string, name: string) {
@@ -732,7 +754,11 @@ describe('workspace-manager app', () => {
     const cnpgCluster = {
       apiVersion: 'postgresql.cnpg.io/v1',
       kind: 'Cluster',
-      metadata: { name: 'db-p1', namespace: 'project-databases' },
+      metadata: {
+        name: 'db-p1',
+        namespace: 'project-databases',
+        labels: { 'vibecore.ai/project-id': 'p1', 'vibecore.ai/org-id': 'org-1' },
+      },
       spec: { instances: 1 },
     };
 
@@ -745,21 +771,140 @@ describe('workspace-manager app', () => {
       await app.close();
     });
 
-    it('applies shared-tier Pooler and Database CNPG kinds', async () => {
-      for (const kind of ['Pooler', 'Database'] as const) {
+    it('applies a project-owned Database CR but refuses shared Pooler mutation', async () => {
+      for (const kind of ['Database'] as const) {
         const runtime = manager();
         const app = buildWorkspaceManagerApp(runtime.manager);
         const res = await app.inject({
           method: 'POST',
           url: '/databases/apply',
           payload: {
-            manifest: { ...cnpgCluster, kind, metadata: { name: `sh-${kind}`, namespace: 'project-databases' } },
+            manifest: { ...cnpgCluster, kind, metadata: { ...cnpgCluster.metadata, name: `sh-${kind}` } },
           },
         });
         expect(res.statusCode).toBe(200);
         expect(runtime.k8s.objects.has(`project-databases:${kind}:sh-${kind}`)).toBe(true);
         await app.close();
       }
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const pooler = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, kind: 'Pooler' } },
+      });
+      expect(pooler.statusCode).toBe(403);
+      await app.close();
+    });
+
+    it('rejects a CNPG apply without authoritative project and organization labels', async () => {
+      const app = buildWorkspaceManagerApp(manager().manager);
+      const res = await app.inject({
+        method: 'POST',
+        url: '/databases/apply',
+        payload: { manifest: { ...cnpgCluster, metadata: { name: 'db-p1', namespace: 'project-databases' } } },
+      });
+      expect(res.statusCode).toBe(403);
+      expect(res.json().code).toBe('DB_PROJECT_AUTHORITY_REQUIRED');
+      await app.close();
+    });
+
+    it('inventories and resourceVersion-deletes only under the exact permanent-delete lease', async () => {
+      const runtime = manager();
+      await runtime.k8s.apply(cnpgCluster as K8sObject);
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const lease = {
+        operationId: 'delete-operation-1',
+        ownerToken: 'delete-owner-token-123456',
+        fencingToken: '1',
+        requestHash: 'a'.repeat(64),
+        scopeHash: 'b'.repeat(64),
+        projectId: 'p1',
+        expectedOrganizationId: 'org-1',
+        knownClusterNames: ['db-p1'],
+        knownResourceNames: { Cluster: ['db-p1'] },
+      };
+      const inventory = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/inventory',
+        payload: lease,
+      });
+      expect(inventory.statusCode).toBe(200);
+      const resource = inventory.json().resources.find((entry: { kind: string }) => entry.kind === 'Cluster');
+      expect(resource).toMatchObject({
+        kind: 'Cluster',
+        name: 'db-p1',
+        uid: 'uid-Cluster-db-p1',
+        resourceVersion: '1',
+      });
+      const deleted = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/delete',
+        payload: { ...lease, resource },
+      });
+      expect(deleted.statusCode).toBe(200);
+      expect(deleted.json()).toEqual({ outcome: 'deleted' });
+      expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(false);
+      await app.close();
+    });
+
+    it('fails closed on foreign tenant labels and deterministic targets outside the project namespace', async () => {
+      const runtime = manager();
+      await runtime.k8s.apply({
+        ...cnpgCluster,
+        metadata: {
+          ...cnpgCluster.metadata,
+          labels: { 'vibecore.ai/project-id': 'p1', 'vibecore.ai/org-id': 'foreign-org' },
+        },
+      } as K8sObject);
+      const app = buildWorkspaceManagerApp(runtime.manager);
+      const lease = {
+        operationId: 'delete-operation-tenant-guard',
+        ownerToken: 'delete-owner-token-tenant-guard',
+        fencingToken: '1',
+        requestHash: 'c'.repeat(64),
+        scopeHash: 'd'.repeat(64),
+        projectId: 'p1',
+        expectedOrganizationId: 'org-1',
+        knownClusterNames: ['db-p1'],
+        knownResourceNames: { Cluster: ['db-p1'] },
+      };
+      const foreign = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/inventory',
+        payload: lease,
+      });
+      expect(foreign.statusCode).toBe(409);
+      expect(foreign.json().code).toBe('PROJECT_DATABASE_RESOURCE_TENANT_MISMATCH');
+
+      runtime.k8s.objects.clear();
+      const escaped = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/inventory',
+        payload: { ...lease, knownClusterNames: [], knownResourceNames: { Cluster: ['shared-pg-0'] } },
+      });
+      expect(escaped.statusCode).toBe(409);
+      expect(escaped.json().code).toBe('PROJECT_DATABASE_RESOURCE_NAME_INVALID');
+
+      const escapedClusterSelector = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/inventory',
+        payload: { ...lease, knownClusterNames: ['shared-pg-0'], knownResourceNames: {} },
+      });
+      expect(escapedClusterSelector.statusCode).toBe(409);
+      expect(escapedClusterSelector.json().code).toBe('PROJECT_DATABASE_RESOURCE_NAME_INVALID');
+
+      await runtime.k8s.apply({
+        ...cnpgCluster,
+        metadata: { name: 'db-p1', namespace: 'project-databases' },
+      } as K8sObject);
+      const unlabeledDeterministicTarget = await app.inject({
+        method: 'POST',
+        url: '/projects/p1/permanent-delete/databases/inventory',
+        payload: lease,
+      });
+      expect(unlabeledDeterministicTarget.statusCode).toBe(409);
+      expect(unlabeledDeterministicTarget.json().code).toBe('PROJECT_DATABASE_RESOURCE_TENANT_MISMATCH');
+      await app.close();
     });
 
     it('rejects a forbidden kind', async () => {

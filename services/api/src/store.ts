@@ -25,6 +25,13 @@ import type {
 } from './object-storage-command.js';
 import type { ObjectStorage, ObjectStorageInventory } from './object-storage.js';
 import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from './project-storage.js';
+import type {
+  ProjectDatabaseErasureFence,
+  ProjectDatabaseErasureEffects,
+  ProjectDatabaseErasurePlan,
+  ProjectDatabaseErasureReceipt,
+} from './project-database-erasure.js';
+import type { ProjectDatabaseErasureConfiguration } from './project-database-erasure-ledger.js';
 
 export interface UserRecord {
   id: string;
@@ -2472,6 +2479,18 @@ export interface ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
+      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      purgeManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ProjectDatabaseErasureEffects>;
+      verifyManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+        effects: ProjectDatabaseErasureEffects,
+      ) => Promise<ProjectDatabaseErasureReceipt>;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (

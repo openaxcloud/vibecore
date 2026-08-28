@@ -104,6 +104,82 @@ queryable after cascade, but it is not a forensic preimage: the child manifest
 rows used to construct the commitment are intentionally removed with the
 project.
 
+Managed Postgres is part of the same irreversible operation. Before
+`EFFECT_STARTED`, one short transaction captures every `DatabaseInstance`,
+`DatabaseSnapshot`, and `DatabaseRestore` row and commits an immutable
+`ProjectDatabaseErasurePlan`. The plan fixes the ownership epoch, CNPG object
+names, shared-tier database/role names, backup bucket, and the exact
+`db/<projectId>/` generation prefix behind a SHA-256 inventory commitment. The
+plan and its append-only evidence survive the final `Project` cascade through
+the object-storage operation, so the database receipt remains a forensic
+preimage.
+
+Provider work then runs outside Prisma transactions in this order:
+
+1. the workspace manager inventories and deletes tenant-owned CNPG resources
+   under the live object-storage lease and exact Kubernetes
+   `resourceVersion`;
+2. shared-tier SQL drops only the plan-bound database and role, using the
+   non-tenant CNPG administrator connection;
+3. GCS deletes every concrete object generation below the immutable project
+   database prefix;
+4. a separate read-only pass proves CNPG resources, shared database/role, and
+   every backup generation absent.
+
+Each completed stage is appended to `ProjectDatabaseErasurePlan.evidence`.
+Only the final read-only pass may persist `stage=VERIFIED`, `verifiedAt`, and the
+immutable provider receipt. The permanent-delete finalizer locks that row and
+requires an exact receipt match before deleting `Project`; a caller-supplied or
+partially reconstructed receipt cannot pass. Recovery of an
+`EFFECT_STARTED`/`VERIFYING` operation is verify-only: it never repeats a
+provider mutation whose acknowledgement may have been lost.
+
+### CNPG deletion authority
+
+The API must have `DB_BACKUP_BUCKET` and billing-tier authority before it claims
+the operation. The workspace manager must be reachable through its authenticated
+manager secret and its `project-databases` Role must allow:
+
+- `get/list/watch/delete` on CNPG `clusters`, `databases`, `scheduledbackups`,
+  and `backups` (normal provisioning additionally needs create/update/patch);
+- `get/list/watch/delete` on CNPG-owned Pods, Services, Endpoints,
+  EndpointSlices, ConfigMaps, ServiceAccounts, PVCs, Deployments, Jobs, and
+  PodDisruptionBudgets;
+- Secret reads plus the existing shared-tier Secret write authority, with
+  delete used only by the fenced permanent-delete endpoint.
+
+The GCS runtime identity must be able to list object versions and delete an
+exact generation in `DB_BACKUP_BUCKET`. Bucket versioning does not weaken the
+proof: verification lists generations, not only live object names. Do not grant
+the API Kubernetes credentials; CNPG inventory and deletion stay behind the
+workspace-manager boundary.
+
+### Durable recovery protocol
+
+For `MANUAL_RECOVERY`, an expired lease is not deletion evidence. Keep the
+Project fence installed and use the following protocol:
+
+1. record the operation ID, project/organization snapshots, ownership epoch,
+   immutable plan JSON, `inventorySha256`, current stage, evidence, and last
+   error in the incident record;
+2. restore the missing authority (manager authentication/RBAC, CNPG API,
+   administrator Secret, or GCS generation-list/delete access). Never edit the
+   plan, evidence, receipt, operation status, or `Project` deletion columns;
+3. independently compare live state to the exact plan: no direct or
+   `cnpg.io/cluster` descendant resource, no plan-named shared database or role,
+   and no object generation below the plan-bound bucket/prefix;
+4. retry the original permanent-delete request with the same idempotency key
+   after the old lease expires. Recovery revalidates tenant and inventory
+   commitments and performs only the read-only verification pass;
+5. archive the committed `ProjectPermanentDeletionReceipt` and linked
+   `ProjectDatabaseErasurePlan` receipt. Escalate any digest, tenant, ownership
+   epoch, or live-inventory mismatch; do not manufacture a replacement receipt.
+
+If any authority is unavailable, the API returns a retryable failure and leaves
+the durable fence/plan in place. That state is intentionally operationally
+blocked but immediately safe: there is no code path that turns an unavailable
+provider into an absence receipt.
+
 Workspace cold start persists tenant-fenced `STARTING` before calling the
 workspace manager. If transfer commits first, no manager request is sent. If the
 `STARTING` latch commits first, transfer refuses the active runtime. Manager

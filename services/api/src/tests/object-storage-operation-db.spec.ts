@@ -5,6 +5,12 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { PrismaApiStore } from '../prisma-store.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import {
+  buildProjectDatabaseErasurePlan,
+  type ProjectDatabaseErasureFence,
+  type ProjectDatabaseErasurePlan,
+  type ProjectDatabaseErasureReceipt,
+} from '../project-database-erasure.js';
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import type { ObjectStorageCommandExecution, TenantObjectStorageCommandIntent } from '../object-storage-command.js';
 import {
@@ -43,6 +49,56 @@ import {
   type ObjectStorageCheckpointBarrierAuthority,
 } from '../object-storage-operation.js';
 
+/*
+ * Direct finalizer tests seed a provider-verified database plan explicitly;
+ * hardDeleteProject tests below exercise the transition/checkpoint API itself.
+ */
+async function insertVerifiedDatabasePlan(
+  tx: Prisma.TransactionClient,
+  lease: ObjectStorageOperationLease,
+  projectId: string,
+  organizationId: string,
+): Promise<ProjectDatabaseErasureReceipt> {
+  const plan = buildProjectDatabaseErasurePlan({
+    schemaVersion: 1,
+    operationId: lease.operationId,
+    projectId,
+    organizationId,
+    capturedAt: new Date().toISOString(),
+    tier: 'isolated',
+    backupBucket: 'vibecore-test-db-backups',
+    instances: [],
+  });
+  const receipt: ProjectDatabaseErasureReceipt = {
+    schemaVersion: 1,
+    operationId: lease.operationId,
+    projectId,
+    organizationId,
+    inventorySha256: plan.inventorySha256,
+    verifiedAt: plan.capturedAt,
+    effects: { kubernetesResourcesDeleted: 0, sharedTenantsErased: 0, backupGenerationsDeleted: 0 },
+    proof: {
+      kubernetesNamespace: 'project-databases',
+      kubernetesAbsent: true,
+      sharedTenantsAbsent: true,
+      backupBucket: plan.backupBucket,
+      backupPrefix: plan.backupPrefix,
+      backupGenerationsAbsent: true,
+    },
+  };
+  await tx.$executeRaw(Prisma.sql`
+    INSERT INTO "ProjectDatabaseErasurePlan" (
+      "operationId", "projectId", "organizationId", "ownershipEpoch", "inventorySha256", "plan",
+      "stage", "evidence", "receipt", "verifiedAt", "createdAt", "updatedAt"
+    ) VALUES (
+      ${lease.operationId}, ${projectId}, ${organizationId}, 0, ${plan.inventorySha256}, ${JSON.stringify(plan)}::jsonb,
+      'VERIFIED'::"ProjectDatabaseErasureStage", jsonb_build_object('VERIFIED', ${JSON.stringify(receipt)}::jsonb),
+      ${JSON.stringify(receipt)}::jsonb, clock_timestamp(), clock_timestamp(), clock_timestamp()
+    )
+  `);
+  return receipt;
+}
+
 async function canReachSagaTables(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
   const prisma = createDatabaseClient();
@@ -60,6 +116,92 @@ async function canReachSagaTables(): Promise<boolean> {
 
 const runDbTests = (await canReachSagaTables()) ? describe.sequential : describe.skip;
 const EMPTY_STATIC_ARTIFACT_SUMMARY = objectStorageStaticArtifactSummary([]);
+
+function managedDatabaseDeletionCallbacks() {
+  return {
+    databaseErasureConfiguration: {
+      tier: 'isolated' as const,
+      backupBucket: 'vibecore-test-db-backups',
+    },
+    purgeManagedDatabases: async (plan: ProjectDatabaseErasurePlan, fence: ProjectDatabaseErasureFence) => {
+      await fence.assertActive({ ...plan, stage: 'INVENTORY_BOUND' });
+      await fence.checkpoint({
+        operationId: plan.operationId,
+        projectId: plan.projectId,
+        organizationId: plan.organizationId,
+        inventorySha256: plan.inventorySha256,
+        stage: 'INVENTORY_BOUND',
+        evidence: {
+          capturedAt: plan.capturedAt,
+          instanceCount: plan.instances.length,
+          snapshotCount: 0,
+          restoreCount: 0,
+        },
+      });
+      for (const stage of ['KUBERNETES_PURGE', 'SHARED_SQL_PURGE', 'BACKUP_PREFIX_PURGE'] as const) {
+        await fence.checkpoint({
+          operationId: plan.operationId,
+          projectId: plan.projectId,
+          organizationId: plan.organizationId,
+          inventorySha256: plan.inventorySha256,
+          stage,
+          evidence:
+            stage === 'BACKUP_PREFIX_PURGE'
+              ? { deletedGenerations: 0 }
+              : stage === 'SHARED_SQL_PURGE'
+                ? { erased: 0 }
+                : { deleted: 0 },
+        });
+      }
+      return { kubernetesResourcesDeleted: 0, sharedTenantsErased: 0, backupGenerationsDeleted: 0 };
+    },
+    verifyManagedDatabases: async (
+      plan: ProjectDatabaseErasurePlan,
+      fence: ProjectDatabaseErasureFence,
+      _lease: ObjectStorageOperationLease,
+      effects: ProjectDatabaseErasureReceipt['effects'],
+    ): Promise<ProjectDatabaseErasureReceipt> => {
+      await fence.checkpoint({
+        operationId: plan.operationId,
+        projectId: plan.projectId,
+        organizationId: plan.organizationId,
+        inventorySha256: plan.inventorySha256,
+        stage: 'FINAL_VERIFICATION',
+        evidence: {
+          kubernetesResidueCount: 0,
+          backupGenerationResidueCount: 0,
+          sharedTenantsAbsent: true,
+        },
+      });
+      const receipt: ProjectDatabaseErasureReceipt = {
+        schemaVersion: 1,
+        operationId: plan.operationId,
+        projectId: plan.projectId,
+        organizationId: plan.organizationId,
+        inventorySha256: plan.inventorySha256,
+        verifiedAt: plan.capturedAt,
+        effects,
+        proof: {
+          kubernetesNamespace: 'project-databases',
+          kubernetesAbsent: true,
+          sharedTenantsAbsent: true,
+          backupBucket: plan.backupBucket,
+          backupPrefix: plan.backupPrefix,
+          backupGenerationsAbsent: true,
+        },
+      };
+      await fence.checkpoint({
+        operationId: plan.operationId,
+        projectId: plan.projectId,
+        organizationId: plan.organizationId,
+        inventorySha256: plan.inventorySha256,
+        stage: 'VERIFIED',
+        evidence: receipt,
+      });
+      return receipt;
+    },
+  };
+}
 
 function suffix(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -132,6 +274,10 @@ async function cleanupMutableSaga(prisma: DatabaseClient, projectId: string, org
     AND NOT EXISTS (
       SELECT 1 FROM "ProjectPermanentDeletionReceipt" receipt
       WHERE receipt."operationId" = operation."id"
+    )
+    AND NOT EXISTS (
+      SELECT 1 FROM "ProjectDatabaseErasurePlan" database_plan
+      WHERE database_plan."operationId" = operation."id"
     )
   `;
   await prisma.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
@@ -1646,6 +1792,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       return EMPTY_STATIC_ARTIFACT_SUMMARY;
     });
     const deletion = {
+      ...managedDatabaseDeletionCallbacks(),
       projectId: seeded.project.id,
       expectedOrganizationId: seeded.source.id,
       expectedProjectName: seeded.project.name,
@@ -1743,6 +1890,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
 
       await expect(
         store.hardDeleteProject({
+          ...managedDatabaseDeletionCallbacks(),
           projectId: seeded.project.id,
           expectedOrganizationId: seeded.source.id,
           expectedProjectName: seeded.project.name,
@@ -1836,6 +1984,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       };
     });
     const deletion = {
+      ...managedDatabaseDeletionCallbacks(),
       projectId: seeded.project.id,
       expectedOrganizationId: seeded.source.id,
       expectedProjectName: seeded.project.name,
@@ -1893,6 +2042,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       ownerToken: `delete-runtime-owner-${suffix()}`,
     });
     let lease: ObjectStorageOperationLease | undefined;
+    let databaseReceipt: ProjectDatabaseErasureReceipt | undefined;
     const runtimeEffectId = `runtime-draining-${suffix()}`;
     const verification = {
       outcome: 'VERIFIED_ABSENT' as const,
@@ -1908,6 +2058,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
+        managedDatabase: undefined as unknown as ProjectDatabaseErasureReceipt,
         workspaceManager: {
           schemaVersion: 'workspace-project-erasure-v2',
           projectId: seeded.project.id,
@@ -1934,6 +2085,8 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         const acquired = await claimObjectStorageOperation(tx, input);
         if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
         await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, EMPTY_STATIC_ARTIFACT_SUMMARY);
+        databaseReceipt = await insertVerifiedDatabasePlan(tx, acquired.lease, seeded.project.id, seeded.source.id);
+        verification.evidence.managedDatabase = databaseReceipt;
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'workspace-erasure' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'workspace-verify' });
         return acquired.lease;
@@ -2032,6 +2185,12 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         expect(frozen[0]?.permanentDeletionStartedAt).toBeInstanceOf(Date);
 
         await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, staticArtifactSummary);
+        const databaseReceipt = await insertVerifiedDatabasePlan(
+          tx,
+          acquired.lease,
+          seeded.project.id,
+          seeded.source.id,
+        );
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'provider-erasure-started' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'provider-erasure-complete' });
         const verification = {
@@ -2048,6 +2207,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
               staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
+            managedDatabase: databaseReceipt,
             workspaceManager: {
               schemaVersion: 'workspace-project-erasure-v2',
               projectId: seeded.project.id,
@@ -2183,6 +2343,37 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           WHERE "id" = ${finalized.id}
         `,
       ).rejects.toThrow(/immutable/);
+      await expect(
+        replayClient.$executeRaw`
+          UPDATE "ProjectDatabaseErasurePlan"
+          SET "plan" = jsonb_set("plan", '{backupBucket}', '"attacker-bucket"'::jsonb)
+          WHERE "operationId" = ${finalized.id}
+        `,
+      ).rejects.toThrow(/PROJECT_DATABASE_ERASURE_PLAN_IMMUTABLE/);
+      await expect(
+        replayClient.$executeRaw`
+          UPDATE "ProjectDatabaseErasurePlan" SET "evidence" = '{}'::jsonb
+          WHERE "operationId" = ${finalized.id}
+        `,
+      ).rejects.toThrow(/PROJECT_DATABASE_ERASURE_EVIDENCE_APPEND_ONLY/);
+      await expect(
+        replayClient.$executeRaw`
+          UPDATE "ProjectDatabaseErasurePlan"
+          SET "receipt" = jsonb_set("receipt", '{verifiedAt}', '"1970-01-01T00:00:00.000Z"'::jsonb)
+          WHERE "operationId" = ${finalized.id}
+        `,
+      ).rejects.toThrow(/PROJECT_DATABASE_ERASURE_RECEIPT_IMMUTABLE/);
+      await expect(
+        replayClient.$executeRaw`
+          DELETE FROM "ProjectDatabaseErasurePlan" WHERE "operationId" = ${finalized.id}
+        `,
+      ).rejects.toThrow(/PROJECT_DATABASE_ERASURE_PLAN_APPEND_ONLY/);
+      await expect(
+        replayClient.$queryRaw<Array<{ stage: string; projectId: string }>>`
+          SELECT "stage"::text, "projectId" FROM "ProjectDatabaseErasurePlan"
+          WHERE "operationId" = ${finalized.id}
+        `,
+      ).resolves.toEqual([{ stage: 'VERIFIED', projectId: seeded.project.id }]);
     } finally {
       await replayClient.organization
         .deleteMany({ where: { id: { in: [seeded.source.id, seeded.target.id] } } })

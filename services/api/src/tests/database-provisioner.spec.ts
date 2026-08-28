@@ -123,7 +123,12 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
     const sql = new FakeTenantSqlExecutor();
     const p = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
 
-    const res = await p.provisionInstance({ projectId: 'p1', retentionDays: 28, tier: 'isolated' });
+    const res = await p.provisionInstance({
+      projectId: 'p1',
+      organizationId: 'org-1',
+      retentionDays: 28,
+      tier: 'isolated',
+    });
     expect(res.clusterName).toBe(clusterName('p1'));
     expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(true);
 
@@ -150,7 +155,7 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
     await expect(p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).rejects.toThrow('manager RBAC denied');
   });
 
-  it('shared tier: applies a Pooler + Database CRD (no dedicated Cluster)', async () => {
+  it('shared tier: applies only the project Database CRD; shared Pooler stays Helm-owned', async () => {
     /*
      * BUG-QA-DB-PROVISIONING-STUCK : ce chemin exige desormais que le locataire
      * (role proprietaire + base) soit REELLEMENT en place. La CR `Database` le
@@ -169,13 +174,14 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
 
     const result = await p.provisionInstance({
       projectId: 'p1',
+      organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
     });
 
     expect(result.applied).toBe(true);
-    expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(true);
+    expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(false);
     expect(k8s.applied.some((m) => m.kind === 'Database')).toBe(true);
     expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(false);
 
@@ -193,6 +199,7 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
 
     const result = await p.provisionInstance({
       projectId: 'p1',
+      organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
@@ -350,6 +357,7 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
 
     await prov.provisionInstance({
       projectId: 'abc123',
+      organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
@@ -451,7 +459,7 @@ describe('CnpgProvisioner', () => {
   it('applies Cluster + ScheduledBackup on provision', async () => {
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
-    const result = await prov.provisionInstance({ projectId: 'p1', retentionDays: 28 });
+    const result = await prov.provisionInstance({ projectId: 'p1', organizationId: 'org-1', retentionDays: 28 });
     expect(result.applied).toBe(true);
     expect(k8s.applied.map((m) => m.kind)).toEqual(['Cluster', 'ScheduledBackup']);
   });
@@ -638,7 +646,9 @@ describe('resolveDatabaseProvisioner (dormancy)', () => {
 
   it('Noop provisioner never reports applied/ready', async () => {
     const noop = new NoopProvisioner();
-    expect((await noop.provisionInstance({ projectId: 'p1', retentionDays: 28 })).applied).toBe(false);
+    expect(
+      (await noop.provisionInstance({ projectId: 'p1', organizationId: 'org-1', retentionDays: 28 })).applied,
+    ).toBe(false);
     expect((await noop.takeSnapshot({ projectId: 'p1', snapshotId: 's1' })).applied).toBe(false);
   });
 });
@@ -676,6 +686,7 @@ describe('P2d dev/prod split (environment-scoped naming)', () => {
 
     await prov.provisionInstance({
       projectId: 'abc123',
+      organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
@@ -709,6 +720,7 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
 
     await prov.provisionInstance({
       projectId: 'abc123',
+      organizationId: 'org-1',
       retentionDays: 28,
       tier: 'isolated',
       environment: 'production',
@@ -728,12 +740,14 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
 
     await prov.provisionInstance({
       projectId: 'abc123',
+      organizationId: 'org-1',
       retentionDays: 28,
       tier: 'isolated',
       environment: 'development',
     });
     await prov.provisionInstance({
       projectId: 'abc123',
+      organizationId: 'org-1',
       retentionDays: 28,
       tier: 'isolated',
       environment: 'production',

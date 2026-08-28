@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
 import { projectPhysicalMutationLockKey } from '../project-physical-mutation.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 import { TestApiStore } from './test-api-store.js';
 
 function deferred() {
@@ -129,6 +130,7 @@ describe('project settings and lifecycle transfer fences', () => {
           actorUserId: fixture.user.id,
           expectedProjectName: fixture.project.name,
         }),
+        ...emptyManagedDatabaseErasureCallbacks(),
         preflightPhysicalErasure: async () => objectStorageStaticArtifactSummary([]),
         erasePhysical: staleHardDeleteEffect,
         verifyPhysicalAbsence: vi.fn(async () => {

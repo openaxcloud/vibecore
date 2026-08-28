@@ -236,12 +236,21 @@ import {
   type WriteBarrierPort,
 } from './account-storage-purge.js';
 import {
+  DEFAULT_SHARED_CLUSTER,
+  DB_NAMESPACE,
+  ManagerK8sPort,
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
   type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
+import {
+  GcsProjectDatabaseBackupPort,
+  ManagerProjectDatabaseKubernetesPort,
+  PgProjectDatabaseSharedSqlPort,
+  ProjectDatabaseErasureService,
+} from './project-database-erasure.js';
 import {
   acquireExactPostgresMigrationLedgerLease,
   createPostgresMigrationApplier,
@@ -729,6 +738,12 @@ export interface ApiAppOptions {
 
   /** Deterministic test seam; production uses the fenced workspace-manager control plane. */
   projectWorkspaceDeletion?: typeof projectWorkspaceDeletionRequest;
+
+  /** Deterministic test seam; production binds CNPG/GCS/SQL to the deletion lease. */
+  projectDatabaseErasureServiceFactory?: (
+    lease: ObjectStorageOperationLease,
+    expectedOrganizationId: string,
+  ) => Pick<ProjectDatabaseErasureService, 'purge' | 'verify'>;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -8310,6 +8325,38 @@ async function projectWorkspaceDeletionRequest(
   return proof;
 }
 
+function createProjectDatabaseErasureService(
+  lease: ObjectStorageOperationLease,
+  expectedOrganizationId: string,
+): ProjectDatabaseErasureService {
+  const backupBucket = process.env.DB_BACKUP_BUCKET?.trim();
+  if (!backupBucket) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'PROJECT_DATABASE_ERASURE_BACKUP_BUCKET_REQUIRED',
+      statusCode: 503,
+    });
+  }
+  const baseUrl = workspaceManagerUrl();
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const managerK8s = new ManagerK8sPort(baseUrl, secret);
+  const kubernetes = new ManagerProjectDatabaseKubernetesPort(baseUrl, lease, expectedOrganizationId, secret);
+  const backups = new GcsProjectDatabaseBackupPort(backupBucket);
+  const sharedSql = new PgProjectDatabaseSharedSqlPort(async (sharedClusterName) => {
+    const admin = await managerK8s.getSecret(DB_NAMESPACE, `${sharedClusterName}-app`);
+    const username = admin?.username?.trim();
+    const password = admin?.password;
+    const database = admin?.dbname?.trim() || 'app';
+    if (!username || !password) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_DATABASE_ERASURE_SHARED_ADMIN_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+    return `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${sharedClusterName}-rw.${DB_NAMESPACE}.svc:5432/${encodeURIComponent(database)}`;
+  });
+  return new ProjectDatabaseErasureService(kubernetes, backups, sharedSql);
+}
+
 async function releaseAccountPurgeWorkspaceBarriers(
   workspaceIds: string[],
   planId: string,
@@ -10419,6 +10466,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
   const projectWorkspaceDeletion = options.projectWorkspaceDeletion ?? projectWorkspaceDeletionRequest;
+  const projectDatabaseErasureServiceFactory =
+    options.projectDatabaseErasureServiceFactory ?? createProjectDatabaseErasureService;
 
   const mcpMarketplace =
     options.mcpMarketplace ??
@@ -28548,6 +28597,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       actorUserId: request.currentUser!.id,
       expectedProjectName: project.name,
     });
+    const backupBucket = process.env.DB_BACKUP_BUCKET?.trim();
+    if (!backupBucket) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_DATABASE_ERASURE_BACKUP_BUCKET_REQUIRED',
+        statusCode: 503,
+      });
+    }
+    const databaseBilling = await billingState(project.organizationId).catch((error) => {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED'), { cause: error }), {
+        code: 'PROJECT_DATABASE_ERASURE_TIER_AUTHORITY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    });
+    const databaseTier = resolveDatabaseTier(databaseBilling?.plan.key);
 
     const deleted = await store.hardDeleteProject({
       projectId: project.id,
@@ -28557,6 +28620,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requestHash,
       actorUserId: request.currentUser!.id,
       ipAddress: request.ip,
+      databaseErasureConfiguration: {
+        tier: databaseTier,
+        ...(databaseTier === 'shared' ? { sharedClusterName: DEFAULT_SHARED_CLUSTER } : {}),
+        backupBucket,
+      },
+      purgeManagedDatabases: async (plan, fence, lease) => {
+        const service = projectDatabaseErasureServiceFactory(lease, project.organizationId);
+        return service.purge(plan, fence);
+      },
+      verifyManagedDatabases: async (plan, fence, lease, effects) => {
+        const service = projectDatabaseErasureServiceFactory(lease, project.organizationId);
+        return service.verify(plan, fence, effects);
+      },
       preflightPhysicalErasure: () => projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(project.id),
       erasePhysical: async (assertLease, lease) => {
         /*
@@ -29014,7 +29090,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
         await leaseManager.guard();
 
-        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        const applied = await provisioner.takeSnapshot({
+          projectId,
+          organizationId: checkpointProject.organizationId,
+          snapshotId: dbSnapId,
+        });
         await leaseManager.guard();
 
         const dbConsistency = declareDatabaseConsistency(barrierScope);
@@ -36791,7 +36871,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         snapshotted += 1;
 
         if (provisioner.active) {
-          await provisioner.takeSnapshot({ projectId: instance.projectId, snapshotId: snapshot.id }).catch(() => {});
+          await provisioner
+            .takeSnapshot({
+              projectId: instance.projectId,
+              organizationId: instance.organizationId,
+              snapshotId: snapshot.id,
+            })
+            .catch(() => {});
         }
       }
 
@@ -38797,7 +38883,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (provisioner.active) {
       await provisioner
-        .takeSnapshot({ projectId: project.id, snapshotId: snapshot.id })
+        .takeSnapshot({ projectId: project.id, organizationId: project.organizationId, snapshotId: snapshot.id })
         .catch((error) => request.log?.warn?.({ err: error }, 'db snapshot kickoff failed (non-fatal)'));
     }
 

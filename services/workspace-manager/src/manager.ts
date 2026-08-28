@@ -426,9 +426,11 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
   async executeProjectProvisionEffect<T>(
     _input: { projectId: string; expectedOrganizationId: string },
-    effect: (assertAuthority: () => Promise<void>) => Promise<T>,
+    _effect: (assertAuthority: () => Promise<void>) => Promise<T>,
   ): Promise<T> {
-    return effect(async () => undefined);
+    throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionAuthorityUnavailable, {
+      statusCode: 503,
+    });
   }
 
   async executeDeploymentProvisionEffect<T>(
@@ -3076,6 +3078,13 @@ export class WorkspaceManager {
       });
     }
     return this.store.executeProjectProvisionEffect(input, effect);
+  }
+
+  assertProjectDeletionLease(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<void> {
+    return this.projectDeletionStore().assertLease(lease, allowedStatuses);
   }
 
   executeDeploymentProvisionEffect<T>(

@@ -129,6 +129,20 @@ import {
   projectPermanentDeletionOperationRequest,
   projectPermanentDeletionRequestHash,
 } from './project-permanent-deletion.js';
+import {
+  captureProjectDatabaseErasurePlan,
+  checkpointProjectDatabaseErasure,
+  readProjectDatabaseErasureEffects,
+  readProjectDatabaseErasurePlan,
+  readVerifiedProjectDatabaseErasureReceipt,
+  type ProjectDatabaseErasureConfiguration,
+} from './project-database-erasure-ledger.js';
+import type {
+  ProjectDatabaseErasureFence,
+  ProjectDatabaseErasureEffects,
+  ProjectDatabaseErasurePlan,
+  ProjectDatabaseErasureReceipt,
+} from './project-database-erasure.js';
 import { projectOrganizationChangedError, projectPhysicalMutationLockKey } from './project-physical-mutation.js';
 import {
   withProjectLock,
@@ -5138,6 +5152,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
+      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      purgeManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ProjectDatabaseErasureEffects>;
+      verifyManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+        effects: ProjectDatabaseErasureEffects,
+      ) => Promise<ProjectDatabaseErasureReceipt>;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
@@ -5302,6 +5328,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         const heartbeat = this.objectStorageOperationHeartbeat(claimed.lease);
 
         try {
+          let databasePlan: ProjectDatabaseErasurePlan;
+          let databaseEffects: ProjectDatabaseErasureEffects;
           if (!recoveryVerificationOnly) {
             let runtimePreflight: { inFlightEffectIds: string[] };
             try {
@@ -5381,9 +5409,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             try {
               const staticArtifactPlan = await input.preflightPhysicalErasure();
               await heartbeat.assert();
-              await this.prisma.$transaction((tx) =>
-                recordPermanentDeletionStaticArtifactPlan(tx, heartbeat.lease(), staticArtifactPlan),
-              );
+              databasePlan = await this.prisma.$transaction(async (tx) => {
+                await recordPermanentDeletionStaticArtifactPlan(tx, heartbeat.lease(), staticArtifactPlan);
+                return captureProjectDatabaseErasurePlan(tx, heartbeat.lease(), {
+                  projectId: input.projectId,
+                  expectedOrganizationId: input.expectedOrganizationId,
+                  configuration: input.databaseErasureConfiguration,
+                });
+              });
             } catch (error) {
               const errorCode = this.objectStorageRecoveryErrorCode(error);
               await this.prisma.$transaction((tx) =>
@@ -5399,6 +5432,26 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 command: 'project-permanent-delete',
               }),
             );
+            const databaseFence: ProjectDatabaseErasureFence = {
+              assertActive: async (context) => {
+                if (
+                  context.operationId !== databasePlan.operationId ||
+                  context.projectId !== databasePlan.projectId ||
+                  context.organizationId !== databasePlan.organizationId ||
+                  context.inventorySha256 !== databasePlan.inventorySha256
+                ) {
+                  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                    code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+                    statusCode: 409,
+                  });
+                }
+                await heartbeat.assert();
+              },
+              checkpoint: (context) =>
+                this.prisma.$transaction((tx) => checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context)),
+            };
+            databaseEffects = await input.purgeManagedDatabases(databasePlan, databaseFence, heartbeat.lease());
+            await heartbeat.assert();
             await input.erasePhysical(heartbeat.assert, heartbeat.lease());
             await heartbeat.assert();
             await this.prisma.$transaction((tx) =>
@@ -5406,11 +5459,60 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 command: 'project-permanent-delete-verify',
               }),
             );
+          } else {
+            try {
+              databasePlan = await this.prisma.$transaction((tx) =>
+                readProjectDatabaseErasurePlan(tx, heartbeat.lease()),
+              );
+              databaseEffects = await this.prisma.$transaction((tx) =>
+                readProjectDatabaseErasureEffects(tx, heartbeat.lease()),
+              );
+            } catch (error) {
+              await this.prisma
+                .$transaction((tx) =>
+                  markObjectStorageOperationManualRecovery(tx, heartbeat.lease(), {
+                    errorCode: 'PROJECT_DATABASE_ERASURE_PLAN_UNAVAILABLE',
+                    error,
+                    evidence: { databaseErasurePlanReadable: false },
+                  }),
+                )
+                .catch(() => undefined);
+              throw error;
+            }
           }
 
           let proof: ObjectStorageVerification;
           try {
-            proof = await input.verifyPhysicalAbsence(heartbeat.assert, heartbeat.lease());
+            const databaseFence: ProjectDatabaseErasureFence = {
+              assertActive: async (context) => {
+                if (
+                  context.operationId !== databasePlan.operationId ||
+                  context.projectId !== databasePlan.projectId ||
+                  context.organizationId !== databasePlan.organizationId ||
+                  context.inventorySha256 !== databasePlan.inventorySha256
+                ) {
+                  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                    code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+                    statusCode: 409,
+                  });
+                }
+                await heartbeat.assert();
+              },
+              checkpoint: (context) =>
+                this.prisma.$transaction((tx) => checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context)),
+            };
+            await input.verifyManagedDatabases(databasePlan, databaseFence, heartbeat.lease(), databaseEffects);
+            const databaseReceipt = await this.prisma.$transaction((tx) =>
+              readVerifiedProjectDatabaseErasureReceipt(tx, heartbeat.lease()),
+            );
+            const physicalProof = await input.verifyPhysicalAbsence(heartbeat.assert, heartbeat.lease());
+            proof = {
+              ...physicalProof,
+              evidence: {
+                ...physicalProof.evidence,
+                managedDatabase: databaseReceipt,
+              },
+            };
           } catch (error) {
             if (recoveryVerificationOnly) {
               await this.prisma.$transaction((tx) =>
