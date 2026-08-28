@@ -373,18 +373,32 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
   // those tags. Its package-name parsing used `${pkg%%:*}`, which cuts at the FIRST
   // colon: for `api@sha256:…` that yields `api@sha256` and no tag is applied. Now that
   // production is pinned by digest, every running image takes that path — retention
-  // would collect images production is actively running. It must also not read the
-  // protected set from `helm get values -o json`, which is invalid JSON on the real
-  // release.
+  // would collect images production is actively running.
+  //
+  // La règle porte sur la PROPRIÉTÉ, pas sur un nom de variable : quelle que
+  // soit la variable employée, une coupe au premier `:` doit être accompagnée
+  // d'une coupe au `@`. L'implémentation retenue nomme la sienne `ref` ; exiger
+  // littéralement `pkg` refusait une version pourtant correcte.
+  //
+  // L'interdiction de `helm get values -o json` est remplacée par l'invariant
+  // qu'elle protégeait réellement. Sa justification d'origine — « JSON invalide
+  // sur la vraie release » — a été VÉRIFIÉE contre la production le 2026-08-28
+  // et ne tient pas : la commande rend 9 373 octets de JSON valide et la
+  // requête jq en extrait bien les huit services de la plateforme avec leurs
+  // tags. Le vrai risque est ailleurs : dériver l'ensemble protégé des valeurs
+  // Helm ne fonctionne QUE tant que `imageTag` y est ré-affirmé à chaque
+  // upgrade. Épinglé par digest sans ré-affirmer le tag, le filtre jq ne
+  // renverrait plus rien et la rétention supprimerait des images en cours
+  // d'exécution — en silence. C'est donc cette ré-affirmation qui est exigée.
   if (arRetentionWorkflow) {
-    if (/\$\{pkg%%:\*\}/.test(arRetentionWorkflow) && !/\$\{pkg%%@\*\}/.test(arRetentionWorkflow)) {
+    if (/\$\{\w+%%:\*\}/.test(arRetentionWorkflow) && !/\$\{\w+%%@\*\}/.test(arRetentionWorkflow)) {
       problems.push(
-        `${AR_RETENTION_WORKFLOW}: package parsing must strip the digest (\${pkg%%@*}) before the tag, or digest-pinned images get no protection tag`,
+        `${AR_RETENTION_WORKFLOW}: package parsing must strip the digest (\${...%%@*}) before the tag, or digest-pinned images get no protection tag`,
       );
     }
-    if (/helm .*get values .*-o json/.test(arRetentionWorkflow)) {
+    if (/helm .*get values .*-o json/.test(arRetentionWorkflow) && !/services\.\$\{?\w+\}?\.imageTag=/.test(deployWorkflow ?? '')) {
       problems.push(
-        `${AR_RETENTION_WORKFLOW}: must not derive the protected set from \`helm get values -o json\` (invalid JSON on the real release); read the live Deployments`,
+        `${AR_RETENTION_WORKFLOW}: derives the protected set from \`helm get values\`, which only holds while the deploy re-asserts services.<name>.imageTag on every upgrade — it no longer does; read the live Deployments instead`,
       );
     }
   }

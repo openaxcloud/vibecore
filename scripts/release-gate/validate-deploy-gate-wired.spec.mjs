@@ -124,9 +124,23 @@ describe('deploy gate wiring', () => {
     // Compare what the validator compares: comments EXPLAIN which command must not be
     // used, so prose naming it would otherwise read as the command itself.
     const code = stripComments(files.arRetentionWorkflow);
-    expect(code).toMatch(/\$\{pkg%%@\*\}/);
-    expect(code).not.toMatch(/helm .*get values .*-o json/);
-    files.arRetentionWorkflow = files.arRetentionWorkflow.replace(/pkg="\$\{pkg%%@\*\}"; /g, '');
+
+    // La PROPRIÉTÉ, pas un nom de variable : le digest doit être retiré avant
+    // la coupe au tag, quelle que soit la variable. Exiger littéralement `pkg`
+    // refusait une implémentation pourtant correcte, nommée `ref`.
+    expect(code).toMatch(/\$\{\w+%%@\*\}/);
+
+    // Dériver l'ensemble protégé des valeurs Helm reste admissible TANT QUE le
+    // déploiement ré-affirme `services.<nom>.imageTag` à chaque upgrade — sans
+    // quoi, sous épinglage par digest, le filtre jq ne renverrait plus rien et
+    // la rétention supprimerait des images en cours d'exécution, en silence.
+    if (/helm .*get values .*-o json/.test(code)) {
+      expect(stripComments(files.deployWorkflow)).toMatch(/services\.\$?\{?\w+\}?\.imageTag=/);
+    }
+
+    // Retirer la coupe au digest doit toujours être détecté, quel que soit le
+    // nom de la variable employée.
+    files.arRetentionWorkflow = files.arRetentionWorkflow.replace(/\w+="\$\{\w+%%@\*\}"; /g, '');
     expect(checkGateWiring(files).join('\n')).toMatch(/must strip the digest/);
   });
 
