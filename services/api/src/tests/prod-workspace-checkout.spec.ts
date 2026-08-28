@@ -61,13 +61,18 @@ async function setup() {
   const org = await store.createOrganization({ name: 'PW Org', slug: 'pw-org', ownerUserId: user.id });
   await store.createSession({ userId: user.id, token: 'pw-token', expiresAt: new Date(Date.now() + 3600_000) });
   const project = await store.createProject({ organizationId: org.id, name: 'PW Project', slug: 'pw-project' });
+  const manifest = await store.getLatestProjectManifest(project.id);
 
-  return { app, store, storage, token: 'pw-token', project };
+  if (!manifest) {
+    throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+  }
+
+  return { app, store, storage, token: 'pw-token', project, projectManifestDigest: manifest.digest };
 }
 
 describe('P2d production workspace checkout on publish', () => {
   it('creates a production workspace and seeds it with the published files', async () => {
-    const { app, store, storage, token, project } = await setup();
+    const { app, store, storage, token, project, projectManifestDigest } = await setup();
     storage.seed(project.id, undefined, [
       { path: 'index.html', content: '<h1>hi</h1>' },
       { path: 'src/app.ts', content: 'export const x = 1;' },
@@ -79,6 +84,7 @@ describe('P2d production workspace checkout on publish', () => {
       environment: 'preview',
       status: 'READY',
       url: 'https://preview.example/',
+      metadata: { projectManifestDigest },
     });
 
     const res = await app.inject({
@@ -107,7 +113,7 @@ describe('P2d production workspace checkout on publish', () => {
   });
 
   it('reuses the same production workspace on a second publish (no duplicate)', async () => {
-    const { app, store, storage, token, project } = await setup();
+    const { app, store, storage, token, project, projectManifestDigest } = await setup();
     storage.seed(project.id, undefined, [{ path: 'a.txt', content: 'a' }]);
     const mkReady = () =>
       store.createDeployment({
@@ -117,16 +123,19 @@ describe('P2d production workspace checkout on publish', () => {
         environment: 'preview',
         status: 'READY',
         url: 'u',
+        metadata: { projectManifestDigest },
       });
+
+    const source = await mkReady();
 
     await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`,
+      url: `/projects/${project.id}/deployments/${source.id}/publish`,
       headers: { authorization: `Bearer ${token}` },
     });
     await app.inject({
       method: 'POST',
-      url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`,
+      url: `/projects/${project.id}/deployments/${source.id}/publish`,
       headers: { authorization: `Bearer ${token}` },
     });
 

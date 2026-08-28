@@ -9,7 +9,12 @@ class QuietEmailProvider implements EmailProvider {
 }
 
 class RemoteAwareGitProvider implements GitProvider {
-  readonly configuredRemotes: Array<{ projectId: string; workspaceId?: string; remoteUrl: string }> = [];
+  readonly configuredRemotes: Array<{
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    remoteUrl: string;
+  }> = [];
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
     return { defaultBranch: input.branch ?? 'main', remoteUrl: input.repositoryUrl, files: [] };
@@ -26,7 +31,12 @@ class RemoteAwareGitProvider implements GitProvider {
   async pull(input: { branch: string }) {
     return { pulled: true, branch: input.branch, changedFiles: [] };
   }
-  async configureRemote(input: { projectId: string; workspaceId?: string; remoteUrl: string }) {
+  async configureRemote(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    workspaceId?: string;
+    remoteUrl: string;
+  }) {
     this.configuredRemotes.push(input);
     return { remote: 'origin', remoteUrl: input.remoteUrl };
   }
@@ -124,7 +134,12 @@ describe('Git remote routes', () => {
 
     expect(response.statusCode).toBe(200);
     expect(gitProvider.configuredRemotes).toEqual([
-      { projectId: tenant.projectId, remoteUrl: 'git@github.com:acme/app.git', workspaceId: undefined },
+      {
+        projectId: tenant.projectId,
+        expectedOrganizationId: (await store.getProject(tenant.projectId))!.organizationId,
+        remoteUrl: 'git@github.com:acme/app.git',
+        workspaceId: undefined,
+      },
     ]);
     await expect(store.getProject(tenant.projectId)).resolves.toMatchObject({
       gitRepositoryUrl: 'git@github.com:acme/app.git',

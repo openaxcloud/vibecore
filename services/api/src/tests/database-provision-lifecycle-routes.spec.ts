@@ -47,7 +47,11 @@ async function setup(suffix: string) {
     name: 'DB Owner',
     passwordHash: hashPassword('password123'),
   });
-  const org = await store.createOrganization({ name: `DB Org ${suffix}`, slug: `db-org-${suffix}`, ownerUserId: owner.id });
+  const org = await store.createOrganization({
+    name: `DB Org ${suffix}`,
+    slug: `db-org-${suffix}`,
+    ownerUserId: owner.id,
+  });
   const token = `db-token-${suffix}`;
   await store.createSession({ userId: owner.id, token, expiresAt: new Date(Date.now() + 3_600_000) });
   await store.upsertSubscription({ organizationId: org.id, planKey: 'team', status: 'ACTIVE' });
@@ -63,7 +67,15 @@ async function setup(suffix: string) {
 function managerResponse(status = 200) {
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => new Response(status === 200 ? '{}' : 'unavailable', { status })),
+    vi.fn(async (input: string | URL | Request) => {
+      if (status !== 200) {
+        return new Response('unavailable', { status });
+      }
+
+      const url = input instanceof Request ? input.url : String(input);
+
+      return Response.json(url.endsWith('/databases/apply-csi') ? { applied: true, csiEvidencePersisted: true } : {});
+    }),
   );
 }
 

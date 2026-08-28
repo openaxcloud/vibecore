@@ -120,6 +120,7 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
       sizeBytes: 1024,
       retentionDays: 0,
       pitrEnabled: false,
+      physicalAuthority: isolatedAuthority(project.id),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -192,6 +193,17 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
 
 const DAY = 24 * 60 * 60 * 1000;
 
+function isolatedAuthority(projectId: string) {
+  return {
+    tier: 'isolated' as const,
+    clusterName: `db-${projectId}`.toLowerCase().slice(0, 53),
+    backupBucket: 'database-backups-test',
+    backupPrefix: `db/${projectId}/development/`,
+    retentionDays: 28,
+    capturedAt: new Date().toISOString(),
+  };
+}
+
 /** Give an org the Pro-equivalent plan (team → pro credit key → 28-day window). */
 async function entitle(store: TestApiStore, organizationId: string) {
   await store.upsertSubscription({ organizationId, planKey: 'team', status: 'ACTIVE' });
@@ -208,6 +220,7 @@ function seedInstance(store: TestApiStore, project: { id: string; organizationId
     sizeBytes: 4096,
     retentionDays: 28,
     pitrEnabled: true,
+    physicalAuthority: isolatedAuthority(project.id),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   });

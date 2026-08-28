@@ -185,6 +185,12 @@ describe('Credit-pack purchase (Replit parity)', () => {
   describe('contrat Starter au publish : projets publiés ACTIFS', () => {
     async function publishableProject(store: any, orgId: string, name: string) {
       const project = await store.createProject({ organizationId: orgId, name, slug: name.toLowerCase() });
+      const manifest = await store.getLatestProjectManifest(project.id);
+
+      if (!manifest) {
+        throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+      }
+
       const source = await store.createDeployment({
         projectId: project.id,
         expectedOrganizationId: project.organizationId,
@@ -192,6 +198,7 @@ describe('Credit-pack purchase (Replit parity)', () => {
         environment: 'preview',
         status: 'READY',
         url: `https://${name.toLowerCase()}-preview.example/`,
+        metadata: { projectManifestDigest: manifest.digest },
       });
 
       return { project, source };

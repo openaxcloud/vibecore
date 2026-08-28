@@ -105,17 +105,24 @@ describe('non-static deploy status (endpoint)', () => {
       method: 'POST',
       url: `/projects/${projectId}/deployments`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { provider: 'vercel', environment: 'production', buildCommand: 'npm run build', outputDirectory: 'dist' },
+      payload: {
+        provider: 'vercel',
+        environment: 'production',
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+        removeBrandingBadge: true,
+      },
     });
   }
 
   it('marks READY immediately when the provider status cannot be polled (no token)', async () => {
     const { app, auth, projectId } = await setup();
-    mockFetch(() =>
-      new Response(JSON.stringify({ job: { id: 'dpl_1', url: 'my-app.vercel.app' } }), {
-        status: 201,
-        headers: { 'content-type': 'application/json' },
-      }),
+    mockFetch(
+      () =>
+        new Response(JSON.stringify({ job: { id: 'dpl_1', url: 'my-app.vercel.app' } }), {
+          status: 201,
+          headers: { 'content-type': 'application/json' },
+        }),
     );
 
     const deploy = await createVercelDeploy(app, auth, projectId);

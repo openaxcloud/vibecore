@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp, type ApiAppOptions, type WorkspacePodStaticBuild } from '../app.js';
+import { DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS } from './deterministic-release-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
 
@@ -76,8 +77,23 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       payload: { name: 'WS Only Project' },
     });
     const projectId = (project.json() as { project: { id: string } }).project.id;
+    const manifest = await store.getLatestProjectManifest(projectId);
 
-    return { app, store, auth, projectId, organizationId: auth.organization.id };
+    if (!manifest) {
+      throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+    }
+
+    return {
+      app,
+      store,
+      auth,
+      projectId,
+      organizationId: auth.organization.id,
+      deploymentMetadata: {
+        planEntitlements: { ...DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS, publishRegion: 'global' },
+        projectManifestDigest: manifest.digest,
+      },
+    };
   }
 
   async function driveBuild(app: any, projectId: string, deploymentId: string, userId: string) {
@@ -101,7 +117,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
     // Workspace-pod seam reports the pod could not be reached (post provision + poll).
     const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({ handled: false as const }));
 
-    const { app, store, auth, projectId, organizationId } = await setup({
+    const { app, store, auth, projectId, organizationId, deploymentMetadata } = await setup({
       staticBuildRunner: inApiBuildSpy,
       buildStaticInWorkspacePod: podBuild,
     });
@@ -111,6 +127,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       expectedOrganizationId: organizationId,
       provider: 'static',
       status: 'QUEUED',
+      metadata: deploymentMetadata,
     });
     const built = await driveBuild(app, projectId, queued.id, auth.user.id);
 
@@ -152,7 +169,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       };
     });
 
-    const { app, store, auth, projectId, organizationId } = await setup({
+    const { app, store, auth, projectId, organizationId, deploymentMetadata } = await setup({
       staticBuildRunner: inApiBuildSpy,
       buildStaticInWorkspacePod: podBuild,
     });
@@ -162,6 +179,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       expectedOrganizationId: organizationId,
       provider: 'static',
       status: 'QUEUED',
+      metadata: deploymentMetadata,
     });
     const built = await driveBuild(app, projectId, queued.id, auth.user.id);
 
@@ -178,7 +196,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
   it('redeploy also fails closed when the pod is unreachable and never invokes the api-pod runner', async () => {
     const inApiBuildSpy = vi.fn(async () => ({ ok: true as const, outputDir: undefined, logs: [] }));
     const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({ handled: false as const }));
-    const { app, store, auth, projectId, organizationId } = await setup({
+    const { app, store, auth, projectId, organizationId, deploymentMetadata } = await setup({
       staticBuildRunner: inApiBuildSpy,
       buildStaticInWorkspacePod: podBuild,
     });
@@ -190,6 +208,7 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
       status: 'READY',
       buildCommand: 'npm run build',
       outputDirectory: 'dist',
+      metadata: deploymentMetadata,
     });
 
     const response = await app.inject({
