@@ -6380,74 +6380,78 @@ export class TestApiStore implements ApiStore {
     environment?: string;
     provisioningDeadlineAt: string;
     physicalAuthority: DatabasePhysicalAuthority;
+    releaseFence?: ProjectReleaseFence;
   }) {
-    this._assertNoActiveProjectReleaseBarrier(input.projectId);
     if (input.organizationId !== input.expectedOrganizationId) {
       throw projectOrganizationChangedError();
     }
 
-    return this.withProjectTenantMutation(input, async () => {
-      const environment = input.environment === 'production' ? 'production' : 'development';
+    return this.withProjectTenantMutation(
+      input,
+      async () => {
+        const environment = input.environment === 'production' ? 'production' : 'development';
 
-      /*
-       * Deliberately inspect and mutate the in-memory record without an await in
-       * between. This mirrors the Project-row lock used by the Prisma store.
-       */
-      const existing = Array.from(this.databaseInstances.values()).find(
-        (row) => row.projectId === input.projectId && row.environment === environment,
-      );
+        /*
+         * Deliberately inspect and mutate the in-memory record without an await in
+         * between. This mirrors the Project-row lock used by the Prisma store.
+         */
+        const existing = Array.from(this.databaseInstances.values()).find(
+          (row) => row.projectId === input.projectId && row.environment === environment,
+        );
 
-      if (!existing) {
+        if (!existing) {
+          const instance: DatabaseInstanceRecord = {
+            id: id('database_instance'),
+            projectId: input.projectId,
+            organizationId: input.expectedOrganizationId,
+            environment,
+            status: 'PROVISIONING',
+            engine: 'postgres',
+            region: input.region,
+            sizeBytes: 0,
+            retentionDays: input.retentionDays,
+            pitrEnabled: input.retentionDays > 0,
+            physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
+            provisioningDeadlineAt: input.provisioningDeadlineAt,
+            createdAt: now(),
+            updatedAt: now(),
+          };
+          this.databaseInstances.set(instance.id, instance);
+
+          return { instance, acquired: true, created: true };
+        }
+
+        if (!existing.physicalAuthority) {
+          throw Object.assign(new Error('Legacy database authority must be reconciled from live CNPG resources'), {
+            code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+            statusCode: 409,
+          });
+        }
+        if (!sameDatabasePhysicalAuthority(existing.physicalAuthority, input.physicalAuthority)) {
+          throw Object.assign(new Error('Managed database physical authority cannot change'), {
+            code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
+            statusCode: 409,
+          });
+        }
+
+        if (existing.status !== 'FAILED') {
+          return { instance: existing, acquired: false, created: false };
+        }
+
         const instance: DatabaseInstanceRecord = {
-          id: id('database_instance'),
-          projectId: input.projectId,
-          organizationId: input.expectedOrganizationId,
-          environment,
+          ...existing,
           status: 'PROVISIONING',
-          engine: 'postgres',
-          region: input.region,
-          sizeBytes: 0,
-          retentionDays: input.retentionDays,
-          pitrEnabled: input.retentionDays > 0,
-          physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
           provisioningDeadlineAt: input.provisioningDeadlineAt,
-          createdAt: now(),
+          lastErrorCode: undefined,
+          lastErrorAt: undefined,
           updatedAt: now(),
         };
         this.databaseInstances.set(instance.id, instance);
 
-        return { instance, acquired: true, created: true };
-      }
-
-      if (!existing.physicalAuthority) {
-        throw Object.assign(new Error('Legacy database authority must be reconciled from live CNPG resources'), {
-          code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
-          statusCode: 409,
-        });
-      }
-      if (!sameDatabasePhysicalAuthority(existing.physicalAuthority, input.physicalAuthority)) {
-        throw Object.assign(new Error('Managed database physical authority cannot change'), {
-          code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
-          statusCode: 409,
-        });
-      }
-
-      if (existing.status !== 'FAILED') {
-        return { instance: existing, acquired: false, created: false };
-      }
-
-      const instance: DatabaseInstanceRecord = {
-        ...existing,
-        status: 'PROVISIONING',
-        provisioningDeadlineAt: input.provisioningDeadlineAt,
-        lastErrorCode: undefined,
-        lastErrorAt: undefined,
-        updatedAt: now(),
-      };
-      this.databaseInstances.set(instance.id, instance);
-
-      return { instance, acquired: true, created: false };
-    });
+        return { instance, acquired: true, created: false };
+      },
+      { releaseFence: input.releaseFence },
+    );
   }
 
   async completeDatabaseProvisioning(

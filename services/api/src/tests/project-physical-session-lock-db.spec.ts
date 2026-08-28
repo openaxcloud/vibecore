@@ -595,6 +595,15 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await expect(store.deleteProjectSecret({ ...scope, key: 'PROD_DATABASE_URL' })).rejects.toMatchObject(blocked);
       await expect(store.acquireDatabaseProvisioning(provisioningInput)).rejects.toMatchObject(blocked);
       await expect(
+        store.acquireDatabaseProvisioning({
+          ...provisioningInput,
+          releaseFence: { ...barrier.releaseFence, ownerToken: 'forged-publish-owner' },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+      await expect(
+        store.acquireDatabaseProvisioning({ ...provisioningInput, releaseFence: barrier.releaseFence }),
+      ).resolves.toMatchObject({ acquired: false, created: false, instance: { status: 'PROVISIONING' } });
+      await expect(
         store.completeDatabaseProvisioning(provisioning.instance.id, {
           ...scope,
           key: 'DATABASE_URL',

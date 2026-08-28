@@ -14618,10 +14618,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     environment?: string;
     provisioningDeadlineAt: string;
     physicalAuthority: DatabasePhysicalAuthority;
+    releaseFence?: ProjectReleaseFence;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
     const environment = input.environment ?? 'development';
     return this.prisma.$transaction(async (tx) => {
-      await this.lockExpectedProjectTenantMutation(tx, input);
+      await this.lockExpectedProjectTenantMutation(tx, input, { releaseFence: input.releaseFence });
       if (input.organizationId !== input.expectedOrganizationId) {
         throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
           code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
