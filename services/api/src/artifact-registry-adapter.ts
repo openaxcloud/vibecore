@@ -15,6 +15,8 @@ const MAX_REFERRERS = 256;
 const MAX_REFERRER_PAGES = 32;
 const MAX_EVIDENCE_PAYLOADS = 8;
 const MAX_EVIDENCE_BYTES = 25 * 1024 * 1024;
+const MAX_CONTROL_PLANE_RESPONSE_BYTES = 2 * 1024 * 1024;
+const MAX_PAGE_TOKEN_BYTES = 8 * 1024;
 const SIGSTORE_BUNDLE_MEDIA_TYPE = 'application/vnd.dev.sigstore.bundle.v0.3+json';
 const COSIGN_SIGNATURE_PREDICATE_TYPE = 'https://sigstore.dev/cosign/sign/v1';
 const IN_TOTO_PAYLOAD_TYPE = 'application/vnd.in-toto+json';
@@ -44,6 +46,10 @@ const TRANSIENT_STATUS = new Set([429, 500, 502, 503, 504]);
 const REDIRECT_STATUS = new Set([301, 302, 303, 307, 308]);
 const MAX_REDIRECTS = 3;
 const RETENTION_TAG_RE = /^active-promo-[a-f0-9]{32}$/u;
+const OCI_TAG_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u;
+
+const OPERATION_NAME_RE =
+  /^projects\/[A-Za-z0-9][A-Za-z0-9._~-]{0,127}\/locations\/[a-z0-9-]+\/operations\/[A-Za-z0-9._~-]+$/u;
 
 export class ArtifactRegistryError extends Error {
   readonly statusCode = 502;
@@ -475,6 +481,20 @@ export interface ArtifactRegistryAdapterOptions {
   sleep?: (ms: number) => Promise<void>;
   maxAttempts?: number;
   requestTimeoutMs?: number;
+  maxOperationPolls?: number;
+}
+
+export interface ArtifactRegistryPackageTag {
+  name: string;
+  digest: string;
+}
+
+/** Exact Artifact Registry control-plane view of one Docker package. */
+export interface ArtifactRegistryPackageSnapshot {
+  repository: string;
+  exists: boolean;
+  versions: string[];
+  tags: ArtifactRegistryPackageTag[];
 }
 
 /**
@@ -488,6 +508,7 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
   readonly #sleep: (ms: number) => Promise<void>;
   readonly #maxAttempts: number;
   readonly #requestTimeoutMs: number;
+  readonly #maxOperationPolls: number;
 
   constructor(options: ArtifactRegistryAdapterOptions = {}) {
     this.#tokenProvider = options.tokenProvider ?? new GoogleAdcAccessTokenProvider();
@@ -495,6 +516,222 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
     this.#sleep = options.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
     this.#maxAttempts = Math.max(1, Math.min(options.maxAttempts ?? 4, 6));
     this.#requestTimeoutMs = Math.max(1_000, Math.min(options.requestTimeoutMs ?? 30_000, 120_000));
+    this.#maxOperationPolls = Math.max(1, Math.min(options.maxOperationPolls ?? 90, 180));
+  }
+
+  /** Public exact-manifest lookup used by permanent-erasure verification. */
+  async manifestExists(repo: string, digest: string): Promise<boolean> {
+    return this.#manifestExists(parseArtifactRegistryImageRepository(repo), assertSha256Digest(digest));
+  }
+
+  /**
+   * Snapshot every Version and Tag in one package through the Artifact Registry
+   * control plane. Pagination is exhaustive and cycle-checked; response bodies
+   * remain bounded per page so a compromised provider cannot exhaust the API.
+   */
+  async snapshotPackage(repo: string): Promise<ArtifactRegistryPackageSnapshot> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+    const packageName = this.#packageResourceName(parsed);
+    const packageUrl = this.#controlPlaneUrl(packageName);
+    const packageResponse = await this.#request(packageUrl);
+
+    if (packageResponse.status === 404) {
+      return { repository: repo, exists: false, versions: [], tags: [] };
+    }
+
+    this.#assertOk(packageResponse, 'REGISTRY_PACKAGE_LOOKUP_FAILED');
+
+    const packageBody = await this.#readControlPlaneObject(packageResponse, 'REGISTRY_PACKAGE_RESPONSE_INVALID');
+
+    if (packageBody.name !== packageName) {
+      throw new ArtifactRegistryError(
+        'REGISTRY_PACKAGE_RESPONSE_INVALID',
+        'Artifact Registry returned another package.',
+      );
+    }
+
+    const versions: string[] = [];
+    const versionTokens = new Set<string>();
+
+    let versionToken: string | undefined;
+
+    do {
+      const url = this.#controlPlaneUrl(`${packageName}/versions`);
+      url.searchParams.set('pageSize', '1000');
+
+      if (versionToken) {
+        url.searchParams.set('pageToken', versionToken);
+      }
+
+      const response = await this.#request(url);
+      this.#assertOk(response, 'REGISTRY_VERSION_LIST_FAILED');
+
+      const body = await this.#readControlPlaneObject(response, 'REGISTRY_VERSION_LIST_INVALID');
+      const rows = body.versions;
+
+      if (rows !== undefined && !Array.isArray(rows)) {
+        throw new ArtifactRegistryError('REGISTRY_VERSION_LIST_INVALID', 'Artifact Registry versions are malformed.');
+      }
+
+      for (const row of rows ?? []) {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) {
+          throw new ArtifactRegistryError('REGISTRY_VERSION_LIST_INVALID', 'Artifact Registry version is malformed.');
+        }
+
+        versions.push(this.#resourceDigest((row as Record<string, unknown>).name, `${packageName}/versions/`));
+      }
+
+      versionToken = this.#nextPageToken(body.nextPageToken, versionTokens, 'REGISTRY_VERSION_LIST_INVALID');
+    } while (versionToken);
+
+    const tags: ArtifactRegistryPackageTag[] = [];
+    const tagTokens = new Set<string>();
+
+    let tagToken: string | undefined;
+
+    do {
+      const url = this.#controlPlaneUrl(`${packageName}/tags`);
+      url.searchParams.set('pageSize', '1000');
+
+      if (tagToken) {
+        url.searchParams.set('pageToken', tagToken);
+      }
+
+      const response = await this.#request(url);
+      this.#assertOk(response, 'REGISTRY_TAG_LIST_FAILED');
+
+      const body = await this.#readControlPlaneObject(response, 'REGISTRY_TAG_LIST_INVALID');
+      const rows = body.tags;
+
+      if (rows !== undefined && !Array.isArray(rows)) {
+        throw new ArtifactRegistryError('REGISTRY_TAG_LIST_INVALID', 'Artifact Registry tags are malformed.');
+      }
+
+      for (const row of rows ?? []) {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) {
+          throw new ArtifactRegistryError('REGISTRY_TAG_LIST_INVALID', 'Artifact Registry tag is malformed.');
+        }
+
+        const record = row as Record<string, unknown>;
+        tags.push({
+          name: this.#resourceTag(record.name, `${packageName}/tags/`),
+          digest: this.#resourceDigest(record.version, `${packageName}/versions/`),
+        });
+      }
+
+      tagToken = this.#nextPageToken(body.nextPageToken, tagTokens, 'REGISTRY_TAG_LIST_INVALID');
+    } while (tagToken);
+
+    const uniqueVersions = [...new Set(versions)].sort();
+    const uniqueTags = new Map<string, string>();
+
+    for (const tag of tags) {
+      const prior = uniqueTags.get(tag.name);
+
+      if (prior && prior !== tag.digest) {
+        throw new ArtifactRegistryError('REGISTRY_TAG_LIST_INVALID', 'Artifact Registry tag is ambiguous.');
+      }
+
+      uniqueTags.set(tag.name, tag.digest);
+    }
+
+    return {
+      repository: repo,
+      exists: true,
+      versions: uniqueVersions,
+      tags: [...uniqueTags].map(([name, digest]) => ({ name, digest })).sort((a, b) => a.name.localeCompare(b.name)),
+    };
+  }
+
+  async packageExists(repo: string): Promise<boolean> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+    const response = await this.#request(this.#controlPlaneUrl(this.#packageResourceName(parsed)));
+
+    if (response.status === 404) {
+      return false;
+    }
+
+    this.#assertOk(response, 'REGISTRY_PACKAGE_LOOKUP_FAILED');
+    await response.body?.cancel().catch(() => undefined);
+
+    return true;
+  }
+
+  async tagExists(repo: string, tag: string): Promise<boolean> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+
+    const response = await this.#request(
+      this.#controlPlaneUrl(`${this.#packageResourceName(parsed)}/tags/${this.#encodedTag(tag)}`),
+    );
+
+    if (response.status === 404) {
+      return false;
+    }
+
+    this.#assertOk(response, 'REGISTRY_TAG_LOOKUP_FAILED');
+    await response.body?.cancel().catch(() => undefined);
+
+    return true;
+  }
+
+  async deleteTag(repo: string, tag: string): Promise<void> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+
+    const response = await this.#request(
+      this.#controlPlaneUrl(`${this.#packageResourceName(parsed)}/tags/${this.#encodedTag(tag)}`),
+      { method: 'DELETE' },
+    );
+
+    if (response.status === 404) {
+      return;
+    }
+
+    this.#assertOk(response, 'REGISTRY_TAG_DELETE_FAILED');
+    await response.body?.cancel().catch(() => undefined);
+  }
+
+  async deleteVersion(repo: string, digest: string): Promise<void> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+
+    const versionUrl = this.#controlPlaneUrl(
+      `${this.#packageResourceName(parsed)}/versions/${encodeURIComponent(assertSha256Digest(digest))}`,
+    );
+
+    const response = await this.#request(versionUrl, { method: 'DELETE' });
+
+    if (response.status === 404) {
+      return;
+    }
+
+    if (response.status === 409) {
+      await response.body?.cancel().catch(() => undefined);
+      await this.#waitUntilAbsent(versionUrl, 'REGISTRY_VERSION_DELETE_UNVERIFIED');
+
+      return;
+    }
+
+    this.#assertOk(response, 'REGISTRY_VERSION_DELETE_FAILED');
+    await this.#waitForOperation(response, 'REGISTRY_VERSION_DELETE_FAILED');
+  }
+
+  async deletePackage(repo: string): Promise<void> {
+    const parsed = parseArtifactRegistryImageRepository(repo);
+    const packageUrl = this.#controlPlaneUrl(this.#packageResourceName(parsed));
+    const response = await this.#request(packageUrl, { method: 'DELETE' });
+
+    if (response.status === 404) {
+      return;
+    }
+
+    if (response.status === 409) {
+      await response.body?.cancel().catch(() => undefined);
+      await this.#waitUntilAbsent(packageUrl, 'REGISTRY_PACKAGE_DELETE_UNVERIFIED');
+
+      return;
+    }
+
+    this.#assertOk(response, 'REGISTRY_PACKAGE_DELETE_FAILED');
+    await this.#waitForOperation(response, 'REGISTRY_PACKAGE_DELETE_FAILED');
   }
 
   async imageExists(repo: string, digest: string): Promise<boolean> {
@@ -1027,6 +1264,155 @@ export class ArtifactRegistryOciAdapter implements RegistryAdapter {
 
   #url(repo: ArtifactRegistryRepository, suffix: string): URL {
     return new URL(`https://${repo.host}/v2/${repo.distributionName}/${suffix}`);
+  }
+
+  #packageResourceName(repo: ArtifactRegistryRepository): string {
+    return [
+      'projects',
+      repo.project,
+      'locations',
+      repo.location,
+      'repositories',
+      repo.repository,
+      'packages',
+      encodeURIComponent(repo.packagePath.join('/')),
+    ].join('/');
+  }
+
+  #controlPlaneUrl(resourceName: string): URL {
+    return new URL(`https://artifactregistry.googleapis.com/v1/${resourceName}`);
+  }
+
+  #encodedTag(tag: string): string {
+    if (!OCI_TAG_RE.test(tag)) {
+      throw new ArtifactRegistryError('REGISTRY_TAG_INVALID', 'Artifact Registry tag is malformed.');
+    }
+
+    return encodeURIComponent(tag);
+  }
+
+  #resourceDigest(value: unknown, prefix: string): string {
+    if (typeof value !== 'string' || !value.startsWith(prefix)) {
+      throw new ArtifactRegistryError(
+        'REGISTRY_RESOURCE_NAME_INVALID',
+        'Artifact Registry resource escaped its package.',
+      );
+    }
+
+    const suffix = value.slice(prefix.length);
+
+    if (!suffix || suffix.includes('/')) {
+      throw new ArtifactRegistryError('REGISTRY_RESOURCE_NAME_INVALID', 'Artifact Registry resource is malformed.');
+    }
+
+    try {
+      return assertSha256Digest(decodeURIComponent(suffix));
+    } catch (error) {
+      if (error instanceof ArtifactRegistryError) {
+        throw error;
+      }
+
+      throw new ArtifactRegistryError('REGISTRY_RESOURCE_NAME_INVALID', 'Artifact Registry resource is malformed.', {
+        cause: error,
+      });
+    }
+  }
+
+  #resourceTag(value: unknown, prefix: string): string {
+    if (typeof value !== 'string' || !value.startsWith(prefix)) {
+      throw new ArtifactRegistryError(
+        'REGISTRY_RESOURCE_NAME_INVALID',
+        'Artifact Registry resource escaped its package.',
+      );
+    }
+
+    const suffix = value.slice(prefix.length);
+
+    try {
+      const tag = decodeURIComponent(suffix);
+      this.#encodedTag(tag);
+
+      return tag;
+    } catch (error) {
+      if (error instanceof ArtifactRegistryError) {
+        throw error;
+      }
+
+      throw new ArtifactRegistryError('REGISTRY_RESOURCE_NAME_INVALID', 'Artifact Registry resource is malformed.', {
+        cause: error,
+      });
+    }
+  }
+
+  async #readControlPlaneObject(response: Response, code: string): Promise<Record<string, unknown>> {
+    return parseJsonObject(
+      await this.#readBoundedResponseBytes(
+        response,
+        MAX_CONTROL_PLANE_RESPONSE_BYTES,
+        code,
+        'Artifact Registry control-plane response exceeds the safety limit.',
+      ),
+      code,
+      'Artifact Registry control-plane response is malformed.',
+    );
+  }
+
+  #nextPageToken(value: unknown, seen: Set<string>, code: string): string | undefined {
+    if (value === undefined || value === '') {
+      return undefined;
+    }
+
+    if (typeof value !== 'string' || Buffer.byteLength(value, 'utf8') > MAX_PAGE_TOKEN_BYTES || seen.has(value)) {
+      throw new ArtifactRegistryError(code, 'Artifact Registry pagination is malformed or cyclic.');
+    }
+
+    seen.add(value);
+
+    return value;
+  }
+
+  async #waitForOperation(response: Response, code: string): Promise<void> {
+    let operation = await this.#readControlPlaneObject(response, code);
+
+    for (let poll = 0; poll < this.#maxOperationPolls; poll += 1) {
+      if (operation.error !== undefined) {
+        throw new ArtifactRegistryError(code, 'Artifact Registry deletion operation failed.');
+      }
+
+      if (operation.done === true) {
+        return;
+      }
+
+      const name = operation.name;
+
+      if (typeof name !== 'string' || !OPERATION_NAME_RE.test(name)) {
+        throw new ArtifactRegistryError(code, 'Artifact Registry deletion operation is malformed.');
+      }
+
+      await this.#sleep(Math.min(100 * 2 ** Math.min(poll, 5), 2_000));
+
+      const polled = await this.#request(this.#controlPlaneUrl(name));
+      this.#assertOk(polled, code);
+      operation = await this.#readControlPlaneObject(polled, code);
+    }
+
+    throw new ArtifactRegistryError(code, 'Artifact Registry deletion operation did not complete in time.');
+  }
+
+  async #waitUntilAbsent(url: URL, code: string): Promise<void> {
+    for (let poll = 0; poll < this.#maxOperationPolls; poll += 1) {
+      const response = await this.#request(url);
+
+      if (response.status === 404) {
+        return;
+      }
+
+      this.#assertOk(response, code);
+      await response.body?.cancel().catch(() => undefined);
+      await this.#sleep(Math.min(100 * 2 ** Math.min(poll, 5), 2_000));
+    }
+
+    throw new ArtifactRegistryError(code, 'Artifact Registry deletion could not be verified.');
   }
 
   #nextLink(header: string | null, current: URL, repo: ArtifactRegistryRepository): URL | undefined {
