@@ -50,6 +50,8 @@ export interface SessionRecord {
   userAgent?: string;
   revokedAt?: string;
   lastReauthAt?: string;
+  /** Last authenticated activity; drives the idle timeout. Null ⇒ use createdAt. */
+  lastActiveAt?: string | null;
   /** Set when an admin is impersonating another user; value = admin's user id. */
   impersonatedBy?: string;
 }
@@ -1277,6 +1279,8 @@ export interface ApiStore {
   listSessions(userId: string): Promise<SessionRecord[]>;
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
+  /** Refresh a session's lastActiveAt (idle-timeout heartbeat); throttled write. */
+  touchSession(sessionId: string, nowMs: number, throttleMs?: number): Promise<void>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
   createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }): Promise<void>;
   consumeEmailVerification(token: string): Promise<UserRecord | undefined>;

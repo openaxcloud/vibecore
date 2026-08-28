@@ -18145,6 +18145,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -18160,6 +18161,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -18175,6 +18177,7 @@ export namespace Prisma {
     rotatedAt: number
     revokedAt: number
     lastReauthAt: number
+    lastActiveAt: number
     impersonatedBy: number
     ipAddress: number
     userAgent: number
@@ -18192,6 +18195,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -18207,6 +18211,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -18222,6 +18227,7 @@ export namespace Prisma {
     rotatedAt?: true
     revokedAt?: true
     lastReauthAt?: true
+    lastActiveAt?: true
     impersonatedBy?: true
     ipAddress?: true
     userAgent?: true
@@ -18310,6 +18316,7 @@ export namespace Prisma {
     rotatedAt: Date | null
     revokedAt: Date | null
     lastReauthAt: Date | null
+    lastActiveAt: Date | null
     impersonatedBy: string | null
     ipAddress: string | null
     userAgent: string | null
@@ -18342,6 +18349,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -18358,6 +18366,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -18374,6 +18383,7 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
@@ -18390,13 +18400,14 @@ export namespace Prisma {
     rotatedAt?: boolean
     revokedAt?: boolean
     lastReauthAt?: boolean
+    lastActiveAt?: boolean
     impersonatedBy?: boolean
     ipAddress?: boolean
     userAgent?: boolean
     createdAt?: boolean
   }
 
-  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
+  export type SessionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "tokenHash" | "refreshHash" | "expiresAt" | "rotatedAt" | "revokedAt" | "lastReauthAt" | "lastActiveAt" | "impersonatedBy" | "ipAddress" | "userAgent" | "createdAt", ExtArgs["result"]["session"]>
   export type SessionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
@@ -18421,6 +18432,7 @@ export namespace Prisma {
       rotatedAt: Date | null
       revokedAt: Date | null
       lastReauthAt: Date | null
+      lastActiveAt: Date | null
       impersonatedBy: string | null
       ipAddress: string | null
       userAgent: string | null
@@ -18857,6 +18869,7 @@ export namespace Prisma {
     readonly rotatedAt: FieldRef<"Session", 'DateTime'>
     readonly revokedAt: FieldRef<"Session", 'DateTime'>
     readonly lastReauthAt: FieldRef<"Session", 'DateTime'>
+    readonly lastActiveAt: FieldRef<"Session", 'DateTime'>
     readonly impersonatedBy: FieldRef<"Session", 'String'>
     readonly ipAddress: FieldRef<"Session", 'String'>
     readonly userAgent: FieldRef<"Session", 'String'>
@@ -155983,6 +155996,7 @@ export namespace Prisma {
     rotatedAt: 'rotatedAt',
     revokedAt: 'revokedAt',
     lastReauthAt: 'lastReauthAt',
+    lastActiveAt: 'lastActiveAt',
     impersonatedBy: 'impersonatedBy',
     ipAddress: 'ipAddress',
     userAgent: 'userAgent',
@@ -158602,6 +158616,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -158618,6 +158633,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -158637,6 +158653,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -158653,6 +158670,7 @@ export namespace Prisma {
     rotatedAt?: SortOrderInput | SortOrder
     revokedAt?: SortOrderInput | SortOrder
     lastReauthAt?: SortOrderInput | SortOrder
+    lastActiveAt?: SortOrderInput | SortOrder
     impersonatedBy?: SortOrderInput | SortOrder
     ipAddress?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
@@ -158674,6 +158692,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableWithAggregatesFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableWithAggregatesFilter<"Session"> | string | null
     ipAddress?: StringNullableWithAggregatesFilter<"Session"> | string | null
     userAgent?: StringNullableWithAggregatesFilter<"Session"> | string | null
@@ -168683,6 +168702,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -168699,6 +168719,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -168713,6 +168734,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -168729,6 +168751,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -168744,6 +168767,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -168758,6 +168782,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -168773,6 +168798,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -180024,6 +180050,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -180039,6 +180066,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -180054,6 +180082,7 @@ export namespace Prisma {
     rotatedAt?: SortOrder
     revokedAt?: SortOrder
     lastReauthAt?: SortOrder
+    lastActiveAt?: SortOrder
     impersonatedBy?: SortOrder
     ipAddress?: SortOrder
     userAgent?: SortOrder
@@ -194069,6 +194098,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -194083,6 +194113,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -195132,6 +195163,7 @@ export namespace Prisma {
     rotatedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     revokedAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     lastReauthAt?: DateTimeNullableFilter<"Session"> | Date | string | null
+    lastActiveAt?: DateTimeNullableFilter<"Session"> | Date | string | null
     impersonatedBy?: StringNullableFilter<"Session"> | string | null
     ipAddress?: StringNullableFilter<"Session"> | string | null
     userAgent?: StringNullableFilter<"Session"> | string | null
@@ -221805,6 +221837,7 @@ export namespace Prisma {
     rotatedAt?: Date | string | null
     revokedAt?: Date | string | null
     lastReauthAt?: Date | string | null
+    lastActiveAt?: Date | string | null
     impersonatedBy?: string | null
     ipAddress?: string | null
     userAgent?: string | null
@@ -222157,6 +222190,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -222171,6 +222205,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
@@ -222185,6 +222220,7 @@ export namespace Prisma {
     rotatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     revokedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastReauthAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     impersonatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     ipAddress?: NullableStringFieldUpdateOperationsInput | string | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null

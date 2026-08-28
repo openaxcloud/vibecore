@@ -8,6 +8,7 @@ import {
   type LoginLockoutState,
   type LoginThrottleConfig,
 } from '../login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
   EnvVarScope,
@@ -365,6 +366,7 @@ export class TestApiStore implements ApiStore {
       tokenHash: hashToken(input.token),
       expiresAt: input.expiresAt.toISOString(),
       createdAt: now(),
+      lastActiveAt: now() as string | undefined,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
       impersonatedBy: input.impersonatedBy,
@@ -381,7 +383,34 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
+    const lastActiveMs = new Date(session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return session;
+  }
+
+  /** Test hook: force touchSession to throw (fail-open-on-write proof). */
+  touchSessionShouldThrow = false;
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    if (this.touchSessionShouldThrow) {
+      throw new Error('simulated touchSession failure');
+    }
+
+    for (const session of this.sessions.values()) {
+      if (session.id !== sessionId || session.revokedAt) {
+        continue;
+      }
+
+      const lastActiveMs = session.lastActiveAt ? new Date(session.lastActiveAt).getTime() : 0;
+
+      if (nowMs - lastActiveMs >= throttleMs) {
+        session.lastActiveAt = new Date(nowMs).toISOString();
+      }
+    }
   }
 
   async listSessions(userId: string) {

@@ -3255,6 +3255,15 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   request.currentSession = session;
 
   /*
+   * Idle-timeout heartbeat: refresh this session's lastActiveAt (throttled to one
+   * write per minute). Fire-and-forget and swallow errors — a failed heartbeat
+   * must never break the request, and NOT bumping lastActiveAt only means a
+   * genuinely-idle session correctly ages out (fail-open on the write, fail-closed
+   * on the enforcement, which lives in findSessionByToken).
+   */
+  void store.touchSession(session.id, Date.now()).catch(() => undefined);
+
+  /*
    * Match on the parsed pathname with exact/segment checks. `request.url`
    * includes the query string and was matched only by prefix, so an appended
    * query escaped the gate and sibling paths like `/auth/sessions-export` were

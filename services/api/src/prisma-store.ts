@@ -11,6 +11,7 @@ import {
   type LoginLockoutState,
   type LoginThrottleConfig,
 } from './login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -451,6 +452,7 @@ export class PrismaApiStore implements ApiStore {
           userId: input.userId,
           tokenHash: hashToken(input.token),
           expiresAt: input.expiresAt,
+          lastActiveAt: new Date(),
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
           impersonatedBy: input.impersonatedBy,
@@ -466,7 +468,38 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
+    /*
+     * Idle timeout: a session unused past the inactivity window is rejected here
+     * (in addition to the absolute expiresAt), bounding a stolen token's life to
+     * the idle period. lastActiveAt is null on rows predating the column → fall
+     * back to createdAt so those still age out. requireAuth refreshes lastActiveAt.
+     */
+    const lastActiveMs = (session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return mapSession(session);
+  }
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    /*
+     * Refresh lastActiveAt at most once per throttle window: the WHERE only
+     * matches when the stored value is stale (or null), so a burst of requests in
+     * the same window is a single no-op update, not a write per request.
+     */
+    const now = new Date(nowMs);
+    const staleBefore = new Date(nowMs - throttleMs);
+
+    await this.prisma.session.updateMany({
+      where: {
+        id: sessionId,
+        revokedAt: null,
+        OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: staleBefore } }],
+      },
+      data: { lastActiveAt: now },
+    });
   }
 
   async listSessions(userId: string) {
@@ -6052,6 +6085,7 @@ function mapSession(session: any): SessionRecord {
     userAgent: session.userAgent ?? undefined,
     revokedAt: toIso(session.revokedAt),
     lastReauthAt: toIso(session.lastReauthAt),
+    lastActiveAt: toIso(session.lastActiveAt),
     impersonatedBy: session.impersonatedBy ?? undefined,
   };
 }

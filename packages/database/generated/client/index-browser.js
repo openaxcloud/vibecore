@@ -162,6 +162,7 @@ exports.Prisma.SessionScalarFieldEnum = {
   rotatedAt: 'rotatedAt',
   revokedAt: 'revokedAt',
   lastReauthAt: 'lastReauthAt',
+  lastActiveAt: 'lastActiveAt',
   impersonatedBy: 'impersonatedBy',
   ipAddress: 'ipAddress',
   userAgent: 'userAgent',

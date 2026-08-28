@@ -142,6 +142,10 @@ model Session {
   rotatedAt      DateTime?
   revokedAt      DateTime?
   lastReauthAt   DateTime?
+  // Last authenticated activity on this session; drives the idle/inactivity
+  // timeout (see session-idle.ts). Null on rows created before this column —
+  // treated as the session's createdAt for the idle check.
+  lastActiveAt   DateTime?
   // When set, this session is an admin impersonating another user; value = the
   // impersonating admin's user id (for audit / UI banner / traceability). P8.
   impersonatedBy String?
