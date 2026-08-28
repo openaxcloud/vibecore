@@ -6446,6 +6446,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       allowPermanentDeletion?: boolean;
       allowedObjectStorageOperationId?: string;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      releaseFence?: ProjectReleaseFence;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<void> {
@@ -6503,6 +6504,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     if (options.checkpointBarrierAuthority) {
       await assertOwnedProjectCheckpointBarrier(tx, scope.projectId, options.checkpointBarrierAuthority);
+    } else if (options.releaseFence) {
+      await requireProjectReleaseFence(tx, scope.projectId, options.releaseFence);
     } else if (!options.allowActiveCheckpoint) {
       await assertNoActiveProjectReleaseBarrier(tx, scope.projectId);
     }
@@ -14877,6 +14880,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   async createDeployment(input: {
     projectId: string;
     expectedOrganizationId: string;
+    releaseFence?: ProjectReleaseFence;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
@@ -14915,7 +14919,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     return this.prisma.$transaction(async (tx) => {
       /* Revalidate the route's tenant before any idempotency claim, policy row, billing reservation or deployment. */
-      await this.lockExpectedProjectTenantMutation(tx, input);
+      await this.lockExpectedProjectTenantMutation(tx, input, { releaseFence: input.releaseFence });
 
       if (input.reservedVm) {
         await tx.$executeRawUnsafe(
