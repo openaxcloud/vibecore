@@ -85,6 +85,7 @@ import {
 } from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -3269,6 +3270,15 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     platformAdmin: user.platformAdmin,
   };
   request.currentSession = session;
+
+  /*
+   * Idle-timeout heartbeat: refresh this session's lastActiveAt (throttled to one
+   * write per minute). Fire-and-forget and swallow errors — a failed heartbeat
+   * must never break the request, and NOT bumping lastActiveAt only means a
+   * genuinely-idle session correctly ages out (fail-open on the write, fail-closed
+   * on the enforcement, which lives in findSessionByToken).
+   */
+  void store.touchSession(session.id, Date.now()).catch(() => undefined);
 
   /*
    * Match on the parsed pathname with exact/segment checks. `request.url`
@@ -9643,9 +9653,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const body = parse(loginSchema, request.body);
       const user = await store.findUserByEmail(body.email);
+      const throttleConfig = loginThrottleConfigFromEnv();
+
+      /*
+       * Per-account brute-force lock (defence-in-depth over the per-IP rate limit
+       * — a distributed botnet stays under the IP cap yet still hammers one
+       * account). Checked BEFORE the password so a locked account short-circuits
+       * with the GENERIC invalid-credentials 401 — identical body to a wrong
+       * password, so the lock can't be used to enumerate which emails exist. A
+       * store error is swallowed (fail-open): the lock is ADDITIVE, and the
+       * credential check below still runs, so degrading it never grants access
+       * without the correct password.
+       */
+      if (user) {
+        const lockout = await store.getLoginLockout(user.id).catch(() => undefined);
+
+        if (lockout && isLockedNow(lockout, Date.now())) {
+          metrics.increment('auth_failures_total', { reason: 'account_locked' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+      }
 
       if (!user || !verifyPassword(body.password, user.passwordHash)) {
         metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
+
+        // Count the failure toward the per-account lock (real accounts only).
+        // Best-effort — a lock-store hiccup must never turn a 401 into a 500.
+        if (user) {
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+        }
+
         return reply
           .code(401)
           .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
@@ -9667,6 +9706,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (!totpValid && !recoveryValid) {
           metrics.increment('auth_failures_total', { reason: 'invalid_mfa' });
+          // A wrong MFA code is also a failed auth attempt — count it toward the lock.
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+
           return reply
             .code(401)
             .send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'AUTH_INVALID_MFA_CODE' });
@@ -9701,6 +9743,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           code: 'SSO_ENFORCED',
         });
       }
+
+      // Full credential (+ MFA + SSO) success ⇒ reset the per-account failure counter.
+      await store.clearLoginLockout(user.id).catch(() => undefined);
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });

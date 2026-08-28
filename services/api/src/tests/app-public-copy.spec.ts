@@ -305,6 +305,11 @@ describe('app.ts i18n source guard', () => {
       'invalid_credentials',
       'mfa_required',
       'invalid_mfa',
+      // Dimension de `auth_failures_total`, comme ses voisines : jamais rendue.
+      // La réponse vue par l'utilisateur passe par le catalogue
+      // (`AUTH_INVALID_CREDENTIALS`) et reste volontairement identique à celle
+      // d'un mauvais mot de passe, pour ne pas révéler qu'un compte existe.
+      'account_locked',
       'suspended',
       'sso_enforced',
       'token_expired_or_revoked',
