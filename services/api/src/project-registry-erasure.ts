@@ -723,6 +723,44 @@ export async function executeProjectRegistryErasure(input: {
 
   const dispositions: Disposition[] = [];
 
+  /* Database corruption must be detected before the first provider mutation.
+   * The migration forbids new cross-project package references; this full
+   * preflight is the fail-closed guard for legacy/tampered rows. */
+  for (const pkg of input.inventory.packages) {
+    await input.guard.withPackageFence(pkg.repository, async () => {
+      await assertLease(input.guard, input.inventory);
+      assertSnapshotWithinInventory(await input.provider.snapshotPackage(pkg.repository), pkg);
+      for (const tag of pkg.tags) {
+        const count = assertReferenceCount(
+          await input.referenceAuthority.countOutsideProject(
+            { kind: 'tag', repository: pkg.repository, tag: tag.tag, digest: tag.digest },
+            input.inventory.projectId,
+          ),
+        );
+        if (count > 0) {
+          fail(
+            'REGISTRY_CROSS_PROJECT_REFERENCE_FORBIDDEN',
+            'A project-private registry tag is referenced by another project; refusing GC until the database invariant is repaired.',
+          );
+        }
+      }
+      for (const manifest of pkg.manifests) {
+        const count = assertReferenceCount(
+          await input.referenceAuthority.countOutsideProject(
+            { kind: 'manifest', repository: pkg.repository, digest: manifest.digest },
+            input.inventory.projectId,
+          ),
+        );
+        if (count > 0) {
+          fail(
+            'REGISTRY_CROSS_PROJECT_REFERENCE_FORBIDDEN',
+            'A project-private registry manifest is referenced by another project; refusing GC until the database invariant is repaired.',
+          );
+        }
+      }
+    });
+  }
+
   for (const pkg of input.inventory.packages) {
     await input.guard.withPackageFence(pkg.repository, async () => {
       await assertLease(input.guard, input.inventory);
@@ -743,23 +781,10 @@ export async function executeProjectRegistryErasure(input: {
         );
 
         if (finalOtherReferenceCount > 0) {
-          if (!(await input.provider.tagExists(pkg.repository, tag.tag))) {
-            fail('REGISTRY_ERASURE_SHARED_REFERENCE_MISSING', 'A shared registry tag disappeared during erasure.');
-          }
-
-          retainedTags.set(tag.tag, tag.digest);
-          indirectReferenceCounts.set(
-            tag.digest,
-            (indirectReferenceCounts.get(tag.digest) ?? 0) + finalOtherReferenceCount,
+          fail(
+            'REGISTRY_CROSS_PROJECT_REFERENCE_FORBIDDEN',
+            'A project-private registry tag is referenced by another project; refusing GC until the database invariant is repaired.',
           );
-          dispositions.push({
-            type: 'tag',
-            repository: pkg.repository,
-            identity: `${tag.tag}\0${tag.digest}`,
-            disposition: 'RETAINED_SHARED',
-            finalOtherReferenceCount,
-          });
-          continue;
         }
 
         await assertLease(input.guard, input.inventory);
@@ -793,31 +818,10 @@ export async function executeProjectRegistryErasure(input: {
         );
 
         if (finalOtherReferenceCount > 0) {
-          if (!(await input.provider.manifestExists(pkg.repository, manifest.digest))) {
-            fail('REGISTRY_ERASURE_SHARED_REFERENCE_MISSING', 'A shared registry manifest disappeared during erasure.');
-          }
-
-          if (manifest.kind === 'referrer') {
-            await verifyRetainedReferrer(input.provider, pkg.repository, manifest.subjectDigest!, manifest.digest);
-          }
-
-          retainedVersions.add(manifest.digest);
-
-          if (manifest.kind === 'referrer') {
-            indirectReferenceCounts.set(
-              manifest.subjectDigest!,
-              (indirectReferenceCounts.get(manifest.subjectDigest!) ?? 0) + finalOtherReferenceCount,
-            );
-          }
-
-          dispositions.push({
-            type: 'manifest',
-            repository: pkg.repository,
-            identity: manifest.digest,
-            disposition: 'RETAINED_SHARED',
-            finalOtherReferenceCount,
-          });
-          continue;
+          fail(
+            'REGISTRY_CROSS_PROJECT_REFERENCE_FORBIDDEN',
+            'A project-private registry manifest is referenced by another project; refusing GC until the database invariant is repaired.',
+          );
         }
 
         await assertLease(input.guard, input.inventory);

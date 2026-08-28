@@ -20,6 +20,11 @@ output "workspace_volume_erasure_service_account" {
   value       = module.iam.workspace_volume_erasure_service_account
 }
 
+output "server_deploy_signer_service_account" {
+  description = "Trusted signing GSA; null while verified image publication is disabled."
+  value       = module.iam.server_deploy_signer_service_account
+}
+
 output "cloud_sql_connection_name" {
   value = module.cloud_sql.connection_name
 }

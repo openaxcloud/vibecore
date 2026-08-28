@@ -12,7 +12,11 @@ import {
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import type { ProjectCheckpointLease } from '../checkpoint-lease.js';
-import type { AppImageBuildCancellationProof, AppImageBuildTerminalStatus } from '../app-image-build.js';
+import type {
+  AppImageBuildCancellationProof,
+  AppImageBuildSubmissionResolutionEvidence,
+  AppImageBuildTerminalStatus,
+} from '../app-image-build.js';
 import { parseArtifactRegistryImageRepository } from '../artifact-registry-adapter.js';
 import {
   anonymizedEmail,
@@ -87,6 +91,7 @@ import {
   type ProjectRegistryErasureReceipt,
   type RegistryErasureReference,
 } from '../project-registry-erasure.js';
+import { isRegistryMutationRecoveryEvidence, registryMutationIntentHash } from '../registry-mutation.js';
 import {
   parseObjectStorageStaticArtifactSummary,
   type ObjectStorageCheckpointBarrierAuthority,
@@ -218,6 +223,9 @@ import type {
   ProjectManifestRevisionRecord,
   ProjectReleaseBarrierLease,
   ProjectRecord,
+  RegistryMutationGuard,
+  RegistryMutationIntent,
+  RegistryMutationRecoveryEvidence,
   ProjectPhysicalMutationScope,
   ProjectPermanentDeletionReceiptRecord,
   ProjectPermanentDeletionResult,
@@ -333,8 +341,11 @@ function assertPermanentDeletionProof(
 ): void {
   const filesystem = proof.evidence.filesystem as Record<string, unknown> | undefined;
   const gcs = proof.evidence.gcs as Record<string, unknown> | undefined;
-  const cloudBuild = proof.evidence.cloudBuild as Record<string, unknown> | undefined;
-  const artifactRegistry = proof.evidence.artifactRegistry as Record<string, unknown> | undefined;
+  const projectImages = proof.evidence.projectImages as Record<string, unknown> | undefined;
+  const cloudBuild = projectImages?.cloudBuild as Record<string, unknown> | undefined;
+  const artifactRegistry = projectImages?.registry as Record<string, unknown> | undefined;
+  const managedDatabase = proof.evidence.managedDatabase as Record<string, unknown> | undefined;
+  const managedDatabaseProof = managedDatabase?.proof as Record<string, unknown> | undefined;
   const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown> | undefined;
   const kubernetes = workspaceManager?.kubernetes as Record<string, unknown> | undefined;
   const volumes = workspaceManager?.volumes as Record<string, unknown> | undefined;
@@ -362,12 +373,19 @@ function assertPermanentDeletionProof(
     staticArtifactSummary.digest === expected.digest &&
     gcs?.bucketAbsent === true &&
     gcs.objectCount === 0 &&
+    projectImages?.schemaVersion === 1 &&
+    typeof projectImages.projectId === 'string' &&
+    typeof projectImages.operationId === 'string' &&
     Number.isSafeInteger(cloudBuild?.producerCount) &&
     cloudBuild?.terminalProofCount === cloudBuild?.producerCount &&
     Number.isSafeInteger(cloudBuild?.lateSuccessCount) &&
     artifactRegistry?.schemaVersion === 1 &&
     typeof artifactRegistry.inventoryHash === 'string' &&
     typeof artifactRegistry.dispositionDigest === 'string' &&
+    managedDatabase?.schemaVersion === 2 &&
+    managedDatabaseProof?.kubernetesAbsent === true &&
+    managedDatabaseProof.sharedTenantsAbsent === true &&
+    managedDatabaseProof.backupGenerationsAbsent === true &&
     workspaceManager?.schemaVersion === 'workspace-project-erasure-v3' &&
     workspaceManager.databaseInventoryRetained === true &&
     workspaceManager.runtimeEffectsDrained === true &&
@@ -504,6 +522,16 @@ export class TestApiStore implements ApiStore {
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly appImageBuildOperations = new Map<string, AppImageBuildOperationRecord>();
+  readonly registryMutationOperations = new Map<
+    string,
+    {
+      intent: RegistryMutationIntent;
+      state: 'IN_FLIGHT' | 'AMBIGUOUS' | 'VERIFIED' | 'FAILED_SAFE';
+      fencingToken: bigint;
+      providerOperationId?: string;
+      providerEvidence?: unknown;
+    }
+  >();
   readonly projectRegistryErasures = new Map<
     string,
     {
@@ -863,18 +891,152 @@ export class TestApiStore implements ApiStore {
     return this.withProjectPhysicalBarriers([projectId], effect);
   }
 
-  withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T> {
+  withRegistryMutation<T>(
+    intent: RegistryMutationIntent,
+    effect: (guard: RegistryMutationGuard) => Promise<T>,
+    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+  ): Promise<T> {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(intent.intentHash)) {
+      throw new TypeError('REGISTRY_MUTATION_INTENT_HASH_INVALID');
+    }
     const ordered = [
-      ...new Set(repositories.map((repo) => parseArtifactRegistryImageRepository(repo).original)),
+      ...new Set(intent.repositories.map((repo) => parseArtifactRegistryImageRepository(repo).original)),
     ].sort();
     if (ordered.length === 0) throw new TypeError('REGISTRY_PACKAGE_FENCE_REQUIRED');
+    if (
+      ordered.some(
+        (repository) =>
+          parseArtifactRegistryImageRepository(repository).packagePath.join('/') !==
+          `p-${intent.projectId.toLowerCase()}`,
+      )
+    ) {
+      throw new TypeError('REGISTRY_MUTATION_PROJECT_PACKAGE_INVALID');
+    }
+    const project = this.projects.get(intent.projectId);
+    if (
+      !project ||
+      project.organizationId !== intent.organizationId ||
+      intent.ownershipEpoch !== 0 ||
+      (intent.kind !== 'PROJECT_ERASURE' && project.permanentDeletionStartedAt)
+    ) {
+      throw Object.assign(new Error('REGISTRY_MUTATION_PROJECT_AUTHORITY_INVALID'), {
+        code: 'REGISTRY_MUTATION_PROJECT_AUTHORITY_INVALID',
+      });
+    }
     const acquire = (index: number): Promise<T> => {
       const repository = ordered[index];
       return repository
         ? this.withSerializedMutation(`artifact-registry-package:${repository}`, () => acquire(index + 1))
-        : effect();
+        : (async () => {
+            const blocker = [...this.registryMutationOperations.entries()].find(
+              ([operationId, operation]) =>
+                operationId !== intent.operationId &&
+                (operation.state === 'IN_FLIGHT' || operation.state === 'AMBIGUOUS') &&
+                operation.intent.repositories.some((repository) => ordered.includes(repository)),
+            )?.[1];
+            if (blocker) {
+              throw Object.assign(new Error(`REGISTRY_MUTATION_${blocker.state}`), {
+                code: blocker.state === 'AMBIGUOUS' ? 'REGISTRY_MUTATION_AMBIGUOUS' : 'REGISTRY_MUTATION_ACTIVE',
+              });
+            }
+            const existing = this.registryMutationOperations.get(intent.operationId);
+            if (existing) {
+              const sameIntent =
+                JSON.stringify(existing.intent) === JSON.stringify({ ...intent, repositories: ordered });
+              if (!sameIntent) {
+                throw Object.assign(new Error('REGISTRY_MUTATION_INTENT_CONFLICT'), {
+                  code: 'REGISTRY_MUTATION_INTENT_CONFLICT',
+                });
+              }
+              if (existing.state === 'VERIFIED' && existing.providerEvidence !== undefined && options) {
+                return options.replayVerified(existing.providerEvidence);
+              }
+              throw Object.assign(new Error(`REGISTRY_MUTATION_${existing.state}`), {
+                code:
+                  existing.state === 'AMBIGUOUS'
+                    ? 'REGISTRY_MUTATION_AMBIGUOUS'
+                    : existing.state === 'IN_FLIGHT'
+                      ? 'REGISTRY_MUTATION_ACTIVE'
+                      : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
+              });
+            }
+            const normalizedIntent = { ...intent, repositories: ordered };
+            const controller = new AbortController();
+            const operation: typeof this.registryMutationOperations extends Map<string, infer V> ? V : never = {
+              intent: normalizedIntent,
+              state: 'IN_FLIGHT' as const,
+              fencingToken: 1n,
+            };
+            this.registryMutationOperations.set(intent.operationId, operation);
+            const assertActive = async () => {
+              if (controller.signal.aborted || operation.state !== 'IN_FLIGHT') {
+                throw Object.assign(new Error('REGISTRY_MUTATION_FENCE_LOST'), {
+                  code: 'REGISTRY_MUTATION_FENCE_LOST',
+                });
+              }
+            };
+            try {
+              const result = await effect({
+                signal: controller.signal,
+                ownerToken: `test-registry-owner:${intent.operationId}`,
+                fencingToken: operation.fencingToken,
+                backendPid: 1,
+                assertActive,
+                recordProviderOperationId: async (providerOperationId) => {
+                  await assertActive();
+                  if (operation.providerOperationId && operation.providerOperationId !== providerOperationId) {
+                    throw new Error('REGISTRY_MUTATION_PROVIDER_ID_IMMUTABLE');
+                  }
+                  operation.providerOperationId = providerOperationId;
+                },
+                recordProviderEvidence: async (evidence) => {
+                  await assertActive();
+                  operation.providerEvidence = structuredClone(evidence);
+                },
+              });
+              await assertActive();
+              this.registryMutationOperations.set(intent.operationId, { ...operation, state: 'VERIFIED' });
+              return result;
+            } catch (error) {
+              controller.abort(error);
+              this.registryMutationOperations.set(intent.operationId, { ...operation, state: 'AMBIGUOUS' });
+              throw error;
+            }
+          })();
     };
     return acquire(0);
+  }
+
+  async resolveAmbiguousRegistryMutation(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: RegistryMutationRecoveryEvidence;
+  }): Promise<void> {
+    const row = this.registryMutationOperations.get(input.operationId);
+    if (
+      !row ||
+      row.state !== 'AMBIGUOUS' ||
+      row.intent.organizationId !== input.expectedOrganizationId ||
+      !isRegistryMutationRecoveryEvidence(input.evidence) ||
+      input.evidence.operationId !== input.operationId ||
+      input.evidence.projectId !== row.intent.projectId ||
+      input.evidence.organizationId !== row.intent.organizationId ||
+      input.evidence.intentHash !== row.intent.intentHash ||
+      input.evidence.providerQueries.some(
+        ({ providerOperationId }) =>
+          providerOperationId !== undefined && providerOperationId !== row.providerOperationId,
+      ) ||
+      (row.providerOperationId !== undefined &&
+        input.evidence.providerQueries.some(({ providerOperationId }) => providerOperationId === undefined)) ||
+      (input.evidence.resolution === 'VERIFIED' &&
+        (row.providerEvidence === undefined ||
+          input.evidence.providerEvidenceHash !== registryMutationIntentHash(row.providerEvidence))) ||
+      (input.evidence.resolution === 'FAILED_SAFE' &&
+        (row.providerOperationId !== undefined || row.providerEvidence !== undefined))
+    ) {
+      throw new Error('REGISTRY_MUTATION_RECOVERY_AUTHORITY_INVALID');
+    }
+    this.registryMutationOperations.set(input.operationId, { ...row, state: input.evidence.resolution });
   }
 
   async prepareAppImageBuild(input: {
@@ -984,7 +1146,11 @@ export class TestApiStore implements ApiStore {
       if (row.operationTag === input.operationTag && row.state.phase === 'SUBMITTING') return;
       throw new Error('APP_IMAGE_BUILD_PHASE_CONFLICT');
     }
-    row.state = { phase: 'SUBMITTING' };
+    row.state = {
+      phase: 'SUBMITTING',
+      resolveAfter: new Date(Date.now() + 15 * 60_000).toISOString(),
+      overdue: false,
+    };
   }
 
   async recordAppImageBuildIdentity(input: {
@@ -998,7 +1164,9 @@ export class TestApiStore implements ApiStore {
     const row = await this.assertTestBuildAuthority(input);
     if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
     if (row.state.phase === 'IDENTIFIED' && row.state.buildId === input.buildId) return;
-    if (row.state.phase !== 'SUBMITTING') throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+    if (row.state.phase !== 'SUBMITTING' && row.state.phase !== 'MANUAL_RECOVERY') {
+      throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+    }
     row.providerBuildId = input.buildId;
     row.state = { phase: 'IDENTIFIED', buildId: input.buildId, ...(input.logUrl ? { logUrl: input.logUrl } : {}) };
   }
@@ -1015,6 +1183,31 @@ export class TestApiStore implements ApiStore {
     if (row.state.phase === 'REJECTED') return;
     if (row.state.phase !== 'SUBMITTING') throw new Error('APP_IMAGE_BUILD_REJECTION_CONFLICT');
     row.state = { phase: 'REJECTED' };
+  }
+
+  async resolveAppImageBuildSubmission(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: AppImageBuildSubmissionResolutionEvidence;
+  }): Promise<AppImageBuildOperationRecord> {
+    const row = this.appImageBuildOperations.get(input.operationId);
+    if (
+      !row ||
+      row.organizationId !== input.expectedOrganizationId ||
+      (row.state.phase !== 'SUBMITTING' && row.state.phase !== 'MANUAL_RECOVERY') ||
+      input.evidence.providerQueries.length < 2
+    ) {
+      throw new Error('APP_IMAGE_BUILD_RECOVERY_AUTHORITY_INVALID');
+    }
+    row.state =
+      input.evidence.resolution === 'MANUAL_RECOVERY'
+        ? {
+            phase: 'MANUAL_RECOVERY',
+            resolveAfter: row.state.resolveAfter ?? new Date(Date.now() - 1).toISOString(),
+            evidence: structuredClone(input.evidence),
+          }
+        : { phase: 'REJECTED_ABSENT', evidence: structuredClone(input.evidence) };
+    return structuredClone(row);
   }
 
   async recordAppImageBuildTerminal(input: {
@@ -1102,7 +1295,7 @@ export class TestApiStore implements ApiStore {
   }): Promise<void> {
     const projectId = this.projectIdFromTestDeletionLease(input.lease);
     const row = this.appImageBuildOperations.get(input.operationId);
-    if (!row || row.projectId !== projectId || !['PREPARED', 'REJECTED'].includes(row.state.phase)) {
+    if (!row || row.projectId !== projectId || !['PREPARED', 'REJECTED', 'REJECTED_ABSENT'].includes(row.state.phase)) {
       throw new Error('APP_IMAGE_BUILD_PROVIDER_OUTCOME_REQUIRED');
     }
     row.state = { phase: 'CANCELLED' };
@@ -1146,8 +1339,12 @@ export class TestApiStore implements ApiStore {
   }
 
   async resolveProjectRegistryErasureAuthority(projectId: string): Promise<ProjectRegistryErasureAuthorityRecord> {
+    const project = this.projects.get(projectId);
+    if (!project) throw new Error('PROJECT_NOT_FOUND');
     const builds = [...this.appImageBuildOperations.values()].filter((row) => row.projectId === projectId);
     return {
+      organizationId: project.organizationId,
+      ownershipEpoch: 0,
       projectPackages: [
         ...new Set(builds.flatMap((row) => [row.sourceRepository, row.targetRepository].filter(Boolean) as string[])),
       ].sort(),
@@ -3475,6 +3672,17 @@ export class TestApiStore implements ApiStore {
         const registryErasure = this.projectRegistryErasures.get(lease.operationId);
         if (!registryErasure || registryErasure.state !== 'VERIFIED' || !registryErasure.receipt) {
           throw new Error('PROJECT_REGISTRY_ERASURE_INCOMPLETE');
+        }
+        const projectImages = proof.evidence.projectImages as Record<string, unknown>;
+        const cloudBuild = projectImages.cloudBuild as Record<string, unknown>;
+        if (
+          projectImages.projectId !== input.projectId ||
+          projectImages.operationId !== lease.operationId ||
+          JSON.stringify(projectImages.registry) !== JSON.stringify(registryErasure.receipt) ||
+          cloudBuild.producerCount !==
+            [...this.appImageBuildOperations.values()].filter((build) => build.projectId === input.projectId).length
+        ) {
+          throw new Error('PROJECT_IMAGE_ERASURE_SUBRECEIPT_MISMATCH');
         }
         if (
           [...this.appImageBuildOperations.values()].some(

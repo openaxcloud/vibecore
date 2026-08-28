@@ -272,6 +272,7 @@ export async function promoteArtifact(input: {
   targetTenant: string;
   adapter: RegistryAdapter;
   required?: AttestationKind[];
+  signal?: AbortSignal;
 
   /**
    * Binary Authorization gate over the VERIFIED target attestations. Returns
@@ -282,6 +283,8 @@ export async function promoteArtifact(input: {
     verified: AttestationKind[],
   ) => boolean | BinaryAuthorizationGateResult | Promise<boolean | BinaryAuthorizationGateResult>;
 }): Promise<PromotionResult> {
+  const assertActive = () => input.signal?.throwIfAborted();
+  assertActive();
   const required = input.required ?? DEFAULT_REQUIRED_ATTESTATIONS;
   const { adapter, source } = input;
   const target: RegistryRef = { repo: input.targetRepo, digest: source.digest };
@@ -294,6 +297,7 @@ export async function promoteArtifact(input: {
       'PROMOTION_SOURCE_MISSING',
     );
   }
+  assertActive();
 
   /*
    * 1. Discover ALL referrers at the source and pre-check completeness. An image
@@ -301,6 +305,7 @@ export async function promoteArtifact(input: {
    *    promoted — it is unverifiable by construction.
    */
   const sourceReferrers = await adapter.listReferrers(source.repo, source.digest);
+  assertActive();
   const missingAtSource = missingAttestations(sourceReferrers, required, source.digest);
 
   if (missingAtSource.length > 0) {
@@ -312,6 +317,7 @@ export async function promoteArtifact(input: {
   }
 
   const targetExisted = await adapter.imageExists(target.repo, target.digest);
+  assertActive();
 
   /*
    * Referrers may have been pushed before their subject on OCI 1.1 registries.
@@ -319,6 +325,7 @@ export async function promoteArtifact(input: {
    * deletes evidence that predates this attempt.
    */
   const targetBefore = await adapter.listReferrers(target.repo, target.digest);
+  assertActive();
 
   const targetWasComplete =
     targetExisted &&
@@ -340,6 +347,7 @@ export async function promoteArtifact(input: {
       }));
 
     const rawGate = await gate(verified);
+    assertActive();
 
     const gateResult: BinaryAuthorizationGateResult =
       typeof rawGate === 'boolean'
@@ -364,6 +372,7 @@ export async function promoteArtifact(input: {
     }
 
     const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+    assertActive();
 
     if (
       !(await adapter.imageExists(target.repo, target.digest)) ||
@@ -378,6 +387,7 @@ export async function promoteArtifact(input: {
 
     const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
     await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+    assertActive();
 
     return {
       ok: true,
@@ -411,6 +421,7 @@ export async function promoteArtifact(input: {
     imageCreated = !targetExisted;
 
     const imageReceipt = await adapter.copyImage(source, target.repo);
+    assertActive();
 
     if (!imageReceipt.created) {
       imageCreated = false;
@@ -434,6 +445,7 @@ export async function promoteArtifact(input: {
       }
 
       const copied = await adapter.copyAndRelinkReferrer({ repo: source.repo, attachment }, target.repo, target.digest);
+      assertActive();
 
       if (!copied.created) {
         const index = createdReferrers.lastIndexOf(copied.attachment.digest);
@@ -450,6 +462,7 @@ export async function promoteArtifact(input: {
      *    image digest. This catches a silent copy/relink failure.
      */
     const targetReferrers = await adapter.listReferrers(target.repo, target.digest);
+    assertActive();
     const missingAtTarget = missingAttestations(targetReferrers, required, target.digest);
 
     if (missingAtTarget.length > 0) {
@@ -478,6 +491,7 @@ export async function promoteArtifact(input: {
       }));
 
     const rawGate = await gate(verified);
+    assertActive();
 
     const gateResult: BinaryAuthorizationGateResult =
       typeof rawGate === 'boolean'
@@ -504,6 +518,7 @@ export async function promoteArtifact(input: {
      * committed release proof.
      */
     const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+    assertActive();
     const missingAtCommit = missingAttestations(finalReferrers, required, target.digest);
 
     if (
@@ -520,6 +535,7 @@ export async function promoteArtifact(input: {
 
     const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
     await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+    assertActive();
 
     return {
       ok: true,

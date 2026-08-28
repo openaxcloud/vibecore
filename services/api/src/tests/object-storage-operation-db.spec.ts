@@ -1841,8 +1841,13 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
-          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
-          artifactRegistry: registryReceipt!,
+          projectImages: {
+            schemaVersion: 1,
+            projectId: seeded.project.id,
+            operationId: lease.operationId,
+            cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+            registry: registryReceipt!,
+          },
           workspaceManager: {
             schemaVersion: 'workspace-project-erasure-v3',
             projectId: seeded.project.id,
@@ -2125,8 +2130,13 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
-          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
-          artifactRegistry: registryReceipt!,
+          projectImages: {
+            schemaVersion: 1,
+            projectId: seeded.project.id,
+            operationId: lease.operationId,
+            cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+            registry: registryReceipt!,
+          },
           workspaceManager: {
             schemaVersion: 'workspace-project-erasure-v3',
             projectId: seeded.project.id,
@@ -2228,8 +2238,13 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
         managedDatabase: databaseReceipt!,
-        cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
-        artifactRegistry: registryReceipt!,
+        projectImages: {
+          schemaVersion: 1,
+          projectId: seeded.project.id,
+          operationId: lease!.operationId,
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          registry: registryReceipt!,
+        },
         workspaceManager: {
           schemaVersion: 'workspace-project-erasure-v3',
           projectId: seeded.project.id,
@@ -2454,8 +2469,13 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
         managedDatabase: databaseReceipt,
-        cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
-        artifactRegistry: registryReceipt,
+        projectImages: {
+          schemaVersion: 1,
+          projectId: seeded.project.id,
+          operationId: lease.operationId,
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          registry: registryReceipt,
+        },
         workspaceManager: {
           schemaVersion: 'workspace-project-erasure-v3',
           projectId: seeded.project.id,

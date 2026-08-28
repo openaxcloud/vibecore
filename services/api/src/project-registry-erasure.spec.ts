@@ -308,7 +308,7 @@ describe('project Artifact Registry permanent erasure', () => {
       retainedManifestCount: 0,
       retainedTagCount: 0,
     });
-    expect(replay.guard.fences).toBe(2);
+    expect(replay.guard.fences).toBe(4); // full refcount preflight + mutation pass for two packages
     expect(replay.guard.assertions).toBeGreaterThan(provider.effects.length);
 
     const secondReplay = await execute(provider, authority, inventory);
@@ -378,31 +378,22 @@ describe('project Artifact Registry permanent erasure', () => {
     ).rejects.toMatchObject({ code: 'REGISTRY_ERASURE_EVIDENCE_INVALID' });
   });
 
-  it('rechecks global refcounts under the package fence and retains shared image/referrer evidence exactly', async () => {
+  it('rejects a cross-project last reference before any provider mutation', async () => {
     const provider = new MemoryProvider();
     provider.seed(SOURCE, { buildTag: true });
     provider.seed(TARGET);
 
     const authority = new MemoryAuthority();
     const inventory = await capture(provider, authority);
-
     authority.set({ kind: 'manifest', repository: TARGET, digest: IMAGE }, 2);
     authority.set({ kind: 'manifest', repository: TARGET, digest: ATTACHMENTS[0]! }, 1);
 
-    const { receipt } = await execute(provider, authority, inventory);
-    expect(await provider.snapshotPackage(SOURCE)).toMatchObject({ exists: false, versions: [], tags: [] });
-    expect(await provider.snapshotPackage(TARGET)).toEqual({
-      repository: TARGET,
-      exists: true,
-      versions: [IMAGE, ATTACHMENTS[0]!].sort(),
-      tags: [],
+    await expect(execute(provider, authority, inventory)).rejects.toMatchObject({
+      code: 'REGISTRY_CROSS_PROJECT_REFERENCE_FORBIDDEN',
     });
-    expect(receipt).toMatchObject({
-      erasedPackageCount: 1,
-      retainedPackageCount: 1,
-      retainedManifestCount: 2,
-      retainedTagCount: 0,
-    });
+    expect(provider.effects).toEqual([]);
+    expect(await provider.snapshotPackage(SOURCE)).toMatchObject({ exists: true });
+    expect(await provider.snapshotPackage(TARGET)).toMatchObject({ exists: true });
   });
 
   it('fails before every mutation when the provider gained an unplanned version after durable capture', async () => {

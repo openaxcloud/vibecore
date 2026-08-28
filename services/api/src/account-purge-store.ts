@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import {
   assertAccountPurgeMutationAllowed,
+  assertAccountPurgeProjectChildrenComplete,
   assertAccountPurgeStateMachinesSafeToStart,
   fencePurgedUserStateMachines,
 } from './account-purge-state-machine-fence.js';

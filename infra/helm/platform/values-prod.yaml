@@ -168,15 +168,14 @@ platformEnv:
     # assets, root-relative assets, and client routing alike (verified live).
     previewUrlTemplate: 'https://{workspaceId}-{port}.preview.e-code.ai/'
     # Snapshot-image server deploys (Publish = the workspace, imaged). The API
-    # WI must retain repoAdmin here so hard-delete can sweep p-<project>. ⚠️ CD
-    # upgrades with --reuse-values: these keys reach the release only via a
-    # one-time manual `--set platformEnv.runtime.serverDeployImageRepo=...`.
+    # WI must retain repoAdmin here so hard-delete can sweep p-<project>.
     serverDeployImageRepo: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-apps'
     serverDeploySnapshotImage: '1'
     serverDeployCosignKmsKey: 'gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images'
-    # Intentionally empty until Terraform provisions the dedicated builder GSA
-    # and its exact repo/KMS grants. Never fall back to the default compute SA.
-    serverDeployBuildServiceAccount: ''
+    # Untrusted Docker RUNs use this KMS-free GSA; trusted signature/attestation
+    # steps use the distinct signer below. Both are provisioned by Terraform.
+    serverDeployBuildServiceAccount: 'projects/vibecore-495216/serviceAccounts/vibecore-prod-app-builder@vibecore-495216.iam.gserviceaccount.com'
+    serverDeploySigningServiceAccount: 'projects/vibecore-495216/serviceAccounts/vibecore-prod-app-signer@vibecore-495216.iam.gserviceaccount.com'
     # Reproducible pipeline: per-project allowlist ('*' = all). Rolled out
     # project-by-project after live proof; empty = Phase-A snapshot path.
     serverDeployRevisionProjects: ''

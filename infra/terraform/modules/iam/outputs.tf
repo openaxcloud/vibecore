@@ -5,3 +5,6 @@ output "workspace_volume_erasure_service_account" { value = google_service_accou
 output "server_deploy_builder_service_account" {
   value = try(google_service_account.server_deploy_builder[0].email, null)
 }
+output "server_deploy_signer_service_account" {
+  value = try(google_service_account.server_deploy_signer[0].email, null)
+}

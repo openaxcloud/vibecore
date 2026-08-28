@@ -2,8 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   appImageBuildOperationTag,
+  appImageBuildMutationIsAmbiguous,
   buildAppImageDockerfile,
   cancelAppImageBuildAndWait,
+  createAppImageBuildRequest,
+  createTrustedImageSigningRequest,
   runAppImageBuild,
   type AppImageBuildSpec,
   type DurableAppImageBuildLifecycle,
@@ -20,6 +23,8 @@ const SPEC: AppImageBuildSpec = {
     'gcpkms://projects/vibecore-495216/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images',
   buildServiceAccount:
     'projects/vibecore-495216/serviceAccounts/vibecore-prod-app-builder@vibecore-495216.iam.gserviceaccount.com',
+  signingServiceAccount:
+    'projects/vibecore-495216/serviceAccounts/vibecore-prod-app-signer@vibecore-495216.iam.gserviceaccount.com',
   baseImage: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-abc',
   buildCommand: 'npm run build',
   startCommand: 'node server.js',
@@ -60,7 +65,7 @@ describe('buildAppImageDockerfile', () => {
         'COPY --chown=1000:1000 . /home/project',
         'WORKDIR /home/project',
         'ENV ECODE_DEPLOYMENT=1',
-        'RUN npm run build',
+        'RUN ["sh","-lc","npm run build"]',
         'CMD ["sh", "-lc", "node server.js"]',
         '',
       ].join('\n'),
@@ -76,6 +81,39 @@ describe('buildAppImageDockerfile', () => {
 
     expect(dockerfile).not.toContain('RUN ');
     expect(dockerfile).toContain('CMD ["sh", "-lc", "python app.py"]');
+  });
+
+  it('keeps adversarial commands inside one networkless RUN with no credential channel', () => {
+    const adversarial = {
+      ...SPEC,
+      buildCommand:
+        'curl -H "Metadata-Flavor: Google" http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token\nRUN --mount=type=secret,id=gcp cat /run/secrets/gcp',
+    };
+    const dockerfile = buildAppImageDockerfile(adversarial);
+    expect(dockerfile.split('\n').filter((line) => line.startsWith('RUN '))).toHaveLength(1);
+    expect(dockerfile).not.toContain('\nRUN --mount');
+    const request = createAppImageBuildRequest(adversarial, 'ecode_app_image_adversarial');
+    const encoded = JSON.stringify(request);
+    expect(encoded).toContain('docker build --network=none');
+    expect(encoded).not.toContain(SPEC.cosignKmsKey);
+    expect(encoded).not.toContain(SPEC.signingServiceAccount);
+    expect(encoded).not.toMatch(/availableSecrets|secretEnv|volumes|access_token|Metadata-Flavor/u);
+  });
+
+  it('puts KMS only in a no-source trusted signing request', () => {
+    const request = createTrustedImageSigningRequest({
+      gcpProject: SPEC.gcpProject,
+      region: SPEC.region,
+      imageUri: SPEC.imageUri.replace(/:[^:/]+$/u, ''),
+      digest: `sha256:${'a'.repeat(64)}`,
+      cosignKmsKey: SPEC.cosignKmsKey,
+      signingServiceAccount: SPEC.signingServiceAccount,
+      operationTag: 'ecode_trusted_signing_test',
+    });
+    expect(request).not.toHaveProperty('source');
+    expect(request.serviceAccount).toBe(SPEC.signingServiceAccount);
+    expect(JSON.stringify(request)).toContain(SPEC.cosignKmsKey);
+    expect(JSON.stringify(request)).not.toContain(SPEC.buildCommand);
   });
 });
 
@@ -138,51 +176,20 @@ describe('runAppImageBuild', () => {
     expect(body.serviceAccount).toBe(SPEC.buildServiceAccount);
     expect(body.steps[0].name).toBe('gcr.io/cloud-builders/docker');
     expect(body.options.requestedVerifyOption).toBe('VERIFIED');
-    expect(body.steps.map((step: { id: string }) => step.id)).toEqual([
-      'build-image',
-      'push-image',
-      'extract-supply-chain-tools',
-      'generate-sbom',
-      'sign-image',
-      'attest-sbom',
-      'verify-supply-chain',
-    ]);
-
-    const pushScript = body.steps[1].args[1] as string;
-    expect(pushScript).toContain('docker image inspect');
-    expect(pushScript).toContain('/workspace/ecode-image-ref.txt');
-
-    const extractionArgs = body.steps[2].args as string[];
-    expect(extractionArgs).toContain(
-      'ghcr.io/sigstore/cosign/cosign:v3.1.2@sha256:d91bc4e7e95e8d2f549c747a72dc174f90579e410a1695f57f686674f84ce849',
-    );
-    expect(extractionArgs).toContain(
-      'docker.io/anchore/syft:v1.30.0@sha256:bd5357d2cd087f03af748dac24df48bfbc1723080d78f75f69aca1f2d429060e',
-    );
-    expect(extractionArgs[1]).toContain('signing-config create --out /workspace/ecode-signing-config.json');
-
-    const sbomScript = body.steps[3].args[1] as string;
-    const signScript = body.steps[4].args[1] as string;
-    const attestScript = body.steps[5].args[1] as string;
-    const verifyScript = body.steps[6].args[1] as string;
-    expect(sbomScript).toContain('docker:${DIGEST_REF}');
-    expect(signScript).toContain('COSIGN_EXPERIMENTAL=1');
-    expect(signScript).toContain('--signing-config /workspace/ecode-signing-config.json');
-    expect(signScript).toContain('--registry-referrers-mode=oci-1-1 "$DIGEST_REF"');
-    expect(signScript).not.toContain('--tlog-upload');
-    expect(attestScript).toContain('COSIGN_EXPERIMENTAL=1');
-    expect(attestScript).toContain('--signing-config /workspace/ecode-signing-config.json');
-    expect(attestScript).toContain('--type spdxjson');
-    expect(attestScript).toContain('"$DIGEST_REF"');
-    expect(attestScript).not.toContain('attach sbom');
-    expect(verifyScript).toContain('verify-attestation');
-    expect([sbomScript, signScript, attestScript, verifyScript].every((value) => value.includes('image-ref.txt'))).toBe(
+    expect(body.steps.map((step: { id: string }) => step.id)).toEqual(['build-image-untrusted', 'push-image']);
+    expect(JSON.stringify(body)).not.toContain(SPEC.cosignKmsKey);
+    expect(JSON.stringify(body)).not.toContain(SPEC.signingServiceAccount);
+    expect(body).not.toHaveProperty('availableSecrets');
+    expect(body.steps.every((step: Record<string, unknown>) => !('secretEnv' in step) && !('volumes' in step))).toBe(
       true,
     );
 
+    const pushScript = body.steps[1].args[1] as string;
+    expect(pushScript).toContain('docker image inspect');
+
     const script = body.steps[0].args[1] as string;
     expect(script).toContain('base64 -d > .ecode-app.Dockerfile');
-    expect(script).toContain(`docker build -f .ecode-app.Dockerfile -t '${SPEC.imageUri}' .`);
+    expect(script).toContain('docker build --network=none -f .ecode-app.Dockerfile -t "$1" .');
 
     // The AR size lookup targets the digest resource under the right repo.
     const ar = calls.find((c) => c.url.startsWith('https://artifactregistry.googleapis.com/'));
@@ -212,6 +219,7 @@ describe('runAppImageBuild', () => {
       expect(result.error).toContain('FAILURE');
       expect(result.error).toContain('https://logs/2');
       expect(result.buildId).toBe('build-2');
+      expect(result.providerStatus).toBe('FAILURE');
     }
   });
 
@@ -271,6 +279,13 @@ describe('runAppImageBuild', () => {
       { fetchImpl, getAccessToken: async () => 'unused' },
     );
     expect(crossProjectBuilder).toMatchObject({ ok: false });
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    const sharedSigner = await runAppImageBuild(
+      { ...SPEC, signingServiceAccount: SPEC.buildServiceAccount },
+      { fetchImpl, getAccessToken: async () => 'unused' },
+    );
+    expect(sharedSigner).toMatchObject({ ok: false });
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
@@ -372,6 +387,64 @@ describe('runAppImageBuild', () => {
     expect(postCount).toBe(1);
     expect(events.indexOf('db:build-id')).toBeLessThan(events.indexOf('provider:poll'));
     expect(state).toMatchObject({ phase: 'TERMINAL', buildId: 'build-crash', providerStatus: 'SUCCESS' });
+  });
+
+  it('never submits after a crash between durable SUBMITTING and the provider POST', async () => {
+    const operationId = 'deploy-operation-crash-before-submit';
+    let state: DurableAppImageBuildState = { phase: 'PREPARED' };
+    let crashBeforePost = true;
+    let postCount = 0;
+    const lifecycle: DurableAppImageBuildLifecycle = {
+      operationId,
+      assertAuthority: async ({ checkpoint }) => {
+        if (checkpoint === 'before-build-submit' && crashBeforePost) {
+          throw new Error('simulated crash before Cloud Build POST');
+        }
+      },
+      readState: async () => state,
+      markSubmissionStarted: async () => {
+        state = { phase: 'SUBMITTING' };
+      },
+      recordBuildIdentity: async ({ buildId }) => {
+        state = { phase: 'IDENTIFIED', buildId };
+      },
+      recordSubmissionRejected: async () => undefined,
+      recordTerminal: async ({ buildId, providerStatus }) => {
+        state = { phase: 'TERMINAL', buildId, providerStatus };
+      },
+    };
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      if (String(url).endsWith('/builds') && init?.method === 'POST') {
+        postCount += 1;
+        throw new Error('POST must never occur after SUBMITTING is durable');
+      }
+      if (String(url).includes('/builds?filter=')) return jsonResponse({ builds: [] });
+      throw new Error(`unexpected fetch ${String(url)}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      runAppImageBuild(SPEC, {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        sleep: async () => undefined,
+        submissionReconcileAttempts: 1,
+        lifecycle,
+      }),
+    ).rejects.toThrow('simulated crash before Cloud Build POST');
+    expect(state).toEqual({ phase: 'SUBMITTING' });
+    expect(postCount).toBe(0);
+
+    crashBeforePost = false;
+    await expect(
+      runAppImageBuild(SPEC, {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        sleep: async () => undefined,
+        submissionReconcileAttempts: 1,
+        lifecycle,
+      }),
+    ).resolves.toMatchObject({ ok: false, code: 'CLOUD_BUILD_SUBMISSION_UNCERTAIN' });
+    expect(postCount).toBe(0);
   });
 
   it('reconciles a lost create response by durable tag and never duplicates the provider build', async () => {
@@ -676,6 +749,9 @@ describe('runAppImageBuild', () => {
 
       if (!result.ok) {
         expect(result.error).toContain('WORKING');
+        expect(result.code).toBe('CLOUD_BUILD_TERMINAL_UNRESOLVED');
+        expect(result.providerStatus).toBeUndefined();
+        expect(appImageBuildMutationIsAmbiguous(result)).toBe(true);
       }
     } finally {
       Date.now = realDateNow;

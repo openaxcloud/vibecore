@@ -396,7 +396,24 @@ enum AppImageBuildPhase {
   IDENTIFIED
   TERMINAL
   REJECTED
+  MANUAL_RECOVERY
+  REJECTED_ABSENT
   CANCELLED
+}
+
+enum RegistryMutationKind {
+  APP_IMAGE_BUILD
+  TRUSTED_IMAGE_SIGNING
+  IMAGE_PROMOTION
+  PROJECT_ERASURE
+}
+
+enum RegistryMutationState {
+  PREPARED
+  IN_FLIGHT
+  AMBIGUOUS
+  VERIFIED
+  FAILED_SAFE
 }
 
 enum ProjectRegistryErasureState {
@@ -474,6 +491,7 @@ model Project {
   objectStorageVersionGcSchedule   ObjectStorageVersionGcSchedule?
   runtimeEffects                   ProjectRuntimeEffect[]
   appImageBuilds                   AppImageBuildOperation[]
+  registryMutations                RegistryMutationOperation[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1607,40 +1625,43 @@ model ReleaseManifest {
 /// `operationTag` is the only safe reconciliation key when the POST response is
 /// lost; source/target package identities are non-secret and immutable.
 model AppImageBuildOperation {
-  id                  String             @id
-  projectId           String
-  organizationId      String
-  ownershipEpoch      Int
-  deploymentId        String
-  phase               AppImageBuildPhase @default(PREPARED)
-  operationTag        String             @unique
-  intentHash          String
-  gcpProject          String
-  region              String
-  sourceBucket        String
-  sourceObject        String
-  imageUri            String
-  sourceRepository    String
-  sourceTag           String
-  buildServiceAccount String
-  timeoutSeconds      Int
-  providerBuildId     String?
-  providerStatus      String?
-  logUrl              String?
-  imageDigest         String?
-  targetRepository    String?
-  targetDigest        String?
-  promotionReferences Json?
-  cancellationProof   Json?
-  lastErrorCode       String?
-  submissionStartedAt DateTime?
-  identifiedAt        DateTime?
-  terminalAt          DateTime?
-  promotionRecordedAt DateTime?
-  cancelledAt         DateTime?
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
-  project             Project            @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+  id                     String             @id
+  projectId              String
+  organizationId         String
+  ownershipEpoch         Int
+  deploymentId           String
+  phase                  AppImageBuildPhase @default(PREPARED)
+  operationTag           String             @unique
+  intentHash             String
+  gcpProject             String
+  region                 String
+  sourceBucket           String
+  sourceObject           String
+  imageUri               String
+  sourceRepository       String
+  sourceTag              String
+  buildServiceAccount    String
+  timeoutSeconds         Int
+  providerBuildId        String?
+  providerStatus         String?
+  logUrl                 String?
+  imageDigest            String?
+  targetRepository       String?
+  targetDigest           String?
+  promotionReferences    Json?
+  cancellationProof      Json?
+  lastErrorCode          String?
+  submissionStartedAt    DateTime?
+  submissionResolveAfter DateTime?
+  identifiedAt           DateTime?
+  terminalAt             DateTime?
+  manualRecoveryAt       DateTime?
+  manualRecoveryEvidence Json?
+  promotionRecordedAt    DateTime?
+  cancelledAt            DateTime?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  project                Project            @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
 
   @@unique([projectId, deploymentId])
   @@unique([gcpProject, region, providerBuildId])
@@ -1648,6 +1669,41 @@ model AppImageBuildOperation {
   @@index([organizationId, phase, createdAt])
   @@index([sourceRepository, imageDigest])
   @@index([targetRepository, targetDigest])
+}
+
+/// Durable owner/fence for every Artifact Registry mutation. The PostgreSQL
+/// advisory lock remains a fast exclusion primitive; this row is the crash and
+/// session-loss authority. AMBIGUOUS is intentionally non-terminal and blocks
+/// both a second publisher and project hard-delete until operator recovery.
+model RegistryMutationOperation {
+  id                  String                @id
+  projectId           String
+  organizationId      String
+  ownershipEpoch      Int
+  kind                RegistryMutationKind
+  repositories        Json
+  intentHash          String
+  state               RegistryMutationState @default(PREPARED)
+  fencingToken        BigInt                @default(0)
+  ownerToken          String?
+  leaseExpiresAt      DateTime?
+  backendPid          Int?
+  providerOperationId String?
+  providerEvidence    Json?
+  lastErrorCode       String?
+  effectStartedAt     DateTime?
+  heartbeatAt         DateTime?
+  ambiguousAt         DateTime?
+  verifiedAt          DateTime?
+  recoveredAt         DateTime?
+  recoveryEvidence    Json?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  project             Project               @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([projectId, state, createdAt])
+  @@index([state, leaseExpiresAt])
+  @@index([providerOperationId])
 }
 
 // Durable execution + response ledger for POST

@@ -946,10 +946,39 @@ exports.Prisma.AppImageBuildOperationScalarFieldEnum = {
   cancellationProof: 'cancellationProof',
   lastErrorCode: 'lastErrorCode',
   submissionStartedAt: 'submissionStartedAt',
+  submissionResolveAfter: 'submissionResolveAfter',
   identifiedAt: 'identifiedAt',
   terminalAt: 'terminalAt',
+  manualRecoveryAt: 'manualRecoveryAt',
+  manualRecoveryEvidence: 'manualRecoveryEvidence',
   promotionRecordedAt: 'promotionRecordedAt',
   cancelledAt: 'cancelledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.RegistryMutationOperationScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  kind: 'kind',
+  repositories: 'repositories',
+  intentHash: 'intentHash',
+  state: 'state',
+  fencingToken: 'fencingToken',
+  ownerToken: 'ownerToken',
+  leaseExpiresAt: 'leaseExpiresAt',
+  backendPid: 'backendPid',
+  providerOperationId: 'providerOperationId',
+  providerEvidence: 'providerEvidence',
+  lastErrorCode: 'lastErrorCode',
+  effectStartedAt: 'effectStartedAt',
+  heartbeatAt: 'heartbeatAt',
+  ambiguousAt: 'ambiguousAt',
+  verifiedAt: 'verifiedAt',
+  recoveredAt: 'recoveredAt',
+  recoveryEvidence: 'recoveryEvidence',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -2605,7 +2634,24 @@ exports.AppImageBuildPhase = exports.$Enums.AppImageBuildPhase = {
   IDENTIFIED: 'IDENTIFIED',
   TERMINAL: 'TERMINAL',
   REJECTED: 'REJECTED',
+  MANUAL_RECOVERY: 'MANUAL_RECOVERY',
+  REJECTED_ABSENT: 'REJECTED_ABSENT',
   CANCELLED: 'CANCELLED'
+};
+
+exports.RegistryMutationKind = exports.$Enums.RegistryMutationKind = {
+  APP_IMAGE_BUILD: 'APP_IMAGE_BUILD',
+  TRUSTED_IMAGE_SIGNING: 'TRUSTED_IMAGE_SIGNING',
+  IMAGE_PROMOTION: 'IMAGE_PROMOTION',
+  PROJECT_ERASURE: 'PROJECT_ERASURE'
+};
+
+exports.RegistryMutationState = exports.$Enums.RegistryMutationState = {
+  PREPARED: 'PREPARED',
+  IN_FLIGHT: 'IN_FLIGHT',
+  AMBIGUOUS: 'AMBIGUOUS',
+  VERIFIED: 'VERIFIED',
+  FAILED_SAFE: 'FAILED_SAFE'
 };
 
 exports.SubscriptionStatus = exports.$Enums.SubscriptionStatus = {
@@ -2922,6 +2968,7 @@ exports.Prisma.ModelName = {
   DeploymentEnvironment: 'DeploymentEnvironment',
   ReleaseManifest: 'ReleaseManifest',
   AppImageBuildOperation: 'AppImageBuildOperation',
+  RegistryMutationOperation: 'RegistryMutationOperation',
   RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
   DeploymentAccessPolicy: 'DeploymentAccessPolicy',
   DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',

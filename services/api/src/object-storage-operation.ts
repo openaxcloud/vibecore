@@ -2257,8 +2257,15 @@ function assertPermanentDeletionEvidence(
 ): void {
   const filesystem = evidence.filesystem;
   const gcs = evidence.gcs;
-  const cloudBuild = evidence.cloudBuild;
-  const artifactRegistry = evidence.artifactRegistry;
+  const projectImages = evidence.projectImages;
+  const cloudBuild =
+    projectImages && typeof projectImages === 'object' && !Array.isArray(projectImages)
+      ? projectImages.cloudBuild
+      : undefined;
+  const artifactRegistry =
+    projectImages && typeof projectImages === 'object' && !Array.isArray(projectImages)
+      ? projectImages.registry
+      : undefined;
   const workspaceManager = evidence.workspaceManager;
   const managedDatabase = evidence.managedDatabase;
   if (
@@ -2289,6 +2296,12 @@ function assertPermanentDeletionEvidence(
     managedDatabase.proof.kubernetesAbsent !== true ||
     managedDatabase.proof.sharedTenantsAbsent !== true ||
     managedDatabase.proof.backupGenerationsAbsent !== true ||
+    !projectImages ||
+    typeof projectImages !== 'object' ||
+    Array.isArray(projectImages) ||
+    projectImages.schemaVersion !== 1 ||
+    typeof projectImages.projectId !== 'string' ||
+    typeof projectImages.operationId !== 'string' ||
     !cloudBuild ||
     typeof cloudBuild !== 'object' ||
     Array.isArray(cloudBuild) ||
@@ -3542,7 +3555,18 @@ export async function finalizeObjectStorageOperation(
       FOR UPDATE
     `;
     const registry = registryRows[0];
-    const registryProof = verification.evidence.artifactRegistry as ObjectStorageJsonObject;
+    const projectImageProof = verification.evidence.projectImages as ObjectStorageJsonObject;
+    if (
+      projectImageProof.projectId !== permanentReceipt.scope.projectIdSnapshot ||
+      projectImageProof.operationId !== locked.row.id
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_IMAGE_ERASURE_SCOPE_MISMATCH',
+        'Project image erasure receipt does not match the permanent deletion scope',
+        409,
+      );
+    }
+    const registryProof = projectImageProof.registry as ObjectStorageJsonObject;
     if (
       !registry ||
       registry.state !== 'VERIFIED' ||
@@ -3603,6 +3627,56 @@ export async function finalizeObjectStorageOperation(
         409,
       );
     }
+    const cloudBuildProof = projectImageProof.cloudBuild as ObjectStorageJsonObject;
+    const lateSuccessCount = imageBuilds.filter(({ cancellationProof }) => {
+      if (!cancellationProof || typeof cancellationProof !== 'object' || Array.isArray(cancellationProof)) {
+        return false;
+      }
+      return (cancellationProof as Record<string, unknown>).lateSuccess === true;
+    }).length;
+    if (
+      cloudBuildProof.producerCount !== imageBuilds.length ||
+      cloudBuildProof.terminalProofCount !== imageBuilds.length ||
+      cloudBuildProof.lateSuccessCount !== lateSuccessCount
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_IMAGE_BUILD_RECEIPT_MISMATCH',
+        'Project Cloud Build receipt does not match the durable producer inventory',
+        409,
+      );
+    }
+    const registryMutations = await tx.$queryRaw<
+      Array<{ id: string; kind: string; state: string; providerEvidence: ObjectStorageJsonValue | null }>
+    >`
+      SELECT "id", "kind"::text AS "kind", "state"::text AS "state", "providerEvidence"
+      FROM "RegistryMutationOperation"
+      WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+      ORDER BY "id"
+      FOR UPDATE
+    `;
+    if (registryMutations.some(({ state }) => state !== 'VERIFIED' && state !== 'FAILED_SAFE')) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_REGISTRY_MUTATION_ACTIVE',
+        'Project registry mutations are active or ambiguous',
+        409,
+      );
+    }
+    const erasureMutation = registryMutations.find(
+      ({ id, kind }) => id === `registry-mutation:erasure:${locked.row.id}` && kind === 'PROJECT_ERASURE',
+    );
+    if (
+      registryProof.packageCount !== 0 &&
+      (!erasureMutation ||
+        erasureMutation.state !== 'VERIFIED' ||
+        !erasureMutation.providerEvidence ||
+        canonicalJson(erasureMutation.providerEvidence) !== canonicalJson(registryProof))
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_REGISTRY_MUTATION_RECEIPT_MISSING',
+        'Project registry sweep is not certified by the shared mutation ledger',
+        409,
+      );
+    }
     const runtimeEffects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
       SELECT "id", "ownershipEpoch", "state"::text AS "state"
       FROM "ProjectRuntimeEffect"
@@ -3628,6 +3702,7 @@ export async function finalizeObjectStorageOperation(
     await tx.$executeRaw`DELETE FROM "WorkspaceRuntime" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "ScheduledTask" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "ProjectRuntimeEffect" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
+    await tx.$executeRaw`DELETE FROM "RegistryMutationOperation" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "AppImageBuildOperation" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "Project" WHERE "id" = ${permanentReceipt.scope.projectIdSnapshot}`;
     const cascade = await tx.$queryRaw<
@@ -3643,6 +3718,7 @@ export async function finalizeObjectStorageOperation(
         databaseSnapshotRowsAbsent: boolean;
         databaseRestoreRowsAbsent: boolean;
         databaseErasurePlanRetained: boolean;
+        registryMutationRowsAbsent: boolean;
         appImageBuildRowsAbsent: boolean;
       }>
     >(Prisma.sql`
@@ -3698,6 +3774,10 @@ export async function finalizeObjectStorageOperation(
             AND "receipt" IS NOT NULL
         ) AS "databaseErasurePlanRetained",
         NOT EXISTS (
+          SELECT 1 FROM "RegistryMutationOperation"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "registryMutationRowsAbsent",
+        NOT EXISTS (
           SELECT 1 FROM "AppImageBuildOperation"
           WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
         ) AS "appImageBuildRowsAbsent"
@@ -3714,6 +3794,7 @@ export async function finalizeObjectStorageOperation(
       cascade[0]?.databaseSnapshotRowsAbsent !== true ||
       cascade[0]?.databaseRestoreRowsAbsent !== true ||
       cascade[0]?.databaseErasurePlanRetained !== true ||
+      cascade[0]?.registryMutationRowsAbsent !== true ||
       cascade[0]?.appImageBuildRowsAbsent !== true
     ) {
       throw operationError(
@@ -3739,6 +3820,7 @@ export async function finalizeObjectStorageOperation(
             databaseSnapshotRowsAbsent: true,
             databaseRestoreRowsAbsent: true,
             databaseErasurePlanRetained: true,
+            registryMutationRowsAbsent: true,
             appImageBuildRowsAbsent: true,
           },
         },

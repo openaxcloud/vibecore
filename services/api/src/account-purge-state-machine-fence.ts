@@ -40,6 +40,37 @@ export function assertStateMachineNotPurged(errorCode?: string | null, error?: s
 }
 
 /**
+ * Union seam: account purge must drive the shared PROJECT_PERMANENT_DELETE
+ * coordinator for every owned project before its relational purge transaction.
+ * A committed child operation removes Project and writes the canonical receipt
+ * atomically, so any Project row still present here proves the parent skipped or
+ * has not yet completed that child saga. Never infer safety from empty image
+ * tables: files, buckets, runtimes and late Cloud Build producers are part of
+ * the same permanent-deletion proof.
+ */
+export async function assertAccountPurgeProjectChildrenComplete(
+  tx: Prisma.TransactionClient,
+  projectIds: readonly string[],
+): Promise<void> {
+  const ids = uniqueIds(projectIds);
+  if (ids.length === 0) return;
+  const blockers = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT project."id"
+    FROM "Project" project
+    WHERE project."id" IN (${Prisma.join(ids)})
+    ORDER BY project."id"
+    LIMIT 1
+  `);
+  if (blockers[0]) {
+    throw Object.assign(new Error('Account purge requires the canonical project permanent-deletion receipt.'), {
+      code: 'ACCOUNT_PURGE_PROJECT_PERMANENT_DELETE_REQUIRED',
+      statusCode: 409,
+      projectId: blockers[0].id,
+    });
+  }
+}
+
+/**
  * Linearize a state-machine mutation against account purge.
  *
  * Lock order is deliberately identical to AccountPurgeStore:

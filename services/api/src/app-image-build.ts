@@ -45,6 +45,9 @@ export interface AppImageBuildSpec {
   /** Dedicated same-project GSA used by Cloud Build (never an implicit default identity). */
   buildServiceAccount: string;
 
+  /** Distinct trusted GSA used only by the controlled signing build. */
+  signingServiceAccount: string;
+
   /** Base image = the workspace runtime image (same env the app was built in). */
   baseImage: string;
 
@@ -68,6 +71,7 @@ export function appImageBuildIntentHash(spec: AppImageBuildSpec): string {
     spec.imageUri,
     spec.cosignKmsKey,
     spec.buildServiceAccount,
+    spec.signingServiceAccount,
     spec.baseImage,
     spec.buildCommand,
     spec.startCommand,
@@ -87,6 +91,8 @@ export interface AppImageBuildDeps {
   submissionReconcileAttempts?: number;
   submissionReconcileIntervalMs?: number;
   onLog?: (level: 'info' | 'error', message: string) => void;
+  /** Durable registry-mutation fence; provider I/O stops when it aborts. */
+  signal?: AbortSignal;
 
   /**
    * Durable lifecycle used by production callers. Every callback is a bounded
@@ -119,10 +125,25 @@ export interface AppImageBuildAuthority {
 
 export type DurableAppImageBuildState =
   | { phase: 'PREPARED' }
-  | { phase: 'SUBMITTING' }
+  | { phase: 'SUBMITTING'; resolveAfter?: string; overdue?: boolean }
+  | { phase: 'MANUAL_RECOVERY'; resolveAfter: string; evidence: AppImageBuildSubmissionResolutionEvidence }
   | { phase: 'IDENTIFIED'; buildId: string; logUrl?: string }
   | { phase: 'TERMINAL'; buildId: string; providerStatus: AppImageBuildTerminalStatus; logUrl?: string }
-  | { phase: 'REJECTED' };
+  | { phase: 'REJECTED' }
+  | { phase: 'REJECTED_ABSENT'; evidence: AppImageBuildSubmissionResolutionEvidence };
+
+export interface AppImageBuildSubmissionResolutionEvidence {
+  schemaVersion: 'app-image-build-submission-resolution-v1';
+  resolution: 'MANUAL_RECOVERY' | 'REJECTED_ABSENT';
+  operatorUserId: string;
+  auditEventId: string;
+  operationTag: string;
+  gcpProject: string;
+  region: string;
+  observationWindowStartedAt: string;
+  observationWindowEndedAt: string;
+  providerQueries: Array<{ queriedAt: string; filter: string; result: 'ABSENT' | 'FOUND' | 'AMBIGUOUS' }>;
+}
 
 export interface DurableAppImageBuildLifecycle extends AppImageBuildAuthority {
   /** Stable, non-secret id generated and persisted before this function runs. */
@@ -169,10 +190,31 @@ export type AppImageBuildResult =
         | 'CLOUD_BUILD_CREATE_FAILED'
         | 'CLOUD_BUILD_IDENTITY_INVALID'
         | 'CLOUD_BUILD_RECONCILIATION_AMBIGUOUS'
-        | 'CLOUD_BUILD_SUBMISSION_UNCERTAIN';
+        | 'CLOUD_BUILD_SUBMISSION_UNCERTAIN'
+        | 'CLOUD_BUILD_TERMINAL_UNRESOLVED';
       buildId?: string;
       logUrl?: string;
+      providerStatus?: AppImageBuildTerminalStatus;
     };
+
+type AppImageBuildFailureResult = Extract<AppImageBuildResult, { ok: false }>;
+type AppImageBuildAmbiguousCode = Exclude<NonNullable<AppImageBuildFailureResult['code']>, 'CLOUD_BUILD_CREATE_FAILED'>;
+
+/** True when provider mutation may still occur and therefore must not receive a replayable receipt. */
+export function appImageBuildMutationIsAmbiguous(
+  result: AppImageBuildResult,
+): result is AppImageBuildFailureResult & { code: AppImageBuildAmbiguousCode } {
+  if (result.ok) return false;
+  switch (result.code) {
+    case 'CLOUD_BUILD_IDENTITY_INVALID':
+    case 'CLOUD_BUILD_RECONCILIATION_AMBIGUOUS':
+    case 'CLOUD_BUILD_SUBMISSION_UNCERTAIN':
+    case 'CLOUD_BUILD_TERMINAL_UNRESOLVED':
+      return true;
+    default:
+      return false;
+  }
+}
 
 const METADATA_TOKEN_URL = 'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token';
 
@@ -227,6 +269,39 @@ export type AppImageBuildProviderIdentity = Pick<
   AppImageBuildSpec,
   'gcpProject' | 'region' | 'sourceBucket' | 'sourceObject' | 'imageUri' | 'buildServiceAccount' | 'timeoutSeconds'
 >;
+
+export interface TrustedImageSigningSpec {
+  gcpProject: string;
+  region: string;
+  imageUri: string;
+  digest: string;
+  cosignKmsKey: string;
+  signingServiceAccount: string;
+  operationTag: string;
+  timeoutSeconds?: number;
+}
+
+export interface TrustedImageSigningDeps {
+  fetchImpl?: typeof fetch;
+  getAccessToken?: () => Promise<string>;
+  sleep?: (ms: number) => Promise<void>;
+  now?: () => number;
+  pollIntervalMs?: number;
+  signal: AbortSignal;
+  assertAuthority(): Promise<void>;
+  recordProviderBuildId(buildId: string): Promise<void>;
+  recordProviderEvidence(evidence: unknown): Promise<void>;
+}
+
+export type TrustedImageSigningResult =
+  | { ok: true; buildId: string; durationMs: number; logUrl?: string }
+  | {
+      ok: false;
+      code: 'TRUSTED_SIGNING_REJECTED' | 'TRUSTED_SIGNING_UNCERTAIN' | 'TRUSTED_SIGNING_FAILED';
+      error: string;
+      buildId?: string;
+      logUrl?: string;
+    };
 
 export type AppImageBuildCancellationResult =
   | { ok: true; proof: AppImageBuildCancellationProof }
@@ -330,6 +405,7 @@ async function submitCloudBuild(input: {
   headers: Record<string, string>;
   request: unknown;
   fetchImpl: typeof fetch;
+  signal?: AbortSignal;
 }): Promise<CloudBuildSubmissionResult> {
   let response: Response;
 
@@ -338,6 +414,7 @@ async function submitCloudBuild(input: {
       method: 'POST',
       headers: input.headers,
       body: JSON.stringify(input.request),
+      ...(input.signal ? { signal: input.signal } : {}),
     });
   } catch (error) {
     return { kind: 'uncertain', error: (error as Error).message ?? 'network error' };
@@ -382,6 +459,7 @@ async function reconcileTaggedBuild(input: {
   attempts: number;
   intervalMs: number;
   authority: AppImageBuildAuthority;
+  signal?: AbortSignal;
 }): Promise<BuildReconciliationResult> {
   const filter = encodeURIComponent(`tags="${input.operationTag}"`);
   const url = `${cloudBuildBase(input.spec)}/builds?filter=${filter}&pageSize=2`;
@@ -398,6 +476,7 @@ async function reconcileTaggedBuild(input: {
     try {
       response = await input.fetchImpl(url, {
         headers: { authorization: `Bearer ${input.token}`, 'content-type': 'application/json' },
+        ...(input.signal ? { signal: input.signal } : {}),
       });
     } catch {
       continue;
@@ -450,6 +529,12 @@ export function buildAppImageDockerfile(spec: {
   buildCommand: string | null;
   startCommand: string;
 }): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._/:@-]{0,511}$/u.test(spec.baseImage)) {
+    throw new TypeError('APP_IMAGE_BUILD_BASE_IMAGE_INVALID');
+  }
+  if (spec.buildCommand?.includes('\0') || !spec.startCommand.trim() || spec.startCommand.includes('\0')) {
+    throw new TypeError('APP_IMAGE_BUILD_COMMAND_INVALID');
+  }
   return [
     `FROM ${spec.baseImage}`,
 
@@ -459,10 +544,71 @@ export function buildAppImageDockerfile(spec: {
 
     // Replit-parity marker also baked into the image (belt and braces with the pod env).
     'ENV ECODE_DEPLOYMENT=1',
-    ...(spec.buildCommand ? [`RUN ${spec.buildCommand}`] : []),
+    /* JSON form keeps newlines and Dockerfile directives inside the shell argument. */
+    ...(spec.buildCommand ? [`RUN ${JSON.stringify(['sh', '-lc', spec.buildCommand])}`] : []),
     `CMD ["sh", "-lc", ${JSON.stringify(spec.startCommand)}]`,
     '',
   ].join('\n');
+}
+
+/**
+ * Public for adversarial contract tests. This is the only request allowed to
+ * consume user-controlled build commands: every Docker RUN is network-isolated
+ * and the outer build has neither secret declarations nor KMS material.
+ */
+export function createAppImageBuildRequest(spec: AppImageBuildSpec, operationTag?: string) {
+  const dockerfileB64 = Buffer.from(
+    buildAppImageDockerfile({
+      baseImage: spec.baseImage,
+      buildCommand: spec.buildCommand,
+      startCommand: spec.startCommand,
+    }),
+    'utf8',
+  ).toString('base64');
+  const imageRepo = spec.imageUri.replace(/:[^:/]+$/u, '');
+  return {
+    source: { storageSource: { bucket: spec.sourceBucket, object: spec.sourceObject } },
+    steps: [
+      {
+        id: 'build-image-untrusted',
+        name: 'gcr.io/cloud-builders/docker',
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          [
+            `printf '%s' '${dockerfileB64}' | base64 -d > .ecode-app.Dockerfile`,
+            'docker build --network=none -f .ecode-app.Dockerfile -t "$1" .',
+          ].join('\n'),
+          'ecode-build',
+          spec.imageUri,
+        ],
+      },
+      {
+        id: 'push-image',
+        name: 'gcr.io/cloud-builders/docker',
+        waitFor: ['build-image-untrusted'],
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          [
+            'docker push "$1"',
+            'DIGEST_REF="$(docker image inspect --format=\'{{index .RepoDigests 0}}\' "$1")"',
+            'case "$DIGEST_REF" in "$2"@sha256:*) ;; *) echo "pushed image digest is invalid" >&2; exit 65 ;; esac',
+            'DIGEST="${DIGEST_REF##*@sha256:}"',
+            '[ "${#DIGEST}" -eq 64 ] && printf "%s" "$DIGEST" | grep -Eq "^[a-f0-9]{64}$"',
+          ].join('\n'),
+          'ecode-push',
+          spec.imageUri,
+          imageRepo,
+        ],
+      },
+    ],
+    images: [spec.imageUri],
+    ...(operationTag ? { tags: ['ecode-app-image', operationTag] } : {}),
+    serviceAccount: spec.buildServiceAccount,
+    timeout: `${spec.timeoutSeconds ?? 600}s`,
+    options: { logging: 'CLOUD_LOGGING_ONLY', requestedVerifyOption: 'VERIFIED' },
+  };
 }
 
 /** Fetch a Workload Identity access token from the GKE metadata server. */
@@ -505,6 +651,7 @@ export async function runAppImageBuild(
   const operationTag = lifecycle ? appImageBuildOperationTag(lifecycle.operationId) : undefined;
   const kmsMatch = COSIGN_KMS_RE.exec(spec.cosignKmsKey);
   const builderMatch = CLOUD_BUILD_SERVICE_ACCOUNT_RE.exec(spec.buildServiceAccount);
+  const signerMatch = CLOUD_BUILD_SERVICE_ACCOUNT_RE.exec(spec.signingServiceAccount);
 
   if (kmsMatch?.groups?.project !== spec.gcpProject) {
     return { ok: false, error: appPublicEnglish('APP_IMAGE_BUILD_KMS_INVALID') };
@@ -513,160 +660,15 @@ export async function runAppImageBuild(
   if (
     builderMatch?.groups?.project !== spec.gcpProject ||
     builderMatch.groups.emailProject !== spec.gcpProject ||
-    !builderMatch.groups.email
+    !builderMatch.groups.email ||
+    signerMatch?.groups?.project !== spec.gcpProject ||
+    signerMatch.groups.emailProject !== spec.gcpProject ||
+    !signerMatch.groups.email ||
+    signerMatch.groups.email === builderMatch.groups.email
   ) {
     return { ok: false, error: appPublicEnglish('APP_IMAGE_BUILD_SERVICE_ACCOUNT_INVALID') };
   }
-
-  const dockerfileB64 = Buffer.from(
-    buildAppImageDockerfile({
-      baseImage: spec.baseImage,
-      buildCommand: spec.buildCommand,
-      startCommand: spec.startCommand,
-    }),
-    'utf8',
-  ).toString('base64');
-
-  const imageRepo = spec.imageUri.replace(/:[^:/]+$/u, '');
-
-  /*
-   * Supply-chain steps deliberately consume `/workspace/ecode-image-ref.txt`,
-   * which contains the immutable repo@sha256 resolved immediately after the
-   * explicit push. The tag is NEVER passed to Syft or Cosign. Cloud Build still
-   * receives `images:[tag]` so it emits VERIFIED native provenance and returns
-   * the final digest in build.results. Promotion uses that final digest and
-   * requires the signature + signed SBOM to refer to the exact same digest; if
-   * Cloud Build's final bookkeeping push ever differed, release fails closed.
-   *
-   * Cosign/Syft images are pinned by multi-arch digest. They are distroless, so
-   * a short extraction step copies their static binaries into /workspace; the
-   * binaries then run in the Cloud Build step itself and inherit ADC/KMS access.
-   */
-  const buildRequest = {
-    source: { storageSource: { bucket: spec.sourceBucket, object: spec.sourceObject } },
-    steps: [
-      {
-        id: 'build-image',
-        name: 'gcr.io/cloud-builders/docker',
-        entrypoint: 'sh',
-        args: [
-          '-c',
-          `printf '%s' '${dockerfileB64}' | base64 -d > .ecode-app.Dockerfile && docker build -f .ecode-app.Dockerfile -t '${spec.imageUri}' .`,
-        ],
-      },
-      {
-        id: 'push-image',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['build-image'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          [
-            'docker push "$1"',
-            'DIGEST_REF="$(docker image inspect --format=\'{{index .RepoDigests 0}}\' "$1")"',
-            'case "$DIGEST_REF" in "$2"@sha256:*) ;; *) echo "pushed image digest is invalid" >&2; exit 65 ;; esac',
-            'DIGEST="${DIGEST_REF##*@sha256:}"',
-            '[ "${#DIGEST}" -eq 64 ] && printf "%s" "$DIGEST" | grep -Eq "^[a-f0-9]{64}$"',
-            'printf "%s" "$DIGEST_REF" > /workspace/ecode-image-ref.txt',
-          ].join('\n'),
-          'ecode-push',
-          spec.imageUri,
-          imageRepo,
-        ],
-      },
-      {
-        id: 'extract-supply-chain-tools',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['push-image'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          [
-            'docker pull "$1"',
-            'docker pull "$2"',
-            'COSIGN_CONTAINER="$(docker create "$1")"',
-            'SYFT_CONTAINER="$(docker create "$2")"',
-            'cleanup() { docker rm "$COSIGN_CONTAINER" "$SYFT_CONTAINER" >/dev/null 2>&1 || true; }',
-            'trap cleanup EXIT',
-            'docker cp "$COSIGN_CONTAINER":/ko-app/cosign /workspace/ecode-cosign',
-            'docker cp "$SYFT_CONTAINER":/syft /workspace/ecode-syft',
-            'chmod 0555 /workspace/ecode-cosign /workspace/ecode-syft',
-            '/workspace/ecode-cosign signing-config create --out /workspace/ecode-signing-config.json',
-          ].join('\n'),
-          'ecode-tools',
-          COSIGN_IMAGE,
-          SYFT_IMAGE,
-        ],
-      },
-      {
-        id: 'generate-sbom',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['extract-supply-chain-tools'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          'DIGEST_REF="$(cat /workspace/ecode-image-ref.txt)"\n/workspace/ecode-syft "docker:${DIGEST_REF}" -o spdx-json=/workspace/ecode-app.spdx.json',
-        ],
-      },
-      {
-        id: 'sign-image',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['extract-supply-chain-tools'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          [
-            'DIGEST_REF="$(cat /workspace/ecode-image-ref.txt)"',
-            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign sign --key "$1" --signing-config /workspace/ecode-signing-config.json --yes --registry-referrers-mode=oci-1-1 "$DIGEST_REF"',
-          ].join('\n'),
-          'ecode-sign',
-          spec.cosignKmsKey,
-        ],
-      },
-      {
-        id: 'attest-sbom',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['generate-sbom', 'sign-image'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          [
-            'DIGEST_REF="$(cat /workspace/ecode-image-ref.txt)"',
-            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign attest --key "$1" --signing-config /workspace/ecode-signing-config.json --predicate /workspace/ecode-app.spdx.json --type spdxjson --yes "$DIGEST_REF"',
-          ].join('\n'),
-          'ecode-attest',
-          spec.cosignKmsKey,
-        ],
-      },
-      {
-        id: 'verify-supply-chain',
-        name: 'gcr.io/cloud-builders/docker',
-        waitFor: ['attest-sbom'],
-        entrypoint: 'sh',
-        args: [
-          '-ceu',
-          [
-            'DIGEST_REF="$(cat /workspace/ecode-image-ref.txt)"',
-            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign verify --key "$1" --insecure-ignore-tlog "$DIGEST_REF" >/dev/null',
-            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign verify-attestation --key "$1" --type spdxjson --insecure-ignore-tlog "$DIGEST_REF" >/dev/null',
-          ].join('\n'),
-          'ecode-verify',
-          spec.cosignKmsKey,
-        ],
-      },
-    ],
-    images: [spec.imageUri],
-    ...(operationTag ? { tags: ['ecode-app-image', operationTag] } : {}),
-    serviceAccount: spec.buildServiceAccount,
-    timeout: `${timeoutSeconds}s`,
-
-    /*
-     * Fail the build itself unless Cloud Build produced verifiable provenance.
-     * The promotion gate still independently discovers and validates it by
-     * digest in Artifact Registry.
-     */
-    options: { logging: 'CLOUD_LOGGING_ONLY', requestedVerifyOption: 'VERIFIED' },
-  };
+  const buildRequest = createAppImageBuildRequest(spec, operationTag);
 
   const base = cloudBuildBase(spec);
 
@@ -697,6 +699,7 @@ export async function runAppImageBuild(
       attempts: reconcileAttempts,
       intervalMs: reconcileIntervalMs,
       authority: lifecycle,
+      ...(deps.signal ? { signal: deps.signal } : {}),
     });
   };
 
@@ -717,6 +720,14 @@ export async function runAppImageBuild(
         code: 'CLOUD_BUILD_CREATE_FAILED',
         error: 'The durable Cloud Build submission was definitively rejected.',
       };
+    } else if (state.phase === 'REJECTED_ABSENT') {
+      return {
+        ok: false,
+        code: 'CLOUD_BUILD_CREATE_FAILED',
+        error: 'Operator reconciliation proved that the durable Cloud Build submission is absent.',
+      };
+    } else if (state.phase === 'MANUAL_RECOVERY') {
+      shouldSubmit = false;
     } else {
       shouldSubmit = false;
       buildId = state.buildId;
@@ -734,6 +745,7 @@ export async function runAppImageBuild(
       headers: authHeaders,
       request: buildRequest,
       fetchImpl,
+      ...(deps.signal ? { signal: deps.signal } : {}),
     });
 
     if (submission.kind === 'rejected') {
@@ -867,7 +879,10 @@ export async function runAppImageBuild(
     let polled: Response;
 
     try {
-      polled = await fetchImpl(`${base}/builds/${encodeURIComponent(buildId)}`, { headers: authHeaders });
+      polled = await fetchImpl(`${base}/builds/${encodeURIComponent(buildId)}`, {
+        headers: authHeaders,
+        ...(deps.signal ? { signal: deps.signal } : {}),
+      });
     } catch {
       if (lifecycle) {
         await lifecycle.assertAuthority({ checkpoint: 'after-build-poll', buildId });
@@ -924,7 +939,13 @@ export async function runAppImageBuild(
   if (status !== 'SUCCESS') {
     const suffix = isTerminalStatus(status) ? status : `still ${status} past deadline`;
 
-    return { ok: false, error: `Image build ${suffix}${logUrl ? ` — logs: ${logUrl}` : ''}`, buildId, logUrl };
+    return {
+      ok: false,
+      error: `Image build ${suffix}${logUrl ? ` — logs: ${logUrl}` : ''}`,
+      buildId,
+      ...(logUrl ? { logUrl } : {}),
+      ...(isTerminalStatus(status) ? { providerStatus: status } : { code: 'CLOUD_BUILD_TERMINAL_UNRESOLVED' as const }),
+    };
   }
 
   let imageSizeBytes: number | undefined;
@@ -944,6 +965,207 @@ export async function runAppImageBuild(
   }
 
   return { ok: true, imageUri: spec.imageUri, digest, imageSizeBytes, buildId, durationMs: now() - startedAt };
+}
+
+export function createTrustedImageSigningRequest(spec: TrustedImageSigningSpec) {
+  const digest = spec.digest.startsWith('sha256:') ? spec.digest : `sha256:${spec.digest}`;
+  if (!/^sha256:[a-f0-9]{64}$/u.test(digest)) throw new TypeError('TRUSTED_SIGNING_DIGEST_INVALID');
+  if (!/^[a-z0-9-]+-docker\.pkg\.dev\/[a-z0-9-]+\/[a-z0-9._-]+\/[a-z0-9._/-]+$/u.test(spec.imageUri)) {
+    throw new TypeError('TRUSTED_SIGNING_IMAGE_INVALID');
+  }
+  if (!/^[a-z0-9_-]{1,128}$/u.test(spec.operationTag)) {
+    throw new TypeError('TRUSTED_SIGNING_OPERATION_TAG_INVALID');
+  }
+  const digestRef = `${spec.imageUri}@${digest}`;
+  return {
+    steps: [
+      {
+        id: 'extract-trusted-tools',
+        name: 'gcr.io/cloud-builders/docker',
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          [
+            'docker pull "$1"',
+            'docker pull "$2"',
+            'COSIGN_CONTAINER="$(docker create "$1")"',
+            'SYFT_CONTAINER="$(docker create "$2")"',
+            'cleanup() { docker rm "$COSIGN_CONTAINER" "$SYFT_CONTAINER" >/dev/null 2>&1 || true; }',
+            'trap cleanup EXIT',
+            'docker cp "$COSIGN_CONTAINER":/ko-app/cosign /workspace/ecode-cosign',
+            'docker cp "$SYFT_CONTAINER":/syft /workspace/ecode-syft',
+            'chmod 0555 /workspace/ecode-cosign /workspace/ecode-syft',
+            '/workspace/ecode-cosign signing-config create --out /workspace/ecode-signing-config.json',
+          ].join('\n'),
+          'ecode-tools',
+          COSIGN_IMAGE,
+          SYFT_IMAGE,
+        ],
+      },
+      {
+        id: 'generate-trusted-sbom',
+        name: 'gcr.io/cloud-builders/docker',
+        waitFor: ['extract-trusted-tools'],
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          '/workspace/ecode-syft "registry:$1" -o spdx-json=/workspace/ecode-app.spdx.json',
+          'ecode-sbom',
+          digestRef,
+        ],
+      },
+      {
+        id: 'sign-trusted-digest',
+        name: 'gcr.io/cloud-builders/docker',
+        waitFor: ['extract-trusted-tools'],
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign sign --key "$2" --signing-config /workspace/ecode-signing-config.json --yes --registry-referrers-mode=oci-1-1 "$1"',
+          'ecode-sign',
+          digestRef,
+          spec.cosignKmsKey,
+        ],
+      },
+      {
+        id: 'attest-trusted-sbom',
+        name: 'gcr.io/cloud-builders/docker',
+        waitFor: ['generate-trusted-sbom', 'sign-trusted-digest'],
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign attest --key "$2" --signing-config /workspace/ecode-signing-config.json --predicate /workspace/ecode-app.spdx.json --type spdxjson --yes "$1"',
+          'ecode-attest',
+          digestRef,
+          spec.cosignKmsKey,
+        ],
+      },
+      {
+        id: 'verify-trusted-supply-chain',
+        name: 'gcr.io/cloud-builders/docker',
+        waitFor: ['attest-trusted-sbom'],
+        entrypoint: 'sh',
+        args: [
+          '-ceu',
+          [
+            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign verify --key "$2" --insecure-ignore-tlog "$1" >/dev/null',
+            'COSIGN_EXPERIMENTAL=1 /workspace/ecode-cosign verify-attestation --key "$2" --type spdxjson --insecure-ignore-tlog "$1" >/dev/null',
+          ].join('\n'),
+          'ecode-verify',
+          digestRef,
+          spec.cosignKmsKey,
+        ],
+      },
+    ],
+    tags: ['ecode-trusted-signing', spec.operationTag],
+    serviceAccount: spec.signingServiceAccount,
+    timeout: `${spec.timeoutSeconds ?? 600}s`,
+    options: { logging: 'CLOUD_LOGGING_ONLY' },
+  };
+}
+
+/** Execute only platform-authored signing commands under the KMS-capable GSA. */
+export async function runTrustedImageSigning(
+  spec: TrustedImageSigningSpec,
+  deps: TrustedImageSigningDeps,
+): Promise<TrustedImageSigningResult> {
+  const fetchImpl = deps.fetchImpl ?? fetch;
+  const getAccessToken = deps.getAccessToken ?? (() => metadataAccessToken(fetchImpl));
+  const sleep = deps.sleep ?? ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const now = deps.now ?? Date.now;
+  const startedAt = now();
+  const timeoutSeconds = spec.timeoutSeconds ?? 600;
+  const kmsMatch = COSIGN_KMS_RE.exec(spec.cosignKmsKey);
+  const signerMatch = CLOUD_BUILD_SERVICE_ACCOUNT_RE.exec(spec.signingServiceAccount);
+  if (
+    kmsMatch?.groups?.project !== spec.gcpProject ||
+    signerMatch?.groups?.project !== spec.gcpProject ||
+    signerMatch.groups.emailProject !== spec.gcpProject
+  ) {
+    return { ok: false, code: 'TRUSTED_SIGNING_REJECTED', error: 'Trusted signing identity is invalid.' };
+  }
+  const request = createTrustedImageSigningRequest(spec);
+  let token: string;
+  try {
+    await deps.assertAuthority();
+    token = await getAccessToken();
+    await deps.assertAuthority();
+  } catch (error) {
+    return { ok: false, code: 'TRUSTED_SIGNING_UNCERTAIN', error: (error as Error).message };
+  }
+  const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
+  const base = cloudBuildBase(spec);
+  await deps.assertAuthority();
+  const submission = await submitCloudBuild({
+    url: `${base}/builds`,
+    headers,
+    request,
+    fetchImpl,
+    signal: deps.signal,
+  });
+  await deps.assertAuthority();
+  if (submission.kind === 'rejected') {
+    return {
+      ok: false,
+      code: 'TRUSTED_SIGNING_REJECTED',
+      error: `Trusted signing submission was rejected (${submission.status}).`,
+    };
+  }
+  if (submission.kind !== 'accepted' || !submission.buildId) {
+    return {
+      ok: false,
+      code: 'TRUSTED_SIGNING_UNCERTAIN',
+      error: 'Trusted signing POST outcome is uncertain; operator reconciliation is required.',
+    };
+  }
+  const buildId = submission.buildId;
+  let logUrl = submission.logUrl;
+  await deps.recordProviderBuildId(buildId);
+  let status = 'QUEUED';
+  const deadline = startedAt + (timeoutSeconds + 180) * 1000;
+  while (now() < deadline) {
+    await sleep(deps.pollIntervalMs ?? 5000);
+    await deps.assertAuthority();
+    let response: Response;
+    try {
+      response = await fetchImpl(`${base}/builds/${encodeURIComponent(buildId)}`, {
+        headers,
+        signal: deps.signal,
+      });
+    } catch {
+      await deps.assertAuthority();
+      continue;
+    }
+    await deps.assertAuthority();
+    if (!response.ok) continue;
+    const build = (await response.json()) as CloudBuildResource;
+    if (
+      build.id !== buildId ||
+      build.serviceAccount !== spec.signingServiceAccount ||
+      build.tags?.includes(spec.operationTag) !== true
+    ) {
+      return {
+        ok: false,
+        code: 'TRUSTED_SIGNING_FAILED',
+        error: 'Trusted signing build identity did not match the durable intent.',
+        buildId,
+      };
+    }
+    status = build.status ?? status;
+    logUrl = build.logUrl ?? logUrl;
+    if (isTerminalStatus(status)) break;
+  }
+  await deps.recordProviderEvidence({ buildId, status, ...(logUrl ? { logUrl } : {}) });
+  if (status !== 'SUCCESS') {
+    return {
+      ok: false,
+      code: 'TRUSTED_SIGNING_FAILED',
+      error: `Trusted signing build did not succeed (${status}).`,
+      buildId,
+      ...(logUrl ? { logUrl } : {}),
+    };
+  }
+  return { ok: true, buildId, durationMs: now() - startedAt, ...(logUrl ? { logUrl } : {}) };
 }
 
 /**
