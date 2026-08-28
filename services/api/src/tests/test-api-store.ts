@@ -1828,6 +1828,77 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
+  migrationExecutions = new Map<string, any>();
+
+  /*
+   * Reproduit les DEUX index uniques réels (`activeLock` et
+   * `(projectId, idempotencyKey)`) en levant une erreur portant le code Prisma
+   * `P2002`. Sans ça, le double en mémoire accepterait deux migrations
+   * concurrentes et les tests vaudraient pour une fiction plus permissive que
+   * la production — c'est précisément l'invariant I-MIG-2 qu'ils doivent prouver.
+   */
+  async createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    for (const row of this.migrationExecutions.values()) {
+      if (row.activeLock != null && row.activeLock === input.activeLock) {
+        throw Object.assign(new Error('Unique constraint failed on the fields: (`activeLock`)'), { code: 'P2002' });
+      }
+
+      if (row.projectId === input.projectId && row.idempotencyKey === input.idempotencyKey) {
+        throw Object.assign(new Error('Unique constraint failed on the fields: (`idempotencyKey`)'), { code: 'P2002' });
+      }
+    }
+
+    const row = {
+      ...input,
+      id: id('dbmig'),
+      appliedStatements: 0,
+      startedAt: now(),
+      error: undefined,
+      backupId: undefined,
+      backupVerifiedAt: undefined,
+      backupVerificationMethod: undefined,
+      completedAt: undefined,
+    };
+    this.migrationExecutions.set(row.id, row);
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateMigrationExecution(idv: string, patch: Record<string, unknown>) {
+    const row = this.migrationExecutions.get(idv);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
+  }
+
+  async getMigrationExecutionByIdempotencyKey(projectId: string, idempotencyKey: string) {
+    for (const row of this.migrationExecutions.values()) {
+      if (row.projectId === projectId && row.idempotencyKey === idempotencyKey) {
+        return { id: row.id, state: row.state, appliedStatements: row.appliedStatements };
+      }
+    }
+
+    return undefined;
+  }
+
+  async getMigrationExecution(idv: string) {
+    return this.migrationExecutions.get(idv);
+  }
+
   async listDatabaseSnapshots(databaseInstanceId: string) {
     return [...this.databaseSnapshots.values()]
       .filter((snapshot) => snapshot.databaseInstanceId === databaseInstanceId)
@@ -2192,6 +2263,56 @@ export class TestApiStore implements ApiStore {
   async getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined> {
     const active = this.agentRoutingCards.filter((card) => card.active).sort((a, b) => b.version - a.version)[0];
     return active ? { version: active.version, data: active.data } : undefined;
+  }
+
+  projectCheckpoints = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      state: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+      createdAt: string;
+    }
+  >();
+
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
+    this.projectCheckpoints.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
+    const row = this.projectCheckpoints.get(idv);
+    if (row) Object.assign(row, patch);
+  }
+
+  /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
+  async getActiveCheckpointBarrier(projectId: string) {
+    const rows = [...this.projectCheckpoints.values()]
+      .filter(
+        (r) =>
+          r.projectId === projectId &&
+          r.barrierExpiresAt != null &&
+          new Date(r.barrierExpiresAt).getTime() > Date.now() &&
+          r.logicalBarrierId,
+      )
+      .sort((a, b) => new Date(b.barrierExpiresAt!).getTime() - new Date(a.barrierExpiresAt!).getTime());
+
+    const row = rows[0];
+
+    return row
+      ? { checkpointId: row.id, barrierId: row.logicalBarrierId!, expiresAt: row.barrierExpiresAt! }
+      : undefined;
+  }
+
+  async getProjectCheckpoint(idv: string) {
+    return this.projectCheckpoints.get(idv);
   }
 
   remixJobs = new Map<

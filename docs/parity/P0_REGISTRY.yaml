@@ -241,10 +241,10 @@ p0s:
     commit: "b8186f2f"
     reviewer: UNKNOWN
     evidenceId: docs/parity/CHECKPOINT_CONTRACT.md
-    proof: "SPEC UNIQUEMENT : protocole barrière 2 phases (BARRIER_ESTABLISHED avant SNAPSHOTTING), niveaux crash/application/transaction-consistent, quiesce avec dégel obligatoire ; transition CHECKPOINT_SNAPSHOT_BEFORE_BARRIER refusée par test. Implémentation non commencée — un contrat n'est pas une capacité."
-    dependances: [UNK-CHECKPOINT-IMPL]
-    conditionDeCloture: "Corriger le claim/la preuve : barrière 2 phases prouvée mais pas le niveau « transaction-consistent » revendiqué ; puis re-soumission au relecteur"
-    nextAction: "Implémentation volume+DB+manifest avec preuve de restore"
+    proof: "v3 (PR feat/p0-v3-09-checkpoint-restore) — CLAIM REDESCENDU AU PROUVÉ : le niveau n'est plus écrit à la main mais DÉRIVÉ de la portée réelle de la barrière (checkpoint-consistency.ts) ; le manifeste annonce crash-consistent, porte crossComponentAtomic=false et notClaimed=[application-consistent, transaction-consistent] ; un test échoue si un niveau interdit apparaît dans un manifeste. PREUVE DE RESTORE RÉELLE : créer→checkpoint→casser (valeur modifiée + fichier supprimé + fichier parasite)→POST /checkpoints/:id/restore→contenu d'origine retrouvé, vérifié en relisant le stockage et par re-hash contre le manifeste. CORRECTIFS : barrière persistée en base (elle était une Map in-process alors que l'API tourne en 2 replicas → invisible aux autres, elle ne gelait rien) et appliquée au point d'étranglement du stockage (elle ne couvrait que 2 des ~35 routes mutantes, dont aucune des écritures parties de handlers GET). NON PROUVÉ, dit tel quel : couverture BASE (le backup CNPG est soumis mais ni attendu ni rejoué → exclu des composants vérifiés), gel des écrivains in-pod, instant commun fichiers↔base. 27 tests verts."
+    dependances: [UNK-CHECKPOINT-DB-PITR, UNK-CHECKPOINT-POD-FREEZE]
+    conditionDeCloture: "Signature expert de CTR-CHECKPOINT v3. Le point RESTE OUVERT : la couverture base et le gel in-pod ne sont pas prouvés — seul le composant FICHIERS est restauré et vérifié."
+    nextAction: "Re-soumission au relecteur (CTR-CHECKPOINT v3) ; puis restore PITR CNPG réel pour la couverture base"
     targetDate: "2026-09-30"
   - p0Id: P0-V3-10
     title: "Contrat Nix incomplet et pin mal classé"
@@ -281,10 +281,10 @@ p0s:
     commit: "57ab0a67"
     reviewer: UNKNOWN
     evidenceId: docs/parity/DATABASE_CONTRACT.md
-    proof: "SPEC : DBMigrationExecution (PLANNED→…→COMMITTED, FAILED_SAFE/FORWARD_FIX_REQUIRED/MANUAL_RECOVERY), idempotencyKey, une migration active/env, aucune mutation PROD par l'Agent ; transition MIGRATION_APPLY_BEFORE_BACKUP refusée par test. Implémentation publish-migration non prouvée live — tracée UNK-DB-MIGRATION-PUBLISH-IMPL."
-    dependances: [UNK-DB-MIGRATION-PUBLISH-IMPL]
-    conditionDeCloture: "Compléter l'évidence : contrat sans DBMigrationExecution, clé idempotence ni protocole complet mutation PROD ; puis re-soumission au relecteur"
-    nextAction: "Prouver une migration au publish réelle (lock, backup, validation)"
+    proof: "v2 (PR feat/p0-v3-11-db-migration-publish) — CÂBLAGE RÉEL : table DBMigrationExecution (mig 0082) + exécuteur + applicateur transactionnel, branchés dans POST /projects/:id/deployments/:id/publish AVANT la création du déploiement de production (un échec REFUSE le publish, la prod garde la version précédente). VERROU tenu par le SGBD (index UNIQUE sur activeLock) et non par migrationMayStart(), qui décidait depuis une liste en mémoire — fenêtre de course + invisible aux autres replicas (API en 2, HPA 6). BACKUP VÉRIFIÉ au sens fort : lecture de la phase CNPG 'completed' via un nouveau backupStatus() ; auparavant takeSnapshot() rendait la main dès le CR accepté et personne ne relisait son statut, donc I-MIG-1 était INSATISFIABLE. PREUVE RÉELLE sur PostgreSQL 16 : un lot échoué à mi-parcours ne laisse AUCUNE trace (tables défaites, registre non écrit, données préexistantes intactes) + publish bout-en-bout créant réellement le schéma. NÉGATIFS PROUVÉS : sans backup vérifié → refus sans exécuter une seule instruction (4 variantes dont provisionneur inerte) ; 2e migration concurrente → refus MIGRATION_LOCK_HELD ; moteur MySQL refusé faute de DDL transactionnel. NON PROUVÉ, dit tel quel : restaurabilité du backup (phase completed ≠ restore réussi), migration live sur CNPG de production, absence de down-migration. 30 tests verts (dont 5 sur vrai PostgreSQL) ; suite API 1354 verts."
+    dependances: [UNK-DB-MIGRATION-PITR-RESTORABILITY, UNK-DB-MIGRATION-LIVE-PROD]
+    conditionDeCloture: "Signature expert de CTR-DATABASE v2. Le point RESTE OUVERT : la restaurabilité du backup et la migration live prod ne sont pas prouvées."
+    nextAction: "Re-soumission au relecteur (CTR-DATABASE v2) ; puis migration live sur CNPG de production + drill de restaurabilité"
     targetDate: "2026-09-30"
   - p0Id: P0-V3-12
     title: "Ledger de billing insuffisant"

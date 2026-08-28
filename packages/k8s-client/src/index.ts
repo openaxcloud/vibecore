@@ -346,6 +346,15 @@ export interface K8sObject {
   data?: Record<string, string>;
   stringData?: Record<string, string>;
   type?: string;
+  /**
+   * Sous-ressource `status` renvoyée par l'API. `getResource` parse déjà le corps
+   * complet, mais le type l'omettait — si bien qu'un appelant ne pouvait pas
+   * OBSERVER l'aboutissement d'une opération (phase d'un `Backup` CNPG, par
+   * exemple) et devait se contenter du fait que le CR ait été accepté. C'est la
+   * différence entre « demandé » et « terminé » : sans ce champ, un backup ne
+   * peut pas être *vérifié* (P0-V3-11, I-MIG-1).
+   */
+  status?: Record<string, unknown>;
 }
 
 export interface WorkspaceK8sClient {

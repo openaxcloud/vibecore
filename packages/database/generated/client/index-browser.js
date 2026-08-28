@@ -1480,6 +1480,21 @@ exports.Prisma.AgentCallLogScalarFieldEnum = {
   source: 'source'
 };
 
+exports.Prisma.ProjectCheckpointScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  state: 'state',
+  logicalBarrierId: 'logicalBarrierId',
+  consistencyLevel: 'consistencyLevel',
+  manifest: 'manifest',
+  error: 'error',
+  expiresAt: 'expiresAt',
+  createdByUserId: 'createdByUserId',
+  barrierExpiresAt: 'barrierExpiresAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.RemixJobScalarFieldEnum = {
   id: 'id',
   sourceProjectId: 'sourceProjectId',
@@ -1655,6 +1670,30 @@ exports.Prisma.WorkspacePostMortemScalarFieldEnum = {
   problems: 'problems',
   logsTail: 'logsTail',
   capturedAt: 'capturedAt'
+};
+
+exports.Prisma.DBMigrationExecutionScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  environment: 'environment',
+  state: 'state',
+  idempotencyKey: 'idempotencyKey',
+  activeLock: 'activeLock',
+  backupId: 'backupId',
+  backupVerifiedAt: 'backupVerifiedAt',
+  backupVerificationMethod: 'backupVerificationMethod',
+  backwardCompatible: 'backwardCompatible',
+  forwardCompatible: 'forwardCompatible',
+  statementsSha256: 'statementsSha256',
+  statementCount: 'statementCount',
+  appliedStatements: 'appliedStatements',
+  deploymentId: 'deploymentId',
+  createdByUserId: 'createdByUserId',
+  error: 'error',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -1956,6 +1995,7 @@ exports.Prisma.ModelName = {
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',
   AgentCallLog: 'AgentCallLog',
+  ProjectCheckpoint: 'ProjectCheckpoint',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
   GalleryListing: 'GalleryListing',
@@ -1967,7 +2007,8 @@ exports.Prisma.ModelName = {
   LedgerReconciliationRun: 'LedgerReconciliationRun',
   PreviewReadinessBeacon: 'PreviewReadinessBeacon',
   WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
-  WorkspacePostMortem: 'WorkspacePostMortem'
+  WorkspacePostMortem: 'WorkspacePostMortem',
+  DBMigrationExecution: 'DBMigrationExecution'
 };
 
 /**
