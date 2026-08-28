@@ -345,6 +345,7 @@ model Project {
   targetRemixShares        RemixStorageShare[]          @relation("RemixStorageShareTargetProject")
   cloudBinding             CloudProjectBinding?
   checkpoints              ProjectCheckpoint[]
+  releaseManifests         ReleaseManifest[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -1133,6 +1134,15 @@ model ReleaseManifest {
   configDigest     String?
   dbMigrationPoint String?
 
+  // Nullable only for rows created before migration 0100. New server-image
+  // releases fail closed unless both strict, self-hashed envelopes are present.
+  // runtimeSpec pins the exact machine/network/env/secret/database contract.
+  // promotionEvidence stores server promotion provenance OR the tagged,
+  // self-hashed static-rollback-routing edge proof; both survive Deployment and
+  // AdminAuditLog pruning.
+  runtimeSpec       Json?
+  promotionEvidence Json?
+
   // I-AUTH-1: the access policy is part of release identity. Rollback restores
   // this exact version rather than inheriting a later/less restrictive mode.
   accessPolicyVersion Int @default(1)
@@ -1143,6 +1153,7 @@ model ReleaseManifest {
   projectManifestDigest String?
 
   createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Restrict)
 
   @@unique([projectId, environment, version])
   @@index([projectId, environment])
@@ -2918,6 +2929,11 @@ model RemixJob {
   storageShareId           String?
   /// SecretScanFinding[] { path, secretKey, line } — never the value.
   scanFindings             Json?
+  /// Verified target ProjectIdeState staged while the target remains hidden.
+  /// It becomes canonical only in the same transaction as COMPLETED + reveal.
+  targetIdeState           Json?
+  /// Canonical SHA-256 pin for targetIdeState (guards JSONB/retry tampering).
+  targetIdeStateDigest     String?
   /// Count of value-lines scrubbed out of the clone during CLONING.
   scrubbedCount            Int                @default(0)
   /// VERSIONED license captured at remix time from the source listing —
