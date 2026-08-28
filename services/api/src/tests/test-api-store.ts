@@ -2,6 +2,12 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from '../login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
@@ -528,6 +534,33 @@ export class TestApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return [...this.recoveryCodes.values()].filter((item) => item.userId === userId && !item.usedAt).length;
+  }
+
+  private loginLockouts = new Map<string, LoginLockoutState>();
+  /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
+  loginLockoutShouldThrow = false;
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    return this.loginLockouts.get(userId);
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    const next = nextStateOnFailure(this.loginLockouts.get(userId) ?? CLEARED_LOCKOUT, nowMs, config);
+    this.loginLockouts.set(userId, next);
+
+    return next;
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    this.loginLockouts.delete(userId);
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {

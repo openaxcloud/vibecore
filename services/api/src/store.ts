@@ -2,6 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 
 export interface UserRecord {
   id: string;
@@ -1288,6 +1289,16 @@ export interface ApiStore {
   setRecoveryCodes(userId: string, codeHashes: string[]): Promise<RecoveryCodeRecord[]>;
   consumeRecoveryCode(userId: string, codeHash: string): Promise<boolean>;
   countUnusedRecoveryCodes(userId: string): Promise<number>;
+
+  /*
+   * Per-account brute-force lock (login-throttle). getLoginLockout reads the
+   * current state; recordFailedLogin atomically increments the failed counter
+   * (serialized per-user so concurrent attempts can't race it) and returns the
+   * new state; clearLoginLockout resets it on a successful login.
+   */
+  getLoginLockout(userId: string): Promise<LoginLockoutState | undefined>;
+  recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState>;
+  clearLoginLockout(userId: string): Promise<void>;
   createOrganization(input: { name: string; slug: string; ownerUserId: string }): Promise<OrganizationRecord>;
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;

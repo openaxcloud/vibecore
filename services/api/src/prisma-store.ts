@@ -5,6 +5,12 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from './login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
@@ -659,6 +665,51 @@ export class PrismaApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return this.prisma.mfaRecoveryCode.count({ where: { userId, usedAt: null } });
+  }
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    const row = await this.prisma.accountLockout.findUnique({ where: { userId } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      failedCount: row.failedCount,
+      firstFailedAtMs: row.firstFailedAt ? row.firstFailedAt.getTime() : null,
+      lockedUntilMs: row.lockedUntil ? row.lockedUntil.getTime() : null,
+    };
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    /*
+     * Serialize per-user so two concurrent failed logins can't both read the same
+     * count and clobber each other (lost update). The advisory lock makes the
+     * read-compute-write atomic across pods, so N concurrent failures increment to
+     * exactly N — the property the concurrency test proves against real Postgres.
+     */
+    return this.withSerializedMutation(`login-lockout:${userId}`, async () => {
+      const current = (await this.getLoginLockout(userId)) ?? CLEARED_LOCKOUT;
+      const next = nextStateOnFailure(current, nowMs, config);
+      const data = {
+        failedCount: next.failedCount,
+        firstFailedAt: next.firstFailedAtMs === null ? null : new Date(next.firstFailedAtMs),
+        lockedUntil: next.lockedUntilMs === null ? null : new Date(next.lockedUntilMs),
+      };
+
+      await this.prisma.accountLockout.upsert({
+        where: { userId },
+        create: { userId, ...data },
+        update: data,
+      });
+
+      return next;
+    });
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    // deleteMany (not delete) so clearing an account that never failed is a no-op.
+    await this.prisma.accountLockout.deleteMany({ where: { userId } });
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
