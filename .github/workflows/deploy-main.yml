@@ -1007,7 +1007,21 @@ jobs:
           while read -r service image digest; do
             ref="${REG}/${image}@${digest}"
             echo "::group::cosign verify ${service}"
-            if cosign verify --key "${KMS_KEY}" "${ref}" >/dev/null 2>/tmp/cosign.err; then
+            # --insecure-ignore-tlog : la vérification DOIT refléter la politique
+            # de signature. `scripts/cosign-sign-images.sh` signe avec
+            # `--tlog-upload=false` — choix délibéré et documenté : on ne publie
+            # pas les empreintes d'images privées dans le Rekor public. Vérifier
+            # sans ce drapeau exigeait donc une entrée de journal de transparence
+            # que rien ne crée jamais, et la porte échouait invariablement :
+            #
+            #     no matching signatures: signature not found in transparency log
+            #
+            # Le nom du drapeau est trompeur ici : la confiance ne repose pas sur
+            # Rekor mais sur la clé KMS, dont l'accès est contrôlé par IAM. Ce
+            # qui est vérifié — que l'image est signée par CETTE clé — est
+            # inchangé. `deploy-tlog-policy.spec.mjs` échoue si les deux côtés
+            # divergent de nouveau.
+            if cosign verify --key "${KMS_KEY}" --insecure-ignore-tlog=true "${ref}" >/dev/null 2>/tmp/cosign.err; then
               echo "signature OK: ${ref}"
             else
               sed -n '1,20p' /tmp/cosign.err
