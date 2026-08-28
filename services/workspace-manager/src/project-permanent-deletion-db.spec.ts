@@ -12,6 +12,17 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 import { WorkspaceManager, type EventBus, type WorkspaceProjectDeletionLease } from './manager.js';
 import { PrismaWorkspaceStore } from './prisma-store.js';
+import { StaticProjectVolumeProviderResolver } from './project-volume-erasure-adapters.js';
+import { unboundProjectVolumeErasureRuntime } from './project-volume-erasure-test-k8s.js';
+import type {
+  ExactKubernetesDelete,
+  ExactProviderVolumeDelete,
+  ProjectPersistentVolume,
+  ProjectPersistentVolumeClaim,
+  ProjectStorageClass,
+  ProjectVolumeKubernetesAdapter,
+  ProjectVolumeProviderAdapter,
+} from './project-volume-erasure.js';
 
 async function reachableDatabase(): Promise<DatabaseClient | undefined> {
   if (!process.env.DATABASE_URL) return undefined;
@@ -62,6 +73,110 @@ class ProjectDeletionK8s implements WorkspaceK8sClient {
 
 class NoopEvents implements EventBus {
   async publish() {}
+}
+
+class CrashReplayVolumeRuntime {
+  readonly volumeHandle = 'projects/vibecore-prod1/zones/europe-west9-a/disks/pvc-crash-replay';
+  readonly providerResourceId = '9876543210';
+  readonly volumeName: string;
+  readonly pvcUid: string;
+  readonly kubernetes: ProjectVolumeKubernetesAdapter;
+  readonly provider: ProjectVolumeProviderAdapter;
+  providerPresent = true;
+  persistentVolumePresent = true;
+  crashAfterAcceptedDelete = true;
+  providerDeleteCalls = 0;
+
+  constructor(
+    private readonly k8s: ProjectDeletionK8s,
+    readonly namespace: string,
+    readonly pvcName: string,
+  ) {
+    this.volumeName = `pv-${pvcName}`;
+    this.pvcUid = `uid-${pvcName}`;
+    const persistentVolume = (): ProjectPersistentVolume => ({
+      apiVersion: 'v1',
+      kind: 'PersistentVolume',
+      metadata: {
+        name: this.volumeName,
+        uid: `uid-${this.volumeName}`,
+        resourceVersion: '1',
+      },
+      spec: {
+        claimRef: { namespace: this.namespace, name: this.pvcName, uid: this.pvcUid },
+        storageClassName: 'workspace-retain-test',
+        persistentVolumeReclaimPolicy: 'Retain',
+        csi: { driver: 'pd.csi.storage.gke.io', volumeHandle: this.volumeHandle },
+      },
+    });
+    const storageClass = (): ProjectStorageClass => ({
+      apiVersion: 'storage.k8s.io/v1',
+      kind: 'StorageClass',
+      metadata: { name: 'workspace-retain-test', uid: 'uid-storage-class', resourceVersion: '1' },
+      provisioner: 'pd.csi.storage.gke.io',
+      reclaimPolicy: 'Retain',
+    });
+    this.kubernetes = {
+      getPersistentVolumeClaim: async (namespace, name): Promise<ProjectPersistentVolumeClaim | undefined> => {
+        const object = await this.k8s.get('PersistentVolumeClaim', namespace, name);
+        if (!object) return undefined;
+        return {
+          apiVersion: 'v1',
+          kind: 'PersistentVolumeClaim',
+          metadata: {
+            name,
+            namespace,
+            uid: `uid-${name}`,
+            resourceVersion: object.metadata.resourceVersion ?? '1',
+            labels: object.metadata.labels,
+          },
+          spec:
+            namespace === this.namespace && name === this.pvcName
+              ? { volumeName: this.volumeName, storageClassName: 'workspace-retain-test' }
+              : {},
+        };
+      },
+      getPersistentVolume: async (name) =>
+        this.persistentVolumePresent && name === this.volumeName ? persistentVolume() : undefined,
+      listPersistentVolumes: async () => (this.persistentVolumePresent ? [persistentVolume()] : []),
+      getStorageClass: async (name) => (name === 'workspace-retain-test' ? storageClass() : undefined),
+      deletePersistentVolumeClaim: async (namespace, name, exact: ExactKubernetesDelete) => {
+        if (exact.uid !== `uid-${name}`) throw new Error('PVC_DELETE_IDENTITY_MISMATCH');
+        await this.k8s.delete('PersistentVolumeClaim', namespace, name);
+      },
+      deletePersistentVolume: async (name, exact: ExactKubernetesDelete) => {
+        if (name !== this.volumeName || exact.uid !== `uid-${this.volumeName}`) {
+          throw new Error('PV_DELETE_IDENTITY_MISMATCH');
+        }
+        this.persistentVolumePresent = false;
+      },
+    };
+    this.provider = {
+      csiDriver: 'pd.csi.storage.gke.io',
+      inspect: async (handle) => {
+        if (handle !== this.volumeHandle) throw new Error('PROVIDER_HANDLE_MISMATCH');
+        return this.providerPresent ? { exists: true, resourceId: this.providerResourceId } : { exists: false };
+      },
+      deleteExact: async (input: ExactProviderVolumeDelete) => {
+        if (input.volumeHandle !== this.volumeHandle || input.expectedResourceId !== this.providerResourceId) {
+          throw new Error('PROVIDER_DELETE_IDENTITY_MISMATCH');
+        }
+        this.providerDeleteCalls += 1;
+        this.providerPresent = false;
+        if (this.crashAfterAcceptedDelete) {
+          this.crashAfterAcceptedDelete = false;
+          throw new Error('CRASH_AFTER_PROVIDER_DELETE');
+        }
+      },
+    };
+  }
+
+  asManagerRuntime() {
+    return {
+      kubernetes: this.kubernetes,
+      providers: new StaticProjectVolumeProviderResolver([this.provider]),
+    };
+  }
 }
 
 const prisma = await reachableDatabase();
@@ -192,7 +307,11 @@ async function seedDeletion(fence: number) {
     expectedOrganizationId: organizationId,
   };
   const k8s = new ProjectDeletionK8s();
-  const labels = { 'vibecore.ai/project-id': projectId, 'vibecore.ai/workspace-id': workspaceId };
+  const labels = {
+    'vibecore.ai/org-id': organizationId,
+    'vibecore.ai/project-id': projectId,
+    'vibecore.ai/workspace-id': workspaceId,
+  };
   for (const [kind, name] of [
     ['Pod', `workspace-${workspaceId}`],
     ['Service', `workspace-${workspaceId}`],
@@ -221,7 +340,7 @@ async function seedDeletion(fence: number) {
   return { organizationId, projectId, workspaceId, operationId, lease, store, k8s };
 }
 
-integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', () => {
+integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', { timeout: 60_000 }, () => {
   afterAll(async () => {
     if (!prisma) return;
     await prisma.projectRuntimeEffect.deleteMany({ where: { projectId: { in: createdProjects } } });
@@ -234,9 +353,19 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', (
 
   it('deletes every runtime object, retains DB recovery identities, then rejects a stale recreate', async () => {
     const fixture = await seedDeletion(1);
-    const manager = new WorkspaceManager(fixture.store, fixture.k8s, new NoopEvents(), 'test-token');
+    const manager = new WorkspaceManager(
+      fixture.store,
+      fixture.k8s,
+      new NoopEvents(),
+      'test-token',
+      undefined,
+      unboundProjectVolumeErasureRuntime(fixture.k8s),
+    );
 
-    const proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    let proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    while (proof.schemaVersion === 'workspace-project-erasure-progress-v1') {
+      proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    }
 
     expect(proof.databaseInventoryRetained).toBe(true);
     expect(proof.runtimeEffectsDrained).toBe(true);
@@ -261,7 +390,14 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', (
 
   it('halts on a lost fence and lets the reclaimed VERIFYING owner resume idempotently', async () => {
     const fixture = await seedDeletion(11);
-    const manager = new WorkspaceManager(fixture.store, fixture.k8s, new NoopEvents(), 'test-token');
+    const manager = new WorkspaceManager(
+      fixture.store,
+      fixture.k8s,
+      new NoopEvents(),
+      'test-token',
+      undefined,
+      unboundProjectVolumeErasureRuntime(fixture.k8s),
+    );
     const nextOwnerToken = `${unique('workspace-delete-reclaimer')}-0123456789abcdef`;
     let reclaimed = false;
     fixture.k8s.onDelete = async () => {
@@ -287,7 +423,10 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', (
 
     fixture.k8s.onDelete = undefined;
     const reclaimedLease = { ...fixture.lease, ownerToken: nextOwnerToken, fencingToken: '12' };
-    const proof = await manager.verifyProjectWorkspacesAbsent('workspaces', reclaimedLease);
+    let proof = await manager.verifyProjectWorkspacesAbsent('workspaces', reclaimedLease);
+    while (proof.schemaVersion === 'workspace-project-erasure-progress-v1') {
+      proof = await manager.verifyProjectWorkspacesAbsent('workspaces', reclaimedLease);
+    }
 
     expect(proof.databaseInventoryRetained).toBe(true);
     expect(proof.runtimeEffectsDrained).toBe(true);
@@ -318,26 +457,83 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', (
       kind: 'Pod',
       metadata: { namespace: 'workspaces', name: runtimeTargetName },
     });
-    const manager = new WorkspaceManager(fixture.store, fixture.k8s, new NoopEvents(), 'test-token');
-    let crashed = false;
-    fixture.k8s.onDelete = async () => {
-      if (crashed) return;
-      crashed = true;
-      throw new Error('CRASH_AFTER_PROVIDER_DELETE');
-    };
-
-    await expect(manager.purgeProjectWorkspaces('workspaces', fixture.lease)).rejects.toThrow(
-      'CRASH_AFTER_PROVIDER_DELETE',
+    const volumeRuntime = new CrashReplayVolumeRuntime(fixture.k8s, 'workspaces', `pvc-${fixture.workspaceId}`);
+    const manager = new WorkspaceManager(
+      fixture.store,
+      fixture.k8s,
+      new NoopEvents(),
+      'test-token',
+      undefined,
+      volumeRuntime.asManagerRuntime(),
     );
+    let crash: unknown;
+    for (let attempt = 0; attempt < 10 && !crash; attempt += 1) {
+      try {
+        await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+      } catch (error) {
+        crash = error;
+      }
+    }
+    expect(crash).toMatchObject({ message: 'CRASH_AFTER_PROVIDER_DELETE' });
+    expect(volumeRuntime.providerPresent).toBe(false);
+    expect(volumeRuntime.persistentVolumePresent).toBe(true);
+    expect(volumeRuntime.providerDeleteCalls).toBe(1);
+    await expect(
+      prisma!.$queryRaw<Array<{ evidenceEntry: unknown | null }>>`
+        SELECT target."evidenceEntry"
+        FROM "ProjectVolumeErasureTarget" target
+        WHERE target."operationId" = ${fixture.operationId}
+          AND target."pvcName" = ${volumeRuntime.pvcName}
+      `,
+    ).resolves.toEqual([{ evidenceEntry: null }]);
     await expect(
       prisma!.$queryRaw<Array<{ state: string }>>`
         SELECT "state"::text AS "state" FROM "ProjectRuntimeEffect" WHERE "id" = ${runtimeEffectId}
       `,
     ).resolves.toEqual([{ state: 'DRAINING' }]);
 
-    fixture.k8s.onDelete = undefined;
-    const proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    let proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    while (proof.schemaVersion === 'workspace-project-erasure-progress-v1') {
+      proof = await manager.purgeProjectWorkspaces('workspaces', fixture.lease);
+    }
     expect(proof.runtimeEffectsDrained).toBe(true);
+    expect(volumeRuntime.providerDeleteCalls).toBe(1);
+    expect(volumeRuntime.persistentVolumePresent).toBe(false);
+    await expect(
+      prisma!.$executeRaw`
+        UPDATE "ProjectVolumeErasure"
+        SET "verificationFencingToken" = 20, "updatedAt" = clock_timestamp()
+        WHERE "operationId" = ${fixture.operationId}
+      `,
+    ).rejects.toThrow('PROJECT_VOLUME_ERASURE_EVIDENCE_FENCE_STALE');
+    await expect(
+      prisma!.$executeRaw`
+        UPDATE "ProjectVolumeErasureTarget"
+        SET "verifiedFencingToken" = 20, "updatedAt" = clock_timestamp()
+        WHERE "operationId" = ${fixture.operationId}
+          AND "pvcName" = ${volumeRuntime.pvcName}
+      `,
+    ).rejects.toThrow('PROJECT_VOLUME_ERASURE_EVIDENCE_FENCE_STALE');
+
+    const lateEffectId = unique('workspace-delete-late-pvc-effect');
+    await prisma!.$executeRaw`
+      INSERT INTO "ProjectRuntimeEffect" (
+        "id", "projectId", "organizationId", "ownershipEpoch", "action", "resourceId",
+        "intentHash", "targetDigest", "ownerToken", "leaseExpiresAt", "state", "createdAt", "updatedAt"
+      ) VALUES (
+        ${lateEffectId}, ${fixture.projectId}, ${fixture.organizationId}, 0,
+        'START_WORKSPACE', ${volumeRuntime.pvcName}, ${'e'.repeat(64)}, ${'f'.repeat(64)},
+        ${`${lateEffectId}-owner`}, clock_timestamp() + interval '60 seconds',
+        'PREPARED'::"ProjectRuntimeEffectState", clock_timestamp(), clock_timestamp()
+      )
+    `;
+    await expect(
+      prisma!.$executeRaw`
+        INSERT INTO "ProjectRuntimeEffectTarget" ("effectId", "ordinal", "kind", "namespace", "name")
+        VALUES (${lateEffectId}, 0, 'PersistentVolumeClaim', 'workspaces', ${volumeRuntime.pvcName})
+      `,
+    ).rejects.toThrow('PROJECT_VOLUME_ERASURE_TARGET_FROZEN');
+    await prisma!.projectRuntimeEffect.delete({ where: { id: lateEffectId } });
     await expect(fixture.k8s.get('Pod', 'workspaces', runtimeTargetName)).resolves.toBeUndefined();
     await expect(
       prisma!.$queryRaw<Array<{ state: string }>>`
@@ -491,7 +687,14 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', (
       where: { id: fixture.projectId },
       data: { deletedAt: new Date(), permanentDeletionStartedAt: new Date() },
     });
-    const manager = new WorkspaceManager(fixture.store, fixture.k8s, new NoopEvents(), 'test-token');
+    const manager = new WorkspaceManager(
+      fixture.store,
+      fixture.k8s,
+      new NoopEvents(),
+      'test-token',
+      undefined,
+      unboundProjectVolumeErasureRuntime(fixture.k8s),
+    );
     const beforeObjects = fixture.k8s.objects.size;
     await expect(manager.purgeProjectWorkspaces('workspaces', fixture.lease)).rejects.toMatchObject({
       code: 'WORKSPACE_PROJECT_RUNTIME_EFFECT_IN_FLIGHT',

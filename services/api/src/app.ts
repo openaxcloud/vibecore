@@ -8240,7 +8240,7 @@ function createAccountPurgeWriteBarrier(): WriteBarrierPort {
 }
 
 const workspaceProjectDeletionProofSchema = z.object({
-  schemaVersion: z.literal('workspace-project-erasure-v2'),
+  schemaVersion: z.literal('workspace-project-erasure-v3'),
   projectId: z.string().min(1),
   organizationId: z.string().min(1),
   databaseInventoryRetained: z.literal(true),
@@ -8256,6 +8256,26 @@ const workspaceProjectDeletionProofSchema = z.object({
     ownedRuntimeSecretsAbsent: z.literal(true),
     persistentVolumeClaimsAbsent: z.literal(true),
   }),
+  volumes: z.object({
+    schemaVersion: z.literal(1),
+    inventoryHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    verificationHash: z.string().regex(/^[a-f0-9]{64}$/u),
+    entryCount: z.number().int().nonnegative(),
+    erasedEntryCount: z.number().int().nonnegative(),
+    alreadyAbsentEntryCount: z.number().int().nonnegative(),
+    sharedExclusionCount: z.literal(0),
+    persistentVolumeClaimsAbsent: z.literal(true),
+    persistentVolumesAbsent: z.literal(true),
+    providerVolumesAbsent: z.literal(true),
+  }),
+});
+
+const workspaceProjectDeletionProgressSchema = z.object({
+  schemaVersion: z.literal('workspace-project-erasure-progress-v1'),
+  complete: z.literal(false),
+  phase: z.enum(['kubernetes', 'volume-inventory', 'volume-erasure']),
+  processed: z.number().int().nonnegative(),
+  remaining: z.number().int().positive(),
 });
 
 type WorkspaceProjectDeletionProof = z.infer<typeof workspaceProjectDeletionProofSchema>;
@@ -8283,31 +8303,48 @@ async function projectWorkspaceDeletionRequest(
   lease: ObjectStorageOperationLease,
   assertLease: () => Promise<void>,
 ): Promise<WorkspaceProjectDeletionProof> {
-  await assertLease();
-  const response = await fetch(
-    `${workspaceManagerUrl()}/projects/${encodeURIComponent(projectId)}/permanent-delete/workspaces/${action}`,
-    {
-      method: 'POST',
-      headers: workspaceManagerControlHeaders(true),
-      body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
-      signal: AbortSignal.timeout(action === 'purge' ? 180_000 : 30_000),
-    },
-  );
-  await assertLease();
-  if (!response.ok) {
-    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-      code: action === 'purge' ? 'PROJECT_WORKSPACE_ERASURE_FAILED' : 'PROJECT_WORKSPACE_ERASURE_UNVERIFIED',
-      statusCode: 503,
-    });
+  for (let batch = 0; batch < 10_000; batch += 1) {
+    await assertLease();
+    const response = await fetch(
+      `${workspaceManagerUrl()}/projects/${encodeURIComponent(projectId)}/permanent-delete/workspaces/${action}`,
+      {
+        method: 'POST',
+        headers: workspaceManagerControlHeaders(true),
+        body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
+        signal: AbortSignal.timeout(180_000),
+      },
+    );
+    await assertLease();
+    if (!response.ok) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: action === 'purge' ? 'PROJECT_WORKSPACE_ERASURE_FAILED' : 'PROJECT_WORKSPACE_ERASURE_UNVERIFIED',
+        statusCode: 503,
+      });
+    }
+    const payload = await response.json();
+    const progress = workspaceProjectDeletionProgressSchema.safeParse(payload);
+    if (progress.success) {
+      if (progress.data.processed === 0) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROJECT_WORKSPACE_ERASURE_STALLED',
+          statusCode: 503,
+        });
+      }
+      continue;
+    }
+    const proof = workspaceProjectDeletionProofSchema.parse(payload);
+    if (proof.projectId !== projectId || proof.organizationId !== expectedOrganizationId) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_WORKSPACE_ERASURE_PROOF_MISMATCH',
+        statusCode: 503,
+      });
+    }
+    return proof;
   }
-  const proof = workspaceProjectDeletionProofSchema.parse(await response.json());
-  if (proof.projectId !== projectId || proof.organizationId !== expectedOrganizationId) {
-    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-      code: 'PROJECT_WORKSPACE_ERASURE_PROOF_MISMATCH',
-      statusCode: 503,
-    });
-  }
-  return proof;
+  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+    code: 'PROJECT_WORKSPACE_ERASURE_BATCH_LIMIT_EXCEEDED',
+    statusCode: 503,
+  });
 }
 
 async function releaseAccountPurgeWorkspaceBarriers(
@@ -28605,11 +28642,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           verifiedAt: new Date().toISOString(),
           verifier: 'api-project-permanent-delete-v1',
           evidence: {
-            schemaVersion: 'project-permanent-erasure-v1',
+            schemaVersion: 'project-permanent-erasure-v2',
             filesystem: {
               projectTreeAbsent: filesystem.treeAbsent,
               workspaceTreesAbsent:
-                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
+                workspaceManager.runtimeEffectsDrained &&
+                workspaceManager.volumes.persistentVolumeClaimsAbsent &&
+                workspaceManager.volumes.persistentVolumesAbsent &&
+                workspaceManager.volumes.providerVolumesAbsent,
               objectCacheAbsent: filesystem.exportsAbsent,
               staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
               staticAliasesAbsent: filesystem.staticAliasesAbsent,

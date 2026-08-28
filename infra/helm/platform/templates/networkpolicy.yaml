@@ -311,3 +311,27 @@ spec:
           port: 80
         - protocol: TCP
           port: 988
+---
+# Dedicated PD-erasure GSA token exchange. This does not broaden metadata
+# access to other platform workloads and leaves the global link-local deny in
+# place. Google APIs themselves use the existing outbound TCP/443 rule.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-workspace-manager-metadata-egress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: workspace-manager
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 988

@@ -1,9 +1,10 @@
 # Project volume permanent-erasure runbook
 
 This primitive permanently erases project-owned Kubernetes storage from PVC to
-PV to CSI provider. It is intentionally not wired into the workspace manager's
-ordinary `purgeWorkspace` path yet: a caller must first provide a durable,
-exclusive erasure lease and a complete cross-tenant source-reference snapshot.
+PV to CSI provider. It is wired only into the project `permanent-delete` saga;
+ordinary workspace stop/delete keeps its existing lifecycle semantics. The
+manager requires the API's durable `ObjectStorageOperation` lease and the
+operation-scoped `ProjectVolumeErasure` ledger before it can issue a delete.
 
 Implementation:
 
@@ -12,6 +13,8 @@ Implementation:
 - `services/workspace-manager/src/project-volume-erasure-adapters.ts` — direct
   in-cluster Kubernetes API adapter and real Compute Engine PD REST adapter using
   ADC/Workload Identity.
+- `packages/database/prisma/migrations/0104_project_volume_erasure_ledger` —
+  immutable source/inventory, per-PVC replay progress and fenced evidence.
 
 ## Durable orchestration contract
 
@@ -20,10 +23,11 @@ The owning control plane must use this order:
 1. In a short database transaction, acquire a project-erasure lease/fencing
    token and make every workspace, Reserved VM, restore, import and provisioning
    path reject new storage references for that project. Commit the transaction.
-2. Outside every database transaction, query all durable workspace-runtime and
-   Reserved VM PVC references for the candidate claim names, including references
-   belonging to other tenants. Mark the snapshot completeness as
-   `all-active-references-for-candidate-claims`.
+2. Under the short operation → Project lock order, persist the exact candidate
+   names/observed PVC UIDs and query all WorkspaceRuntime, Project,
+   Deployment/Reserved VM and active runtime-effect references, including other
+   tenants. The per-name advisory lock serializes this plan against new PVC
+   runtime-effect targets. Commit before Kubernetes/provider I/O.
 3. Call `captureProjectVolumeErasureInventory`. It reads PVCs, all PVs,
    StorageClasses and exact provider disk identities. It rejects tenant/UID/
    claimRef/StorageClass conflicts and records shared exclusions. No token,
@@ -31,13 +35,20 @@ The owning control plane must use this order:
 4. In a second short transaction, compare the same lease/fencing token and
    persist the complete inventory JSON plus `inventoryHash`. Commit before any
    delete request.
-5. Call `executeProjectVolumeErasure` outside the transaction. Its mandatory
+5. Call `executeProjectVolumeErasureEntry` outside the transaction, one sealed
+   PVC entry per manager request. Its mandatory
    `leaseGuard.assertLease()` must compare the durable token immediately before
    every Kubernetes/provider request. All storage creation paths must honor the
    same fence; a lease local only to this worker is insufficient.
-6. Persist the returned compact evidence only after `verified: true`. The
-   evidence proves live absence of the exact PVC UID, PV UID and provider disk
-   ID, or records a deliberate shared-storage exclusion.
+6. Persist each entry's evidence with the current operation fencing token. A
+   timeout/crash replays the same inventory entry verify-first; evidence from an
+   older reclaimed token is re-established. Seal the root evidence only after
+   every entry is absent under the current token. Permanent deletion rejects
+   shared exclusions rather than claiming that bytes were erased.
+7. The API finalizer locks and verifies the ledger against the v3 workspace
+   proof in the same transaction that deletes Project/runtime rows and writes
+   the permanent receipt. The ledger remains attached to the committed
+   operation after the Project cascade.
 
 Never reconstruct an inventory after a partial delete. Replay the originally
 persisted inventory: same-name PVC/PV replacements and same-handle provider disk
@@ -87,6 +98,10 @@ There must be no Prisma transaction callback around either service call.
 - `Retain` PVs: delete the PVC, explicitly erase/verify the provider disk, then
   delete and verify the PV. `Retain` must not preserve project data during an
   approved permanent erasure.
+- If the PVC is already absent, inventory scans every PV `claimRef`. Deletion is
+  authorized only when one durable expected PVC UID exactly matches the
+  `claimRef.uid`; missing/ambiguous identity is
+  `VOLUME_ERASURE_ORPHAN_IDENTITY_UNPROVEN` and performs no provider effect.
 - Known shared references, duplicate live CSI handles and explicit shared
   storage markers are excluded. The executor re-lists live PV handles under the
   lease before deletion to close the capture/execution race.
@@ -145,10 +160,38 @@ GKE Workload Identity. Grant only these permissions on the disk-hosting project:
 - `compute.disks.get`
 - `compute.disks.delete`
 
+The regional-disk REST methods require the same `compute.disks.get/delete`
+permissions; `compute.regionDisks.*` are not IAM permission names.
+
 Use a custom role rather than a project-wide editor role. The adapter uses only
 `compute.googleapis.com`, rejects non-canonical zonal/regional CSI handles, never
 serializes the ADC token, and polls `disks.get` for live absence instead of
 trusting an asynchronous operation response.
+
+Production wiring uses the dedicated
+`vibecore-prod-vol-erase@vibecore-495216.iam.gserviceaccount.com` identity,
+bound only to KSA
+`vibecore/vibecore-vibecore-platform-workspace-manager`. The adapter also
+rejects handles outside `PROJECT_VOLUME_ERASURE_GCP_PROJECTS`. NetworkPolicy
+opens metadata ports 80/988 only for the workspace-manager pod; Google API
+traffic remains on the existing outbound 443 rule.
+
+## Operator checks
+
+Before enabling project permanent deletion, verify:
+
+1. migration `0104_project_volume_erasure_ledger` is applied;
+2. `kubectl auth can-i --as=system:serviceaccount:vibecore:vibecore-vibecore-platform-workspace-manager list persistentvolumes` is yes, while create/patch is no;
+3. the workspace-manager KSA annotation names the dedicated volume-erasure GSA;
+4. the custom role contains exactly `compute.disks.get` and
+   `compute.disks.delete` (these cover zonal and regional disks);
+5. `PROJECT_VOLUME_ERASURE_GCP_PROJECTS` contains every allowed disk-hosting project and no wildcard.
+
+Do not manually remove PV/PVC finalizers. A timeout is recoverable by replaying
+the same permanent-delete idempotency key after fixing the controller/provider
+condition. If identity cannot be proven, keep the operation uncommitted and
+escalate with the operation ID, inventory hash and Kubernetes UIDs; never edit
+the sealed JSON ledger.
 
 References:
 

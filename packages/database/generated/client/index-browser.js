@@ -269,6 +269,41 @@ exports.Prisma.ObjectStorageOperationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectVolumeErasureScalarFieldEnum = {
+  operationId: 'operationId',
+  projectIdSnapshot: 'projectIdSnapshot',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  namespace: 'namespace',
+  state: 'state',
+  sourceSnapshot: 'sourceSnapshot',
+  inventory: 'inventory',
+  inventoryHash: 'inventoryHash',
+  evidence: 'evidence',
+  verificationHash: 'verificationHash',
+  verificationFencingToken: 'verificationFencingToken',
+  preparedAt: 'preparedAt',
+  inventoriedAt: 'inventoriedAt',
+  erasingAt: 'erasingAt',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ProjectVolumeErasureTargetScalarFieldEnum = {
+  operationId: 'operationId',
+  ordinal: 'ordinal',
+  namespace: 'namespace',
+  pvcName: 'pvcName',
+  expectedPvcUid: 'expectedPvcUid',
+  inventoryEntry: 'inventoryEntry',
+  evidenceEntry: 'evidenceEntry',
+  verifiedFencingToken: 'verifiedFencingToken',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ObjectStorageOperationPinnedObjectScalarFieldEnum = {
   operationId: 'operationId',
   ordinal: 'ordinal',
@@ -2390,6 +2425,13 @@ exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
+exports.ProjectVolumeErasureState = exports.$Enums.ProjectVolumeErasureState = {
+  PREPARED: 'PREPARED',
+  INVENTORIED: 'INVENTORIED',
+  ERASING: 'ERASING',
+  VERIFIED: 'VERIFIED'
+};
+
 exports.ProjectPermanentDeletionArtifactState = exports.$Enums.ProjectPermanentDeletionArtifactState = {
   PLANNED: 'PLANNED',
   DELETED: 'DELETED',
@@ -2709,6 +2751,8 @@ exports.Prisma.ModelName = {
   RolePermission: 'RolePermission',
   Project: 'Project',
   ObjectStorageOperation: 'ObjectStorageOperation',
+  ProjectVolumeErasure: 'ProjectVolumeErasure',
+  ProjectVolumeErasureTarget: 'ProjectVolumeErasureTarget',
   ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
   ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
   ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',

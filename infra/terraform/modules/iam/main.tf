@@ -13,6 +13,37 @@ resource "google_service_account" "platform_workload" {
   display_name = "VibeCore platform workload identity"
 }
 
+# Destructive provider access is isolated from the broad platform identity.
+# The workspace-manager receives only exact PD observe/delete permissions and
+# authenticates through its one production KSA; no JSON key is created.
+resource "google_service_account" "workspace_volume_erasure" {
+  account_id   = "${var.name_prefix}-vol-erase"
+  display_name = "VibeCore workspace permanent volume erasure"
+}
+
+resource "google_project_iam_custom_role" "workspace_volume_erasure" {
+  project     = var.project_id
+  role_id     = "vibecoreWorkspaceVolumeErasure"
+  title       = "VibeCore Workspace Volume Erasure"
+  description = "Inspect and delete exact zonal or regional persistent disks during fenced permanent deletion."
+  permissions = [
+    "compute.disks.get",
+    "compute.disks.delete",
+  ]
+}
+
+resource "google_project_iam_member" "workspace_volume_erasure" {
+  project = var.project_id
+  role    = google_project_iam_custom_role.workspace_volume_erasure.name
+  member  = "serviceAccount:${google_service_account.workspace_volume_erasure.email}"
+}
+
+resource "google_service_account_iam_member" "workspace_volume_erasure_workload_identity" {
+  service_account_id = google_service_account.workspace_volume_erasure.name
+  role               = "roles/iam.workloadIdentityUser"
+  member             = "serviceAccount:${var.project_id}.svc.id.goog[vibecore/vibecore-vibecore-platform-workspace-manager]"
+}
+
 locals {
   server_deploy_builder_enabled = var.server_deploy_builder_repository != null && var.server_deploy_cosign_kms_key_id != ""
   server_deploy_builder_repository = var.server_deploy_builder_repository != null ? var.server_deploy_builder_repository : {
@@ -66,17 +97,9 @@ resource "google_project_iam_member" "node_artifact_registry_reader" {
   member  = "serviceAccount:${each.value}"
 }
 
-# workspace-manager talks to the kube-apiserver in-cluster using its mounted
-# ServiceAccount token, scoped by the namespaced RBAC Role
-# `workspace-manager-runtime` (infra/helm/workspaces-runtime/templates/rbac.yaml).
-# It does NOT call the GCP/GKE API and is NOT bound to a GCP service account via
-# Workload Identity (global.workloadIdentity.workspaceManager is '' in
-# values-prod.yaml). The previously-declared `vibecore-prod-workspace-manager`
-# GSA + its container.viewer grant were therefore dead config — never applied
-# (the 31-char account_id also exceeds GCP's 30-char limit) and never referenced
-# by any KSA annotation or workloadIdentityUser binding. Removed so a clean
-# `terraform apply` is unblocked and no unused privileged SA is created. All of
-# the manager's mutating access comes from the namespaced RBAC Role.
+# Normal runtime mutation still uses the mounted Kubernetes service-account
+# token and narrow RBAC. Workload Identity above is reserved exclusively for
+# the permanent-delete PD adapter.
 
 resource "google_project_iam_member" "platform_secret_accessor" {
   project = var.project_id

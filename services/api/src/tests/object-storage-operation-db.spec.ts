@@ -42,6 +42,7 @@ import {
   type ObjectStorageOperationRequestShape,
   type ObjectStorageCheckpointBarrierAuthority,
 } from '../object-storage-operation.js';
+import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 async function canReachSagaTables(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -1602,40 +1603,50 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       expectedProjectName: seeded.project.name,
     });
     const erasePhysical = vi.fn(async () => undefined);
-    const verifyPhysicalAbsence = vi.fn(async () => ({
-      outcome: 'VERIFIED_ABSENT' as const,
-      verifier: 'project-delete-preflight-test-v1',
-      evidence: {
-        schemaVersion: 'project-permanent-erasure-v1',
-        filesystem: {
-          projectTreeAbsent: true,
-          workspaceTreesAbsent: true,
-          objectCacheAbsent: true,
-          staticSnapshotsAbsent: true,
-          staticAliasesAbsent: true,
-          staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
-        },
-        gcs: { bucketAbsent: true, objectCount: 0 },
-        workspaceManager: {
-          schemaVersion: 'workspace-project-erasure-v2',
-          projectId: seeded.project.id,
-          organizationId: seeded.source.id,
-          databaseInventoryRetained: true,
-          runtimeEffectsDrained: true,
-          kubernetes: {
-            deploymentsAbsent: true,
-            replicaSetsAbsent: true,
-            podsAbsent: true,
-            servicesAbsent: true,
-            endpointsAbsent: true,
-            endpointSlicesAbsent: true,
-            ingressesAbsent: true,
-            ownedRuntimeSecretsAbsent: true,
-            persistentVolumeClaimsAbsent: true,
+    const verifyPhysicalAbsence = vi.fn(async (_assertLease, lease: ObjectStorageOperationLease) => {
+      const volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+        operationId: lease.operationId,
+        projectId: seeded.project.id,
+        organizationId: seeded.source.id,
+        ownershipEpoch: seeded.project.ownershipEpoch,
+        fencingToken: lease.fencingToken,
+      });
+      return {
+        outcome: 'VERIFIED_ABSENT' as const,
+        verifier: 'project-delete-preflight-test-v1',
+        evidence: {
+          schemaVersion: 'project-permanent-erasure-v2',
+          filesystem: {
+            projectTreeAbsent: true,
+            workspaceTreesAbsent: true,
+            objectCacheAbsent: true,
+            staticSnapshotsAbsent: true,
+            staticAliasesAbsent: true,
+            staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
+          },
+          gcs: { bucketAbsent: true, objectCount: 0 },
+          workspaceManager: {
+            schemaVersion: 'workspace-project-erasure-v3',
+            projectId: seeded.project.id,
+            organizationId: seeded.source.id,
+            databaseInventoryRetained: true,
+            runtimeEffectsDrained: true,
+            kubernetes: {
+              deploymentsAbsent: true,
+              replicaSetsAbsent: true,
+              podsAbsent: true,
+              servicesAbsent: true,
+              endpointsAbsent: true,
+              endpointSlicesAbsent: true,
+              ingressesAbsent: true,
+              ownedRuntimeSecretsAbsent: true,
+              persistentVolumeClaimsAbsent: true,
+            },
+            volumes,
           },
         },
-      },
-    }));
+      };
+    });
     let rejectPreflight = true;
     const preflightPhysicalErasure = vi.fn(async () => {
       if (rejectPreflight) {
@@ -1797,14 +1808,21 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     });
     const erasePhysical = vi.fn(async () => undefined);
     let verificationAttempts = 0;
-    const verifyPhysicalAbsence = vi.fn(async () => {
+    const verifyPhysicalAbsence = vi.fn(async (_assertLease, lease: ObjectStorageOperationLease) => {
       verificationAttempts += 1;
       if (verificationAttempts === 1) throw new Error('SIMULATED_CRASH_AFTER_PROVIDER_EFFECT');
+      const volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+        operationId: lease.operationId,
+        projectId: seeded.project.id,
+        organizationId: seeded.source.id,
+        ownershipEpoch: seeded.project.ownershipEpoch,
+        fencingToken: lease.fencingToken,
+      });
       return {
         outcome: 'VERIFIED_ABSENT' as const,
         verifier: 'project-delete-retry-test-v1',
         evidence: {
-          schemaVersion: 'project-permanent-erasure-v1',
+          schemaVersion: 'project-permanent-erasure-v2',
           filesystem: {
             projectTreeAbsent: true,
             workspaceTreesAbsent: true,
@@ -1815,7 +1833,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
           workspaceManager: {
-            schemaVersion: 'workspace-project-erasure-v2',
+            schemaVersion: 'workspace-project-erasure-v3',
             projectId: seeded.project.id,
             organizationId: seeded.source.id,
             databaseInventoryRetained: true,
@@ -1831,6 +1849,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
               ownedRuntimeSecretsAbsent: true,
               persistentVolumeClaimsAbsent: true,
             },
+            volumes,
           },
         },
       };
@@ -1898,7 +1917,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       outcome: 'VERIFIED_ABSENT' as const,
       verifier: 'workspace-runtime-fence-test-v1',
       evidence: {
-        schemaVersion: 'project-permanent-erasure-v1',
+        schemaVersion: 'project-permanent-erasure-v2',
         filesystem: {
           projectTreeAbsent: true,
           workspaceTreesAbsent: true,
@@ -1909,7 +1928,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
         workspaceManager: {
-          schemaVersion: 'workspace-project-erasure-v2',
+          schemaVersion: 'workspace-project-erasure-v3',
           projectId: seeded.project.id,
           organizationId: seeded.source.id,
           databaseInventoryRetained: true,
@@ -1925,6 +1944,18 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             ownedRuntimeSecretsAbsent: true,
             persistentVolumeClaimsAbsent: true,
           },
+          volumes: {
+            schemaVersion: 1 as const,
+            inventoryHash: '0'.repeat(64),
+            verificationHash: '0'.repeat(64),
+            entryCount: 0,
+            erasedEntryCount: 0,
+            alreadyAbsentEntryCount: 0,
+            sharedExclusionCount: 0 as const,
+            persistentVolumeClaimsAbsent: true as const,
+            persistentVolumesAbsent: true as const,
+            providerVolumesAbsent: true as const,
+          },
         },
       },
     };
@@ -1937,6 +1968,19 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'workspace-erasure' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'workspace-verify' });
         return acquired.lease;
+      });
+      await expect(
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+      ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED' });
+      await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toMatchObject({
+        id: seeded.project.id,
+      });
+      verification.evidence.workspaceManager.volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+        operationId: lease.operationId,
+        projectId: seeded.project.id,
+        organizationId: seeded.source.id,
+        ownershipEpoch: seeded.project.ownershipEpoch,
+        fencingToken: lease.fencingToken,
       });
       await prisma.workspaceRuntime.create({
         data: {
@@ -2034,11 +2078,18 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, staticArtifactSummary);
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'provider-erasure-started' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'provider-erasure-complete' });
+        const volumes = await seedVerifiedEmptyProjectVolumeErasure(tx, {
+          operationId: acquired.lease.operationId,
+          projectId: seeded.project.id,
+          organizationId: seeded.source.id,
+          ownershipEpoch: seeded.project.ownershipEpoch,
+          fencingToken: acquired.lease.fencingToken,
+        });
         const verification = {
           outcome: 'VERIFIED_ABSENT' as const,
           verifier: 'gcs-inventory-v1',
           evidence: {
-            schemaVersion: 'project-permanent-erasure-v1',
+            schemaVersion: 'project-permanent-erasure-v2',
             filesystem: {
               projectTreeAbsent: true,
               workspaceTreesAbsent: true,
@@ -2049,7 +2100,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
             workspaceManager: {
-              schemaVersion: 'workspace-project-erasure-v2',
+              schemaVersion: 'workspace-project-erasure-v3',
               projectId: seeded.project.id,
               organizationId: seeded.source.id,
               databaseInventoryRetained: true,
@@ -2065,6 +2116,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
                 ownedRuntimeSecretsAbsent: true,
                 persistentVolumeClaimsAbsent: true,
               },
+              volumes,
             },
           },
         };

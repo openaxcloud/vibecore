@@ -11,10 +11,21 @@ import {
   resolveAgentBaseUrl,
   unschedulableGraceMs,
   type EventBus,
+  type WorkspaceProjectVolumeCandidate,
+  type WorkspaceProjectVolumeErasurePlan,
   type WorkspaceProjectDeletionLease,
   type WorkspaceRecord,
   type WorkspaceStore,
 } from './manager.js';
+import { StaticProjectVolumeProviderResolver } from './project-volume-erasure-adapters.js';
+import type {
+  ExactKubernetesDelete,
+  ProjectPersistentVolumeClaim,
+  ProjectVolumeErasureEntryEvidence,
+  ProjectVolumeErasureEvidence,
+  ProjectVolumeErasureInventory,
+  ProjectVolumeKubernetesAdapter,
+} from './project-volume-erasure.js';
 
 class TestWorkspaceK8sClient implements WorkspaceK8sClient {
   readonly objects = new Map<string, K8sObject>();
@@ -153,6 +164,7 @@ class TestWorkspaceStore implements WorkspaceStore {
   readonly projectDeletionWorkspaceIds: string[] = [];
   readonly projectDeletionScheduledRunIds: string[] = [];
   projectDeletionLeaseValid = true;
+  volumePlan?: WorkspaceProjectVolumeErasurePlan;
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -386,6 +398,117 @@ class TestWorkspaceStore implements WorkspaceStore {
       runtimeEffectIds: [],
     };
   }
+
+  async loadProjectVolumeErasure() {
+    return this.volumePlan;
+  }
+
+  async prepareProjectVolumeErasure(
+    lease: WorkspaceProjectDeletionLease,
+    namespace: string,
+    candidates: readonly WorkspaceProjectVolumeCandidate[],
+  ) {
+    this.volumePlan ??= {
+      operationId: lease.operationId,
+      projectId: lease.projectId,
+      organizationId: lease.expectedOrganizationId,
+      ownershipEpoch: 0,
+      namespace,
+      state: 'PREPARED',
+      sourceSnapshot: {
+        snapshotId: lease.operationId,
+        completeness: 'all-active-references-for-candidate-claims',
+        candidates,
+        references: candidates.map((candidate, ordinal) => ({
+          projectId: lease.projectId,
+          organizationId: lease.expectedOrganizationId,
+          referenceId: `test-reference-${ordinal}`,
+          sourceKind: 'runtime-effect-target',
+          namespace: candidate.namespace,
+          pvcName: candidate.pvcName,
+          ...(candidate.expectedPvcUid ? { expectedPvcUid: candidate.expectedPvcUid } : {}),
+          allowLegacyUnlabelled: true,
+        })),
+      },
+      targets: candidates.map((candidate, ordinal) => ({ ordinal, ...candidate })),
+    };
+    return this.volumePlan;
+  }
+
+  async recordProjectVolumeInventory(_lease: WorkspaceProjectDeletionLease, inventory: ProjectVolumeErasureInventory) {
+    this.volumePlan = { ...this.volumePlan!, state: 'INVENTORIED', inventory };
+    return this.volumePlan;
+  }
+
+  async markProjectVolumeErasing() {
+    this.volumePlan = { ...this.volumePlan!, state: this.volumePlan!.state === 'VERIFIED' ? 'VERIFIED' : 'ERASING' };
+    return this.volumePlan;
+  }
+
+  async recordProjectVolumeEntryEvidence(
+    lease: WorkspaceProjectDeletionLease,
+    ordinal: number,
+    evidence: ProjectVolumeErasureEntryEvidence,
+  ) {
+    this.volumePlan = {
+      ...this.volumePlan!,
+      targets: this.volumePlan!.targets.map((target) =>
+        target.ordinal === ordinal ? { ...target, evidence, verifiedFencingToken: lease.fencingToken } : target,
+      ),
+    };
+    return this.volumePlan;
+  }
+
+  async completeProjectVolumeErasure(lease: WorkspaceProjectDeletionLease, evidence: ProjectVolumeErasureEvidence) {
+    this.volumePlan = {
+      ...this.volumePlan!,
+      state: 'VERIFIED',
+      evidence,
+      verificationFencingToken: lease.fencingToken,
+    };
+    return this.volumePlan;
+  }
+}
+
+class TestProjectVolumeKubernetes implements ProjectVolumeKubernetesAdapter {
+  constructor(private readonly k8s: TestWorkspaceK8sClient) {}
+
+  async getPersistentVolumeClaim(namespace: string, name: string): Promise<ProjectPersistentVolumeClaim | undefined> {
+    const object = await this.k8s.get('PersistentVolumeClaim', namespace, name);
+    if (!object) return undefined;
+    return {
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: {
+        name,
+        namespace,
+        uid: `uid-${name}`,
+        resourceVersion: object.metadata.resourceVersion ?? '1',
+        labels: object.metadata.labels,
+      },
+      spec: {},
+    };
+  }
+  async getPersistentVolume() {
+    return undefined;
+  }
+  async listPersistentVolumes() {
+    return [];
+  }
+  async getStorageClass() {
+    return undefined;
+  }
+  async deletePersistentVolumeClaim(namespace: string, name: string, _exact: ExactKubernetesDelete) {
+    await this.k8s.delete('PersistentVolumeClaim', namespace, name);
+  }
+  async deletePersistentVolume() {}
+}
+
+function testVolumeErasure(k8s: TestWorkspaceK8sClient) {
+  return {
+    kubernetes: new TestProjectVolumeKubernetes(k8s),
+    providers: new StaticProjectVolumeProviderResolver(),
+  };
 }
 
 /*
@@ -447,32 +570,40 @@ describe('WorkspaceManager', () => {
   });
 
   it('permanently erases every project runtime row and labeled Kubernetes workspace object', async () => {
+    const deletionInput = { ...input, workspaceId: 'workspace-1' };
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
-    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
-    await manager.startWorkspace(input);
+    const manager = new WorkspaceManager(
+      store,
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+      undefined,
+      testVolumeErasure(k8s),
+    );
+    await manager.startWorkspace(deletionInput);
     await k8s.apply({
       apiVersion: 'v1',
       kind: 'Endpoints',
-      metadata: { namespace: input.namespace, name: `workspace-${input.workspaceId}` },
+      metadata: { namespace: deletionInput.namespace, name: `workspace-${deletionInput.workspaceId}` },
     });
     await k8s.apply({
       apiVersion: 'discovery.k8s.io/v1',
       kind: 'EndpointSlice',
       metadata: {
-        namespace: input.namespace,
-        name: `workspace-${input.workspaceId}-orphan-slice`,
-        labels: { 'kubernetes.io/service-name': `workspace-${input.workspaceId}` },
+        namespace: deletionInput.namespace,
+        name: `workspace-${deletionInput.workspaceId}-orphan-slice`,
+        labels: { 'kubernetes.io/service-name': `workspace-${deletionInput.workspaceId}` },
       },
     });
     /* Simulate a crash after the Service disappeared but before its endpoint
      * descendants were garbage-collected. The durable Workspace id must still
      * make both descendants discoverable on retry. */
-    k8s.objects.delete(`${input.namespace}:Service:workspace-${input.workspaceId}`);
+    k8s.objects.delete(`${deletionInput.namespace}:Service:workspace-${deletionInput.workspaceId}`);
     store.projectDeletionPersistentVolumeClaims.push('legacy-project-pvc');
     store.projectDeletionServerDeploymentIds.push('server-deployment-1');
     const serverLabels = {
-      'vibecore.ai/project': input.projectId,
+      'vibecore.ai/project': deletionInput.projectId,
       'vibecore.ai/server-deploy': 'server-deployment-1',
     };
     for (const [kind, name, labels] of [
@@ -483,7 +614,20 @@ describe('WorkspaceManager', () => {
       ['Secret', 'app-secrets-server-deployment-1', { 'vibecore.ai/server-deploy': 'server-deployment-1' }],
       ['PersistentVolumeClaim', 'legacy-project-pvc', {}],
     ] as const) {
-      await k8s.apply({ apiVersion: 'v1', kind, metadata: { namespace: input.namespace, name, labels } });
+      await k8s.apply({ apiVersion: 'v1', kind, metadata: { namespace: deletionInput.namespace, name, labels } });
+    }
+    // More than the historical request batch size proves that replay cannot
+    // loop forever over durable names whose Kubernetes objects are now absent.
+    for (let ordinal = 0; ordinal < 30; ordinal += 1) {
+      await k8s.apply({
+        apiVersion: 'v1',
+        kind: 'Pod',
+        metadata: {
+          namespace: deletionInput.namespace,
+          name: `orphan-project-pod-${ordinal}`,
+          labels: { 'vibecore.ai/project-id': deletionInput.projectId },
+        },
+      });
     }
     const lease: WorkspaceProjectDeletionLease = {
       operationId: 'delete-operation-1',
@@ -491,16 +635,24 @@ describe('WorkspaceManager', () => {
       fencingToken: '1',
       requestHash: 'a'.repeat(64),
       scopeHash: 'b'.repeat(64),
-      projectId: input.projectId,
-      expectedOrganizationId: input.orgId,
+      projectId: deletionInput.projectId,
+      expectedOrganizationId: deletionInput.orgId,
     };
 
-    const proof = await manager.purgeProjectWorkspaces(input.namespace, lease);
+    let proof = await manager.purgeProjectWorkspaces(deletionInput.namespace, lease);
+    expect(proof).toMatchObject({
+      schemaVersion: 'workspace-project-erasure-progress-v1',
+      phase: 'volume-erasure',
+      processed: 1,
+    });
+    while (proof.schemaVersion === 'workspace-project-erasure-progress-v1') {
+      proof = await manager.purgeProjectWorkspaces(deletionInput.namespace, lease);
+    }
 
-    expect(proof).toEqual({
-      schemaVersion: 'workspace-project-erasure-v2',
-      projectId: input.projectId,
-      organizationId: input.orgId,
+    expect(proof).toMatchObject({
+      schemaVersion: 'workspace-project-erasure-v3',
+      projectId: deletionInput.projectId,
+      organizationId: deletionInput.orgId,
       databaseInventoryRetained: true,
       runtimeEffectsDrained: true,
       kubernetes: {
@@ -514,29 +666,47 @@ describe('WorkspaceManager', () => {
         ownedRuntimeSecretsAbsent: true,
         persistentVolumeClaimsAbsent: true,
       },
+      volumes: {
+        schemaVersion: 1,
+        entryCount: 3,
+        erasedEntryCount: 2,
+        alreadyAbsentEntryCount: 1,
+        sharedExclusionCount: 0,
+        persistentVolumeClaimsAbsent: true,
+        persistentVolumesAbsent: true,
+        providerVolumesAbsent: true,
+      },
     });
     expect(store.workspaces.size).toBe(0);
     expect(k8s.objects.size).toBe(0);
     expect(
       [...k8s.objects.values()].filter(
-        (object) => object.metadata.labels?.['vibecore.ai/project-id'] === input.projectId,
+        (object) => object.metadata.labels?.['vibecore.ai/project-id'] === deletionInput.projectId,
       ),
     ).toHaveLength(0);
   });
 
   it('stops a permanent erasure immediately when the API lease is lost between Kubernetes effects', async () => {
+    const deletionInput = { ...input, workspaceId: 'workspace-lease-loss' };
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();
-    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
-    await manager.startWorkspace(input);
+    const manager = new WorkspaceManager(
+      store,
+      k8s,
+      new TestEventBus(),
+      'test-workspace-agent-secret',
+      undefined,
+      testVolumeErasure(k8s),
+    );
+    await manager.startWorkspace(deletionInput);
     const lease: WorkspaceProjectDeletionLease = {
       operationId: 'delete-operation-lost',
       ownerToken: 'delete-owner-token-lost-123456',
       fencingToken: '7',
       requestHash: 'c'.repeat(64),
       scopeHash: 'd'.repeat(64),
-      projectId: input.projectId,
-      expectedOrganizationId: input.orgId,
+      projectId: deletionInput.projectId,
+      expectedOrganizationId: deletionInput.orgId,
     };
     const originalDelete = k8s.delete.bind(k8s);
     let deleteCalls = 0;
@@ -546,11 +716,11 @@ describe('WorkspaceManager', () => {
       store.projectDeletionLeaseValid = false;
     };
 
-    await expect(manager.purgeProjectWorkspaces(input.namespace, lease)).rejects.toMatchObject({
+    await expect(manager.purgeProjectWorkspaces(deletionInput.namespace, lease)).rejects.toMatchObject({
       statusCode: 409,
     });
     expect(deleteCalls).toBe(1);
-    expect(store.workspaces.get(input.workspaceId)).toMatchObject({ purgeFrozen: true });
+    expect(store.workspaces.get(deletionInput.workspaceId)).toMatchObject({ purgeFrozen: true });
     expect(k8s.objects.size).toBeGreaterThan(0);
   });
 

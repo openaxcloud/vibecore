@@ -8,6 +8,7 @@ import { PrismaWorkspaceStore } from '../../../workspace-manager/src/prisma-stor
 import { PrismaApiStore } from '../prisma-store.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
 import { objectStorageStaticArtifactSummary, type ObjectStorageOperationLease } from '../object-storage-operation.js';
+import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe.sequential : describe.skip;
 const EMPTY_STATIC_ARTIFACT_SUMMARY = objectStorageStaticArtifactSummary([]);
@@ -222,6 +223,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
         actorUserId: fixture.actorId,
         expectedProjectName: fixture.project.name,
       });
+      let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
       const deletion = apiStore.hardDeleteProject({
         projectId: fixture.project.id,
         expectedOrganizationId: fixture.organizationBId,
@@ -252,6 +254,17 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
             organizationId: fixture.organizationAId,
             ownershipEpoch: 0,
           });
+          const currentProject = await prisma.project.findUniqueOrThrow({
+            where: { id: fixture.project.id },
+            select: { ownershipEpoch: true },
+          });
+          volumeProof = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+            operationId: managerLease.operationId,
+            projectId: fixture.project.id,
+            organizationId: fixture.organizationBId,
+            ownershipEpoch: currentProject.ownershipEpoch,
+            fencingToken: BigInt(managerLease.fencingToken),
+          });
           await expect(workspaceStore.completeProjectDeletion(managerLease)).resolves.toBe(1);
         },
         verifyPhysicalAbsence: async () => {
@@ -271,7 +284,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
             outcome: 'VERIFIED_ABSENT',
             verifier: 'runtime-effect-transfer-db-v1',
             evidence: {
-              schemaVersion: 'project-permanent-erasure-v1',
+              schemaVersion: 'project-permanent-erasure-v2',
               filesystem: {
                 projectTreeAbsent: true,
                 workspaceTreesAbsent: true,
@@ -282,7 +295,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
               },
               gcs: { bucketAbsent: true, objectCount: 0 },
               workspaceManager: {
-                schemaVersion: 'workspace-project-erasure-v2',
+                schemaVersion: 'workspace-project-erasure-v3',
                 projectId: fixture.project.id,
                 organizationId: fixture.organizationBId,
                 databaseInventoryRetained: true,
@@ -298,6 +311,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
                   ownedRuntimeSecretsAbsent: true,
                   persistentVolumeClaimsAbsent: true,
                 },
+                volumes: volumeProof!,
               },
             },
           };

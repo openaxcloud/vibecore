@@ -82,6 +82,20 @@ export type Project = $Result.DefaultSelection<Prisma.$ProjectPayload>
  */
 export type ObjectStorageOperation = $Result.DefaultSelection<Prisma.$ObjectStorageOperationPayload>
 /**
+ * Model ProjectVolumeErasure
+ * Durable, operation-scoped PVC→PV→provider inventory. It intentionally has
+ * no Project FK: the verified preimage and exact provider identities survive
+ * the final Project cascade as receipt-side recovery/audit evidence.
+ */
+export type ProjectVolumeErasure = $Result.DefaultSelection<Prisma.$ProjectVolumeErasurePayload>
+/**
+ * Model ProjectVolumeErasureTarget
+ * Per-PVC progress makes one bounded manager request process one exact entry.
+ * The original inventory entry is immutable; evidence can only be replaced by
+ * a newer ObjectStorageOperation fencing token during verify-first recovery.
+ */
+export type ProjectVolumeErasureTarget = $Result.DefaultSelection<Prisma.$ProjectVolumeErasureTargetPayload>
+/**
  * Model ObjectStorageOperationPinnedObject
  * Exact immutable source inventory for a clone. Normalized rows avoid the
  * operation JSON size ceiling and remain available for verify-first recovery.
@@ -1126,6 +1140,16 @@ export const ProjectRuntimeEffectState: {
 export type ProjectRuntimeEffectState = (typeof ProjectRuntimeEffectState)[keyof typeof ProjectRuntimeEffectState]
 
 
+export const ProjectVolumeErasureState: {
+  PREPARED: 'PREPARED',
+  INVENTORIED: 'INVENTORIED',
+  ERASING: 'ERASING',
+  VERIFIED: 'VERIFIED'
+};
+
+export type ProjectVolumeErasureState = (typeof ProjectVolumeErasureState)[keyof typeof ProjectVolumeErasureState]
+
+
 export const TicketMessageAuthor: {
   USER: 'USER',
   ADMIN: 'ADMIN',
@@ -1494,6 +1518,10 @@ export type ProjectRuntimeEffectState = $Enums.ProjectRuntimeEffectState
 
 export const ProjectRuntimeEffectState: typeof $Enums.ProjectRuntimeEffectState
 
+export type ProjectVolumeErasureState = $Enums.ProjectVolumeErasureState
+
+export const ProjectVolumeErasureState: typeof $Enums.ProjectVolumeErasureState
+
 export type TicketMessageAuthor = $Enums.TicketMessageAuthor
 
 export const TicketMessageAuthor: typeof $Enums.TicketMessageAuthor
@@ -1842,6 +1870,26 @@ export class PrismaClient<
     * ```
     */
   get objectStorageOperation(): Prisma.ObjectStorageOperationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectVolumeErasure`: Exposes CRUD operations for the **ProjectVolumeErasure** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectVolumeErasures
+    * const projectVolumeErasures = await prisma.projectVolumeErasure.findMany()
+    * ```
+    */
+  get projectVolumeErasure(): Prisma.ProjectVolumeErasureDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectVolumeErasureTarget`: Exposes CRUD operations for the **ProjectVolumeErasureTarget** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectVolumeErasureTargets
+    * const projectVolumeErasureTargets = await prisma.projectVolumeErasureTarget.findMany()
+    * ```
+    */
+  get projectVolumeErasureTarget(): Prisma.ProjectVolumeErasureTargetDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.objectStorageOperationPinnedObject`: Exposes CRUD operations for the **ObjectStorageOperationPinnedObject** model.
@@ -3768,6 +3816,8 @@ export namespace Prisma {
     RolePermission: 'RolePermission',
     Project: 'Project',
     ObjectStorageOperation: 'ObjectStorageOperation',
+    ProjectVolumeErasure: 'ProjectVolumeErasure',
+    ProjectVolumeErasureTarget: 'ProjectVolumeErasureTarget',
     ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
     ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
     ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',
@@ -3931,7 +3981,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "projectVolumeErasure" | "projectVolumeErasureTarget" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4820,6 +4870,154 @@ export namespace Prisma {
           count: {
             args: Prisma.ObjectStorageOperationCountArgs<ExtArgs>
             result: $Utils.Optional<ObjectStorageOperationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectVolumeErasure: {
+        payload: Prisma.$ProjectVolumeErasurePayload<ExtArgs>
+        fields: Prisma.ProjectVolumeErasureFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectVolumeErasureFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectVolumeErasureFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectVolumeErasureFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectVolumeErasureFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          findMany: {
+            args: Prisma.ProjectVolumeErasureFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>[]
+          }
+          create: {
+            args: Prisma.ProjectVolumeErasureCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          createMany: {
+            args: Prisma.ProjectVolumeErasureCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectVolumeErasureCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectVolumeErasureDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          update: {
+            args: Prisma.ProjectVolumeErasureUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectVolumeErasureDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectVolumeErasureUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectVolumeErasureUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectVolumeErasureUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasurePayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectVolumeErasureAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectVolumeErasure>
+          }
+          groupBy: {
+            args: Prisma.ProjectVolumeErasureGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectVolumeErasureGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectVolumeErasureCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectVolumeErasureCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectVolumeErasureTarget: {
+        payload: Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>
+        fields: Prisma.ProjectVolumeErasureTargetFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectVolumeErasureTargetFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectVolumeErasureTargetFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectVolumeErasureTargetFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectVolumeErasureTargetFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectVolumeErasureTargetFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectVolumeErasureTargetCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectVolumeErasureTargetCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectVolumeErasureTargetCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectVolumeErasureTargetDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          update: {
+            args: Prisma.ProjectVolumeErasureTargetUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectVolumeErasureTargetDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectVolumeErasureTargetUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectVolumeErasureTargetUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectVolumeErasureTargetUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectVolumeErasureTargetPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectVolumeErasureTargetAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectVolumeErasureTarget>
+          }
+          groupBy: {
+            args: Prisma.ProjectVolumeErasureTargetGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectVolumeErasureTargetGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectVolumeErasureTargetCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectVolumeErasureTargetCountAggregateOutputType> | number
           }
         }
       }
@@ -15879,6 +16077,8 @@ export namespace Prisma {
     rolePermission?: RolePermissionOmit
     project?: ProjectOmit
     objectStorageOperation?: ObjectStorageOperationOmit
+    projectVolumeErasure?: ProjectVolumeErasureOmit
+    projectVolumeErasureTarget?: ProjectVolumeErasureTargetOmit
     objectStorageOperationPinnedObject?: ObjectStorageOperationPinnedObjectOmit
     objectStorageOperationPinnedGeneration?: ObjectStorageOperationPinnedGenerationOmit
     projectPermanentDeletionArtifactPlan?: ProjectPermanentDeletionArtifactPlanOmit
@@ -17414,6 +17614,37 @@ export namespace Prisma {
    */
   export type ObjectStorageOperationCountOutputTypeCountVersionGcSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ObjectStorageVersionGcScheduleWhereInput
+  }
+
+
+  /**
+   * Count Type ProjectVolumeErasureCountOutputType
+   */
+
+  export type ProjectVolumeErasureCountOutputType = {
+    targets: number
+  }
+
+  export type ProjectVolumeErasureCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    targets?: boolean | ProjectVolumeErasureCountOutputTypeCountTargetsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ProjectVolumeErasureCountOutputType without action
+   */
+  export type ProjectVolumeErasureCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureCountOutputType
+     */
+    select?: ProjectVolumeErasureCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ProjectVolumeErasureCountOutputType without action
+   */
+  export type ProjectVolumeErasureCountOutputTypeCountTargetsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectVolumeErasureTargetWhereInput
   }
 
 
@@ -34607,6 +34838,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    projectVolumeErasure?: boolean | ObjectStorageOperation$projectVolumeErasureArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["objectStorageOperation"]>
@@ -34706,6 +34938,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: boolean | ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
+    projectVolumeErasure?: boolean | ObjectStorageOperation$projectVolumeErasureArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }
@@ -34721,6 +34954,7 @@ export namespace Prisma {
       permanentDeletionArtifacts: Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>[]
       capabilityReservations: Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>[]
       permanentDeletionReceipt: Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs> | null
+      projectVolumeErasure: Prisma.$ProjectVolumeErasurePayload<ExtArgs> | null
       versionGcSchedules: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
@@ -35150,6 +35384,7 @@ export namespace Prisma {
     permanentDeletionArtifacts<T extends ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionArtifactsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectPermanentDeletionArtifactPlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     capabilityReservations<T extends ObjectStorageOperation$capabilityReservationsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     permanentDeletionReceipt<T extends ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionReceiptClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    projectVolumeErasure<T extends ObjectStorageOperation$projectVolumeErasureArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$projectVolumeErasureArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     versionGcSchedules<T extends ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -35738,6 +35973,25 @@ export namespace Prisma {
   }
 
   /**
+   * ObjectStorageOperation.projectVolumeErasure
+   */
+  export type ObjectStorageOperation$projectVolumeErasureArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    where?: ProjectVolumeErasureWhereInput
+  }
+
+  /**
    * ObjectStorageOperation.versionGcSchedules
    */
   export type ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -35777,6 +36031,2465 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ObjectStorageOperationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectVolumeErasure
+   */
+
+  export type AggregateProjectVolumeErasure = {
+    _count: ProjectVolumeErasureCountAggregateOutputType | null
+    _avg: ProjectVolumeErasureAvgAggregateOutputType | null
+    _sum: ProjectVolumeErasureSumAggregateOutputType | null
+    _min: ProjectVolumeErasureMinAggregateOutputType | null
+    _max: ProjectVolumeErasureMaxAggregateOutputType | null
+  }
+
+  export type ProjectVolumeErasureAvgAggregateOutputType = {
+    ownershipEpoch: number | null
+    verificationFencingToken: number | null
+  }
+
+  export type ProjectVolumeErasureSumAggregateOutputType = {
+    ownershipEpoch: number | null
+    verificationFencingToken: bigint | null
+  }
+
+  export type ProjectVolumeErasureMinAggregateOutputType = {
+    operationId: string | null
+    projectIdSnapshot: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    namespace: string | null
+    state: $Enums.ProjectVolumeErasureState | null
+    inventoryHash: string | null
+    verificationHash: string | null
+    verificationFencingToken: bigint | null
+    preparedAt: Date | null
+    inventoriedAt: Date | null
+    erasingAt: Date | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectVolumeErasureMaxAggregateOutputType = {
+    operationId: string | null
+    projectIdSnapshot: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    namespace: string | null
+    state: $Enums.ProjectVolumeErasureState | null
+    inventoryHash: string | null
+    verificationHash: string | null
+    verificationFencingToken: bigint | null
+    preparedAt: Date | null
+    inventoriedAt: Date | null
+    erasingAt: Date | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectVolumeErasureCountAggregateOutputType = {
+    operationId: number
+    projectIdSnapshot: number
+    organizationId: number
+    ownershipEpoch: number
+    namespace: number
+    state: number
+    sourceSnapshot: number
+    inventory: number
+    inventoryHash: number
+    evidence: number
+    verificationHash: number
+    verificationFencingToken: number
+    preparedAt: number
+    inventoriedAt: number
+    erasingAt: number
+    verifiedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectVolumeErasureAvgAggregateInputType = {
+    ownershipEpoch?: true
+    verificationFencingToken?: true
+  }
+
+  export type ProjectVolumeErasureSumAggregateInputType = {
+    ownershipEpoch?: true
+    verificationFencingToken?: true
+  }
+
+  export type ProjectVolumeErasureMinAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    namespace?: true
+    state?: true
+    inventoryHash?: true
+    verificationHash?: true
+    verificationFencingToken?: true
+    preparedAt?: true
+    inventoriedAt?: true
+    erasingAt?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectVolumeErasureMaxAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    namespace?: true
+    state?: true
+    inventoryHash?: true
+    verificationHash?: true
+    verificationFencingToken?: true
+    preparedAt?: true
+    inventoriedAt?: true
+    erasingAt?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectVolumeErasureCountAggregateInputType = {
+    operationId?: true
+    projectIdSnapshot?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    namespace?: true
+    state?: true
+    sourceSnapshot?: true
+    inventory?: true
+    inventoryHash?: true
+    evidence?: true
+    verificationHash?: true
+    verificationFencingToken?: true
+    preparedAt?: true
+    inventoriedAt?: true
+    erasingAt?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectVolumeErasureAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectVolumeErasure to aggregate.
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasures to fetch.
+     */
+    orderBy?: ProjectVolumeErasureOrderByWithRelationInput | ProjectVolumeErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectVolumeErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectVolumeErasures
+    **/
+    _count?: true | ProjectVolumeErasureCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectVolumeErasureAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectVolumeErasureSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectVolumeErasureMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectVolumeErasureMaxAggregateInputType
+  }
+
+  export type GetProjectVolumeErasureAggregateType<T extends ProjectVolumeErasureAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectVolumeErasure]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectVolumeErasure[P]>
+      : GetScalarType<T[P], AggregateProjectVolumeErasure[P]>
+  }
+
+
+
+
+  export type ProjectVolumeErasureGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectVolumeErasureWhereInput
+    orderBy?: ProjectVolumeErasureOrderByWithAggregationInput | ProjectVolumeErasureOrderByWithAggregationInput[]
+    by: ProjectVolumeErasureScalarFieldEnum[] | ProjectVolumeErasureScalarFieldEnum
+    having?: ProjectVolumeErasureScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectVolumeErasureCountAggregateInputType | true
+    _avg?: ProjectVolumeErasureAvgAggregateInputType
+    _sum?: ProjectVolumeErasureSumAggregateInputType
+    _min?: ProjectVolumeErasureMinAggregateInputType
+    _max?: ProjectVolumeErasureMaxAggregateInputType
+  }
+
+  export type ProjectVolumeErasureGroupByOutputType = {
+    operationId: string
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonValue
+    inventory: JsonValue | null
+    inventoryHash: string | null
+    evidence: JsonValue | null
+    verificationHash: string | null
+    verificationFencingToken: bigint | null
+    preparedAt: Date
+    inventoriedAt: Date | null
+    erasingAt: Date | null
+    verifiedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectVolumeErasureCountAggregateOutputType | null
+    _avg: ProjectVolumeErasureAvgAggregateOutputType | null
+    _sum: ProjectVolumeErasureSumAggregateOutputType | null
+    _min: ProjectVolumeErasureMinAggregateOutputType | null
+    _max: ProjectVolumeErasureMaxAggregateOutputType | null
+  }
+
+  type GetProjectVolumeErasureGroupByPayload<T extends ProjectVolumeErasureGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectVolumeErasureGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectVolumeErasureGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectVolumeErasureGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectVolumeErasureGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectVolumeErasureSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    namespace?: boolean
+    state?: boolean
+    sourceSnapshot?: boolean
+    inventory?: boolean
+    inventoryHash?: boolean
+    evidence?: boolean
+    verificationHash?: boolean
+    verificationFencingToken?: boolean
+    preparedAt?: boolean
+    inventoriedAt?: boolean
+    erasingAt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+    targets?: boolean | ProjectVolumeErasure$targetsArgs<ExtArgs>
+    _count?: boolean | ProjectVolumeErasureCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasure"]>
+
+  export type ProjectVolumeErasureSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    namespace?: boolean
+    state?: boolean
+    sourceSnapshot?: boolean
+    inventory?: boolean
+    inventoryHash?: boolean
+    evidence?: boolean
+    verificationHash?: boolean
+    verificationFencingToken?: boolean
+    preparedAt?: boolean
+    inventoriedAt?: boolean
+    erasingAt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasure"]>
+
+  export type ProjectVolumeErasureSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    namespace?: boolean
+    state?: boolean
+    sourceSnapshot?: boolean
+    inventory?: boolean
+    inventoryHash?: boolean
+    evidence?: boolean
+    verificationHash?: boolean
+    verificationFencingToken?: boolean
+    preparedAt?: boolean
+    inventoriedAt?: boolean
+    erasingAt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasure"]>
+
+  export type ProjectVolumeErasureSelectScalar = {
+    operationId?: boolean
+    projectIdSnapshot?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    namespace?: boolean
+    state?: boolean
+    sourceSnapshot?: boolean
+    inventory?: boolean
+    inventoryHash?: boolean
+    evidence?: boolean
+    verificationHash?: boolean
+    verificationFencingToken?: boolean
+    preparedAt?: boolean
+    inventoriedAt?: boolean
+    erasingAt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectVolumeErasureOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "projectIdSnapshot" | "organizationId" | "ownershipEpoch" | "namespace" | "state" | "sourceSnapshot" | "inventory" | "inventoryHash" | "evidence" | "verificationHash" | "verificationFencingToken" | "preparedAt" | "inventoriedAt" | "erasingAt" | "verifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectVolumeErasure"]>
+  export type ProjectVolumeErasureInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+    targets?: boolean | ProjectVolumeErasure$targetsArgs<ExtArgs>
+    _count?: boolean | ProjectVolumeErasureCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ProjectVolumeErasureIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectVolumeErasureIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectVolumeErasurePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectVolumeErasure"
+    objects: {
+      operation: Prisma.$ObjectStorageOperationPayload<ExtArgs>
+      targets: Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      projectIdSnapshot: string
+      organizationId: string
+      ownershipEpoch: number
+      namespace: string
+      state: $Enums.ProjectVolumeErasureState
+      sourceSnapshot: Prisma.JsonValue
+      inventory: Prisma.JsonValue | null
+      inventoryHash: string | null
+      evidence: Prisma.JsonValue | null
+      verificationHash: string | null
+      verificationFencingToken: bigint | null
+      preparedAt: Date
+      inventoriedAt: Date | null
+      erasingAt: Date | null
+      verifiedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectVolumeErasure"]>
+    composites: {}
+  }
+
+  type ProjectVolumeErasureGetPayload<S extends boolean | null | undefined | ProjectVolumeErasureDefaultArgs> = $Result.GetResult<Prisma.$ProjectVolumeErasurePayload, S>
+
+  type ProjectVolumeErasureCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectVolumeErasureFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectVolumeErasureCountAggregateInputType | true
+    }
+
+  export interface ProjectVolumeErasureDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectVolumeErasure'], meta: { name: 'ProjectVolumeErasure' } }
+    /**
+     * Find zero or one ProjectVolumeErasure that matches the filter.
+     * @param {ProjectVolumeErasureFindUniqueArgs} args - Arguments to find a ProjectVolumeErasure
+     * @example
+     * // Get one ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectVolumeErasureFindUniqueArgs>(args: SelectSubset<T, ProjectVolumeErasureFindUniqueArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectVolumeErasure that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectVolumeErasureFindUniqueOrThrowArgs} args - Arguments to find a ProjectVolumeErasure
+     * @example
+     * // Get one ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectVolumeErasureFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectVolumeErasureFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectVolumeErasure that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureFindFirstArgs} args - Arguments to find a ProjectVolumeErasure
+     * @example
+     * // Get one ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectVolumeErasureFindFirstArgs>(args?: SelectSubset<T, ProjectVolumeErasureFindFirstArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectVolumeErasure that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureFindFirstOrThrowArgs} args - Arguments to find a ProjectVolumeErasure
+     * @example
+     * // Get one ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectVolumeErasureFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectVolumeErasureFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectVolumeErasures that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectVolumeErasures
+     * const projectVolumeErasures = await prisma.projectVolumeErasure.findMany()
+     *
+     * // Get first 10 ProjectVolumeErasures
+     * const projectVolumeErasures = await prisma.projectVolumeErasure.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const projectVolumeErasureWithOperationIdOnly = await prisma.projectVolumeErasure.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ProjectVolumeErasureFindManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectVolumeErasure.
+     * @param {ProjectVolumeErasureCreateArgs} args - Arguments to create a ProjectVolumeErasure.
+     * @example
+     * // Create one ProjectVolumeErasure
+     * const ProjectVolumeErasure = await prisma.projectVolumeErasure.create({
+     *   data: {
+     *     // ... data to create a ProjectVolumeErasure
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectVolumeErasureCreateArgs>(args: SelectSubset<T, ProjectVolumeErasureCreateArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectVolumeErasures.
+     * @param {ProjectVolumeErasureCreateManyArgs} args - Arguments to create many ProjectVolumeErasures.
+     * @example
+     * // Create many ProjectVolumeErasures
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectVolumeErasureCreateManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectVolumeErasures and returns the data saved in the database.
+     * @param {ProjectVolumeErasureCreateManyAndReturnArgs} args - Arguments to create many ProjectVolumeErasures.
+     * @example
+     * // Create many ProjectVolumeErasures
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectVolumeErasures and only return the `operationId`
+     * const projectVolumeErasureWithOperationIdOnly = await prisma.projectVolumeErasure.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectVolumeErasureCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectVolumeErasureCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectVolumeErasure.
+     * @param {ProjectVolumeErasureDeleteArgs} args - Arguments to delete one ProjectVolumeErasure.
+     * @example
+     * // Delete one ProjectVolumeErasure
+     * const ProjectVolumeErasure = await prisma.projectVolumeErasure.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectVolumeErasure
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectVolumeErasureDeleteArgs>(args: SelectSubset<T, ProjectVolumeErasureDeleteArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectVolumeErasure.
+     * @param {ProjectVolumeErasureUpdateArgs} args - Arguments to update one ProjectVolumeErasure.
+     * @example
+     * // Update one ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectVolumeErasureUpdateArgs>(args: SelectSubset<T, ProjectVolumeErasureUpdateArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectVolumeErasures.
+     * @param {ProjectVolumeErasureDeleteManyArgs} args - Arguments to filter ProjectVolumeErasures to delete.
+     * @example
+     * // Delete a few ProjectVolumeErasures
+     * const { count } = await prisma.projectVolumeErasure.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectVolumeErasureDeleteManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectVolumeErasures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectVolumeErasures
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectVolumeErasureUpdateManyArgs>(args: SelectSubset<T, ProjectVolumeErasureUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectVolumeErasures and returns the data updated in the database.
+     * @param {ProjectVolumeErasureUpdateManyAndReturnArgs} args - Arguments to update many ProjectVolumeErasures.
+     * @example
+     * // Update many ProjectVolumeErasures
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectVolumeErasures and only return the `operationId`
+     * const projectVolumeErasureWithOperationIdOnly = await prisma.projectVolumeErasure.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectVolumeErasureUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectVolumeErasureUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectVolumeErasure.
+     * @param {ProjectVolumeErasureUpsertArgs} args - Arguments to update or create a ProjectVolumeErasure.
+     * @example
+     * // Update or create a ProjectVolumeErasure
+     * const projectVolumeErasure = await prisma.projectVolumeErasure.upsert({
+     *   create: {
+     *     // ... data to create a ProjectVolumeErasure
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectVolumeErasure we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectVolumeErasureUpsertArgs>(args: SelectSubset<T, ProjectVolumeErasureUpsertArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectVolumeErasures.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureCountArgs} args - Arguments to filter ProjectVolumeErasures to count.
+     * @example
+     * // Count the number of ProjectVolumeErasures
+     * const count = await prisma.projectVolumeErasure.count({
+     *   where: {
+     *     // ... the filter for the ProjectVolumeErasures we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectVolumeErasureCountArgs>(
+      args?: Subset<T, ProjectVolumeErasureCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectVolumeErasureCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectVolumeErasure.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectVolumeErasureAggregateArgs>(args: Subset<T, ProjectVolumeErasureAggregateArgs>): Prisma.PrismaPromise<GetProjectVolumeErasureAggregateType<T>>
+
+    /**
+     * Group by ProjectVolumeErasure.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectVolumeErasureGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectVolumeErasureGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectVolumeErasureGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectVolumeErasureGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectVolumeErasureGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectVolumeErasure model
+   */
+  readonly fields: ProjectVolumeErasureFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectVolumeErasure.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectVolumeErasureClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends ObjectStorageOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperationDefaultArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    targets<T extends ProjectVolumeErasure$targetsArgs<ExtArgs> = {}>(args?: Subset<T, ProjectVolumeErasure$targetsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectVolumeErasure model
+   */
+  interface ProjectVolumeErasureFieldRefs {
+    readonly operationId: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly projectIdSnapshot: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly organizationId: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly ownershipEpoch: FieldRef<"ProjectVolumeErasure", 'Int'>
+    readonly namespace: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly state: FieldRef<"ProjectVolumeErasure", 'ProjectVolumeErasureState'>
+    readonly sourceSnapshot: FieldRef<"ProjectVolumeErasure", 'Json'>
+    readonly inventory: FieldRef<"ProjectVolumeErasure", 'Json'>
+    readonly inventoryHash: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly evidence: FieldRef<"ProjectVolumeErasure", 'Json'>
+    readonly verificationHash: FieldRef<"ProjectVolumeErasure", 'String'>
+    readonly verificationFencingToken: FieldRef<"ProjectVolumeErasure", 'BigInt'>
+    readonly preparedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly inventoriedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly erasingAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly verifiedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectVolumeErasure", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectVolumeErasure findUnique
+   */
+  export type ProjectVolumeErasureFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasure to fetch.
+     */
+    where: ProjectVolumeErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasure findUniqueOrThrow
+   */
+  export type ProjectVolumeErasureFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasure to fetch.
+     */
+    where: ProjectVolumeErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasure findFirst
+   */
+  export type ProjectVolumeErasureFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasure to fetch.
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasures to fetch.
+     */
+    orderBy?: ProjectVolumeErasureOrderByWithRelationInput | ProjectVolumeErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectVolumeErasures.
+     */
+    cursor?: ProjectVolumeErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasures.
+     */
+    distinct?: ProjectVolumeErasureScalarFieldEnum | ProjectVolumeErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasure findFirstOrThrow
+   */
+  export type ProjectVolumeErasureFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasure to fetch.
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasures to fetch.
+     */
+    orderBy?: ProjectVolumeErasureOrderByWithRelationInput | ProjectVolumeErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectVolumeErasures.
+     */
+    cursor?: ProjectVolumeErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasures.
+     */
+    distinct?: ProjectVolumeErasureScalarFieldEnum | ProjectVolumeErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasure findMany
+   */
+  export type ProjectVolumeErasureFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasures to fetch.
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasures to fetch.
+     */
+    orderBy?: ProjectVolumeErasureOrderByWithRelationInput | ProjectVolumeErasureOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectVolumeErasures.
+     */
+    cursor?: ProjectVolumeErasureWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasures from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasures.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasures.
+     */
+    distinct?: ProjectVolumeErasureScalarFieldEnum | ProjectVolumeErasureScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasure create
+   */
+  export type ProjectVolumeErasureCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectVolumeErasure.
+     */
+    data: XOR<ProjectVolumeErasureCreateInput, ProjectVolumeErasureUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectVolumeErasure createMany
+   */
+  export type ProjectVolumeErasureCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectVolumeErasures.
+     */
+    data: ProjectVolumeErasureCreateManyInput | ProjectVolumeErasureCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectVolumeErasure createManyAndReturn
+   */
+  export type ProjectVolumeErasureCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectVolumeErasures.
+     */
+    data: ProjectVolumeErasureCreateManyInput | ProjectVolumeErasureCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectVolumeErasure update
+   */
+  export type ProjectVolumeErasureUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectVolumeErasure.
+     */
+    data: XOR<ProjectVolumeErasureUpdateInput, ProjectVolumeErasureUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectVolumeErasure to update.
+     */
+    where: ProjectVolumeErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasure updateMany
+   */
+  export type ProjectVolumeErasureUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectVolumeErasures.
+     */
+    data: XOR<ProjectVolumeErasureUpdateManyMutationInput, ProjectVolumeErasureUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectVolumeErasures to update
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * Limit how many ProjectVolumeErasures to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectVolumeErasure updateManyAndReturn
+   */
+  export type ProjectVolumeErasureUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectVolumeErasures.
+     */
+    data: XOR<ProjectVolumeErasureUpdateManyMutationInput, ProjectVolumeErasureUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectVolumeErasures to update
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * Limit how many ProjectVolumeErasures to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectVolumeErasure upsert
+   */
+  export type ProjectVolumeErasureUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectVolumeErasure to update in case it exists.
+     */
+    where: ProjectVolumeErasureWhereUniqueInput
+    /**
+     * In case the ProjectVolumeErasure found by the `where` argument doesn't exist, create a new ProjectVolumeErasure with this data.
+     */
+    create: XOR<ProjectVolumeErasureCreateInput, ProjectVolumeErasureUncheckedCreateInput>
+    /**
+     * In case the ProjectVolumeErasure was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectVolumeErasureUpdateInput, ProjectVolumeErasureUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectVolumeErasure delete
+   */
+  export type ProjectVolumeErasureDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectVolumeErasure to delete.
+     */
+    where: ProjectVolumeErasureWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasure deleteMany
+   */
+  export type ProjectVolumeErasureDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectVolumeErasures to delete
+     */
+    where?: ProjectVolumeErasureWhereInput
+    /**
+     * Limit how many ProjectVolumeErasures to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectVolumeErasure.targets
+   */
+  export type ProjectVolumeErasure$targetsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    where?: ProjectVolumeErasureTargetWhereInput
+    orderBy?: ProjectVolumeErasureTargetOrderByWithRelationInput | ProjectVolumeErasureTargetOrderByWithRelationInput[]
+    cursor?: ProjectVolumeErasureTargetWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectVolumeErasureTargetScalarFieldEnum | ProjectVolumeErasureTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasure without action
+   */
+  export type ProjectVolumeErasureDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasure
+     */
+    select?: ProjectVolumeErasureSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasure
+     */
+    omit?: ProjectVolumeErasureOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectVolumeErasureTarget
+   */
+
+  export type AggregateProjectVolumeErasureTarget = {
+    _count: ProjectVolumeErasureTargetCountAggregateOutputType | null
+    _avg: ProjectVolumeErasureTargetAvgAggregateOutputType | null
+    _sum: ProjectVolumeErasureTargetSumAggregateOutputType | null
+    _min: ProjectVolumeErasureTargetMinAggregateOutputType | null
+    _max: ProjectVolumeErasureTargetMaxAggregateOutputType | null
+  }
+
+  export type ProjectVolumeErasureTargetAvgAggregateOutputType = {
+    ordinal: number | null
+    verifiedFencingToken: number | null
+  }
+
+  export type ProjectVolumeErasureTargetSumAggregateOutputType = {
+    ordinal: number | null
+    verifiedFencingToken: bigint | null
+  }
+
+  export type ProjectVolumeErasureTargetMinAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    namespace: string | null
+    pvcName: string | null
+    expectedPvcUid: string | null
+    verifiedFencingToken: bigint | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectVolumeErasureTargetMaxAggregateOutputType = {
+    operationId: string | null
+    ordinal: number | null
+    namespace: string | null
+    pvcName: string | null
+    expectedPvcUid: string | null
+    verifiedFencingToken: bigint | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectVolumeErasureTargetCountAggregateOutputType = {
+    operationId: number
+    ordinal: number
+    namespace: number
+    pvcName: number
+    expectedPvcUid: number
+    inventoryEntry: number
+    evidenceEntry: number
+    verifiedFencingToken: number
+    verifiedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectVolumeErasureTargetAvgAggregateInputType = {
+    ordinal?: true
+    verifiedFencingToken?: true
+  }
+
+  export type ProjectVolumeErasureTargetSumAggregateInputType = {
+    ordinal?: true
+    verifiedFencingToken?: true
+  }
+
+  export type ProjectVolumeErasureTargetMinAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    namespace?: true
+    pvcName?: true
+    expectedPvcUid?: true
+    verifiedFencingToken?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectVolumeErasureTargetMaxAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    namespace?: true
+    pvcName?: true
+    expectedPvcUid?: true
+    verifiedFencingToken?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectVolumeErasureTargetCountAggregateInputType = {
+    operationId?: true
+    ordinal?: true
+    namespace?: true
+    pvcName?: true
+    expectedPvcUid?: true
+    inventoryEntry?: true
+    evidenceEntry?: true
+    verifiedFencingToken?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectVolumeErasureTargetAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectVolumeErasureTarget to aggregate.
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasureTargets to fetch.
+     */
+    orderBy?: ProjectVolumeErasureTargetOrderByWithRelationInput | ProjectVolumeErasureTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectVolumeErasureTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasureTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasureTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectVolumeErasureTargets
+    **/
+    _count?: true | ProjectVolumeErasureTargetCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectVolumeErasureTargetAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectVolumeErasureTargetSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectVolumeErasureTargetMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectVolumeErasureTargetMaxAggregateInputType
+  }
+
+  export type GetProjectVolumeErasureTargetAggregateType<T extends ProjectVolumeErasureTargetAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectVolumeErasureTarget]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectVolumeErasureTarget[P]>
+      : GetScalarType<T[P], AggregateProjectVolumeErasureTarget[P]>
+  }
+
+
+
+
+  export type ProjectVolumeErasureTargetGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectVolumeErasureTargetWhereInput
+    orderBy?: ProjectVolumeErasureTargetOrderByWithAggregationInput | ProjectVolumeErasureTargetOrderByWithAggregationInput[]
+    by: ProjectVolumeErasureTargetScalarFieldEnum[] | ProjectVolumeErasureTargetScalarFieldEnum
+    having?: ProjectVolumeErasureTargetScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectVolumeErasureTargetCountAggregateInputType | true
+    _avg?: ProjectVolumeErasureTargetAvgAggregateInputType
+    _sum?: ProjectVolumeErasureTargetSumAggregateInputType
+    _min?: ProjectVolumeErasureTargetMinAggregateInputType
+    _max?: ProjectVolumeErasureTargetMaxAggregateInputType
+  }
+
+  export type ProjectVolumeErasureTargetGroupByOutputType = {
+    operationId: string
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid: string | null
+    inventoryEntry: JsonValue | null
+    evidenceEntry: JsonValue | null
+    verifiedFencingToken: bigint | null
+    verifiedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectVolumeErasureTargetCountAggregateOutputType | null
+    _avg: ProjectVolumeErasureTargetAvgAggregateOutputType | null
+    _sum: ProjectVolumeErasureTargetSumAggregateOutputType | null
+    _min: ProjectVolumeErasureTargetMinAggregateOutputType | null
+    _max: ProjectVolumeErasureTargetMaxAggregateOutputType | null
+  }
+
+  type GetProjectVolumeErasureTargetGroupByPayload<T extends ProjectVolumeErasureTargetGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectVolumeErasureTargetGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectVolumeErasureTargetGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectVolumeErasureTargetGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectVolumeErasureTargetGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectVolumeErasureTargetSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    namespace?: boolean
+    pvcName?: boolean
+    expectedPvcUid?: boolean
+    inventoryEntry?: boolean
+    evidenceEntry?: boolean
+    verifiedFencingToken?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasureTarget"]>
+
+  export type ProjectVolumeErasureTargetSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    namespace?: boolean
+    pvcName?: boolean
+    expectedPvcUid?: boolean
+    inventoryEntry?: boolean
+    evidenceEntry?: boolean
+    verifiedFencingToken?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasureTarget"]>
+
+  export type ProjectVolumeErasureTargetSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    ordinal?: boolean
+    namespace?: boolean
+    pvcName?: boolean
+    expectedPvcUid?: boolean
+    inventoryEntry?: boolean
+    evidenceEntry?: boolean
+    verifiedFencingToken?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectVolumeErasureTarget"]>
+
+  export type ProjectVolumeErasureTargetSelectScalar = {
+    operationId?: boolean
+    ordinal?: boolean
+    namespace?: boolean
+    pvcName?: boolean
+    expectedPvcUid?: boolean
+    inventoryEntry?: boolean
+    evidenceEntry?: boolean
+    verifiedFencingToken?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectVolumeErasureTargetOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "ordinal" | "namespace" | "pvcName" | "expectedPvcUid" | "inventoryEntry" | "evidenceEntry" | "verifiedFencingToken" | "verifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectVolumeErasureTarget"]>
+  export type ProjectVolumeErasureTargetInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }
+  export type ProjectVolumeErasureTargetIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }
+  export type ProjectVolumeErasureTargetIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    erasure?: boolean | ProjectVolumeErasureDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectVolumeErasureTargetPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectVolumeErasureTarget"
+    objects: {
+      erasure: Prisma.$ProjectVolumeErasurePayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      ordinal: number
+      namespace: string
+      pvcName: string
+      expectedPvcUid: string | null
+      inventoryEntry: Prisma.JsonValue | null
+      evidenceEntry: Prisma.JsonValue | null
+      verifiedFencingToken: bigint | null
+      verifiedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectVolumeErasureTarget"]>
+    composites: {}
+  }
+
+  type ProjectVolumeErasureTargetGetPayload<S extends boolean | null | undefined | ProjectVolumeErasureTargetDefaultArgs> = $Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload, S>
+
+  type ProjectVolumeErasureTargetCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectVolumeErasureTargetFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectVolumeErasureTargetCountAggregateInputType | true
+    }
+
+  export interface ProjectVolumeErasureTargetDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectVolumeErasureTarget'], meta: { name: 'ProjectVolumeErasureTarget' } }
+    /**
+     * Find zero or one ProjectVolumeErasureTarget that matches the filter.
+     * @param {ProjectVolumeErasureTargetFindUniqueArgs} args - Arguments to find a ProjectVolumeErasureTarget
+     * @example
+     * // Get one ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectVolumeErasureTargetFindUniqueArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetFindUniqueArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectVolumeErasureTarget that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectVolumeErasureTargetFindUniqueOrThrowArgs} args - Arguments to find a ProjectVolumeErasureTarget
+     * @example
+     * // Get one ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectVolumeErasureTargetFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectVolumeErasureTarget that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetFindFirstArgs} args - Arguments to find a ProjectVolumeErasureTarget
+     * @example
+     * // Get one ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectVolumeErasureTargetFindFirstArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetFindFirstArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectVolumeErasureTarget that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetFindFirstOrThrowArgs} args - Arguments to find a ProjectVolumeErasureTarget
+     * @example
+     * // Get one ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectVolumeErasureTargetFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectVolumeErasureTargets that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectVolumeErasureTargets
+     * const projectVolumeErasureTargets = await prisma.projectVolumeErasureTarget.findMany()
+     *
+     * // Get first 10 ProjectVolumeErasureTargets
+     * const projectVolumeErasureTargets = await prisma.projectVolumeErasureTarget.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const projectVolumeErasureTargetWithOperationIdOnly = await prisma.projectVolumeErasureTarget.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ProjectVolumeErasureTargetFindManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectVolumeErasureTarget.
+     * @param {ProjectVolumeErasureTargetCreateArgs} args - Arguments to create a ProjectVolumeErasureTarget.
+     * @example
+     * // Create one ProjectVolumeErasureTarget
+     * const ProjectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.create({
+     *   data: {
+     *     // ... data to create a ProjectVolumeErasureTarget
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectVolumeErasureTargetCreateArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetCreateArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectVolumeErasureTargets.
+     * @param {ProjectVolumeErasureTargetCreateManyArgs} args - Arguments to create many ProjectVolumeErasureTargets.
+     * @example
+     * // Create many ProjectVolumeErasureTargets
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectVolumeErasureTargetCreateManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectVolumeErasureTargets and returns the data saved in the database.
+     * @param {ProjectVolumeErasureTargetCreateManyAndReturnArgs} args - Arguments to create many ProjectVolumeErasureTargets.
+     * @example
+     * // Create many ProjectVolumeErasureTargets
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectVolumeErasureTargets and only return the `operationId`
+     * const projectVolumeErasureTargetWithOperationIdOnly = await prisma.projectVolumeErasureTarget.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectVolumeErasureTargetCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectVolumeErasureTarget.
+     * @param {ProjectVolumeErasureTargetDeleteArgs} args - Arguments to delete one ProjectVolumeErasureTarget.
+     * @example
+     * // Delete one ProjectVolumeErasureTarget
+     * const ProjectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectVolumeErasureTarget
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectVolumeErasureTargetDeleteArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetDeleteArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectVolumeErasureTarget.
+     * @param {ProjectVolumeErasureTargetUpdateArgs} args - Arguments to update one ProjectVolumeErasureTarget.
+     * @example
+     * // Update one ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectVolumeErasureTargetUpdateArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetUpdateArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectVolumeErasureTargets.
+     * @param {ProjectVolumeErasureTargetDeleteManyArgs} args - Arguments to filter ProjectVolumeErasureTargets to delete.
+     * @example
+     * // Delete a few ProjectVolumeErasureTargets
+     * const { count } = await prisma.projectVolumeErasureTarget.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectVolumeErasureTargetDeleteManyArgs>(args?: SelectSubset<T, ProjectVolumeErasureTargetDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectVolumeErasureTargets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectVolumeErasureTargets
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectVolumeErasureTargetUpdateManyArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectVolumeErasureTargets and returns the data updated in the database.
+     * @param {ProjectVolumeErasureTargetUpdateManyAndReturnArgs} args - Arguments to update many ProjectVolumeErasureTargets.
+     * @example
+     * // Update many ProjectVolumeErasureTargets
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectVolumeErasureTargets and only return the `operationId`
+     * const projectVolumeErasureTargetWithOperationIdOnly = await prisma.projectVolumeErasureTarget.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectVolumeErasureTargetUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectVolumeErasureTarget.
+     * @param {ProjectVolumeErasureTargetUpsertArgs} args - Arguments to update or create a ProjectVolumeErasureTarget.
+     * @example
+     * // Update or create a ProjectVolumeErasureTarget
+     * const projectVolumeErasureTarget = await prisma.projectVolumeErasureTarget.upsert({
+     *   create: {
+     *     // ... data to create a ProjectVolumeErasureTarget
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectVolumeErasureTarget we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectVolumeErasureTargetUpsertArgs>(args: SelectSubset<T, ProjectVolumeErasureTargetUpsertArgs<ExtArgs>>): Prisma__ProjectVolumeErasureTargetClient<$Result.GetResult<Prisma.$ProjectVolumeErasureTargetPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectVolumeErasureTargets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetCountArgs} args - Arguments to filter ProjectVolumeErasureTargets to count.
+     * @example
+     * // Count the number of ProjectVolumeErasureTargets
+     * const count = await prisma.projectVolumeErasureTarget.count({
+     *   where: {
+     *     // ... the filter for the ProjectVolumeErasureTargets we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectVolumeErasureTargetCountArgs>(
+      args?: Subset<T, ProjectVolumeErasureTargetCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectVolumeErasureTargetCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectVolumeErasureTarget.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectVolumeErasureTargetAggregateArgs>(args: Subset<T, ProjectVolumeErasureTargetAggregateArgs>): Prisma.PrismaPromise<GetProjectVolumeErasureTargetAggregateType<T>>
+
+    /**
+     * Group by ProjectVolumeErasureTarget.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectVolumeErasureTargetGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectVolumeErasureTargetGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectVolumeErasureTargetGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectVolumeErasureTargetGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectVolumeErasureTargetGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectVolumeErasureTargetGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectVolumeErasureTarget model
+   */
+  readonly fields: ProjectVolumeErasureTargetFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectVolumeErasureTarget.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectVolumeErasureTargetClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    erasure<T extends ProjectVolumeErasureDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectVolumeErasureDefaultArgs<ExtArgs>>): Prisma__ProjectVolumeErasureClient<$Result.GetResult<Prisma.$ProjectVolumeErasurePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectVolumeErasureTarget model
+   */
+  interface ProjectVolumeErasureTargetFieldRefs {
+    readonly operationId: FieldRef<"ProjectVolumeErasureTarget", 'String'>
+    readonly ordinal: FieldRef<"ProjectVolumeErasureTarget", 'Int'>
+    readonly namespace: FieldRef<"ProjectVolumeErasureTarget", 'String'>
+    readonly pvcName: FieldRef<"ProjectVolumeErasureTarget", 'String'>
+    readonly expectedPvcUid: FieldRef<"ProjectVolumeErasureTarget", 'String'>
+    readonly inventoryEntry: FieldRef<"ProjectVolumeErasureTarget", 'Json'>
+    readonly evidenceEntry: FieldRef<"ProjectVolumeErasureTarget", 'Json'>
+    readonly verifiedFencingToken: FieldRef<"ProjectVolumeErasureTarget", 'BigInt'>
+    readonly verifiedAt: FieldRef<"ProjectVolumeErasureTarget", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectVolumeErasureTarget", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectVolumeErasureTarget", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectVolumeErasureTarget findUnique
+   */
+  export type ProjectVolumeErasureTargetFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasureTarget to fetch.
+     */
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasureTarget findUniqueOrThrow
+   */
+  export type ProjectVolumeErasureTargetFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasureTarget to fetch.
+     */
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasureTarget findFirst
+   */
+  export type ProjectVolumeErasureTargetFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasureTarget to fetch.
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasureTargets to fetch.
+     */
+    orderBy?: ProjectVolumeErasureTargetOrderByWithRelationInput | ProjectVolumeErasureTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectVolumeErasureTargets.
+     */
+    cursor?: ProjectVolumeErasureTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasureTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasureTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasureTargets.
+     */
+    distinct?: ProjectVolumeErasureTargetScalarFieldEnum | ProjectVolumeErasureTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasureTarget findFirstOrThrow
+   */
+  export type ProjectVolumeErasureTargetFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasureTarget to fetch.
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasureTargets to fetch.
+     */
+    orderBy?: ProjectVolumeErasureTargetOrderByWithRelationInput | ProjectVolumeErasureTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectVolumeErasureTargets.
+     */
+    cursor?: ProjectVolumeErasureTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasureTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasureTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasureTargets.
+     */
+    distinct?: ProjectVolumeErasureTargetScalarFieldEnum | ProjectVolumeErasureTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasureTarget findMany
+   */
+  export type ProjectVolumeErasureTargetFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectVolumeErasureTargets to fetch.
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectVolumeErasureTargets to fetch.
+     */
+    orderBy?: ProjectVolumeErasureTargetOrderByWithRelationInput | ProjectVolumeErasureTargetOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectVolumeErasureTargets.
+     */
+    cursor?: ProjectVolumeErasureTargetWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectVolumeErasureTargets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectVolumeErasureTargets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectVolumeErasureTargets.
+     */
+    distinct?: ProjectVolumeErasureTargetScalarFieldEnum | ProjectVolumeErasureTargetScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectVolumeErasureTarget create
+   */
+  export type ProjectVolumeErasureTargetCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectVolumeErasureTarget.
+     */
+    data: XOR<ProjectVolumeErasureTargetCreateInput, ProjectVolumeErasureTargetUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectVolumeErasureTarget createMany
+   */
+  export type ProjectVolumeErasureTargetCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectVolumeErasureTargets.
+     */
+    data: ProjectVolumeErasureTargetCreateManyInput | ProjectVolumeErasureTargetCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectVolumeErasureTarget createManyAndReturn
+   */
+  export type ProjectVolumeErasureTargetCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectVolumeErasureTargets.
+     */
+    data: ProjectVolumeErasureTargetCreateManyInput | ProjectVolumeErasureTargetCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectVolumeErasureTarget update
+   */
+  export type ProjectVolumeErasureTargetUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectVolumeErasureTarget.
+     */
+    data: XOR<ProjectVolumeErasureTargetUpdateInput, ProjectVolumeErasureTargetUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectVolumeErasureTarget to update.
+     */
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasureTarget updateMany
+   */
+  export type ProjectVolumeErasureTargetUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectVolumeErasureTargets.
+     */
+    data: XOR<ProjectVolumeErasureTargetUpdateManyMutationInput, ProjectVolumeErasureTargetUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectVolumeErasureTargets to update
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * Limit how many ProjectVolumeErasureTargets to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectVolumeErasureTarget updateManyAndReturn
+   */
+  export type ProjectVolumeErasureTargetUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectVolumeErasureTargets.
+     */
+    data: XOR<ProjectVolumeErasureTargetUpdateManyMutationInput, ProjectVolumeErasureTargetUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectVolumeErasureTargets to update
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * Limit how many ProjectVolumeErasureTargets to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectVolumeErasureTarget upsert
+   */
+  export type ProjectVolumeErasureTargetUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectVolumeErasureTarget to update in case it exists.
+     */
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+    /**
+     * In case the ProjectVolumeErasureTarget found by the `where` argument doesn't exist, create a new ProjectVolumeErasureTarget with this data.
+     */
+    create: XOR<ProjectVolumeErasureTargetCreateInput, ProjectVolumeErasureTargetUncheckedCreateInput>
+    /**
+     * In case the ProjectVolumeErasureTarget was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectVolumeErasureTargetUpdateInput, ProjectVolumeErasureTargetUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectVolumeErasureTarget delete
+   */
+  export type ProjectVolumeErasureTargetDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectVolumeErasureTarget to delete.
+     */
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+  }
+
+  /**
+   * ProjectVolumeErasureTarget deleteMany
+   */
+  export type ProjectVolumeErasureTargetDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectVolumeErasureTargets to delete
+     */
+    where?: ProjectVolumeErasureTargetWhereInput
+    /**
+     * Limit how many ProjectVolumeErasureTargets to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectVolumeErasureTarget without action
+   */
+  export type ProjectVolumeErasureTargetDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectVolumeErasureTarget
+     */
+    select?: ProjectVolumeErasureTargetSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectVolumeErasureTarget
+     */
+    omit?: ProjectVolumeErasureTargetOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectVolumeErasureTargetInclude<ExtArgs> | null
   }
 
 
@@ -209038,6 +211751,47 @@ export namespace Prisma {
   export type ObjectStorageOperationScalarFieldEnum = (typeof ObjectStorageOperationScalarFieldEnum)[keyof typeof ObjectStorageOperationScalarFieldEnum]
 
 
+  export const ProjectVolumeErasureScalarFieldEnum: {
+    operationId: 'operationId',
+    projectIdSnapshot: 'projectIdSnapshot',
+    organizationId: 'organizationId',
+    ownershipEpoch: 'ownershipEpoch',
+    namespace: 'namespace',
+    state: 'state',
+    sourceSnapshot: 'sourceSnapshot',
+    inventory: 'inventory',
+    inventoryHash: 'inventoryHash',
+    evidence: 'evidence',
+    verificationHash: 'verificationHash',
+    verificationFencingToken: 'verificationFencingToken',
+    preparedAt: 'preparedAt',
+    inventoriedAt: 'inventoriedAt',
+    erasingAt: 'erasingAt',
+    verifiedAt: 'verifiedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectVolumeErasureScalarFieldEnum = (typeof ProjectVolumeErasureScalarFieldEnum)[keyof typeof ProjectVolumeErasureScalarFieldEnum]
+
+
+  export const ProjectVolumeErasureTargetScalarFieldEnum: {
+    operationId: 'operationId',
+    ordinal: 'ordinal',
+    namespace: 'namespace',
+    pvcName: 'pvcName',
+    expectedPvcUid: 'expectedPvcUid',
+    inventoryEntry: 'inventoryEntry',
+    evidenceEntry: 'evidenceEntry',
+    verifiedFencingToken: 'verifiedFencingToken',
+    verifiedAt: 'verifiedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectVolumeErasureTargetScalarFieldEnum = (typeof ProjectVolumeErasureTargetScalarFieldEnum)[keyof typeof ProjectVolumeErasureTargetScalarFieldEnum]
+
+
   export const ObjectStorageOperationPinnedObjectScalarFieldEnum: {
     operationId: 'operationId',
     ordinal: 'ordinal',
@@ -211722,6 +214476,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProjectVolumeErasureState'
+   */
+  export type EnumProjectVolumeErasureStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectVolumeErasureState'>
+
+
+
+  /**
+   * Reference to a field of type 'ProjectVolumeErasureState[]'
+   */
+  export type ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectVolumeErasureState[]'>
+
+
+
+  /**
    * Reference to a field of type 'ProjectPermanentDeletionArtifactState'
    */
   export type EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectPermanentDeletionArtifactState'>
@@ -213496,6 +216264,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    projectVolumeErasure?: XOR<ProjectVolumeErasureNullableScalarRelationFilter, ProjectVolumeErasureWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }
 
@@ -213532,6 +216301,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanOrderByRelationAggregateInput
     capabilityReservations?: ObjectStorageCapabilityReservationOrderByRelationAggregateInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptOrderByWithRelationInput
+    projectVolumeErasure?: ProjectVolumeErasureOrderByWithRelationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleOrderByRelationAggregateInput
   }
 
@@ -213572,6 +216342,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanListRelationFilter
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
+    projectVolumeErasure?: XOR<ProjectVolumeErasureNullableScalarRelationFilter, ProjectVolumeErasureWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
   }, "id" | "idempotencyScopeHash_idempotencyKey">
 
@@ -213639,6 +216410,220 @@ export namespace Prisma {
     manualRecoveryAt?: DateTimeNullableWithAggregatesFilter<"ObjectStorageOperation"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ObjectStorageOperation"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ObjectStorageOperation"> | Date | string
+  }
+
+  export type ProjectVolumeErasureWhereInput = {
+    AND?: ProjectVolumeErasureWhereInput | ProjectVolumeErasureWhereInput[]
+    OR?: ProjectVolumeErasureWhereInput[]
+    NOT?: ProjectVolumeErasureWhereInput | ProjectVolumeErasureWhereInput[]
+    operationId?: StringFilter<"ProjectVolumeErasure"> | string
+    projectIdSnapshot?: StringFilter<"ProjectVolumeErasure"> | string
+    organizationId?: StringFilter<"ProjectVolumeErasure"> | string
+    ownershipEpoch?: IntFilter<"ProjectVolumeErasure"> | number
+    namespace?: StringFilter<"ProjectVolumeErasure"> | string
+    state?: EnumProjectVolumeErasureStateFilter<"ProjectVolumeErasure"> | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonFilter<"ProjectVolumeErasure">
+    inventory?: JsonNullableFilter<"ProjectVolumeErasure">
+    inventoryHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    evidence?: JsonNullableFilter<"ProjectVolumeErasure">
+    verificationHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    verificationFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
+    preparedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    inventoriedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    erasingAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+    targets?: ProjectVolumeErasureTargetListRelationFilter
+  }
+
+  export type ProjectVolumeErasureOrderByWithRelationInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    namespace?: SortOrder
+    state?: SortOrder
+    sourceSnapshot?: SortOrder
+    inventory?: SortOrderInput | SortOrder
+    inventoryHash?: SortOrderInput | SortOrder
+    evidence?: SortOrderInput | SortOrder
+    verificationHash?: SortOrderInput | SortOrder
+    verificationFencingToken?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    inventoriedAt?: SortOrderInput | SortOrder
+    erasingAt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    operation?: ObjectStorageOperationOrderByWithRelationInput
+    targets?: ProjectVolumeErasureTargetOrderByRelationAggregateInput
+  }
+
+  export type ProjectVolumeErasureWhereUniqueInput = Prisma.AtLeast<{
+    operationId?: string
+    AND?: ProjectVolumeErasureWhereInput | ProjectVolumeErasureWhereInput[]
+    OR?: ProjectVolumeErasureWhereInput[]
+    NOT?: ProjectVolumeErasureWhereInput | ProjectVolumeErasureWhereInput[]
+    projectIdSnapshot?: StringFilter<"ProjectVolumeErasure"> | string
+    organizationId?: StringFilter<"ProjectVolumeErasure"> | string
+    ownershipEpoch?: IntFilter<"ProjectVolumeErasure"> | number
+    namespace?: StringFilter<"ProjectVolumeErasure"> | string
+    state?: EnumProjectVolumeErasureStateFilter<"ProjectVolumeErasure"> | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonFilter<"ProjectVolumeErasure">
+    inventory?: JsonNullableFilter<"ProjectVolumeErasure">
+    inventoryHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    evidence?: JsonNullableFilter<"ProjectVolumeErasure">
+    verificationHash?: StringNullableFilter<"ProjectVolumeErasure"> | string | null
+    verificationFencingToken?: BigIntNullableFilter<"ProjectVolumeErasure"> | bigint | number | null
+    preparedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    inventoriedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    erasingAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasure"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectVolumeErasure"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+    targets?: ProjectVolumeErasureTargetListRelationFilter
+  }, "operationId">
+
+  export type ProjectVolumeErasureOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    namespace?: SortOrder
+    state?: SortOrder
+    sourceSnapshot?: SortOrder
+    inventory?: SortOrderInput | SortOrder
+    inventoryHash?: SortOrderInput | SortOrder
+    evidence?: SortOrderInput | SortOrder
+    verificationHash?: SortOrderInput | SortOrder
+    verificationFencingToken?: SortOrderInput | SortOrder
+    preparedAt?: SortOrder
+    inventoriedAt?: SortOrderInput | SortOrder
+    erasingAt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectVolumeErasureCountOrderByAggregateInput
+    _avg?: ProjectVolumeErasureAvgOrderByAggregateInput
+    _max?: ProjectVolumeErasureMaxOrderByAggregateInput
+    _min?: ProjectVolumeErasureMinOrderByAggregateInput
+    _sum?: ProjectVolumeErasureSumOrderByAggregateInput
+  }
+
+  export type ProjectVolumeErasureScalarWhereWithAggregatesInput = {
+    AND?: ProjectVolumeErasureScalarWhereWithAggregatesInput | ProjectVolumeErasureScalarWhereWithAggregatesInput[]
+    OR?: ProjectVolumeErasureScalarWhereWithAggregatesInput[]
+    NOT?: ProjectVolumeErasureScalarWhereWithAggregatesInput | ProjectVolumeErasureScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ProjectVolumeErasure"> | string
+    projectIdSnapshot?: StringWithAggregatesFilter<"ProjectVolumeErasure"> | string
+    organizationId?: StringWithAggregatesFilter<"ProjectVolumeErasure"> | string
+    ownershipEpoch?: IntWithAggregatesFilter<"ProjectVolumeErasure"> | number
+    namespace?: StringWithAggregatesFilter<"ProjectVolumeErasure"> | string
+    state?: EnumProjectVolumeErasureStateWithAggregatesFilter<"ProjectVolumeErasure"> | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonWithAggregatesFilter<"ProjectVolumeErasure">
+    inventory?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasure">
+    inventoryHash?: StringNullableWithAggregatesFilter<"ProjectVolumeErasure"> | string | null
+    evidence?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasure">
+    verificationHash?: StringNullableWithAggregatesFilter<"ProjectVolumeErasure"> | string | null
+    verificationFencingToken?: BigIntNullableWithAggregatesFilter<"ProjectVolumeErasure"> | bigint | number | null
+    preparedAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
+    inventoriedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
+    erasingAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasure"> | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetWhereInput = {
+    AND?: ProjectVolumeErasureTargetWhereInput | ProjectVolumeErasureTargetWhereInput[]
+    OR?: ProjectVolumeErasureTargetWhereInput[]
+    NOT?: ProjectVolumeErasureTargetWhereInput | ProjectVolumeErasureTargetWhereInput[]
+    operationId?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    ordinal?: IntFilter<"ProjectVolumeErasureTarget"> | number
+    namespace?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    pvcName?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    expectedPvcUid?: StringNullableFilter<"ProjectVolumeErasureTarget"> | string | null
+    inventoryEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    evidenceEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    verifiedFencingToken?: BigIntNullableFilter<"ProjectVolumeErasureTarget"> | bigint | number | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasureTarget"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+    erasure?: XOR<ProjectVolumeErasureScalarRelationFilter, ProjectVolumeErasureWhereInput>
+  }
+
+  export type ProjectVolumeErasureTargetOrderByWithRelationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    namespace?: SortOrder
+    pvcName?: SortOrder
+    expectedPvcUid?: SortOrderInput | SortOrder
+    inventoryEntry?: SortOrderInput | SortOrder
+    evidenceEntry?: SortOrderInput | SortOrder
+    verifiedFencingToken?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    erasure?: ProjectVolumeErasureOrderByWithRelationInput
+  }
+
+  export type ProjectVolumeErasureTargetWhereUniqueInput = Prisma.AtLeast<{
+    operationId_namespace_pvcName?: ProjectVolumeErasureTargetOperationIdNamespacePvcNameCompoundUniqueInput
+    operationId_ordinal?: ProjectVolumeErasureTargetOperationIdOrdinalCompoundUniqueInput
+    AND?: ProjectVolumeErasureTargetWhereInput | ProjectVolumeErasureTargetWhereInput[]
+    OR?: ProjectVolumeErasureTargetWhereInput[]
+    NOT?: ProjectVolumeErasureTargetWhereInput | ProjectVolumeErasureTargetWhereInput[]
+    operationId?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    ordinal?: IntFilter<"ProjectVolumeErasureTarget"> | number
+    namespace?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    pvcName?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    expectedPvcUid?: StringNullableFilter<"ProjectVolumeErasureTarget"> | string | null
+    inventoryEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    evidenceEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    verifiedFencingToken?: BigIntNullableFilter<"ProjectVolumeErasureTarget"> | bigint | number | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasureTarget"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+    erasure?: XOR<ProjectVolumeErasureScalarRelationFilter, ProjectVolumeErasureWhereInput>
+  }, "operationId_ordinal" | "operationId_namespace_pvcName">
+
+  export type ProjectVolumeErasureTargetOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    namespace?: SortOrder
+    pvcName?: SortOrder
+    expectedPvcUid?: SortOrderInput | SortOrder
+    inventoryEntry?: SortOrderInput | SortOrder
+    evidenceEntry?: SortOrderInput | SortOrder
+    verifiedFencingToken?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectVolumeErasureTargetCountOrderByAggregateInput
+    _avg?: ProjectVolumeErasureTargetAvgOrderByAggregateInput
+    _max?: ProjectVolumeErasureTargetMaxOrderByAggregateInput
+    _min?: ProjectVolumeErasureTargetMinOrderByAggregateInput
+    _sum?: ProjectVolumeErasureTargetSumOrderByAggregateInput
+  }
+
+  export type ProjectVolumeErasureTargetScalarWhereWithAggregatesInput = {
+    AND?: ProjectVolumeErasureTargetScalarWhereWithAggregatesInput | ProjectVolumeErasureTargetScalarWhereWithAggregatesInput[]
+    OR?: ProjectVolumeErasureTargetScalarWhereWithAggregatesInput[]
+    NOT?: ProjectVolumeErasureTargetScalarWhereWithAggregatesInput | ProjectVolumeErasureTargetScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ProjectVolumeErasureTarget"> | string
+    ordinal?: IntWithAggregatesFilter<"ProjectVolumeErasureTarget"> | number
+    namespace?: StringWithAggregatesFilter<"ProjectVolumeErasureTarget"> | string
+    pvcName?: StringWithAggregatesFilter<"ProjectVolumeErasureTarget"> | string
+    expectedPvcUid?: StringNullableWithAggregatesFilter<"ProjectVolumeErasureTarget"> | string | null
+    inventoryEntry?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasureTarget">
+    evidenceEntry?: JsonNullableWithAggregatesFilter<"ProjectVolumeErasureTarget">
+    verifiedFencingToken?: BigIntNullableWithAggregatesFilter<"ProjectVolumeErasureTarget"> | bigint | number | null
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"ProjectVolumeErasureTarget"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasureTarget"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectVolumeErasureTarget"> | Date | string
   }
 
   export type ObjectStorageOperationPinnedObjectWhereInput = {
@@ -228071,6 +231056,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -228107,6 +231093,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -228143,6 +231130,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -228179,6 +231167,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -228265,6 +231254,253 @@ export namespace Prisma {
     committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureCreateInput = {
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    operation: ObjectStorageOperationCreateNestedOneWithoutProjectVolumeErasureInput
+    targets?: ProjectVolumeErasureTargetCreateNestedManyWithoutErasureInput
+  }
+
+  export type ProjectVolumeErasureUncheckedCreateInput = {
+    operationId: string
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectVolumeErasureTargetUncheckedCreateNestedManyWithoutErasureInput
+  }
+
+  export type ProjectVolumeErasureUpdateInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutProjectVolumeErasureNestedInput
+    targets?: ProjectVolumeErasureTargetUpdateManyWithoutErasureNestedInput
+  }
+
+  export type ProjectVolumeErasureUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureNestedInput
+  }
+
+  export type ProjectVolumeErasureCreateManyInput = {
+    operationId: string
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureUpdateManyMutationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetCreateInput = {
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    erasure: ProjectVolumeErasureCreateNestedOneWithoutTargetsInput
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedCreateInput = {
+    operationId: string
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUpdateInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    erasure?: ProjectVolumeErasureUpdateOneRequiredWithoutTargetsNestedInput
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetCreateManyInput = {
+    operationId: string
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUpdateManyMutationInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -244288,6 +247524,11 @@ export namespace Prisma {
     isNot?: ProjectPermanentDeletionReceiptWhereInput | null
   }
 
+  export type ProjectVolumeErasureNullableScalarRelationFilter = {
+    is?: ProjectVolumeErasureWhereInput | null
+    isNot?: ProjectVolumeErasureWhereInput | null
+  }
+
   export type ObjectStorageVersionGcScheduleListRelationFilter = {
     every?: ObjectStorageVersionGcScheduleWhereInput
     some?: ObjectStorageVersionGcScheduleWhereInput
@@ -244470,9 +247711,194 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
+  export type EnumProjectVolumeErasureStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectVolumeErasureState | EnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel> | $Enums.ProjectVolumeErasureState
+  }
+
+  export type BigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  }
+
   export type ObjectStorageOperationScalarRelationFilter = {
     is?: ObjectStorageOperationWhereInput
     isNot?: ObjectStorageOperationWhereInput
+  }
+
+  export type ProjectVolumeErasureTargetListRelationFilter = {
+    every?: ProjectVolumeErasureTargetWhereInput
+    some?: ProjectVolumeErasureTargetWhereInput
+    none?: ProjectVolumeErasureTargetWhereInput
+  }
+
+  export type ProjectVolumeErasureTargetOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectVolumeErasureCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    namespace?: SortOrder
+    state?: SortOrder
+    sourceSnapshot?: SortOrder
+    inventory?: SortOrder
+    inventoryHash?: SortOrder
+    evidence?: SortOrder
+    verificationHash?: SortOrder
+    verificationFencingToken?: SortOrder
+    preparedAt?: SortOrder
+    inventoriedAt?: SortOrder
+    erasingAt?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureAvgOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    verificationFencingToken?: SortOrder
+  }
+
+  export type ProjectVolumeErasureMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    namespace?: SortOrder
+    state?: SortOrder
+    inventoryHash?: SortOrder
+    verificationHash?: SortOrder
+    verificationFencingToken?: SortOrder
+    preparedAt?: SortOrder
+    inventoriedAt?: SortOrder
+    erasingAt?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectIdSnapshot?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    namespace?: SortOrder
+    state?: SortOrder
+    inventoryHash?: SortOrder
+    verificationHash?: SortOrder
+    verificationFencingToken?: SortOrder
+    preparedAt?: SortOrder
+    inventoriedAt?: SortOrder
+    erasingAt?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureSumOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+    verificationFencingToken?: SortOrder
+  }
+
+  export type EnumProjectVolumeErasureStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectVolumeErasureState | EnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectVolumeErasureStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectVolumeErasureState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel>
+  }
+
+  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  }
+
+  export type ProjectVolumeErasureScalarRelationFilter = {
+    is?: ProjectVolumeErasureWhereInput
+    isNot?: ProjectVolumeErasureWhereInput
+  }
+
+  export type ProjectVolumeErasureTargetOperationIdNamespacePvcNameCompoundUniqueInput = {
+    operationId: string
+    namespace: string
+    pvcName: string
+  }
+
+  export type ProjectVolumeErasureTargetOperationIdOrdinalCompoundUniqueInput = {
+    operationId: string
+    ordinal: number
+  }
+
+  export type ProjectVolumeErasureTargetCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    namespace?: SortOrder
+    pvcName?: SortOrder
+    expectedPvcUid?: SortOrder
+    inventoryEntry?: SortOrder
+    evidenceEntry?: SortOrder
+    verifiedFencingToken?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureTargetAvgOrderByAggregateInput = {
+    ordinal?: SortOrder
+    verifiedFencingToken?: SortOrder
+  }
+
+  export type ProjectVolumeErasureTargetMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    namespace?: SortOrder
+    pvcName?: SortOrder
+    expectedPvcUid?: SortOrder
+    verifiedFencingToken?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureTargetMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    ordinal?: SortOrder
+    namespace?: SortOrder
+    pvcName?: SortOrder
+    expectedPvcUid?: SortOrder
+    verifiedFencingToken?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectVolumeErasureTargetSumOrderByAggregateInput = {
+    ordinal?: SortOrder
+    verifiedFencingToken?: SortOrder
   }
 
   export type ObjectStorageOperationPinnedObjectOperationIdKeyCompoundUniqueInput = {
@@ -251491,17 +254917,6 @@ export namespace Prisma {
     not?: NestedEnumLedgerReservationStatusFilter<$PrismaModel> | $Enums.LedgerReservationStatus
   }
 
-  export type BigIntNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
-  }
-
   export type DeploymentNullableScalarRelationFilter = {
     is?: DeploymentWhereInput | null
     isNot?: DeploymentWhereInput | null
@@ -251620,22 +255035,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
     _max?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
-  }
-
-  export type BigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedBigIntNullableFilter<$PrismaModel>
-    _min?: NestedBigIntNullableFilter<$PrismaModel>
-    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type LedgerFxRateCountOrderByAggregateInput = {
@@ -258501,6 +261900,12 @@ export namespace Prisma {
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
   }
 
+  export type ProjectVolumeErasureCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutOperationInput
+    connect?: ProjectVolumeErasureWhereUniqueInput
+  }
+
   export type ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput = {
     create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
@@ -258547,6 +261952,12 @@ export namespace Prisma {
     create?: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
     connectOrCreate?: ProjectPermanentDeletionReceiptCreateOrConnectWithoutOperationInput
     connect?: ProjectPermanentDeletionReceiptWhereUniqueInput
+  }
+
+  export type ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutOperationInput
+    connect?: ProjectVolumeErasureWhereUniqueInput
   }
 
   export type ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput = {
@@ -258652,6 +262063,16 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
   }
 
+  export type ProjectVolumeErasureUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutOperationInput
+    upsert?: ProjectVolumeErasureUpsertWithoutOperationInput
+    disconnect?: ProjectVolumeErasureWhereInput | boolean
+    delete?: ProjectVolumeErasureWhereInput | boolean
+    connect?: ProjectVolumeErasureWhereUniqueInput
+    update?: XOR<XOR<ProjectVolumeErasureUpdateToOneWithWhereWithoutOperationInput, ProjectVolumeErasureUpdateWithoutOperationInput>, ProjectVolumeErasureUncheckedUpdateWithoutOperationInput>
+  }
+
   export type ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput = {
     create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
@@ -258746,6 +262167,16 @@ export namespace Prisma {
     update?: XOR<XOR<ProjectPermanentDeletionReceiptUpdateToOneWithWhereWithoutOperationInput, ProjectPermanentDeletionReceiptUpdateWithoutOperationInput>, ProjectPermanentDeletionReceiptUncheckedUpdateWithoutOperationInput>
   }
 
+  export type ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutOperationInput
+    upsert?: ProjectVolumeErasureUpsertWithoutOperationInput
+    disconnect?: ProjectVolumeErasureWhereInput | boolean
+    delete?: ProjectVolumeErasureWhereInput | boolean
+    connect?: ProjectVolumeErasureWhereUniqueInput
+    update?: XOR<XOR<ProjectVolumeErasureUpdateToOneWithWhereWithoutOperationInput, ProjectVolumeErasureUpdateWithoutOperationInput>, ProjectVolumeErasureUncheckedUpdateWithoutOperationInput>
+  }
+
   export type ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput = {
     create?: XOR<ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput> | ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput[] | ObjectStorageVersionGcScheduleUncheckedCreateWithoutLastOperationInput[]
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
@@ -258758,6 +262189,88 @@ export namespace Prisma {
     update?: ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput[]
     updateMany?: ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput[]
     deleteMany?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutProjectVolumeErasureInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedCreateWithoutProjectVolumeErasureInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutProjectVolumeErasureInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type ProjectVolumeErasureTargetCreateNestedManyWithoutErasureInput = {
+    create?: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput> | ProjectVolumeErasureTargetCreateWithoutErasureInput[] | ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput[]
+    connectOrCreate?: ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput | ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput[]
+    createMany?: ProjectVolumeErasureTargetCreateManyErasureInputEnvelope
+    connect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedCreateNestedManyWithoutErasureInput = {
+    create?: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput> | ProjectVolumeErasureTargetCreateWithoutErasureInput[] | ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput[]
+    connectOrCreate?: ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput | ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput[]
+    createMany?: ProjectVolumeErasureTargetCreateManyErasureInputEnvelope
+    connect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+  }
+
+  export type EnumProjectVolumeErasureStateFieldUpdateOperationsInput = {
+    set?: $Enums.ProjectVolumeErasureState
+  }
+
+  export type NullableBigIntFieldUpdateOperationsInput = {
+    set?: bigint | number | null
+    increment?: bigint | number
+    decrement?: bigint | number
+    multiply?: bigint | number
+    divide?: bigint | number
+  }
+
+  export type ObjectStorageOperationUpdateOneRequiredWithoutProjectVolumeErasureNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedCreateWithoutProjectVolumeErasureInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutProjectVolumeErasureInput
+    upsert?: ObjectStorageOperationUpsertWithoutProjectVolumeErasureInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutProjectVolumeErasureInput, ObjectStorageOperationUpdateWithoutProjectVolumeErasureInput>, ObjectStorageOperationUncheckedUpdateWithoutProjectVolumeErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetUpdateManyWithoutErasureNestedInput = {
+    create?: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput> | ProjectVolumeErasureTargetCreateWithoutErasureInput[] | ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput[]
+    connectOrCreate?: ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput | ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput[]
+    upsert?: ProjectVolumeErasureTargetUpsertWithWhereUniqueWithoutErasureInput | ProjectVolumeErasureTargetUpsertWithWhereUniqueWithoutErasureInput[]
+    createMany?: ProjectVolumeErasureTargetCreateManyErasureInputEnvelope
+    set?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    disconnect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    delete?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    connect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    update?: ProjectVolumeErasureTargetUpdateWithWhereUniqueWithoutErasureInput | ProjectVolumeErasureTargetUpdateWithWhereUniqueWithoutErasureInput[]
+    updateMany?: ProjectVolumeErasureTargetUpdateManyWithWhereWithoutErasureInput | ProjectVolumeErasureTargetUpdateManyWithWhereWithoutErasureInput[]
+    deleteMany?: ProjectVolumeErasureTargetScalarWhereInput | ProjectVolumeErasureTargetScalarWhereInput[]
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureNestedInput = {
+    create?: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput> | ProjectVolumeErasureTargetCreateWithoutErasureInput[] | ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput[]
+    connectOrCreate?: ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput | ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput[]
+    upsert?: ProjectVolumeErasureTargetUpsertWithWhereUniqueWithoutErasureInput | ProjectVolumeErasureTargetUpsertWithWhereUniqueWithoutErasureInput[]
+    createMany?: ProjectVolumeErasureTargetCreateManyErasureInputEnvelope
+    set?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    disconnect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    delete?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    connect?: ProjectVolumeErasureTargetWhereUniqueInput | ProjectVolumeErasureTargetWhereUniqueInput[]
+    update?: ProjectVolumeErasureTargetUpdateWithWhereUniqueWithoutErasureInput | ProjectVolumeErasureTargetUpdateWithWhereUniqueWithoutErasureInput[]
+    updateMany?: ProjectVolumeErasureTargetUpdateManyWithWhereWithoutErasureInput | ProjectVolumeErasureTargetUpdateManyWithWhereWithoutErasureInput[]
+    deleteMany?: ProjectVolumeErasureTargetScalarWhereInput | ProjectVolumeErasureTargetScalarWhereInput[]
+  }
+
+  export type ProjectVolumeErasureCreateNestedOneWithoutTargetsInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutTargetsInput, ProjectVolumeErasureUncheckedCreateWithoutTargetsInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutTargetsInput
+    connect?: ProjectVolumeErasureWhereUniqueInput
+  }
+
+  export type ProjectVolumeErasureUpdateOneRequiredWithoutTargetsNestedInput = {
+    create?: XOR<ProjectVolumeErasureCreateWithoutTargetsInput, ProjectVolumeErasureUncheckedCreateWithoutTargetsInput>
+    connectOrCreate?: ProjectVolumeErasureCreateOrConnectWithoutTargetsInput
+    upsert?: ProjectVolumeErasureUpsertWithoutTargetsInput
+    connect?: ProjectVolumeErasureWhereUniqueInput
+    update?: XOR<XOR<ProjectVolumeErasureUpdateToOneWithWhereWithoutTargetsInput, ProjectVolumeErasureUpdateWithoutTargetsInput>, ProjectVolumeErasureUncheckedUpdateWithoutTargetsInput>
   }
 
   export type ObjectStorageOperationCreateNestedOneWithoutPinnedObjectsInput = {
@@ -262795,14 +266308,6 @@ export namespace Prisma {
     set?: $Enums.LedgerReservationStatus
   }
 
-  export type NullableBigIntFieldUpdateOperationsInput = {
-    set?: bigint | number | null
-    increment?: bigint | number
-    decrement?: bigint | number
-    multiply?: bigint | number
-    divide?: bigint | number
-  }
-
   export type DeploymentUpdateOneWithoutReservedVmBillingReservationNestedInput = {
     create?: XOR<DeploymentCreateWithoutReservedVmBillingReservationInput, DeploymentUncheckedCreateWithoutReservedVmBillingReservationInput>
     connectOrCreate?: DeploymentCreateOrConnectWithoutReservedVmBillingReservationInput
@@ -264329,6 +267834,61 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
+  export type NestedEnumProjectVolumeErasureStateFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectVolumeErasureState | EnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel> | $Enums.ProjectVolumeErasureState
+  }
+
+  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
+  }
+
+  export type NestedEnumProjectVolumeErasureStateWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectVolumeErasureState | EnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectVolumeErasureState[] | ListEnumProjectVolumeErasureStateFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectVolumeErasureStateWithAggregatesFilter<$PrismaModel> | $Enums.ProjectVolumeErasureState
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel>
+    _max?: NestedEnumProjectVolumeErasureStateFilter<$PrismaModel>
+  }
+
+  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
+    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
+    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
+    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedBigIntNullableFilter<$PrismaModel>
+    _min?: NestedBigIntNullableFilter<$PrismaModel>
+    _max?: NestedBigIntNullableFilter<$PrismaModel>
+  }
+
+  export type NestedFloatNullableFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
+  }
+
   export type NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel = never> = {
     equals?: $Enums.ProjectPermanentDeletionArtifactState | EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
     in?: $Enums.ProjectPermanentDeletionArtifactState[] | ListEnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel>
@@ -264360,17 +267920,6 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
-  export type NestedFloatNullableFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedEnumObjectStorageCapabilityReservationStatusFilter<$PrismaModel = never> = {
@@ -264854,17 +268403,6 @@ export namespace Prisma {
     not?: NestedEnumLedgerReservationStatusFilter<$PrismaModel> | $Enums.LedgerReservationStatus
   }
 
-  export type NestedBigIntNullableFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableFilter<$PrismaModel> | bigint | number | null
-  }
-
   export type NestedEnumLedgerReservationStatusWithAggregatesFilter<$PrismaModel = never> = {
     equals?: $Enums.LedgerReservationStatus | EnumLedgerReservationStatusFieldRefInput<$PrismaModel>
     in?: $Enums.LedgerReservationStatus[] | ListEnumLedgerReservationStatusFieldRefInput<$PrismaModel>
@@ -264873,22 +268411,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
     _max?: NestedEnumLedgerReservationStatusFilter<$PrismaModel>
-  }
-
-  export type NestedBigIntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: bigint | number | BigIntFieldRefInput<$PrismaModel> | null
-    in?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    notIn?: bigint[] | number[] | ListBigIntFieldRefInput<$PrismaModel> | null
-    lt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    lte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gt?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    gte?: bigint | number | BigIntFieldRefInput<$PrismaModel>
-    not?: NestedBigIntNullableWithAggregatesFilter<$PrismaModel> | bigint | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedBigIntNullableFilter<$PrismaModel>
-    _min?: NestedBigIntNullableFilter<$PrismaModel>
-    _max?: NestedBigIntNullableFilter<$PrismaModel>
   }
 
   export type NestedEnumLedgerReconciliationStatusFilter<$PrismaModel = never> = {
@@ -276298,6 +279820,53 @@ export namespace Prisma {
     create: XOR<ProjectPermanentDeletionReceiptCreateWithoutOperationInput, ProjectPermanentDeletionReceiptUncheckedCreateWithoutOperationInput>
   }
 
+  export type ProjectVolumeErasureCreateWithoutOperationInput = {
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectVolumeErasureTargetCreateNestedManyWithoutErasureInput
+  }
+
+  export type ProjectVolumeErasureUncheckedCreateWithoutOperationInput = {
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    targets?: ProjectVolumeErasureTargetUncheckedCreateNestedManyWithoutErasureInput
+  }
+
+  export type ProjectVolumeErasureCreateOrConnectWithoutOperationInput = {
+    where: ProjectVolumeErasureWhereUniqueInput
+    create: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+  }
+
   export type ObjectStorageVersionGcScheduleCreateWithoutLastOperationInput = {
     expectedOrganizationId: string
     status?: $Enums.ObjectStorageVersionGcStatus
@@ -276525,6 +280094,59 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectVolumeErasureUpsertWithoutOperationInput = {
+    update: XOR<ProjectVolumeErasureUpdateWithoutOperationInput, ProjectVolumeErasureUncheckedUpdateWithoutOperationInput>
+    create: XOR<ProjectVolumeErasureCreateWithoutOperationInput, ProjectVolumeErasureUncheckedCreateWithoutOperationInput>
+    where?: ProjectVolumeErasureWhereInput
+  }
+
+  export type ProjectVolumeErasureUpdateToOneWithWhereWithoutOperationInput = {
+    where?: ProjectVolumeErasureWhereInput
+    data: XOR<ProjectVolumeErasureUpdateWithoutOperationInput, ProjectVolumeErasureUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ProjectVolumeErasureUpdateWithoutOperationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectVolumeErasureTargetUpdateManyWithoutErasureNestedInput
+  }
+
+  export type ProjectVolumeErasureUncheckedUpdateWithoutOperationInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    targets?: ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureNestedInput
+  }
+
   export type ObjectStorageVersionGcScheduleUpsertWithWhereUniqueWithoutLastOperationInput = {
     where: ObjectStorageVersionGcScheduleWhereUniqueInput
     update: XOR<ObjectStorageVersionGcScheduleUpdateWithoutLastOperationInput, ObjectStorageVersionGcScheduleUncheckedUpdateWithoutLastOperationInput>
@@ -276562,6 +280184,335 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
   }
 
+  export type ObjectStorageOperationCreateWithoutProjectVolumeErasureInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutProjectVolumeErasureInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutProjectVolumeErasureInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedCreateWithoutProjectVolumeErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetCreateWithoutErasureInput = {
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput = {
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureTargetCreateOrConnectWithoutErasureInput = {
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+    create: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetCreateManyErasureInputEnvelope = {
+    data: ProjectVolumeErasureTargetCreateManyErasureInput | ProjectVolumeErasureTargetCreateManyErasureInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ObjectStorageOperationUpsertWithoutProjectVolumeErasureInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedUpdateWithoutProjectVolumeErasureInput>
+    create: XOR<ObjectStorageOperationCreateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedCreateWithoutProjectVolumeErasureInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutProjectVolumeErasureInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutProjectVolumeErasureInput, ObjectStorageOperationUncheckedUpdateWithoutProjectVolumeErasureInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutProjectVolumeErasureInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutProjectVolumeErasureInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ProjectVolumeErasureTargetUpsertWithWhereUniqueWithoutErasureInput = {
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+    update: XOR<ProjectVolumeErasureTargetUpdateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedUpdateWithoutErasureInput>
+    create: XOR<ProjectVolumeErasureTargetCreateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedCreateWithoutErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetUpdateWithWhereUniqueWithoutErasureInput = {
+    where: ProjectVolumeErasureTargetWhereUniqueInput
+    data: XOR<ProjectVolumeErasureTargetUpdateWithoutErasureInput, ProjectVolumeErasureTargetUncheckedUpdateWithoutErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetUpdateManyWithWhereWithoutErasureInput = {
+    where: ProjectVolumeErasureTargetScalarWhereInput
+    data: XOR<ProjectVolumeErasureTargetUpdateManyMutationInput, ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureInput>
+  }
+
+  export type ProjectVolumeErasureTargetScalarWhereInput = {
+    AND?: ProjectVolumeErasureTargetScalarWhereInput | ProjectVolumeErasureTargetScalarWhereInput[]
+    OR?: ProjectVolumeErasureTargetScalarWhereInput[]
+    NOT?: ProjectVolumeErasureTargetScalarWhereInput | ProjectVolumeErasureTargetScalarWhereInput[]
+    operationId?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    ordinal?: IntFilter<"ProjectVolumeErasureTarget"> | number
+    namespace?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    pvcName?: StringFilter<"ProjectVolumeErasureTarget"> | string
+    expectedPvcUid?: StringNullableFilter<"ProjectVolumeErasureTarget"> | string | null
+    inventoryEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    evidenceEntry?: JsonNullableFilter<"ProjectVolumeErasureTarget">
+    verifiedFencingToken?: BigIntNullableFilter<"ProjectVolumeErasureTarget"> | bigint | number | null
+    verifiedAt?: DateTimeNullableFilter<"ProjectVolumeErasureTarget"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectVolumeErasureTarget"> | Date | string
+  }
+
+  export type ProjectVolumeErasureCreateWithoutTargetsInput = {
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    operation: ObjectStorageOperationCreateNestedOneWithoutProjectVolumeErasureInput
+  }
+
+  export type ProjectVolumeErasureUncheckedCreateWithoutTargetsInput = {
+    operationId: string
+    projectIdSnapshot: string
+    organizationId: string
+    ownershipEpoch: number
+    namespace: string
+    state?: $Enums.ProjectVolumeErasureState
+    sourceSnapshot: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: string | null
+    verificationFencingToken?: bigint | number | null
+    preparedAt?: Date | string
+    inventoriedAt?: Date | string | null
+    erasingAt?: Date | string | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureCreateOrConnectWithoutTargetsInput = {
+    where: ProjectVolumeErasureWhereUniqueInput
+    create: XOR<ProjectVolumeErasureCreateWithoutTargetsInput, ProjectVolumeErasureUncheckedCreateWithoutTargetsInput>
+  }
+
+  export type ProjectVolumeErasureUpsertWithoutTargetsInput = {
+    update: XOR<ProjectVolumeErasureUpdateWithoutTargetsInput, ProjectVolumeErasureUncheckedUpdateWithoutTargetsInput>
+    create: XOR<ProjectVolumeErasureCreateWithoutTargetsInput, ProjectVolumeErasureUncheckedCreateWithoutTargetsInput>
+    where?: ProjectVolumeErasureWhereInput
+  }
+
+  export type ProjectVolumeErasureUpdateToOneWithWhereWithoutTargetsInput = {
+    where?: ProjectVolumeErasureWhereInput
+    data: XOR<ProjectVolumeErasureUpdateWithoutTargetsInput, ProjectVolumeErasureUncheckedUpdateWithoutTargetsInput>
+  }
+
+  export type ProjectVolumeErasureUpdateWithoutTargetsInput = {
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutProjectVolumeErasureNestedInput
+  }
+
+  export type ProjectVolumeErasureUncheckedUpdateWithoutTargetsInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectIdSnapshot?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    state?: EnumProjectVolumeErasureStateFieldUpdateOperationsInput | $Enums.ProjectVolumeErasureState
+    sourceSnapshot?: JsonNullValueInput | InputJsonValue
+    inventory?: NullableJsonNullValueInput | InputJsonValue
+    inventoryHash?: NullableStringFieldUpdateOperationsInput | string | null
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    verificationHash?: NullableStringFieldUpdateOperationsInput | string | null
+    verificationFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    inventoriedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    erasingAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ObjectStorageOperationCreateWithoutPinnedObjectsInput = {
     id?: string
     kind: $Enums.ObjectStorageOperationKind
@@ -276594,6 +280545,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276629,6 +280581,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276680,6 +280633,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276715,6 +280669,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276750,6 +280705,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276785,6 +280741,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276836,6 +280793,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276871,6 +280829,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -276906,6 +280865,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276941,6 +280901,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -276992,6 +280953,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277027,6 +280989,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277062,6 +281025,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277097,6 +281061,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277148,6 +281113,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277183,6 +281149,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277218,6 +281185,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277253,6 +281221,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -277429,6 +281398,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277464,6 +281434,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -277756,6 +281727,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput = {
@@ -277791,6 +281763,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput = {
@@ -277973,6 +281946,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput = {
@@ -278008,6 +281982,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPermanentDeletionReceiptInput = {
@@ -278042,6 +282017,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
   }
 
@@ -278077,6 +282053,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
   }
 
@@ -278128,6 +282105,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -278163,6 +282141,7 @@ export namespace Prisma {
     pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    projectVolumeErasure?: ProjectVolumeErasureUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
   }
 
@@ -323633,6 +327612,58 @@ export namespace Prisma {
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
     requestedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetCreateManyErasureInput = {
+    ordinal: number
+    namespace: string
+    pvcName: string
+    expectedPvcUid?: string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: bigint | number | null
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUpdateWithoutErasureInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedUpdateWithoutErasureInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectVolumeErasureTargetUncheckedUpdateManyWithoutErasureInput = {
+    ordinal?: IntFieldUpdateOperationsInput | number
+    namespace?: StringFieldUpdateOperationsInput | string
+    pvcName?: StringFieldUpdateOperationsInput | string
+    expectedPvcUid?: NullableStringFieldUpdateOperationsInput | string | null
+    inventoryEntry?: NullableJsonNullValueInput | InputJsonValue
+    evidenceEntry?: NullableJsonNullValueInput | InputJsonValue
+    verifiedFencingToken?: NullableBigIntFieldUpdateOperationsInput | bigint | number | null
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

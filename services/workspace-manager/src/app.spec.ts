@@ -553,6 +553,42 @@ describe('workspace-manager app', () => {
       });
       expect(started.statusCode).toBe(200);
 
+      runtime.manager.purgeProjectWorkspaces = async (_namespace, incomingLease) => {
+        runtime.k8s.objects.clear();
+        runtime.store.workspaces.clear();
+        return {
+          schemaVersion: 'workspace-project-erasure-v3',
+          projectId: incomingLease.projectId,
+          organizationId: incomingLease.expectedOrganizationId,
+          databaseInventoryRetained: true,
+          runtimeEffectsDrained: true,
+          kubernetes: {
+            deploymentsAbsent: true,
+            replicaSetsAbsent: true,
+            podsAbsent: true,
+            servicesAbsent: true,
+            endpointsAbsent: true,
+            endpointSlicesAbsent: true,
+            ingressesAbsent: true,
+            ownedRuntimeSecretsAbsent: true,
+            persistentVolumeClaimsAbsent: true,
+          },
+          volumes: {
+            schemaVersion: 1,
+            inventoryHash: 'a'.repeat(64),
+            verificationHash: 'b'.repeat(64),
+            entryCount: 1,
+            erasedEntryCount: 1,
+            alreadyAbsentEntryCount: 0,
+            sharedExclusionCount: 0,
+            persistentVolumeClaimsAbsent: true,
+            persistentVolumesAbsent: true,
+            providerVolumesAbsent: true,
+          },
+        };
+      };
+      runtime.manager.verifyProjectWorkspacesAbsent = runtime.manager.purgeProjectWorkspaces.bind(runtime.manager);
+
       const wrongScope = await app.inject({
         method: 'POST',
         url: '/projects/other-project/permanent-delete/workspaces/purge',
@@ -568,7 +604,7 @@ describe('workspace-manager app', () => {
       });
       expect(purged.statusCode).toBe(200);
       expect(purged.json()).toEqual({
-        schemaVersion: 'workspace-project-erasure-v2',
+        schemaVersion: 'workspace-project-erasure-v3',
         projectId,
         organizationId: lease.expectedOrganizationId,
         databaseInventoryRetained: true,
@@ -583,6 +619,18 @@ describe('workspace-manager app', () => {
           ingressesAbsent: true,
           ownedRuntimeSecretsAbsent: true,
           persistentVolumeClaimsAbsent: true,
+        },
+        volumes: {
+          schemaVersion: 1,
+          inventoryHash: 'a'.repeat(64),
+          verificationHash: 'b'.repeat(64),
+          entryCount: 1,
+          erasedEntryCount: 1,
+          alreadyAbsentEntryCount: 0,
+          sharedExclusionCount: 0,
+          persistentVolumeClaimsAbsent: true,
+          persistentVolumesAbsent: true,
+          providerVolumesAbsent: true,
         },
       });
       expect(runtime.store.workspaces.size).toBe(0);

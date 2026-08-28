@@ -81,7 +81,7 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
       store,
       objectStorage: activeEmptyObjectStorage(),
       projectWorkspaceDeletion: async (_action, projectId, organizationId) => ({
-        schemaVersion: 'workspace-project-erasure-v2',
+        schemaVersion: 'workspace-project-erasure-v3',
         projectId,
         organizationId,
         databaseInventoryRetained: true,
@@ -96,6 +96,18 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
           ingressesAbsent: true,
           ownedRuntimeSecretsAbsent: true,
           persistentVolumeClaimsAbsent: true,
+        },
+        volumes: {
+          schemaVersion: 1,
+          inventoryHash: 'a'.repeat(64),
+          verificationHash: 'b'.repeat(64),
+          entryCount: 0,
+          erasedEntryCount: 0,
+          alreadyAbsentEntryCount: 0,
+          sharedExclusionCount: 0,
+          persistentVolumeClaimsAbsent: true,
+          persistentVolumesAbsent: true,
+          providerVolumesAbsent: true,
         },
       }),
     });

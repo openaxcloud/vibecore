@@ -1,5 +1,5 @@
 import { hashPassword } from '@vibecore/auth';
-import { createDatabaseClient } from '@vibecore/database';
+import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
 import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
@@ -10,6 +10,7 @@ import {
   projectManifestDigest,
   verifyStoredProjectManifestRevision,
 } from '../project-manifest.js';
+import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -34,9 +35,11 @@ const emptyStaticArtifactSummary = objectStorageStaticArtifactSummary([]);
 
 function hardDeleteProject(
   store: PrismaApiStore,
+  prisma: DatabaseClient,
   project: { id: string; organizationId: string; name: string },
   actorUserId: string,
 ) {
+  let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
   return store.hardDeleteProject({
     projectId: project.id,
     expectedOrganizationId: project.organizationId,
@@ -50,12 +53,24 @@ function hardDeleteProject(
       expectedProjectName: project.name,
     }),
     preflightPhysicalErasure: async () => emptyStaticArtifactSummary,
-    erasePhysical: async () => undefined,
+    erasePhysical: async (_assertLease, lease) => {
+      const current = await prisma.project.findUniqueOrThrow({
+        where: { id: project.id },
+        select: { ownershipEpoch: true },
+      });
+      volumeProof = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+        operationId: lease.operationId,
+        projectId: project.id,
+        organizationId: project.organizationId,
+        ownershipEpoch: current.ownershipEpoch,
+        fencingToken: lease.fencingToken,
+      });
+    },
     verifyPhysicalAbsence: async () => ({
       outcome: 'VERIFIED_ABSENT',
       verifier: 'project-manifest-db-test',
       evidence: {
-        schemaVersion: 'project-permanent-erasure-v1',
+        schemaVersion: 'project-permanent-erasure-v2',
         filesystem: {
           projectTreeAbsent: true,
           workspaceTreesAbsent: true,
@@ -66,7 +81,7 @@ function hardDeleteProject(
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
         workspaceManager: {
-          schemaVersion: 'workspace-project-erasure-v2',
+          schemaVersion: 'workspace-project-erasure-v3',
           projectId: project.id,
           organizationId: project.organizationId,
           databaseInventoryRetained: true,
@@ -82,6 +97,7 @@ function hardDeleteProject(
             ownedRuntimeSecretsAbsent: true,
             persistentVolumeClaimsAbsent: true,
           },
+          volumes: volumeProof!,
         },
       },
     }),
@@ -242,10 +258,10 @@ runWithPostgres('ProjectManifest — real PostgreSQL concurrency and constraints
         /append-only/u,
       );
 
-      await hardDeleteProject(storeA, copy, user.id);
-      await hardDeleteProject(storeA, detached, user.id);
-      await hardDeleteProject(storeA, project, user.id);
-      await hardDeleteProject(storeA, legacyProject, user.id);
+      await hardDeleteProject(storeA, prismaA, copy, user.id);
+      await hardDeleteProject(storeA, prismaA, detached, user.id);
+      await hardDeleteProject(storeA, prismaA, project, user.id);
+      await hardDeleteProject(storeA, prismaA, legacyProject, user.id);
       await expect(prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).resolves.toBe(0);
     } finally {
       await prismaA.$disconnect();
