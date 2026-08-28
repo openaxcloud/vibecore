@@ -1839,6 +1839,10 @@
     "en": "An anonymized tombstone retaining the purge timestamp was kept.",
     "fr": "Un marqueur anonymisé conservant l’horodatage de purge a été gardé."
   },
+  "ACCOUNT_PURGE_SHARED_STATIC_ARTIFACT_RETAINED": {
+    "en": "Identical content-addressed bytes remain referenced by a release manifest outside the purged projects.",
+    "fr": "Des octets identiques adressés par contenu restent référencés par un manifeste de publication extérieur aux projets purgés."
+  },
   "ACCOUNT_PURGE_RETENTION_UNSPECIFIED": {
     "en": "Retention reason was not specified.",
     "fr": "Le motif de conservation n’a pas été précisé."
@@ -2887,6 +2891,22 @@
     "en": "Static snapshot for {deploymentId} is missing on disk.",
     "fr": "L’instantané statique du déploiement {deploymentId} est absent du disque."
   },
+  "STATIC_RELEASE_CONFLICT": {
+    "en": "The static release changed while it was being committed. Retry the publication.",
+    "fr": "La publication statique a changé pendant sa validation. Relancez la publication."
+  },
+  "STATIC_RELEASE_URL_MISSING": {
+    "en": "The static release has no verified serving URL.",
+    "fr": "La publication statique ne possède aucune URL de diffusion vérifiée."
+  },
+  "STATIC_ARTIFACT_GC_FAILED": {
+    "en": "The retained static artifact cleanup sweep failed and will be retried.",
+    "fr": "Le nettoyage des artefacts statiques conservés a échoué et sera relancé."
+  },
+  "ROLLBACK_STATIC_ARTIFACT_UNSAFE_ENTRY": {
+    "en": "The static artifact contains a symbolic link or another unsafe filesystem entry; deterministic publication is refused.",
+    "fr": "L’artefact statique contient un lien symbolique ou une autre entrée de système de fichiers dangereuse ; la publication déterministe est refusée."
+  },
   "ROLLBACK_RESTORE_FAILED_LOG": {
     "en": "Rollback restore failed.",
     "fr": "La restauration du retour arrière a échoué."
@@ -2914,6 +2934,106 @@
   "ROLLBACK_REQUEST_FAILED": {
     "en": "The rollback could not be completed.",
     "fr": "Le retour arrière n’a pas pu être effectué."
+  },
+  "ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED": {
+    "en": "This legacy release does not contain the immutable pins required for deterministic rollback.",
+    "fr": "Cette ancienne publication ne contient pas les références immuables requises pour un retour arrière déterministe."
+  },
+  "ROLLBACK_MANIFEST_ARTIFACT_INVALID": {
+    "en": "The retained release artifact identity is invalid.",
+    "fr": "L’identité de l’artefact conservé pour cette publication est invalide."
+  },
+  "ROLLBACK_MANIFEST_PIN_MISMATCH": {
+    "en": "The retained release pins do not match the tenant, project, runtime or artifact.",
+    "fr": "Les références conservées ne correspondent pas au tenant, au projet, au runtime ou à l’artefact."
+  },
+  "ROLLBACK_MANIFEST_KEYRING_INVALID": {
+    "en": "The rollback encryption keyring is unavailable or invalid.",
+    "fr": "Le trousseau de chiffrement des retours arrière est indisponible ou invalide."
+  },
+  "ROLLBACK_RUNTIME_SPEC_MISSING": {
+    "en": "The retained release has no deterministic runtime specification.",
+    "fr": "La publication conservée ne possède aucune spécification de runtime déterministe."
+  },
+  "ROLLBACK_RUNTIME_SPEC_INVALID": {
+    "en": "The retained runtime specification is malformed or uses an unsupported version.",
+    "fr": "La spécification de runtime conservée est mal formée ou utilise une version non prise en charge."
+  },
+  "ROLLBACK_RUNTIME_SPEC_TAMPERED": {
+    "en": "The retained runtime specification failed its integrity check.",
+    "fr": "La spécification de runtime conservée a échoué à son contrôle d’intégrité."
+  },
+  "ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID": {
+    "en": "The retained machine resources do not match their immutable rate card.",
+    "fr": "Les ressources machine conservées ne correspondent pas à leur grille tarifaire immuable."
+  },
+  "ROLLBACK_RUNTIME_SPEC_ENV_INVALID": {
+    "en": "The retained runtime environment overrides are invalid.",
+    "fr": "Les variables d’environnement conservées pour le runtime sont invalides."
+  },
+  "ROLLBACK_RUNTIME_SPEC_ENV_TAMPERED": {
+    "en": "The retained runtime environment reference failed its integrity check.",
+    "fr": "La référence d’environnement conservée pour le runtime a échoué à son contrôle d’intégrité."
+  },
+  "ROLLBACK_RUNTIME_SPEC_ENV_DECRYPTION_FAILED": {
+    "en": "The retained runtime environment could not be decrypted.",
+    "fr": "L’environnement conservé pour le runtime n’a pas pu être déchiffré."
+  },
+  "ROLLBACK_RUNTIME_SPEC_KEY_UNAVAILABLE": {
+    "en": "The decryption key for this retained runtime is no longer available.",
+    "fr": "La clé de déchiffrement de ce runtime conservé n’est plus disponible."
+  },
+  "ROLLBACK_PROMOTION_EVIDENCE_MISSING": {
+    "en": "The retained release has no immutable promotion evidence.",
+    "fr": "La publication conservée ne possède aucune preuve de promotion immuable."
+  },
+  "ROLLBACK_PROMOTION_EVIDENCE_INVALID": {
+    "en": "The retained promotion evidence is invalid.",
+    "fr": "La preuve de promotion conservée est invalide."
+  },
+  "ROLLBACK_PROMOTION_EVIDENCE_TAMPERED": {
+    "en": "The retained promotion evidence failed its integrity check.",
+    "fr": "La preuve de promotion conservée a échoué à son contrôle d’intégrité."
+  },
+  "ROLLBACK_SECRET_POLICY_UNSATISFIABLE": {
+    "en": "This release uses a secret policy that cannot be restored safely.",
+    "fr": "Cette publication utilise une politique de secrets qui ne peut pas être restaurée en toute sécurité."
+  },
+  "ROLLBACK_CURRENT_SECRETS_UNAVAILABLE": {
+    "en": "The current project secrets required by this release are unavailable.",
+    "fr": "Les secrets actuels du projet requis par cette publication sont indisponibles."
+  },
+  "ROLLBACK_DB_LEDGER_MISSING": {
+    "en": "The target database has no complete migration ledger.",
+    "fr": "La base de données cible ne possède pas de registre complet des migrations."
+  },
+  "ROLLBACK_DB_LEDGER_INVALID": {
+    "en": "The target database migration ledger is invalid.",
+    "fr": "Le registre des migrations de la base de données cible est invalide."
+  },
+  "ROLLBACK_DB_LEDGER_UNAVAILABLE": {
+    "en": "The target database migration ledger is unavailable.",
+    "fr": "Le registre des migrations de la base de données cible est indisponible."
+  },
+  "ROLLBACK_DB_LEDGER_UNSUPPORTED": {
+    "en": "Deterministic rollback currently supports PostgreSQL database targets only.",
+    "fr": "Le retour arrière déterministe ne prend actuellement en charge que les bases PostgreSQL."
+  },
+  "ROLLBACK_DB_LEDGER_PIN_MISMATCH": {
+    "en": "The release database mode no longer matches the effective runtime database.",
+    "fr": "Le mode de base de données de la publication ne correspond plus à la base réellement utilisée par le runtime."
+  },
+  "ROLLBACK_DB_LEDGER_MISMATCH": {
+    "en": "The effective database migration ledger no longer matches the retained release.",
+    "fr": "Le registre des migrations de la base réellement utilisée ne correspond plus à la publication conservée."
+  },
+  "ROLLBACK_STATIC_ROUTING_EVIDENCE_INVALID": {
+    "en": "The retained static rollback routing evidence is invalid.",
+    "fr": "La preuve de routage conservée pour le retour arrière statique est invalide."
+  },
+  "ROLLBACK_STATIC_ROUTING_EVIDENCE_TAMPERED": {
+    "en": "The retained static rollback routing evidence failed its integrity check.",
+    "fr": "La preuve de routage conservée pour le retour arrière statique a échoué à son contrôle d’intégrité."
   },
   "ROLLBACK_IDEMPOTENCY_KEY_REQUIRED": {
     "en": "A valid Idempotency-Key header is required for rollback.",
