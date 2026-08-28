@@ -3663,6 +3663,8 @@ export interface ApiStore {
   createDeployment(input: {
     projectId: string;
     expectedOrganizationId: string;
+    /** Exact release-only barrier capability authorizing this publish mutation. */
+    releaseFence?: ProjectReleaseFence;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];

@@ -45722,6 +45722,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             const publishedInput = {
               ...publishedBase,
               expectedOrganizationId: project.organizationId,
+              releaseFence: releaseGuard.fence,
               metadata: {
                 ...((publishedBase.metadata ?? {}) as Record<string, unknown>),
                 projectManifestDigest: expectedManifestDigest,

@@ -14,6 +14,7 @@ import {
   type ProjectManifest,
 } from '../project-manifest.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
+import type { ProjectReleaseFence } from '../store.js';
 import { TestApiStore } from './test-api-store.js';
 
 class QuietEmailProvider implements EmailProvider {
@@ -252,6 +253,57 @@ describe('schema migration before publish route', () => {
       activeLock: undefined,
       backupVerificationMethod: 'cnpg-backup-status-completed',
       appliedStatements: 2,
+    });
+  });
+
+  it('authorizes deployment creation only with the exact active release fence', async () => {
+    const run = await setup({ withMigrations: false });
+    const manifest = await run.store.getLatestProjectManifest(run.project.id);
+    if (!manifest) throw new Error('Expected a project manifest for the release-fence fixture');
+
+    const ownerToken = 'publish-owner';
+    const lease = await run.store.acquireProjectReleaseBarrier({
+      projectId: run.project.id,
+      expectedOrganizationId: run.project.organizationId,
+      expectedManifestDigest: manifest.digest,
+      operationId: 'publish:deployment-fixture',
+      ownerToken,
+      ttlSeconds: 60,
+    });
+    if (!lease) throw new Error('Expected to acquire the release-fence fixture');
+
+    const releaseFence: ProjectReleaseFence = {
+      checkpointId: lease.checkpointId,
+      ownerToken: lease.ownerToken,
+      fence: lease.fence,
+      expectedOrganizationId: run.project.organizationId,
+      expectedManifestDigest: manifest.digest,
+    };
+    const createProductionDeployment = (fence?: ProjectReleaseFence) =>
+      run.store.createDeployment({
+        projectId: run.project.id,
+        expectedOrganizationId: run.project.organizationId,
+        ...(fence ? { releaseFence: fence } : {}),
+        provider: 'vercel',
+        environment: 'production',
+        status: 'READY',
+        metadata: { projectManifestDigest: manifest.digest },
+      });
+
+    await expect(createProductionDeployment()).rejects.toMatchObject({
+      code: 'CHECKPOINT_BARRIER_ACTIVE',
+      statusCode: 423,
+    });
+    await expect(
+      createProductionDeployment({ ...releaseFence, ownerToken: 'forged-publish-owner' }),
+    ).rejects.toMatchObject({
+      code: 'PROJECT_RELEASE_BARRIER_LOST',
+      statusCode: 409,
+    });
+    await expect(createProductionDeployment(releaseFence)).resolves.toMatchObject({
+      projectId: run.project.id,
+      environment: 'production',
+      status: 'READY',
     });
   });
 

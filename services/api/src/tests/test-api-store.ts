@@ -786,6 +786,7 @@ export class TestApiStore implements ApiStore {
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      releaseFence?: ProjectReleaseFence;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<T> {
@@ -802,6 +803,7 @@ export class TestApiStore implements ApiStore {
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
       checkpointBarrierAuthority?: ProjectCheckpointLease;
+      releaseFence?: ProjectReleaseFence;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<void> {
@@ -823,6 +825,8 @@ export class TestApiStore implements ApiStore {
           statusCode: 409,
         });
       }
+    } else if (options.releaseFence) {
+      await this.assertProjectReleaseBarrier({ projectId: scope.projectId, ...options.releaseFence });
     } else if (!options.allowActiveCheckpoint && (await this.getActiveCheckpointBarrier(scope.projectId))) {
       throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
         code: 'CHECKPOINT_BARRIER_ACTIVE',
@@ -5874,6 +5878,7 @@ export class TestApiStore implements ApiStore {
   async createDeployment(input: {
     projectId: string;
     expectedOrganizationId: string;
+    releaseFence?: ProjectReleaseFence;
     workspaceId?: string;
     provider: string;
     environment?: DeploymentRecord['environment'];
@@ -5899,7 +5904,7 @@ export class TestApiStore implements ApiStore {
     finishedAt?: string;
     canceledAt?: string;
   }) {
-    return this.withProjectTenantMutation(input, async () => {
+    const create = async () => {
       if (input.reservedVm) {
         const operationKey = `${input.projectId}:${input.reservedVm.idempotencyKey}`;
         const replay = this.reservedVmOperations.get(operationKey);
@@ -6043,7 +6048,8 @@ export class TestApiStore implements ApiStore {
       this.reservedVmRuntimeFences.set(deployment.id, 0);
 
       return deployment;
-    });
+    };
+    return this.withProjectTenantMutation(input, create, { releaseFence: input.releaseFence });
   }
 
   async getDeployment(projectId: string, deploymentId: string) {
