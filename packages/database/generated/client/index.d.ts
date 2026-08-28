@@ -82,6 +82,14 @@ export type Project = $Result.DefaultSelection<Prisma.$ProjectPayload>
  */
 export type ObjectStorageOperation = $Result.DefaultSelection<Prisma.$ObjectStorageOperationPayload>
 /**
+ * Model ProjectDatabaseErasurePlan
+ * Immutable relational-inventory commitment plus append-only provider proof
+ * for managed Postgres removal. `projectId`/`organizationId` are snapshots,
+ * deliberately not Project FKs, so the forensic preimage survives the final
+ * Project cascade together with its ObjectStorageOperation receipt.
+ */
+export type ProjectDatabaseErasurePlan = $Result.DefaultSelection<Prisma.$ProjectDatabaseErasurePlanPayload>
+/**
  * Model ObjectStorageOperationPinnedObject
  * Exact immutable source inventory for a clone. Normalized rows avoid the
  * operation JSON size ceiling and remain available for verify-first recovery.
@@ -1126,6 +1134,18 @@ export const ProjectRuntimeEffectState: {
 export type ProjectRuntimeEffectState = (typeof ProjectRuntimeEffectState)[keyof typeof ProjectRuntimeEffectState]
 
 
+export const ProjectDatabaseErasureStage: {
+  INVENTORY_BOUND: 'INVENTORY_BOUND',
+  KUBERNETES_PURGE: 'KUBERNETES_PURGE',
+  SHARED_SQL_PURGE: 'SHARED_SQL_PURGE',
+  BACKUP_PREFIX_PURGE: 'BACKUP_PREFIX_PURGE',
+  FINAL_VERIFICATION: 'FINAL_VERIFICATION',
+  VERIFIED: 'VERIFIED'
+};
+
+export type ProjectDatabaseErasureStage = (typeof ProjectDatabaseErasureStage)[keyof typeof ProjectDatabaseErasureStage]
+
+
 export const TicketMessageAuthor: {
   USER: 'USER',
   ADMIN: 'ADMIN',
@@ -1494,6 +1514,10 @@ export type ProjectRuntimeEffectState = $Enums.ProjectRuntimeEffectState
 
 export const ProjectRuntimeEffectState: typeof $Enums.ProjectRuntimeEffectState
 
+export type ProjectDatabaseErasureStage = $Enums.ProjectDatabaseErasureStage
+
+export const ProjectDatabaseErasureStage: typeof $Enums.ProjectDatabaseErasureStage
+
 export type TicketMessageAuthor = $Enums.TicketMessageAuthor
 
 export const TicketMessageAuthor: typeof $Enums.TicketMessageAuthor
@@ -1842,6 +1866,16 @@ export class PrismaClient<
     * ```
     */
   get objectStorageOperation(): Prisma.ObjectStorageOperationDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.projectDatabaseErasurePlan`: Exposes CRUD operations for the **ProjectDatabaseErasurePlan** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectDatabaseErasurePlans
+    * const projectDatabaseErasurePlans = await prisma.projectDatabaseErasurePlan.findMany()
+    * ```
+    */
+  get projectDatabaseErasurePlan(): Prisma.ProjectDatabaseErasurePlanDelegate<ExtArgs, ClientOptions>;
 
   /**
    * `prisma.objectStorageOperationPinnedObject`: Exposes CRUD operations for the **ObjectStorageOperationPinnedObject** model.
@@ -3768,6 +3802,7 @@ export namespace Prisma {
     RolePermission: 'RolePermission',
     Project: 'Project',
     ObjectStorageOperation: 'ObjectStorageOperation',
+    ProjectDatabaseErasurePlan: 'ProjectDatabaseErasurePlan',
     ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
     ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
     ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',
@@ -3931,7 +3966,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "objectStorageOperation" | "projectDatabaseErasurePlan" | "objectStorageOperationPinnedObject" | "objectStorageOperationPinnedGeneration" | "projectPermanentDeletionArtifactPlan" | "objectStorageCapabilityReservation" | "objectStorageOperationProjectScope" | "objectStorageVersionGcSchedule" | "projectPermanentDeletionReceipt" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "reservedVmOperation" | "reservedVmBillingPeriod" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "deploymentAccessPolicy" | "deploymentAccessExchangeTicket" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "projectRuntimeEffect" | "projectRuntimeEffectTarget" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit" | "purgePlan" | "purgeFreeze" | "purgeEffect" | "purgeReceipt"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -4820,6 +4855,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ObjectStorageOperationCountArgs<ExtArgs>
             result: $Utils.Optional<ObjectStorageOperationCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectDatabaseErasurePlan: {
+        payload: Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>
+        fields: Prisma.ProjectDatabaseErasurePlanFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectDatabaseErasurePlanFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectDatabaseErasurePlanFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectDatabaseErasurePlanFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectDatabaseErasurePlanFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectDatabaseErasurePlanFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectDatabaseErasurePlanCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectDatabaseErasurePlanCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectDatabaseErasurePlanCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectDatabaseErasurePlanDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          update: {
+            args: Prisma.ProjectDatabaseErasurePlanUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectDatabaseErasurePlanDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectDatabaseErasurePlanUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectDatabaseErasurePlanUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectDatabaseErasurePlanUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectDatabaseErasurePlanPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectDatabaseErasurePlanAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectDatabaseErasurePlan>
+          }
+          groupBy: {
+            args: Prisma.ProjectDatabaseErasurePlanGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectDatabaseErasurePlanGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectDatabaseErasurePlanCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectDatabaseErasurePlanCountAggregateOutputType> | number
           }
         }
       }
@@ -15879,6 +15988,7 @@ export namespace Prisma {
     rolePermission?: RolePermissionOmit
     project?: ProjectOmit
     objectStorageOperation?: ObjectStorageOperationOmit
+    projectDatabaseErasurePlan?: ProjectDatabaseErasurePlanOmit
     objectStorageOperationPinnedObject?: ObjectStorageOperationPinnedObjectOmit
     objectStorageOperationPinnedGeneration?: ObjectStorageOperationPinnedGenerationOmit
     projectPermanentDeletionArtifactPlan?: ProjectPermanentDeletionArtifactPlanOmit
@@ -34608,6 +34718,7 @@ export namespace Prisma {
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
+    databaseErasurePlan?: boolean | ObjectStorageOperation$databaseErasurePlanArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["objectStorageOperation"]>
 
@@ -34707,6 +34818,7 @@ export namespace Prisma {
     capabilityReservations?: boolean | ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>
     permanentDeletionReceipt?: boolean | ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>
     versionGcSchedules?: boolean | ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>
+    databaseErasurePlan?: boolean | ObjectStorageOperation$databaseErasurePlanArgs<ExtArgs>
     _count?: boolean | ObjectStorageOperationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ObjectStorageOperationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -34722,6 +34834,7 @@ export namespace Prisma {
       capabilityReservations: Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>[]
       permanentDeletionReceipt: Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs> | null
       versionGcSchedules: Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>[]
+      databaseErasurePlan: Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs> | null
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -35151,6 +35264,7 @@ export namespace Prisma {
     capabilityReservations<T extends ObjectStorageOperation$capabilityReservationsArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$capabilityReservationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageCapabilityReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     permanentDeletionReceipt<T extends ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$permanentDeletionReceiptArgs<ExtArgs>>): Prisma__ProjectPermanentDeletionReceiptClient<$Result.GetResult<Prisma.$ProjectPermanentDeletionReceiptPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     versionGcSchedules<T extends ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$versionGcSchedulesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ObjectStorageVersionGcSchedulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    databaseErasurePlan<T extends ObjectStorageOperation$databaseErasurePlanArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperation$databaseErasurePlanArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -35762,6 +35876,25 @@ export namespace Prisma {
   }
 
   /**
+   * ObjectStorageOperation.databaseErasurePlan
+   */
+  export type ObjectStorageOperation$databaseErasurePlanArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    where?: ProjectDatabaseErasurePlanWhereInput
+  }
+
+  /**
    * ObjectStorageOperation without action
    */
   export type ObjectStorageOperationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -35777,6 +35910,1182 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ObjectStorageOperationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectDatabaseErasurePlan
+   */
+
+  export type AggregateProjectDatabaseErasurePlan = {
+    _count: ProjectDatabaseErasurePlanCountAggregateOutputType | null
+    _avg: ProjectDatabaseErasurePlanAvgAggregateOutputType | null
+    _sum: ProjectDatabaseErasurePlanSumAggregateOutputType | null
+    _min: ProjectDatabaseErasurePlanMinAggregateOutputType | null
+    _max: ProjectDatabaseErasurePlanMaxAggregateOutputType | null
+  }
+
+  export type ProjectDatabaseErasurePlanAvgAggregateOutputType = {
+    ownershipEpoch: number | null
+  }
+
+  export type ProjectDatabaseErasurePlanSumAggregateOutputType = {
+    ownershipEpoch: number | null
+  }
+
+  export type ProjectDatabaseErasurePlanMinAggregateOutputType = {
+    operationId: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    inventorySha256: string | null
+    stage: $Enums.ProjectDatabaseErasureStage | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectDatabaseErasurePlanMaxAggregateOutputType = {
+    operationId: string | null
+    projectId: string | null
+    organizationId: string | null
+    ownershipEpoch: number | null
+    inventorySha256: string | null
+    stage: $Enums.ProjectDatabaseErasureStage | null
+    verifiedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectDatabaseErasurePlanCountAggregateOutputType = {
+    operationId: number
+    projectId: number
+    organizationId: number
+    ownershipEpoch: number
+    inventorySha256: number
+    plan: number
+    stage: number
+    evidence: number
+    receipt: number
+    verifiedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectDatabaseErasurePlanAvgAggregateInputType = {
+    ownershipEpoch?: true
+  }
+
+  export type ProjectDatabaseErasurePlanSumAggregateInputType = {
+    ownershipEpoch?: true
+  }
+
+  export type ProjectDatabaseErasurePlanMinAggregateInputType = {
+    operationId?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    inventorySha256?: true
+    stage?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectDatabaseErasurePlanMaxAggregateInputType = {
+    operationId?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    inventorySha256?: true
+    stage?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectDatabaseErasurePlanCountAggregateInputType = {
+    operationId?: true
+    projectId?: true
+    organizationId?: true
+    ownershipEpoch?: true
+    inventorySha256?: true
+    plan?: true
+    stage?: true
+    evidence?: true
+    receipt?: true
+    verifiedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectDatabaseErasurePlanAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectDatabaseErasurePlan to aggregate.
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectDatabaseErasurePlans to fetch.
+     */
+    orderBy?: ProjectDatabaseErasurePlanOrderByWithRelationInput | ProjectDatabaseErasurePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the start position
+     */
+    cursor?: ProjectDatabaseErasurePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectDatabaseErasurePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectDatabaseErasurePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Count returned ProjectDatabaseErasurePlans
+    **/
+    _count?: true | ProjectDatabaseErasurePlanCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to average
+    **/
+    _avg?: ProjectDatabaseErasurePlanAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to sum
+    **/
+    _sum?: ProjectDatabaseErasurePlanSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectDatabaseErasurePlanMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     *
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectDatabaseErasurePlanMaxAggregateInputType
+  }
+
+  export type GetProjectDatabaseErasurePlanAggregateType<T extends ProjectDatabaseErasurePlanAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectDatabaseErasurePlan]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectDatabaseErasurePlan[P]>
+      : GetScalarType<T[P], AggregateProjectDatabaseErasurePlan[P]>
+  }
+
+
+
+
+  export type ProjectDatabaseErasurePlanGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectDatabaseErasurePlanWhereInput
+    orderBy?: ProjectDatabaseErasurePlanOrderByWithAggregationInput | ProjectDatabaseErasurePlanOrderByWithAggregationInput[]
+    by: ProjectDatabaseErasurePlanScalarFieldEnum[] | ProjectDatabaseErasurePlanScalarFieldEnum
+    having?: ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectDatabaseErasurePlanCountAggregateInputType | true
+    _avg?: ProjectDatabaseErasurePlanAvgAggregateInputType
+    _sum?: ProjectDatabaseErasurePlanSumAggregateInputType
+    _min?: ProjectDatabaseErasurePlanMinAggregateInputType
+    _max?: ProjectDatabaseErasurePlanMaxAggregateInputType
+  }
+
+  export type ProjectDatabaseErasurePlanGroupByOutputType = {
+    operationId: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonValue
+    stage: $Enums.ProjectDatabaseErasureStage
+    evidence: JsonValue
+    receipt: JsonValue | null
+    verifiedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectDatabaseErasurePlanCountAggregateOutputType | null
+    _avg: ProjectDatabaseErasurePlanAvgAggregateOutputType | null
+    _sum: ProjectDatabaseErasurePlanSumAggregateOutputType | null
+    _min: ProjectDatabaseErasurePlanMinAggregateOutputType | null
+    _max: ProjectDatabaseErasurePlanMaxAggregateOutputType | null
+  }
+
+  type GetProjectDatabaseErasurePlanGroupByPayload<T extends ProjectDatabaseErasurePlanGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectDatabaseErasurePlanGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectDatabaseErasurePlanGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectDatabaseErasurePlanGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectDatabaseErasurePlanGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectDatabaseErasurePlanSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    inventorySha256?: boolean
+    plan?: boolean
+    stage?: boolean
+    evidence?: boolean
+    receipt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectDatabaseErasurePlan"]>
+
+  export type ProjectDatabaseErasurePlanSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    inventorySha256?: boolean
+    plan?: boolean
+    stage?: boolean
+    evidence?: boolean
+    receipt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectDatabaseErasurePlan"]>
+
+  export type ProjectDatabaseErasurePlanSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    operationId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    inventorySha256?: boolean
+    plan?: boolean
+    stage?: boolean
+    evidence?: boolean
+    receipt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectDatabaseErasurePlan"]>
+
+  export type ProjectDatabaseErasurePlanSelectScalar = {
+    operationId?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    ownershipEpoch?: boolean
+    inventorySha256?: boolean
+    plan?: boolean
+    stage?: boolean
+    evidence?: boolean
+    receipt?: boolean
+    verifiedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectDatabaseErasurePlanOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"operationId" | "projectId" | "organizationId" | "ownershipEpoch" | "inventorySha256" | "plan" | "stage" | "evidence" | "receipt" | "verifiedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectDatabaseErasurePlan"]>
+  export type ProjectDatabaseErasurePlanInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectDatabaseErasurePlanIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+  export type ProjectDatabaseErasurePlanIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    operation?: boolean | ObjectStorageOperationDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectDatabaseErasurePlanPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectDatabaseErasurePlan"
+    objects: {
+      operation: Prisma.$ObjectStorageOperationPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      operationId: string
+      projectId: string
+      organizationId: string
+      ownershipEpoch: number
+      inventorySha256: string
+      plan: Prisma.JsonValue
+      stage: $Enums.ProjectDatabaseErasureStage
+      evidence: Prisma.JsonValue
+      receipt: Prisma.JsonValue | null
+      verifiedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectDatabaseErasurePlan"]>
+    composites: {}
+  }
+
+  type ProjectDatabaseErasurePlanGetPayload<S extends boolean | null | undefined | ProjectDatabaseErasurePlanDefaultArgs> = $Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload, S>
+
+  type ProjectDatabaseErasurePlanCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectDatabaseErasurePlanFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectDatabaseErasurePlanCountAggregateInputType | true
+    }
+
+  export interface ProjectDatabaseErasurePlanDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectDatabaseErasurePlan'], meta: { name: 'ProjectDatabaseErasurePlan' } }
+    /**
+     * Find zero or one ProjectDatabaseErasurePlan that matches the filter.
+     * @param {ProjectDatabaseErasurePlanFindUniqueArgs} args - Arguments to find a ProjectDatabaseErasurePlan
+     * @example
+     * // Get one ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectDatabaseErasurePlanFindUniqueArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanFindUniqueArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectDatabaseErasurePlan that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectDatabaseErasurePlanFindUniqueOrThrowArgs} args - Arguments to find a ProjectDatabaseErasurePlan
+     * @example
+     * // Get one ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectDatabaseErasurePlanFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectDatabaseErasurePlan that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanFindFirstArgs} args - Arguments to find a ProjectDatabaseErasurePlan
+     * @example
+     * // Get one ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectDatabaseErasurePlanFindFirstArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanFindFirstArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectDatabaseErasurePlan that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanFindFirstOrThrowArgs} args - Arguments to find a ProjectDatabaseErasurePlan
+     * @example
+     * // Get one ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectDatabaseErasurePlanFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectDatabaseErasurePlans that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlans = await prisma.projectDatabaseErasurePlan.findMany()
+     *
+     * // Get first 10 ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlans = await prisma.projectDatabaseErasurePlan.findMany({ take: 10 })
+     *
+     * // Only select the `operationId`
+     * const projectDatabaseErasurePlanWithOperationIdOnly = await prisma.projectDatabaseErasurePlan.findMany({ select: { operationId: true } })
+     *
+     */
+    findMany<T extends ProjectDatabaseErasurePlanFindManyArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectDatabaseErasurePlan.
+     * @param {ProjectDatabaseErasurePlanCreateArgs} args - Arguments to create a ProjectDatabaseErasurePlan.
+     * @example
+     * // Create one ProjectDatabaseErasurePlan
+     * const ProjectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.create({
+     *   data: {
+     *     // ... data to create a ProjectDatabaseErasurePlan
+     *   }
+     * })
+     *
+     */
+    create<T extends ProjectDatabaseErasurePlanCreateArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanCreateArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectDatabaseErasurePlans.
+     * @param {ProjectDatabaseErasurePlanCreateManyArgs} args - Arguments to create many ProjectDatabaseErasurePlans.
+     * @example
+     * // Create many ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     */
+    createMany<T extends ProjectDatabaseErasurePlanCreateManyArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectDatabaseErasurePlans and returns the data saved in the database.
+     * @param {ProjectDatabaseErasurePlanCreateManyAndReturnArgs} args - Arguments to create many ProjectDatabaseErasurePlans.
+     * @example
+     * // Create many ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Create many ProjectDatabaseErasurePlans and only return the `operationId`
+     * const projectDatabaseErasurePlanWithOperationIdOnly = await prisma.projectDatabaseErasurePlan.createManyAndReturn({
+     *   select: { operationId: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    createManyAndReturn<T extends ProjectDatabaseErasurePlanCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectDatabaseErasurePlan.
+     * @param {ProjectDatabaseErasurePlanDeleteArgs} args - Arguments to delete one ProjectDatabaseErasurePlan.
+     * @example
+     * // Delete one ProjectDatabaseErasurePlan
+     * const ProjectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectDatabaseErasurePlan
+     *   }
+     * })
+     *
+     */
+    delete<T extends ProjectDatabaseErasurePlanDeleteArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanDeleteArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectDatabaseErasurePlan.
+     * @param {ProjectDatabaseErasurePlanUpdateArgs} args - Arguments to update one ProjectDatabaseErasurePlan.
+     * @example
+     * // Update one ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    update<T extends ProjectDatabaseErasurePlanUpdateArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanUpdateArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectDatabaseErasurePlans.
+     * @param {ProjectDatabaseErasurePlanDeleteManyArgs} args - Arguments to filter ProjectDatabaseErasurePlans to delete.
+     * @example
+     * // Delete a few ProjectDatabaseErasurePlans
+     * const { count } = await prisma.projectDatabaseErasurePlan.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     *
+     */
+    deleteMany<T extends ProjectDatabaseErasurePlanDeleteManyArgs>(args?: SelectSubset<T, ProjectDatabaseErasurePlanDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectDatabaseErasurePlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     *
+     */
+    updateMany<T extends ProjectDatabaseErasurePlanUpdateManyArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectDatabaseErasurePlans and returns the data updated in the database.
+     * @param {ProjectDatabaseErasurePlanUpdateManyAndReturnArgs} args - Arguments to update many ProjectDatabaseErasurePlans.
+     * @example
+     * // Update many ProjectDatabaseErasurePlans
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *
+     * // Update zero or more ProjectDatabaseErasurePlans and only return the `operationId`
+     * const projectDatabaseErasurePlanWithOperationIdOnly = await prisma.projectDatabaseErasurePlan.updateManyAndReturn({
+     *   select: { operationId: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     *
+     */
+    updateManyAndReturn<T extends ProjectDatabaseErasurePlanUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectDatabaseErasurePlan.
+     * @param {ProjectDatabaseErasurePlanUpsertArgs} args - Arguments to update or create a ProjectDatabaseErasurePlan.
+     * @example
+     * // Update or create a ProjectDatabaseErasurePlan
+     * const projectDatabaseErasurePlan = await prisma.projectDatabaseErasurePlan.upsert({
+     *   create: {
+     *     // ... data to create a ProjectDatabaseErasurePlan
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectDatabaseErasurePlan we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectDatabaseErasurePlanUpsertArgs>(args: SelectSubset<T, ProjectDatabaseErasurePlanUpsertArgs<ExtArgs>>): Prisma__ProjectDatabaseErasurePlanClient<$Result.GetResult<Prisma.$ProjectDatabaseErasurePlanPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectDatabaseErasurePlans.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanCountArgs} args - Arguments to filter ProjectDatabaseErasurePlans to count.
+     * @example
+     * // Count the number of ProjectDatabaseErasurePlans
+     * const count = await prisma.projectDatabaseErasurePlan.count({
+     *   where: {
+     *     // ... the filter for the ProjectDatabaseErasurePlans we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectDatabaseErasurePlanCountArgs>(
+      args?: Subset<T, ProjectDatabaseErasurePlanCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectDatabaseErasurePlanCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectDatabaseErasurePlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectDatabaseErasurePlanAggregateArgs>(args: Subset<T, ProjectDatabaseErasurePlanAggregateArgs>): Prisma.PrismaPromise<GetProjectDatabaseErasurePlanAggregateType<T>>
+
+    /**
+     * Group by ProjectDatabaseErasurePlan.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectDatabaseErasurePlanGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     *
+    **/
+    groupBy<
+      T extends ProjectDatabaseErasurePlanGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectDatabaseErasurePlanGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectDatabaseErasurePlanGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectDatabaseErasurePlanGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectDatabaseErasurePlanGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectDatabaseErasurePlan model
+   */
+  readonly fields: ProjectDatabaseErasurePlanFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectDatabaseErasurePlan.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectDatabaseErasurePlanClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    operation<T extends ObjectStorageOperationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ObjectStorageOperationDefaultArgs<ExtArgs>>): Prisma__ObjectStorageOperationClient<$Result.GetResult<Prisma.$ObjectStorageOperationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectDatabaseErasurePlan model
+   */
+  interface ProjectDatabaseErasurePlanFieldRefs {
+    readonly operationId: FieldRef<"ProjectDatabaseErasurePlan", 'String'>
+    readonly projectId: FieldRef<"ProjectDatabaseErasurePlan", 'String'>
+    readonly organizationId: FieldRef<"ProjectDatabaseErasurePlan", 'String'>
+    readonly ownershipEpoch: FieldRef<"ProjectDatabaseErasurePlan", 'Int'>
+    readonly inventorySha256: FieldRef<"ProjectDatabaseErasurePlan", 'String'>
+    readonly plan: FieldRef<"ProjectDatabaseErasurePlan", 'Json'>
+    readonly stage: FieldRef<"ProjectDatabaseErasurePlan", 'ProjectDatabaseErasureStage'>
+    readonly evidence: FieldRef<"ProjectDatabaseErasurePlan", 'Json'>
+    readonly receipt: FieldRef<"ProjectDatabaseErasurePlan", 'Json'>
+    readonly verifiedAt: FieldRef<"ProjectDatabaseErasurePlan", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectDatabaseErasurePlan", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectDatabaseErasurePlan", 'DateTime'>
+  }
+
+
+  // Custom InputTypes
+  /**
+   * ProjectDatabaseErasurePlan findUnique
+   */
+  export type ProjectDatabaseErasurePlanFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectDatabaseErasurePlan to fetch.
+     */
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan findUniqueOrThrow
+   */
+  export type ProjectDatabaseErasurePlanFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectDatabaseErasurePlan to fetch.
+     */
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan findFirst
+   */
+  export type ProjectDatabaseErasurePlanFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectDatabaseErasurePlan to fetch.
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectDatabaseErasurePlans to fetch.
+     */
+    orderBy?: ProjectDatabaseErasurePlanOrderByWithRelationInput | ProjectDatabaseErasurePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectDatabaseErasurePlans.
+     */
+    cursor?: ProjectDatabaseErasurePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectDatabaseErasurePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectDatabaseErasurePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectDatabaseErasurePlans.
+     */
+    distinct?: ProjectDatabaseErasurePlanScalarFieldEnum | ProjectDatabaseErasurePlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan findFirstOrThrow
+   */
+  export type ProjectDatabaseErasurePlanFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectDatabaseErasurePlan to fetch.
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectDatabaseErasurePlans to fetch.
+     */
+    orderBy?: ProjectDatabaseErasurePlanOrderByWithRelationInput | ProjectDatabaseErasurePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for searching for ProjectDatabaseErasurePlans.
+     */
+    cursor?: ProjectDatabaseErasurePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectDatabaseErasurePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectDatabaseErasurePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectDatabaseErasurePlans.
+     */
+    distinct?: ProjectDatabaseErasurePlanScalarFieldEnum | ProjectDatabaseErasurePlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan findMany
+   */
+  export type ProjectDatabaseErasurePlanFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectDatabaseErasurePlans to fetch.
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     *
+     * Determine the order of ProjectDatabaseErasurePlans to fetch.
+     */
+    orderBy?: ProjectDatabaseErasurePlanOrderByWithRelationInput | ProjectDatabaseErasurePlanOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     *
+     * Sets the position for listing ProjectDatabaseErasurePlans.
+     */
+    cursor?: ProjectDatabaseErasurePlanWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Take `±n` ProjectDatabaseErasurePlans from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     *
+     * Skip the first `n` ProjectDatabaseErasurePlans.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     *
+     * Filter by unique combinations of ProjectDatabaseErasurePlans.
+     */
+    distinct?: ProjectDatabaseErasurePlanScalarFieldEnum | ProjectDatabaseErasurePlanScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan create
+   */
+  export type ProjectDatabaseErasurePlanCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectDatabaseErasurePlan.
+     */
+    data: XOR<ProjectDatabaseErasurePlanCreateInput, ProjectDatabaseErasurePlanUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan createMany
+   */
+  export type ProjectDatabaseErasurePlanCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectDatabaseErasurePlans.
+     */
+    data: ProjectDatabaseErasurePlanCreateManyInput | ProjectDatabaseErasurePlanCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan createManyAndReturn
+   */
+  export type ProjectDatabaseErasurePlanCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectDatabaseErasurePlans.
+     */
+    data: ProjectDatabaseErasurePlanCreateManyInput | ProjectDatabaseErasurePlanCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan update
+   */
+  export type ProjectDatabaseErasurePlanUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectDatabaseErasurePlan.
+     */
+    data: XOR<ProjectDatabaseErasurePlanUpdateInput, ProjectDatabaseErasurePlanUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectDatabaseErasurePlan to update.
+     */
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan updateMany
+   */
+  export type ProjectDatabaseErasurePlanUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectDatabaseErasurePlans.
+     */
+    data: XOR<ProjectDatabaseErasurePlanUpdateManyMutationInput, ProjectDatabaseErasurePlanUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectDatabaseErasurePlans to update
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * Limit how many ProjectDatabaseErasurePlans to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan updateManyAndReturn
+   */
+  export type ProjectDatabaseErasurePlanUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectDatabaseErasurePlans.
+     */
+    data: XOR<ProjectDatabaseErasurePlanUpdateManyMutationInput, ProjectDatabaseErasurePlanUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectDatabaseErasurePlans to update
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * Limit how many ProjectDatabaseErasurePlans to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan upsert
+   */
+  export type ProjectDatabaseErasurePlanUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectDatabaseErasurePlan to update in case it exists.
+     */
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+    /**
+     * In case the ProjectDatabaseErasurePlan found by the `where` argument doesn't exist, create a new ProjectDatabaseErasurePlan with this data.
+     */
+    create: XOR<ProjectDatabaseErasurePlanCreateInput, ProjectDatabaseErasurePlanUncheckedCreateInput>
+    /**
+     * In case the ProjectDatabaseErasurePlan was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectDatabaseErasurePlanUpdateInput, ProjectDatabaseErasurePlanUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan delete
+   */
+  export type ProjectDatabaseErasurePlanDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectDatabaseErasurePlan to delete.
+     */
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan deleteMany
+   */
+  export type ProjectDatabaseErasurePlanDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectDatabaseErasurePlans to delete
+     */
+    where?: ProjectDatabaseErasurePlanWhereInput
+    /**
+     * Limit how many ProjectDatabaseErasurePlans to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectDatabaseErasurePlan without action
+   */
+  export type ProjectDatabaseErasurePlanDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectDatabaseErasurePlan
+     */
+    select?: ProjectDatabaseErasurePlanSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectDatabaseErasurePlan
+     */
+    omit?: ProjectDatabaseErasurePlanOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectDatabaseErasurePlanInclude<ExtArgs> | null
   }
 
 
@@ -209038,6 +210347,24 @@ export namespace Prisma {
   export type ObjectStorageOperationScalarFieldEnum = (typeof ObjectStorageOperationScalarFieldEnum)[keyof typeof ObjectStorageOperationScalarFieldEnum]
 
 
+  export const ProjectDatabaseErasurePlanScalarFieldEnum: {
+    operationId: 'operationId',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    ownershipEpoch: 'ownershipEpoch',
+    inventorySha256: 'inventorySha256',
+    plan: 'plan',
+    stage: 'stage',
+    evidence: 'evidence',
+    receipt: 'receipt',
+    verifiedAt: 'verifiedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectDatabaseErasurePlanScalarFieldEnum = (typeof ProjectDatabaseErasurePlanScalarFieldEnum)[keyof typeof ProjectDatabaseErasurePlanScalarFieldEnum]
+
+
   export const ObjectStorageOperationPinnedObjectScalarFieldEnum: {
     operationId: 'operationId',
     ordinal: 'ordinal',
@@ -211722,6 +213049,20 @@ export namespace Prisma {
 
 
   /**
+   * Reference to a field of type 'ProjectDatabaseErasureStage'
+   */
+  export type EnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectDatabaseErasureStage'>
+
+
+
+  /**
+   * Reference to a field of type 'ProjectDatabaseErasureStage[]'
+   */
+  export type ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectDatabaseErasureStage[]'>
+
+
+
+  /**
    * Reference to a field of type 'ProjectPermanentDeletionArtifactState'
    */
   export type EnumProjectPermanentDeletionArtifactStateFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ProjectPermanentDeletionArtifactState'>
@@ -213497,6 +214838,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
+    databaseErasurePlan?: XOR<ProjectDatabaseErasurePlanNullableScalarRelationFilter, ProjectDatabaseErasurePlanWhereInput> | null
   }
 
   export type ObjectStorageOperationOrderByWithRelationInput = {
@@ -213533,6 +214875,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationOrderByRelationAggregateInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptOrderByWithRelationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleOrderByRelationAggregateInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanOrderByWithRelationInput
   }
 
   export type ObjectStorageOperationWhereUniqueInput = Prisma.AtLeast<{
@@ -213573,6 +214916,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationListRelationFilter
     permanentDeletionReceipt?: XOR<ProjectPermanentDeletionReceiptNullableScalarRelationFilter, ProjectPermanentDeletionReceiptWhereInput> | null
     versionGcSchedules?: ObjectStorageVersionGcScheduleListRelationFilter
+    databaseErasurePlan?: XOR<ProjectDatabaseErasurePlanNullableScalarRelationFilter, ProjectDatabaseErasurePlanWhereInput> | null
   }, "id" | "idempotencyScopeHash_idempotencyKey">
 
   export type ObjectStorageOperationOrderByWithAggregationInput = {
@@ -213639,6 +214983,98 @@ export namespace Prisma {
     manualRecoveryAt?: DateTimeNullableWithAggregatesFilter<"ObjectStorageOperation"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ObjectStorageOperation"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ObjectStorageOperation"> | Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanWhereInput = {
+    AND?: ProjectDatabaseErasurePlanWhereInput | ProjectDatabaseErasurePlanWhereInput[]
+    OR?: ProjectDatabaseErasurePlanWhereInput[]
+    NOT?: ProjectDatabaseErasurePlanWhereInput | ProjectDatabaseErasurePlanWhereInput[]
+    operationId?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    projectId?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    organizationId?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    ownershipEpoch?: IntFilter<"ProjectDatabaseErasurePlan"> | number
+    inventorySha256?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    plan?: JsonFilter<"ProjectDatabaseErasurePlan">
+    stage?: EnumProjectDatabaseErasureStageFilter<"ProjectDatabaseErasurePlan"> | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonFilter<"ProjectDatabaseErasurePlan">
+    receipt?: JsonNullableFilter<"ProjectDatabaseErasurePlan">
+    verifiedAt?: DateTimeNullableFilter<"ProjectDatabaseErasurePlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectDatabaseErasurePlan"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectDatabaseErasurePlan"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }
+
+  export type ProjectDatabaseErasurePlanOrderByWithRelationInput = {
+    operationId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    inventorySha256?: SortOrder
+    plan?: SortOrder
+    stage?: SortOrder
+    evidence?: SortOrder
+    receipt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    operation?: ObjectStorageOperationOrderByWithRelationInput
+  }
+
+  export type ProjectDatabaseErasurePlanWhereUniqueInput = Prisma.AtLeast<{
+    operationId?: string
+    AND?: ProjectDatabaseErasurePlanWhereInput | ProjectDatabaseErasurePlanWhereInput[]
+    OR?: ProjectDatabaseErasurePlanWhereInput[]
+    NOT?: ProjectDatabaseErasurePlanWhereInput | ProjectDatabaseErasurePlanWhereInput[]
+    projectId?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    organizationId?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    ownershipEpoch?: IntFilter<"ProjectDatabaseErasurePlan"> | number
+    inventorySha256?: StringFilter<"ProjectDatabaseErasurePlan"> | string
+    plan?: JsonFilter<"ProjectDatabaseErasurePlan">
+    stage?: EnumProjectDatabaseErasureStageFilter<"ProjectDatabaseErasurePlan"> | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonFilter<"ProjectDatabaseErasurePlan">
+    receipt?: JsonNullableFilter<"ProjectDatabaseErasurePlan">
+    verifiedAt?: DateTimeNullableFilter<"ProjectDatabaseErasurePlan"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectDatabaseErasurePlan"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectDatabaseErasurePlan"> | Date | string
+    operation?: XOR<ObjectStorageOperationScalarRelationFilter, ObjectStorageOperationWhereInput>
+  }, "operationId">
+
+  export type ProjectDatabaseErasurePlanOrderByWithAggregationInput = {
+    operationId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    inventorySha256?: SortOrder
+    plan?: SortOrder
+    stage?: SortOrder
+    evidence?: SortOrder
+    receipt?: SortOrderInput | SortOrder
+    verifiedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectDatabaseErasurePlanCountOrderByAggregateInput
+    _avg?: ProjectDatabaseErasurePlanAvgOrderByAggregateInput
+    _max?: ProjectDatabaseErasurePlanMaxOrderByAggregateInput
+    _min?: ProjectDatabaseErasurePlanMinOrderByAggregateInput
+    _sum?: ProjectDatabaseErasurePlanSumOrderByAggregateInput
+  }
+
+  export type ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput = {
+    AND?: ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput | ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput[]
+    OR?: ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput[]
+    NOT?: ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput | ProjectDatabaseErasurePlanScalarWhereWithAggregatesInput[]
+    operationId?: StringWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | string
+    organizationId?: StringWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | string
+    ownershipEpoch?: IntWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | number
+    inventorySha256?: StringWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | string
+    plan?: JsonWithAggregatesFilter<"ProjectDatabaseErasurePlan">
+    stage?: EnumProjectDatabaseErasureStageWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonWithAggregatesFilter<"ProjectDatabaseErasurePlan">
+    receipt?: JsonNullableWithAggregatesFilter<"ProjectDatabaseErasurePlan">
+    verifiedAt?: DateTimeNullableWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectDatabaseErasurePlan"> | Date | string
   }
 
   export type ObjectStorageOperationPinnedObjectWhereInput = {
@@ -228072,6 +229508,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateInput = {
@@ -228108,6 +229545,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUpdateInput = {
@@ -228144,6 +229582,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateInput = {
@@ -228180,6 +229619,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateManyInput = {
@@ -228265,6 +229705,110 @@ export namespace Prisma {
     committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanCreateInput = {
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonNullValueInput | InputJsonValue
+    stage?: $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    operation: ObjectStorageOperationCreateNestedOneWithoutDatabaseErasurePlanInput
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedCreateInput = {
+    operationId: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonNullValueInput | InputJsonValue
+    stage?: $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanUpdateInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    operation?: ObjectStorageOperationUpdateOneRequiredWithoutDatabaseErasurePlanNestedInput
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedUpdateInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanCreateManyInput = {
+    operationId: string
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonNullValueInput | InputJsonValue
+    stage?: $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanUpdateManyMutationInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedUpdateManyInput = {
+    operationId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -244294,6 +245838,11 @@ export namespace Prisma {
     none?: ObjectStorageVersionGcScheduleWhereInput
   }
 
+  export type ProjectDatabaseErasurePlanNullableScalarRelationFilter = {
+    is?: ProjectDatabaseErasurePlanWhereInput | null
+    isNot?: ProjectDatabaseErasurePlanWhereInput | null
+  }
+
   export type ObjectStorageOperationPinnedObjectOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -244470,9 +246019,73 @@ export namespace Prisma {
     _max?: NestedBigIntFilter<$PrismaModel>
   }
 
+  export type EnumProjectDatabaseErasureStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectDatabaseErasureStage | EnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel> | $Enums.ProjectDatabaseErasureStage
+  }
+
   export type ObjectStorageOperationScalarRelationFilter = {
     is?: ObjectStorageOperationWhereInput
     isNot?: ObjectStorageOperationWhereInput
+  }
+
+  export type ProjectDatabaseErasurePlanCountOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    inventorySha256?: SortOrder
+    plan?: SortOrder
+    stage?: SortOrder
+    evidence?: SortOrder
+    receipt?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectDatabaseErasurePlanAvgOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+  }
+
+  export type ProjectDatabaseErasurePlanMaxOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    inventorySha256?: SortOrder
+    stage?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectDatabaseErasurePlanMinOrderByAggregateInput = {
+    operationId?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    ownershipEpoch?: SortOrder
+    inventorySha256?: SortOrder
+    stage?: SortOrder
+    verifiedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectDatabaseErasurePlanSumOrderByAggregateInput = {
+    ownershipEpoch?: SortOrder
+  }
+
+  export type EnumProjectDatabaseErasureStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectDatabaseErasureStage | EnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectDatabaseErasureStageWithAggregatesFilter<$PrismaModel> | $Enums.ProjectDatabaseErasureStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel>
+    _max?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel>
   }
 
   export type ObjectStorageOperationPinnedObjectOperationIdKeyCompoundUniqueInput = {
@@ -258508,6 +260121,12 @@ export namespace Prisma {
     connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
   }
 
+  export type ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectDatabaseErasurePlanCreateOrConnectWithoutOperationInput
+    connect?: ProjectDatabaseErasurePlanWhereUniqueInput
+  }
+
   export type ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput = {
     create?: XOR<ObjectStorageOperationProjectScopeCreateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput> | ObjectStorageOperationProjectScopeCreateWithoutOperationInput[] | ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput | ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput[]
@@ -258554,6 +260173,12 @@ export namespace Prisma {
     connectOrCreate?: ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput | ObjectStorageVersionGcScheduleCreateOrConnectWithoutLastOperationInput[]
     createMany?: ObjectStorageVersionGcScheduleCreateManyLastOperationInputEnvelope
     connect?: ObjectStorageVersionGcScheduleWhereUniqueInput | ObjectStorageVersionGcScheduleWhereUniqueInput[]
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput = {
+    create?: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectDatabaseErasurePlanCreateOrConnectWithoutOperationInput
+    connect?: ProjectDatabaseErasurePlanWhereUniqueInput
   }
 
   export type EnumObjectStorageOperationKindFieldUpdateOperationsInput = {
@@ -258666,6 +260291,16 @@ export namespace Prisma {
     deleteMany?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
   }
 
+  export type ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectDatabaseErasurePlanCreateOrConnectWithoutOperationInput
+    upsert?: ProjectDatabaseErasurePlanUpsertWithoutOperationInput
+    disconnect?: ProjectDatabaseErasurePlanWhereInput | boolean
+    delete?: ProjectDatabaseErasurePlanWhereInput | boolean
+    connect?: ProjectDatabaseErasurePlanWhereUniqueInput
+    update?: XOR<XOR<ProjectDatabaseErasurePlanUpdateToOneWithWhereWithoutOperationInput, ProjectDatabaseErasurePlanUpdateWithoutOperationInput>, ProjectDatabaseErasurePlanUncheckedUpdateWithoutOperationInput>
+  }
+
   export type ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput = {
     create?: XOR<ObjectStorageOperationProjectScopeCreateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput> | ObjectStorageOperationProjectScopeCreateWithoutOperationInput[] | ObjectStorageOperationProjectScopeUncheckedCreateWithoutOperationInput[]
     connectOrCreate?: ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput | ObjectStorageOperationProjectScopeCreateOrConnectWithoutOperationInput[]
@@ -258758,6 +260393,34 @@ export namespace Prisma {
     update?: ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateWithWhereUniqueWithoutLastOperationInput[]
     updateMany?: ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput | ObjectStorageVersionGcScheduleUpdateManyWithWhereWithoutLastOperationInput[]
     deleteMany?: ObjectStorageVersionGcScheduleScalarWhereInput | ObjectStorageVersionGcScheduleScalarWhereInput[]
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput = {
+    create?: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+    connectOrCreate?: ProjectDatabaseErasurePlanCreateOrConnectWithoutOperationInput
+    upsert?: ProjectDatabaseErasurePlanUpsertWithoutOperationInput
+    disconnect?: ProjectDatabaseErasurePlanWhereInput | boolean
+    delete?: ProjectDatabaseErasurePlanWhereInput | boolean
+    connect?: ProjectDatabaseErasurePlanWhereUniqueInput
+    update?: XOR<XOR<ProjectDatabaseErasurePlanUpdateToOneWithWhereWithoutOperationInput, ProjectDatabaseErasurePlanUpdateWithoutOperationInput>, ProjectDatabaseErasurePlanUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ObjectStorageOperationCreateNestedOneWithoutDatabaseErasurePlanInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedCreateWithoutDatabaseErasurePlanInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutDatabaseErasurePlanInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+  }
+
+  export type EnumProjectDatabaseErasureStageFieldUpdateOperationsInput = {
+    set?: $Enums.ProjectDatabaseErasureStage
+  }
+
+  export type ObjectStorageOperationUpdateOneRequiredWithoutDatabaseErasurePlanNestedInput = {
+    create?: XOR<ObjectStorageOperationCreateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedCreateWithoutDatabaseErasurePlanInput>
+    connectOrCreate?: ObjectStorageOperationCreateOrConnectWithoutDatabaseErasurePlanInput
+    upsert?: ObjectStorageOperationUpsertWithoutDatabaseErasurePlanInput
+    connect?: ObjectStorageOperationWhereUniqueInput
+    update?: XOR<XOR<ObjectStorageOperationUpdateToOneWithWhereWithoutDatabaseErasurePlanInput, ObjectStorageOperationUpdateWithoutDatabaseErasurePlanInput>, ObjectStorageOperationUncheckedUpdateWithoutDatabaseErasurePlanInput>
   }
 
   export type ObjectStorageOperationCreateNestedOneWithoutPinnedObjectsInput = {
@@ -264327,6 +265990,23 @@ export namespace Prisma {
     _sum?: NestedBigIntFilter<$PrismaModel>
     _min?: NestedBigIntFilter<$PrismaModel>
     _max?: NestedBigIntFilter<$PrismaModel>
+  }
+
+  export type NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectDatabaseErasureStage | EnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel> | $Enums.ProjectDatabaseErasureStage
+  }
+
+  export type NestedEnumProjectDatabaseErasureStageWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: $Enums.ProjectDatabaseErasureStage | EnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    in?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    notIn?: $Enums.ProjectDatabaseErasureStage[] | ListEnumProjectDatabaseErasureStageFieldRefInput<$PrismaModel>
+    not?: NestedEnumProjectDatabaseErasureStageWithAggregatesFilter<$PrismaModel> | $Enums.ProjectDatabaseErasureStage
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel>
+    _max?: NestedEnumProjectDatabaseErasureStageFilter<$PrismaModel>
   }
 
   export type NestedEnumProjectPermanentDeletionArtifactStateFilter<$PrismaModel = never> = {
@@ -276342,6 +278022,39 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectDatabaseErasurePlanCreateWithoutOperationInput = {
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonNullValueInput | InputJsonValue
+    stage?: $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput = {
+    projectId: string
+    organizationId: string
+    ownershipEpoch: number
+    inventorySha256: string
+    plan: JsonNullValueInput | InputJsonValue
+    stage?: $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanCreateOrConnectWithoutOperationInput = {
+    where: ProjectDatabaseErasurePlanWhereUniqueInput
+    create: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+  }
+
   export type ObjectStorageOperationProjectScopeUpsertWithWhereUniqueWithoutOperationInput = {
     where: ObjectStorageOperationProjectScopeWhereUniqueInput
     update: XOR<ObjectStorageOperationProjectScopeUpdateWithoutOperationInput, ObjectStorageOperationProjectScopeUncheckedUpdateWithoutOperationInput>
@@ -276562,6 +278275,205 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ObjectStorageVersionGcSchedule"> | Date | string
   }
 
+  export type ProjectDatabaseErasurePlanUpsertWithoutOperationInput = {
+    update: XOR<ProjectDatabaseErasurePlanUpdateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedUpdateWithoutOperationInput>
+    create: XOR<ProjectDatabaseErasurePlanCreateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedCreateWithoutOperationInput>
+    where?: ProjectDatabaseErasurePlanWhereInput
+  }
+
+  export type ProjectDatabaseErasurePlanUpdateToOneWithWhereWithoutOperationInput = {
+    where?: ProjectDatabaseErasurePlanWhereInput
+    data: XOR<ProjectDatabaseErasurePlanUpdateWithoutOperationInput, ProjectDatabaseErasurePlanUncheckedUpdateWithoutOperationInput>
+  }
+
+  export type ProjectDatabaseErasurePlanUpdateWithoutOperationInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectDatabaseErasurePlanUncheckedUpdateWithoutOperationInput = {
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    ownershipEpoch?: IntFieldUpdateOperationsInput | number
+    inventorySha256?: StringFieldUpdateOperationsInput | string
+    plan?: JsonNullValueInput | InputJsonValue
+    stage?: EnumProjectDatabaseErasureStageFieldUpdateOperationsInput | $Enums.ProjectDatabaseErasureStage
+    evidence?: JsonNullValueInput | InputJsonValue
+    receipt?: NullableJsonNullValueInput | InputJsonValue
+    verifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ObjectStorageOperationCreateWithoutDatabaseErasurePlanInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationUncheckedCreateWithoutDatabaseErasurePlanInput = {
+    id?: string
+    kind: $Enums.ObjectStorageOperationKind
+    status?: $Enums.ObjectStorageOperationStatus
+    scopeHash: string
+    idempotencyScopeHash: string
+    idempotencyKey: string
+    requestHash: string
+    payload: JsonNullValueInput | InputJsonValue
+    preconditions: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: Date | string | null
+    ownerToken?: string | null
+    fencingToken?: bigint | number
+    leaseExpiresAt?: Date | string | null
+    attempts?: number
+    lastErrorCode?: string | null
+    lastErrorMessage?: string | null
+    preparedAt?: Date | string
+    effectStartedAt?: Date | string | null
+    verificationStartedAt?: Date | string | null
+    committedAt?: Date | string | null
+    failedSafeAt?: Date | string | null
+    manualRecoveryAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedCreateNestedManyWithoutOperationInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedCreateNestedManyWithoutOperationInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+  }
+
+  export type ObjectStorageOperationCreateOrConnectWithoutDatabaseErasurePlanInput = {
+    where: ObjectStorageOperationWhereUniqueInput
+    create: XOR<ObjectStorageOperationCreateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedCreateWithoutDatabaseErasurePlanInput>
+  }
+
+  export type ObjectStorageOperationUpsertWithoutDatabaseErasurePlanInput = {
+    update: XOR<ObjectStorageOperationUpdateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedUpdateWithoutDatabaseErasurePlanInput>
+    create: XOR<ObjectStorageOperationCreateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedCreateWithoutDatabaseErasurePlanInput>
+    where?: ObjectStorageOperationWhereInput
+  }
+
+  export type ObjectStorageOperationUpdateToOneWithWhereWithoutDatabaseErasurePlanInput = {
+    where?: ObjectStorageOperationWhereInput
+    data: XOR<ObjectStorageOperationUpdateWithoutDatabaseErasurePlanInput, ObjectStorageOperationUncheckedUpdateWithoutDatabaseErasurePlanInput>
+  }
+
+  export type ObjectStorageOperationUpdateWithoutDatabaseErasurePlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+  }
+
+  export type ObjectStorageOperationUncheckedUpdateWithoutDatabaseErasurePlanInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    kind?: EnumObjectStorageOperationKindFieldUpdateOperationsInput | $Enums.ObjectStorageOperationKind
+    status?: EnumObjectStorageOperationStatusFieldUpdateOperationsInput | $Enums.ObjectStorageOperationStatus
+    scopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyScopeHash?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    payload?: JsonNullValueInput | InputJsonValue
+    preconditions?: JsonNullValueInput | InputJsonValue
+    evidence?: NullableJsonNullValueInput | InputJsonValue
+    result?: NullableJsonNullValueInput | InputJsonValue
+    reservedCapabilityExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    ownerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    fencingToken?: BigIntFieldUpdateOperationsInput | bigint | number
+    leaseExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    attempts?: IntFieldUpdateOperationsInput | number
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorMessage?: NullableStringFieldUpdateOperationsInput | string | null
+    preparedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    effectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    verificationStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    committedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    failedSafeAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    manualRecoveryAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    scopes?: ObjectStorageOperationProjectScopeUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedObjects?: ObjectStorageOperationPinnedObjectUncheckedUpdateManyWithoutOperationNestedInput
+    pinnedGenerations?: ObjectStorageOperationPinnedGenerationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
+    capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
+    permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+  }
+
   export type ObjectStorageOperationCreateWithoutPinnedObjectsInput = {
     id?: string
     kind: $Enums.ObjectStorageOperationKind
@@ -276595,6 +278507,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPinnedObjectsInput = {
@@ -276630,6 +278543,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPinnedObjectsInput = {
@@ -276681,6 +278595,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPinnedObjectsInput = {
@@ -276716,6 +278631,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPinnedGenerationsInput = {
@@ -276751,6 +278667,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPinnedGenerationsInput = {
@@ -276786,6 +278703,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPinnedGenerationsInput = {
@@ -276837,6 +278755,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPinnedGenerationsInput = {
@@ -276872,6 +278791,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPermanentDeletionArtifactsInput = {
@@ -276907,6 +278827,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionArtifactsInput = {
@@ -276942,6 +278863,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionArtifactsInput = {
@@ -276993,6 +278915,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionArtifactsInput = {
@@ -277028,6 +278951,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutCapabilityReservationsInput = {
@@ -277063,6 +278987,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutCapabilityReservationsInput = {
@@ -277098,6 +279023,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutCapabilityReservationsInput = {
@@ -277149,6 +279075,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutCapabilityReservationsInput = {
@@ -277184,6 +279111,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutScopesInput = {
@@ -277219,6 +279147,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutScopesInput = {
@@ -277254,6 +279183,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutScopesInput = {
@@ -277430,6 +279360,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutScopesInput = {
@@ -277465,6 +279396,7 @@ export namespace Prisma {
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ProjectUpsertWithoutObjectStorageOperationScopesInput = {
@@ -277756,6 +279688,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptCreateNestedOneWithoutOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutVersionGcSchedulesInput = {
@@ -277791,6 +279724,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedCreateNestedOneWithoutOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutVersionGcSchedulesInput = {
@@ -277973,6 +279907,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUpdateOneWithoutOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutVersionGcSchedulesInput = {
@@ -278008,6 +279943,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     permanentDeletionReceipt?: ProjectPermanentDeletionReceiptUncheckedUpdateOneWithoutOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationCreateWithoutPermanentDeletionReceiptInput = {
@@ -278043,6 +279979,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationCreateNestedManyWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationUncheckedCreateWithoutPermanentDeletionReceiptInput = {
@@ -278078,6 +280015,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedCreateNestedManyWithoutOperationInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedCreateNestedManyWithoutOperationInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedCreateNestedManyWithoutLastOperationInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedCreateNestedOneWithoutOperationInput
   }
 
   export type ObjectStorageOperationCreateOrConnectWithoutPermanentDeletionReceiptInput = {
@@ -278129,6 +280067,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUpdateManyWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUpdateOneWithoutOperationNestedInput
   }
 
   export type ObjectStorageOperationUncheckedUpdateWithoutPermanentDeletionReceiptInput = {
@@ -278164,6 +280103,7 @@ export namespace Prisma {
     permanentDeletionArtifacts?: ProjectPermanentDeletionArtifactPlanUncheckedUpdateManyWithoutOperationNestedInput
     capabilityReservations?: ObjectStorageCapabilityReservationUncheckedUpdateManyWithoutOperationNestedInput
     versionGcSchedules?: ObjectStorageVersionGcScheduleUncheckedUpdateManyWithoutLastOperationNestedInput
+    databaseErasurePlan?: ProjectDatabaseErasurePlanUncheckedUpdateOneWithoutOperationNestedInput
   }
 
   export type ProjectCreateWithoutSlugRedirectsInput = {

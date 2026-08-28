@@ -2128,6 +2128,7 @@ function assertPermanentDeletionEvidence(
   const filesystem = evidence.filesystem;
   const gcs = evidence.gcs;
   const workspaceManager = evidence.workspaceManager;
+  const managedDatabase = evidence.managedDatabase;
   if (
     evidence.schemaVersion !== 'project-permanent-erasure-v1' ||
     !filesystem ||
@@ -2146,6 +2147,16 @@ function assertPermanentDeletionEvidence(
     Array.isArray(gcs) ||
     gcs.bucketAbsent !== true ||
     gcs.objectCount !== 0 ||
+    !managedDatabase ||
+    typeof managedDatabase !== 'object' ||
+    Array.isArray(managedDatabase) ||
+    managedDatabase.schemaVersion !== 1 ||
+    managedDatabase.proof === null ||
+    typeof managedDatabase.proof !== 'object' ||
+    Array.isArray(managedDatabase.proof) ||
+    managedDatabase.proof.kubernetesAbsent !== true ||
+    managedDatabase.proof.sharedTenantsAbsent !== true ||
+    managedDatabase.proof.backupGenerationsAbsent !== true ||
     !workspaceManager ||
     typeof workspaceManager !== 'object' ||
     Array.isArray(workspaceManager) ||
@@ -3084,6 +3095,53 @@ export async function finalizeObjectStorageOperation(
 
   let durableVerification = verification;
   if (permanentReceipt) {
+    const databasePlans = await tx.$queryRaw<
+      Array<{
+        projectId: string;
+        organizationId: string;
+        ownershipEpoch: number;
+        inventorySha256: string;
+        stage: string;
+        receipt: unknown;
+      }>
+    >(Prisma.sql`
+      SELECT
+        "projectId", "organizationId", "ownershipEpoch", "inventorySha256",
+        "stage"::text AS "stage", "receipt"
+      FROM "ProjectDatabaseErasurePlan"
+      WHERE "operationId" = ${locked.row.id}
+      FOR UPDATE
+    `);
+    const databasePlan = databasePlans[0];
+    const suppliedDatabaseReceipt = verification.evidence.managedDatabase;
+    const durableDatabaseReceipt = databasePlan?.receipt
+      ? normalizeJsonObject(databasePlan.receipt, 'database erasure receipt')
+      : undefined;
+    if (
+      !databasePlan ||
+      databasePlan.projectId !== permanentReceipt.scope.projectIdSnapshot ||
+      databasePlan.organizationId !== permanentReceipt.scope.expectedOrganizationId ||
+      databasePlan.ownershipEpoch !== permanentReceipt.ownershipEpoch ||
+      databasePlan.stage !== 'VERIFIED' ||
+      !durableDatabaseReceipt ||
+      durableDatabaseReceipt.schemaVersion !== 1 ||
+      durableDatabaseReceipt.operationId !== locked.row.id ||
+      durableDatabaseReceipt.projectId !== permanentReceipt.scope.projectIdSnapshot ||
+      durableDatabaseReceipt.organizationId !== permanentReceipt.scope.expectedOrganizationId ||
+      durableDatabaseReceipt.inventorySha256 !== databasePlan.inventorySha256 ||
+      typeof durableDatabaseReceipt.verifiedAt !== 'string' ||
+      !Number.isFinite(new Date(durableDatabaseReceipt.verifiedAt).getTime()) ||
+      !suppliedDatabaseReceipt ||
+      typeof suppliedDatabaseReceipt !== 'object' ||
+      Array.isArray(suppliedDatabaseReceipt) ||
+      canonicalJson(durableDatabaseReceipt) !== canonicalJson(suppliedDatabaseReceipt)
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_DATABASE_ERASURE_UNVERIFIED',
+        'Managed database erasure is not durably verified for this operation',
+        409,
+      );
+    }
     const runtimeEffects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
       SELECT "id", "ownershipEpoch", "state"::text AS "state"
       FROM "ProjectRuntimeEffect"
@@ -3118,6 +3176,10 @@ export async function finalizeObjectStorageOperation(
         scheduledTaskRowsAbsent: boolean;
         scheduledRunRowsAbsent: boolean;
         runtimeEffectRowsAbsent: boolean;
+        databaseInstanceRowsAbsent: boolean;
+        databaseSnapshotRowsAbsent: boolean;
+        databaseRestoreRowsAbsent: boolean;
+        databaseErasurePlanRetained: boolean;
       }>
     >(Prisma.sql`
       SELECT
@@ -3144,7 +3206,27 @@ export async function finalizeObjectStorageOperation(
         NOT EXISTS (
           SELECT 1 FROM "ProjectRuntimeEffect"
           WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
-        ) AS "runtimeEffectRowsAbsent"
+        ) AS "runtimeEffectRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "DatabaseInstance"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "databaseInstanceRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "DatabaseSnapshot" snapshot
+          JOIN "DatabaseInstance" instance ON instance."id" = snapshot."databaseInstanceId"
+          WHERE instance."projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "databaseSnapshotRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "DatabaseRestore" restore
+          JOIN "DatabaseInstance" instance ON instance."id" = restore."databaseInstanceId"
+          WHERE instance."projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "databaseRestoreRowsAbsent",
+        EXISTS (
+          SELECT 1 FROM "ProjectDatabaseErasurePlan"
+          WHERE "operationId" = ${locked.row.id}
+            AND "stage" = 'VERIFIED'::"ProjectDatabaseErasureStage"
+            AND "receipt" IS NOT NULL
+        ) AS "databaseErasurePlanRetained"
     `);
     if (
       cascade[0]?.projectReleaseReferencesAbsent !== true ||
@@ -3152,7 +3234,11 @@ export async function finalizeObjectStorageOperation(
       cascade[0]?.workspaceRuntimeRowsAbsent !== true ||
       cascade[0]?.scheduledTaskRowsAbsent !== true ||
       cascade[0]?.scheduledRunRowsAbsent !== true ||
-      cascade[0]?.runtimeEffectRowsAbsent !== true
+      cascade[0]?.runtimeEffectRowsAbsent !== true ||
+      cascade[0]?.databaseInstanceRowsAbsent !== true ||
+      cascade[0]?.databaseSnapshotRowsAbsent !== true ||
+      cascade[0]?.databaseRestoreRowsAbsent !== true ||
+      cascade[0]?.databaseErasurePlanRetained !== true
     ) {
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_CASCADE_INCOMPLETE',
@@ -3172,6 +3258,10 @@ export async function finalizeObjectStorageOperation(
             scheduledTaskRowsAbsent: true,
             scheduledRunRowsAbsent: true,
             runtimeEffectRowsAbsent: true,
+            databaseInstanceRowsAbsent: true,
+            databaseSnapshotRowsAbsent: true,
+            databaseRestoreRowsAbsent: true,
+            databaseErasurePlanRetained: true,
           },
         },
       },

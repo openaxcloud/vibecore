@@ -858,12 +858,66 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   const DB_ROLLBACK_NAMESPACE = 'project-databases';
   /*
    * Isolated tier applies Cluster + ScheduledBackup (+ on-demand Backup). Shared
-   * (free) tier applies Pooler + Database CRDs on the shared cluster. All are
-   * CloudNativePG kinds the manager's Role already grants (poolers/databases in
-   * database-rbac.yaml); omitting Pooler/Database here 403'd every shared-tier
-   * provision, so free-tier projects never got a database.
+   * tier applies only the project Database CR against the Helm-owned shared
+   * cluster and Pooler. Pooler mutation is intentionally absent from this bridge
+   * so a project request can never alter shared connection infrastructure.
    */
-  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup', 'Pooler', 'Database']);
+  const DB_ROLLBACK_KINDS = new Set(['Cluster', 'ScheduledBackup', 'Backup', 'Database']);
+  const DB_ERASURE_KINDS = [
+    'ScheduledBackup',
+    'Backup',
+    'Database',
+    'Cluster',
+    'Deployment',
+    'Job',
+    'Pod',
+    'Service',
+    'Endpoints',
+    'EndpointSlice',
+    'Secret',
+    'ConfigMap',
+    'ServiceAccount',
+    'PodDisruptionBudget',
+    'PersistentVolumeClaim',
+  ] as const;
+  type DatabaseErasureKind = (typeof DB_ERASURE_KINDS)[number];
+
+  const databaseErasureInventorySchema = projectDeletionLeaseSchema.extend({
+    knownClusterNames: z.array(z.string().min(1).max(253)).max(512),
+    knownResourceNames: z
+      .record(z.array(z.string().min(1).max(253)).max(10_000))
+      .optional()
+      .default({}),
+  });
+  const databaseErasureResourceSchema = z.object({
+    kind: z.enum(DB_ERASURE_KINDS),
+    namespace: z.literal(DB_ROLLBACK_NAMESPACE),
+    name: z.string().min(1).max(253),
+    uid: z.string().min(1).max(255),
+    resourceVersion: z.string().min(1).max(255),
+    ownership: z.object({
+      projectId: z.string().min(1).max(200),
+      source: z.enum(['project-label', 'cnpg-cluster-label', 'owner-reference', 'service-label', 'deterministic-plan']),
+      clusterName: z.string().min(1).max(253).optional(),
+    }),
+  });
+  const deterministicDatabaseResourceNameAllowed = (
+    kind: DatabaseErasureKind,
+    name: string,
+    projectId: string,
+  ): boolean => {
+    const developmentCluster = `db-${projectId}`.toLowerCase().slice(0, 53);
+    const productionCluster = `db-${projectId}-prod`.toLowerCase().slice(0, 53);
+    const clusters = [developmentCluster, productionCluster];
+
+    if (kind === 'Cluster') {
+      return clusters.includes(name) || name.startsWith(`${developmentCluster}-r-`);
+    }
+    if (kind === 'Database') return clusters.includes(name);
+    if (kind === 'ScheduledBackup') return clusters.some((cluster) => name === `${cluster}-daily`);
+    if (kind === 'Backup') return clusters.some((cluster) => name.startsWith(`${cluster}-`));
+    return false;
+  };
 
   const dbResourceGuard = (kind: string, namespace: string, reply: any): boolean => {
     if (namespace !== DB_ROLLBACK_NAMESPACE || !DB_ROLLBACK_KINDS.has(kind)) {
@@ -884,7 +938,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
           .object({
             apiVersion: z.string(),
             kind: z.string(),
-            metadata: z.object({ name: z.string(), namespace: z.string().optional() }).passthrough(),
+            metadata: z
+              .object({
+                name: z.string(),
+                namespace: z.string().optional(),
+                labels: z.record(z.string()).optional(),
+              })
+              .passthrough(),
           })
           .passthrough(),
       })
@@ -896,14 +956,27 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       return;
     }
 
-    if (!/^postgresql\.cnpg\.io\//.test(manifest.apiVersion)) {
+    if (manifest.apiVersion !== 'postgresql.cnpg.io/v1') {
       return reply.code(403).send({
         error: workspaceManagerMessage('databaseApiVersionForbidden', 'en'),
         code: 'DB_RESOURCE_FORBIDDEN',
       });
     }
 
-    await manager.k8s.apply(manifest as any);
+    const projectId = manifest.metadata.labels?.['vibecore.ai/project-id'];
+    const expectedOrganizationId = manifest.metadata.labels?.['vibecore.ai/org-id'];
+    if (!projectId || !expectedOrganizationId) {
+      return reply.code(403).send({
+        error: workspaceManagerMessage('databaseResourceForbidden', 'en'),
+        code: 'DB_PROJECT_AUTHORITY_REQUIRED',
+      });
+    }
+
+    await manager.executeProjectProvisionEffect({ projectId, expectedOrganizationId }, async (assertAuthority) => {
+      await assertAuthority();
+      await manager.k8s.apply(manifest as any);
+      await assertAuthority();
+    });
 
     return { applied: true };
   });
@@ -977,6 +1050,205 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     await manager.k8s.delete(kind, namespace, name);
 
     return { deleted: true };
+  });
+
+  const inventoryProjectDatabaseResources = async (
+    lease: z.infer<typeof projectDeletionLeaseSchema>,
+    knownClusterNames: readonly string[],
+    knownResourceNames: Readonly<Record<string, readonly string[]>>,
+  ) => {
+    await manager.assertProjectDeletionLease(lease, ['EFFECT_STARTED', 'VERIFYING']);
+    if (knownClusterNames.some((name) => !deterministicDatabaseResourceNameAllowed('Cluster', name, lease.projectId))) {
+      throw Object.assign(new Error('Database erasure cluster escaped the project namespace'), {
+        code: 'PROJECT_DATABASE_RESOURCE_NAME_INVALID',
+        statusCode: 409,
+      });
+    }
+    const clusters = new Set(knownClusterNames);
+    const resources = new Map<
+      string,
+      {
+        kind: DatabaseErasureKind;
+        namespace: typeof DB_ROLLBACK_NAMESPACE;
+        name: string;
+        uid: string;
+        resourceVersion: string;
+        ownership: {
+          projectId: string;
+          source: 'project-label' | 'cnpg-cluster-label' | 'owner-reference' | 'service-label' | 'deterministic-plan';
+          clusterName?: string;
+        };
+      }
+    >();
+    const add = (
+      kind: DatabaseErasureKind,
+      object: Awaited<ReturnType<typeof manager.k8s.get>>,
+      source: 'project-label' | 'cnpg-cluster-label' | 'owner-reference' | 'service-label' | 'deterministic-plan',
+      clusterName?: string,
+    ) => {
+      if (!object) return;
+      const name = object.metadata.name;
+      const uid = object.metadata.uid;
+      const resourceVersion = object.metadata.resourceVersion;
+      const resourceProjectId = object.metadata.labels?.['vibecore.ai/project-id'];
+      const resourceOrganizationId = object.metadata.labels?.['vibecore.ai/org-id'];
+      if (!name || !uid || !resourceVersion) {
+        throw Object.assign(new Error('Database erasure resource identity is incomplete'), {
+          code: 'PROJECT_DATABASE_RESOURCE_IDENTITY_INCOMPLETE',
+          statusCode: 503,
+        });
+      }
+      if (
+        (resourceProjectId !== undefined && resourceProjectId !== lease.projectId) ||
+        (resourceOrganizationId !== undefined && resourceOrganizationId !== lease.expectedOrganizationId) ||
+        (source === 'deterministic-plan' && resourceProjectId !== lease.projectId) ||
+        (source === 'cnpg-cluster-label' && object.metadata.labels?.['cnpg.io/cluster'] !== clusterName)
+      ) {
+        throw Object.assign(new Error('Database erasure resource tenant labels changed'), {
+          code: 'PROJECT_DATABASE_RESOURCE_TENANT_MISMATCH',
+          statusCode: 409,
+        });
+      }
+      const identity = `${kind}:${name}`;
+      const previous = resources.get(identity);
+      if (previous && (previous.uid !== uid || previous.resourceVersion !== resourceVersion)) {
+        throw Object.assign(new Error('Database erasure inventory changed during capture'), {
+          code: 'PROJECT_DATABASE_RESOURCE_INVENTORY_CHANGED',
+          statusCode: 409,
+        });
+      }
+      resources.set(identity, {
+        kind,
+        namespace: DB_ROLLBACK_NAMESPACE,
+        name,
+        uid,
+        resourceVersion,
+        ownership: { projectId: lease.projectId, source, ...(clusterName ? { clusterName } : {}) },
+      });
+      if (kind === 'Cluster') clusters.add(name);
+    };
+
+    for (const kind of DB_ERASURE_KINDS) {
+      const direct = await manager.k8s.listByLabel(
+        kind,
+        DB_ROLLBACK_NAMESPACE,
+        `vibecore.ai/project-id=${lease.projectId}`,
+      );
+      for (const object of direct) {
+        if (object.metadata.labels?.['vibecore.ai/project-id'] !== lease.projectId) {
+          throw Object.assign(new Error('Database erasure label selector returned a foreign resource'), {
+            code: 'PROJECT_DATABASE_RESOURCE_TENANT_MISMATCH',
+            statusCode: 409,
+          });
+        }
+        add(kind, object, 'project-label', object.metadata.labels?.['cnpg.io/cluster']);
+      }
+    }
+
+    for (const [kind, names] of Object.entries(knownResourceNames)) {
+      if (
+        !DB_ERASURE_KINDS.includes(kind as DatabaseErasureKind) ||
+        !['Cluster', 'Database', 'ScheduledBackup', 'Backup'].includes(kind)
+      ) {
+        throw Object.assign(new Error('Database erasure kind is not allowed'), {
+          code: 'PROJECT_DATABASE_RESOURCE_KIND_INVALID',
+          statusCode: 400,
+        });
+      }
+      for (const name of names) {
+        if (!deterministicDatabaseResourceNameAllowed(kind as DatabaseErasureKind, name, lease.projectId)) {
+          throw Object.assign(new Error('Database erasure deterministic target escaped the project namespace'), {
+            code: 'PROJECT_DATABASE_RESOURCE_NAME_INVALID',
+            statusCode: 409,
+          });
+        }
+        add(
+          kind as DatabaseErasureKind,
+          await manager.k8s.get(kind, DB_ROLLBACK_NAMESPACE, name),
+          'deterministic-plan',
+        );
+      }
+    }
+
+    for (const clusterName of [...clusters]) {
+      for (const kind of DB_ERASURE_KINDS) {
+        const descendants = await manager.k8s.listByLabel(
+          kind,
+          DB_ROLLBACK_NAMESPACE,
+          `cnpg.io/cluster=${clusterName}`,
+        );
+        for (const object of descendants) add(kind, object, 'cnpg-cluster-label', clusterName);
+      }
+    }
+
+    const serviceNames = [...resources.values()].filter(({ kind }) => kind === 'Service').map(({ name }) => name);
+    for (const serviceName of serviceNames) {
+      for (const object of await manager.k8s.listByLabel(
+        'EndpointSlice',
+        DB_ROLLBACK_NAMESPACE,
+        `kubernetes.io/service-name=${serviceName}`,
+      )) {
+        add('EndpointSlice', object, 'service-label');
+      }
+      add('Endpoints', await manager.k8s.get('Endpoints', DB_ROLLBACK_NAMESPACE, serviceName), 'service-label');
+    }
+    await manager.assertProjectDeletionLease(lease, ['EFFECT_STARTED', 'VERIFYING']);
+    return [...resources.values()].sort(
+      (left, right) => left.kind.localeCompare(right.kind) || left.name.localeCompare(right.name),
+    );
+  };
+
+  app.post('/projects/:projectId/permanent-delete/databases/inventory', async (request) => {
+    const routeProjectId = z.object({ projectId: z.string().min(1).max(200) }).parse(request.params).projectId;
+    const body = databaseErasureInventorySchema.parse(request.body ?? {});
+    if (body.projectId !== routeProjectId) {
+      throw Object.assign(new Error('Database erasure project scope changed'), {
+        code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    return {
+      resources: await inventoryProjectDatabaseResources(body, body.knownClusterNames, body.knownResourceNames),
+    };
+  });
+
+  app.post('/projects/:projectId/permanent-delete/databases/delete', async (request) => {
+    const routeProjectId = z.object({ projectId: z.string().min(1).max(200) }).parse(request.params).projectId;
+    const body = databaseErasureInventorySchema
+      .extend({ resource: databaseErasureResourceSchema })
+      .parse(request.body ?? {});
+    if (body.projectId !== routeProjectId || body.resource.ownership.projectId !== routeProjectId) {
+      throw Object.assign(new Error('Database erasure project scope changed'), {
+        code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    await manager.assertProjectDeletionLease(body, ['EFFECT_STARTED']);
+    const inventory = await inventoryProjectDatabaseResources(body, body.knownClusterNames, body.knownResourceNames);
+    const current = inventory.find(({ kind, name }) => kind === body.resource.kind && name === body.resource.name);
+    if (!current) return { outcome: 'absent' as const };
+    if (current.uid !== body.resource.uid || current.resourceVersion !== body.resource.resourceVersion) {
+      throw Object.assign(new Error('Database erasure resource precondition changed'), {
+        code: 'PROJECT_DATABASE_RESOURCE_PRECONDITION_CHANGED',
+        statusCode: 409,
+      });
+    }
+    if (!manager.k8s.deleteFenced) {
+      throw Object.assign(new Error('Fenced Kubernetes delete is unavailable'), {
+        code: 'PROJECT_DATABASE_FENCED_DELETE_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+    await manager.assertProjectDeletionLease(body, ['EFFECT_STARTED']);
+    await manager.k8s.deleteFenced(
+      current.kind,
+      DB_ROLLBACK_NAMESPACE,
+      current.name,
+      current.resourceVersion,
+      current.uid,
+    );
+    await manager.assertProjectDeletionLease(body, ['EFFECT_STARTED']);
+    return { outcome: 'deleted' as const };
   });
 
   return app;

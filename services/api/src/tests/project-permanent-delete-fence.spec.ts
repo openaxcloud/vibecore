@@ -9,6 +9,7 @@ import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { NoopObjectStorage, type ObjectStorage } from '../object-storage.js';
 import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
+import { ProjectDatabaseErasureService } from '../project-database-erasure.js';
 import {
   LocalProjectStorage,
   type ProjectMutationCoordinator,
@@ -146,6 +147,7 @@ const roots: string[] = [];
 const apps: Array<Awaited<ReturnType<typeof buildApiApp>>> = [];
 const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
 const previousStaticDeployStorageDir = process.env.STATIC_DEPLOY_STORAGE_DIR;
+const previousDatabaseBackupBucket = process.env.DB_BACKUP_BUCKET;
 
 afterEach(async () => {
   await Promise.allSettled(apps.splice(0).map((app) => app.close()));
@@ -155,12 +157,15 @@ afterEach(async () => {
   else process.env.PROJECT_STORAGE_DIR = previousProjectStorageDir;
   if (previousStaticDeployStorageDir === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
   else process.env.STATIC_DEPLOY_STORAGE_DIR = previousStaticDeployStorageDir;
+  if (previousDatabaseBackupBucket === undefined) delete process.env.DB_BACKUP_BUCKET;
+  else process.env.DB_BACKUP_BUCKET = previousDatabaseBackupBucket;
 });
 
 async function setup(label: string, options: { staticVerifier?: boolean; unsafeStaticNamespace?: boolean } = {}) {
   const root = await mkdtemp(join(tmpdir(), `vc-permanent-${label}-`));
   roots.push(root);
   process.env.PROJECT_STORAGE_DIR = root;
+  process.env.DB_BACKUP_BUCKET = 'database-erasure-test';
 
   const store = new TestApiStore();
   const coordinate: ProjectMutationCoordinator = (scope, effect) => store.withProjectPhysicalMutation(scope, effect);
@@ -202,6 +207,34 @@ async function setup(label: string, options: { staticVerifier?: boolean; unsafeS
         persistentVolumeClaimsAbsent: true,
       },
     }),
+    projectDatabaseErasureServiceFactory: () =>
+      new ProjectDatabaseErasureService(
+        {
+          async inventory() {
+            return [];
+          },
+          async delete() {
+            return 'absent';
+          },
+        },
+        {
+          async listFirstPage() {
+            return [];
+          },
+          async deleteVersion() {
+            return 'absent';
+          },
+        },
+        {
+          async eraseTenant(_tenant, guard) {
+            await guard('test-shared-tenant-erased');
+          },
+          async inspectTenant() {
+            return { databaseExists: false, roleExists: false };
+          },
+        },
+        { kubernetesSettleAttempts: 1, kubernetesSettleDelayMs: 0 },
+      ),
   });
   apps.push(app);
 

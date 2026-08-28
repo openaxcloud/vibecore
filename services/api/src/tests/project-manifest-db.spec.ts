@@ -10,6 +10,7 @@ import {
   projectManifestDigest,
   verifyStoredProjectManifestRevision,
 } from '../project-manifest.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -49,6 +50,7 @@ function hardDeleteProject(
       actorUserId,
       expectedProjectName: project.name,
     }),
+    ...emptyManagedDatabaseErasureCallbacks(),
     preflightPhysicalErasure: async () => ({ summary: emptyStaticArtifactSummary, artifacts: [] }),
     erasePhysical: async () => undefined,
     verifyPhysicalAbsence: async () => ({

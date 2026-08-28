@@ -68,6 +68,14 @@ import {
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { projectOrganizationChangedError, projectPhysicalMutationLockKey } from '../project-physical-mutation.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import {
+  buildProjectDatabaseErasurePlan,
+  type ProjectDatabaseErasureEffects,
+  type ProjectDatabaseErasureFence,
+  type ProjectDatabaseErasurePlan,
+  type ProjectDatabaseErasureReceipt,
+} from '../project-database-erasure.js';
+import type { ProjectDatabaseErasureConfiguration } from '../project-database-erasure-ledger.js';
 import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from '../project-storage.js';
 import {
   parseObjectStorageStaticArtifactSummary,
@@ -2782,6 +2790,18 @@ export class TestApiStore implements ApiStore {
       ipAddress?: string;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
+      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      purgeManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<ProjectDatabaseErasureEffects>;
+      verifyManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+        effects: ProjectDatabaseErasureEffects,
+      ) => Promise<ProjectDatabaseErasureReceipt>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
@@ -2895,9 +2915,72 @@ export class TestApiStore implements ApiStore {
           project.updatedAt = now();
           throw error;
         }
+        const instances = [...this.databaseInstances.values()].filter(
+          (instance) => instance.projectId === input.projectId,
+        );
+        const databasePlan = buildProjectDatabaseErasurePlan({
+          schemaVersion: 1,
+          operationId: lease.operationId,
+          projectId: input.projectId,
+          organizationId: input.expectedOrganizationId,
+          capturedAt: now(),
+          ...input.databaseErasureConfiguration,
+          instances: instances.map((instance) => ({
+            id: instance.id,
+            projectId: instance.projectId,
+            organizationId: instance.organizationId,
+            environment: instance.environment,
+            status: instance.status,
+            engine: instance.engine,
+            region: instance.region,
+            sizeBytes: instance.sizeBytes,
+            retentionDays: instance.retentionDays,
+            pitrEnabled: instance.pitrEnabled,
+            snapshots: [...this.databaseSnapshots.values()]
+              .filter((snapshot) => snapshot.databaseInstanceId === instance.id)
+              .map((snapshot) => ({
+                id: snapshot.id,
+                kind: snapshot.kind,
+                lsn: snapshot.lsn,
+                storageKey: snapshot.storageKey,
+                sizeBytes: snapshot.sizeBytes,
+                createdAt: snapshot.createdAt,
+                expiresAt: snapshot.expiresAt,
+              })),
+            restores: [...this.databaseRestores.values()]
+              .filter((restore) => restore.databaseInstanceId === instance.id)
+              .map((restore) => ({
+                id: restore.id,
+                snapshotId: restore.snapshotId,
+                targetTimestamp: restore.targetTimestamp,
+                status: restore.status,
+                createdAt: restore.createdAt,
+                startedAt: restore.startedAt,
+                completedAt: restore.completedAt,
+              })),
+          })),
+        });
+        const databaseFence: ProjectDatabaseErasureFence = {
+          assertActive: async (context) => {
+            if (
+              context.operationId !== databasePlan.operationId ||
+              context.inventorySha256 !== databasePlan.inventorySha256
+            ) {
+              throw new Error('PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH');
+            }
+            await assertLease();
+          },
+          checkpoint: async () => undefined,
+        };
+        const databaseEffects = await input.purgeManagedDatabases(databasePlan, databaseFence, lease);
         await input.erasePhysical(assertLease, lease);
         await assertLease();
-        const proof = await input.verifyPhysicalAbsence(assertLease, lease);
+        const databaseReceipt = await input.verifyManagedDatabases(databasePlan, databaseFence, lease, databaseEffects);
+        const physicalProof = await input.verifyPhysicalAbsence(assertLease, lease);
+        const proof: ObjectStorageVerification = {
+          ...physicalProof,
+          evidence: { ...physicalProof.evidence, managedDatabase: databaseReceipt },
+        };
         assertPermanentDeletionProof(proof, staticArtifactPlan.summary);
         const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown>;
         if (

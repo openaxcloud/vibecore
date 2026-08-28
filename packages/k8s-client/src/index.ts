@@ -1,6 +1,7 @@
 import { execFile as execFileCallback } from 'node:child_process';
 import { existsSync, mkdtempSync, writeFileSync } from 'node:fs';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { request as httpsRequest } from 'node:https';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -352,6 +353,8 @@ export interface K8sObject {
     labels?: Record<string, string>;
     annotations?: Record<string, string>;
     resourceVersion?: string;
+    uid?: string;
+    ownerReferences?: Array<{ apiVersion?: string; kind?: string; name?: string; uid?: string; controller?: boolean }>;
     generation?: number;
   };
   spec?: Record<string, unknown>;
@@ -378,8 +381,14 @@ export interface WorkspaceK8sClient {
    * silently retried as an unconditional apply.
    */
   applyFenced?(object: K8sObject, expectedResourceVersion?: string): Promise<K8sObject>;
-  /** Delete only the exact Kubernetes version previously inspected. */
-  deleteFenced?(kind: string, namespace: string, name: string, expectedResourceVersion: string): Promise<void>;
+  /** Delete only the exact Kubernetes UID/version previously inspected. */
+  deleteFenced?(
+    kind: string,
+    namespace: string,
+    name: string,
+    expectedResourceVersion: string,
+    expectedUid?: string,
+  ): Promise<void>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
   getPod(namespace: string, name: string): Promise<K8sObject | undefined>;
@@ -1460,6 +1469,24 @@ export function managerAndPreviewIngressNetworkPolicy(namespace: string, platfor
   };
 }
 
+const FENCED_DELETE_RESOURCE_PATH = new Map<string, { prefix: string; plural: string }>([
+  ['Cluster', { prefix: '/apis/postgresql.cnpg.io/v1', plural: 'clusters' }],
+  ['Database', { prefix: '/apis/postgresql.cnpg.io/v1', plural: 'databases' }],
+  ['ScheduledBackup', { prefix: '/apis/postgresql.cnpg.io/v1', plural: 'scheduledbackups' }],
+  ['Backup', { prefix: '/apis/postgresql.cnpg.io/v1', plural: 'backups' }],
+  ['Deployment', { prefix: '/apis/apps/v1', plural: 'deployments' }],
+  ['Job', { prefix: '/apis/batch/v1', plural: 'jobs' }],
+  ['EndpointSlice', { prefix: '/apis/discovery.k8s.io/v1', plural: 'endpointslices' }],
+  ['PodDisruptionBudget', { prefix: '/apis/policy/v1', plural: 'poddisruptionbudgets' }],
+  ['Pod', { prefix: '/api/v1', plural: 'pods' }],
+  ['Service', { prefix: '/api/v1', plural: 'services' }],
+  ['Endpoints', { prefix: '/api/v1', plural: 'endpoints' }],
+  ['Secret', { prefix: '/api/v1', plural: 'secrets' }],
+  ['ConfigMap', { prefix: '/api/v1', plural: 'configmaps' }],
+  ['ServiceAccount', { prefix: '/api/v1', plural: 'serviceaccounts' }],
+  ['PersistentVolumeClaim', { prefix: '/api/v1', plural: 'persistentvolumeclaims' }],
+]);
+
 export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
   /*
    * Connection flags (e.g. --kubeconfig <in-cluster config>) prepended to every
@@ -1542,21 +1569,93 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     );
   }
 
-  async deleteFenced(kind: string, namespace: string, name: string, expectedResourceVersion: string) {
-    await execFile(
-      this.kubectl,
-      [
-        ...this.configArgs,
-        'delete',
-        kind,
-        name,
-        '-n',
-        namespace,
-        `--resource-version=${expectedResourceVersion}`,
-        `--request-timeout=${KUBECTL_REQUEST_TIMEOUT}`,
-      ],
-      { timeout: KUBECTL_TIMEOUT_MS },
-    );
+  async deleteFenced(
+    kind: string,
+    namespace: string,
+    name: string,
+    expectedResourceVersion: string,
+    expectedUid?: string,
+  ) {
+    const resource = FENCED_DELETE_RESOURCE_PATH.get(kind);
+    const host = process.env.KUBERNETES_SERVICE_HOST;
+    const port = Number(process.env.KUBERNETES_SERVICE_PORT_HTTPS || process.env.KUBERNETES_SERVICE_PORT || '443');
+    const tokenFile = `${SERVICE_ACCOUNT_DIR}/token`;
+    const caFile = `${SERVICE_ACCOUNT_DIR}/ca.crt`;
+
+    if (
+      !resource ||
+      !host ||
+      !Number.isInteger(port) ||
+      port < 1 ||
+      port > 65_535 ||
+      !existsSync(tokenFile) ||
+      !existsSync(caFile) ||
+      !expectedResourceVersion.trim() ||
+      (expectedUid !== undefined && !expectedUid.trim())
+    ) {
+      throw Object.assign(reservedVmK8sError('Kubernetes fenced-delete authority is unavailable.'), {
+        code: 'KUBERNETES_FENCED_DELETE_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    const [token, ca] = await Promise.all([readFile(tokenFile, 'utf8'), readFile(caFile)]);
+    const body = JSON.stringify({
+      apiVersion: 'v1',
+      kind: 'DeleteOptions',
+      preconditions: {
+        resourceVersion: expectedResourceVersion,
+        ...(expectedUid ? { uid: expectedUid } : {}),
+      },
+    });
+    const path = `${resource.prefix}/namespaces/${encodeURIComponent(namespace)}/${resource.plural}/${encodeURIComponent(name)}`;
+
+    await new Promise<void>((resolve, reject) => {
+      const request = httpsRequest(
+        {
+          hostname: host,
+          port,
+          path,
+          method: 'DELETE',
+          ca,
+          headers: {
+            authorization: `Bearer ${token.trim()}`,
+            'content-type': 'application/json',
+            'content-length': String(Buffer.byteLength(body)),
+          },
+        },
+        (response) => {
+          const chunks: Buffer[] = [];
+          response.on('data', (chunk: Buffer) => {
+            if (chunks.reduce((bytes, item) => bytes + item.byteLength, 0) < 4_096) chunks.push(chunk);
+          });
+          response.on('end', () => {
+            const status = response.statusCode ?? 0;
+            if ((status >= 200 && status < 300) || status === 404) {
+              resolve();
+              return;
+            }
+            const detail = Buffer.concat(chunks).toString('utf8').slice(0, 4_096);
+            reject(
+              Object.assign(reservedVmK8sError(`Kubernetes fenced delete failed (${status}): ${detail}`), {
+                code: status === 409 ? 'KUBERNETES_FENCED_DELETE_CONFLICT' : 'KUBERNETES_FENCED_DELETE_FAILED',
+                statusCode: status === 409 ? 409 : 503,
+              }),
+            );
+          });
+        },
+      );
+      request.setTimeout(KUBECTL_TIMEOUT_MS, () => {
+        request.destroy(
+          Object.assign(reservedVmK8sError('Kubernetes fenced delete timed out.'), {
+            code: 'KUBERNETES_FENCED_DELETE_TIMEOUT',
+            statusCode: 503,
+          }),
+        );
+      });
+      request.on('error', reject);
+      request.end(body);
+    });
   }
 
   async getPod(namespace: string, name: string) {

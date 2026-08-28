@@ -13,6 +13,7 @@ import {
   type DatabaseEnvironment,
   type DatabaseTier,
 } from './database-provisioner.js';
+import type { ObjectStorageJsonObject, ObjectStorageOperationLease } from './object-storage-operation.js';
 
 /**
  * Physical database erasure deliberately has no Prisma dependency. The caller
@@ -127,6 +128,7 @@ export const PROJECT_DATABASE_KUBERNETES_KINDS = [
   'Job',
   'Pod',
   'Service',
+  'Endpoints',
   'EndpointSlice',
   'Secret',
   'ConfigMap',
@@ -146,7 +148,7 @@ export interface ProjectDatabaseKubernetesResource {
   /** Server-side ownership proof. No Secret data may cross this boundary. */
   ownership: {
     projectId: string;
-    source: 'project-label' | 'cnpg-cluster-label' | 'owner-reference' | 'service-label';
+    source: 'project-label' | 'cnpg-cluster-label' | 'owner-reference' | 'service-label' | 'deterministic-plan';
     clusterName?: string;
   };
 }
@@ -166,11 +168,13 @@ export interface ProjectDatabaseKubernetesPort {
     projectId: string;
     namespace: typeof DB_NAMESPACE;
     knownClusterNames: readonly string[];
+    knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
   }): Promise<ProjectDatabaseKubernetesResource[]>;
   delete(input: {
     projectId: string;
     namespace: typeof DB_NAMESPACE;
     knownClusterNames: readonly string[];
+    knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
     resource: ProjectDatabaseKubernetesResource;
   }): Promise<'deleted' | 'absent'>;
 }
@@ -199,19 +203,19 @@ export interface ProjectDatabaseSharedSqlPort {
   inspectTenant(input: ProjectDatabaseSharedTenant): Promise<{ databaseExists: boolean; roleExists: boolean }>;
 }
 
-export interface ProjectDatabaseErasureReceipt {
+export type ProjectDatabaseErasureReceipt = ObjectStorageJsonObject & {
   schemaVersion: 1;
   operationId: string;
   projectId: string;
   organizationId: string;
   inventorySha256: string;
   verifiedAt: string;
-  effects: {
+  effects: ObjectStorageJsonObject & {
     kubernetesResourcesDeleted: number;
     sharedTenantsErased: number;
     backupGenerationsDeleted: number;
   };
-  proof: {
+  proof: ObjectStorageJsonObject & {
     kubernetesNamespace: typeof DB_NAMESPACE;
     kubernetesAbsent: true;
     sharedTenantsAbsent: true;
@@ -219,7 +223,9 @@ export interface ProjectDatabaseErasureReceipt {
     backupPrefix: string;
     backupGenerationsAbsent: true;
   };
-}
+};
+
+export type ProjectDatabaseErasureEffects = ProjectDatabaseErasureReceipt['effects'];
 
 export type ProjectDatabaseErasureErrorCode =
   | 'INVALID_INVENTORY'
@@ -265,7 +271,7 @@ function requireIsoDate(value: string, field: string): string {
 }
 
 function requireNonNegativeNumber(value: number, field: string): number {
-  if (!Number.isFinite(value) || value < 0) {
+  if (!Number.isSafeInteger(value) || value < 0) {
     throw new ProjectDatabaseErasureError(`Invalid ${field}`, 'INVALID_INVENTORY');
   }
 
@@ -471,6 +477,7 @@ const KUBERNETES_DELETE_ORDER = new Map<ProjectDatabaseKubernetesKind, number>(
     'Job',
     'Pod',
     'Service',
+    'Endpoints',
     'EndpointSlice',
     'Secret',
     'ConfigMap',
@@ -539,6 +546,95 @@ export interface ProjectDatabaseErasureServiceOptions {
   delay?: (milliseconds: number) => Promise<void>;
 }
 
+interface ManagerDatabaseErasureResponse {
+  resources?: ProjectDatabaseKubernetesResource[];
+  outcome?: 'deleted' | 'absent';
+}
+
+/**
+ * Lease-bearing workspace-manager bridge. The manager independently validates
+ * the parent permanent-delete operation and repeats tenant ownership before its
+ * resourceVersion-preconditioned delete.
+ */
+export class ManagerProjectDatabaseKubernetesPort implements ProjectDatabaseKubernetesPort {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly lease: ObjectStorageOperationLease,
+    private readonly expectedOrganizationId: string,
+    private readonly secret?: string,
+    private readonly fetchImpl: typeof fetch = fetch,
+  ) {}
+
+  private body(input: {
+    projectId: string;
+    knownClusterNames: readonly string[];
+    knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
+  }) {
+    return {
+      operationId: this.lease.operationId,
+      ownerToken: this.lease.ownerToken,
+      fencingToken: this.lease.fencingToken.toString(),
+      requestHash: this.lease.requestHash,
+      scopeHash: this.lease.scopeHash,
+      projectId: input.projectId,
+      expectedOrganizationId: this.expectedOrganizationId,
+      knownClusterNames: input.knownClusterNames,
+      knownResourceNames: input.knownResourceNames ?? {},
+    };
+  }
+
+  private async call(projectId: string, action: 'inventory' | 'delete', body: Record<string, unknown>) {
+    const response = await this.fetchImpl(
+      `${this.baseUrl.replace(/\/+$/, '')}/projects/${encodeURIComponent(projectId)}/permanent-delete/databases/${action}`,
+      {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          ...(this.secret ? { authorization: `Bearer ${this.secret}` } : {}),
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(action === 'delete' ? 45_000 : 30_000),
+      },
+    );
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined);
+      throw new ProjectDatabaseErasureError(
+        `Workspace-manager database ${action} failed (${response.status})`,
+        action === 'delete' ? 'KUBERNETES_ERASURE_INCOMPLETE' : 'KUBERNETES_ERASURE_INCOMPLETE',
+      );
+    }
+    return (await response.json()) as ManagerDatabaseErasureResponse;
+  }
+
+  async inventory(input: {
+    projectId: string;
+    namespace: typeof DB_NAMESPACE;
+    knownClusterNames: readonly string[];
+    knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
+  }): Promise<ProjectDatabaseKubernetesResource[]> {
+    const response = await this.call(input.projectId, 'inventory', this.body(input));
+    if (!Array.isArray(response.resources)) {
+      throw new ProjectDatabaseErasureError('Workspace-manager database inventory is unreadable', 'INVALID_PLAN');
+    }
+    return response.resources;
+  }
+
+  async delete(input: {
+    projectId: string;
+    namespace: typeof DB_NAMESPACE;
+    knownClusterNames: readonly string[];
+    knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
+    resource: ProjectDatabaseKubernetesResource;
+  }): Promise<'deleted' | 'absent'> {
+    const response = await this.call(input.projectId, 'delete', { ...this.body(input), resource: input.resource });
+    if (response.outcome !== 'deleted' && response.outcome !== 'absent') {
+      throw new ProjectDatabaseErasureError('Workspace-manager database delete receipt is unreadable', 'INVALID_PLAN');
+    }
+    return response.outcome;
+  }
+}
+
 export class ProjectDatabaseErasureService {
   private readonly kubernetesSettleAttempts: number;
   private readonly kubernetesSettleDelayMs: number;
@@ -595,6 +691,12 @@ export class ProjectDatabaseErasureService {
       projectId: plan.projectId,
       namespace: DB_NAMESPACE,
       knownClusterNames: [...knownClusterNames].sort(),
+      knownResourceNames: {
+        Cluster: [...new Set([...plan.targets.clusterNames, ...plan.targets.restoreClusterNames])].sort(),
+        ScheduledBackup: plan.targets.scheduledBackupNames,
+        Backup: plan.targets.backupNames,
+        Database: plan.targets.databaseCrNames,
+      },
     });
 
     for (const resource of resources) {
@@ -636,6 +738,12 @@ export class ProjectDatabaseErasureService {
           projectId: plan.projectId,
           namespace: DB_NAMESPACE,
           knownClusterNames: [...knownClusterNames].sort(),
+          knownResourceNames: {
+            Cluster: [...new Set([...plan.targets.clusterNames, ...plan.targets.restoreClusterNames])].sort(),
+            ScheduledBackup: plan.targets.scheduledBackupNames,
+            Backup: plan.targets.backupNames,
+            Database: plan.targets.databaseCrNames,
+          },
           resource,
         });
         deleted += result === 'deleted' ? 1 : 0;
@@ -765,11 +873,7 @@ export class ProjectDatabaseErasureService {
     }
   }
 
-  /** Execute provider effects outside DB transactions and return only live proof. */
-  async erase(
-    plan: ProjectDatabaseErasurePlan,
-    fence: ProjectDatabaseErasureFence,
-  ): Promise<ProjectDatabaseErasureReceipt> {
+  private rebound(plan: ProjectDatabaseErasurePlan): ProjectDatabaseErasurePlan {
     const reboundPlan = buildProjectDatabaseErasurePlan({
       schemaVersion: plan.schemaVersion,
       operationId: plan.operationId,
@@ -785,6 +889,83 @@ export class ProjectDatabaseErasureService {
     if (JSON.stringify(canonicalize(reboundPlan)) !== JSON.stringify(canonicalize(plan))) {
       throw new ProjectDatabaseErasureError('Database erasure inventory digest mismatch', 'INVALID_PLAN');
     }
+
+    return reboundPlan;
+  }
+
+  private async verifyAbsent(
+    plan: ProjectDatabaseErasurePlan,
+    fence: ProjectDatabaseErasureFence,
+    effects: ProjectDatabaseErasureReceipt['effects'],
+  ): Promise<ProjectDatabaseErasureReceipt> {
+    const knownClusterNames = new Set(this.knownClusterNames(plan));
+    await this.guard(plan, fence, 'FINAL_VERIFICATION');
+    const kubernetesResidue = await this.inventoryKubernetes(plan, knownClusterNames);
+    await this.guard(plan, fence, 'FINAL_VERIFICATION', 'backup-generations');
+    const backupResidue = await this.listBackupPage(plan);
+    await this.verifySharedTenantsAbsent(plan, fence);
+
+    if (kubernetesResidue.length > 0) {
+      throw new ProjectDatabaseErasureError('Kubernetes resources reappeared', 'KUBERNETES_ERASURE_INCOMPLETE');
+    }
+
+    if (backupResidue.length > 0) {
+      throw new ProjectDatabaseErasureError('Backup generations reappeared', 'BACKUP_ERASURE_INCOMPLETE');
+    }
+
+    await fence.checkpoint({
+      ...this.context(plan, 'FINAL_VERIFICATION'),
+      evidence: {
+        kubernetesResidueCount: 0,
+        backupGenerationResidueCount: 0,
+        sharedTenantsAbsent: true,
+      },
+    });
+
+    const receipt: ProjectDatabaseErasureReceipt = {
+      schemaVersion: 1,
+      operationId: plan.operationId,
+      projectId: plan.projectId,
+      organizationId: plan.organizationId,
+      inventorySha256: plan.inventorySha256,
+      verifiedAt: this.now().toISOString(),
+      effects,
+      proof: {
+        kubernetesNamespace: DB_NAMESPACE,
+        kubernetesAbsent: true,
+        sharedTenantsAbsent: true,
+        backupBucket: plan.backupBucket,
+        backupPrefix: plan.backupPrefix,
+        backupGenerationsAbsent: true,
+      },
+    };
+
+    await this.guard(plan, fence, 'VERIFIED');
+    await fence.checkpoint({
+      ...this.context(plan, 'VERIFIED'),
+      evidence: canonicalize(receipt) as Record<string, unknown>,
+    });
+    await this.guard(plan, fence, 'VERIFIED', 'return-receipt');
+
+    return receipt;
+  }
+
+  /** Verify-first crash recovery. This method performs no provider mutation. */
+  async verify(
+    plan: ProjectDatabaseErasurePlan,
+    fence: ProjectDatabaseErasureFence,
+    effects: ProjectDatabaseErasureEffects,
+  ): Promise<ProjectDatabaseErasureReceipt> {
+    this.rebound(plan);
+    return this.verifyAbsent(plan, fence, effects);
+  }
+
+  /** Execute provider mutations outside DB transactions, stopping before proof. */
+  async purge(
+    plan: ProjectDatabaseErasurePlan,
+    fence: ProjectDatabaseErasureFence,
+  ): Promise<ProjectDatabaseErasureEffects> {
+    this.rebound(plan);
 
     await this.guard(plan, fence, 'INVENTORY_BOUND');
     await fence.checkpoint({
@@ -820,46 +1001,16 @@ export class ProjectDatabaseErasureService {
       },
     });
 
-    await this.guard(plan, fence, 'FINAL_VERIFICATION');
-    const kubernetesResidue = await this.inventoryKubernetes(plan, knownClusterNames);
-    await this.guard(plan, fence, 'FINAL_VERIFICATION', 'backup-generations');
-    const backupResidue = await this.listBackupPage(plan);
-    await this.verifySharedTenantsAbsent(plan, fence);
+    return { kubernetesResourcesDeleted, sharedTenantsErased, backupGenerationsDeleted };
+  }
 
-    if (kubernetesResidue.length > 0) {
-      throw new ProjectDatabaseErasureError('Kubernetes resources reappeared', 'KUBERNETES_ERASURE_INCOMPLETE');
-    }
-
-    if (backupResidue.length > 0) {
-      throw new ProjectDatabaseErasureError('Backup generations reappeared', 'BACKUP_ERASURE_INCOMPLETE');
-    }
-
-    const receipt: ProjectDatabaseErasureReceipt = {
-      schemaVersion: 1,
-      operationId: plan.operationId,
-      projectId: plan.projectId,
-      organizationId: plan.organizationId,
-      inventorySha256: plan.inventorySha256,
-      verifiedAt: this.now().toISOString(),
-      effects: { kubernetesResourcesDeleted, sharedTenantsErased, backupGenerationsDeleted },
-      proof: {
-        kubernetesNamespace: DB_NAMESPACE,
-        kubernetesAbsent: true,
-        sharedTenantsAbsent: true,
-        backupBucket: plan.backupBucket,
-        backupPrefix: plan.backupPrefix,
-        backupGenerationsAbsent: true,
-      },
-    };
-
-    await this.guard(plan, fence, 'VERIFIED');
-    await fence.checkpoint({
-      ...this.context(plan, 'VERIFIED'),
-      evidence: canonicalize(receipt) as Record<string, unknown>,
-    });
-    await this.guard(plan, fence, 'VERIFIED', 'return-receipt');
-
-    return receipt;
+  /** Execute provider effects outside DB transactions and return only live proof. */
+  async erase(
+    plan: ProjectDatabaseErasurePlan,
+    fence: ProjectDatabaseErasureFence,
+  ): Promise<ProjectDatabaseErasureReceipt> {
+    const effects = await this.purge(plan, fence);
+    return this.verifyAbsent(plan, fence, effects);
   }
 }
 

@@ -8,6 +8,7 @@ import { PrismaWorkspaceStore } from '../../../workspace-manager/src/prisma-stor
 import { PrismaApiStore } from '../prisma-store.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
 import { objectStorageStaticArtifactSummary, type ObjectStorageOperationLease } from '../object-storage-operation.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe.sequential : describe.skip;
 const EMPTY_STATIC_ARTIFACT_SUMMARY = objectStorageStaticArtifactSummary([]);
@@ -233,6 +234,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
         actorUserId: fixture.actorId,
         idempotencyKey: unique('runtime-effect-transfer-delete'),
         requestHash,
+        ...emptyManagedDatabaseErasureCallbacks(),
         preflightPhysicalErasure: async () => EMPTY_STATIC_ARTIFACT_PLAN,
         erasePhysical: async (assertLease, lease) => {
           await assertLease();

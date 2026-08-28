@@ -269,6 +269,21 @@ exports.Prisma.ObjectStorageOperationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectDatabaseErasurePlanScalarFieldEnum = {
+  operationId: 'operationId',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  inventorySha256: 'inventorySha256',
+  plan: 'plan',
+  stage: 'stage',
+  evidence: 'evidence',
+  receipt: 'receipt',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ObjectStorageOperationPinnedObjectScalarFieldEnum = {
   operationId: 'operationId',
   ordinal: 'ordinal',
@@ -2390,6 +2405,15 @@ exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
+exports.ProjectDatabaseErasureStage = exports.$Enums.ProjectDatabaseErasureStage = {
+  INVENTORY_BOUND: 'INVENTORY_BOUND',
+  KUBERNETES_PURGE: 'KUBERNETES_PURGE',
+  SHARED_SQL_PURGE: 'SHARED_SQL_PURGE',
+  BACKUP_PREFIX_PURGE: 'BACKUP_PREFIX_PURGE',
+  FINAL_VERIFICATION: 'FINAL_VERIFICATION',
+  VERIFIED: 'VERIFIED'
+};
+
 exports.ProjectPermanentDeletionArtifactState = exports.$Enums.ProjectPermanentDeletionArtifactState = {
   PLANNED: 'PLANNED',
   DELETED: 'DELETED',
@@ -2709,6 +2733,7 @@ exports.Prisma.ModelName = {
   RolePermission: 'RolePermission',
   Project: 'Project',
   ObjectStorageOperation: 'ObjectStorageOperation',
+  ProjectDatabaseErasurePlan: 'ProjectDatabaseErasurePlan',
   ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',
   ObjectStorageOperationPinnedGeneration: 'ObjectStorageOperationPinnedGeneration',
   ProjectPermanentDeletionArtifactPlan: 'ProjectPermanentDeletionArtifactPlan',

@@ -392,13 +392,17 @@ export function buildClusterManifest(input: {
 }
 
 /** Daily base backup; continuous WAL archiving is automatic from the Cluster. */
-export function buildScheduledBackupManifest(projectId: string, environment?: DatabaseEnvironment): K8sManifest {
+export function buildScheduledBackupManifest(
+  projectId: string,
+  environment?: DatabaseEnvironment,
+  organizationId?: string,
+): K8sManifest {
   const cluster = clusterName(projectId, environment);
 
   return {
     apiVersion: CNPG_API,
     kind: 'ScheduledBackup',
-    metadata: { name: `${cluster}-daily`, namespace: DB_NAMESPACE, labels: dbLabels(projectId) },
+    metadata: { name: `${cluster}-daily`, namespace: DB_NAMESPACE, labels: dbLabels(projectId, organizationId) },
     // CNPG uses a 6-field cron (with seconds): 02:00 every day.
     spec: { schedule: '0 0 2 * * *', backupOwnerReference: 'self', cluster: { name: cluster } },
   };
@@ -418,6 +422,7 @@ export function buildOnDemandBackupManifest(
   projectId: string,
   snapshotId: string,
   environment?: DatabaseEnvironment,
+  organizationId?: string,
 ): K8sManifest {
   return {
     apiVersion: CNPG_API,
@@ -425,7 +430,7 @@ export function buildOnDemandBackupManifest(
     metadata: {
       name: onDemandBackupName(projectId, snapshotId, environment),
       namespace: DB_NAMESPACE,
-      labels: dbLabels(projectId),
+      labels: dbLabels(projectId, organizationId),
     },
     spec: { cluster: { name: clusterName(projectId, environment) } },
   };
@@ -550,7 +555,7 @@ export interface RestoreProgress {
 
 export interface ProvisionInput {
   projectId: string;
-  organizationId?: string;
+  organizationId: string;
   retentionDays: number;
   /** Plan-derived tier (resolveDatabaseTier). Defaults to 'isolated'. */
   tier?: DatabaseTier;
@@ -576,6 +581,7 @@ export interface DatabaseProvisioner {
   }): Promise<string | undefined>;
   takeSnapshot(input: {
     projectId: string;
+    organizationId: string;
     snapshotId: string;
     environment?: DatabaseEnvironment;
   }): Promise<{ applied: boolean }>;
@@ -736,10 +742,10 @@ export class CnpgProvisioner implements DatabaseProvisioner {
   async provisionInstance(input: ProvisionInput): Promise<ProvisionResult> {
     if (input.tier === 'shared') {
       /*
-       * Shared tier: place a logical DB on a shared cluster via the Database CRD +
-       * ensure a Pooler. The owner role + isolation SQL (buildTenantProvisionSql) +
-       * DATABASE_URL are applied by the admin-SQL slice (next); until then the DB CRD
-       * is created but getConnectionUri('shared') returns undefined.
+       * Shared tier: place a logical DB on a shared cluster via the Database CRD.
+       * The shared Pooler is Helm-owned infrastructure, never a per-project
+       * resource. The owner role + isolation SQL + DATABASE_URL are applied by
+       * the admin-SQL slice; until then the DB CRD is not created.
        */
       const sharedCluster = input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER;
 
@@ -772,7 +778,6 @@ export class CnpgProvisioner implements DatabaseProvisioner {
         return { clusterName: sharedCluster, applied: false, reason: 'SHARED_TENANT_UNAVAILABLE' };
       }
 
-      await this.k8s.apply(buildPoolerManifest(sharedCluster));
       await this.k8s.apply(
         buildDatabaseCrManifest({
           projectId: input.projectId,
@@ -796,7 +801,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
         environment: input.environment,
       }),
     );
-    await this.k8s.apply(buildScheduledBackupManifest(input.projectId, input.environment));
+    await this.k8s.apply(buildScheduledBackupManifest(input.projectId, input.environment, input.organizationId));
 
     return { clusterName: clusterName(input.projectId, input.environment), applied: true };
   }
@@ -850,10 +855,13 @@ export class CnpgProvisioner implements DatabaseProvisioner {
 
   async takeSnapshot(input: {
     projectId: string;
+    organizationId: string;
     snapshotId: string;
     environment?: DatabaseEnvironment;
   }): Promise<{ applied: boolean }> {
-    await this.k8s.apply(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment));
+    await this.k8s.apply(
+      buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment, input.organizationId),
+    );
 
     return { applied: true };
   }
@@ -929,7 +937,7 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     await input.guard?.();
     await this.k8s.apply(manifest);
     await input.guard?.();
-    await this.k8s.apply(buildScheduledBackupManifest(input.targetProjectId));
+    await this.k8s.apply(buildScheduledBackupManifest(input.targetProjectId, undefined, input.targetOrganizationId));
 
     return { clusterName: manifest.metadata.name, applied: true };
   }
