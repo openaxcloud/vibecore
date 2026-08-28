@@ -5,6 +5,7 @@ import type { EmailProvider } from '../email.js';
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import { deterministicServerReleaseFixture } from './deterministic-release-fixture.js';
 import { RESERVED_VM_TERMS_VERSION } from '../reserved-vm.js';
+import type { DeploymentRecord } from '../store.js';
 
 /*
  * Reconcile-on-read for provider='server' deployments.
@@ -146,6 +147,21 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
           releaseConfigDigest: DIGEST,
           ...(input.serverDeploy ?? {}),
         },
+      },
+    };
+  }
+
+  function reservedRuntimeIdentity(deployment: DeploymentRecord) {
+    if (deployment.runtimeKind !== 'reserved-vm' || !deployment.reservedVmTier || !deployment.persistentStorageClaim) {
+      throw new Error('Reserved VM reconcile fixture requires its exact retained runtime identity');
+    }
+
+    return {
+      runtimeClass: 'reserved-vm' as const,
+      reservedVm: {
+        deploymentId: deployment.id,
+        tier: deployment.reservedVmTier,
+        persistentStorageClaim: deployment.persistentStorageClaim,
       },
     };
   }
@@ -303,6 +319,26 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
         rateCardVersion: 1,
       },
     });
+    const reservedPins = deterministicServerReleaseFixture({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      accessPolicyVersion: deployment.accessPolicyVersion,
+      artifactRef: IMAGE_REF,
+      artifactDigest: DIGEST,
+      healthPath: '/health',
+      runtimeIdentity: reservedRuntimeIdentity(deployment),
+    });
+    await store.updateDeployment(projectId, deployment.id, {
+      metadata: {
+        ...(deployment.metadata as Record<string, unknown>),
+        serverDeploy: {
+          ...((deployment.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+          rollbackRuntimeSpec: reservedPins.runtimeSpec,
+          rollbackPromotionEvidence: reservedPins.promotionEvidence,
+        },
+      },
+    });
     const activeCardLookup = vi.spyOn(store, 'getActiveRateCard').mockResolvedValue({
       version: 2,
       data: {
@@ -373,7 +409,85 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       }),
     ]);
     expect(activeCardLookup).not.toHaveBeenCalled();
-    expect(store.releaseManifests[0]?.runtimeSpec).toEqual(release.pins.runtimeSpec);
+    expect(store.releaseManifests[0]?.runtimeSpec).toEqual(reservedPins.runtimeSpec);
+    await app.close();
+  });
+
+  it('fails closed when a Reserved CREATE carries an autoscale runtime identity', async () => {
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
+    const operationKey = 'reserved-reconcile-runtime-mismatch-0001';
+    const release = deterministicImageMetadata({
+      organizationId: auth.organization.id,
+      projectId,
+      projectManifestDigest,
+      host: 'd-reserved-runtime-mismatch.preview.e-code.ai',
+    });
+    const deployment = await store.createDeployment({
+      projectId,
+      expectedOrganizationId: auth.organization.id,
+      provider: 'server',
+      environment: 'preview',
+      status: 'BUILDING',
+      machineSize: 'shared-0.5',
+      metadata: { ...release.metadata, reservedVmOperationKey: operationKey },
+      reservedVm: {
+        organizationId: auth.organization.id,
+        actorUserId: auth.user.id,
+        idempotencyKey: operationKey,
+        requestHash: 'reserved-reconcile-runtime-mismatch-request',
+        tier: 'shared-0.5',
+        termsVersion: RESERVED_VM_TERMS_VERSION,
+        monthlyPriceCents: 2_000,
+        rateCardVersion: 1,
+      },
+    });
+    globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+      const href = String(url);
+      if (href.endsWith(`/server-deployments/${deployment.id}/status`)) {
+        return new Response(JSON.stringify({ exists: true, readyReplicas: 1, replicas: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (href.endsWith(`/server-deployments/${deployment.id}/reconfigure`)) {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(
+          JSON.stringify({
+            ready: true,
+            readyReplicas: 1,
+            appliedFencingToken: body.fencingToken,
+            persistentVolumeClaimName: `reserved-data-${deployment.id}`,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (href.endsWith(`/server-deployments/${deployment.id}/decommission-storage`)) {
+        const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+        return new Response(
+          JSON.stringify({
+            decommissioned: true,
+            persistentVolumeClaimName: body.persistentVolumeClaimName,
+            persistentVolumeClaimAbsent: true,
+            appliedFencingToken: body.fencingToken,
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+
+    const response = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${deployment.id}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().deployment).toMatchObject({
+      status: 'FAILED',
+      metadata: { serverDeploy: { releaseErrorCode: 'PROMOTION_NOT_COMMITTED' } },
+    });
+    expect(store.releaseManifests).toEqual([]);
     await app.close();
   });
 

@@ -48380,6 +48380,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return store.createDeployment({
             projectId: project.id,
             expectedOrganizationId: project.organizationId,
+            releaseFence: releaseGuard.fence,
             workspaceId: target.workspaceId,
             provider: target.provider,
             environment: target.environment,
@@ -48433,30 +48434,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (providerRollback) {
           await releaseGuard.assert();
           const rollbackFailed = providerRollback.status === 'failed';
-          finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-            // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
-            status: rollbackFailed ? 'FAILED' : 'READY',
+          finalDeployment = await store.updateDeployment(
+            project.id,
+            rollback.id,
+            {
+              // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
+              status: rollbackFailed ? 'FAILED' : 'READY',
 
-            /*
-             * On a FAILED provider rollback, clear the live URLs copied from the target
-             * deployment up-front — the provider never actually switched traffic, so a
-             * FAILED row advertising the target's preview/production URL is misleading
-             * (dashboards/links point at a rollback that didn't happen).
-             */
-            ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
-            logs: [
-              ...rollback.logs,
-              {
-                timestamp: new Date().toISOString(),
-                level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
-                message: providerRollback.log,
+              /*
+               * On a FAILED provider rollback, clear the live URLs copied from the target
+               * deployment up-front — the provider never actually switched traffic, so a
+               * FAILED row advertising the target's preview/production URL is misleading
+               * (dashboards/links point at a rollback that didn't happen).
+               */
+              ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
+              logs: [
+                ...rollback.logs,
+                {
+                  timestamp: new Date().toISOString(),
+                  level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
+                  message: providerRollback.log,
+                },
+              ],
+              metadata: {
+                ...(rollback.metadata as Record<string, unknown>),
+                providerRollbackStatus: providerRollback.status,
               },
-            ],
-            metadata: {
-              ...(rollback.metadata as Record<string, unknown>),
-              providerRollbackStatus: providerRollback.status,
             },
-          });
+            releaseGuard.fence,
+          );
         }
 
         /*
@@ -48543,44 +48549,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               });
             }
 
-            finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-              status: 'BUILDING',
-              metadata: {
-                ...(rollback.metadata as Record<string, unknown>),
-                serverDeploy: {
-                  host: rbHost,
-                  ready: ok,
-                  readyReplicas: started?.readyReplicas ?? 0,
-                  applied: Boolean(started),
-                  rolledBackFromDigest: plan.imageDigest,
-                  secretPolicy: retained.runtimeSpec.secretPolicy,
-
-                  // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
-                  image: {
-                    imageRef: manifest.artifactRef,
-                    imageUri: plan.pullRef,
-                    imageDigest: plan.imageDigest,
-                    ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
-                  },
-                  promotion: retained.promotionEvidence.promotion,
-                  rollbackRuntimeSpec: manifest.runtimeSpec,
-                  rollbackPromotionEvidence: manifest.promotionEvidence,
-                  ...(manifest.configDigest ? { releaseConfigDigest: manifest.configDigest } : {}),
-                },
-              },
-              logs: [
-                ...rollback.logs,
-                {
-                  timestamp: new Date().toISOString(),
-                  level: 'info' as const,
-                  message: appPublicEnglish('DEPLOYMENT_ROLLBACK_DIGEST_REDEPLOYED', {
-                    pullRef: plan.pullRef,
+            finalDeployment = await store.updateDeployment(
+              project.id,
+              rollback.id,
+              {
+                status: 'BUILDING',
+                metadata: {
+                  ...(rollback.metadata as Record<string, unknown>),
+                  serverDeploy: {
+                    host: rbHost,
+                    ready: ok,
+                    readyReplicas: started?.readyReplicas ?? 0,
+                    applied: Boolean(started),
+                    rolledBackFromDigest: plan.imageDigest,
                     secretPolicy: retained.runtimeSpec.secretPolicy,
-                  }),
+
+                    // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
+                    image: {
+                      imageRef: manifest.artifactRef,
+                      imageUri: plan.pullRef,
+                      imageDigest: plan.imageDigest,
+                      ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+                    },
+                    promotion: retained.promotionEvidence.promotion,
+                    rollbackRuntimeSpec: manifest.runtimeSpec,
+                    rollbackPromotionEvidence: manifest.promotionEvidence,
+                    ...(manifest.configDigest ? { releaseConfigDigest: manifest.configDigest } : {}),
+                  },
                 },
-              ],
-              finishedAt: undefined,
-            });
+                logs: [
+                  ...rollback.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'info' as const,
+                    message: appPublicEnglish('DEPLOYMENT_ROLLBACK_DIGEST_REDEPLOYED', {
+                      pullRef: plan.pullRef,
+                      secretPolicy: retained.runtimeSpec.secretPolicy,
+                    }),
+                  },
+                ],
+                finishedAt: undefined,
+              },
+              releaseGuard.fence,
+            );
 
             if (ok) {
               await releaseGuard.assert();
@@ -48611,20 +48622,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              * Refuse loudly (ROLLBACK_NO_RETAINED_DIGEST / ROLLBACK_SECRET_POLICY_UNSATISFIABLE)
              * and mark the row FAILED — never leave a READY row that re-deployed nothing.
              */
-            await store.updateDeployment(project.id, rollback.id, {
-              status: 'FAILED',
-              url: '',
-              previewUrl: '',
-              productionUrl: '',
-              logs: [
-                ...rollback.logs,
-                {
-                  timestamp: new Date().toISOString(),
-                  level: 'error' as const,
-                  message: appPublicEnglish('DEPLOYMENT_ROLLBACK_REFUSED'),
-                },
-              ],
-            });
+            await store.updateDeployment(
+              project.id,
+              rollback.id,
+              {
+                status: 'FAILED',
+                url: '',
+                previewUrl: '',
+                productionUrl: '',
+                logs: [
+                  ...rollback.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'error' as const,
+                    message: appPublicEnglish('DEPLOYMENT_ROLLBACK_REFUSED'),
+                  },
+                ],
+              },
+              releaseGuard.fence,
+            );
 
             return reply.code(statusCode === 409 ? 409 : 502).send({ error: (error as Error).message, code });
           } finally {

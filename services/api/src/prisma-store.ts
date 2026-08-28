@@ -18050,6 +18050,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     projectId: string,
     deploymentId: string,
     input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+    releaseFence?: ProjectReleaseFence,
   ) {
     /*
      * Status transitions must be monotonic: once a deployment is terminal
@@ -18060,14 +18061,30 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
      */
     const statusGuard = input.status !== undefined ? { status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any } } : {};
 
-    await this.prisma.deployment.updateMany({
-      where: { id: deploymentId, projectId, ...statusGuard },
-      data: deploymentMutationData(input) as any,
+    return this.prisma.$transaction(async (tx) => {
+      if (releaseFence) {
+        /*
+         * Hold the complete tenant-mutation lock order from fence validation
+         * through the deployment write. A release lease that is forged,
+         * expired, or bound to a different tenant/manifest never gets a write
+         * window.
+         */
+        await this.lockExpectedProjectTenantMutation(
+          tx,
+          { projectId, expectedOrganizationId: releaseFence.expectedOrganizationId },
+          { releaseFence },
+        );
+      }
+
+      await tx.deployment.updateMany({
+        where: { id: deploymentId, projectId, ...statusGuard },
+        data: deploymentMutationData(input) as any,
+      });
+
+      const deployment = await tx.deployment.findFirstOrThrow({ where: { id: deploymentId, projectId } });
+
+      return mapDeployment(deployment);
     });
-
-    const deployment = await this.prisma.deployment.findFirstOrThrow({ where: { id: deploymentId, projectId } });
-
-    return mapDeployment(deployment);
   }
 
   async listDeployments(projectId: string, options: { take?: number } = {}) {
