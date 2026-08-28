@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
 import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 import { TestApiStore } from './test-api-store.js';
 
 describe('account purge owned-project coordinator', () => {
@@ -24,6 +25,7 @@ describe('account purge owned-project coordinator', () => {
       name: 'Purge project',
       slug: 'purge-project',
     });
+    let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
 
     const result = await store.purgeUserAccount(
       { userId: owner.id },
@@ -52,9 +54,13 @@ describe('account purge owned-project coordinator', () => {
               summary: objectStorageStaticArtifactSummary([]),
               artifacts: [],
             }),
-            erasePhysical: async (assertLease) => assertLease(),
-            verifyPhysicalAbsence: async (assertLease) => {
+            erasePhysical: async (assertLease, deletionLease) => {
               await assertLease();
+              registryReceipt = await persistEmptyProjectRegistryErasure(store, deletionLease, authority.projectId);
+            },
+            verifyPhysicalAbsence: async (assertLease, deletionLease) => {
+              await assertLease();
+              registryReceipt ??= await persistEmptyProjectRegistryErasure(store, deletionLease, authority.projectId);
               return {
                 outcome: 'VERIFIED_ABSENT',
                 verifiedAt: new Date().toISOString(),
@@ -70,6 +76,13 @@ describe('account purge owned-project coordinator', () => {
                     staticArtifactSummary: objectStorageStaticArtifactSummary([]),
                   },
                   gcs: { bucketAbsent: true, objectCount: 0 },
+                  projectImages: {
+                    schemaVersion: 1,
+                    projectId: authority.projectId,
+                    operationId: deletionLease.operationId,
+                    cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+                    registry: registryReceipt,
+                  },
                   workspaceManager: {
                     schemaVersion: 'workspace-project-erasure-v3',
                     projectId: authority.projectId,

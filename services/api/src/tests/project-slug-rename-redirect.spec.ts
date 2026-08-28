@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
-import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
 import { NoopObjectStorage, type ObjectStorage } from '../object-storage.js';
+import { ProjectDatabaseErasureService } from '../project-database-erasure.js';
+import { TestApiStore } from './test-api-store.js';
 
 class QuietEmailProvider implements EmailProvider {
   async send() {}
@@ -114,6 +115,37 @@ describe('F13 project slug rename + 30-day redirect + guarded delete', () => {
           providerVolumesAbsent: true,
         },
       }),
+      projectDatabaseErasureServiceFactory: () =>
+        new ProjectDatabaseErasureService(
+          {
+            async inventory() {
+              return [];
+            },
+            async delete() {
+              return 'absent';
+            },
+          },
+          {
+            async inspectBucket() {
+              return { softDeleteRetentionSeconds: 0 };
+            },
+            async listFirstPage() {
+              return [];
+            },
+            async deleteVersion() {
+              return 'absent';
+            },
+          },
+          {
+            async eraseTenant(_tenant, guard) {
+              await guard('test-shared-tenant-erased');
+            },
+            async inspectTenant() {
+              return { databaseExists: false, roleExists: false };
+            },
+          },
+          { kubernetesSettleAttempts: 1, kubernetesSettleDelayMs: 0 },
+        ),
     });
     const owner = await register(app, 'owner@example.com', 'Slug Org');
     const project = await createProject(app, owner.organization.id, owner.token, 'Alpha', 'alpha-one');
