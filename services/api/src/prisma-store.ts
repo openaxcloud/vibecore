@@ -2816,6 +2816,111 @@ export class PrismaApiStore implements ApiStore {
     return row ? mapDatabaseInstance(row) : undefined;
   }
 
+  async createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    /*
+     * Aucun try/catch ici : une violation d'unicité sur `activeLock` DOIT
+     * remonter pour que l'appelant la traduise en refus (MIGRATION_LOCK_HELD).
+     * L'avaler ici transformerait un verrou tenu en migration silencieusement
+     * ignorée — et deux migrations concurrentes finiraient par se croiser.
+     */
+    const row = await this.prisma.dBMigrationExecution.create({
+      data: {
+        projectId: input.projectId,
+        organizationId: input.organizationId,
+        environment: input.environment,
+        idempotencyKey: input.idempotencyKey,
+        activeLock: input.activeLock,
+        state: input.state,
+        statementsSha256: input.statementsSha256,
+        statementCount: input.statementCount,
+        backwardCompatible: input.backwardCompatible,
+        forwardCompatible: input.forwardCompatible,
+        deploymentId: input.deploymentId ?? null,
+        createdByUserId: input.createdByUserId ?? null,
+      },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateMigrationExecution(
+    id: string,
+    patch: {
+      state?: string;
+      activeLock?: string | null;
+      backupId?: string;
+      backupVerifiedAt?: string;
+      backupVerificationMethod?: string;
+      appliedStatements?: number;
+      error?: string;
+      completedAt?: string;
+    },
+  ) {
+    await this.prisma.dBMigrationExecution.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        // `null` libère le verrou ; `undefined` le laisse intact.
+        ...(patch.activeLock !== undefined ? { activeLock: patch.activeLock } : {}),
+        ...(patch.backupId !== undefined ? { backupId: patch.backupId } : {}),
+        ...(patch.backupVerifiedAt !== undefined ? { backupVerifiedAt: new Date(patch.backupVerifiedAt) } : {}),
+        ...(patch.backupVerificationMethod !== undefined
+          ? { backupVerificationMethod: patch.backupVerificationMethod }
+          : {}),
+        ...(patch.appliedStatements !== undefined ? { appliedStatements: patch.appliedStatements } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.completedAt !== undefined ? { completedAt: new Date(patch.completedAt) } : {}),
+      },
+    });
+  }
+
+  async getMigrationExecutionByIdempotencyKey(projectId: string, idempotencyKey: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+
+    return row ? { id: row.id, state: row.state, appliedStatements: row.appliedStatements } : undefined;
+  }
+
+  async getMigrationExecution(id: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      environment: row.environment,
+      state: row.state,
+      idempotencyKey: row.idempotencyKey,
+      backupId: row.backupId ?? undefined,
+      backupVerifiedAt: row.backupVerifiedAt?.toISOString(),
+      backupVerificationMethod: row.backupVerificationMethod ?? undefined,
+      statementCount: row.statementCount,
+      appliedStatements: row.appliedStatements,
+      backwardCompatible: row.backwardCompatible,
+      forwardCompatible: row.forwardCompatible,
+      error: row.error ?? undefined,
+      startedAt: row.startedAt.toISOString(),
+      completedAt: row.completedAt?.toISOString(),
+    };
+  }
+
   async listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]> {
     const rows = await this.prisma.databaseSnapshot.findMany({
       where: { databaseInstanceId },

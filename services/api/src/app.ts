@@ -118,6 +118,14 @@ import JSZip from 'jszip';
 import { MongoClient } from 'mongodb';
 import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
+
+import { createPostgresMigrationApplier } from './db-migration-applier.js';
+import {
+  hashStatements,
+  runPublishMigration,
+  type DeclaredMigration,
+  type SqlApplier,
+} from './db-migration-execution.js';
 import WebSocket from 'ws';
 import { SignedXml } from 'xml-crypto';
 import { z, type ZodSchema } from 'zod';
@@ -199,6 +207,7 @@ import {
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
+  type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
 import {
@@ -521,6 +530,23 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Provisionneur de bases projet. Par défaut résolu depuis l'environnement
+   * (`resolveDefaultDatabaseProvisioner`) ; injectable pour piloter les phases de
+   * backup dans les tests — sans quoi la garde « pas d'apply sans backup vérifié »
+   * ne serait prouvable qu'en théorie.
+   */
+  databaseProvisioner?: DatabaseProvisioner;
+
+  /**
+   * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
+   * PostgreSQL transactionnel ; injectable pour que les tests CI (sans serveur
+   * Postgres) puissent prouver la MACHINE — verrou, backup, refus — sans dépendre
+   * du réseau. Le comportement transactionnel réel est prouvé séparément contre
+   * un vrai PostgreSQL.
+   */
+  migrationApplier?: SqlApplier;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -2885,6 +2911,33 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
     ];
   });
 }
+
+/**
+ * Migrations DÉCLARÉES par le projet : `migrations/*.sql`, triées par nom
+ * (ordre lexicographique = ordre d'application, convention usuelle des
+ * horodatages en préfixe). Les fichiers vides sont ignorés : appliquer une
+ * chaîne vide créerait une entrée de registre sans effet réel.
+ */
+async function collectDeclaredMigrations(
+  projectStorage: ProjectStorage,
+  projectId: string,
+  workspaceId?: string,
+): Promise<DeclaredMigration[]> {
+  const files = await projectStorage.listFiles(projectId, workspaceId).catch(() => []);
+
+  return files
+    .filter((file) => /^migrations\/[^/]+\.sql$/i.test(file.path) && file.content.trim().length > 0)
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((file) => ({ name: file.path.replace(/^migrations\//i, ''), sql: file.content }));
+}
+
+/**
+ * Applicateur partagé. `sha256` est injecté plutôt qu'importé dans le module
+ * d'application pour garder celui-ci sans dépendance au reste de l'API.
+ */
+const postgresMigrationApplier = createPostgresMigrationApplier({
+  sha256: (value: string) => createHash('sha256').update(value).digest('hex'),
+});
 
 async function requireDatabaseConnection(store: ApiStore, projectId: string, key: string) {
   const connections = await listDatabaseConnections(store, projectId);
@@ -35292,6 +35345,100 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : appPublicEnglish('DEPLOYMENT_READY_REQUIRED_TO_PUBLISH'),
         code: check.code,
       });
+    }
+
+    /*
+     * La migration s'exécute AVANT la section critique ci-dessous, et non après :
+     * `withSerializedMutation` crée le déploiement, donc y entrer signifie que le
+     * publish est acté. Migrer ensuite reviendrait à publier d'abord et muter le
+     * schéma « au mieux » — exactement ce que cette garantie interdit. Un échec
+     * ici sort en 409 sans jamais toucher au déploiement : la production continue
+     * de servir la version précédente.
+     */
+    /*
+     * ---- Migration de schéma AVANT de publier (P0-V3-11, CTR-DATABASE) ----
+     *
+     * Placée ici À DESSEIN : avant la section critique `withSerializedMutation`,
+     * qui crée le déploiement. Si la migration échoue,
+     * le publish est REFUSÉ et la production continue de servir la version
+     * précédente. Publier d'abord puis migrer « au mieux » exposerait l'inverse :
+     * une application neuve pointée sur un schéma à moitié muté.
+     *
+     * Le lot de migrations est déclaré par le projet dans `migrations/*.sql`
+     * (ordre lexicographique). Sans fichier, il n'y a rien à faire et le publish
+     * suit son cours — un projet sans migration n'est pas pénalisé.
+     */
+    const declaredMigrations = await collectDeclaredMigrations(projectStorage, project.id, source.workspaceId);
+
+    if (declaredMigrations.length > 0) {
+      const prodConnection = await listDatabaseConnections(store, project.id).then((connections) =>
+        connections.find((item) => item.key === 'PROD_DATABASE_URL'),
+      );
+
+      if (!prodConnection) {
+        /*
+         * Des migrations sont déclarées mais aucune base production n'est
+         * joignable : refuser plutôt que publier une application dont le schéma
+         * n'a pas été préparé.
+         */
+        return reply.code(409).send({
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE_MESSAGE', transactionalLocaleForRequest(request)),
+          code: 'MIGRATION_TARGET_UNAVAILABLE',
+        });
+      }
+
+      const migrationOutcome = await runPublishMigration({
+        store,
+        provisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        projectId: project.id,
+        organizationId: project.organizationId,
+        environment: 'production',
+        /*
+         * Clé d'idempotence liée au déploiement ET au contenu : republier le même
+         * déploiement rejoue la même clé et ne ré-applique rien ; un lot modifié
+         * produit une clé différente et une nouvelle exécution.
+         */
+        idempotencyKey: `publish:${source.id}:${hashStatements(declaredMigrations).slice(0, 16)}`,
+        migrations: declaredMigrations,
+        connectionString: prodConnection.value,
+        engine: prodConnection.kind,
+        deploymentId: source.id,
+        createdByUserId: request.currentUser?.id,
+        applySql: options.migrationApplier ?? postgresMigrationApplier,
+      });
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'database.migration.publish',
+        resourceType: 'projectDatabase',
+        resourceId: project.id,
+        metadata: {
+          ok: migrationOutcome.ok,
+          code: migrationOutcome.ok ? 'COMMITTED' : migrationOutcome.code,
+          executionId: migrationOutcome.ok ? migrationOutcome.executionId : migrationOutcome.executionId,
+        },
+      });
+
+      if (!migrationOutcome.ok) {
+        /*
+         * 409 : le publish n'a pas eu lieu ; l'état de la base est décrit par le
+         * code. Le message rendu vient du CATALOGUE, indexé sur ce code stable :
+         * `migrationOutcome.error` est un motif technique rédigé en français
+         * pour l'audit et les journaux, et le renvoyer tel quel servait ce
+         * français à tout le monde, y compris à un utilisateur anglophone. Le
+         * détail technique reste disponible dans `detail`, et l'entrée d'audit
+         * juste au-dessus le conserve intégralement.
+         */
+        const migrationCopyKey = `${migrationOutcome.code}_MESSAGE` as AppPublicCopyKey;
+
+        return reply.code(409).send({
+          error: appPublicCopy(migrationCopyKey, transactionalLocaleForRequest(request)),
+          detail: migrationOutcome.error,
+          code: migrationOutcome.code,
+          executionId: migrationOutcome.executionId,
+          state: migrationOutcome.state,
+        });
+      }
     }
 
     /*

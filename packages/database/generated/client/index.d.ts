@@ -742,6 +742,15 @@ export type WorkspaceLifecycleEvent = $Result.DefaultSelection<Prisma.$Workspace
  * 
  */
 export type WorkspacePostMortem = $Result.DefaultSelection<Prisma.$WorkspacePostMortemPayload>
+/**
+ * Model DBMigrationExecution
+ * Exécution d'une migration de schéma sur la base d'un projet, au moment du
+ * Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
+ * données : cette table porte le verrou, la preuve de backup et la machine à
+ * états, en base et non en mémoire de processus — l'API tourne en 2..6 replicas
+ * (values-prod.yaml), donc un verrou in-process ne verrouille rien.
+ */
+export type DBMigrationExecution = $Result.DefaultSelection<Prisma.$DBMigrationExecutionPayload>
 
 /**
  * Enums
@@ -2413,6 +2422,16 @@ export class PrismaClient<
     * ```
     */
   get workspacePostMortem(): Prisma.WorkspacePostMortemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.dBMigrationExecution`: Exposes CRUD operations for the **DBMigrationExecution** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more DBMigrationExecutions
+    * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany()
+    * ```
+    */
+  get dBMigrationExecution(): Prisma.DBMigrationExecutionDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -2970,7 +2989,8 @@ export namespace Prisma {
     LedgerReconciliationRun: 'LedgerReconciliationRun',
     PreviewReadinessBeacon: 'PreviewReadinessBeacon',
     WorkspaceLifecycleEvent: 'WorkspaceLifecycleEvent',
-    WorkspacePostMortem: 'WorkspacePostMortem'
+    WorkspacePostMortem: 'WorkspacePostMortem',
+    DBMigrationExecution: 'DBMigrationExecution'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -2986,7 +3006,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -12150,6 +12170,80 @@ export namespace Prisma {
           }
         }
       }
+      DBMigrationExecution: {
+        payload: Prisma.$DBMigrationExecutionPayload<ExtArgs>
+        fields: Prisma.DBMigrationExecutionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.DBMigrationExecutionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          findFirst: {
+            args: Prisma.DBMigrationExecutionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          findMany: {
+            args: Prisma.DBMigrationExecutionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          create: {
+            args: Prisma.DBMigrationExecutionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          createMany: {
+            args: Prisma.DBMigrationExecutionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          delete: {
+            args: Prisma.DBMigrationExecutionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          update: {
+            args: Prisma.DBMigrationExecutionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          deleteMany: {
+            args: Prisma.DBMigrationExecutionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.DBMigrationExecutionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>[]
+          }
+          upsert: {
+            args: Prisma.DBMigrationExecutionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$DBMigrationExecutionPayload>
+          }
+          aggregate: {
+            args: Prisma.DBMigrationExecutionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateDBMigrationExecution>
+          }
+          groupBy: {
+            args: Prisma.DBMigrationExecutionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<DBMigrationExecutionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.DBMigrationExecutionCountArgs<ExtArgs>
+            result: $Utils.Optional<DBMigrationExecutionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -12382,6 +12476,7 @@ export namespace Prisma {
     previewReadinessBeacon?: PreviewReadinessBeaconOmit
     workspaceLifecycleEvent?: WorkspaceLifecycleEventOmit
     workspacePostMortem?: WorkspacePostMortemOmit
+    dBMigrationExecution?: DBMigrationExecutionOmit
   }
 
   /* Types for Logging */
@@ -157128,6 +157223,1285 @@ export namespace Prisma {
 
 
   /**
+   * Model DBMigrationExecution
+   */
+
+  export type AggregateDBMigrationExecution = {
+    _count: DBMigrationExecutionCountAggregateOutputType | null
+    _avg: DBMigrationExecutionAvgAggregateOutputType | null
+    _sum: DBMigrationExecutionSumAggregateOutputType | null
+    _min: DBMigrationExecutionMinAggregateOutputType | null
+    _max: DBMigrationExecutionMaxAggregateOutputType | null
+  }
+
+  export type DBMigrationExecutionAvgAggregateOutputType = {
+    statementCount: number | null
+    appliedStatements: number | null
+  }
+
+  export type DBMigrationExecutionSumAggregateOutputType = {
+    statementCount: number | null
+    appliedStatements: number | null
+  }
+
+  export type DBMigrationExecutionMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    state: string | null
+    idempotencyKey: string | null
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string | null
+    forwardCompatible: string | null
+    statementsSha256: string | null
+    statementCount: number | null
+    appliedStatements: number | null
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DBMigrationExecutionMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    organizationId: string | null
+    environment: string | null
+    state: string | null
+    idempotencyKey: string | null
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string | null
+    forwardCompatible: string | null
+    statementsSha256: string | null
+    statementCount: number | null
+    appliedStatements: number | null
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date | null
+    completedAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type DBMigrationExecutionCountAggregateOutputType = {
+    id: number
+    projectId: number
+    organizationId: number
+    environment: number
+    state: number
+    idempotencyKey: number
+    activeLock: number
+    backupId: number
+    backupVerifiedAt: number
+    backupVerificationMethod: number
+    backwardCompatible: number
+    forwardCompatible: number
+    statementsSha256: number
+    statementCount: number
+    appliedStatements: number
+    deploymentId: number
+    createdByUserId: number
+    error: number
+    startedAt: number
+    completedAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type DBMigrationExecutionAvgAggregateInputType = {
+    statementCount?: true
+    appliedStatements?: true
+  }
+
+  export type DBMigrationExecutionSumAggregateInputType = {
+    statementCount?: true
+    appliedStatements?: true
+  }
+
+  export type DBMigrationExecutionMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+  }
+
+  export type DBMigrationExecutionMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+  }
+
+  export type DBMigrationExecutionCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    organizationId?: true
+    environment?: true
+    state?: true
+    idempotencyKey?: true
+    activeLock?: true
+    backupId?: true
+    backupVerifiedAt?: true
+    backupVerificationMethod?: true
+    backwardCompatible?: true
+    forwardCompatible?: true
+    statementsSha256?: true
+    statementCount?: true
+    appliedStatements?: true
+    deploymentId?: true
+    createdByUserId?: true
+    error?: true
+    startedAt?: true
+    completedAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type DBMigrationExecutionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DBMigrationExecution to aggregate.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned DBMigrationExecutions
+    **/
+    _count?: true | DBMigrationExecutionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: DBMigrationExecutionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: DBMigrationExecutionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: DBMigrationExecutionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: DBMigrationExecutionMaxAggregateInputType
+  }
+
+  export type GetDBMigrationExecutionAggregateType<T extends DBMigrationExecutionAggregateArgs> = {
+        [P in keyof T & keyof AggregateDBMigrationExecution]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateDBMigrationExecution[P]>
+      : GetScalarType<T[P], AggregateDBMigrationExecution[P]>
+  }
+
+
+
+
+  export type DBMigrationExecutionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: DBMigrationExecutionWhereInput
+    orderBy?: DBMigrationExecutionOrderByWithAggregationInput | DBMigrationExecutionOrderByWithAggregationInput[]
+    by: DBMigrationExecutionScalarFieldEnum[] | DBMigrationExecutionScalarFieldEnum
+    having?: DBMigrationExecutionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: DBMigrationExecutionCountAggregateInputType | true
+    _avg?: DBMigrationExecutionAvgAggregateInputType
+    _sum?: DBMigrationExecutionSumAggregateInputType
+    _min?: DBMigrationExecutionMinAggregateInputType
+    _max?: DBMigrationExecutionMaxAggregateInputType
+  }
+
+  export type DBMigrationExecutionGroupByOutputType = {
+    id: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state: string
+    idempotencyKey: string
+    activeLock: string | null
+    backupId: string | null
+    backupVerifiedAt: Date | null
+    backupVerificationMethod: string | null
+    backwardCompatible: string
+    forwardCompatible: string
+    statementsSha256: string | null
+    statementCount: number
+    appliedStatements: number
+    deploymentId: string | null
+    createdByUserId: string | null
+    error: string | null
+    startedAt: Date
+    completedAt: Date | null
+    updatedAt: Date
+    _count: DBMigrationExecutionCountAggregateOutputType | null
+    _avg: DBMigrationExecutionAvgAggregateOutputType | null
+    _sum: DBMigrationExecutionSumAggregateOutputType | null
+    _min: DBMigrationExecutionMinAggregateOutputType | null
+    _max: DBMigrationExecutionMaxAggregateOutputType | null
+  }
+
+  type GetDBMigrationExecutionGroupByPayload<T extends DBMigrationExecutionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<DBMigrationExecutionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof DBMigrationExecutionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], DBMigrationExecutionGroupByOutputType[P]>
+            : GetScalarType<T[P], DBMigrationExecutionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type DBMigrationExecutionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type DBMigrationExecutionSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    organizationId?: boolean
+    environment?: boolean
+    state?: boolean
+    idempotencyKey?: boolean
+    activeLock?: boolean
+    backupId?: boolean
+    backupVerifiedAt?: boolean
+    backupVerificationMethod?: boolean
+    backwardCompatible?: boolean
+    forwardCompatible?: boolean
+    statementsSha256?: boolean
+    statementCount?: boolean
+    appliedStatements?: boolean
+    deploymentId?: boolean
+    createdByUserId?: boolean
+    error?: boolean
+    startedAt?: boolean
+    completedAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type DBMigrationExecutionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "state" | "idempotencyKey" | "activeLock" | "backupId" | "backupVerifiedAt" | "backupVerificationMethod" | "backwardCompatible" | "forwardCompatible" | "statementsSha256" | "statementCount" | "appliedStatements" | "deploymentId" | "createdByUserId" | "error" | "startedAt" | "completedAt" | "updatedAt", ExtArgs["result"]["dBMigrationExecution"]>
+
+  export type $DBMigrationExecutionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "DBMigrationExecution"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      organizationId: string
+      /**
+       * development | production — le verrou est par ENVIRONNEMENT (I-MIG-2).
+       */
+      environment: string
+      /**
+       * PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
+       * échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
+       */
+      state: string
+      /**
+       * Rejouer la même clé ne ré-applique JAMAIS la migration : la ligne existante
+       * est renvoyée telle quelle (unique avec projectId).
+       */
+      idempotencyKey: string
+      /**
+       * LE VERROU (I-MIG-2). Vaut `<projectId>:<environment>` tant que l'exécution
+       * est active, puis repasse à NULL en état terminal. Un index UNIQUE porte
+       * dessus : Postgres considérant les NULL comme distincts, autant de lignes
+       * terminées qu'on veut coexistent, mais une SEULE active par (projet, env).
+       * C'est le SGBD qui refuse la 2e migration concurrente, pas une vérification
+       * applicative sujette aux courses entre replicas.
+       */
+      activeLock: string | null
+      /**
+       * Preuve de backup (I-MIG-1). `backupVerifiedAt` n'est renseigné qu'après
+       * observation de l'ABOUTISSEMENT du backup, jamais à la soumission du CR.
+       */
+      backupId: string | null
+      backupVerifiedAt: Date | null
+      /**
+       * COMMENT la vérification a été faite — un booléen seul laisserait croire à
+       * une preuve qui n'a pas eu lieu.
+       */
+      backupVerificationMethod: string | null
+      /**
+       * Compatibilité DÉCLARÉE, jamais supposée (I-MIG-3) : true | false | UNKNOWN.
+       */
+      backwardCompatible: string
+      forwardCompatible: string
+      /**
+       * Empreinte des instructions planifiées + nombre réellement appliqué.
+       */
+      statementsSha256: string | null
+      statementCount: number
+      appliedStatements: number
+      deploymentId: string | null
+      createdByUserId: string | null
+      error: string | null
+      startedAt: Date
+      completedAt: Date | null
+      updatedAt: Date
+    }, ExtArgs["result"]["dBMigrationExecution"]>
+    composites: {}
+  }
+
+  type DBMigrationExecutionGetPayload<S extends boolean | null | undefined | DBMigrationExecutionDefaultArgs> = $Result.GetResult<Prisma.$DBMigrationExecutionPayload, S>
+
+  type DBMigrationExecutionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<DBMigrationExecutionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: DBMigrationExecutionCountAggregateInputType | true
+    }
+
+  export interface DBMigrationExecutionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['DBMigrationExecution'], meta: { name: 'DBMigrationExecution' } }
+    /**
+     * Find zero or one DBMigrationExecution that matches the filter.
+     * @param {DBMigrationExecutionFindUniqueArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends DBMigrationExecutionFindUniqueArgs>(args: SelectSubset<T, DBMigrationExecutionFindUniqueArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one DBMigrationExecution that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {DBMigrationExecutionFindUniqueOrThrowArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends DBMigrationExecutionFindUniqueOrThrowArgs>(args: SelectSubset<T, DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DBMigrationExecution that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindFirstArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends DBMigrationExecutionFindFirstArgs>(args?: SelectSubset<T, DBMigrationExecutionFindFirstArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first DBMigrationExecution that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindFirstOrThrowArgs} args - Arguments to find a DBMigrationExecution
+     * @example
+     * // Get one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends DBMigrationExecutionFindFirstOrThrowArgs>(args?: SelectSubset<T, DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more DBMigrationExecutions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all DBMigrationExecutions
+     * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany()
+     * 
+     * // Get first 10 DBMigrationExecutions
+     * const dBMigrationExecutions = await prisma.dBMigrationExecution.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends DBMigrationExecutionFindManyArgs>(args?: SelectSubset<T, DBMigrationExecutionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a DBMigrationExecution.
+     * @param {DBMigrationExecutionCreateArgs} args - Arguments to create a DBMigrationExecution.
+     * @example
+     * // Create one DBMigrationExecution
+     * const DBMigrationExecution = await prisma.dBMigrationExecution.create({
+     *   data: {
+     *     // ... data to create a DBMigrationExecution
+     *   }
+     * })
+     * 
+     */
+    create<T extends DBMigrationExecutionCreateArgs>(args: SelectSubset<T, DBMigrationExecutionCreateArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many DBMigrationExecutions.
+     * @param {DBMigrationExecutionCreateManyArgs} args - Arguments to create many DBMigrationExecutions.
+     * @example
+     * // Create many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends DBMigrationExecutionCreateManyArgs>(args?: SelectSubset<T, DBMigrationExecutionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many DBMigrationExecutions and returns the data saved in the database.
+     * @param {DBMigrationExecutionCreateManyAndReturnArgs} args - Arguments to create many DBMigrationExecutions.
+     * @example
+     * // Create many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many DBMigrationExecutions and only return the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends DBMigrationExecutionCreateManyAndReturnArgs>(args?: SelectSubset<T, DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a DBMigrationExecution.
+     * @param {DBMigrationExecutionDeleteArgs} args - Arguments to delete one DBMigrationExecution.
+     * @example
+     * // Delete one DBMigrationExecution
+     * const DBMigrationExecution = await prisma.dBMigrationExecution.delete({
+     *   where: {
+     *     // ... filter to delete one DBMigrationExecution
+     *   }
+     * })
+     * 
+     */
+    delete<T extends DBMigrationExecutionDeleteArgs>(args: SelectSubset<T, DBMigrationExecutionDeleteArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one DBMigrationExecution.
+     * @param {DBMigrationExecutionUpdateArgs} args - Arguments to update one DBMigrationExecution.
+     * @example
+     * // Update one DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends DBMigrationExecutionUpdateArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more DBMigrationExecutions.
+     * @param {DBMigrationExecutionDeleteManyArgs} args - Arguments to filter DBMigrationExecutions to delete.
+     * @example
+     * // Delete a few DBMigrationExecutions
+     * const { count } = await prisma.dBMigrationExecution.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends DBMigrationExecutionDeleteManyArgs>(args?: SelectSubset<T, DBMigrationExecutionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DBMigrationExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends DBMigrationExecutionUpdateManyArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more DBMigrationExecutions and returns the data updated in the database.
+     * @param {DBMigrationExecutionUpdateManyAndReturnArgs} args - Arguments to update many DBMigrationExecutions.
+     * @example
+     * // Update many DBMigrationExecutions
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more DBMigrationExecutions and only return the `id`
+     * const dBMigrationExecutionWithIdOnly = await prisma.dBMigrationExecution.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends DBMigrationExecutionUpdateManyAndReturnArgs>(args: SelectSubset<T, DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one DBMigrationExecution.
+     * @param {DBMigrationExecutionUpsertArgs} args - Arguments to update or create a DBMigrationExecution.
+     * @example
+     * // Update or create a DBMigrationExecution
+     * const dBMigrationExecution = await prisma.dBMigrationExecution.upsert({
+     *   create: {
+     *     // ... data to create a DBMigrationExecution
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the DBMigrationExecution we want to update
+     *   }
+     * })
+     */
+    upsert<T extends DBMigrationExecutionUpsertArgs>(args: SelectSubset<T, DBMigrationExecutionUpsertArgs<ExtArgs>>): Prisma__DBMigrationExecutionClient<$Result.GetResult<Prisma.$DBMigrationExecutionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of DBMigrationExecutions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionCountArgs} args - Arguments to filter DBMigrationExecutions to count.
+     * @example
+     * // Count the number of DBMigrationExecutions
+     * const count = await prisma.dBMigrationExecution.count({
+     *   where: {
+     *     // ... the filter for the DBMigrationExecutions we want to count
+     *   }
+     * })
+    **/
+    count<T extends DBMigrationExecutionCountArgs>(
+      args?: Subset<T, DBMigrationExecutionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], DBMigrationExecutionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a DBMigrationExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends DBMigrationExecutionAggregateArgs>(args: Subset<T, DBMigrationExecutionAggregateArgs>): Prisma.PrismaPromise<GetDBMigrationExecutionAggregateType<T>>
+
+    /**
+     * Group by DBMigrationExecution.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {DBMigrationExecutionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends DBMigrationExecutionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: DBMigrationExecutionGroupByArgs['orderBy'] }
+        : { orderBy?: DBMigrationExecutionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, DBMigrationExecutionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetDBMigrationExecutionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the DBMigrationExecution model
+   */
+  readonly fields: DBMigrationExecutionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for DBMigrationExecution.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__DBMigrationExecutionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the DBMigrationExecution model
+   */
+  interface DBMigrationExecutionFieldRefs {
+    readonly id: FieldRef<"DBMigrationExecution", 'String'>
+    readonly projectId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly organizationId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly environment: FieldRef<"DBMigrationExecution", 'String'>
+    readonly state: FieldRef<"DBMigrationExecution", 'String'>
+    readonly idempotencyKey: FieldRef<"DBMigrationExecution", 'String'>
+    readonly activeLock: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backupId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backupVerifiedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly backupVerificationMethod: FieldRef<"DBMigrationExecution", 'String'>
+    readonly backwardCompatible: FieldRef<"DBMigrationExecution", 'String'>
+    readonly forwardCompatible: FieldRef<"DBMigrationExecution", 'String'>
+    readonly statementsSha256: FieldRef<"DBMigrationExecution", 'String'>
+    readonly statementCount: FieldRef<"DBMigrationExecution", 'Int'>
+    readonly appliedStatements: FieldRef<"DBMigrationExecution", 'Int'>
+    readonly deploymentId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly createdByUserId: FieldRef<"DBMigrationExecution", 'String'>
+    readonly error: FieldRef<"DBMigrationExecution", 'String'>
+    readonly startedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly completedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+    readonly updatedAt: FieldRef<"DBMigrationExecution", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * DBMigrationExecution findUnique
+   */
+  export type DBMigrationExecutionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution findUniqueOrThrow
+   */
+  export type DBMigrationExecutionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution findFirst
+   */
+  export type DBMigrationExecutionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution findFirstOrThrow
+   */
+  export type DBMigrationExecutionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecution to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution findMany
+   */
+  export type DBMigrationExecutionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter, which DBMigrationExecutions to fetch.
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of DBMigrationExecutions to fetch.
+     */
+    orderBy?: DBMigrationExecutionOrderByWithRelationInput | DBMigrationExecutionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing DBMigrationExecutions.
+     */
+    cursor?: DBMigrationExecutionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` DBMigrationExecutions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` DBMigrationExecutions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of DBMigrationExecutions.
+     */
+    distinct?: DBMigrationExecutionScalarFieldEnum | DBMigrationExecutionScalarFieldEnum[]
+  }
+
+  /**
+   * DBMigrationExecution create
+   */
+  export type DBMigrationExecutionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data needed to create a DBMigrationExecution.
+     */
+    data: XOR<DBMigrationExecutionCreateInput, DBMigrationExecutionUncheckedCreateInput>
+  }
+
+  /**
+   * DBMigrationExecution createMany
+   */
+  export type DBMigrationExecutionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many DBMigrationExecutions.
+     */
+    data: DBMigrationExecutionCreateManyInput | DBMigrationExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DBMigrationExecution createManyAndReturn
+   */
+  export type DBMigrationExecutionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to create many DBMigrationExecutions.
+     */
+    data: DBMigrationExecutionCreateManyInput | DBMigrationExecutionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * DBMigrationExecution update
+   */
+  export type DBMigrationExecutionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data needed to update a DBMigrationExecution.
+     */
+    data: XOR<DBMigrationExecutionUpdateInput, DBMigrationExecutionUncheckedUpdateInput>
+    /**
+     * Choose, which DBMigrationExecution to update.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution updateMany
+   */
+  export type DBMigrationExecutionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update DBMigrationExecutions.
+     */
+    data: XOR<DBMigrationExecutionUpdateManyMutationInput, DBMigrationExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DBMigrationExecutions to update
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution updateManyAndReturn
+   */
+  export type DBMigrationExecutionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The data used to update DBMigrationExecutions.
+     */
+    data: XOR<DBMigrationExecutionUpdateManyMutationInput, DBMigrationExecutionUncheckedUpdateManyInput>
+    /**
+     * Filter which DBMigrationExecutions to update
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution upsert
+   */
+  export type DBMigrationExecutionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * The filter to search for the DBMigrationExecution to update in case it exists.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+    /**
+     * In case the DBMigrationExecution found by the `where` argument doesn't exist, create a new DBMigrationExecution with this data.
+     */
+    create: XOR<DBMigrationExecutionCreateInput, DBMigrationExecutionUncheckedCreateInput>
+    /**
+     * In case the DBMigrationExecution was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<DBMigrationExecutionUpdateInput, DBMigrationExecutionUncheckedUpdateInput>
+  }
+
+  /**
+   * DBMigrationExecution delete
+   */
+  export type DBMigrationExecutionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+    /**
+     * Filter which DBMigrationExecution to delete.
+     */
+    where: DBMigrationExecutionWhereUniqueInput
+  }
+
+  /**
+   * DBMigrationExecution deleteMany
+   */
+  export type DBMigrationExecutionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which DBMigrationExecutions to delete
+     */
+    where?: DBMigrationExecutionWhereInput
+    /**
+     * Limit how many DBMigrationExecutions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * DBMigrationExecution without action
+   */
+  export type DBMigrationExecutionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the DBMigrationExecution
+     */
+    select?: DBMigrationExecutionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the DBMigrationExecution
+     */
+    omit?: DBMigrationExecutionOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -159063,6 +160437,33 @@ export namespace Prisma {
   };
 
   export type WorkspacePostMortemScalarFieldEnum = (typeof WorkspacePostMortemScalarFieldEnum)[keyof typeof WorkspacePostMortemScalarFieldEnum]
+
+
+  export const DBMigrationExecutionScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    organizationId: 'organizationId',
+    environment: 'environment',
+    state: 'state',
+    idempotencyKey: 'idempotencyKey',
+    activeLock: 'activeLock',
+    backupId: 'backupId',
+    backupVerifiedAt: 'backupVerifiedAt',
+    backupVerificationMethod: 'backupVerificationMethod',
+    backwardCompatible: 'backwardCompatible',
+    forwardCompatible: 'forwardCompatible',
+    statementsSha256: 'statementsSha256',
+    statementCount: 'statementCount',
+    appliedStatements: 'appliedStatements',
+    deploymentId: 'deploymentId',
+    createdByUserId: 'createdByUserId',
+    error: 'error',
+    startedAt: 'startedAt',
+    completedAt: 'completedAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type DBMigrationExecutionScalarFieldEnum = (typeof DBMigrationExecutionScalarFieldEnum)[keyof typeof DBMigrationExecutionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -169628,6 +171029,141 @@ export namespace Prisma {
     problems?: JsonNullableWithAggregatesFilter<"WorkspacePostMortem">
     logsTail?: StringNullableWithAggregatesFilter<"WorkspacePostMortem"> | string | null
     capturedAt?: DateTimeWithAggregatesFilter<"WorkspacePostMortem"> | Date | string
+  }
+
+  export type DBMigrationExecutionWhereInput = {
+    AND?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    OR?: DBMigrationExecutionWhereInput[]
+    NOT?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    id?: StringFilter<"DBMigrationExecution"> | string
+    projectId?: StringFilter<"DBMigrationExecution"> | string
+    organizationId?: StringFilter<"DBMigrationExecution"> | string
+    environment?: StringFilter<"DBMigrationExecution"> | string
+    state?: StringFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringFilter<"DBMigrationExecution"> | string
+    activeLock?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+  }
+
+  export type DBMigrationExecutionOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    backupId?: SortOrderInput | SortOrder
+    backupVerifiedAt?: SortOrderInput | SortOrder
+    backupVerificationMethod?: SortOrderInput | SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrderInput | SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    activeLock?: string
+    projectId_idempotencyKey?: DBMigrationExecutionProjectIdIdempotencyKeyCompoundUniqueInput
+    AND?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    OR?: DBMigrationExecutionWhereInput[]
+    NOT?: DBMigrationExecutionWhereInput | DBMigrationExecutionWhereInput[]
+    projectId?: StringFilter<"DBMigrationExecution"> | string
+    organizationId?: StringFilter<"DBMigrationExecution"> | string
+    environment?: StringFilter<"DBMigrationExecution"> | string
+    state?: StringFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringFilter<"DBMigrationExecution"> | string
+    backupId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeFilter<"DBMigrationExecution"> | Date | string
+  }, "id" | "projectId_idempotencyKey" | "activeLock">
+
+  export type DBMigrationExecutionOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrderInput | SortOrder
+    backupId?: SortOrderInput | SortOrder
+    backupVerifiedAt?: SortOrderInput | SortOrder
+    backupVerificationMethod?: SortOrderInput | SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrderInput | SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrderInput | SortOrder
+    updatedAt?: SortOrder
+    _count?: DBMigrationExecutionCountOrderByAggregateInput
+    _avg?: DBMigrationExecutionAvgOrderByAggregateInput
+    _max?: DBMigrationExecutionMaxOrderByAggregateInput
+    _min?: DBMigrationExecutionMinOrderByAggregateInput
+    _sum?: DBMigrationExecutionSumOrderByAggregateInput
+  }
+
+  export type DBMigrationExecutionScalarWhereWithAggregatesInput = {
+    AND?: DBMigrationExecutionScalarWhereWithAggregatesInput | DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    OR?: DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    NOT?: DBMigrationExecutionScalarWhereWithAggregatesInput | DBMigrationExecutionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    projectId?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    organizationId?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    environment?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    state?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    activeLock?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backupId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backupVerifiedAt?: DateTimeNullableWithAggregatesFilter<"DBMigrationExecution"> | Date | string | null
+    backupVerificationMethod?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    backwardCompatible?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    forwardCompatible?: StringWithAggregatesFilter<"DBMigrationExecution"> | string
+    statementsSha256?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    statementCount?: IntWithAggregatesFilter<"DBMigrationExecution"> | number
+    appliedStatements?: IntWithAggregatesFilter<"DBMigrationExecution"> | number
+    deploymentId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    error?: StringNullableWithAggregatesFilter<"DBMigrationExecution"> | string | null
+    startedAt?: DateTimeWithAggregatesFilter<"DBMigrationExecution"> | Date | string
+    completedAt?: DateTimeNullableWithAggregatesFilter<"DBMigrationExecution"> | Date | string | null
+    updatedAt?: DateTimeWithAggregatesFilter<"DBMigrationExecution"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -180792,6 +182328,174 @@ export namespace Prisma {
     capturedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type DBMigrationExecutionCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionCreateManyInput = {
+    id?: string
+    projectId: string
+    organizationId: string
+    environment: string
+    state?: string
+    idempotencyKey: string
+    activeLock?: string | null
+    backupId?: string | null
+    backupVerifiedAt?: Date | string | null
+    backupVerificationMethod?: string | null
+    backwardCompatible?: string
+    forwardCompatible?: string
+    statementsSha256?: string | null
+    statementCount?: number
+    appliedStatements?: number
+    deploymentId?: string | null
+    createdByUserId?: string | null
+    error?: string | null
+    startedAt?: Date | string
+    completedAt?: Date | string | null
+    updatedAt?: Date | string
+  }
+
+  export type DBMigrationExecutionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type DBMigrationExecutionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    activeLock?: NullableStringFieldUpdateOperationsInput | string | null
+    backupId?: NullableStringFieldUpdateOperationsInput | string | null
+    backupVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    backupVerificationMethod?: NullableStringFieldUpdateOperationsInput | string | null
+    backwardCompatible?: StringFieldUpdateOperationsInput | string
+    forwardCompatible?: StringFieldUpdateOperationsInput | string
+    statementsSha256?: NullableStringFieldUpdateOperationsInput | string | null
+    statementCount?: IntFieldUpdateOperationsInput | number
+    appliedStatements?: IntFieldUpdateOperationsInput | number
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    startedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    completedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -187690,6 +189394,93 @@ export namespace Prisma {
     finalState?: SortOrder
     logsTail?: SortOrder
     capturedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionProjectIdIdempotencyKeyCompoundUniqueInput = {
+    projectId: string
+    idempotencyKey: string
+  }
+
+  export type DBMigrationExecutionCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionAvgOrderByAggregateInput = {
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+  }
+
+  export type DBMigrationExecutionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    organizationId?: SortOrder
+    environment?: SortOrder
+    state?: SortOrder
+    idempotencyKey?: SortOrder
+    activeLock?: SortOrder
+    backupId?: SortOrder
+    backupVerifiedAt?: SortOrder
+    backupVerificationMethod?: SortOrder
+    backwardCompatible?: SortOrder
+    forwardCompatible?: SortOrder
+    statementsSha256?: SortOrder
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
+    deploymentId?: SortOrder
+    createdByUserId?: SortOrder
+    error?: SortOrder
+    startedAt?: SortOrder
+    completedAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type DBMigrationExecutionSumOrderByAggregateInput = {
+    statementCount?: SortOrder
+    appliedStatements?: SortOrder
   }
 
   export type AccountCreateNestedManyWithoutUserInput = {

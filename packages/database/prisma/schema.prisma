@@ -2803,3 +2803,60 @@ model WorkspacePostMortem {
 
   @@index([workspaceId, capturedAt])
 }
+
+/// Exécution d'une migration de schéma sur la base d'un projet, au moment du
+/// Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
+/// données : cette table porte le verrou, la preuve de backup et la machine à
+/// états, en base et non en mémoire de processus — l'API tourne en 2..6 replicas
+/// (values-prod.yaml), donc un verrou in-process ne verrouille rien.
+model DBMigrationExecution {
+  id             String @id @default(cuid())
+  projectId      String
+  organizationId String
+  /// development | production — le verrou est par ENVIRONNEMENT (I-MIG-2).
+  environment    String
+
+  /// PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
+  /// échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
+  state          String @default("PLANNED")
+
+  /// Rejouer la même clé ne ré-applique JAMAIS la migration : la ligne existante
+  /// est renvoyée telle quelle (unique avec projectId).
+  idempotencyKey String
+
+  /// LE VERROU (I-MIG-2). Vaut `<projectId>:<environment>` tant que l'exécution
+  /// est active, puis repasse à NULL en état terminal. Un index UNIQUE porte
+  /// dessus : Postgres considérant les NULL comme distincts, autant de lignes
+  /// terminées qu'on veut coexistent, mais une SEULE active par (projet, env).
+  /// C'est le SGBD qui refuse la 2e migration concurrente, pas une vérification
+  /// applicative sujette aux courses entre replicas.
+  activeLock     String?
+
+  /// Preuve de backup (I-MIG-1). `backupVerifiedAt` n'est renseigné qu'après
+  /// observation de l'ABOUTISSEMENT du backup, jamais à la soumission du CR.
+  backupId                 String?
+  backupVerifiedAt         DateTime?
+  /// COMMENT la vérification a été faite — un booléen seul laisserait croire à
+  /// une preuve qui n'a pas eu lieu.
+  backupVerificationMethod String?
+
+  /// Compatibilité DÉCLARÉE, jamais supposée (I-MIG-3) : true | false | UNKNOWN.
+  backwardCompatible String @default("UNKNOWN")
+  forwardCompatible  String @default("UNKNOWN")
+
+  /// Empreinte des instructions planifiées + nombre réellement appliqué.
+  statementsSha256  String?
+  statementCount    Int     @default(0)
+  appliedStatements Int     @default(0)
+
+  deploymentId    String?
+  createdByUserId String?
+  error           String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([projectId, idempotencyKey])
+  @@unique([activeLock])
+  @@index([projectId, environment, state])
+}
