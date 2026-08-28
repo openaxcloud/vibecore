@@ -1,6 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { buildAppImageDockerfile, runAppImageBuild, type AppImageBuildSpec } from './app-image-build.js';
+import {
+  appImageBuildOperationTag,
+  buildAppImageDockerfile,
+  cancelAppImageBuildAndWait,
+  runAppImageBuild,
+  type AppImageBuildSpec,
+  type DurableAppImageBuildLifecycle,
+  type DurableAppImageBuildState,
+} from './app-image-build.js';
 
 const SPEC: AppImageBuildSpec = {
   gcpProject: 'vibecore-495216',
@@ -24,6 +32,18 @@ function jsonResponse(body: unknown, status = 200) {
     json: async () => body,
     text: async () => JSON.stringify(body),
   } as unknown as Response;
+}
+
+function durableBuild(operationId: string, buildId: string, status: string, extra: Record<string, unknown> = {}) {
+  return {
+    id: buildId,
+    status,
+    tags: [appImageBuildOperationTag(operationId)],
+    serviceAccount: SPEC.buildServiceAccount,
+    source: { storageSource: { bucket: SPEC.sourceBucket, object: SPEC.sourceObject } },
+    images: [SPEC.imageUri],
+    ...extra,
+  };
 }
 
 describe('buildAppImageDockerfile', () => {
@@ -252,6 +272,285 @@ describe('runAppImageBuild', () => {
     );
     expect(crossProjectBuilder).toMatchObject({ ok: false });
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('recovers a crash after submit without a second POST and persists the build id before polling', async () => {
+    const operationId = 'deploy-operation-crash-after-submit';
+
+    let state: DurableAppImageBuildState = { phase: 'PREPARED' };
+    let crashOnIdentityPersist = true;
+    let persistenceCallbackActive = false;
+    let postCount = 0;
+
+    const events: string[] = [];
+
+    const persisted = async <T>(operation: () => T | Promise<T>): Promise<T> => {
+      persistenceCallbackActive = true;
+
+      try {
+        return await operation();
+      } finally {
+        persistenceCallbackActive = false;
+      }
+    };
+
+    const lifecycle: DurableAppImageBuildLifecycle = {
+      operationId,
+      assertAuthority: async () => undefined,
+      readState: async () => persisted(() => state),
+      markSubmissionStarted: async () =>
+        persisted(() => {
+          state = { phase: 'SUBMITTING' };
+          events.push('db:submitting');
+        }),
+      recordBuildIdentity: async ({ buildId, logUrl }) =>
+        persisted(() => {
+          events.push('db:build-id');
+
+          if (crashOnIdentityPersist) {
+            throw new Error('simulated process crash at durable build-id callback');
+          }
+
+          state = { phase: 'IDENTIFIED', buildId, ...(logUrl ? { logUrl } : {}) };
+        }),
+      recordSubmissionRejected: async () => undefined,
+      recordTerminal: async ({ buildId, providerStatus, logUrl }) =>
+        persisted(() => {
+          state = { phase: 'TERMINAL', buildId, providerStatus, ...(logUrl ? { logUrl } : {}) };
+          events.push('db:terminal');
+        }),
+    };
+
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      expect(persistenceCallbackActive).toBe(false);
+
+      const value = String(url);
+
+      if (value.endsWith('/builds') && init?.method === 'POST') {
+        postCount += 1;
+        events.push('provider:post');
+
+        return jsonResponse({ metadata: { build: { id: 'build-crash', logUrl: 'https://logs/crash' } } });
+      }
+
+      if (value.includes('/builds?filter=')) {
+        events.push('provider:reconcile');
+        return jsonResponse({ builds: [durableBuild(operationId, 'build-crash', 'WORKING')] });
+      }
+
+      if (value.endsWith('/builds/build-crash')) {
+        events.push('provider:poll');
+        return jsonResponse(durableBuild(operationId, 'build-crash', 'SUCCESS'));
+      }
+
+      throw new Error(`unexpected fetch ${value}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      runAppImageBuild(SPEC, {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        sleep: async () => undefined,
+        pollIntervalMs: 0,
+        lifecycle,
+      }),
+    ).rejects.toThrow('simulated process crash');
+    expect(events).toEqual(['db:submitting', 'provider:post', 'db:build-id']);
+
+    crashOnIdentityPersist = false;
+
+    const recovered = await runAppImageBuild(SPEC, {
+      fetchImpl,
+      getAccessToken: async () => 'tok',
+      sleep: async () => undefined,
+      pollIntervalMs: 0,
+      submissionReconcileAttempts: 1,
+      lifecycle,
+    });
+
+    expect(recovered).toMatchObject({ ok: true, buildId: 'build-crash' });
+    expect(postCount).toBe(1);
+    expect(events.indexOf('db:build-id')).toBeLessThan(events.indexOf('provider:poll'));
+    expect(state).toMatchObject({ phase: 'TERMINAL', buildId: 'build-crash', providerStatus: 'SUCCESS' });
+  });
+
+  it('reconciles a lost create response by durable tag and never duplicates the provider build', async () => {
+    const operationId = 'deploy-operation-response-loss';
+
+    let state: DurableAppImageBuildState = { phase: 'PREPARED' };
+    let providerBuildVisible = false;
+    let postCount = 0;
+
+    const lifecycle: DurableAppImageBuildLifecycle = {
+      operationId,
+      assertAuthority: async () => undefined,
+      readState: async () => state,
+      markSubmissionStarted: async () => {
+        state = { phase: 'SUBMITTING' };
+      },
+      recordBuildIdentity: async ({ buildId, logUrl }) => {
+        state = { phase: 'IDENTIFIED', buildId, ...(logUrl ? { logUrl } : {}) };
+      },
+      recordSubmissionRejected: async () => undefined,
+      recordTerminal: async ({ buildId, providerStatus, logUrl }) => {
+        state = { phase: 'TERMINAL', buildId, providerStatus, ...(logUrl ? { logUrl } : {}) };
+      },
+    };
+
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const value = String(url);
+
+      if (value.endsWith('/builds') && init?.method === 'POST') {
+        postCount += 1;
+        providerBuildVisible = true;
+
+        const body = JSON.parse(String(init.body)) as { tags?: string[] };
+        expect(body.tags).toContain(appImageBuildOperationTag(operationId));
+        throw new Error('socket reset after Google accepted the build');
+      }
+
+      if (value.includes('/builds?filter=')) {
+        return jsonResponse({
+          builds: providerBuildVisible ? [durableBuild(operationId, 'build-response-loss', 'QUEUED')] : [],
+        });
+      }
+
+      if (value.endsWith('/builds/build-response-loss')) {
+        return jsonResponse(durableBuild(operationId, 'build-response-loss', 'SUCCESS'));
+      }
+
+      throw new Error(`unexpected fetch ${value}`);
+    }) as unknown as typeof fetch;
+
+    const result = await runAppImageBuild(SPEC, {
+      fetchImpl,
+      getAccessToken: async () => 'tok',
+      sleep: async () => undefined,
+      pollIntervalMs: 0,
+      submissionReconcileAttempts: 1,
+      lifecycle,
+    });
+
+    expect(result).toMatchObject({ ok: true, buildId: 'build-response-loss' });
+    expect(postCount).toBe(1);
+    expect(state).toMatchObject({ phase: 'TERMINAL', buildId: 'build-response-loss' });
+  });
+
+  it('lets a fresh fence reclaim cancellation and proves the provider terminal before registry erasure', async () => {
+    const operationId = 'deploy-operation-cancel-reclaim';
+
+    let providerStatus = 'WORKING';
+    let firstOwnerValid = true;
+    let cancelPostCount = 0;
+
+    const persistedProofs: unknown[] = [];
+
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const value = String(url);
+
+      if (value.endsWith('/builds/build-cancel')) {
+        return jsonResponse(
+          durableBuild(operationId, 'build-cancel', providerStatus, { logUrl: 'https://logs/cancel' }),
+        );
+      }
+
+      if (value.endsWith('/builds/build-cancel:cancel') && init?.method === 'POST') {
+        cancelPostCount += 1;
+        providerStatus = 'CANCELLED';
+        firstOwnerValid = false;
+
+        return jsonResponse(durableBuild(operationId, 'build-cancel', providerStatus));
+      }
+
+      throw new Error(`unexpected fetch ${value}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      cancelAppImageBuildAndWait(
+        SPEC,
+        { operationId, buildId: 'build-cancel' },
+        {
+          fetchImpl,
+          getAccessToken: async () => 'tok',
+          assertAuthority: async () => {
+            if (!firstOwnerValid) {
+              throw new Error('cloud-build cancellation fence lost');
+            }
+          },
+        },
+      ),
+    ).rejects.toThrow('cancellation fence lost');
+
+    const reclaimed = await cancelAppImageBuildAndWait(
+      SPEC,
+      { operationId, buildId: 'build-cancel' },
+      {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        assertAuthority: async () => undefined,
+        recordCancellationProof: async (proof) => {
+          persistedProofs.push(proof);
+        },
+      },
+    );
+
+    expect(cancelPostCount).toBe(1);
+    expect(reclaimed).toMatchObject({
+      ok: true,
+      proof: {
+        buildId: 'build-cancel',
+        providerStatus: 'CANCELLED',
+        terminal: true,
+        requiresRegistrySweep: true,
+        lateSuccess: false,
+      },
+    });
+    expect(persistedProofs).toHaveLength(1);
+  });
+
+  it('refuses a late successful build when authority is lost during the provider poll', async () => {
+    const operationId = 'deploy-operation-late-success';
+    const recordTerminal = vi.fn();
+
+    const lifecycle: DurableAppImageBuildLifecycle = {
+      operationId,
+      assertAuthority: async ({ checkpoint }) => {
+        if (checkpoint === 'after-build-poll') {
+          throw new Error('project deletion fence won');
+        }
+      },
+      readState: async () => ({ phase: 'IDENTIFIED', buildId: 'build-late' }),
+      markSubmissionStarted: async () => undefined,
+      recordBuildIdentity: async () => undefined,
+      recordSubmissionRejected: async () => undefined,
+      recordTerminal,
+    };
+
+    const fetchImpl = vi.fn(async (url: string | URL) => {
+      const value = String(url);
+
+      if (value.endsWith('/builds/build-late')) {
+        return jsonResponse(
+          durableBuild(operationId, 'build-late', 'SUCCESS', {
+            results: { images: [{ name: SPEC.imageUri, digest: 'sha256:late' }] },
+          }),
+        );
+      }
+
+      throw new Error(`unexpected fetch ${value}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      runAppImageBuild(SPEC, {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        sleep: async () => undefined,
+        pollIntervalMs: 0,
+        lifecycle,
+      }),
+    ).rejects.toThrow('project deletion fence won');
+    expect(recordTerminal).not.toHaveBeenCalled();
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
   it('a lost build (never terminal) fails at the deadline instead of hanging', async () => {
