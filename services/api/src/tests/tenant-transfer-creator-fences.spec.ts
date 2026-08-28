@@ -39,7 +39,9 @@ async function transferToTarget(fixture: ProjectFixture) {
   return fixture.store.transferProject({
     projectId: fixture.project.id,
     expectedOrganizationId: fixture.sourceOrganization.id,
+    expectedOwnershipEpoch: 0,
     targetOrganizationId: fixture.targetOrganization.id,
+    idempotencyKey: `creator-fence-transfer-${fixture.project.id}`,
     actorUserId: fixture.user.id,
     assertExternalStorageDetached: async () => undefined,
     validateTargetAdmission: async () => undefined,
@@ -90,6 +92,9 @@ describe('project transfer creator fences — TestApiStore', () => {
     it('rejects stale activity after transfer without appending an activity row', async () => {
       const fixture = await seedProjectFixture('activity-stale');
       await transferToTarget(fixture);
+      const rowsBefore = [...fixture.store.projectActivity.values()].filter(
+        (row) => row.projectId === fixture.project.id,
+      );
 
       await expect(
         fixture.store.recordProjectActivity({
@@ -100,9 +105,9 @@ describe('project transfer creator fences — TestApiStore', () => {
         }),
       ).rejects.toMatchObject(staleMutationError);
 
-      expect(
-        [...fixture.store.projectActivity.values()].filter((row) => row.projectId === fixture.project.id),
-      ).toHaveLength(0);
+      expect([...fixture.store.projectActivity.values()].filter((row) => row.projectId === fixture.project.id)).toEqual(
+        rowsBefore,
+      );
     });
 
     it('rejects a fresh stale checkpoint without creating a row', async () => {
@@ -360,7 +365,9 @@ describe('project transfer creator fences — TestApiStore', () => {
       await fixture.store.transferProject({
         projectId: fixture.targetProject.id,
         expectedOrganizationId: fixture.targetOrganization.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: fixture.destinationOrganization.id,
+        idempotencyKey: `remix-stale-transfer-${fixture.targetProject.id}`,
         actorUserId: fixture.user.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
@@ -400,7 +407,9 @@ describe('project transfer creator fences — TestApiStore', () => {
         fixture.store.transferProject({
           projectId: fixture.targetProject.id,
           expectedOrganizationId: fixture.targetOrganization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: fixture.destinationOrganization.id,
+          idempotencyKey: `remix-active-transfer-${fixture.targetProject.id}`,
           actorUserId: fixture.user.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,

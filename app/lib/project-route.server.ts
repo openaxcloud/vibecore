@@ -15,6 +15,7 @@ export type ProjectRecord = {
   slug?: string;
   description?: string;
   organizationId: string;
+  ownershipEpoch: number;
   gitRepositoryUrl?: string;
   gitDefaultBranch?: string;
   sourceType?: string;

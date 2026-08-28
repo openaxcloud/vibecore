@@ -20,6 +20,27 @@ class QuietEmailProvider implements EmailProvider {
   }
 }
 
+class CountingTransferStore extends TestApiStore {
+  transferCalls = 0;
+  providerProbes = 0;
+  admissionChecks = 0;
+
+  override transferProject(input: Parameters<TestApiStore['transferProject']>[0]) {
+    this.transferCalls += 1;
+    return super.transferProject({
+      ...input,
+      assertExternalStorageDetached: async () => {
+        this.providerProbes += 1;
+        await input.assertExternalStorageDetached();
+      },
+      validateTargetAdmission: async () => {
+        this.admissionChecks += 1;
+        await input.validateTargetAdmission();
+      },
+    });
+  }
+}
+
 function activeEmptyObjectStorage(): ObjectStorage {
   const storage = new NoopObjectStorage();
   return new Proxy(storage, {
@@ -53,8 +74,8 @@ afterEach(async () => {
   vi.restoreAllMocks();
 });
 
-async function setup(options: { asyncDeploy?: boolean; objectStorageActive?: boolean } = {}) {
-  const store = new TestApiStore();
+async function setup(options: { asyncDeploy?: boolean; objectStorageActive?: boolean; store?: TestApiStore } = {}) {
+  const store = options.store ?? new TestApiStore();
   const buildCalls: string[] = [];
   const queuedJobs: Array<Parameters<NonNullable<ApiAppOptions['enqueueDeployJob']>>[0]> = [];
 
@@ -230,8 +251,8 @@ describe('ProjectManifest API and deployment binding', () => {
     const moved = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/transfer`,
-      headers: auth,
-      payload: { targetOrganizationId: target.id },
+      headers: { ...auth, 'idempotency-key': 'manifest-transfer-forward-0001' },
+      payload: { targetOrganizationId: target.id, expectedOwnershipEpoch: 0 },
     });
     expect(moved.statusCode).toBe(200);
     const movedManifest = verifyStoredProjectManifestRevision(
@@ -247,11 +268,104 @@ describe('ProjectManifest API and deployment binding', () => {
     const movedBack = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/transfer`,
-      headers: auth,
-      payload: { targetOrganizationId: organization.id },
+      headers: { ...auth, 'idempotency-key': 'manifest-transfer-return-0001' },
+      payload: { targetOrganizationId: organization.id, expectedOwnershipEpoch: 1 },
     });
     expect(movedBack.statusCode).toBe(200);
     expect([...store.resourceAccessGrants.values()].map((grant) => grant.status)).toEqual(['REVOKED', 'REVOKED']);
+  });
+
+  it('requires a client idempotency key and an explicit ownership epoch before invoking transfer', async () => {
+    const countingStore = new CountingTransferStore();
+    const { app, store, user, project, auth } = await setup({ store: countingStore });
+    const target = await store.createOrganization({
+      name: 'Transfer identity target',
+      slug: 'transfer-identity-target',
+      ownerUserId: user.id,
+    });
+
+    const missingKey = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: auth,
+      payload: { targetOrganizationId: target.id, expectedOwnershipEpoch: 0 },
+    });
+    expect(missingKey.statusCode).toBe(400);
+    expect(missingKey.json()).toMatchObject({ code: 'OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED' });
+
+    const missingEpoch = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: { ...auth, 'idempotency-key': 'missing-transfer-epoch-0001' },
+      payload: { targetOrganizationId: target.id },
+    });
+    expect(missingEpoch.statusCode).toBe(400);
+    expect(missingEpoch.json()).toMatchObject({ code: 'VALIDATION_ERROR' });
+    expect(countingStore.transferCalls).toBe(0);
+    expect(countingStore.providerProbes).toBe(0);
+    expect(countingStore.admissionChecks).toBe(0);
+  });
+
+  it('replays a lost transfer response exactly and rejects key or epoch drift before callbacks', async () => {
+    const countingStore = new CountingTransferStore();
+    const { app, store, user, organization, project, auth } = await setup({ store: countingStore });
+    const target = await store.createOrganization({
+      name: 'Replay transfer target',
+      slug: 'replay-transfer-target',
+      ownerUserId: user.id,
+    });
+    const conflictingTarget = await store.createOrganization({
+      name: 'Replay conflicting target',
+      slug: 'replay-conflicting-target',
+      ownerUserId: user.id,
+    });
+    const headers = { ...auth, 'idempotency-key': 'project-transfer-replay-0001' };
+    const payload = { targetOrganizationId: target.id, expectedOwnershipEpoch: 0 };
+
+    const first = await app.inject({ method: 'POST', url: `/projects/${project.id}/transfer`, headers, payload });
+    expect(first.statusCode).toBe(200);
+    expect(first.json().project).toMatchObject({
+      organizationId: target.id,
+      ownershipEpoch: 1,
+    });
+    const revisionCount = (countingStore.projectManifestRevisions.get(project.id) ?? []).length;
+
+    const replay = await app.inject({ method: 'POST', url: `/projects/${project.id}/transfer`, headers, payload });
+    expect(replay.statusCode).toBe(200);
+    expect(replay.json()).toEqual(first.json());
+    expect((countingStore.projectManifestRevisions.get(project.id) ?? []).length).toBe(revisionCount);
+    expect(countingStore.projectTransferReceipts).toHaveLength(1);
+    expect(countingStore.providerProbes).toBe(1);
+    expect(countingStore.admissionChecks).toBe(1);
+    expect(
+      [...countingStore.projectActivity.values()].filter((event) => event.action === 'project.transfer'),
+    ).toHaveLength(1);
+    expect(countingStore.auditLogs.filter((event) => event.action === 'project.transfer')).toHaveLength(1);
+
+    const targetConflict = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers,
+      payload: { targetOrganizationId: conflictingTarget.id, expectedOwnershipEpoch: 0 },
+    });
+    expect(targetConflict.statusCode).toBe(409);
+    expect(targetConflict.json()).toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT' });
+
+    const staleEpoch = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: { ...auth, 'idempotency-key': 'project-transfer-stale-epoch-0001' },
+      payload: { targetOrganizationId: conflictingTarget.id, expectedOwnershipEpoch: 0 },
+    });
+    expect(staleEpoch.statusCode).toBe(409);
+    expect(staleEpoch.json()).toMatchObject({ code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION' });
+    expect(countingStore.providerProbes).toBe(1);
+    expect(countingStore.admissionChecks).toBe(1);
+    await expect(store.getProject(project.id)).resolves.toMatchObject({
+      organizationId: target.id,
+      ownershipEpoch: 1,
+    });
+    expect(organization.id).not.toBe(target.id);
   });
 
   it('refuses an ordinary tenant transfer before any mutation when a managed resource remains attached', async () => {
@@ -272,8 +386,8 @@ describe('ProjectManifest API and deployment binding', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/transfer`,
-      headers: auth,
-      payload: { targetOrganizationId: target.id },
+      headers: { ...auth, 'idempotency-key': 'managed-transfer-blocked-0001' },
+      payload: { targetOrganizationId: target.id, expectedOwnershipEpoch: 0 },
     });
 
     expect(response.statusCode).toBe(409);
@@ -293,8 +407,8 @@ describe('ProjectManifest API and deployment binding', () => {
     const response = await app.inject({
       method: 'POST',
       url: `/projects/${project.id}/transfer`,
-      headers: auth,
-      payload: { targetOrganizationId: target.id },
+      headers: { ...auth, 'idempotency-key': 'storage-unavailable-transfer-0001' },
+      payload: { targetOrganizationId: target.id, expectedOwnershipEpoch: 0 },
     });
 
     expect(response.statusCode).toBe(503);

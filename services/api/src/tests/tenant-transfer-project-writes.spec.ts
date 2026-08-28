@@ -80,7 +80,9 @@ function transfer(fixture: Fixture) {
   return fixture.store.transferProject({
     projectId: fixture.project.id,
     expectedOrganizationId: fixture.sourceOrganization.id,
+    expectedOwnershipEpoch: 0,
     targetOrganizationId: fixture.targetOrganization.id,
+    idempotencyKey: `project-writes-transfer-${fixture.project.id}`,
     actorUserId: fixture.user.id,
     assertExternalStorageDetached: async () => undefined,
     validateTargetAdmission: async () => undefined,
@@ -195,7 +197,9 @@ describe('project settings and lifecycle transfer fences', () => {
       fixture.store.transferProject({
         projectId: fixture.project.id,
         expectedOrganizationId: fixture.sourceOrganization.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: thirdOrganization.id,
+        idempotencyKey: `stale-second-transfer-${fixture.project.id}`,
         actorUserId: fixture.user.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,

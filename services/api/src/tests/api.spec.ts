@@ -5912,7 +5912,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         store.transferProject({
           projectId,
           expectedOrganizationId: auth.organization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: target.id,
+          idempotencyKey: 'runtime-transfer-first-0001',
           actorUserId: auth.user.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
@@ -5973,7 +5975,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         store.transferProject({
           projectId,
           expectedOrganizationId: auth.organization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: target.id,
+          idempotencyKey: 'runtime-transfer-latch-0001',
           actorUserId: auth.user.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,

@@ -404,6 +404,14 @@ export class TestApiStore implements ApiStore {
   readonly organizations = new Map<string, OrganizationRecord>();
   readonly memberships = new Map<string, MembershipRecord>();
   readonly projects = new Map<string, ProjectRecord>();
+  readonly projectTransferReceipts: Array<{
+    projectId: string;
+    sourceOrganizationId: string;
+    targetOrganizationId: string;
+    ownershipEpoch: number;
+    idempotencyKey: string;
+    project: ProjectRecord;
+  }> = [];
   readonly projectManifestRevisions = new Map<string, ProjectManifestRevisionRecord[]>();
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
@@ -2123,6 +2131,7 @@ export class TestApiStore implements ApiStore {
     const project: ProjectRecord = {
       id: id('project'),
       organizationId: input.organizationId,
+      ownershipEpoch: 0,
       name: input.name,
       slug: input.slug || slugify(input.name),
       description: input.description,
@@ -2729,16 +2738,70 @@ export class TestApiStore implements ApiStore {
   async transferProject(input: {
     projectId: string;
     expectedOrganizationId: string;
+    expectedOwnershipEpoch: number;
     targetOrganizationId: string;
+    idempotencyKey: string;
     actorUserId?: string;
+    ipAddress?: string;
     assertExternalStorageDetached: () => Promise<void>;
     validateTargetAdmission: () => Promise<void>;
   }) {
-    return this.withProjectTenantMutation(input, async () => {
+    if (!Number.isSafeInteger(input.expectedOwnershipEpoch) || input.expectedOwnershipEpoch < 0) {
+      throw Object.assign(new Error('PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID'), {
+        code: 'PROJECT_TRANSFER_OWNERSHIP_EPOCH_INVALID',
+        statusCode: 400,
+      });
+    }
+    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{15,127}$/.test(input.idempotencyKey)) {
+      throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED')), {
+        code: 'OBJECT_STORAGE_IDEMPOTENCY_KEY_REQUIRED',
+        statusCode: 400,
+      });
+    }
+
+    const replayExactReceipt = () => {
+      const exactReplay = this.projectTransferReceipts.find(
+        (receipt) =>
+          receipt.projectId === input.projectId &&
+          receipt.ownershipEpoch === input.expectedOwnershipEpoch &&
+          receipt.idempotencyKey === input.idempotencyKey,
+      );
+      if (!exactReplay) return undefined;
+      if (exactReplay.targetOrganizationId !== input.targetOrganizationId) {
+        throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+          code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return { ...exactReplay.project };
+    };
+
+    const exactReplay = replayExactReceipt();
+    if (exactReplay) return exactReplay;
+
+    if (
+      this.projectTransferReceipts.some(
+        (receipt) =>
+          receipt.projectId === input.projectId &&
+          receipt.sourceOrganizationId === input.expectedOrganizationId &&
+          receipt.idempotencyKey === input.idempotencyKey,
+      )
+    ) {
+      throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT'), {
+        code: 'OBJECT_STORAGE_OPERATION_IDEMPOTENCY_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    const transferAttempt = this.withProjectTenantMutation(input, async () => {
       const current = this.assertExpectedProjectTenant(input);
 
+      if (current.ownershipEpoch !== input.expectedOwnershipEpoch) {
+        throw projectOrganizationChangedError();
+      }
+
       if (current.organizationId === input.targetOrganizationId) {
-        return current;
+        return { ...current };
       }
 
       /* Match Prisma: provider preflight is outside the object-storage DB lock. */
@@ -2750,6 +2813,10 @@ export class TestApiStore implements ApiStore {
           input,
           async () => {
             const project = this.assertExpectedProjectTenant(input);
+
+            if (project.ownershipEpoch !== input.expectedOwnershipEpoch) {
+              throw projectOrganizationChangedError();
+            }
 
             if ((this.objectStorageCapabilityExpiresAt.get(project.id) ?? 0) > Date.now()) {
               throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_OBJECT_STORAGE_CAPABILITY_ACTIVE')), {
@@ -2880,6 +2947,7 @@ export class TestApiStore implements ApiStore {
             }
 
             project.organizationId = input.targetOrganizationId;
+            project.ownershipEpoch += 1;
             project.updatedAt = now();
 
             const revision: ProjectManifestRevisionRecord = {
@@ -2897,12 +2965,49 @@ export class TestApiStore implements ApiStore {
             revisions.push(revision);
             this.projectManifestRevisions.set(project.id, revisions);
 
-            return project;
+            const transferred = { ...project };
+            const activity: ProjectActivityRecord = {
+              id: id('activity'),
+              projectId: project.id,
+              ...(input.actorUserId !== undefined ? { actorUserId: input.actorUserId } : {}),
+              action: 'project.transfer',
+              metadata: { from: input.expectedOrganizationId, to: input.targetOrganizationId },
+              createdAt: now(),
+            };
+            this.projectActivity.set(activity.id, activity);
+            this.auditLogs.push({
+              id: id('audit'),
+              organizationId: input.targetOrganizationId,
+              actorUserId: input.actorUserId,
+              action: 'project.transfer',
+              resourceType: 'project',
+              resourceId: project.id,
+              ipAddress: input.ipAddress,
+              createdAt: now(),
+            });
+            this.projectTransferReceipts.push({
+              projectId: project.id,
+              sourceOrganizationId: input.expectedOrganizationId,
+              targetOrganizationId: input.targetOrganizationId,
+              ownershipEpoch: input.expectedOwnershipEpoch,
+              idempotencyKey: input.idempotencyKey,
+              project: transferred,
+            });
+
+            return transferred;
           },
           { allowActiveTargetShare: true },
         );
       });
     });
+
+    try {
+      return await transferAttempt;
+    } catch (error) {
+      const racedReplay = replayExactReceipt();
+      if (racedReplay) return racedReplay;
+      throw error;
+    }
   }
 
   async duplicateProject(input: {

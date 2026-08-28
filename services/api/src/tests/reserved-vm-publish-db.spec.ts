@@ -286,7 +286,9 @@ runDbTests('Reserved VM in-place publish — PostgreSQL release barrier', () => 
         storeB.transferProject({
           projectId: seeded.project.id,
           expectedOrganizationId: seeded.organization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: target.id,
+          idempotencyKey: 'reserved-vm-publish-transfer-0001',
           actorUserId: seeded.actor.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,

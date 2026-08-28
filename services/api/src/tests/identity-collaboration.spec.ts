@@ -575,7 +575,9 @@ describe('P0-EX-07 identity collaboration', () => {
         store.transferProject({
           projectId,
           expectedOrganizationId: owner.organization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: targetOwner.organization.id,
+          idempotencyKey: `identity-collaboration-transfer-${projectId}`,
           actorUserId: owner.user.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,

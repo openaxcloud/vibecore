@@ -42,6 +42,22 @@ async function waitForTopologyHolder(prisma: ReturnType<typeof createDatabaseCli
   throw new Error('Timed out waiting for the project mutation to hold the topology lock');
 }
 
+async function waitForTransferClaimLock(
+  prisma: ReturnType<typeof createDatabaseClient>,
+  projectId: string,
+): Promise<void> {
+  const key = `account-purge:object-storage:${projectId}`;
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    const [row] = await prisma.$queryRaw<Array<{ acquired: boolean }>>`
+      SELECT pg_try_advisory_xact_lock(hashtext(${key})) AS acquired
+    `;
+    if (row?.acquired === false) return;
+    await new Promise((resolve) => setTimeout(resolve, 10));
+  }
+  throw new Error('Timed out waiting for the project transfer claim lock');
+}
+
 async function waitForAdvisoryWaiters(prisma: ReturnType<typeof createDatabaseClient>, minimum: number) {
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline) {
@@ -108,12 +124,14 @@ runDbTests('project tenant-transfer mutation fences', () => {
       const transfer = storeB.transferProject({
         projectId: seeded.project.id,
         expectedOrganizationId: seeded.organizationA.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: seeded.organizationB.id,
+        idempotencyKey: `tenant-transfer-collaboration-${seeded.marker}`,
         actorUserId: seeded.owner.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
       });
-      await waitForTopologyHolder(prismaA);
+      await waitForTransferClaimLock(prismaA, seeded.project.id);
 
       const staleMutationResults = Promise.allSettled([
         storeA.addProjectCollaborator({
@@ -275,7 +293,9 @@ runDbTests('project tenant-transfer mutation fences', () => {
         storeB.transferProject({
           projectId: seeded.project.id,
           expectedOrganizationId: seeded.organizationA.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: seeded.organizationB.id,
+          idempotencyKey: `tenant-transfer-pending-runtime-${seeded.marker}`,
           actorUserId: seeded.owner.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
@@ -304,7 +324,9 @@ runDbTests('project tenant-transfer mutation fences', () => {
         storeB.transferProject({
           projectId: seeded.project.id,
           expectedOrganizationId: seeded.organizationA.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: seeded.organizationB.id,
+          idempotencyKey: `tenant-transfer-retained-runtime-${seeded.marker}`,
           actorUserId: seeded.owner.id,
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
@@ -324,12 +346,14 @@ runDbTests('project tenant-transfer mutation fences', () => {
       const transfer = storeB.transferProject({
         projectId: seeded.project.id,
         expectedOrganizationId: seeded.organizationA.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: seeded.organizationB.id,
+        idempotencyKey: `tenant-transfer-final-runtime-${seeded.marker}`,
         actorUserId: seeded.owner.id,
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
       });
-      await waitForTopologyHolder(prismaA);
+      await waitForTransferClaimLock(prismaA, seeded.project.id);
       const staleWorkspaceResults = Promise.allSettled([
         storeA.updateWorkspaceStatus({
           workspaceId: workspace.id,

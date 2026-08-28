@@ -119,11 +119,14 @@ function transferProject(
   fixture: TransferFixture,
   sourceOrganizationId: string,
   targetOrganizationId: string,
+  expectedOwnershipEpoch: number,
 ) {
   return store.transferProject({
     projectId: fixture.project.id,
     expectedOrganizationId: sourceOrganizationId,
+    expectedOwnershipEpoch,
     targetOrganizationId,
+    idempotencyKey: `runtime-effect-transfer-${fixture.project.id}-${expectedOwnershipEpoch}`,
     actorUserId: fixture.actorId,
     assertExternalStorageDetached: async () => undefined,
     validateTargetAdmission: async () => undefined,
@@ -192,7 +195,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
 
     try {
       await expect(
-        transferProject(apiStore, fixture, fixture.organizationAId, fixture.organizationBId),
+        transferProject(apiStore, fixture, fixture.organizationAId, fixture.organizationBId, 0),
       ).resolves.toMatchObject({ organizationId: fixture.organizationBId });
       await expect(
         prisma.project.findUniqueOrThrow({
@@ -338,7 +341,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
 
     try {
       await expect(
-        transferProject(store, fixture, fixture.organizationAId, fixture.organizationBId),
+        transferProject(store, fixture, fixture.organizationAId, fixture.organizationBId, 0),
       ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE', statusCode: 409 });
       await expect(
         prisma.project.findUniqueOrThrow({
@@ -380,7 +383,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
 
     try {
       await expect(
-        transferProject(store, fixture, fixture.organizationAId, fixture.organizationBId),
+        transferProject(store, fixture, fixture.organizationAId, fixture.organizationBId, 0),
       ).resolves.toMatchObject({ organizationId: fixture.organizationBId });
       const targetEffect = await createRuntimeEffect(prisma, fixture, {
         organizationId: fixture.organizationBId,
@@ -390,7 +393,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
       });
 
       await expect(
-        transferProject(store, fixture, fixture.organizationBId, fixture.organizationAId),
+        transferProject(store, fixture, fixture.organizationBId, fixture.organizationAId, 1),
       ).resolves.toMatchObject({ organizationId: fixture.organizationAId });
       await expect(
         prisma.project.findUniqueOrThrow({

@@ -128,7 +128,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
       const transfer = transferStore
         .transferProject({
           ...scope,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: seeded.target.id,
+          idempotencyKey: 'physical-long-effect-transfer-0001',
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
         })
@@ -298,7 +300,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
         .transferProject({
           projectId: first.project.id,
           expectedOrganizationId: first.source.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: first.target.id,
+          idempotencyKey: 'physical-read-first-transfer-0001',
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
         })
@@ -317,7 +321,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await transferStore.transferProject({
         projectId: second.project.id,
         expectedOrganizationId: second.source.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: second.target.id,
+        idempotencyKey: 'physical-transfer-first-0001',
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
       });
@@ -361,7 +367,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await transferStore.transferProject({
         projectId: transferFirst.project.id,
         expectedOrganizationId: transferFirst.source.id,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: transferFirst.target.id,
+        idempotencyKey: 'workspace-transfer-first-0001',
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
       });
@@ -391,7 +399,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
         transferStore.transferProject({
           projectId: latchFirst.project.id,
           expectedOrganizationId: latchFirst.source.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: latchFirst.target.id,
+          idempotencyKey: 'workspace-latch-first-0001',
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
         }),
@@ -434,7 +444,9 @@ runDbTests('project physical barrier — session advisory lease', () => {
 
       await transferStore.transferProject({
         ...scope,
+        expectedOwnershipEpoch: 0,
         targetOrganizationId: seeded.target.id,
+        idempotencyKey: 'physical-lost-session-transfer-0001',
         assertExternalStorageDetached: async () => undefined,
         validateTargetAdmission: async () => undefined,
       });

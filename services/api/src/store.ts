@@ -131,6 +131,8 @@ export interface MembershipRecord {
 export interface ProjectRecord {
   id: string;
   organizationId: string;
+  /** Monotonic tenant-authority generation; advances exactly once per ownership transfer. */
+  ownershipEpoch: number;
   name: string;
   slug: string;
   description?: string;
@@ -2501,8 +2503,11 @@ export interface ApiStore {
   transferProject(input: {
     projectId: string;
     expectedOrganizationId: string;
+    expectedOwnershipEpoch: number;
     targetOrganizationId: string;
+    idempotencyKey: string;
     actorUserId?: string;
+    ipAddress?: string;
     /** Live provider check executed under physical + NFS barriers, outside any DB transaction. */
     assertExternalStorageDetached: () => Promise<void>;
     /** Re-evaluate target admission/quota after the provider probe, under target serialization. */

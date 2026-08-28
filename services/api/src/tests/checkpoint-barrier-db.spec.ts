@@ -100,7 +100,9 @@ runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
         storeB.transferProject({
           projectId: project.id,
           expectedOrganizationId: organization.id,
+          expectedOwnershipEpoch: 0,
           targetOrganizationId: transferTarget.id,
+          idempotencyKey: 'checkpoint-transfer-blocked-0001',
           assertExternalStorageDetached: async () => undefined,
           validateTargetAdmission: async () => undefined,
         }),
