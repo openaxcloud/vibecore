@@ -147,20 +147,6 @@ function storageAuthorityFrom(
     : undefined;
 }
 
-function inventoriesEqual(left: ObjectStorageInventory, right: ObjectStorageInventory): boolean {
-  if (left.bucketExists !== right.bucketExists || left.objects.length !== right.objects.length) return false;
-
-  return left.objects.every((entry, index) => {
-    const candidate = right.objects[index];
-    return (
-      candidate?.key === entry.key &&
-      candidate.size === entry.size &&
-      candidate.generation === entry.generation &&
-      candidate.contentHash === entry.contentHash
-    );
-  });
-}
-
 function safeFailure(error: unknown): { code: string; error: string } {
   if (error instanceof RemixInvariantError) {
     return { code: error.code, error: appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED') };
@@ -742,17 +728,6 @@ export async function executePhysicalRemix(
             'A shared object has no immutable provider generation',
             'REMIX_STORAGE_SNAPSHOT_UNPINNABLE',
           );
-        }
-        const live = await deps.readObjectStorageInventory({
-          projectId: current.sourceProjectId,
-          expectedOrganizationId: input.sourceProject.organizationId,
-        });
-        if (
-          live.authoritySourceProjectId !== storageAuthority.authoritySourceProjectId ||
-          live.authoritySourceOrganizationId !== storageAuthority.authoritySourceOrganizationId ||
-          !inventoriesEqual(sourceInventory, live.inventory)
-        ) {
-          throw new ObjectStorageError('Source object generations changed after consent pin', 'SOURCE_CHANGED');
         }
         await guard();
         const share = await deps.store.createRemixStorageShare({

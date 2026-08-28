@@ -2781,7 +2781,10 @@ export interface ApiStore {
     consentVersion: string;
     consentedByUserId?: string;
     sourceInventory: unknown;
-    /** Runs provider versioning + live inventory verification under source/target physical barriers, outside DB tx. */
+    /**
+     * Runs provider versioning + live inventory verification under source/target physical barriers, outside DB tx,
+     * only for the first create. An exact committed replay is returned before this callback is invoked.
+     */
     prepareSourceRetention: () => Promise<ObjectStorageInventory>;
   }): Promise<RemixStorageShareRecord>;
   getRemixStorageShareByTarget(targetProjectId: string): Promise<RemixStorageShareRecord | undefined>;

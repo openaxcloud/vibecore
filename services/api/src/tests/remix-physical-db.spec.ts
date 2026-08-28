@@ -365,6 +365,161 @@ runDbTests('physical remix — real PostgreSQL multi-client CAS and compensation
     }
   });
 
+  it('replays the committed consent share after a crash and legal source drift without another retention effect', async () => {
+    const prisma = createDatabaseClient();
+    let sourceOrganizationId: string | undefined;
+    let wrongTenantOrganizationId: string | undefined;
+
+    try {
+      const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const sourceOrganization = await prisma.organization.create({
+        data: { name: `Share source ${suffix}`, slug: `share-source-${suffix}` },
+      });
+      const wrongTenantOrganization = await prisma.organization.create({
+        data: { name: `Wrong share tenant ${suffix}`, slug: `wrong-share-tenant-${suffix}` },
+      });
+      sourceOrganizationId = sourceOrganization.id;
+      wrongTenantOrganizationId = wrongTenantOrganization.id;
+      const source = await prisma.project.create({
+        data: { organizationId: sourceOrganization.id, name: 'Share source', slug: `share-project-${suffix}` },
+      });
+      const store = new PrismaApiStore(prisma);
+      const projectStorage = new MemoryProjectStorage();
+      projectStorage.files.set(source.id, sourceFiles);
+      const objectStorage = new MemoryObjectStorage();
+      const consentedInventory: ObjectStorageInventory = {
+        bucketExists: true,
+        objects: [{ key: 'shared.json', size: 8, generation: 'G1', contentHash: 'sha256:g1' }],
+      };
+      objectStorage.buckets.set(source.id, structuredClone(consentedInventory));
+      const retentionEffects: string[] = [];
+      const prepareSourceRetention = vi.fn(async (scope: { projectId: string; expectedOrganizationId: string }) => {
+        retentionEffects.push(`${scope.expectedOrganizationId}:${scope.projectId}`);
+        await objectStorage.ensureBucket(scope.projectId);
+        return objectStorage.inventoryProjectObjects(scope.projectId);
+      });
+      const deps = {
+        ...serviceDeps(store, projectStorage, objectStorage),
+        prepareObjectStorageShareSource: prepareSourceRetention,
+      };
+      const input = {
+        sourceProject: { id: source.id, organizationId: sourceOrganization.id },
+        targetOrganizationId: sourceOrganization.id,
+        idempotencyKey: `share-crash-${suffix}`,
+        requestHash: '8'.repeat(64),
+        storagePolicy: 'SHARE_WITH_CONSENT' as const,
+        storageConsentVersion: 'object-storage-share-consent-v1',
+        name: 'Durable consent target',
+        sourceFiles,
+      };
+
+      const transitionRemixJob = store.transitionRemixJob.bind(store);
+      let committedShareId: string | undefined;
+      const transitionSpy = vi.spyOn(store, 'transitionRemixJob').mockImplementation(async (transition) => {
+        if (transition.state === 'STORAGE_POLICY_APPLIED') {
+          const job = await prisma.remixJob.findUniqueOrThrow({ where: { id: transition.id } });
+          const share = await prisma.remixStorageShare.findUniqueOrThrow({
+            where: { targetProjectId: job.targetProjectId! },
+          });
+          committedShareId = share.id;
+          throw Object.assign(new Error('injected process loss after share commit'), {
+            code: 'REMIX_OWNERSHIP_LOST',
+          });
+        }
+        return transitionRemixJob(transition);
+      });
+
+      const crashedAttempt = await executePhysicalRemix(deps, input).then(
+        (result) => ({ kind: 'resolved' as const, result }),
+        (error: unknown) => ({ kind: 'rejected' as const, error }),
+      );
+      if (crashedAttempt.kind === 'resolved') {
+        throw new Error(
+          `Expected injected crash, received ${crashedAttempt.result.kind}:${crashedAttempt.result.job.state}:${crashedAttempt.result.job.errorCode ?? 'no-code'}`,
+        );
+      }
+      expect(crashedAttempt).toMatchObject({
+        kind: 'rejected',
+        error: { code: 'REMIX_OWNERSHIP_LOST' },
+      });
+      transitionSpy.mockRestore();
+      expect(committedShareId).toBeDefined();
+      expect(prepareSourceRetention).toHaveBeenCalledTimes(1);
+      expect(retentionEffects).toHaveLength(1);
+      const crashedJob = await prisma.remixJob.findFirstOrThrow({
+        where: { organizationId: sourceOrganization.id, idempotencyKey: input.idempotencyKey },
+      });
+      expect(crashedJob).toMatchObject({ state: 'STORAGE_PINNED', storageShareId: null });
+
+      objectStorage.buckets.set(source.id, {
+        bucketExists: true,
+        objects: [
+          { key: 'later.txt', size: 5, generation: 'G1-new', contentHash: 'sha256:new' },
+          { key: 'shared.json', size: 8, generation: 'G2', contentHash: 'sha256:g2' },
+        ],
+      });
+      await prisma.remixJob.update({
+        where: { id: crashedJob.id },
+        data: { operationExpiresAt: new Date(0) },
+      });
+
+      const replay = await executePhysicalRemix(deps, input);
+      expect(replay).toMatchObject({
+        kind: 'completed',
+        fresh: true,
+        job: { storageShareId: committedShareId },
+      });
+      expect(prepareSourceRetention).toHaveBeenCalledTimes(1);
+      expect(retentionEffects).toHaveLength(1);
+      await expect(
+        prisma.remixStorageShare.count({ where: { targetProjectId: replay.job.targetProjectId! } }),
+      ).resolves.toBe(1);
+      await expect(prisma.remixStorageShare.findUnique({ where: { id: committedShareId! } })).resolves.toMatchObject({
+        sourceInventory: consentedInventory,
+        state: 'ACTIVE',
+      });
+
+      const forbiddenPreparation = vi.fn(async () => structuredClone(consentedInventory));
+      await expect(
+        store.createRemixStorageShare({
+          sourceProjectId: source.id,
+          targetProjectId: replay.job.targetProjectId!,
+          sourceOrganizationId: sourceOrganization.id,
+          targetOrganizationId: sourceOrganization.id,
+          consentVersion: input.storageConsentVersion,
+          sourceInventory: {
+            ...consentedInventory,
+            objects: [{ ...consentedInventory.objects[0], generation: 'different-pin' }],
+          },
+          prepareSourceRetention: forbiddenPreparation,
+        }),
+      ).rejects.toMatchObject({ code: 'REMIX_STORAGE_SHARE_CONFLICT', statusCode: 409 });
+      await expect(
+        store.createRemixStorageShare({
+          sourceProjectId: source.id,
+          targetProjectId: replay.job.targetProjectId!,
+          sourceOrganizationId: sourceOrganization.id,
+          targetOrganizationId: wrongTenantOrganization.id,
+          consentVersion: input.storageConsentVersion,
+          sourceInventory: consentedInventory,
+          prepareSourceRetention: forbiddenPreparation,
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION', statusCode: 409 });
+      expect(forbiddenPreparation).not.toHaveBeenCalled();
+    } finally {
+      await prisma.organization
+        .deleteMany({
+          where: {
+            id: {
+              in: [sourceOrganizationId, wrongTenantOrganizationId].filter((id): id is string => Boolean(id)),
+            },
+          },
+        })
+        .catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
   it('fails closed when a snapshot adapter persists the raw secret-bearing source instead of the scrubbed pin', async () => {
     const prisma = createDatabaseClient();
     let organizationId: string | undefined;

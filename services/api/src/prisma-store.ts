@@ -2880,6 +2880,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T> {
+    return this._withProjectPhysicalAccessesInternal(scopes, new Set(), effect);
+  }
+
+  private _withProjectPhysicalAccessesAllowingDeletedProjects<T>(
+    scopes: ProjectPhysicalMutationScope[],
+    allowDeletedProjectIds: readonly string[],
+    effect: () => Promise<T>,
+  ): Promise<T> {
+    return this._withProjectPhysicalAccessesInternal(scopes, new Set(allowDeletedProjectIds), effect);
+  }
+
+  private async _withProjectPhysicalAccessesInternal<T>(
+    scopes: ProjectPhysicalMutationScope[],
+    allowDeletedProjectIds: ReadonlySet<string>,
+    effect: () => Promise<T>,
+  ): Promise<T> {
     const byProjectId = new Map<string, ProjectPhysicalMutationScope>();
     for (const scope of scopes) {
       const existing = byProjectId.get(scope.projectId);
@@ -2894,13 +2910,19 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     if (orderedScopes.length === 0) {
       throw new TypeError('PROJECT_PHYSICAL_ACCESS_SCOPE_REQUIRED');
     }
+    if ([...allowDeletedProjectIds].some((projectId) => !byProjectId.has(projectId))) {
+      throw new TypeError('PROJECT_PHYSICAL_ACCESS_DELETED_SCOPE_INVALID');
+    }
 
     return this.withProjectPhysicalBarriers(
       orderedScopes.map(({ projectId }) => projectId),
       async () => {
         await this.prisma.$transaction(async (tx) => {
           for (const scope of orderedScopes) {
-            await this.lockExpectedProjectTenantMutation(tx, scope, { allowActiveCheckpoint: true });
+            await this.lockExpectedProjectTenantMutation(tx, scope, {
+              allowActiveCheckpoint: true,
+              allowDeletedProject: allowDeletedProjectIds.has(scope.projectId),
+            });
           }
         });
 
@@ -2910,7 +2932,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
           await this.prisma.$transaction(async (tx) => {
             for (const tenantScope of orderedScopes) {
-              await this.lockExpectedProjectTenantMutation(tx, tenantScope, { allowActiveCheckpoint: true });
+              await this.lockExpectedProjectTenantMutation(tx, tenantScope, {
+                allowActiveCheckpoint: true,
+                allowDeletedProject: allowDeletedProjectIds.has(tenantScope.projectId),
+              });
             }
           });
           return effect();
@@ -8241,7 +8266,59 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
     ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+    const replayExisting = (
+      existing: NonNullable<Awaited<ReturnType<typeof this.prisma.remixStorageShare.findUnique>>>,
+    ) => {
+      if (
+        existing.sourceProjectId !== input.sourceProjectId ||
+        existing.sourceOrganizationId !== input.sourceOrganizationId ||
+        existing.targetOrganizationId !== input.targetOrganizationId ||
+        existing.consentVersion !== input.consentVersion ||
+        existing.consentedByUserId !== (input.consentedByUserId ?? null) ||
+        existing.state !== 'ACTIVE' ||
+        !exactObjectStorageInventoriesEqual(
+          sourceInventory,
+          parseRetainedRemixSourceInventory(existing.sourceInventory),
+        )
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+          statusCode: 409,
+          code: 'REMIX_STORAGE_SHARE_CONFLICT',
+        });
+      }
+
+      return mapRemixStorageShare(existing);
+    };
+
+    return this._withProjectPhysicalAccessesAllowingDeletedProjects(tenantScopes, [input.targetProjectId], async () => {
+      /*
+       * A committed ACTIVE share is the durable idempotency result. Read and
+       * validate it while both tenant/NFS barriers are held before touching the
+       * provider: a worker may have died after this row committed but before
+       * the RemixJob advanced, and later legal source generations must not
+       * invalidate the exact consented inventory on retry.
+       */
+      const existingReplay = await this.prisma.$transaction(async (tx) => {
+        await assertAccountPurgeMutationAllowed(tx, {
+          userIds: [input.consentedByUserId],
+          organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+          projectIds: [input.sourceProjectId, input.targetProjectId],
+        });
+        const existing = await tx.remixStorageShare.findUnique({
+          where: { targetProjectId: input.targetProjectId },
+        });
+        if (!existing) return undefined;
+
+        const replay = replayExisting(existing);
+        await scheduleObjectStorageVersionGc(tx, {
+          projectId: input.sourceProjectId,
+          expectedOrganizationId: input.sourceOrganizationId,
+          notBefore: await databaseNow(tx),
+        });
+        return replay;
+      });
+      if (existingReplay) return existingReplay;
+
       const liveInventory = canonicalObjectStorageInventory(await input.prepareSourceRetention());
       if (!exactObjectStorageInventoriesEqual(sourceInventory, liveInventory)) {
         throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
@@ -8252,7 +8329,9 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
       return this.prisma.$transaction(async (tx) => {
         for (const scope of tenantScopes) {
-          await this.lockExpectedProjectTenantMutation(tx, scope);
+          await this.lockExpectedProjectTenantMutation(tx, scope, {
+            allowDeletedProject: scope.projectId === input.targetProjectId,
+          });
         }
 
         const projects = await tx.project.findMany({
@@ -8277,36 +8356,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
           projectIds: [input.sourceProjectId, input.targetProjectId],
         });
-        const existing = await tx.remixStorageShare.findUnique({
-          where: { targetProjectId: input.targetProjectId },
-        });
-
-        if (existing) {
-          if (
-            existing.sourceProjectId !== input.sourceProjectId ||
-            existing.sourceOrganizationId !== input.sourceOrganizationId ||
-            existing.targetOrganizationId !== input.targetOrganizationId ||
-            existing.consentVersion !== input.consentVersion ||
-            existing.state !== 'ACTIVE' ||
-            !exactObjectStorageInventoriesEqual(
-              sourceInventory,
-              parseRetainedRemixSourceInventory(existing.sourceInventory),
-            )
-          ) {
-            throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
-              statusCode: 409,
-              code: 'REMIX_STORAGE_SHARE_CONFLICT',
-            });
-          }
-
-          await scheduleObjectStorageVersionGc(tx, {
-            projectId: input.sourceProjectId,
-            expectedOrganizationId: input.sourceOrganizationId,
-            notBefore: now,
-          });
-          return mapRemixStorageShare(existing);
-        }
-
         const storedSourceInventory = {
           bucketExists: sourceInventory.bucketExists,
           objects: sourceInventory.objects.map(({ key, size, generation, contentHash }) => ({
@@ -8317,8 +8366,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           })),
         } satisfies Prisma.InputJsonObject;
 
-        const created = await tx.remixStorageShare.create({
-          data: {
+        /*
+         * Atomic insert-if-absent. If another replica won between the replay
+         * read and this transaction, the empty update preserves its row and
+         * replayExisting performs the exact identity/inventory CAS check.
+         */
+        const stored = await tx.remixStorageShare.upsert({
+          where: { targetProjectId: input.targetProjectId },
+          create: {
             sourceProjectId: input.sourceProjectId,
             targetProjectId: input.targetProjectId,
             sourceOrganizationId: input.sourceOrganizationId,
@@ -8327,13 +8382,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             consentedByUserId: input.consentedByUserId ?? null,
             sourceInventory: storedSourceInventory,
           },
+          update: {},
         });
+        const replay = replayExisting(stored);
         await scheduleObjectStorageVersionGc(tx, {
           projectId: input.sourceProjectId,
           expectedOrganizationId: input.sourceOrganizationId,
           notBefore: now,
         });
-        return mapRemixStorageShare(created);
+        return replay;
       });
     });
   }
@@ -8408,10 +8465,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         : []),
     ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-    return this.withProjectPhysicalAccesses(tenantScopes, () =>
+    return this._withProjectPhysicalAccessesAllowingDeletedProjects(tenantScopes, [input.targetProjectId], () =>
       this.prisma.$transaction(async (tx) => {
         for (const tenantScope of tenantScopes) {
-          await this.lockExpectedProjectTenantMutation(tx, tenantScope);
+          await this.lockExpectedProjectTenantMutation(tx, tenantScope, {
+            allowDeletedProject: tenantScope.projectId === input.targetProjectId,
+          });
         }
         await assertAccountPurgeMutationAllowed(tx, {
           userIds: [scope?.actorUserId],

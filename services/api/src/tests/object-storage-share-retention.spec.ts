@@ -551,6 +551,36 @@ function pinnedGeneration(sourceInventory: unknown, key: string): string {
 }
 
 runDbTests('SHARE_WITH_CONSENT source generation retention', () => {
+  it('serializes concurrent first-create attempts into one retention effect and one durable share', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    const storeA = new PrismaApiStore(prismaA);
+    const storeB = new PrismaApiStore(prismaB);
+    const fixture = await seedShareFixture(prismaA, 'share-retention-cas');
+    const sourceInventory: ObjectStorageInventory = {
+      bucketExists: true,
+      objects: [{ key: 'data/pinned.bin', size: 8, generation: 'G1', contentHash: 'sha256:g1' }],
+    };
+    const prepareA = vi.fn(async () => structuredClone(sourceInventory));
+    const prepareB = vi.fn(async () => structuredClone(sourceInventory));
+
+    try {
+      const [createdA, createdB] = await Promise.all([
+        storeA.createRemixStorageShare(shareInput(fixture, sourceInventory, prepareA)),
+        storeB.createRemixStorageShare(shareInput(fixture, sourceInventory, prepareB)),
+      ]);
+
+      expect(createdA.id).toBe(createdB.id);
+      expect(prepareA.mock.calls.length + prepareB.mock.calls.length).toBe(1);
+      await expect(
+        prismaA.remixStorageShare.count({ where: { targetProjectId: fixture.targetProjectId } }),
+      ).resolves.toBe(1);
+    } finally {
+      await cleanupShareFixture(prismaA, fixture);
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
   it('pins G1, refuses source destruction, and releases mutations only after explicit revoke', async () => {
     const prisma = createDatabaseClient();
     const store = new PrismaApiStore(prisma);
@@ -599,12 +629,15 @@ runDbTests('SHARE_WITH_CONSENT source generation retention', () => {
     ];
 
     try {
-      const prepareSourceRetention = vi.fn(async () => structuredClone(sourceInventory));
+      const prepareSourceRetention = vi.fn(async () => {
+        await storage.ensureBucket(sourceId);
+        return storage.inventoryProjectObjects(sourceId);
+      });
       const retainedShareInput = shareInput(fixture, sourceInventory, prepareSourceRetention);
       const created = await store.createRemixStorageShare(retainedShareInput);
       const replayed = await store.createRemixStorageShare(retainedShareInput);
       expect(replayed.id).toBe(created.id);
-      expect(prepareSourceRetention).toHaveBeenCalledTimes(2);
+      expect(prepareSourceRetention).toHaveBeenCalledTimes(1);
       await expect(
         store.createRemixStorageShare(
           shareInput(fixture, {
@@ -617,8 +650,16 @@ runDbTests('SHARE_WITH_CONSENT source generation retention', () => {
       ).rejects.toMatchObject({ code: 'REMIX_STORAGE_SHARE_CONFLICT', statusCode: 409 });
 
       storage.overwriteOutsideWorkflow(sourceId, 'docs/overwrite.txt', 'G2 external overwrite', 'G2');
+      storage.seed(sourceId, 'later/not-consented.txt', 'new legal object', 'G1-later');
       expect(storage.currentGeneration(sourceId, 'docs/overwrite.txt')).toBe('G2');
       expect(storage.hasGeneration(sourceId, 'docs/overwrite.txt', 'G1')).toBe(true);
+
+      const effectsBeforeDriftReplay = storage.providerEffects.length;
+      const readsBeforeDriftReplay = storage.providerReads;
+      await expect(store.createRemixStorageShare(retainedShareInput)).resolves.toMatchObject({ id: created.id });
+      expect(prepareSourceRetention).toHaveBeenCalledTimes(1);
+      expect(storage.providerEffects).toHaveLength(effectsBeforeDriftReplay);
+      expect(storage.providerReads).toBe(readsBeforeDriftReplay);
 
       const activeShare = await store.getRemixStorageShareByTarget(fixture.targetProjectId);
       expect(activeShare).toMatchObject({

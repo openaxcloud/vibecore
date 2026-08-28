@@ -674,6 +674,22 @@ export class TestApiStore implements ApiStore {
   }
 
   async withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T> {
+    return this._withProjectPhysicalAccessesInternal(scopes, new Set(), effect);
+  }
+
+  private _withProjectPhysicalAccessesAllowingDeletedProjects<T>(
+    scopes: ProjectPhysicalMutationScope[],
+    allowDeletedProjectIds: readonly string[],
+    effect: () => Promise<T>,
+  ): Promise<T> {
+    return this._withProjectPhysicalAccessesInternal(scopes, new Set(allowDeletedProjectIds), effect);
+  }
+
+  private async _withProjectPhysicalAccessesInternal<T>(
+    scopes: ProjectPhysicalMutationScope[],
+    allowDeletedProjectIds: ReadonlySet<string>,
+    effect: () => Promise<T>,
+  ): Promise<T> {
     const byProjectId = new Map<string, ProjectPhysicalMutationScope>();
     for (const scope of scopes) {
       const existing = byProjectId.get(scope.projectId);
@@ -688,15 +704,22 @@ export class TestApiStore implements ApiStore {
     if (orderedScopes.length === 0) {
       throw new TypeError('PROJECT_PHYSICAL_ACCESS_SCOPE_REQUIRED');
     }
+    if ([...allowDeletedProjectIds].some((projectId) => !byProjectId.has(projectId))) {
+      throw new TypeError('PROJECT_PHYSICAL_ACCESS_DELETED_SCOPE_INVALID');
+    }
 
     return this.withProjectPhysicalBarriers(
       orderedScopes.map(({ projectId }) => projectId),
       async () => {
         for (const tenantScope of orderedScopes) {
-          await this.assertProjectStorageMutable(tenantScope);
+          await this.assertProjectStorageMutable(tenantScope, {
+            allowDeletedProject: allowDeletedProjectIds.has(tenantScope.projectId),
+          });
         }
         for (const tenantScope of orderedScopes) {
-          await this.assertProjectStorageMutable(tenantScope);
+          await this.assertProjectStorageMutable(tenantScope, {
+            allowDeletedProject: allowDeletedProjectIds.has(tenantScope.projectId),
+          });
         }
         return effect();
       },
@@ -9653,7 +9676,33 @@ export class TestApiStore implements ApiStore {
       { projectId: input.targetProjectId, expectedOrganizationId: input.targetOrganizationId },
     ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+    const replayExisting = (existing: RemixStorageShareRecord) => {
+      if (
+        existing.sourceProjectId !== input.sourceProjectId ||
+        existing.sourceOrganizationId !== input.sourceOrganizationId ||
+        existing.targetOrganizationId !== input.targetOrganizationId ||
+        existing.consentVersion !== input.consentVersion ||
+        (existing.consentedByUserId ?? null) !== (input.consentedByUserId ?? null) ||
+        existing.state !== 'ACTIVE' ||
+        JSON.stringify(retainedRemixSourceInventory(existing.sourceInventory)) !== JSON.stringify(sourceInventory)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+          statusCode: 409,
+          code: 'REMIX_STORAGE_SHARE_CONFLICT',
+        });
+      }
+      return existing;
+    };
+
+    return this._withProjectPhysicalAccessesAllowingDeletedProjects(tenantScopes, [input.targetProjectId], async () => {
+      this._assertAccountPurgeMutationAllowed({
+        userIds: [input.consentedByUserId],
+        organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
+        projectIds: [input.sourceProjectId, input.targetProjectId],
+      });
+      const existing = this.remixStorageShares.get(input.targetProjectId);
+      if (existing) return replayExisting(existing);
+
       const liveInventory = canonicalObjectStorageInventory(await input.prepareSourceRetention());
       if (JSON.stringify(liveInventory) !== JSON.stringify(sourceInventory)) {
         throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
@@ -9662,7 +9711,9 @@ export class TestApiStore implements ApiStore {
         });
       }
       for (const scope of tenantScopes) {
-        await this.assertProjectTenantMutationAllowed(scope);
+        await this.assertProjectTenantMutationAllowed(scope, {
+          allowDeletedProject: scope.projectId === input.targetProjectId,
+        });
       }
       if (
         [input.sourceProjectId, input.targetProjectId].some(
@@ -9673,30 +9724,6 @@ export class TestApiStore implements ApiStore {
           code: 'OBJECT_STORAGE_CAPABILITY_ACTIVE',
           statusCode: 409,
         });
-      }
-
-      this._assertAccountPurgeMutationAllowed({
-        userIds: [input.consentedByUserId],
-        organizationIds: [input.sourceOrganizationId, input.targetOrganizationId],
-        projectIds: [input.sourceProjectId, input.targetProjectId],
-      });
-      const existing = this.remixStorageShares.get(input.targetProjectId);
-
-      if (existing) {
-        if (
-          existing.sourceProjectId !== input.sourceProjectId ||
-          existing.sourceOrganizationId !== input.sourceOrganizationId ||
-          existing.targetOrganizationId !== input.targetOrganizationId ||
-          existing.consentVersion !== input.consentVersion ||
-          existing.state !== 'ACTIVE' ||
-          JSON.stringify(retainedRemixSourceInventory(existing.sourceInventory)) !== JSON.stringify(sourceInventory)
-        ) {
-          throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
-            statusCode: 409,
-            code: 'REMIX_STORAGE_SHARE_CONFLICT',
-          });
-        }
-        return existing;
       }
 
       const row: RemixStorageShareRecord = {
@@ -9711,6 +9738,8 @@ export class TestApiStore implements ApiStore {
         consentedAt: now(),
         state: 'ACTIVE',
       };
+      const winner = this.remixStorageShares.get(input.targetProjectId);
+      if (winner) return replayExisting(winner);
       this.remixStorageShares.set(input.targetProjectId, row);
 
       return row;
@@ -9767,9 +9796,11 @@ export class TestApiStore implements ApiStore {
       ...(share ? [{ projectId: share.sourceProjectId, expectedOrganizationId: share.sourceOrganizationId }] : []),
     ].sort((left, right) => left.projectId.localeCompare(right.projectId));
 
-    return this.withProjectPhysicalAccesses(tenantScopes, async () => {
+    return this._withProjectPhysicalAccessesAllowingDeletedProjects(tenantScopes, [input.targetProjectId], async () => {
       for (const tenantScope of tenantScopes) {
-        await this.assertProjectTenantMutationAllowed(tenantScope);
+        await this.assertProjectTenantMutationAllowed(tenantScope, {
+          allowDeletedProject: tenantScope.projectId === input.targetProjectId,
+        });
       }
       this._assertAccountPurgeMutationAllowed({
         userIds: [job?.actorUserId],
