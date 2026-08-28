@@ -528,7 +528,11 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
-      arRetentionWorkflow: arRetentionWorkflow.replace(/pkg="\$\{pkg%%@\*\}"; /g, ''),
+      // La variable ASSIGNÉE et celle LUE diffèrent dans l'implémentation réelle
+      // (`pkg="${ref%%@*}"`). Une mutation qui exige le même nom des deux côtés
+      // ne retire donc rien, et l'auto-test échoue en croyant que la règle ne
+      // détecte plus la régression — alors que c'est la mutation qui rate sa cible.
+      arRetentionWorkflow: arRetentionWorkflow.replace(/\w+="\$\{\w+%%@\*\}"; /g, ''),
     })],
     ['break-glass allowed to build', () => ({
       deployWorkflow,
