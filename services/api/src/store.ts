@@ -15,7 +15,7 @@ import type { RollbackSuccessReceipt } from './rollback-response.js';
 import type {
   ObjectStorageCheckpointBarrierAuthority,
   ObjectStorageOperationLease,
-  ObjectStorageStaticArtifactSummary,
+  ObjectStorageStaticErasurePlan,
   ObjectStorageVerification,
 } from './object-storage-operation.js';
 import type {
@@ -2490,7 +2490,7 @@ export interface ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
-      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,

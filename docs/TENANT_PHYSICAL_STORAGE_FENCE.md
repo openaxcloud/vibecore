@@ -10,15 +10,17 @@ after the project ownership commit to organization B.
 Project IDs are deduplicated and sorted before every multi-project operation.
 The order is:
 
-1. PostgreSQL **session** advisory physical lock(s), held on one dedicated
+1. for permanent deletion or account-purge static erasure, the global static
+   last-reference session lock and its heartbeat NFS lock;
+2. PostgreSQL **session** advisory project physical lock(s), held on one dedicated
    `pg.Pool` client for the full effect;
-2. a short transaction taking purge topology shared, object-storage locks when
+3. a short transaction taking purge topology shared, object-storage locks when
    applicable, checkpoint, then `Project` row locks, followed by tenant and
    deletion-state validation;
-3. NFS project lock(s), in the same sorted project order;
-4. a fresh short tenant/checkpoint/`Project` validation while NFS is held;
-5. the physical effect; object-provider effects run outside Prisma transactions;
-6. live verification and a short final transaction in the same database lock
+4. NFS project lock(s), in the same sorted project order;
+5. a fresh short tenant/checkpoint/`Project` validation while NFS is held;
+6. the physical effect; object-provider effects run outside Prisma transactions;
+7. live verification and a short final transaction in the same database lock
    order.
 
 The NFS lock renews its token-owned inode mtime while an effect is active. The
@@ -129,12 +131,21 @@ commit atomically with that delete, allowing an identical lost response to
 replay without repeating effects. Restore refuses a project whose permanent
 deletion has started.
 
-Static-artifact evidence is stored as sorted counts plus a SHA-256 commitment,
-not as an unbounded copy of every disposition. This keeps large deletion
-receipts bounded and tamper-evident. The receipt remains independently
-queryable after cascade, but it is not a forensic preimage: the child manifest
-rows used to construct the commitment are intentionally removed with the
-project.
+Static-artifact evidence is stored in two layers. The receipt contains sorted
+counts plus a SHA-256 commitment, keeping its JSON bounded even for more than
+10,000 content-addressed releases. Before any effect, the complete canonical
+preimage is inserted in 500-row batches into
+`ProjectPermanentDeletionArtifactPlan`; those rows survive the Project and
+ReleaseManifest cascade through the durable operation. Finalization re-derives
+the receipt commitment from that normalized ledger before changing each row
+from `PLANNED` to `DELETED` or `RETAINED`.
+
+All project permanent deletions and account-purge static erasures hold one
+cross-project session+NFS last-reference barrier through their final database
+commit. Per-digest erasure uses the same static-deployment lock as publishing.
+Consequently two projects sharing one digest cannot both retain it based on the
+other's soon-to-be-cascaded manifest: the first deletion commits its cascade,
+then the final owner observes zero other references and removes the bytes.
 
 Workspace cold start persists tenant-fenced `STARTING` before calling the
 workspace manager. If transfer commits first, no manager request is sent. If the

@@ -133,9 +133,15 @@ describe('LocalProjectStorage static permanent erasure', () => {
       { digest: uniqueDigest, outcome: 'DELETED_UNREFERENCED' as const, otherReferenceCount: 0 },
       { digest: sharedDigest, outcome: 'RETAINED_BY_OTHER_MANIFEST' as const, otherReferenceCount: 2 },
     ].sort((left, right) => left.digest.localeCompare(right.digest));
-    await expect(storage.prepareProjectStaticErasureWithinPhysicalAccess(projectId)).resolves.toEqual(
-      objectStorageStaticArtifactSummary(expectedArtifacts),
-    );
+    await expect(storage.prepareProjectStaticErasureWithinPhysicalAccess(projectId)).resolves.toEqual({
+      summary: objectStorageStaticArtifactSummary(expectedArtifacts),
+      artifacts: artifacts
+        .map((artifact) => ({
+          ...artifact,
+          digest: artifact.artifactRef.slice('static-artifacts/sha256/'.length),
+        }))
+        .sort((left, right) => left.artifactRef.localeCompare(right.artifactRef)),
+    });
 
     await storage.eraseProjectStaticDataWithinPhysicalAccess(projectId);
 

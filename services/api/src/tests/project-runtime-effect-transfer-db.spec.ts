@@ -11,6 +11,7 @@ import { objectStorageStaticArtifactSummary, type ObjectStorageOperationLease } 
 
 const runDbTests = process.env.DATABASE_URL ? describe.sequential : describe.skip;
 const EMPTY_STATIC_ARTIFACT_SUMMARY = objectStorageStaticArtifactSummary([]);
+const EMPTY_STATIC_ARTIFACT_PLAN = { summary: EMPTY_STATIC_ARTIFACT_SUMMARY, artifacts: [] };
 
 type RuntimeEffectState = 'PREPARED' | 'IN_FLIGHT' | 'SETTLED';
 
@@ -229,7 +230,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
         actorUserId: fixture.actorId,
         idempotencyKey: unique('runtime-effect-transfer-delete'),
         requestHash,
-        preflightPhysicalErasure: async () => EMPTY_STATIC_ARTIFACT_SUMMARY,
+        preflightPhysicalErasure: async () => EMPTY_STATIC_ARTIFACT_PLAN,
         erasePhysical: async (assertLease, lease) => {
           await assertLease();
           const managerLease = workspaceDeletionLease(fixture, fixture.organizationBId, lease);

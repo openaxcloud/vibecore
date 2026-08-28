@@ -38,7 +38,7 @@ export interface ObjectStorageStaticArtifactDisposition {
 }
 
 /**
- * Exact, bounded commitment to the complete static-artifact disposition list.
+ * Exact, compact commitment to the complete static-artifact disposition list.
  * The full list is intentionally never copied into the generic operation or
  * permanent-deletion receipt JSON: a legitimate project can own thousands of
  * content-addressed releases and both columns are capped at 256 KiB.
@@ -49,6 +49,19 @@ export type ObjectStorageStaticArtifactSummary = ObjectStorageJsonObject & {
   retainedCount: number;
   digest: string;
 };
+
+/** Normalized pre-effect authority retained after the Project/manifest cascade. */
+export interface ObjectStorageStaticArtifactPlanEntry {
+  artifactRef: string;
+  digest: string;
+  projectReferenceCount: number;
+  otherReferenceCount: number;
+}
+
+export interface ObjectStorageStaticErasurePlan {
+  summary: ObjectStorageStaticArtifactSummary;
+  artifacts: readonly ObjectStorageStaticArtifactPlanEntry[];
+}
 
 export interface ObjectStorageOperationScope {
   projectId: string;
@@ -556,9 +569,6 @@ export function objectStoragePinnedGenerationDigest(generations: readonly Object
 export function objectStorageArtifactInventoryDigest(
   dispositions: readonly ObjectStorageStaticArtifactDisposition[],
 ): string {
-  if (dispositions.length > 10_000) {
-    throw operationError('OBJECT_STORAGE_OPERATION_ARTIFACT_INVENTORY_INVALID', 'Artifact inventory is too large', 400);
-  }
   const sorted = dispositions
     .map((artifact) => {
       if (
@@ -619,7 +629,6 @@ export function parseObjectStorageStaticArtifactSummary(value: unknown): ObjectS
     Object.keys(summary).some((key) => !['count', 'deletedCount', 'retainedCount', 'digest'].includes(key)) ||
     !Number.isSafeInteger(summary.count) ||
     Number(summary.count) < 0 ||
-    Number(summary.count) > 10_000 ||
     !Number.isSafeInteger(summary.deletedCount) ||
     Number(summary.deletedCount) < 0 ||
     !Number.isSafeInteger(summary.retainedCount) ||
@@ -640,6 +649,54 @@ export function parseObjectStorageStaticArtifactSummary(value: unknown): ObjectS
     retainedCount: Number(summary.retainedCount),
     digest: summary.digest,
   };
+}
+
+function normalizeObjectStorageStaticErasurePlan(value: ObjectStorageStaticErasurePlan): {
+  summary: ObjectStorageStaticArtifactSummary;
+  artifacts: ObjectStorageStaticArtifactPlanEntry[];
+} {
+  const summary = parseObjectStorageStaticArtifactSummary(value.summary);
+  if (!Array.isArray(value.artifacts)) {
+    throw operationError('OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID', 'Static artifact plan is invalid', 400);
+  }
+  const artifacts = value.artifacts
+    .map((artifact) => {
+      const matchedDigest = /^static-artifacts\/sha256\/([a-f0-9]{64})$/u.exec(artifact.artifactRef)?.[1];
+      if (
+        !matchedDigest ||
+        artifact.digest !== matchedDigest ||
+        !Number.isSafeInteger(artifact.projectReferenceCount) ||
+        artifact.projectReferenceCount < 1 ||
+        !Number.isSafeInteger(artifact.otherReferenceCount) ||
+        artifact.otherReferenceCount < 0
+      ) {
+        throw operationError('OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID', 'Static artifact plan is invalid', 400);
+      }
+      return { ...artifact };
+    })
+    .sort((left, right) => left.artifactRef.localeCompare(right.artifactRef));
+  if (new Set(artifacts.map((artifact) => artifact.artifactRef)).size !== artifacts.length) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID',
+      'Static artifact plan contains duplicate references',
+      400,
+    );
+  }
+  const derivedSummary = objectStorageStaticArtifactSummary(
+    artifacts.map((artifact) => ({
+      digest: artifact.digest,
+      outcome: artifact.otherReferenceCount === 0 ? 'DELETED_UNREFERENCED' : 'RETAINED_BY_OTHER_MANIFEST',
+      otherReferenceCount: artifact.otherReferenceCount,
+    })),
+  );
+  if (!staticArtifactSummariesEqual(summary, derivedSummary)) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID',
+      'Static artifact plan does not match its commitment',
+      409,
+    );
+  }
+  return { summary, artifacts };
 }
 
 export function canonicalizeObjectStorageScopes(
@@ -1755,9 +1812,9 @@ async function lockLeasedOperationScope(
 export async function recordPermanentDeletionStaticArtifactPlan(
   tx: Tx,
   lease: ObjectStorageOperationLease,
-  summary: ObjectStorageStaticArtifactSummary,
+  plan: ObjectStorageStaticErasurePlan,
 ): Promise<ObjectStorageOperationRecord> {
-  const normalized = parseObjectStorageStaticArtifactSummary(summary);
+  const normalized = normalizeObjectStorageStaticErasurePlan(plan);
   const locked = await lockLeasedOperationScope(tx, lease);
   if (
     locked.row.kind !== 'PROJECT_PERMANENT_DELETE' ||
@@ -1772,9 +1829,30 @@ export async function recordPermanentDeletionStaticArtifactPlan(
   }
   const preconditions = {
     ...normalizeJsonObject(locked.row.preconditions, 'stored preconditions'),
-    staticArtifactPlan: normalized,
+    staticArtifactPlan: normalized.summary,
   };
   assertJsonObject(preconditions, 'permanent deletion preconditions');
+  await tx.$executeRaw`
+    DELETE FROM "ProjectPermanentDeletionArtifactPlan"
+    WHERE "operationId" = ${lease.operationId}
+  `;
+  for (let offset = 0; offset < normalized.artifacts.length; offset += 500) {
+    const batch = normalized.artifacts.slice(offset, offset + 500);
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO "ProjectPermanentDeletionArtifactPlan" (
+        "operationId", "ordinal", "artifactRef", "artifactDigest",
+        "projectReferenceCount", "plannedOtherReferenceCount", "state", "createdAt"
+      ) VALUES ${Prisma.join(
+        batch.map(
+          (artifact, index) => Prisma.sql`(
+            ${lease.operationId}, ${offset + index}, ${artifact.artifactRef}, ${artifact.digest},
+            ${artifact.projectReferenceCount}, ${artifact.otherReferenceCount},
+            'PLANNED'::"ProjectPermanentDeletionArtifactState", clock_timestamp()
+          )`,
+        ),
+      )}
+    `);
+  }
   const rows = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
     UPDATE "ObjectStorageOperation"
     SET "preconditions" = ${JSON.stringify(preconditions)}::jsonb,
@@ -1962,6 +2040,59 @@ function assertPermanentDeletionEvidence(
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
       'Static artifact verification does not match the pre-effect commitment',
+      409,
+    );
+  }
+}
+
+async function finalizePermanentDeletionStaticArtifactPlan(
+  tx: Tx,
+  operationId: string,
+  preconditions: ObjectStorageJsonObject,
+): Promise<void> {
+  const rows = await tx.$queryRaw<
+    Array<{
+      artifactRef: string;
+      digest: string;
+      projectReferenceCount: number;
+      otherReferenceCount: number;
+      state: string;
+    }>
+  >(Prisma.sql`
+    SELECT
+      "artifactRef", "artifactDigest" AS "digest", "projectReferenceCount",
+      "plannedOtherReferenceCount" AS "otherReferenceCount", "state"::text AS "state"
+    FROM "ProjectPermanentDeletionArtifactPlan"
+    WHERE "operationId" = ${operationId}
+    ORDER BY "ordinal" ASC
+  `);
+  if (rows.some((row) => row.state !== 'PLANNED')) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID',
+      'Static artifact plan was already mutated before finalization',
+      409,
+    );
+  }
+  normalizeObjectStorageStaticErasurePlan({
+    summary: parseObjectStorageStaticArtifactSummary(preconditions.staticArtifactPlan),
+    artifacts: rows.map(({ state: _state, ...row }) => row),
+  });
+  const finalized = await tx.$executeRaw`
+    UPDATE "ProjectPermanentDeletionArtifactPlan"
+    SET "state" = CASE
+          WHEN "plannedOtherReferenceCount" = 0
+            THEN 'DELETED'::"ProjectPermanentDeletionArtifactState"
+          ELSE 'RETAINED'::"ProjectPermanentDeletionArtifactState"
+        END,
+        "finalOtherReferenceCount" = "plannedOtherReferenceCount",
+        "processedAt" = clock_timestamp()
+    WHERE "operationId" = ${operationId}
+      AND "state" = 'PLANNED'::"ProjectPermanentDeletionArtifactState"
+  `;
+  if (finalized !== rows.length) {
+    throw operationError(
+      'OBJECT_STORAGE_OPERATION_ARTIFACT_PLAN_INVALID',
+      'Static artifact plan changed during finalization',
       409,
     );
   }
@@ -2700,10 +2831,9 @@ export async function finalizeObjectStorageOperation(
       }
     | undefined;
   if (locked.row.kind === 'PROJECT_PERMANENT_DELETE') {
-    assertPermanentDeletionEvidence(
-      verification.evidence,
-      normalizeJsonObject(locked.row.preconditions, 'stored preconditions'),
-    );
+    const permanentDeletionPreconditions = normalizeJsonObject(locked.row.preconditions, 'stored preconditions');
+    assertPermanentDeletionEvidence(verification.evidence, permanentDeletionPreconditions);
+    await finalizePermanentDeletionStaticArtifactPlan(tx, locked.row.id, permanentDeletionPreconditions);
     const scope = locked.scopes[0];
     if (!scope || locked.scopes.length !== 1) {
       throw operationError('OBJECT_STORAGE_OPERATION_SCOPE_CORRUPT', 'Permanent deletion scope is invalid', 500);

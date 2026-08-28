@@ -71,6 +71,7 @@ import {
   type ObjectStorageCheckpointBarrierAuthority,
   type ObjectStorageOperationLease,
   type ObjectStorageStaticArtifactSummary,
+  type ObjectStorageStaticErasurePlan,
   type ObjectStorageVerification,
 } from '../object-storage-operation.js';
 import {
@@ -2535,7 +2536,7 @@ export class TestApiStore implements ApiStore {
       requestHash: string;
       actorUserId: string;
       ipAddress?: string;
-      preflightPhysicalErasure: () => Promise<ObjectStorageStaticArtifactSummary>;
+      preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
       erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
@@ -2626,10 +2627,10 @@ export class TestApiStore implements ApiStore {
           scopeHash: createHash('sha256').update(`${input.projectId}:${input.expectedOrganizationId}`).digest('hex'),
           leaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
         };
-        let staticArtifactPlan: ObjectStorageStaticArtifactSummary;
+        let staticArtifactPlan: ObjectStorageStaticErasurePlan;
         try {
           staticArtifactPlan = await input.preflightPhysicalErasure();
-          parseObjectStorageStaticArtifactSummary(staticArtifactPlan);
+          parseObjectStorageStaticArtifactSummary(staticArtifactPlan.summary);
           await assertLease();
         } catch (error) {
           project.permanentDeletionStartedAt = priorPermanentDeletionStartedAt;
@@ -2640,7 +2641,7 @@ export class TestApiStore implements ApiStore {
         await input.erasePhysical(assertLease, lease);
         await assertLease();
         const proof = await input.verifyPhysicalAbsence(assertLease, lease);
-        assertPermanentDeletionProof(proof, staticArtifactPlan);
+        assertPermanentDeletionProof(proof, staticArtifactPlan.summary);
         const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown>;
         if (
           workspaceManager.projectId !== input.projectId ||

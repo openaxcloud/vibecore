@@ -49,7 +49,7 @@ function hardDeleteProject(
       actorUserId,
       expectedProjectName: project.name,
     }),
-    preflightPhysicalErasure: async () => emptyStaticArtifactSummary,
+    preflightPhysicalErasure: async () => ({ summary: emptyStaticArtifactSummary, artifacts: [] }),
     erasePhysical: async () => undefined,
     verifyPhysicalAbsence: async () => ({
       outcome: 'VERIFIED_ABSENT',
