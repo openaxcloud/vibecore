@@ -45,6 +45,7 @@ jobs:
       CI: true
       HUSKY: 0
       DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
+      VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE: '1'
       REDIS_URL: redis://127.0.0.1:56379
       API_HOST: 127.0.0.1
       API_PORT: 3001

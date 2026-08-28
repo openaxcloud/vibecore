@@ -34,6 +34,28 @@ interface DatabaseFixtureRow {
   physicalAuthorityAt: Date | null;
 }
 
+const destructiveFixtureOptIn = 'VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE';
+
+function assertDisposableDatabaseFixtureTarget(): void {
+  if (process.env[destructiveFixtureOptIn] !== '1') {
+    throw new Error('DATABASE_ERASURE_TEST_FIXTURE_EXPLICIT_OPT_IN_REQUIRED');
+  }
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) throw new Error('DATABASE_ERASURE_TEST_FIXTURE_DATABASE_URL_REQUIRED');
+
+  let host: string;
+  try {
+    host = new URL(databaseUrl).hostname;
+  } catch {
+    throw new Error('DATABASE_ERASURE_TEST_FIXTURE_DATABASE_URL_INVALID');
+  }
+
+  if (!['127.0.0.1', 'localhost', '[::1]', '::1'].includes(host)) {
+    throw new Error('DATABASE_ERASURE_TEST_FIXTURE_LOOPBACK_DATABASE_REQUIRED');
+  }
+}
+
 /**
  * Remove one isolated DatabaseInstance fixture through the same v2 receipt gate
  * that protects production cascades. This is intentionally stricter than a raw
@@ -48,6 +70,8 @@ export async function eraseIsolatedDatabaseInstanceFixture(
   prisma: DatabaseClient,
   input: { databaseInstanceId: string; projectId: string; organizationId: string },
 ): Promise<void> {
+  assertDisposableDatabaseFixtureTarget();
+
   const operationId = `objop_test_${randomUUID()}`;
   const idempotencyKey = `test-database-erasure-${randomUUID()}`;
   const ownerToken = `test-database-erasure-owner:${randomUUID()}`;

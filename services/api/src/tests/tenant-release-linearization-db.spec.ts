@@ -22,6 +22,7 @@ async function canReachDatabase() {
 }
 
 const runDbTests = (await canReachDatabase()) ? describe.sequential : describe.skip;
+const destructiveFixtureIt = process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE === '1' ? it : it.skip;
 
 function suffix() {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
@@ -79,6 +80,39 @@ async function seedManifest(store: PrismaApiStore, projectId: string, expectedOr
 }
 
 runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', () => {
+  it('requires an explicit opt-in and a loopback database for synthetic erasure evidence', async () => {
+    const prisma = createDatabaseClient();
+    const originalOptIn = process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE;
+    const originalDatabaseUrl = process.env.DATABASE_URL;
+
+    try {
+      delete process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE;
+      await expect(
+        eraseIsolatedDatabaseInstanceFixture(prisma, {
+          databaseInstanceId: 'unreachable-without-opt-in',
+          projectId: 'unreachable-without-opt-in',
+          organizationId: 'unreachable-without-opt-in',
+        }),
+      ).rejects.toThrow('DATABASE_ERASURE_TEST_FIXTURE_EXPLICIT_OPT_IN_REQUIRED');
+
+      process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE = '1';
+      process.env.DATABASE_URL = 'postgresql://vibecore:secret@production.example.test/vibecore';
+      await expect(
+        eraseIsolatedDatabaseInstanceFixture(prisma, {
+          databaseInstanceId: 'unreachable-on-remote-host',
+          projectId: 'unreachable-on-remote-host',
+          organizationId: 'unreachable-on-remote-host',
+        }),
+      ).rejects.toThrow('DATABASE_ERASURE_TEST_FIXTURE_LOOPBACK_DATABASE_REQUIRED');
+    } finally {
+      if (originalOptIn === undefined) delete process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE;
+      else process.env.VIBECORE_ALLOW_DESTRUCTIVE_DATABASE_FIXTURE_ERASURE = originalOptIn;
+      if (originalDatabaseUrl === undefined) delete process.env.DATABASE_URL;
+      else process.env.DATABASE_URL = originalDatabaseUrl;
+      await prisma.$disconnect();
+    }
+  });
+
   it('lets concurrent actor-fenced project mutations share topology without an advisory-lock upgrade deadlock', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
@@ -282,7 +316,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
     }
   });
 
-  it('fails transfer before any mutation for every tenant-owned or active resource', async () => {
+  destructiveFixtureIt('fails transfer before any mutation for every tenant-owned or active resource', async () => {
     const prisma = createDatabaseClient();
     const store = new PrismaApiStore(prisma);
     const organizations = await seedOrganizations(prisma, 'transfer-gates');
@@ -438,27 +472,31 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
 
     try {
       for (const candidate of cases) {
-        const cleanup = await candidate.setup();
+        let cleanup: (() => Promise<unknown>) | undefined;
+        try {
+          cleanup = await candidate.setup();
 
-        await expect(
-          store.transferProject({
-            projectId: project.id,
-            expectedOrganizationId: organizations.source.id,
-            expectedOwnershipEpoch: 0,
-            targetOrganizationId: organizations.target.id,
-            idempotencyKey: `managed-resource-transfer-${suffix()}`,
-            assertExternalStorageDetached: async () => undefined,
-            validateTargetAdmission: async () => undefined,
-          }),
-          candidate.name,
-        ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
-        expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).organizationId).toBe(
-          organizations.source.id,
-        );
-        expect(await prisma.projectCollaborator.count({ where: { projectId: project.id } })).toBe(1);
-        expect(await prisma.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
-        expect((await store.getLatestProjectManifest(project.id))?.digest).toBe(revision.digest);
-        await cleanup();
+          await expect(
+            store.transferProject({
+              projectId: project.id,
+              expectedOrganizationId: organizations.source.id,
+              expectedOwnershipEpoch: 0,
+              targetOrganizationId: organizations.target.id,
+              idempotencyKey: `managed-resource-transfer-${suffix()}`,
+              assertExternalStorageDetached: async () => undefined,
+              validateTargetAdmission: async () => undefined,
+            }),
+            candidate.name,
+          ).rejects.toMatchObject({ code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE' });
+          expect((await prisma.project.findUniqueOrThrow({ where: { id: project.id } })).organizationId).toBe(
+            organizations.source.id,
+          );
+          expect(await prisma.projectCollaborator.count({ where: { projectId: project.id } })).toBe(1);
+          expect(await prisma.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
+          expect((await store.getLatestProjectManifest(project.id))?.digest).toBe(revision.digest);
+        } finally {
+          await cleanup?.();
+        }
       }
     } finally {
       await prisma.cloudProjectBinding.deleteMany({ where: { projectId: project.id } }).catch(() => undefined);
