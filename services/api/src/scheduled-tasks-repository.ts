@@ -190,10 +190,24 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
 
   async listDueTasks(now: Date, limit: number): Promise<ScheduledTaskRow[]> {
     return this.query<ScheduledTaskRow>(
-      `SELECT ${TASK_COLUMNS} FROM "ScheduledTask"
-       WHERE enabled = true AND "nextRunAt" IS NOT NULL AND "nextRunAt" <= $1
-       ORDER BY "nextRunAt" ASC
-       LIMIT $2`,
+      `SELECT ${TASK_COLUMNS}
+       FROM "ScheduledTask"
+       WHERE id IN (
+         SELECT task.id
+         FROM "ScheduledTask" task
+         JOIN "Project" project
+           ON project.id = task."projectId"
+          AND project."organizationId" = task."organizationId"
+         WHERE task.enabled = true
+           AND task."deletedAt" IS NULL
+           AND task."nextRunAt" IS NOT NULL
+           AND task."nextRunAt" <= $1
+           AND project."deletedAt" IS NULL
+           AND project."permanentDeletionStartedAt" IS NULL
+         ORDER BY task."nextRunAt" ASC
+         LIMIT $2
+       )
+       ORDER BY "nextRunAt" ASC`,
       now,
       limit,
     );
@@ -201,8 +215,15 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
 
   async claimTick(taskId: string, expected: Date, next: Date | null): Promise<boolean> {
     const updated = await this.execute(
-      `UPDATE "ScheduledTask" SET "nextRunAt" = $1, "updatedAt" = NOW()
-       WHERE id = $2 AND "nextRunAt" = $3`,
+      `UPDATE "ScheduledTask" task SET "nextRunAt" = $1, "updatedAt" = NOW()
+       WHERE task.id = $2 AND task."nextRunAt" = $3 AND task."deletedAt" IS NULL
+         AND EXISTS (
+           SELECT 1 FROM "Project" project
+           WHERE project.id = task."projectId"
+             AND project."organizationId" = task."organizationId"
+             AND project."deletedAt" IS NULL
+             AND project."permanentDeletionStartedAt" IS NULL
+         )`,
       next,
       taskId,
       expected,
@@ -213,7 +234,7 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
 
   async getTask(taskId: string): Promise<ScheduledTaskRow | undefined> {
     const [row] = await this.query<ScheduledTaskRow>(
-      `SELECT ${TASK_COLUMNS} FROM "ScheduledTask" WHERE id = $1 LIMIT 1`,
+      `SELECT ${TASK_COLUMNS} FROM "ScheduledTask" WHERE id = $1 AND "deletedAt" IS NULL LIMIT 1`,
       taskId,
     );
 
@@ -222,7 +243,10 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
 
   async getProjectTask(projectId: string, taskId: string): Promise<ScheduledTaskRow | undefined> {
     const [row] = await this.query<ScheduledTaskRow>(
-      `SELECT ${TASK_COLUMNS} FROM "ScheduledTask" WHERE id = $1 AND "projectId" = $2 LIMIT 1`,
+      `SELECT ${TASK_COLUMNS}
+       FROM "ScheduledTask"
+       WHERE id = $1 AND "projectId" = $2 AND "deletedAt" IS NULL
+       LIMIT 1`,
       taskId,
       projectId,
     );
@@ -232,14 +256,19 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
 
   async listProjectTasks(projectId: string): Promise<ScheduledTaskRow[]> {
     return this.query<ScheduledTaskRow>(
-      `SELECT ${TASK_COLUMNS} FROM "ScheduledTask" WHERE "projectId" = $1 ORDER BY "createdAt" ASC`,
+      `SELECT ${TASK_COLUMNS}
+       FROM "ScheduledTask"
+       WHERE "projectId" = $1 AND "deletedAt" IS NULL
+       ORDER BY "createdAt" ASC`,
       projectId,
     );
   }
 
   async countProjectTasks(projectId: string): Promise<number> {
     const [row] = await this.query<{ count: bigint }>(
-      `SELECT COUNT(*)::bigint AS count FROM "ScheduledTask" WHERE "projectId" = $1`,
+      `SELECT COUNT(*)::bigint AS count
+       FROM "ScheduledTask"
+       WHERE "projectId" = $1 AND "deletedAt" IS NULL`,
       projectId,
     );
 
@@ -291,7 +320,7 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
          "timeoutSeconds" = $8, concurrency = $9, "maxRetries" = $10, "notifyOnFailure" = $11,
          "nextRunAt" = CASE WHEN $12::boolean THEN $13 ELSE "nextRunAt" END,
          "updatedAt" = NOW()
-       WHERE id = $1
+       WHERE id = $1 AND "deletedAt" IS NULL
        RETURNING ${TASK_COLUMNS}`,
       taskId,
       input.name,
@@ -312,14 +341,28 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
   }
 
   async deleteTask(projectId: string, taskId: string): Promise<boolean> {
-    // Runs cascade (FK ON DELETE CASCADE), so the history goes with the task.
-    const deleted = await this.execute(`DELETE FROM "ScheduledTask" WHERE id = $1 AND "projectId" = $2`, taskId, projectId);
+    /* Keep run identities until Project permanent deletion proves their
+     * Pod/Secret absent. A hard DELETE here used to cascade the only durable
+     * names while a manager request could still be in flight. */
+    const deleted = await this.execute(
+      `UPDATE "ScheduledTask"
+          SET enabled = false, "nextRunAt" = NULL, "deletedAt" = NOW(), "updatedAt" = NOW()
+        WHERE id = $1 AND "projectId" = $2 AND "deletedAt" IS NULL`,
+      taskId,
+      projectId,
+    );
 
     return deleted > 0;
   }
 
   async setTaskNextRun(taskId: string, nextRunAt: Date | null): Promise<void> {
-    await this.execute(`UPDATE "ScheduledTask" SET "nextRunAt" = $2, "updatedAt" = NOW() WHERE id = $1`, taskId, nextRunAt);
+    await this.execute(
+      `UPDATE "ScheduledTask"
+          SET "nextRunAt" = $2, "updatedAt" = NOW()
+        WHERE id = $1 AND "deletedAt" IS NULL`,
+      taskId,
+      nextRunAt,
+    );
   }
 
   async setTaskOutcome(taskId: string, lastRunAt: Date, lastStatus: ScheduledTaskRunStatus): Promise<void> {
@@ -369,10 +412,19 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
       `INSERT INTO "ScheduledTaskRun" (
          id, "taskId", "organizationId", "projectId", status, trigger, attempt,
          "scheduledFor", "startedAt", "finishedAt", "durationMs", "machineSize", logs
-       ) VALUES (
-         $1, $2, $3, $4, $5::"ScheduledTaskRunStatus", $6, 1,
-         $7, $8, $9, $10, $11, $12
        )
+       SELECT $1, task.id, task."organizationId", task."projectId", $5::"ScheduledTaskRunStatus", $6, 1,
+              $7, $8, $9, $10, $11, $12
+       FROM "ScheduledTask" task
+       JOIN "Project" project
+         ON project.id = task."projectId"
+        AND project."organizationId" = task."organizationId"
+       WHERE task.id = $2
+         AND task."organizationId" = $3
+         AND task."projectId" = $4
+         AND task."deletedAt" IS NULL
+         AND project."deletedAt" IS NULL
+         AND project."permanentDeletionStartedAt" IS NULL
        RETURNING ${RUN_COLUMNS}`,
       id,
       input.taskId,
@@ -387,6 +439,13 @@ export class PostgresScheduledTaskRepository implements ScheduledTaskRepository 
       input.machineSize,
       input.logs ?? '',
     );
+
+    if (!row) {
+      throw Object.assign(new Error('PROJECT_STORAGE_PERMANENT_DELETION_ACTIVE'), {
+        code: 'PROJECT_STORAGE_PERMANENT_DELETION_ACTIVE',
+        statusCode: 409,
+      });
+    }
 
     return row;
   }

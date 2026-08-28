@@ -1788,7 +1788,8 @@ exports.Prisma.ScheduledTaskScalarFieldEnum = {
   nextRunAt: 'nextRunAt',
   createdByUserId: 'createdByUserId',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  deletedAt: 'deletedAt'
 };
 
 exports.Prisma.ScheduledTaskRunScalarFieldEnum = {

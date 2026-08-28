@@ -166361,6 +166361,7 @@ export namespace Prisma {
     createdByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    deletedAt: Date | null
   }
 
   export type ScheduledTaskMaxAggregateOutputType = {
@@ -166385,6 +166386,7 @@ export namespace Prisma {
     createdByUserId: string | null
     createdAt: Date | null
     updatedAt: Date | null
+    deletedAt: Date | null
   }
 
   export type ScheduledTaskCountAggregateOutputType = {
@@ -166409,6 +166411,7 @@ export namespace Prisma {
     createdByUserId: number
     createdAt: number
     updatedAt: number
+    deletedAt: number
     _all: number
   }
 
@@ -166447,6 +166450,7 @@ export namespace Prisma {
     createdByUserId?: true
     createdAt?: true
     updatedAt?: true
+    deletedAt?: true
   }
 
   export type ScheduledTaskMaxAggregateInputType = {
@@ -166471,6 +166475,7 @@ export namespace Prisma {
     createdByUserId?: true
     createdAt?: true
     updatedAt?: true
+    deletedAt?: true
   }
 
   export type ScheduledTaskCountAggregateInputType = {
@@ -166495,6 +166500,7 @@ export namespace Prisma {
     createdByUserId?: true
     createdAt?: true
     updatedAt?: true
+    deletedAt?: true
     _all?: true
   }
 
@@ -166606,6 +166612,7 @@ export namespace Prisma {
     createdByUserId: string | null
     createdAt: Date
     updatedAt: Date
+    deletedAt: Date | null
     _count: ScheduledTaskCountAggregateOutputType | null
     _avg: ScheduledTaskAvgAggregateOutputType | null
     _sum: ScheduledTaskSumAggregateOutputType | null
@@ -166649,6 +166656,7 @@ export namespace Prisma {
     createdByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    deletedAt?: boolean
     runs?: boolean | ScheduledTask$runsArgs<ExtArgs>
     _count?: boolean | ScheduledTaskCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["scheduledTask"]>
@@ -166675,6 +166683,7 @@ export namespace Prisma {
     createdByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    deletedAt?: boolean
   }, ExtArgs["result"]["scheduledTask"]>
 
   export type ScheduledTaskSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -166699,6 +166708,7 @@ export namespace Prisma {
     createdByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    deletedAt?: boolean
   }, ExtArgs["result"]["scheduledTask"]>
 
   export type ScheduledTaskSelectScalar = {
@@ -166723,9 +166733,10 @@ export namespace Prisma {
     createdByUserId?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    deletedAt?: boolean
   }
 
-  export type ScheduledTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "kind" | "name" | "command" | "workflowId" | "cron" | "timezone" | "machineSize" | "enabled" | "timeoutSeconds" | "concurrency" | "maxRetries" | "notifyOnFailure" | "lastRunAt" | "lastStatus" | "nextRunAt" | "createdByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["scheduledTask"]>
+  export type ScheduledTaskOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "kind" | "name" | "command" | "workflowId" | "cron" | "timezone" | "machineSize" | "enabled" | "timeoutSeconds" | "concurrency" | "maxRetries" | "notifyOnFailure" | "lastRunAt" | "lastStatus" | "nextRunAt" | "createdByUserId" | "createdAt" | "updatedAt" | "deletedAt", ExtArgs["result"]["scheduledTask"]>
   export type ScheduledTaskInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     runs?: boolean | ScheduledTask$runsArgs<ExtArgs>
     _count?: boolean | ScheduledTaskCountOutputTypeDefaultArgs<ExtArgs>
@@ -166787,6 +166798,11 @@ export namespace Prisma {
       createdByUserId: string | null
       createdAt: Date
       updatedAt: Date
+      /**
+       * Tombstone retained until Project permanent deletion so in-flight Pod/Secret
+       * identities remain physically recoverable after a user deletes the task.
+       */
+      deletedAt: Date | null
     }, ExtArgs["result"]["scheduledTask"]>
     composites: {}
   }
@@ -167232,6 +167248,7 @@ export namespace Prisma {
     readonly createdByUserId: FieldRef<"ScheduledTask", 'String'>
     readonly createdAt: FieldRef<"ScheduledTask", 'DateTime'>
     readonly updatedAt: FieldRef<"ScheduledTask", 'DateTime'>
+    readonly deletedAt: FieldRef<"ScheduledTask", 'DateTime'>
   }
 
 
@@ -208114,7 +208131,8 @@ export namespace Prisma {
     nextRunAt: 'nextRunAt',
     createdByUserId: 'createdByUserId',
     createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
+    updatedAt: 'updatedAt',
+    deletedAt: 'deletedAt'
   };
 
   export type ScheduledTaskScalarFieldEnum = (typeof ScheduledTaskScalarFieldEnum)[keyof typeof ScheduledTaskScalarFieldEnum]
@@ -220314,6 +220332,7 @@ export namespace Prisma {
     createdByUserId?: StringNullableFilter<"ScheduledTask"> | string | null
     createdAt?: DateTimeFilter<"ScheduledTask"> | Date | string
     updatedAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    deletedAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
     runs?: ScheduledTaskRunListRelationFilter
   }
 
@@ -220339,12 +220358,12 @@ export namespace Prisma {
     createdByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    deletedAt?: SortOrderInput | SortOrder
     runs?: ScheduledTaskRunOrderByRelationAggregateInput
   }
 
   export type ScheduledTaskWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    projectId_kind_workflowId?: ScheduledTaskProjectIdKindWorkflowIdCompoundUniqueInput
     AND?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
     OR?: ScheduledTaskWhereInput[]
     NOT?: ScheduledTaskWhereInput | ScheduledTaskWhereInput[]
@@ -220368,8 +220387,9 @@ export namespace Prisma {
     createdByUserId?: StringNullableFilter<"ScheduledTask"> | string | null
     createdAt?: DateTimeFilter<"ScheduledTask"> | Date | string
     updatedAt?: DateTimeFilter<"ScheduledTask"> | Date | string
+    deletedAt?: DateTimeNullableFilter<"ScheduledTask"> | Date | string | null
     runs?: ScheduledTaskRunListRelationFilter
-  }, "id" | "projectId_kind_workflowId">
+  }, "id">
 
   export type ScheduledTaskOrderByWithAggregationInput = {
     id?: SortOrder
@@ -220393,6 +220413,7 @@ export namespace Prisma {
     createdByUserId?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    deletedAt?: SortOrderInput | SortOrder
     _count?: ScheduledTaskCountOrderByAggregateInput
     _avg?: ScheduledTaskAvgOrderByAggregateInput
     _max?: ScheduledTaskMaxOrderByAggregateInput
@@ -220425,6 +220446,7 @@ export namespace Prisma {
     createdByUserId?: StringNullableWithAggregatesFilter<"ScheduledTask"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ScheduledTask"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ScheduledTask"> | Date | string
+    deletedAt?: DateTimeNullableWithAggregatesFilter<"ScheduledTask"> | Date | string | null
   }
 
   export type ScheduledTaskRunWhereInput = {
@@ -235597,6 +235619,7 @@ export namespace Prisma {
     createdByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    deletedAt?: Date | string | null
     runs?: ScheduledTaskRunCreateNestedManyWithoutTaskInput
   }
 
@@ -235622,6 +235645,7 @@ export namespace Prisma {
     createdByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    deletedAt?: Date | string | null
     runs?: ScheduledTaskRunUncheckedCreateNestedManyWithoutTaskInput
   }
 
@@ -235647,6 +235671,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     runs?: ScheduledTaskRunUpdateManyWithoutTaskNestedInput
   }
 
@@ -235672,6 +235697,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     runs?: ScheduledTaskRunUncheckedUpdateManyWithoutTaskNestedInput
   }
 
@@ -235697,6 +235723,7 @@ export namespace Prisma {
     createdByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    deletedAt?: Date | string | null
   }
 
   export type ScheduledTaskUpdateManyMutationInput = {
@@ -235721,6 +235748,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScheduledTaskUncheckedUpdateManyInput = {
@@ -235745,6 +235773,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScheduledTaskRunCreateInput = {
@@ -246929,12 +246958,6 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
-  export type ScheduledTaskProjectIdKindWorkflowIdCompoundUniqueInput = {
-    projectId: string
-    kind: $Enums.ScheduledTaskKind
-    workflowId: number
-  }
-
   export type ScheduledTaskCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
@@ -246957,6 +246980,7 @@ export namespace Prisma {
     createdByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    deletedAt?: SortOrder
   }
 
   export type ScheduledTaskAvgOrderByAggregateInput = {
@@ -246987,6 +247011,7 @@ export namespace Prisma {
     createdByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    deletedAt?: SortOrder
   }
 
   export type ScheduledTaskMinOrderByAggregateInput = {
@@ -247011,6 +247036,7 @@ export namespace Prisma {
     createdByUserId?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    deletedAt?: SortOrder
   }
 
   export type ScheduledTaskSumOrderByAggregateInput = {
@@ -302760,6 +302786,7 @@ export namespace Prisma {
     createdByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    deletedAt?: Date | string | null
   }
 
   export type ScheduledTaskUncheckedCreateWithoutRunsInput = {
@@ -302784,6 +302811,7 @@ export namespace Prisma {
     createdByUserId?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    deletedAt?: Date | string | null
   }
 
   export type ScheduledTaskCreateOrConnectWithoutRunsInput = {
@@ -302824,6 +302852,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type ScheduledTaskUncheckedUpdateWithoutRunsInput = {
@@ -302848,6 +302877,7 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   }
 
   export type UserCreateWithoutAgentRoutingCardsInput = {

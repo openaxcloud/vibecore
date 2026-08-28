@@ -3024,12 +3024,18 @@ model ScheduledTask {
   createdByUserId String?
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
+  /// Tombstone retained until Project permanent deletion so in-flight Pod/Secret
+  /// identities remain physically recoverable after a user deletes the task.
+  deletedAt       DateTime?
   runs            ScheduledTaskRun[]
 
-  @@unique([projectId, kind, workflowId])
+  // Active workflow tasks are unique through the partial PostgreSQL index
+  // ScheduledTask_projectId_kind_workflowId_key. Prisma cannot model a
+  // partial unique index; tombstones deliberately retain the same identity.
   /// The scheduler's hot query: enabled tasks whose nextRunAt is due.
   @@index([enabled, nextRunAt])
   @@index([projectId])
+  @@index([projectId, deletedAt])
   @@index([organizationId])
 }
 
