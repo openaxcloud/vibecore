@@ -28,20 +28,41 @@ volumes, the proof records and verifies five API-local classes:
 - static deployment snapshots referenced by live `Deployment` rows or
   append-only `ReleaseManifest` rows.
 
+Sole-owned projects are not relationally cascaded by the account-purge
+finalizer. Each one is erased through the canonical permanent-project deletion
+saga, including its provider-specific subproofs, and produces an immutable
+`ProjectPermanentDeletionReceipt`. The account receipt commits only after it
+has independently matched every child receipt to the frozen project ID,
+organization, ownership epoch, idempotency key, request hash, and absent Project
+row. This preserves the physical authorities until their providers are proven
+absent and prevents a database-only purge from being presented as erasure.
+An active retained-source `RemixStorageShare` is a deliberate preflight block:
+the operator or user must revoke or detach it before purge starts. The refusal
+is committed before billing cancellation or any provider effect, so a
+cross-tenant retention promise cannot turn into a permanently half-purged
+account.
+
 Each path is removed while the durable purge-effect lease and the same
 cross-replica filesystem lock used by its writers are held. A successful effect
 receipt is not sufficient evidence on replay: the path is checked live again,
 and any residual or resurrected path leaves `remainingAfterPurge` non-zero and
 prevents a terminal purge receipt.
 
-Once a sole-owner project appears in a purge plan, all of its local/static
-writers remain fenced by the durable plan even after transient workspace
-barriers are released. In a retained shared project, the durable fence applies
-only to the purged subject's checkout. Session creation and token lookup share
+While a purge plan is non-completed, all local/static writers for each captured
+sole-owner project remain fenced even after transient workspace barriers are
+released. In a retained shared project, that non-completed fence applies only
+to the purged subject's checkout. Terminal completion releases these mutation
+fences after verified erasure. Session creation and token lookup share
 the per-user purge advisory lock and reject a target or impersonator with a
 plan, purge receipt, or `purgedAt` marker. Custom `ProjectStorage` adapters are
 therefore a test-only seam; production refuses them because their internal
 check-to-write critical section cannot be proven to share the purge lock.
+
+The non-completed purge plan temporarily retains the project name needed for
+exact confirmation and crash recovery. The COMPLETED transition replaces that
+inventory with receipt identifiers/hashes and stores only a one-way topology
+commitment; the plaintext project name is not retained in completed purge
+history.
 
 ## Legal Hold
 

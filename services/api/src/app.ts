@@ -228,7 +228,12 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
-import type { PurgeClassReport, PurgeLeaseContext, PurgeStorageInventory } from './account-purge.js';
+import type {
+  AccountPurgeProjectDeletionAuthority,
+  PurgeClassReport,
+  PurgeLeaseContext,
+  PurgeStorageInventory,
+} from './account-purge.js';
 import { eraseLocalAccountStorage } from './account-local-storage-purge.js';
 import {
   eraseSubjectStorage,
@@ -28467,6 +28472,134 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: restored };
   });
+  const permanentlyDeleteProjectWithPhysicalProviders = async (input: {
+    projectId: string;
+    organizationId: string;
+    projectName: string;
+    actorUserId: string;
+    idempotencyKey: string;
+    requestHash: string;
+    ipAddress?: string;
+    accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
+    assertParentLease?: () => Promise<void>;
+  }) => {
+    const assertParentLease = input.assertParentLease ?? (async () => undefined);
+    await assertParentLease();
+    const replay = await store.replayProjectPermanentDeletion({
+      projectId: input.projectId,
+      expectedOrganizationId: input.organizationId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+    });
+    if (replay) return replay;
+
+    const objectStorage = resolveRawObjectStorage();
+
+    if (!objectStorage.active) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_OBJECT_STORAGE_BACKEND_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    if (
+      projectStorage.supportsProjectStaticErasure?.() !== true ||
+      !projectStorage.prepareProjectStaticErasureWithinPhysicalAccess ||
+      !projectStorage.eraseProjectStaticDataWithinPhysicalAccess ||
+      !projectStorage.verifyProjectDataAbsentWithinPhysicalAccess
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_STATIC_ERASURE_VERIFIER_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    return store.hardDeleteProject({
+      projectId: input.projectId,
+      expectedOrganizationId: input.organizationId,
+      expectedProjectName: input.projectName,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      actorUserId: input.actorUserId,
+      ...(input.ipAddress ? { ipAddress: input.ipAddress } : {}),
+      ...(input.accountPurgeDeletionAuthority
+        ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+        : {}),
+      preflightPhysicalErasure: async () => {
+        await assertParentLease();
+        const plan = await projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(input.projectId);
+        await assertParentLease();
+        return plan;
+      },
+      erasePhysical: async (assertLease, lease) => {
+        /* EFFECT_STARTED was committed only while the parent PurgePlan row was
+         * locked and live. From this point the exact child operation lease is
+         * the durable recovery authority; expiring the coordinator lease must
+         * not strand a provider effect that may already have been dispatched. */
+        const assertAuthorities = assertLease;
+        await assertAuthorities();
+        await projectWorkspaceDeletion('purge', input.projectId, input.organizationId, lease, assertAuthorities);
+        await assertAuthorities();
+        await projectStorage.eraseProjectDataWithinPhysicalAccess(input.projectId);
+        await assertAuthorities();
+        await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(input.projectId);
+        await assertAuthorities();
+        await objectStorage.deleteBucket(input.projectId, assertAuthorities);
+      },
+      verifyPhysicalAbsence: async (assertLease, lease) => {
+        const assertAuthorities = assertLease;
+        await assertAuthorities();
+        const workspaceManager = await projectWorkspaceDeletion(
+          'verify',
+          input.projectId,
+          input.organizationId,
+          lease,
+          assertAuthorities,
+        );
+        const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(input.projectId);
+        const bucketStillExists = await objectStorage.bucketExists(input.projectId);
+        const objectCount = bucketStillExists ? (await objectStorage.listObjects(input.projectId)).objects.length : 0;
+
+        if (
+          !filesystem.treeAbsent ||
+          !filesystem.exportsAbsent ||
+          !filesystem.snapshotsAbsent ||
+          filesystem.staticSnapshotsAbsent !== true ||
+          filesystem.staticAliasesAbsent !== true ||
+          !filesystem.staticArtifactSummary ||
+          bucketStillExists ||
+          objectCount > 0
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'PROJECT_PHYSICAL_ERASURE_INCOMPLETE',
+            statusCode: 503,
+          });
+        }
+
+        await assertAuthorities();
+        return {
+          outcome: 'VERIFIED_ABSENT' as const,
+          verifiedAt: new Date().toISOString(),
+          verifier: 'api-project-permanent-delete-v1',
+          evidence: {
+            schemaVersion: 'project-permanent-erasure-v1',
+            filesystem: {
+              projectTreeAbsent: filesystem.treeAbsent,
+              workspaceTreesAbsent:
+                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
+              objectCacheAbsent: filesystem.exportsAbsent,
+              staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
+              staticAliasesAbsent: filesystem.staticAliasesAbsent,
+              staticArtifactSummary: filesystem.staticArtifactSummary,
+            },
+            gcs: { bucketAbsent: true, objectCount: 0 },
+            workspaceManager,
+          },
+        };
+      },
+    });
+  };
+
   app.delete('/projects/:projectId/permanent', async (request) => {
     const projectId = parse(projectParams, request.params).projectId;
     const rawIdempotencyKey = request.headers['idempotency-key'];
@@ -28533,27 +28666,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const objectStorage = resolveRawObjectStorage();
-
-    if (!objectStorage.active) {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-        code: 'PROJECT_OBJECT_STORAGE_BACKEND_UNAVAILABLE',
-        statusCode: 503,
-      });
-    }
-
-    if (
-      projectStorage.supportsProjectStaticErasure?.() !== true ||
-      !projectStorage.prepareProjectStaticErasureWithinPhysicalAccess ||
-      !projectStorage.eraseProjectStaticDataWithinPhysicalAccess ||
-      !projectStorage.verifyProjectDataAbsentWithinPhysicalAccess
-    ) {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-        code: 'PROJECT_STATIC_ERASURE_VERIFIER_UNAVAILABLE',
-        statusCode: 503,
-      });
-    }
-
     const requestHash = projectPermanentDeletionRequestHash({
       projectId: project.id,
       organizationId: project.organizationId,
@@ -28561,77 +28673,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       expectedProjectName: project.name,
     });
 
-    const deleted = await store.hardDeleteProject({
+    const deleted = await permanentlyDeleteProjectWithPhysicalProviders({
       projectId: project.id,
-      expectedOrganizationId: project.organizationId,
-      expectedProjectName: project.name,
+      organizationId: project.organizationId,
+      projectName: project.name,
       idempotencyKey,
       requestHash,
       actorUserId: request.currentUser!.id,
       ipAddress: request.ip,
-      preflightPhysicalErasure: () => projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(project.id),
-      erasePhysical: async (assertLease, lease) => {
-        /*
-         * Drain/fence the manager first. If its DB authority or Kubernetes
-         * control plane is unavailable, no local/static/GCS bytes have yet
-         * been removed and the durable saga remains recoverable.
-         */
-        await projectWorkspaceDeletion('purge', project.id, project.organizationId, lease, assertLease);
-        await assertLease();
-        await projectStorage.eraseProjectDataWithinPhysicalAccess(project.id);
-        await assertLease();
-        await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(project.id);
-        await assertLease();
-        await objectStorage.deleteBucket(project.id, assertLease);
-      },
-      verifyPhysicalAbsence: async (assertLease, lease) => {
-        const workspaceManager = await projectWorkspaceDeletion(
-          'verify',
-          project.id,
-          project.organizationId,
-          lease,
-          assertLease,
-        );
-        const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(project.id);
-        const bucketStillExists = await objectStorage.bucketExists(project.id);
-        const objectCount = bucketStillExists ? (await objectStorage.listObjects(project.id)).objects.length : 0;
-
-        if (
-          !filesystem.treeAbsent ||
-          !filesystem.exportsAbsent ||
-          !filesystem.snapshotsAbsent ||
-          filesystem.staticSnapshotsAbsent !== true ||
-          filesystem.staticAliasesAbsent !== true ||
-          !filesystem.staticArtifactSummary ||
-          bucketStillExists ||
-          objectCount > 0
-        ) {
-          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-            code: 'PROJECT_PHYSICAL_ERASURE_INCOMPLETE',
-            statusCode: 503,
-          });
-        }
-
-        return {
-          outcome: 'VERIFIED_ABSENT' as const,
-          verifiedAt: new Date().toISOString(),
-          verifier: 'api-project-permanent-delete-v1',
-          evidence: {
-            schemaVersion: 'project-permanent-erasure-v1',
-            filesystem: {
-              projectTreeAbsent: filesystem.treeAbsent,
-              workspaceTreesAbsent:
-                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
-              objectCacheAbsent: filesystem.exportsAbsent,
-              staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
-              staticAliasesAbsent: filesystem.staticAliasesAbsent,
-              staticArtifactSummary: filesystem.staticArtifactSummary,
-            },
-            gcs: { bucketAbsent: true, objectCount: 0 },
-            workspaceManager,
-          },
-        };
-      },
     });
 
     return { project: deleted.project, replayed: deleted.replayed, completedAt: deleted.completedAt };
@@ -36368,6 +36417,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   ...(providerStatus ? { providerStatus } : {}),
                 };
               }),
+            permanentlyDeleteOwnedProject: async (authority, lease) => {
+              if (authority.userId !== userId || authority.planId !== lease.planId) {
+                throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
+                  code: 'ACCOUNT_PURGE_PROJECT_DELETE_AUTHORITY_INVALID',
+                  statusCode: 409,
+                });
+              }
+              await lease.validate();
+              await permanentlyDeleteProjectWithPhysicalProviders({
+                projectId: authority.projectId,
+                organizationId: authority.expectedOrganizationId,
+                projectName: authority.expectedProjectName,
+                actorUserId: authority.userId,
+                idempotencyKey: authority.idempotencyKey,
+                requestHash: authority.requestHash,
+                accountPurgeDeletionAuthority: authority,
+                assertParentLease: () => lease.validate(),
+              });
+              await lease.validate();
+            },
             eraseStorage: async (inventory, lease) => {
               if (options.accountStoragePurger) {
                 return options.accountStoragePurger(inventory, userId, lease);

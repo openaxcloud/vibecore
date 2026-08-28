@@ -1,6 +1,7 @@
 import { createDatabaseClient, Prisma } from '@vibecore/database';
 import { describe, expect, it, vi } from 'vitest';
 
+import { appPublicEnglish } from '../app-public-copy.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
 async function canReachDatabase() {
@@ -42,9 +43,7 @@ async function seedSharedAccount(prisma: ReturnType<typeof createDatabaseClient>
     prisma.user.create({
       data: {
         email: `purge-machine-${unique}@example.test`,
-        ...(due
-          ? { preferences: { accountDeletion: { requestedAt } } as Prisma.InputJsonValue }
-          : {}),
+        ...(due ? { preferences: { accountDeletion: { requestedAt } } as Prisma.InputJsonValue } : {}),
       },
     }),
     prisma.user.create({ data: { email: `purge-machine-other-${unique}@example.test` } }),
@@ -105,10 +104,7 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
         },
       });
       const freezer = prismaA.$transaction(async (tx) => {
-        await tx.$executeRawUnsafe(
-          'SELECT pg_advisory_xact_lock(hashtext($1))',
-          `account-purge:${seeded!.subject.id}`,
-        );
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${seeded!.subject.id}`);
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'account-purge:topology');
         const timestamp = new Date();
         const plan = await tx.purgePlan.create({
@@ -169,10 +165,12 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
           ownerToken: `checkpoint-owner-${suffix()}`,
           ttlSeconds: 60,
         }),
-      ].map((attempt) => attempt.then(
-        () => ({ fulfilled: true as const }),
-        (error: unknown) => ({ fulfilled: false as const, error }),
-      ));
+      ].map((attempt) =>
+        attempt.then(
+          () => ({ fulfilled: true as const }),
+          (error: unknown) => ({ fulfilled: false as const, error }),
+        ),
+      );
       let settled = false;
       const allAttempts = Promise.all(attempts).then((results) => {
         settled = true;
@@ -324,7 +322,7 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
       expect(importRow).toMatchObject({
         actorUserId: null,
         state: 'FAILED',
-        error: 'ACCOUNT_PURGE_COMPLETED',
+        error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED'),
         stagedFiles: null,
         connectorPreview: null,
         operationToken: null,
@@ -421,13 +419,74 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
       });
 
       const store = new PrismaApiStore(prisma);
-      await expect(
-        store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage }),
-      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE', statusCode: 409 });
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_STATE_MACHINE_TARGET_VISIBLE',
+        statusCode: 409,
+      });
       expect(eraseStorage).not.toHaveBeenCalled();
       expect(await prisma.purgePlan.count({ where: { userId: seeded.subject.id } })).toBe(0);
       expect(await prisma.purgeReceipt.count({ where: { userId: seeded.subject.id } })).toBe(0);
       expect(await prisma.project.findUnique({ where: { id: visibleTarget.id } })).toMatchObject({ deletedAt: null });
+    } finally {
+      if (seeded) {
+        await cleanup(prisma, {
+          userIds: [seeded.subject.id, seeded.other.id],
+          organizationId: seeded.organization.id,
+        }).catch(() => undefined);
+      }
+      await prisma.$disconnect();
+    }
+  });
+
+  it('retains a soft-deleted actor-owned target in a shared organization while purging the actor', async () => {
+    const prisma = createDatabaseClient();
+    let seeded: Awaited<ReturnType<typeof seedSharedAccount>> | undefined;
+    const eraseStorage = vi.fn(async () => ({ classes: [], verified: true }));
+
+    try {
+      seeded = await seedSharedAccount(prisma, true);
+      const retainedTarget = await prisma.project.create({
+        data: {
+          organizationId: seeded.organization.id,
+          name: 'Shared retained partial',
+          slug: `shared-retained-${suffix()}`,
+          deletedAt: new Date(),
+        },
+      });
+      const importJob = await prisma.importJob.create({
+        data: {
+          organizationId: seeded.organization.id,
+          actorUserId: seeded.subject.id,
+          provider: 'zip',
+          state: 'COMMITTING',
+          idempotencyKey: `shared-retained-${suffix()}`,
+          requestHash: '4'.repeat(64),
+          targetProjectId: retainedTarget.id,
+        },
+      });
+
+      const store = new PrismaApiStore(prisma);
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).resolves.toMatchObject({
+        outcome: 'purged',
+      });
+
+      expect(eraseStorage).toHaveBeenCalledOnce();
+      await expect(prisma.project.findUnique({ where: { id: retainedTarget.id } })).resolves.toMatchObject({
+        organizationId: seeded.organization.id,
+        deletedAt: expect.any(Date),
+      });
+      await expect(prisma.organization.findUnique({ where: { id: seeded.organization.id } })).resolves.toBeTruthy();
+      await expect(prisma.importJob.findUnique({ where: { id: importJob.id } })).resolves.toMatchObject({
+        actorUserId: null,
+        targetProjectId: retainedTarget.id,
+        state: 'FAILED',
+        error: appPublicEnglish('ACCOUNT_PURGE_COMPLETED'),
+      });
+      await expect(
+        prisma.organizationMember.findFirst({
+          where: { organizationId: seeded.organization.id, userId: seeded.other.id, state: 'ACTIVE' },
+        }),
+      ).resolves.toBeTruthy();
     } finally {
       if (seeded) {
         await cleanup(prisma, {
@@ -461,9 +520,10 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
       });
 
       const store = new PrismaApiStore(prisma);
-      await expect(
-        store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage }),
-      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE', statusCode: 409 });
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE',
+        statusCode: 409,
+      });
       expect(eraseStorage).not.toHaveBeenCalled();
       expect(await prisma.purgeReceipt.count({ where: { userId: seeded.subject.id } })).toBe(0);
       expect(await prisma.projectCheckpoint.findUnique({ where: { id: checkpoint.id } })).toMatchObject({
@@ -503,9 +563,10 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
       });
 
       const store = new PrismaApiStore(prisma);
-      await expect(
-        store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage }),
-      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE', statusCode: 409 });
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_CHECKPOINT_ACTIVE',
+        statusCode: 409,
+      });
       expect(eraseStorage).not.toHaveBeenCalled();
 
       await prisma.projectCheckpoint.update({

@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import { Prisma } from '@vibecore/database';
+import type { AccountPurgeProjectDeletionAuthority } from './account-purge.js';
 
 export const OBJECT_STORAGE_OPERATION_KINDS = [
   'TENANT_MUTATION',
@@ -111,6 +112,8 @@ export interface ClaimObjectStorageOperationInput extends ObjectStorageOperation
   pinnedGenerations?: readonly ObjectStoragePinnedGeneration[];
   /** Ephemeral authority used by signed-capability claims; never serialized automatically. */
   checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+  /** Ephemeral parent account-purge authority; never serialized automatically. */
+  accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
 }
 
 export interface ObjectStoragePinnedInventoryEntry {
@@ -759,7 +762,10 @@ export function objectStorageRequestHash(input: ObjectStorageOperationRequestSha
   const scopes: ObjectStorageJsonValue = canonicalizeObjectStorageScopes(input.scopes).map((scope) => ({
     projectId: scope.projectId,
     expectedOrganizationId: scope.expectedOrganizationId,
-    expectedDeletedAt: scope.expectedDeletedAt,
+    /* Soft-deletion state is a live claim precondition, not part of the
+     * irreversible intent identity. The exact value remains committed in the
+     * scopeHash/normalized scope and is revalidated under the Project lock. */
+    expectedDeletedAt: input.kind === 'PROJECT_PERMANENT_DELETE' ? null : scope.expectedDeletedAt,
   }));
   return sha256(
     canonicalJson({
@@ -1189,7 +1195,13 @@ async function assertPurgeAllowed(
   input: {
     kind: ObjectStorageOperationKind;
     projectIds: readonly string[];
+    idempotencyKey?: string;
+    requestHash?: string;
+    payload?: ObjectStorageJsonObject;
     preconditions: ObjectStorageJsonObject;
+    operationId?: string;
+    existingOperation?: boolean;
+    accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
   },
 ): Promise<void> {
   if (input.kind === 'ACCOUNT_PURGE_ERASURE') {
@@ -1220,19 +1232,120 @@ async function assertPurgeAllowed(
     return;
   }
 
+  /*
+   * Once the permanent-deletion operation exists, its DB scope and installed
+   * Project fence are the durable authority for safety-increasing transitions.
+   * This is also what lets verification/quarantine complete if the parent plan
+   * loses its lease after a provider response. A FAILED_SAFE retry deliberately
+   * passes existingOperation=false and must re-prove its live parent authority.
+   */
+  if (
+    input.kind === 'PROJECT_PERMANENT_DELETE' &&
+    input.existingOperation &&
+    input.operationId &&
+    !input.accountPurgeDeletionAuthority
+  ) {
+    return;
+  }
+
+  if (input.kind === 'PROJECT_PERMANENT_DELETE' && input.accountPurgeDeletionAuthority) {
+    const authority = input.accountPurgeDeletionAuthority;
+    const projectId = input.projectIds[0];
+    const expectedIdempotencyKey = `account-purge:${authority.planId}:${authority.projectId}`;
+    const expectedActorHash = createHash('sha256').update(authority.userId).digest('hex');
+    const expectedProjectNameHash = createHash('sha256').update(authority.expectedProjectName).digest('hex');
+    if (
+      input.projectIds.length !== 1 ||
+      projectId !== authority.projectId ||
+      input.idempotencyKey !== expectedIdempotencyKey ||
+      input.idempotencyKey !== authority.idempotencyKey ||
+      input.requestHash !== authority.requestHash ||
+      !input.payload ||
+      input.payload.command !== 'project-permanent-delete' ||
+      input.payload.actorUserIdHash !== expectedActorHash ||
+      input.payload.expectedProjectNameHash !== expectedProjectNameHash ||
+      !Number.isSafeInteger(authority.expectedOwnershipEpoch) ||
+      authority.expectedOwnershipEpoch < 0
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PURGE_FENCE_LOST',
+        'Account purge project-deletion authority is invalid',
+        409,
+      );
+    }
+    const rows = await tx.$queryRaw<Array<{ allowed: boolean }>>(Prisma.sql`
+      SELECT TRUE AS "allowed"
+      FROM "PurgePlan" plan
+      CROSS JOIN LATERAL jsonb_to_recordset(
+        COALESCE(plan."inventory"->'ownedProjects', '[]'::jsonb)
+      ) AS owned(
+        "projectId" text,
+        "organizationId" text,
+        "projectName" text,
+        "ownershipEpoch" integer
+      )
+      WHERE plan."id" = ${authority.planId}
+        AND plan."userId" = ${authority.userId}
+        AND plan."ownerToken" = ${authority.ownerToken}
+        AND plan."status" = 'ACTIVE'
+        AND plan."leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+        AND owned."projectId" = ${authority.projectId}
+        AND owned."organizationId" = ${authority.expectedOrganizationId}
+        AND owned."projectName" = ${authority.expectedProjectName}
+        AND owned."ownershipEpoch" = ${authority.expectedOwnershipEpoch}
+      LIMIT 1
+      FOR UPDATE OF plan
+    `);
+    if (rows[0]?.allowed !== true) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PURGE_FENCE_LOST',
+        'Account purge project-deletion fence is unavailable',
+        409,
+      );
+    }
+    return;
+  }
+
   const rows = await tx.$queryRaw<Array<{ blocked: boolean }>>(Prisma.sql`
     SELECT EXISTS (
       SELECT 1
       FROM "PurgeFreeze" pf
-      JOIN "PurgePlan" plan ON plan."id" = pf."planId"
-      WHERE plan."status" = 'ACTIVE'
-        AND pf."resourceType" IN ('objectStorage', 'projectTopology')
+      WHERE pf."resourceType" IN ('objectStorage', 'projectTopology')
         AND pf."resourceId" IN (${Prisma.join([...input.projectIds])})
     ) AS "blocked"
   `);
   if (rows[0]?.blocked === true) {
     throw operationError('OBJECT_STORAGE_OPERATION_PURGE_FROZEN', 'Project storage is fenced for account purge', 409);
   }
+}
+
+function accountPurgeDeletionAuthorityPredicate(
+  authority: AccountPurgeProjectDeletionAuthority | undefined,
+): Prisma.Sql {
+  if (!authority) return Prisma.empty;
+  return Prisma.sql`
+    AND EXISTS (
+      SELECT 1
+      FROM "PurgePlan" parent_plan
+      CROSS JOIN LATERAL jsonb_to_recordset(
+        COALESCE(parent_plan."inventory"->'ownedProjects', '[]'::jsonb)
+      ) AS owned(
+        "projectId" text,
+        "organizationId" text,
+        "projectName" text,
+        "ownershipEpoch" integer
+      )
+      WHERE parent_plan."id" = ${authority.planId}
+        AND parent_plan."userId" = ${authority.userId}
+        AND parent_plan."ownerToken" = ${authority.ownerToken}
+        AND parent_plan."status" = 'ACTIVE'
+        AND parent_plan."leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+        AND owned."projectId" = ${authority.projectId}
+        AND owned."organizationId" = ${authority.expectedOrganizationId}
+        AND owned."projectName" = ${authority.expectedProjectName}
+        AND owned."ownershipEpoch" = ${authority.expectedOwnershipEpoch}
+    )
+  `;
 }
 
 async function assertCheckpointBarriersClear(
@@ -1356,16 +1469,30 @@ async function validateLockedProjects(
     kind: ObjectStorageOperationKind;
     scopes: readonly CanonicalObjectStorageOperationScope[] | readonly ScopeRow[];
     projects: ReadonlyMap<string, LockedProjectRow>;
+    idempotencyKey?: string;
+    requestHash?: string;
+    payload?: ObjectStorageJsonObject;
     preconditions: ObjectStorageJsonObject;
     operationId?: string;
     existingOperation?: boolean;
     checkpointBarrierAuthority?: ObjectStorageCheckpointBarrierAuthority;
+    accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
   },
 ): Promise<void> {
   const projectIds = input.scopes.map((scope) =>
     'projectIdSnapshot' in scope ? scope.projectIdSnapshot : scope.projectId,
   );
-  await assertPurgeAllowed(tx, { kind: input.kind, projectIds, preconditions: input.preconditions });
+  await assertPurgeAllowed(tx, {
+    kind: input.kind,
+    projectIds,
+    idempotencyKey: input.idempotencyKey,
+    requestHash: input.requestHash,
+    payload: input.payload,
+    preconditions: input.preconditions,
+    operationId: input.operationId,
+    existingOperation: input.existingOperation,
+    accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority,
+  });
   await assertCheckpointBarriersClear(tx, input.scopes, input.checkpointBarrierAuthority, input.preconditions);
   await assertNoActiveObjectStorageOperation(tx, projectIds, input.operationId);
   const now = await databaseNow(tx);
@@ -1531,11 +1658,20 @@ export async function claimObjectStorageOperation(
       kind: existing.kind,
       scopes: storedScopes,
       projects,
+      idempotencyKey: existing.idempotencyKey,
+      requestHash: existing.requestHash,
+      payload: normalizeJsonObject(existing.payload, 'stored payload'),
       preconditions: normalizeJsonObject(existing.preconditions, 'stored preconditions'),
       operationId: existing.id,
       /* FAILED_SAFE permanent deletion restored its Project fence and retries as a fresh pre-effect claim. */
       existingOperation: existing.status !== 'FAILED_SAFE',
       checkpointBarrierAuthority: input.checkpointBarrierAuthority,
+      /* The parent plan is required until EFFECT_STARTED is committed. After
+       * that boundary the immutable child scope and its own fencing token are
+       * the recovery authority, including after parent-owner failover. */
+      ...(existing.status !== 'EFFECT_STARTED' && existing.status !== 'VERIFYING' && input.accountPurgeDeletionAuthority
+        ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
+        : {}),
     });
     const now = await databaseNow(tx);
     if (existing.leaseExpiresAt && existing.leaseExpiresAt > now) {
@@ -1608,9 +1744,13 @@ export async function claimObjectStorageOperation(
     kind: input.kind,
     scopes,
     projects,
+    idempotencyKey: input.idempotencyKey,
+    requestHash: input.requestHash,
+    payload: input.payload,
     preconditions: input.preconditions,
     existingOperation: false,
     checkpointBarrierAuthority: input.checkpointBarrierAuthority,
+    accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority,
   });
   const operationId = `objop_${randomUUID()}`;
   const inserted = await tx.$queryRaw<OperationRow[]>(Prisma.sql`
@@ -1775,6 +1915,7 @@ export async function heartbeatObjectStorageOperation(
 async function lockLeasedOperationScope(
   tx: Tx,
   lease: ObjectStorageOperationLease,
+  accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority,
 ): Promise<{ operation: ObjectStorageOperationRecord; row: OperationRow; scopes: ScopeRow[] }> {
   const initialScopes = await readScopeRows(tx, lease.operationId);
   if (initialScopes.length === 0) {
@@ -1797,8 +1938,12 @@ async function lockLeasedOperationScope(
     scopes,
     projects,
     preconditions: normalizeJsonObject(row.preconditions, 'stored preconditions'),
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    payload: normalizeJsonObject(row.payload, 'stored payload'),
     operationId: row.id,
     existingOperation: true,
+    accountPurgeDeletionAuthority,
   });
   return { operation, row, scopes };
 }
@@ -1813,9 +1958,10 @@ export async function recordPermanentDeletionStaticArtifactPlan(
   tx: Tx,
   lease: ObjectStorageOperationLease,
   plan: ObjectStorageStaticErasurePlan,
+  accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority,
 ): Promise<ObjectStorageOperationRecord> {
   const normalized = normalizeObjectStorageStaticErasurePlan(plan);
-  const locked = await lockLeasedOperationScope(tx, lease);
+  const locked = await lockLeasedOperationScope(tx, lease, accountPurgeDeletionAuthority);
   if (
     locked.row.kind !== 'PROJECT_PERMANENT_DELETE' ||
     locked.row.status !== 'PREPARED' ||
@@ -1864,6 +2010,7 @@ export async function recordPermanentDeletionStaticArtifactPlan(
       AND "leaseExpiresAt" > clock_timestamp()
       AND "status" = 'PREPARED'
       AND "effectStartedAt" IS NULL
+      ${accountPurgeDeletionAuthorityPredicate(accountPurgeDeletionAuthority)}
     RETURNING *
   `);
   if (!rows[0]) {
@@ -1876,9 +2023,10 @@ export async function markObjectStorageOperationEffectStarted(
   tx: Tx,
   lease: ObjectStorageOperationLease,
   evidence: ObjectStorageJsonObject,
+  accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority,
 ): Promise<ObjectStorageOperationRecord> {
   assertJsonObject(evidence, 'effect evidence');
-  const locked = await lockLeasedOperationScope(tx, lease);
+  const locked = await lockLeasedOperationScope(tx, lease, accountPurgeDeletionAuthority);
   if (SIGNED_CAPABILITY_KINDS.has(locked.row.kind)) {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_CAPABILITY_FLOW_INVALID',
@@ -1899,6 +2047,7 @@ export async function markObjectStorageOperationEffectStarted(
       AND "leaseExpiresAt" > clock_timestamp()
       AND "status" = 'PREPARED'
       AND "effectStartedAt" IS NULL
+      ${accountPurgeDeletionAuthorityPredicate(accountPurgeDeletionAuthority)}
     RETURNING *
   `);
   if (!rows[0]) {
@@ -2326,6 +2475,7 @@ export async function reclaimObjectStorageOperationForVerification(
     scopeHash: string;
     ownerToken: string;
     leaseTtlSeconds: number;
+    accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
   },
 ): Promise<ObjectStorageVerificationClaimResult> {
   validateOperationIdentity(input);
@@ -2383,8 +2533,12 @@ export async function reclaimObjectStorageOperationForVerification(
       scopes: initialScopes,
       projects,
       preconditions: normalizeJsonObject(row.preconditions, 'stored preconditions'),
+      idempotencyKey: row.idempotencyKey,
+      requestHash: row.requestHash,
+      payload: normalizeJsonObject(row.payload, 'stored payload'),
       operationId: row.id,
       existingOperation: true,
+      accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority,
     });
   } catch (error) {
     const code = error instanceof ObjectStorageOperationError ? error.code : 'OBJECT_STORAGE_OPERATION_SCOPE_INVALID';
@@ -2431,6 +2585,7 @@ export async function reclaimObjectStorageOperationForVerification(
       AND "fencingToken" = ${bigint(row.fencingToken)}
       AND "leaseExpiresAt" <= clock_timestamp()
       AND "status" IN ('EFFECT_STARTED', 'VERIFYING')
+      ${accountPurgeDeletionAuthorityPredicate(input.accountPurgeDeletionAuthority)}
     RETURNING *
   `);
   if (!reclaimed[0]) {

@@ -77,6 +77,15 @@ describe('account purge — TestApiStore session linearization', () => {
         expiresAt: new Date(Date.now() + 60_000),
       }),
     ).rejects.toMatchObject({ code: 'SESSION_ACCOUNT_PURGE_FENCED' });
+
+    await expect(store.reconcilePurgeFreezes()).resolves.toMatchObject({ reconciled: 0 });
+    await expect(
+      store.createSession({
+        userId: user.id,
+        token: 'must-remain-fenced-after-reconcile',
+        expiresAt: new Date(Date.now() + 60_000),
+      }),
+    ).rejects.toMatchObject({ code: 'SESSION_ACCOUNT_PURGE_FENCED' });
   });
 
   it('serializes impersonator token lookup and late INSERT behind its purge plan', async () => {

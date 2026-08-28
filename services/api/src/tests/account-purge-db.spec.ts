@@ -6,10 +6,10 @@ import { join } from 'node:path';
 import { createDatabaseClient, Prisma } from '@vibecore/database';
 import { describe, expect, it, vi } from 'vitest';
 
-import { eraseLocalAccountStorage } from '../account-local-storage-purge.js';
-import type { PurgeStorageDeps } from '../account-purge.js';
+import type { AccountPurgeProjectDeletionAuthority, PurgeStorageDeps } from '../account-purge.js';
 import type { ObjectStorage } from '../object-storage.js';
 import { PrismaApiStore } from '../prisma-store.js';
+import { LocalProjectStorage, type ProjectStaticErasureAuthority } from '../project-storage.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) return false;
@@ -73,6 +73,7 @@ async function createSessionFencePlan(tx: Prisma.TransactionClient, userId: stri
       purgeDueAt: new Date(requestedAt.getTime() + 14 * 24 * 60 * 60 * 1_000),
       topologyFingerprint: '{}',
       inventory: {
+        ownedProjects: [],
         bucketProjectIds: [],
         workspaceProjectIds: [],
         localSnapshotObjects: [],
@@ -85,6 +86,168 @@ async function createSessionFencePlan(tx: Prisma.TransactionClient, userId: stri
 }
 
 runDbTests('account purge — PostgreSQL multi-client fencing', () => {
+  it('blocks an active retained-source Remix share before billing or provider effects', async () => {
+    const prisma = createDatabaseClient();
+    const userIds: string[] = [];
+    const organizationIds: string[] = [];
+    const eraseStorage = vi.fn(async () => ({ classes: [], verified: true }));
+    const permanentlyDeleteOwnedProject = vi.fn(async () => undefined);
+
+    try {
+      const [subject, targetOwner] = await Promise.all([seedDueUser(prisma), seedDueUser(prisma)]);
+      userIds.push(subject.id, targetOwner.id);
+      const role = await prisma.role.upsert({
+        where: { key: 'owner' },
+        create: { key: 'owner', name: 'Owner' },
+        update: {},
+      });
+      const [sourceOrganization, targetOrganization] = await Promise.all([
+        prisma.organization.create({
+          data: {
+            name: `Shared source ${suffix()}`,
+            slug: `shared-source-${suffix()}`,
+            members: { create: { userId: subject.id, roleId: role.id } },
+            projects: { create: { name: 'Retained source', slug: `retained-source-${suffix()}` } },
+          },
+          include: { projects: true },
+        }),
+        prisma.organization.create({
+          data: {
+            name: `Shared target ${suffix()}`,
+            slug: `shared-target-${suffix()}`,
+            members: { create: { userId: targetOwner.id, roleId: role.id } },
+            projects: { create: { name: 'Retained target', slug: `retained-target-${suffix()}` } },
+          },
+          include: { projects: true },
+        }),
+      ]);
+      organizationIds.push(sourceOrganization.id, targetOrganization.id);
+      await prisma.remixStorageShare.create({
+        data: {
+          sourceProjectId: sourceOrganization.projects[0]!.id,
+          targetProjectId: targetOrganization.projects[0]!.id,
+          sourceOrganizationId: sourceOrganization.id,
+          targetOrganizationId: targetOrganization.id,
+          consentVersion: 'account-purge-preflight-v1',
+          sourceInventory: [],
+          state: 'ACTIVE',
+        },
+      });
+      const store = new PrismaApiStore(prisma);
+
+      await expect(
+        store.purgeUserAccount({ userId: subject.id }, { eraseStorage, permanentlyDeleteOwnedProject }),
+      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_REMIX_STORAGE_SHARE_ACTIVE', statusCode: 409 });
+      expect(eraseStorage).not.toHaveBeenCalled();
+      expect(permanentlyDeleteOwnedProject).not.toHaveBeenCalled();
+      await expect(prisma.purgePlan.count({ where: { userId: subject.id } })).resolves.toBe(0);
+    } finally {
+      await cleanup(prisma, userIds, organizationIds).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('refuses a foreign physical operation before any purge effect and admits a retry after safe resolution', async () => {
+    const prisma = createDatabaseClient();
+    const userIds: string[] = [];
+    const organizationIds: string[] = [];
+    let operationId: string | undefined;
+    const eraseStorage = vi.fn(async () => ({ classes: [], verified: true }));
+    const permanentlyDeleteOwnedProject = vi.fn(async () => undefined);
+
+    try {
+      const user = await seedDueUser(prisma);
+      userIds.push(user.id);
+      const role = await prisma.role.upsert({
+        where: { key: 'owner' },
+        create: { key: 'owner', name: 'Owner' },
+        update: {},
+      });
+      const organization = await prisma.organization.create({
+        data: {
+          name: `Foreign physical operation ${suffix()}`,
+          slug: `foreign-physical-${suffix()}`,
+          members: { create: { userId: user.id, roleId: role.id } },
+          projects: { create: { name: 'Foreign physical project', slug: `foreign-project-${suffix()}` } },
+        },
+        include: { projects: true },
+      });
+      organizationIds.push(organization.id);
+      const project = organization.projects[0]!;
+      const deletionFence = new Date();
+      await prisma.project.update({
+        where: { id: project.id },
+        data: { permanentDeletionStartedAt: deletionFence, deletedAt: deletionFence },
+      });
+      const operation = await prisma.objectStorageOperation.create({
+        data: {
+          kind: 'PROJECT_PERMANENT_DELETE',
+          status: 'PREPARED',
+          scopeHash: createHash('sha256').update(`foreign-scope:${project.id}`).digest('hex'),
+          idempotencyScopeHash: createHash('sha256').update(`foreign-idem-scope:${project.id}`).digest('hex'),
+          idempotencyKey: `foreign-delete-${suffix()}`,
+          requestHash: createHash('sha256').update(`foreign-request:${project.id}`).digest('hex'),
+          payload: {
+            command: 'project-permanent-delete',
+            actorUserIdHash: createHash('sha256').update(user.id).digest('hex'),
+            expectedProjectNameHash: createHash('sha256').update(project.name).digest('hex'),
+          },
+          preconditions: {},
+          ownerToken: `foreign-owner-${suffix()}`,
+          leaseExpiresAt: new Date(Date.now() + 60_000),
+          scopes: {
+            create: {
+              ordinal: 0,
+              projectIdSnapshot: project.id,
+              projectId: project.id,
+              expectedOrganizationId: organization.id,
+              expectedDeletedAt: null,
+              expectedPermanentDeletionStartedAt: deletionFence,
+              deletionFenceDeletedAt: deletionFence,
+            },
+          },
+        },
+      });
+      operationId = operation.id;
+      const store = new PrismaApiStore(prisma);
+
+      await expect(
+        store.purgeUserAccount({ userId: user.id }, { eraseStorage, permanentlyDeleteOwnedProject }),
+      ).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_PROJECT_PHYSICAL_OPERATION_ACTIVE', statusCode: 409 });
+      expect(eraseStorage).not.toHaveBeenCalled();
+      expect(permanentlyDeleteOwnedProject).not.toHaveBeenCalled();
+      await expect(prisma.purgePlan.count({ where: { userId: user.id } })).resolves.toBe(0);
+
+      await prisma.$transaction([
+        prisma.objectStorageOperation.update({
+          where: { id: operation.id },
+          data: {
+            status: 'FAILED_SAFE',
+            ownerToken: null,
+            leaseExpiresAt: null,
+            failedSafeAt: new Date(),
+          },
+        }),
+        prisma.project.update({
+          where: { id: project.id },
+          data: { permanentDeletionStartedAt: null, deletedAt: null },
+        }),
+      ]);
+
+      await expect(store.purgeUserAccount({ userId: user.id }, { eraseStorage })).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_PROJECT_DELETER_UNAVAILABLE',
+        statusCode: 503,
+      });
+      expect(eraseStorage).not.toHaveBeenCalled();
+    } finally {
+      if (operationId) {
+        await prisma.objectStorageOperation.delete({ where: { id: operationId } }).catch(() => undefined);
+      }
+      await cleanup(prisma, userIds, organizationIds).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
   it('does not leave a surviving project fenced by completed purge inventory', async () => {
     const prisma = createDatabaseClient();
     const userIds: string[] = [];
@@ -113,6 +276,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
           topologyFingerprint: '{}',
           completedAt: new Date(),
           inventory: {
+            ownedProjects: [],
             bucketProjectIds: [],
             workspaceProjectIds: [projectId],
             localSnapshotObjects: [],
@@ -152,6 +316,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         active: true,
         ensureBucket,
         bucketExists: vi.fn(async () => bucketExists),
+        bucketVersioningEnabled: vi.fn(async () => bucketExists),
       } as unknown as ObjectStorage;
 
       await expect(
@@ -284,7 +449,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     }
   });
 
-  it('persists an exhaustive local filesystem proof and keeps the project writer fenced', async () => {
+  it('deletes a soft-deleted owned project with exhaustive proof and keeps its writer fenced', async () => {
     const prisma = createDatabaseClient();
     const userIds: string[] = [];
     const organizationIds: string[] = [];
@@ -292,6 +457,10 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     const base = await mkdtemp(join(tmpdir(), 'vibecore-purge-db-fs-'));
     const projectRoot = join(base, 'projects');
     const staticRoot = join(base, 'static');
+    const previousProjectStorageDir = process.env.PROJECT_STORAGE_DIR;
+    const previousStaticDeployStorageDir = process.env.STATIC_DEPLOY_STORAGE_DIR;
+    process.env.PROJECT_STORAGE_DIR = projectRoot;
+    process.env.STATIC_DEPLOY_STORAGE_DIR = staticRoot;
 
     try {
       const user = await seedDueUser(prisma);
@@ -312,6 +481,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       });
       organizationIds.push(organization.id);
       const project = organization.projects[0];
+      await prisma.project.update({ where: { id: project.id }, data: { deletedAt: new Date() } });
       const storageKey = `snapshots/${project.id}/checkpoint.zip`;
       await prisma.projectSnapshot.create({
         data: { projectId: project.id, manifest: {}, storageKey, byteLength: 7 },
@@ -360,59 +530,191 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       }
 
       const store = new PrismaApiStore(prisma, undefined, { ...lease, ttlMs: 5_000 });
-      const result = await store.purgeUserAccount(
-        { userId: user.id },
-        {
-          eraseStorage: async (inventory, purgeLease) => {
-            const local = await eraseLocalAccountStorage(
-              {
-                ownedProjectIds: inventory.bucketProjectIds,
-                workspaceStorage: [],
-                snapshotObjects: inventory.localSnapshotObjects,
-                staticDeploymentIds: inventory.staticDeploymentIds,
-                staticArtifactRefs: inventory.staticArtifactRefs,
-                staticAliasDeploymentIds: inventory.staticAliasDeploymentIds,
+      const staticAuthority: ProjectStaticErasureAuthority = {
+        resolveInventory: (projectId) => store.resolveProjectStaticErasureInventory(projectId),
+        resolveArtifact: (projectId, artifactRef) =>
+          store.resolveProjectStaticArtifactAuthority(projectId, artifactRef),
+      };
+      const projectStorage = new LocalProjectStorage(undefined, undefined, undefined, staticAuthority);
+      let projectDeletionAttempts = 0;
+      const projectDeletionKeys: string[] = [];
+      const purgeDeps: PurgeStorageDeps = {
+        permanentlyDeleteOwnedProject: async (authority) => {
+          projectDeletionAttempts += 1;
+          projectDeletionKeys.push(authority.idempotencyKey);
+          await expect(
+            prisma.purgeEffect.findUnique({
+              where: {
+                planId_effectKey: {
+                  planId: authority.planId,
+                  effectKey: `project-permanent-delete:${authority.projectId}`,
+                },
               },
-              {
-                lease: purgeLease,
-                projectRoot,
-                staticRoot,
-                isStaticArtifactRetainedOutsidePurge: (artifactRef) =>
-                  store.isReleaseArtifactRetainedOutsideProjects(artifactRef, inventory.bucketProjectIds),
+            }),
+          ).resolves.toMatchObject({
+            status: 'RUNNING',
+            resourceType: 'project_permanent_delete',
+            resourceId: authority.projectId,
+            receipt: null,
+          });
+          const replay = await store.replayProjectPermanentDeletion({
+            projectId: authority.projectId,
+            expectedOrganizationId: authority.expectedOrganizationId,
+            idempotencyKey: authority.idempotencyKey,
+            requestHash: authority.requestHash,
+          });
+          if (!replay) {
+            await store.hardDeleteProject({
+              projectId: authority.projectId,
+              expectedOrganizationId: authority.expectedOrganizationId,
+              expectedProjectName: authority.expectedProjectName,
+              idempotencyKey: authority.idempotencyKey,
+              requestHash: authority.requestHash,
+              actorUserId: authority.userId,
+              accountPurgeDeletionAuthority: authority,
+              preflightPhysicalErasure: () =>
+                projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(authority.projectId),
+              erasePhysical: async (assertLease) => {
+                await assertLease();
+                if (projectDeletionAttempts === 1) {
+                  /* The callback starts only after EFFECT_STARTED committed.
+                   * Expire/rebind the coordinator now: the exact child lease
+                   * must finish safely and leave a durable receipt for replay. */
+                  await prisma.purgePlan.update({
+                    where: { id: authority.planId },
+                    data: {
+                      ownerToken: `lost-after-dispatch-${suffix()}`,
+                      leaseExpiresAt: new Date(Date.now() - 1_000),
+                    },
+                  });
+                }
+                await projectStorage.eraseProjectDataWithinPhysicalAccess(authority.projectId);
+                await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(authority.projectId);
               },
-            );
-            return { classes: local.classes, verified: local.verified };
-          },
+              verifyPhysicalAbsence: async (assertLease) => {
+                await assertLease();
+                const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(
+                  authority.projectId,
+                );
+                if (
+                  filesystem.staticSnapshotsAbsent === undefined ||
+                  filesystem.staticAliasesAbsent === undefined ||
+                  !filesystem.staticArtifactSummary
+                ) {
+                  throw new Error('PROJECT_STATIC_ERASURE_VERIFICATION_UNAVAILABLE');
+                }
+                return {
+                  outcome: 'VERIFIED_ABSENT',
+                  verifiedAt: new Date().toISOString(),
+                  verifier: 'account-purge-project-receipt-db-test',
+                  evidence: {
+                    schemaVersion: 'project-permanent-erasure-v1',
+                    filesystem: {
+                      projectTreeAbsent: filesystem.treeAbsent,
+                      workspaceTreesAbsent: true,
+                      objectCacheAbsent: filesystem.exportsAbsent,
+                      staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
+                      staticAliasesAbsent: filesystem.staticAliasesAbsent,
+                      staticArtifactSummary: filesystem.staticArtifactSummary,
+                    },
+                    gcs: { bucketAbsent: true, objectCount: 0 },
+                    workspaceManager: {
+                      schemaVersion: 'workspace-project-erasure-v2',
+                      projectId: authority.projectId,
+                      organizationId: authority.expectedOrganizationId,
+                      databaseInventoryRetained: true,
+                      runtimeEffectsDrained: true,
+                      kubernetes: {
+                        deploymentsAbsent: true,
+                        replicaSetsAbsent: true,
+                        podsAbsent: true,
+                        servicesAbsent: true,
+                        endpointsAbsent: true,
+                        endpointSlicesAbsent: true,
+                        ingressesAbsent: true,
+                        ownedRuntimeSecretsAbsent: true,
+                        persistentVolumeClaimsAbsent: true,
+                      },
+                    },
+                  },
+                };
+              },
+            });
+          }
         },
-      );
+        eraseStorage: async (inventory) => ({
+          classes: [],
+          verified:
+            inventory.ownedProjects.length === 0 &&
+            inventory.bucketProjectIds.length === 0 &&
+            inventory.localSnapshotObjects.length === 0 &&
+            inventory.staticDeploymentIds.length === 0 &&
+            inventory.staticArtifactRefs.length === 0,
+        }),
+      };
+
+      await expect(store.purgeUserAccount({ userId: user.id }, purgeDeps)).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_LEASE_LOST',
+      });
+      await expect(prisma.project.findUnique({ where: { id: project.id } })).resolves.toBeNull();
+      await expect(
+        prisma.projectPermanentDeletionReceipt.findUnique({ where: { projectId: project.id } }),
+      ).resolves.toBeTruthy();
+      await expect(store.reconcilePurgeFreezes()).resolves.toMatchObject({ reconciled: 1 });
+      await expect(prisma.purgePlan.findUniqueOrThrow({ where: { userId: user.id } })).resolves.toMatchObject({
+        status: 'ABANDONED',
+        inventory: expect.objectContaining({
+          ownedProjects: [expect.objectContaining({ projectId: project.id, projectName: project.name })],
+        }),
+      });
+
+      const result = await store.purgeUserAccount({ userId: user.id }, purgeDeps);
 
       expect(result).toMatchObject({ outcome: 'purged' });
       if (result.outcome !== 'purged') throw new Error('expected purged outcome');
       expect(result.proof.verifiedZeroRemaining).toBe(true);
-      const physicalClassNames = [
-        'local_project_storage',
-        'local_project_archives',
-        'local_project_checkpoints',
-        'local_workspace_storage',
-        'static_deployment_snapshots',
-        'static_release_artifacts',
-        'static_routing_aliases',
-      ];
-      expect(
-        result.proof.classes
-          .map(({ dataClass }) => dataClass)
-          .filter((dataClass) => physicalClassNames.includes(dataClass)),
-      ).toEqual(physicalClassNames);
+      expect(result.proof.classes).toContainEqual(
+        expect.objectContaining({
+          dataClass: 'projects',
+          action: 'deleted',
+          models: { Project: 1 },
+          evidence: expect.objectContaining({ receiptCount: 1, receiptDigest: expect.any(String) }),
+          remainingAfterPurge: 0,
+        }),
+      );
       for (const path of files) {
         await expect(lstat(path)).rejects.toMatchObject({ code: 'ENOENT' });
       }
+      const completedPlan = await prisma.purgePlan.findUniqueOrThrow({ where: { id: result.planId } });
+      expect(completedPlan.topologyFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/);
+      expect(JSON.stringify(completedPlan.inventory)).not.toContain(project.name);
+      const completedInventory = JSON.parse(JSON.stringify(completedPlan.inventory)) as {
+        schemaVersion?: unknown;
+        projectDeletionReceipts?: Array<Record<string, unknown>>;
+      };
+      expect(completedInventory.schemaVersion).toBe('account-purge-completed-v2');
+      expect(completedInventory.projectDeletionReceipts).toHaveLength(1);
+      expect(completedInventory.projectDeletionReceipts?.[0]?.projectId).toBe(project.id);
+      expect(completedInventory.projectDeletionReceipts?.[0]?.requestHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(projectDeletionAttempts).toBe(2);
+      expect(new Set(projectDeletionKeys)).toEqual(new Set([`account-purge:${result.planId}:${project.id}`]));
+      await expect(
+        prisma.purgeEffect.findUnique({
+          where: {
+            planId_effectKey: {
+              planId: result.planId,
+              effectKey: `project-permanent-delete:${project.id}`,
+            },
+          },
+        }),
+      ).resolves.toMatchObject({ status: 'SUCCEEDED', attempt: 2 });
       await expect(
         store.assertProjectStorageMutable({
           projectId: project.id,
           expectedOrganizationId: organization.id,
         }),
       ).rejects.toMatchObject({
-        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
       });
     } finally {
       if (userIds[0]) {
@@ -428,6 +730,10 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       await cleanup(prisma, userIds, organizationIds).catch(() => undefined);
       await prisma.$disconnect();
       await rm(base, { recursive: true, force: true });
+      if (previousProjectStorageDir === undefined) delete process.env.PROJECT_STORAGE_DIR;
+      else process.env.PROJECT_STORAGE_DIR = previousProjectStorageDir;
+      if (previousStaticDeployStorageDir === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+      else process.env.STATIC_DEPLOY_STORAGE_DIR = previousStaticDeployStorageDir;
     }
   });
 
@@ -538,7 +844,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     }
   });
 
-  it('keeps the GCS freeze after a crash between provider success and receipt, then verifies live before retry certification', async () => {
+  it('keeps the physical freeze after a crash between provider success and receipt, then verifies live before retry certification', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
     const userIds: string[] = [];
@@ -548,7 +854,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
 
     try {
       const user = await seedDueUser(prismaA);
-      userIds.push(user.id);
+      const retainedOwner = await prismaA.user.create({ data: { email: `retained-owner-${suffix()}@example.test` } });
+      userIds.push(user.id, retainedOwner.id);
       const role = await prismaA.role.upsert({
         where: { key: 'owner' },
         create: { key: 'owner', name: 'Owner' },
@@ -558,7 +865,12 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         data: {
           name: 'Purge GCS recovery org',
           slug: `purge-gcs-recovery-${suffix()}`,
-          members: { create: { userId: user.id, roleId: role.id } },
+          members: {
+            create: [
+              { userId: user.id, roleId: role.id },
+              { userId: retainedOwner.id, roleId: role.id },
+            ],
+          },
           projects: { create: { name: 'GCS recovery project', slug: `gcs-recovery-${suffix()}` } },
         },
         include: { projects: true },
@@ -569,8 +881,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       const storeA = new PrismaApiStore(prismaA, undefined, slowRenewLease);
       const storeB = new PrismaApiStore(prismaB, undefined, slowRenewLease);
       const effectDescriptor = {
-        key: `gcs-bucket:${project.id}`,
-        resourceType: 'gcs_bucket',
+        key: `workspace-pvc:${project.id}`,
+        resourceType: 'k8s_pvc',
         resourceId: project.id,
       } as const;
 
@@ -609,12 +921,25 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         prismaA.purgeFreeze.findFirst({
           where: {
             plan: { userId: user.id },
-            resourceType: 'objectStorage',
+            resourceType: 'projectTopology',
             resourceId: project.id,
           },
         }),
       ).resolves.toBeTruthy();
       await expect(prismaA.project.findUnique({ where: { id: project.id } })).resolves.toBeTruthy();
+      await expect(storeB.reconcilePurgeFreezes()).resolves.toMatchObject({ reconciled: 1 });
+      await expect(prismaA.purgePlan.findUniqueOrThrow({ where: { userId: user.id } })).resolves.toMatchObject({
+        status: 'ABANDONED',
+      });
+      await expect(
+        storeB.assertProjectStorageMutable({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_FROZEN_FOR_ACCOUNT_PURGE' });
+      await expect(storeB.cancelAccountDeletion(user.id)).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_ALREADY_STARTED',
+      });
 
       const recovered = await storeB.purgeUserAccount(
         { userId: user.id },
@@ -656,7 +981,15 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     const userIds: string[] = [];
     const organizationIds: string[] = [];
     let billingPlanId: string | undefined;
-    const cancelExternalBilling = vi.fn(async () => ({ canceled: true, providerStatus: 'canceled' }));
+    let subscriptionId: string | undefined;
+    const cancelExternalBilling = vi.fn(async () => {
+      if (!subscriptionId) throw new Error('subscription was not seeded');
+      await prismaB.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: 'CANCELED', cancelAtPeriodEnd: true },
+      });
+      return { canceled: true, providerStatus: 'canceled' };
+    });
 
     try {
       const user = await seedDueUser(prismaA);
@@ -691,6 +1024,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
           status: 'ACTIVE',
         },
       });
+      subscriptionId = subscription.id;
       const storeA = new PrismaApiStore(prismaA, undefined, { ...lease, ttlMs: 5_000 });
       const storeB = new PrismaApiStore(prismaB, undefined, { ...lease, ttlMs: 5_000 });
       const deps = (verified: boolean): PurgeStorageDeps => ({
@@ -911,6 +1245,7 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
     const organizationIds: string[] = [];
     const entered = deferred();
     const release = deferred();
+    let liveAuthority: AccountPurgeProjectDeletionAuthority | undefined;
 
     try {
       const user = await seedDueUser(prismaA);
@@ -946,15 +1281,24 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
       const purge = storeA.purgeUserAccount(
         { userId: user.id },
         {
-          eraseStorage: async () => {
+          permanentlyDeleteOwnedProject: async (authority) => {
+            liveAuthority = authority;
             entered.resolve();
             await release.promise;
-            return { classes: [], verified: false };
+            throw Object.assign(new Error('Physical deletion intentionally withheld by the fence test'), {
+              code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE',
+            });
           },
+          eraseStorage: async () => ({ classes: [], verified: false }),
         },
+      );
+      const purgeOutcome = purge.then(
+        (result) => ({ result, error: undefined }),
+        (error: unknown) => ({ result: undefined, error }),
       );
 
       await entered.promise;
+      expect(liveAuthority).toBeDefined();
       await expect(storeB.cancelAccountDeletion(user.id)).rejects.toMatchObject({
         code: 'ACCOUNT_PURGE_ALREADY_STARTED',
       });
@@ -981,11 +1325,42 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
             ensureBucket: providerMutation,
           } as unknown as ObjectStorage,
         }),
-      ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+      ).rejects.toMatchObject({ code: 'PROJECT_FROZEN_FOR_ACCOUNT_PURGE' });
       expect(providerMutation).not.toHaveBeenCalled();
 
+      const permanentDeleteEffect = vi.fn();
+      await expect(
+        storeB.hardDeleteProject({
+          projectId: organization.projects[0].id,
+          expectedOrganizationId: organization.id,
+          expectedProjectName: organization.projects[0].name,
+          idempotencyKey: liveAuthority!.idempotencyKey,
+          requestHash: liveAuthority!.requestHash,
+          actorUserId: user.id,
+          accountPurgeDeletionAuthority: {
+            ...liveAuthority!,
+            ownerToken: `forged-${suffix()}`,
+          },
+          preflightPhysicalErasure: async () => {
+            permanentDeleteEffect();
+            throw new Error('unreachable');
+          },
+          erasePhysical: async () => {
+            permanentDeleteEffect();
+          },
+          verifyPhysicalAbsence: async () => {
+            permanentDeleteEffect();
+            throw new Error('unreachable');
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE' });
+      expect(permanentDeleteEffect).not.toHaveBeenCalled();
+
       release.resolve();
-      await expect(purge).rejects.toMatchObject({ code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE' });
+      await expect(purgeOutcome).resolves.toMatchObject({
+        result: undefined,
+        error: { code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE' },
+      });
     } finally {
       release.resolve();
       await cleanup(prismaA, userIds, organizationIds).catch(() => undefined);

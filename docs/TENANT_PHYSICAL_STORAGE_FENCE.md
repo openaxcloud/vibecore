@@ -34,6 +34,24 @@ transaction. A pre-freeze writer finishes before erasure; every later writer
 sees the durable freeze. Purge acquisition never waits for NFS while holding the
 topology transaction, so it does not invert the project writer order.
 
+For each project owned through a sole-member organization, account purge drives
+the normal `PROJECT_PERMANENT_DELETE` saga with an idempotency key bound to the
+parent plan. The child claim accepts only an ephemeral authority whose plan,
+owner token, PostgreSQL-clock lease, project/org/name/ownership epoch, request
+hash, and frozen inventory all match in the claim transaction. The parent never
+bulk-deletes `Project` rows. It independently reads every immutable child
+receipt and verifies the absent Project, operation kind/status, canonical
+request, tenant snapshot, and ownership epoch before anonymizing the user.
+The transition to `EFFECT_STARTED` locks and revalidates the parent plan and
+conditions the child update on the same live lease. A rejection is therefore
+provably pre-dispatch and restores the child safely. Once that transition
+commits, the immutable child scope and its own fencing token become the recovery
+authority: an expired or reclaimed coordinator lease cannot interrupt or
+misclassify a provider effect that may already be in flight.
+Residual subject workspaces in shared projects remain a separate account purge
+class; sole-owned trees, buckets, static bytes, and provider resources are not
+sent through that residual path a second time.
+
 ## PostgreSQL session-lock pool
 
 `PROJECT_PHYSICAL_LOCK_ACQUIRE_TIMEOUT_MS` bounds only acquisition of the
@@ -162,3 +180,23 @@ project organization. Do not clear `EFFECT_STARTED`, `VERIFYING`, or
 under the operation's fences; finalize only from verified evidence. Never repair
 by directly changing `Project.organizationId`, `deletedAt`, capability expiry, or
 operation state.
+
+For a stuck account purge, inspect the parent `PurgePlan` and each expected
+`ProjectPermanentDeletionReceipt`. A lost parent response reuses the same child
+idempotency key and receipt; never create a replacement project-delete key or
+fall back to relational `Project.deleteMany`. Until COMPLETED, the plan inventory
+retains the exact child identity required for recovery. On COMPLETED it is
+reduced to receipt identifiers and hashes, and the topology fingerprint is
+one-way committed so plaintext project names are not retained in purge history.
+After any parent or child effect is dispatched, the durable `PurgeFreeze` rows
+remain authoritative even if lease reconciliation marks the attempt FAILED or
+ABANDONED. Reclaim the same plan and verify its receipts; deleting freeze rows or
+treating a non-ACTIVE status as permission to resume writes is not a recovery.
+Before the first guarantee is issued, the coordinator also refuses foreign
+active physical-storage operations and active Remix retained-source shares for
+every sole-owned project. Resolve those authorities first; never let the parent
+start billing or erasure effects and hope a mismatched child receipt can be
+adopted later.
+That reclaim also reuses the original, runtime-validated inventory and topology
+commitment. It must not rebuild `ownedProjects` from the surviving relational
+rows, because a successfully erased child is intentionally absent by then.
