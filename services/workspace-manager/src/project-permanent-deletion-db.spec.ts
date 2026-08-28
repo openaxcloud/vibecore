@@ -632,9 +632,14 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', {
     ]);
 
     let providerEffects = 0;
-    const staleProvision = fixture.store.executeProvisionEffect(fixture.workspaceId, async () => {
-      providerEffects += 1;
-    });
+    const staleProvision = fixture.store
+      .executeProvisionEffect(fixture.workspaceId, async () => {
+        providerEffects += 1;
+      })
+      .then(
+        () => ({ ok: true as const }),
+        (error: unknown) => ({ ok: false as const, error }),
+      );
     await new Promise((resolve) => setTimeout(resolve, 100));
     expect(providerEffects).toBe(0);
 
@@ -655,7 +660,10 @@ integrationDescribe('project permanent deletion workspace fence (PostgreSQL)', {
     ]);
     await barrier.end();
 
-    await expect(staleProvision).rejects.toMatchObject({ code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+    await expect(staleProvision).resolves.toMatchObject({
+      ok: false,
+      error: { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 },
+    });
     expect(providerEffects).toBe(0);
   });
 
