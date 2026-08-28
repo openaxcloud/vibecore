@@ -383,8 +383,8 @@ describe('isolation des compartiments entre routes', () => {
   it('le trafic d’une route ne consomme pas le budget d’une autre', async () => {
     const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
     const root = new Store({ timeWindow: 60_000 });
-    const register = root.child({ method: 'POST', url: '/auth/register' });
-    const gallery = root.child({ method: 'GET', url: '/gallery' });
+    const register = root.child({ routeInfo: { method: 'POST', url: '/auth/register' } });
+    const gallery = root.child({ routeInfo: { method: 'GET', url: '/gallery' } });
 
     for (let index = 0; index < 5; index += 1) {
       await hit(gallery, '127.0.0.1');
@@ -398,8 +398,8 @@ describe('isolation des compartiments entre routes', () => {
   it('la même route et le même appelant partagent bien un compartiment', async () => {
     const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
     const root = new Store({ timeWindow: 60_000 });
-    const a = root.child({ method: 'POST', url: '/auth/login' });
-    const b = root.child({ method: 'POST', url: '/auth/login' });
+    const a = root.child({ routeInfo: { method: 'POST', url: '/auth/login' } });
+    const b = root.child({ routeInfo: { method: 'POST', url: '/auth/login' } });
 
     expect(await hit(a, '10.0.0.1')).toBe(1);
     expect(await hit(b, '10.0.0.1')).toBe(2);
@@ -407,7 +407,7 @@ describe('isolation des compartiments entre routes', () => {
 
   it('deux appelants distincts restent séparés sur une même route', async () => {
     const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const route = new Store({ timeWindow: 60_000 }).child({ method: 'POST', url: '/auth/login' });
+    const route = new Store({ timeWindow: 60_000 }).child({ routeInfo: { method: 'POST', url: '/auth/login' } });
 
     expect(await hit(route, '10.0.0.1')).toBe(1);
     expect(await hit(route, '10.0.0.2')).toBe(1);
@@ -416,10 +416,36 @@ describe('isolation des compartiments entre routes', () => {
   it('le store racine garde son propre compartiment (limite globale)', async () => {
     const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
     const root = new Store({ timeWindow: 60_000 });
-    const route = root.child({ method: 'POST', url: '/auth/register' });
+    const route = root.child({ routeInfo: { method: 'POST', url: '/auth/register' } });
 
     expect(await hit(root, '127.0.0.1')).toBe(1);
     expect(await hit(route, '127.0.0.1')).toBe(1);
     expect(await hit(root, '127.0.0.1')).toBe(2);
+  });
+
+  /*
+   * Ce cas existe parce que je m'y suis trompé. Ma première version lisait
+   * `method`/`url` au premier niveau de l'objet passé à `child()`. Les tests
+   * passaient — parce qu'ils passaient eux aussi cette forme-là. Or
+   * `@fastify/rate-limit` appelle
+   *
+   *     store.child(mergeParams(globalParams, routeConfig, { routeInfo }))
+   *
+   * et la route vit sous `routeInfo`. Le discriminant était donc toujours
+   * `undefined` en vrai, le compartiment retombait sur `global`, et le
+   * correctif n'avait aucun effet : la première `/auth/register` d'un job
+   * répondait encore 429. Ce test fige la forme RÉELLE du plugin.
+   */
+  it('lit la route sous `routeInfo`, comme le plugin la transmet réellement', async () => {
+    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
+    const root = new Store({ timeWindow: 60_000 });
+    const register = root.child({ max: 10, timeWindow: 60_000, routeInfo: { method: 'POST', url: '/auth/register' } });
+    const gallery = root.child({ max: 2000, timeWindow: 60_000, routeInfo: { method: 'GET', url: '/gallery' } });
+
+    for (let index = 0; index < 12; index += 1) {
+      await hit(gallery, '127.0.0.1');
+    }
+
+    expect(await hit(register, '127.0.0.1')).toBe(1);
   });
 });

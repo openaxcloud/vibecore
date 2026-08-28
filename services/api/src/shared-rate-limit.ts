@@ -303,7 +303,17 @@ export class FastifyRateLimitSharedStore {
    * injecté.
    */
   child(routeOptions: object): FastifyRateLimitSharedStore {
-    const route = routeOptions as { method?: unknown; url?: unknown };
+    /*
+     * `@fastify/rate-limit` n'appelle PAS `child()` avec les options de route à
+     * plat : il passe `mergeParams(globalParams, routeConfig, { routeInfo })`,
+     * où la route vit sous `routeInfo`. Lire `method`/`url` au premier niveau
+     * rendait donc systématiquement `undefined`, le compartiment retombait sur
+     * `global`, et le correctif ne s'appliquait pas — vérifié en réel : la
+     * toute première `/auth/register` d'un job répondait encore 429. Le repli à
+     * plat est conservé pour rester robuste si la forme évolue.
+     */
+    const merged = routeOptions as { routeInfo?: { method?: unknown; url?: unknown }; method?: unknown; url?: unknown };
+    const route = merged.routeInfo ?? merged;
     const method = Array.isArray(route.method) ? route.method.join(',') : String(route.method ?? '');
     const url = String(route.url ?? '');
     /*
