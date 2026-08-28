@@ -34,7 +34,7 @@
     "predev": "pnpm --filter @vibecore/database db:deploy",
     "dev": "tsx watch --exclude '.vibecore/**' --exclude '.vibecore-project-storage/**' --exclude '.vibecore-static-deployments/**' src/server.ts",
     "start": "node dist/server.js",
-    "build": "tsc --outDir dist --rootDir src --module NodeNext --moduleResolution NodeNext --target ES2022 --lib ES2022 --types node --skipLibCheck true --esModuleInterop true --strict true --resolveJsonModule true src/server.ts",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest --run --config vitest.config.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "echo \"api lint covered by root\""
