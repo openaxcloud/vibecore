@@ -17194,32 +17194,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  /*
-   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources
+   * panel. Read inside the workspace container (cgroup + statfs) rather than
+   * from metrics-server: it is the accounting the kernel actually enforces, it
+   * is the only place the PVC's real usage exists, and it does not depend on an
+   * optional cluster add-on.
    *
-   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
-   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
-   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
-   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
-   * ligne d'affichage secondaire.
+   * Deliberately NOT falling back to local runtime figures the way `/ports`
+   * does: a number from the API pod's own cgroup would describe the platform,
+   * not the user's workspace, and would be indistinguishable from a real
+   * reading. When the agent cannot answer, the panel says so.
    */
-  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     try {
-      return await agentRequest(authorized.workspaceId, '/resources');
-    } catch {
-      return {
-        memory: { used: null, limit: null },
-        cpu: { ratio: null, limitCores: null },
-        storage: { used: null, limit: null },
-        measuredAt: new Date().toISOString(),
-        unavailable: true,
-      };
+      return await agentRequest<{
+        capturedAt: string;
+        memory: { usedBytes: number; limitBytes: number | null; source: string } | null;
+        cpu: { usedPercent: number; limitCores: number | null; sampleMs: number; source: string } | null;
+        storage: { usedBytes: number; totalBytes: number; path: string } | null;
+      }>(authorized.workspaceId, '/resources');
+    } catch (error) {
+      request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
+
+      /*
+       * Localised through the shared public-copy catalogue like every other
+       * user-facing API error: the i18n source guard treats a hardcoded string
+       * here as new debt, and rightly so — this message reaches the IDE.
+       */
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
+      return reply.code(503).send({
+        error: message,
+        message,
+        code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
+      });
     }
   });
-
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');

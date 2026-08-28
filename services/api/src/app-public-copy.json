@@ -2598,5 +2598,9 @@
   "RATE_LIMIT_NON_NUMERIC_COUNT_INTERNAL": {
     "en": "The redis rate-limit returned a non-numeric count.",
     "fr": "La limitation de débit redis a renvoyé un compteur non numérique."
+  },
+  "WORKSPACE_RESOURCES_UNAVAILABLE": {
+    "en": "Workspace resource metrics are not available right now.",
+    "fr": "Les mesures de ressources de l’espace de travail ne sont pas disponibles pour le moment."
   }
 }
