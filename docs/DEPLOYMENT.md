@@ -207,10 +207,13 @@ never cuts a release from an unpromoted image.
    `server_deploy_builder_repository`, `server_deploy_cosign_kms_key_id`,
    `server_deploy_builder_pull_repositories` (including the private workspace
    base-image repository),
-   `artifact_promotion_repositories` (source reader + isolated target
-   `repoAdmin` grants), and `binary_authorization_policy_projects`; apply. This
-   creates the dedicated builder GSA, grants the API `actAs`, scopes build output
-   to the source repo, and scopes KMS signing to one CryptoKey.
+   `artifact_promotion_repositories` (source **and** isolated target
+   `repoAdmin` grants), and `binary_authorization_policy_projects`; apply. The
+   source delete permission is required by the exact project-erasure saga, not
+   only promotion rollback. This creates the dedicated builder GSA, grants the
+   API `actAs` plus Cloud Build reconcile/cancel authority, scopes build output
+   to the source repo, and scopes KMS signing to one CryptoKey. See
+   [PROJECT_IMAGE_LIFECYCLE_RUNBOOK.md](PROJECT_IMAGE_LIFECYCLE_RUNBOOK.md).
 3. Add a Secret Manager version for
    `vibecore-prod-artifact-promotion-config-json` containing the strictly
    validated source/tenant repository and policy map. Then add

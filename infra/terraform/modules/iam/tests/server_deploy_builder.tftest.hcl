@@ -18,11 +18,37 @@ run "dedicated_builder_has_only_explicit_scoped_grants" {
       repository = "vibecore-prod-containers"
     }]
     server_deploy_cosign_kms_key_id = "projects/vibecore-prod/locations/europe-west9/keyRings/ecode-supply-chain/cryptoKeys/cosign-images"
+    artifact_promotion_repositories = [
+      {
+        project    = "vibecore-prod"
+        location   = "europe-west9"
+        repository = "vibecore-prod-apps"
+        role       = "roles/artifactregistry.repoAdmin"
+      },
+      {
+        project    = "tenant-prod"
+        location   = "europe-west9"
+        repository = "tenant-apps"
+        role       = "roles/artifactregistry.repoAdmin"
+      }
+    ]
   }
 
   assert {
     condition     = length(google_service_account.server_deploy_builder) == 1
     error_message = "A configured producer must create one dedicated builder identity."
+  }
+
+  assert {
+    condition     = google_project_iam_member.platform_cloud_build_submitter[0].role == "roles/cloudbuild.builds.editor"
+    error_message = "The API must be able to reconcile and cancel durable Cloud Builds."
+  }
+
+  assert {
+    condition = google_artifact_registry_repository_iam_member.artifact_promotion[
+      "vibecore-prod/europe-west9/vibecore-prod-apps/roles/artifactregistry.repoAdmin"
+    ].role == "roles/artifactregistry.repoAdmin"
+    error_message = "The API must inventory and erase project packages in the source repository."
   }
 
   assert {

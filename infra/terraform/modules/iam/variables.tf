@@ -39,3 +39,13 @@ variable "server_deploy_cosign_kms_key_id" {
   type    = string
   default = ""
 }
+
+check "server_deploy_registry_erasure_grant" {
+  assert {
+    condition = var.server_deploy_builder_repository == null ? true : contains([
+      for grant in var.artifact_promotion_repositories :
+      "${grant.project}/${grant.location}/${grant.repository}/${grant.role}"
+    ], "${var.server_deploy_builder_repository.project}/${var.server_deploy_builder_repository.location}/${var.server_deploy_builder_repository.repository}/roles/artifactregistry.repoAdmin")
+    error_message = "The platform workload needs repoAdmin on the app-image source repository for exact registry erasure."
+  }
+}

@@ -92,8 +92,9 @@ resource "google_service_account_iam_member" "platform_api_workload_identity" {
   member             = "serviceAccount:${var.project_id}.svc.id.goog[vibecore/vibecore-vibecore-platform-api]"
 }
 
-# The API submits per-app Cloud Builds. Image signing itself executes as the
-# Cloud Build service account; this grant only authorizes build creation.
+# The API submits, reconciles, polls and cancels per-app Cloud Builds. Image
+# signing itself executes as the dedicated builder; editor is required by the
+# durable crash-recovery and hard-delete cancellation paths (never a default SA).
 resource "google_project_iam_member" "platform_cloud_build_submitter" {
   count   = local.server_deploy_builder_enabled ? 1 : 0
   project = var.project_id
@@ -159,8 +160,9 @@ resource "google_kms_crypto_key_iam_member" "server_deploy_builder_signer" {
   member        = "serviceAccount:${google_service_account.server_deploy_builder[0].email}"
 }
 
-# Least-privilege, repository-scoped data-plane grants. Target repositories need
-# deleteArtifacts so a partial promotion can be rolled back fail-closed.
+# Least-privilege, repository-scoped data-plane grants. Every repository that
+# can contain a p-<project> package needs repoAdmin: promotion rollback and the
+# permanent-delete saga both require deleteArtifacts after an exact inventory.
 resource "google_artifact_registry_repository_iam_member" "artifact_promotion" {
   for_each = {
     for grant in var.artifact_promotion_repositories :
