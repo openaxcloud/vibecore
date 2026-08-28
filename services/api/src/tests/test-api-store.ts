@@ -303,6 +303,7 @@ function assertPermanentDeletionProof(
   const gcs = proof.evidence.gcs as Record<string, unknown> | undefined;
   const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown> | undefined;
   const kubernetes = workspaceManager?.kubernetes as Record<string, unknown> | undefined;
+  const volumes = workspaceManager?.volumes as Record<string, unknown> | undefined;
   let staticArtifactSummary: ObjectStorageStaticArtifactSummary | undefined;
   let expected: ObjectStorageStaticArtifactSummary | undefined;
   try {
@@ -313,7 +314,7 @@ function assertPermanentDeletionProof(
   }
   const complete =
     proof.outcome === 'VERIFIED_ABSENT' &&
-    proof.evidence.schemaVersion === 'project-permanent-erasure-v1' &&
+    proof.evidence.schemaVersion === 'project-permanent-erasure-v2' &&
     filesystem?.projectTreeAbsent === true &&
     filesystem.workspaceTreesAbsent === true &&
     filesystem.objectCacheAbsent === true &&
@@ -327,7 +328,7 @@ function assertPermanentDeletionProof(
     staticArtifactSummary.digest === expected.digest &&
     gcs?.bucketAbsent === true &&
     gcs.objectCount === 0 &&
-    workspaceManager?.schemaVersion === 'workspace-project-erasure-v2' &&
+    workspaceManager?.schemaVersion === 'workspace-project-erasure-v3' &&
     workspaceManager.databaseInventoryRetained === true &&
     workspaceManager.runtimeEffectsDrained === true &&
     kubernetes?.deploymentsAbsent === true &&
@@ -338,7 +339,14 @@ function assertPermanentDeletionProof(
     kubernetes.endpointSlicesAbsent === true &&
     kubernetes.ingressesAbsent === true &&
     kubernetes.ownedRuntimeSecretsAbsent === true &&
-    kubernetes.persistentVolumeClaimsAbsent === true;
+    kubernetes.persistentVolumeClaimsAbsent === true &&
+    volumes?.schemaVersion === 1 &&
+    typeof volumes.inventoryHash === 'string' &&
+    typeof volumes.verificationHash === 'string' &&
+    volumes.sharedExclusionCount === 0 &&
+    volumes.persistentVolumeClaimsAbsent === true &&
+    volumes.persistentVolumesAbsent === true &&
+    volumes.providerVolumesAbsent === true;
   if (!complete) {
     throw Object.assign(new Error('OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE'), {
       code: 'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',

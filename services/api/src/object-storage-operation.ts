@@ -2128,9 +2128,8 @@ function assertPermanentDeletionEvidence(
   const filesystem = evidence.filesystem;
   const gcs = evidence.gcs;
   const workspaceManager = evidence.workspaceManager;
-  const managedDatabase = evidence.managedDatabase;
   if (
-    evidence.schemaVersion !== 'project-permanent-erasure-v1' ||
+    evidence.schemaVersion !== 'project-permanent-erasure-v2' ||
     !filesystem ||
     typeof filesystem !== 'object' ||
     Array.isArray(filesystem) ||
@@ -2147,20 +2146,10 @@ function assertPermanentDeletionEvidence(
     Array.isArray(gcs) ||
     gcs.bucketAbsent !== true ||
     gcs.objectCount !== 0 ||
-    !managedDatabase ||
-    typeof managedDatabase !== 'object' ||
-    Array.isArray(managedDatabase) ||
-    managedDatabase.schemaVersion !== 1 ||
-    managedDatabase.proof === null ||
-    typeof managedDatabase.proof !== 'object' ||
-    Array.isArray(managedDatabase.proof) ||
-    managedDatabase.proof.kubernetesAbsent !== true ||
-    managedDatabase.proof.sharedTenantsAbsent !== true ||
-    managedDatabase.proof.backupGenerationsAbsent !== true ||
     !workspaceManager ||
     typeof workspaceManager !== 'object' ||
     Array.isArray(workspaceManager) ||
-    workspaceManager.schemaVersion !== 'workspace-project-erasure-v2' ||
+    workspaceManager.schemaVersion !== 'workspace-project-erasure-v3' ||
     typeof workspaceManager.projectId !== 'string' ||
     typeof workspaceManager.organizationId !== 'string' ||
     workspaceManager.databaseInventoryRetained !== true ||
@@ -2176,7 +2165,30 @@ function assertPermanentDeletionEvidence(
     workspaceManager.kubernetes.endpointSlicesAbsent !== true ||
     workspaceManager.kubernetes.ingressesAbsent !== true ||
     workspaceManager.kubernetes.ownedRuntimeSecretsAbsent !== true ||
-    workspaceManager.kubernetes.persistentVolumeClaimsAbsent !== true
+    workspaceManager.kubernetes.persistentVolumeClaimsAbsent !== true ||
+    !workspaceManager.volumes ||
+    typeof workspaceManager.volumes !== 'object' ||
+    Array.isArray(workspaceManager.volumes) ||
+    workspaceManager.volumes.schemaVersion !== 1 ||
+    typeof workspaceManager.volumes.inventoryHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.inventoryHash) ||
+    typeof workspaceManager.volumes.verificationHash !== 'string' ||
+    !/^[a-f0-9]{64}$/u.test(workspaceManager.volumes.verificationHash) ||
+    typeof workspaceManager.volumes.entryCount !== 'number' ||
+    !Number.isSafeInteger(workspaceManager.volumes.entryCount) ||
+    workspaceManager.volumes.entryCount < 0 ||
+    typeof workspaceManager.volumes.erasedEntryCount !== 'number' ||
+    !Number.isSafeInteger(workspaceManager.volumes.erasedEntryCount) ||
+    workspaceManager.volumes.erasedEntryCount < 0 ||
+    typeof workspaceManager.volumes.alreadyAbsentEntryCount !== 'number' ||
+    !Number.isSafeInteger(workspaceManager.volumes.alreadyAbsentEntryCount) ||
+    workspaceManager.volumes.alreadyAbsentEntryCount < 0 ||
+    workspaceManager.volumes.erasedEntryCount + workspaceManager.volumes.alreadyAbsentEntryCount !==
+      workspaceManager.volumes.entryCount ||
+    workspaceManager.volumes.sharedExclusionCount !== 0 ||
+    workspaceManager.volumes.persistentVolumeClaimsAbsent !== true ||
+    workspaceManager.volumes.persistentVolumesAbsent !== true ||
+    workspaceManager.volumes.providerVolumesAbsent !== true
   ) {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
@@ -3015,6 +3027,7 @@ export async function finalizeObjectStorageOperation(
         409,
       );
     }
+    const volumeProof = workspaceManager.volumes as ObjectStorageJsonObject;
     const snapshotRows = await tx.$queryRaw<
       Array<{
         id: string;
@@ -3045,6 +3058,117 @@ export async function finalizeObjectStorageOperation(
     const project = snapshotRows[0];
     if (!project || project.organizationId !== scope.expectedOrganizationId) {
       throw operationError('OBJECT_STORAGE_OPERATION_DELETION_FENCE_LOST', 'Permanent deletion project changed', 409);
+    }
+    const volumePlans = await tx.$queryRaw<
+      Array<{
+        projectIdSnapshot: string;
+        organizationId: string;
+        ownershipEpoch: number;
+        state: string;
+        inventoryHash: string | null;
+        verificationHash: string | null;
+        verificationFencingToken: bigint | null;
+        inventory: unknown | null;
+        evidence: unknown | null;
+      }>
+    >(Prisma.sql`
+      SELECT "projectIdSnapshot", "organizationId", "ownershipEpoch", "state"::text AS "state",
+             "inventoryHash", "verificationHash", "verificationFencingToken", "inventory", "evidence"
+      FROM "ProjectVolumeErasure"
+      WHERE "operationId" = ${locked.row.id}
+      FOR UPDATE
+    `);
+    const volumePlan = volumePlans[0];
+    const volumeTargets = await tx.$queryRaw<
+      Array<{
+        ordinal: number;
+        inventoryEntry: unknown | null;
+        evidenceEntry: unknown | null;
+        verifiedFencingToken: bigint | null;
+        disposition: string | null;
+      }>
+    >(Prisma.sql`
+      SELECT "ordinal", "inventoryEntry", "evidenceEntry", "verifiedFencingToken",
+             "inventoryEntry"->>'disposition' AS "disposition"
+      FROM "ProjectVolumeErasureTarget"
+      WHERE "operationId" = ${locked.row.id}
+      ORDER BY "ordinal"
+      FOR UPDATE
+    `);
+    const storedInventory =
+      volumePlan?.inventory && typeof volumePlan.inventory === 'object' && !Array.isArray(volumePlan.inventory)
+        ? (volumePlan.inventory as ObjectStorageJsonObject)
+        : undefined;
+    const storedEvidence =
+      volumePlan?.evidence && typeof volumePlan.evidence === 'object' && !Array.isArray(volumePlan.evidence)
+        ? (volumePlan.evidence as ObjectStorageJsonObject)
+        : undefined;
+    const inventoryEntries = Array.isArray(storedInventory?.entries) ? storedInventory.entries : undefined;
+    const evidenceEntries = Array.isArray(storedEvidence?.entries) ? storedEvidence.entries : undefined;
+    const { inventoryHash: embeddedInventoryHash, ...unsignedInventory } = storedInventory ?? {};
+    const { verificationHash: embeddedVerificationHash, ...unsignedEvidence } = storedEvidence ?? {};
+    const recomputedInventoryHash = storedInventory ? sha256(canonicalJson(unsignedInventory)) : undefined;
+    const recomputedVerificationHash = storedEvidence ? sha256(canonicalJson(unsignedEvidence)) : undefined;
+    const erasedEntryCount = (inventoryEntries ?? []).filter(
+      (entry) =>
+        entry !== null &&
+        typeof entry === 'object' &&
+        !Array.isArray(entry) &&
+        (entry.disposition === 'erase' || entry.disposition === 'erase-orphan'),
+    ).length;
+    const alreadyAbsentEntryCount = (inventoryEntries ?? []).filter(
+      (entry) =>
+        entry !== null && typeof entry === 'object' && !Array.isArray(entry) && entry.disposition === 'already-absent',
+    ).length;
+    if (
+      !volumePlan ||
+      volumePlan.projectIdSnapshot !== scope.projectIdSnapshot ||
+      volumePlan.organizationId !== scope.expectedOrganizationId ||
+      volumePlan.ownershipEpoch !== project.ownershipEpoch ||
+      volumePlan.state !== 'VERIFIED' ||
+      volumePlan.verificationFencingToken !== lease.fencingToken ||
+      volumePlan.inventoryHash !== volumeProof.inventoryHash ||
+      volumePlan.verificationHash !== volumeProof.verificationHash ||
+      embeddedInventoryHash !== volumePlan.inventoryHash ||
+      embeddedVerificationHash !== volumePlan.verificationHash ||
+      recomputedInventoryHash !== volumePlan.inventoryHash ||
+      recomputedVerificationHash !== volumePlan.verificationHash ||
+      !inventoryEntries ||
+      !evidenceEntries ||
+      inventoryEntries.length !== volumeProof.entryCount ||
+      evidenceEntries.length !== volumeProof.entryCount ||
+      erasedEntryCount !== volumeProof.erasedEntryCount ||
+      alreadyAbsentEntryCount !== volumeProof.alreadyAbsentEntryCount ||
+      erasedEntryCount + alreadyAbsentEntryCount !== volumeProof.entryCount ||
+      volumeTargets.length !== volumeProof.entryCount ||
+      volumeTargets.some((target, ordinal) => {
+        const inventoryEntry = target.inventoryEntry;
+        const evidenceEntry = target.evidenceEntry;
+        return (
+          target.ordinal !== ordinal ||
+          target.verifiedFencingToken !== lease.fencingToken ||
+          target.disposition === 'excluded-shared' ||
+          !inventoryEntry ||
+          typeof inventoryEntry !== 'object' ||
+          Array.isArray(inventoryEntry) ||
+          canonicalJson(inventoryEntry as ObjectStorageJsonObject) !==
+            canonicalJson(inventoryEntries[ordinal] as ObjectStorageJsonValue) ||
+          !evidenceEntry ||
+          typeof evidenceEntry !== 'object' ||
+          Array.isArray(evidenceEntry) ||
+          canonicalJson(evidenceEntry as ObjectStorageJsonObject) !==
+            canonicalJson(evidenceEntries[ordinal] as ObjectStorageJsonValue) ||
+          (evidenceEntry as ObjectStorageJsonObject).pvcAbsent !== true ||
+          (evidenceEntry as ObjectStorageJsonObject).pvAbsent !== true ||
+          (evidenceEntry as ObjectStorageJsonObject).providerAbsent !== true
+        );
+      })
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED',
+        'Project volume erasure ledger does not match the final proof and fence',
+        409,
+      );
     }
     const projectRecordHash = sha256(
       canonicalJson({
@@ -3095,53 +3219,6 @@ export async function finalizeObjectStorageOperation(
 
   let durableVerification = verification;
   if (permanentReceipt) {
-    const databasePlans = await tx.$queryRaw<
-      Array<{
-        projectId: string;
-        organizationId: string;
-        ownershipEpoch: number;
-        inventorySha256: string;
-        stage: string;
-        receipt: unknown;
-      }>
-    >(Prisma.sql`
-      SELECT
-        "projectId", "organizationId", "ownershipEpoch", "inventorySha256",
-        "stage"::text AS "stage", "receipt"
-      FROM "ProjectDatabaseErasurePlan"
-      WHERE "operationId" = ${locked.row.id}
-      FOR UPDATE
-    `);
-    const databasePlan = databasePlans[0];
-    const suppliedDatabaseReceipt = verification.evidence.managedDatabase;
-    const durableDatabaseReceipt = databasePlan?.receipt
-      ? normalizeJsonObject(databasePlan.receipt, 'database erasure receipt')
-      : undefined;
-    if (
-      !databasePlan ||
-      databasePlan.projectId !== permanentReceipt.scope.projectIdSnapshot ||
-      databasePlan.organizationId !== permanentReceipt.scope.expectedOrganizationId ||
-      databasePlan.ownershipEpoch !== permanentReceipt.ownershipEpoch ||
-      databasePlan.stage !== 'VERIFIED' ||
-      !durableDatabaseReceipt ||
-      durableDatabaseReceipt.schemaVersion !== 1 ||
-      durableDatabaseReceipt.operationId !== locked.row.id ||
-      durableDatabaseReceipt.projectId !== permanentReceipt.scope.projectIdSnapshot ||
-      durableDatabaseReceipt.organizationId !== permanentReceipt.scope.expectedOrganizationId ||
-      durableDatabaseReceipt.inventorySha256 !== databasePlan.inventorySha256 ||
-      typeof durableDatabaseReceipt.verifiedAt !== 'string' ||
-      !Number.isFinite(new Date(durableDatabaseReceipt.verifiedAt).getTime()) ||
-      !suppliedDatabaseReceipt ||
-      typeof suppliedDatabaseReceipt !== 'object' ||
-      Array.isArray(suppliedDatabaseReceipt) ||
-      canonicalJson(durableDatabaseReceipt) !== canonicalJson(suppliedDatabaseReceipt)
-    ) {
-      throw operationError(
-        'OBJECT_STORAGE_OPERATION_PROJECT_DATABASE_ERASURE_UNVERIFIED',
-        'Managed database erasure is not durably verified for this operation',
-        409,
-      );
-    }
     const runtimeEffects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
       SELECT "id", "ownershipEpoch", "state"::text AS "state"
       FROM "ProjectRuntimeEffect"
@@ -3176,10 +3253,7 @@ export async function finalizeObjectStorageOperation(
         scheduledTaskRowsAbsent: boolean;
         scheduledRunRowsAbsent: boolean;
         runtimeEffectRowsAbsent: boolean;
-        databaseInstanceRowsAbsent: boolean;
-        databaseSnapshotRowsAbsent: boolean;
-        databaseRestoreRowsAbsent: boolean;
-        databaseErasurePlanRetained: boolean;
+        volumeErasurePlanRetained: boolean;
       }>
     >(Prisma.sql`
       SELECT
@@ -3207,26 +3281,12 @@ export async function finalizeObjectStorageOperation(
           SELECT 1 FROM "ProjectRuntimeEffect"
           WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
         ) AS "runtimeEffectRowsAbsent",
-        NOT EXISTS (
-          SELECT 1 FROM "DatabaseInstance"
-          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
-        ) AS "databaseInstanceRowsAbsent",
-        NOT EXISTS (
-          SELECT 1 FROM "DatabaseSnapshot" snapshot
-          JOIN "DatabaseInstance" instance ON instance."id" = snapshot."databaseInstanceId"
-          WHERE instance."projectId" = ${permanentReceipt.scope.projectIdSnapshot}
-        ) AS "databaseSnapshotRowsAbsent",
-        NOT EXISTS (
-          SELECT 1 FROM "DatabaseRestore" restore
-          JOIN "DatabaseInstance" instance ON instance."id" = restore."databaseInstanceId"
-          WHERE instance."projectId" = ${permanentReceipt.scope.projectIdSnapshot}
-        ) AS "databaseRestoreRowsAbsent",
         EXISTS (
-          SELECT 1 FROM "ProjectDatabaseErasurePlan"
+          SELECT 1 FROM "ProjectVolumeErasure"
           WHERE "operationId" = ${locked.row.id}
-            AND "stage" = 'VERIFIED'::"ProjectDatabaseErasureStage"
-            AND "receipt" IS NOT NULL
-        ) AS "databaseErasurePlanRetained"
+            AND "projectIdSnapshot" = ${permanentReceipt.scope.projectIdSnapshot}
+            AND "state" = 'VERIFIED'::"ProjectVolumeErasureState"
+        ) AS "volumeErasurePlanRetained"
     `);
     if (
       cascade[0]?.projectReleaseReferencesAbsent !== true ||
@@ -3235,10 +3295,7 @@ export async function finalizeObjectStorageOperation(
       cascade[0]?.scheduledTaskRowsAbsent !== true ||
       cascade[0]?.scheduledRunRowsAbsent !== true ||
       cascade[0]?.runtimeEffectRowsAbsent !== true ||
-      cascade[0]?.databaseInstanceRowsAbsent !== true ||
-      cascade[0]?.databaseSnapshotRowsAbsent !== true ||
-      cascade[0]?.databaseRestoreRowsAbsent !== true ||
-      cascade[0]?.databaseErasurePlanRetained !== true
+      cascade[0]?.volumeErasurePlanRetained !== true
     ) {
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_CASCADE_INCOMPLETE',
@@ -3258,10 +3315,7 @@ export async function finalizeObjectStorageOperation(
             scheduledTaskRowsAbsent: true,
             scheduledRunRowsAbsent: true,
             runtimeEffectRowsAbsent: true,
-            databaseInstanceRowsAbsent: true,
-            databaseSnapshotRowsAbsent: true,
-            databaseRestoreRowsAbsent: true,
-            databaseErasurePlanRetained: true,
+            volumeErasurePlanRetained: true,
           },
         },
       },

@@ -1105,6 +1105,9 @@ importers:
       google-auth-library:
         specifier: 9.15.1
         version: 9.15.1
+      pg:
+        specifier: ^8.20.0
+        version: 8.20.0
       tsx:
         specifier: ^4.21.0
         version: 4.21.0

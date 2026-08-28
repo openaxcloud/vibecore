@@ -154,6 +154,9 @@ data:
   VITE_RUNTIME_MODE: {{ .Values.platformEnv.runtime.mode | quote }}
   VITE_RUNTIME_API_BASE_URL: {{ .Values.platformEnv.runtime.apiBaseUrl | quote }}
   WORKSPACE_MANAGER_URL: {{ .Values.platformEnv.runtime.workspaceManagerUrl | quote }}
+  # Exact provider-project allowlist used by the workspace-manager's destructive
+  # PD adapter. The GSA is separately constrained by its custom IAM role.
+  PROJECT_VOLUME_ERASURE_GCP_PROJECTS: {{ .Values.global.dns01.project | quote }}
   # Native per-project database (CloudNativePG, tiered by plan — see
   # docs/DB_ARCHITECTURE_V3_TIERED.md). Hardcoded literals (not a values key) for
   # the SAME reason as ADMIN_MFA_REQUIRED below: the always-on CD path runs

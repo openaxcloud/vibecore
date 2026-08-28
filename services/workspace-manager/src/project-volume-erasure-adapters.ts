@@ -99,6 +99,19 @@ function adapterError(code: string, message: string, statusCode = 502, cause?: u
   return new ProjectVolumeErasureError(code, message, statusCode, cause === undefined ? undefined : { cause });
 }
 
+async function withinDeadline<T>(operation: Promise<T>, timeoutMs: number, timeoutError: () => Error): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const deadline = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => reject(timeoutError()), timeoutMs);
+    timer.unref();
+  });
+  try {
+    return await Promise.race([operation, deadline]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 function encodedSegment(value: string): string {
   return encodeURIComponent(value);
 }
@@ -161,10 +174,13 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
   }
 
   async #request(method: 'GET' | 'DELETE', path: string, body?: unknown, maxBytes = MAX_KUBERNETES_OBJECT_BYTES) {
-    const [token, certificateAuthority] = await Promise.all([
-      readFile(this.#tokenFile, 'utf8'),
-      readFile(this.#certificateAuthorityFile),
-    ]).catch((error: unknown) => {
+    const deadlineAt = Date.now() + this.#timeoutMs;
+    const [token, certificateAuthority] = await withinDeadline(
+      Promise.all([readFile(this.#tokenFile, 'utf8'), readFile(this.#certificateAuthorityFile)]),
+      this.#timeoutMs,
+      () => adapterError('VOLUME_ERASURE_KUBERNETES_TIMEOUT', 'Kubernetes request exceeded its deadline.', 503),
+    ).catch((error: unknown) => {
+      if (error instanceof ProjectVolumeErasureError) throw error;
       throw adapterError(
         'VOLUME_ERASURE_KUBERNETES_CREDENTIALS_UNAVAILABLE',
         'Kubernetes service-account credentials are unavailable.',
@@ -182,6 +198,10 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
     }
 
     const payload = body === undefined ? undefined : Buffer.from(JSON.stringify(body));
+    const remainingMs = deadlineAt - Date.now();
+    if (remainingMs <= 0) {
+      throw adapterError('VOLUME_ERASURE_KUBERNETES_TIMEOUT', 'Kubernetes request exceeded its deadline.', 503);
+    }
 
     return new Promise<KubernetesApiResponse>((resolve, reject) => {
       const request = httpsRequest(
@@ -246,12 +266,13 @@ export class InClusterProjectVolumeKubernetesAdapter implements ProjectVolumeKub
           });
         },
       );
-
-      request.setTimeout(this.#timeoutMs, () => {
+      const deadline = setTimeout(() => {
         request.destroy(
           adapterError('VOLUME_ERASURE_KUBERNETES_TIMEOUT', 'Kubernetes request exceeded its deadline.', 503),
         );
-      });
+      }, remainingMs);
+      deadline.unref();
+      request.once('close', () => clearTimeout(deadline));
       request.on('error', (error) => {
         reject(
           error instanceof ProjectVolumeErasureError
@@ -454,6 +475,8 @@ export interface GcePersistentDiskAdapterOptions {
   fetch?: typeof fetch;
   apiOrigin?: string;
   timeoutMs?: number;
+  /** Explicit disk-hosting projects; an empty configured allow-list fails closed. */
+  allowedProjects?: readonly string[];
 }
 
 /** Real Compute Engine REST adapter for zonal and regional GKE PD CSI handles. */
@@ -463,15 +486,34 @@ export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAd
   readonly #fetch: typeof fetch;
   readonly #apiOrigin: string;
   readonly #timeoutMs: number;
+  readonly #allowedProjects?: ReadonlySet<string>;
 
   constructor(options: GcePersistentDiskAdapterOptions = {}) {
     this.#tokenProvider = options.tokenProvider ?? new GoogleAdcVolumeErasureTokenProvider();
     this.#fetch = options.fetch ?? globalThis.fetch;
     this.#apiOrigin = options.apiOrigin ?? GCE_API_ORIGIN;
     this.#timeoutMs = options.timeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
+    this.#allowedProjects = options.allowedProjects ? new Set(options.allowedProjects) : undefined;
 
-    if (this.#apiOrigin !== GCE_API_ORIGIN || !Number.isInteger(this.#timeoutMs) || this.#timeoutMs < 1) {
+    if (
+      this.#apiOrigin !== GCE_API_ORIGIN ||
+      !Number.isInteger(this.#timeoutMs) ||
+      this.#timeoutMs < 1 ||
+      (this.#allowedProjects !== undefined &&
+        (this.#allowedProjects.size === 0 ||
+          [...this.#allowedProjects].some((project) => !GCE_PROJECT_RE.test(project))))
+    ) {
       throw adapterError('VOLUME_ERASURE_GCE_CONFIG_INVALID', 'GCE erasure adapter configuration is invalid.', 500);
+    }
+  }
+
+  #assertAllowed(handle: GcePersistentDiskHandle): void {
+    if (this.#allowedProjects && !this.#allowedProjects.has(handle.project)) {
+      throw adapterError(
+        'VOLUME_ERASURE_GCE_PROJECT_FORBIDDEN',
+        'The disk project is outside the configured erasure boundary.',
+        409,
+      );
     }
   }
 
@@ -485,13 +527,20 @@ export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAd
   }
 
   async #request(method: 'GET' | 'DELETE', url: URL): Promise<Response> {
-    const token = await this.#tokenProvider.getAccessToken();
+    const deadlineAt = Date.now() + this.#timeoutMs;
+    const token = await withinDeadline(this.#tokenProvider.getAccessToken(), this.#timeoutMs, () =>
+      adapterError('VOLUME_ERASURE_GCE_TIMEOUT', 'Compute Engine request exceeded its deadline.', 503),
+    );
+    const remainingMs = deadlineAt - Date.now();
+    if (remainingMs <= 0) {
+      throw adapterError('VOLUME_ERASURE_GCE_TIMEOUT', 'Compute Engine request exceeded its deadline.', 503);
+    }
 
     return this.#fetch(url, {
       method,
       redirect: 'error',
       headers: { accept: 'application/json', authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(this.#timeoutMs),
+      signal: AbortSignal.timeout(remainingMs),
     }).catch((error: unknown) => {
       throw adapterError('VOLUME_ERASURE_GCE_UNAVAILABLE', 'Compute Engine API request failed.', 503, error);
     });
@@ -499,6 +548,7 @@ export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAd
 
   async inspect(volumeHandle: string): Promise<ProviderVolumeObservation> {
     const handle = parseGcePersistentDiskHandle(volumeHandle);
+    this.#assertAllowed(handle);
     const response = await this.#request('GET', this.#diskUrl(handle));
 
     if (response.status === 404) {
@@ -551,6 +601,7 @@ export class GcePersistentDiskProviderAdapter implements ProjectVolumeProviderAd
     }
 
     const handle = parseGcePersistentDiskHandle(input.volumeHandle);
+    this.#assertAllowed(handle);
     const url = this.#diskUrl(handle);
     url.searchParams.set('requestId', input.requestId);
 

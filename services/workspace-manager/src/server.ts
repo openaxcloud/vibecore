@@ -1,8 +1,14 @@
 import { createDatabaseClient } from '@vibecore/database';
 import { KubectlWorkspaceK8sClient } from '@vibecore/k8s-client';
+import { resolveSandboxRuntime } from '@vibecore/sandbox-runtime';
 import { buildWorkspaceManagerApp } from './app.js';
 import { JsonWorkspaceStore, StructuredLogEventBus, WorkspaceManager, type WorkspaceStore } from './manager.js';
 import { PrismaWorkspaceStore } from './prisma-store.js';
+import {
+  GcePersistentDiskProviderAdapter,
+  InClusterProjectVolumeKubernetesAdapter,
+  StaticProjectVolumeProviderResolver,
+} from './project-volume-erasure-adapters.js';
 
 if (!process.env.WORKSPACE_AGENT_TOKEN_SECRET) {
   throw new Error('WORKSPACE_AGENT_TOKEN_SECRET is required');
@@ -17,25 +23,75 @@ function resolveStore(): WorkspaceStore {
   const explicit = (process.env.WORKSPACE_MANAGER_STORE ?? '').toLowerCase();
 
   if (explicit === 'json') {
-    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'json', reason: 'WORKSPACE_MANAGER_STORE=json' }));
+    console.log(
+      JSON.stringify({
+        level: 'info',
+        service: 'workspace-manager',
+        event: 'store.selected',
+        kind: 'json',
+        reason: 'WORKSPACE_MANAGER_STORE=json',
+      }),
+    );
     return new JsonWorkspaceStore();
   }
 
   if (process.env.DATABASE_URL) {
-    console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'prisma' }));
+    console.log(
+      JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'prisma' }),
+    );
     return new PrismaWorkspaceStore(createDatabaseClient());
   }
 
   if (process.env.NODE_ENV === 'production') {
-    throw new Error('DATABASE_URL is required to start workspace-manager in production (PrismaWorkspaceStore). Set WORKSPACE_MANAGER_STORE=json only for local debugging.');
+    throw new Error(
+      'DATABASE_URL is required to start workspace-manager in production (PrismaWorkspaceStore). Set WORKSPACE_MANAGER_STORE=json only for local debugging.',
+    );
   }
 
-  console.log(JSON.stringify({ level: 'info', service: 'workspace-manager', event: 'store.selected', kind: 'json', reason: 'no DATABASE_URL outside production' }));
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      service: 'workspace-manager',
+      event: 'store.selected',
+      kind: 'json',
+      reason: 'no DATABASE_URL outside production',
+    }),
+  );
   return new JsonWorkspaceStore();
 }
 
+const allowedGceProjects = (process.env.PROJECT_VOLUME_ERASURE_GCP_PROJECTS ?? '')
+  .split(',')
+  .map((project) => project.trim())
+  .filter(Boolean);
+if (process.env.NODE_ENV === 'production' && allowedGceProjects.length === 0) {
+  throw new Error('PROJECT_VOLUME_ERASURE_GCP_PROJECTS is required in production');
+}
+const k8s = new KubectlWorkspaceK8sClient();
+const volumeErasure = process.env.KUBERNETES_SERVICE_HOST
+  ? {
+      // Ten pages cover 5,000 PVs while keeping the pre-delete all-PV ownership
+      // scan inside the API's bounded manager-call deadline under timeouts.
+      kubernetes: new InClusterProjectVolumeKubernetesAdapter({ timeoutMs: 4_000, maxListPages: 10 }),
+      providers: new StaticProjectVolumeProviderResolver(
+        allowedGceProjects.length > 0
+          ? [new GcePersistentDiskProviderAdapter({ allowedProjects: allowedGceProjects, timeoutMs: 4_000 })]
+          : [],
+      ),
+    }
+  : undefined;
+if (process.env.NODE_ENV === 'production' && !volumeErasure) {
+  throw new Error('In-cluster Kubernetes credentials are required for project volume erasure');
+}
 const app = buildWorkspaceManagerApp(
-  new WorkspaceManager(resolveStore(), new KubectlWorkspaceK8sClient(), new StructuredLogEventBus(), process.env.WORKSPACE_AGENT_TOKEN_SECRET),
+  new WorkspaceManager(
+    resolveStore(),
+    k8s,
+    new StructuredLogEventBus(),
+    process.env.WORKSPACE_AGENT_TOKEN_SECRET,
+    resolveSandboxRuntime(k8s),
+    volumeErasure,
+  ),
 );
 // NaN-safe: `?? 3010` only covers an undefined env var, so a non-numeric
 // WORKSPACE_MANAGER_PORT (config typo, or a shadowing k8s service-link value like

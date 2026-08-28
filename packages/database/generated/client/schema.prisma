@@ -367,16 +367,10 @@ enum ProjectRuntimeEffectState {
   ABORTED
 }
 
-/// Durable stage of the provider-side managed database erasure that belongs to
-/// one project permanent-delete operation. The database plan is immutable; a
-/// verifier may jump directly to FINAL_VERIFICATION after a crashed effect but
-/// only a live absence proof can enter VERIFIED.
-enum ProjectDatabaseErasureStage {
-  INVENTORY_BOUND
-  KUBERNETES_PURGE
-  SHARED_SQL_PURGE
-  BACKUP_PREFIX_PURGE
-  FINAL_VERIFICATION
+enum ProjectVolumeErasureState {
+  PREPARED
+  INVENTORIED
+  ERASING
   VERIFIED
 }
 
@@ -491,8 +485,8 @@ model ObjectStorageOperation {
   permanentDeletionArtifacts  ProjectPermanentDeletionArtifactPlan[]
   capabilityReservations      ObjectStorageCapabilityReservation[]
   permanentDeletionReceipt    ProjectPermanentDeletionReceipt?
+  projectVolumeErasure        ProjectVolumeErasure?
   versionGcSchedules          ObjectStorageVersionGcSchedule[]         @relation("ObjectStorageVersionGcLastOperation")
-  databaseErasurePlan         ProjectDatabaseErasurePlan?
 
   @@unique([idempotencyScopeHash, idempotencyKey])
   @@index([scopeHash])
@@ -501,28 +495,56 @@ model ObjectStorageOperation {
   @@index([reservedCapabilityExpiresAt])
 }
 
-/// Immutable relational-inventory commitment plus append-only provider proof
-/// for managed Postgres removal. `projectId`/`organizationId` are snapshots,
-/// deliberately not Project FKs, so the forensic preimage survives the final
-/// Project cascade together with its ObjectStorageOperation receipt.
-model ProjectDatabaseErasurePlan {
-  operationId     String                      @id
-  projectId       String
-  organizationId  String
-  ownershipEpoch  Int
-  inventorySha256 String
-  plan            Json
-  stage           ProjectDatabaseErasureStage @default(INVENTORY_BOUND)
-  evidence        Json                        @default("{}")
-  receipt         Json?
-  verifiedAt      DateTime?
-  createdAt       DateTime                    @default(now())
-  updatedAt       DateTime                    @updatedAt
-  operation       ObjectStorageOperation      @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+/// Durable, operation-scoped PVC→PV→provider inventory. It intentionally has
+/// no Project FK: the verified preimage and exact provider identities survive
+/// the final Project cascade as receipt-side recovery/audit evidence.
+model ProjectVolumeErasure {
+  operationId              String                       @id
+  projectIdSnapshot        String
+  organizationId           String
+  ownershipEpoch           Int
+  namespace                String
+  state                    ProjectVolumeErasureState    @default(PREPARED)
+  sourceSnapshot           Json
+  inventory                Json?
+  inventoryHash            String?
+  evidence                 Json?
+  verificationHash         String?
+  verificationFencingToken BigInt?
+  preparedAt               DateTime                     @default(now())
+  inventoriedAt            DateTime?
+  erasingAt                DateTime?
+  verifiedAt               DateTime?
+  createdAt                DateTime                     @default(now())
+  updatedAt                DateTime                     @updatedAt
+  operation                ObjectStorageOperation       @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  targets                  ProjectVolumeErasureTarget[]
 
-  @@index([projectId, createdAt])
-  @@index([organizationId, createdAt])
-  @@index([stage, updatedAt])
+  @@index([projectIdSnapshot, state, createdAt])
+  @@index([state, updatedAt])
+}
+
+/// Per-PVC progress makes one bounded manager request process one exact entry.
+/// The original inventory entry is immutable; evidence can only be replaced by
+/// a newer ObjectStorageOperation fencing token during verify-first recovery.
+model ProjectVolumeErasureTarget {
+  operationId          String
+  ordinal              Int
+  namespace            String
+  pvcName              String
+  expectedPvcUid       String?
+  inventoryEntry       Json?
+  evidenceEntry        Json?
+  verifiedFencingToken BigInt?
+  verifiedAt           DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  erasure              ProjectVolumeErasure @relation(fields: [operationId], references: [operationId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([operationId, ordinal])
+  @@unique([operationId, namespace, pvcName], map: "ProjectVolumeErasureTarget_identity_key")
+  @@index([namespace, pvcName], map: "ProjectVolumeErasureTarget_resource_idx")
+  @@index([operationId, verifiedFencingToken, ordinal], map: "ProjectVolumeErasureTarget_progress_idx")
 }
 
 /// Exact immutable source inventory for a clone. Normalized rows avoid the

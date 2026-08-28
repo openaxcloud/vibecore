@@ -29,7 +29,7 @@ global:
     api: 'vibecore-prod-platform@vibecore-495216.iam.gserviceaccount.com'
     worker: ''
     aiGateway: ''
-    workspaceManager: ''
+    workspaceManager: 'vibecore-prod-vol-erase@vibecore-495216.iam.gserviceaccount.com'
     previewProxy: ''
 
 secrets:

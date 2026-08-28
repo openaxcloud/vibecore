@@ -15,6 +15,11 @@ output "server_deploy_builder_service_account" {
   value       = module.iam.server_deploy_builder_service_account
 }
 
+output "workspace_volume_erasure_service_account" {
+  description = "Dedicated Workload Identity GSA for exact workspace PD erasure"
+  value       = module.iam.workspace_volume_erasure_service_account
+}
+
 output "cloud_sql_connection_name" {
   value = module.cloud_sql.connection_name
 }
