@@ -2579,6 +2579,58 @@
     "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
     "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
   },
+  "RATE_LIMIT_STORE_UNAVAILABLE_ADMIN": {
+    "en": "Rate limiting is temporarily unavailable — admin mutations are refused.",
+    "fr": "La limitation de débit est momentanément indisponible — les modifications d’administration sont refusées."
+  },
+  "RATE_LIMIT_STORE_UNAVAILABLE_REQUEST": {
+    "en": "Rate limiting is temporarily unavailable — request refused.",
+    "fr": "La limitation de débit est momentanément indisponible — requête refusée."
+  },
+  "RATE_LIMIT_STORE_UNREACHABLE_INTERNAL": {
+    "en": "The rate-limit store is unreachable — request refused (fail-closed).",
+    "fr": "Le store de limitation de débit est injoignable — requête refusée (fail-closed)."
+  },
+  "RATE_LIMIT_BACKEND_MISSING_INTERNAL": {
+    "en": "FastifyRateLimitSharedStore: no backend was provided.",
+    "fr": "FastifyRateLimitSharedStore : aucun backend fourni."
+  },
+  "RATE_LIMIT_NON_NUMERIC_COUNT_INTERNAL": {
+    "en": "The redis rate-limit returned a non-numeric count.",
+    "fr": "La limitation de débit redis a renvoyé un compteur non numérique."
+  },
+  "WORKSPACE_RESOURCES_UNAVAILABLE": {
+    "en": "Workspace resource metrics are not available right now.",
+    "fr": "Les mesures de ressources de l’espace de travail ne sont pas disponibles pour le moment."
+  },
+  "CHECKPOINT_PROJECT_QUIESCED": {
+    "en": "Project is quiesced for a coordinated checkpoint — retry after the barrier lifts.",
+    "fr": "Le projet est figé le temps d’un point de restauration coordonné — réessayez une fois la barrière levée."
+  },
+  "CHECKPOINT_NOT_FOUND_MESSAGE": {
+    "en": "Checkpoint not found",
+    "fr": "Point de restauration introuvable"
+  },
+  "CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE": {
+    "en": "Committed checkpoint not found",
+    "fr": "Point de restauration validé introuvable"
+  },
+  "CHECKPOINT_NO_FILES_MESSAGE": {
+    "en": "No FILES component",
+    "fr": "Aucun composant de fichiers"
+  },
+  "CHECKPOINT_SNAPSHOT_MISSING_MESSAGE": {
+    "en": "Snapshot missing",
+    "fr": "Instantané manquant"
+  },
+  "CHECKPOINT_RESTORE_NO_FALLBACK": {
+    "en": "Refusing to restore without a point of return: {reason}",
+    "fr": "Refus de restaurer sans point de retour : {reason}"
+  },
+  "CHECKPOINT_RESTORE_HASH_MISMATCH": {
+    "en": "The restored content does not re-hash to the checkpoint manifest",
+    "fr": "Le contenu restauré ne correspond plus à l’empreinte du manifeste du point de restauration"
+  },
   "MIGRATION_TARGET_UNAVAILABLE_MESSAGE": {
     "en": "Migrations are declared but the production database is not reachable yet (PROD_DATABASE_URL is missing).",
     "fr": "Des migrations sont déclarées mais la base de production n’est pas encore joignable (PROD_DATABASE_URL absente)."

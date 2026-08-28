@@ -1408,6 +1408,48 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Checkpoint PROJET coordonné (plan §15). */
+  createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+  }): Promise<{ id: string; state: string }>;
+  updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      /** Barrier lease deadline; `null` thaws. Persisted so ALL replicas see it. */
+      barrierExpiresAt?: string | null;
+    },
+  ): Promise<void>;
+  /**
+   * The write barrier in force for a project, read from the DATABASE so every
+   * API replica observes it (an in-process barrier freezes only its own pod).
+   * Rows whose lease has expired are treated as thawed — expiry is the
+   * guaranteed thaw when the orchestrating process dies mid-checkpoint.
+   */
+  getActiveCheckpointBarrier(
+    projectId: string,
+  ): Promise<{ checkpointId: string; barrierId: string; expiresAt: string } | undefined>;
+  getProjectCheckpoint(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        state: string;
+        logicalBarrierId?: string;
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
+
   /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
   createRemixJob(input: {
     sourceProjectId: string;

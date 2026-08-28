@@ -2410,6 +2410,37 @@ model AgentCallLog {
   @@index([projectId, createdAt])
 }
 
+/// Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
+/// + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
+/// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
+/// AgentCheckpoint (facturation par requête agent).
+model ProjectCheckpoint {
+  id               String    @id @default(cuid())
+  projectId        String
+  state            String    @default("PREPARING")
+  logicalBarrierId String?
+  /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
+  /// would require quiescing the in-pod writers (dev server, terminal, agent),
+  /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
+  consistencyLevel String?
+  /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
+  manifest         Json?
+  error            String?
+  expiresAt        DateTime?
+  createdByUserId  String?
+  /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
+  /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
+  /// in-process barrier is invisible to the other replicas and freezes nothing.
+  /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
+  /// process holding the checkpoint dies mid-flight.
+  barrierExpiresAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([projectId, barrierExpiresAt])
+}
+
 /// A secure project remix (fork) run. Tracks the normative state machine
 /// (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
 /// STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED) so the

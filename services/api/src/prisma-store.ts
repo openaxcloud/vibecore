@@ -1257,6 +1257,84 @@ export class PrismaApiStore implements ApiStore {
     return secret ? mapSecret(secret) : undefined;
   }
 
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = await this.prisma.projectCheckpoint.create({
+      data: { projectId: input.projectId, createdByUserId: input.createdByUserId ?? null, state: 'PREPARING' },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+    },
+  ) {
+    await this.prisma.projectCheckpoint.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+        ...(patch.barrierExpiresAt !== undefined
+          ? { barrierExpiresAt: patch.barrierExpiresAt === null ? null : new Date(patch.barrierExpiresAt) }
+          : {}),
+      },
+    });
+  }
+
+  async getActiveCheckpointBarrier(projectId: string) {
+    /*
+     * Indexed on (projectId, barrierExpiresAt). `gt: now` means an expired lease
+     * reads as thawed without needing a sweeper — the deadline itself IS the
+     * guaranteed thaw if the orchestrating replica dies holding the barrier.
+     */
+    const row = await this.prisma.projectCheckpoint.findFirst({
+      where: { projectId, barrierExpiresAt: { gt: new Date() } },
+      orderBy: { barrierExpiresAt: 'desc' },
+    });
+
+    if (!row?.barrierExpiresAt || !row.logicalBarrierId) {
+      return undefined;
+    }
+
+    return {
+      checkpointId: row.id,
+      barrierId: row.logicalBarrierId,
+      expiresAt: row.barrierExpiresAt.toISOString(),
+    };
+  }
+
+  async getProjectCheckpoint(id: string) {
+    const row = await this.prisma.projectCheckpoint.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      state: row.state,
+      logicalBarrierId: row.logicalBarrierId ?? undefined,
+      consistencyLevel: row.consistencyLevel ?? undefined,
+      manifest: row.manifest as unknown,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;
