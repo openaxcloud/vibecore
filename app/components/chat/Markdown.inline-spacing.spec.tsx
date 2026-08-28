@@ -1,6 +1,26 @@
 /** @vitest-environment jsdom */
 import { cleanup, render } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+/*
+ * Même précaution que Markdown.i18n.spec.tsx : importer `Artifact` fait
+ * remonter toute la chaîne du runtime, qui tente un `fetch('/inspector-script.js')`
+ * — une URL relative sans base, donc une promesse rejetée hors test que Vitest
+ * signale comme « unhandled error » et qui fait échouer la suite entière.
+ * Ces tests ne portent que sur le texte rendu ; les blocs lourds sont neutralisés.
+ */
+vi.mock('./Artifact', () => ({
+  Artifact: () => null,
+  openArtifactInWorkbench: vi.fn(),
+}));
+
+vi.mock('./CodeBlock', () => ({
+  CodeBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
+}));
+
+vi.mock('./MermaidBlock', () => ({
+  MermaidBlock: ({ code }: { code: string }) => <pre>{code}</pre>,
+}));
 
 import { Markdown } from './Markdown';
 
