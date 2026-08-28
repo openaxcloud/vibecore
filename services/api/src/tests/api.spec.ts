@@ -526,7 +526,9 @@ function buildTestApiApp(options: ApiAppOptions = {}) {
 
 async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Promise<T> {
   const previousManager = process.env.WORKSPACE_MANAGER_URL;
+  const previousConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
   process.env.WORKSPACE_MANAGER_URL = 'https://workspace-manager.example.com';
+  process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
 
   try {
     return await callback();
@@ -535,6 +537,11 @@ async function withProductionWorkspaceManager<T>(callback: () => Promise<T>): Pr
       delete process.env.WORKSPACE_MANAGER_URL;
     } else {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
+    }
+    if (previousConfigEncryptionKey === undefined) {
+      delete process.env.CONFIG_ENCRYPTION_KEY;
+    } else {
+      process.env.CONFIG_ENCRYPTION_KEY = previousConfigEncryptionKey;
     }
   }
 }
@@ -739,6 +746,8 @@ describe('SaaS API', () => {
 
   it('refuses to boot in production when the workspace manager URL is missing or local', async () => {
     const previousManager = process.env.WORKSPACE_MANAGER_URL;
+    const previousConfigEncryptionKey = process.env.CONFIG_ENCRYPTION_KEY;
+    process.env.CONFIG_ENCRYPTION_KEY = 'test-production-config-encryption-key-0001';
 
     try {
       delete process.env.WORKSPACE_MANAGER_URL;
@@ -772,6 +781,11 @@ describe('SaaS API', () => {
         delete process.env.WORKSPACE_MANAGER_URL;
       } else {
         process.env.WORKSPACE_MANAGER_URL = previousManager;
+      }
+      if (previousConfigEncryptionKey === undefined) {
+        delete process.env.CONFIG_ENCRYPTION_KEY;
+      } else {
+        process.env.CONFIG_ENCRYPTION_KEY = previousConfigEncryptionKey;
       }
     }
   });
@@ -4729,12 +4743,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
         await writeFile(join(fakeOutputDir, 'assets', 'main.js'), 'console.log("vibecore");', 'utf8');
         await writeFile(join(fakeOutputDir, 'assets', 'main.css'), 'body { color: tomato; }', 'utf8');
 
-        // Attacker-controlled build output: plant a symlink that escapes the
-        // output dir to a host secret. fs.cp copies symlinks verbatim, so the
-        // snapshot will contain it; the public serve route must NOT follow it.
-        await writeFile(join(root, 'host-secret.txt'), 'TOP-SECRET-SYMLINK-LEAK', 'utf8');
-        await symlink(join(root, 'host-secret.txt'), join(fakeOutputDir, 'leak.txt'));
-
         return {
           ok: true,
           outputDir: fakeOutputDir,
@@ -4776,6 +4784,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(staticDeploy.json().deployment.url).toMatch(/\/$/);
 
     const deploymentId = staticDeploy.json().deployment.id as string;
+
+    // Publication rejects non-regular build entries (covered by the retention
+    // contract tests). Keep the serving path defensive too: a filesystem
+    // attacker that injects a symlink after READY must still never expose bytes
+    // outside the immutable snapshot root.
+    const hostSecretPath = join(tempStaticRoot, 'host-secret.txt');
+    await writeFile(hostSecretPath, 'TOP-SECRET-SYMLINK-LEAK', 'utf8');
+    await symlink(hostSecretPath, join(tempStaticRoot, deploymentId, 'leak.txt'));
 
     const rawBypass = await app.inject({
       method: 'GET',
@@ -4850,9 +4866,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     expect(missing.statusCode).toBe(404);
 
-    // The planted symlink lexically lives inside the snapshot, so the path guard
-    // passes — but realpath escapes the snapshot root, so the route must refuse
-    // to serve it and must never leak the host secret it points at.
+    // The injected symlink lexically lives inside the snapshot, so the path
+    // guard passes — but lstat/realpath validation must still reject it.
     const symlinkEscape = await app.inject({
       method: 'GET',
       url: `/static-deployments/${deploymentId}/leak.txt`,

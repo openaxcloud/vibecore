@@ -17,7 +17,13 @@ import {
   signDeploymentAccessCookie,
   verifyDeploymentAccessCookie,
 } from './deployment-access.js';
-import type { ApiStore, ProjectRecord, ReleaseManifestRecord } from './store.js';
+import type {
+  ApiStore,
+  DeploymentRecord,
+  ProjectRecord,
+  ReleaseManifestRecord,
+  SetDeploymentAccessPolicyInput,
+} from './store.js';
 import { resolveTransactionalLocale } from './transactional-i18n.js';
 
 type ProjectAuthorizer = (
@@ -44,6 +50,12 @@ export interface DeploymentAccessRouteOptions {
   requirePreviewProxySecret: (request: FastifyRequest) => void;
   audit: AuditWriter;
   appPublicBaseUrl: () => string;
+  commitReadyDeploymentAccessPolicy: (input: {
+    project: ProjectRecord;
+    deployment: DeploymentRecord;
+    releaseSource: ReleaseManifestRecord;
+    mutation: SetDeploymentAccessPolicyInput;
+  }) => ReturnType<ApiStore['setDeploymentAccessPolicy']>;
 }
 
 const idSchema = z
@@ -352,7 +364,7 @@ export async function registerDeploymentAccessRoutes(
         deployment.status === 'READY'
           ? await latestReleaseForDeployment(store, project.id, deployment.environment, deployment.id)
           : undefined;
-      const policy = await store.setDeploymentAccessPolicy({
+      const mutation: SetDeploymentAccessPolicyInput = {
         projectId: project.id,
         deploymentId: deployment.id,
         mode: body.mode,
@@ -360,7 +372,10 @@ export async function registerDeploymentAccessRoutes(
         createdByUserId: request.currentUser!.id,
         ...(body.expectedVersion ? { expectedVersion: body.expectedVersion } : {}),
         ...(releaseSource ? { releaseSource } : {}),
-      });
+      };
+      const policy = releaseSource
+        ? await options.commitReadyDeploymentAccessPolicy({ project, deployment, releaseSource, mutation })
+        : await store.setDeploymentAccessPolicy(mutation);
 
       if (!policy) {
         return sendAccessError(request, reply, 404, 'DEPLOYMENT_NOT_FOUND', 'DEPLOYMENT_NOT_FOUND');

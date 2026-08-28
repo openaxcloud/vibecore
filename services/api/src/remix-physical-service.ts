@@ -8,6 +8,7 @@ import type { DatabaseProvisioner } from './database-provisioner.js';
 import type { ObjectStorage, ObjectStorageInventory } from './object-storage.js';
 import { ObjectStorageError, parseObjectStorageInventory } from './object-storage.js';
 import type { ProjectFile, ProjectStorage } from './project-storage.js';
+import { normalizeRemixIdeState, remixIdeStateDigest } from './remix-ide-state.js';
 import {
   RemixInvariantError,
   assertRemixTransition,
@@ -62,7 +63,8 @@ export interface RemixPhysicalServiceDeps {
     prepared: PreparedRemixSourceArtifact;
   }>;
   loadSourceSnapshot(snapshotId: string, sourceProjectId: string): Promise<ProjectFile[]>;
-  persistTargetManifest(projectId: string, files: ProjectFile[], actorUserId?: string): Promise<void>;
+  /** Build the exact canonical IDE/file manifest that finalize will publish. */
+  buildTargetIdeState(files: ProjectFile[]): unknown;
   recordCompleted(input: { job: RemixJobRecord; targetProject: ProjectRecord }): Promise<void>;
   warn?(context: Record<string, unknown>, message: string): void;
 }
@@ -601,9 +603,15 @@ export async function executePhysicalRemix(
       if (remixFileSnapshotHash(verifiedFiles) !== remixFileSnapshotHash(sanitizedFiles)) {
         throw new RemixInvariantError('Target file digest mismatch after clone', 'REMIX_TARGET_DIGEST_MISMATCH');
       }
-      await deps.persistTargetManifest(target.id, verifiedFiles, input.actorUserId);
+      const targetIdeState = normalizeRemixIdeState(deps.buildTargetIdeState(verifiedFiles));
+      const targetIdeStateDigest = remixIdeStateDigest(targetIdeState);
+      if (!targetIdeState || !targetIdeStateDigest) {
+        throw new RemixInvariantError('Target IDE state is not canonical JSON', 'REMIX_TARGET_DIGEST_MISMATCH');
+      }
       await advance('CLONING', {
         targetProjectId: target.id,
+        targetIdeState,
+        targetIdeStateDigest,
         // Preserve the first-pass count stored with the immutable pin. On a
         // crash/retry the archive is already clean, so a second scrub may find
         // fewer lines even though the original proof must remain auditable.
@@ -713,9 +721,13 @@ export async function executePhysicalRemix(
             code: 'REMIX_DATABASE_BACKEND_REQUIRED',
           });
         }
-        const acquisition = await deps.store.acquireDatabaseProvisioning({
+        const acquisition = await deps.store.acquireClaimedRemixDatabase({
+          remixJobId: current.id,
           projectId: current.targetProjectId,
           organizationId: current.organizationId,
+          operationToken,
+          expectedVersion: current.version,
+          requestHash: input.requestHash,
           retentionDays: pin.retentionDays,
           environment: 'development',
           // The source pin was stamped by PostgreSQL. Derive the target's
@@ -779,6 +791,8 @@ export async function executePhysicalRemix(
           remixJobId: current.id,
           organizationId: current.organizationId,
           operationToken,
+          expectedVersion: current.version,
+          requestHash: input.requestHash,
           databaseInstanceId: current.targetDatabaseInstanceId,
           projectId: current.targetProjectId,
           valueEncrypted: encryptJson({ value: progress.connectionUri }),
@@ -799,6 +813,8 @@ export async function executePhysicalRemix(
         remixJobId: current.id,
         organizationId: current.organizationId,
         operationToken,
+        expectedVersion: current.version,
+        requestHash: input.requestHash,
         targetProjectId: current.targetProjectId,
       });
       if (!completed) {

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
+import { exactMigrationLedgerDigest } from '../db-migration-applier.js';
 import { sha256, type MigrationTargetInspection, type SqlApplier } from '../db-migration-execution.js';
 import type { EmailProvider } from '../email.js';
 import {
@@ -121,6 +122,10 @@ async function setup(
     emailProvider: new QuietEmailProvider(),
     databaseProvisioner: options.provisioner ?? provisionerWithPhase('completed'),
     migrationApplier,
+    migrationLedgerInspector: async () => {
+      const rows = [...migrationApplier.ledger].map(([name, digest]) => ({ name, sha256: digest }));
+      return { status: 'EXACT', digest: exactMigrationLedgerDigest(rows), entries: rows.length };
+    },
   });
   const user = await store.createUser({
     email: 'mig@example.com',
@@ -132,6 +137,8 @@ async function setup(
   await store.createSession({ userId: user.id, token: 'mig-token', expiresAt: new Date(Date.now() + 3_600_000) });
 
   const project = await store.createProject({ organizationId: org.id, name: 'Mig P', slug: 'mig-p' });
+  const projectManifest = await store.getLatestProjectManifest(project.id);
+  if (!projectManifest) throw new Error('Expected the migration publish fixture project manifest');
 
   if (options.withMigrations !== false) {
     const first = 'CREATE TABLE test_users (id bigint PRIMARY KEY);';
@@ -158,6 +165,7 @@ async function setup(
   if (options.connection !== false) {
     await store.upsertProjectSecret({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       key: 'PROD_DATABASE_URL',
       valueEncrypted: encryptJson({ value: 'postgres://user:pw@prod-host:5432/appdb' }),
     });
@@ -170,6 +178,7 @@ async function setup(
     status: 'READY',
     /* This suite isolates schema migration semantics from OCI promotion. */
     provider: 'vercel',
+    metadata: { projectManifestDigest: projectManifest.digest },
   } as any);
 
   return { app, store, projectStorage, project, deployment, migrationApplier };
@@ -186,7 +195,7 @@ describe('schema migration before publish route', () => {
   it('publishes only after backup, fenced apply and target verification', async () => {
     const run = await setup();
     const response = await publish(run.app, run.project.id, run.deployment.id);
-    expect(response.statusCode).toBe(201);
+    expect(response.statusCode, response.body).toBe(201);
     expect(run.migrationApplier.calls).toBe(1);
     expect([...run.store.migrationExecutions.values()][0]).toMatchObject({
       state: 'COMMITTED',
@@ -238,14 +247,14 @@ describe('schema migration before publish route', () => {
   it('fails closed when the production target lookup is unavailable', async () => {
     const run = await setup();
 
-    run.store.listProjectEnvVars = async () => {
+    run.store.listProjectSecrets = async () => {
       throw new Error('control-plane database unavailable');
     };
 
     const response = await publish(run.app, run.project.id, run.deployment.id);
 
     expect(response.statusCode).toBe(503);
-    expect(response.json()).toMatchObject({ code: 'MIGRATION_TARGET_UNAVAILABLE', retryable: true });
+    expect(response.json()).toMatchObject({ code: 'ROLLBACK_DB_LEDGER_UNAVAILABLE', retryable: true });
     expect(run.migrationApplier.calls).toBe(0);
   });
 
@@ -273,6 +282,7 @@ describe('schema migration before publish route', () => {
     });
     await run.store.updateDeployment(run.project.id, run.deployment.id, {
       metadata: {
+        ...(run.deployment.metadata as Record<string, unknown>),
         publishMigrationPlan: {
           migrations: pinnedMigrations,
           backwardCompatible: true,
@@ -305,6 +315,7 @@ describe('schema migration before publish route', () => {
     const run = await setup();
     await run.store.updateDeployment(run.project.id, run.deployment.id, {
       metadata: {
+        ...(run.deployment.metadata as Record<string, unknown>),
         publishMigrationPlan: {
           migrations: [{ name: '001_init.sql', sql: 'CREATE TABLE pinned (id bigint);', sha256: '0'.repeat(64) }],
           backwardCompatible: true,

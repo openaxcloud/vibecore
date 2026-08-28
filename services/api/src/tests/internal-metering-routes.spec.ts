@@ -58,7 +58,14 @@ describe('internal metering ingest', () => {
       method: 'POST',
       url: '/internal/metering',
       headers: internalAuth,
-      payload: { kind: 'compute', organizationId: org.id, projectId: 'p1', cpuMillicores: 1000, ramMb: 2048, seconds: 600 },
+      payload: {
+        kind: 'compute',
+        organizationId: org.id,
+        projectId: 'p1',
+        cpuMillicores: 1000,
+        ramMb: 2048,
+        seconds: 600,
+      },
     });
     expect(res.statusCode).toBe(200);
     const body = res.json();
@@ -94,7 +101,13 @@ describe('internal metering ingest', () => {
       method: 'POST',
       url: '/internal/metering',
       headers: internalAuth,
-      payload: { kind: 'deployment', organizationId: org.id, deploymentKind: 'autoscale', computeUnits: 1000, requests: 5000 },
+      payload: {
+        kind: 'deployment',
+        organizationId: org.id,
+        deploymentKind: 'autoscale',
+        computeUnits: 1000,
+        requests: 5000,
+      },
     });
     expect(deploy.statusCode).toBe(200);
 
@@ -159,6 +172,7 @@ describe('internal metering ingest', () => {
     const project = await store.createProject({ organizationId: org.id, name: 'P', slug: 'p' });
     const instance = await store.createDatabaseInstance({
       projectId: project.id,
+      expectedOrganizationId: org.id,
       organizationId: org.id,
       retentionDays: 7,
       environment: 'production',

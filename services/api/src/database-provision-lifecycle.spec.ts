@@ -42,6 +42,32 @@ function provisioner(uri?: string): DatabaseProvisioner {
   };
 }
 
+async function tenantInstance(overrides: Partial<DatabaseInstanceRecord> = {}) {
+  const store = new TestApiStore();
+  const owner = await store.createUser({
+    email: 'database-provision-lifecycle@example.test',
+    passwordHash: 'test-only-hash',
+  });
+  const organization = await store.createOrganization({
+    name: 'Database provision lifecycle',
+    slug: 'database-provision-lifecycle',
+    ownerUserId: owner.id,
+  });
+  const project = await store.createProject({
+    organizationId: organization.id,
+    name: 'Database provision lifecycle',
+    slug: 'database-provision-lifecycle',
+  });
+  const pending = instance({
+    projectId: project.id,
+    organizationId: organization.id,
+    ...overrides,
+  });
+  store.databaseInstances.set(pending.id, pending);
+
+  return { store, pending };
+}
+
 describe('managed database provisioning lifecycle', () => {
   it('bounds an invalid timeout and recognizes a historical row without an explicit deadline', () => {
     expect(databaseProvisionTimeoutMs('1')).toBe(30_000);
@@ -69,9 +95,7 @@ describe('managed database provisioning lifecycle', () => {
   });
 
   it('commits the verified URI and ACTIVE status together', async () => {
-    const store = new TestApiStore();
-    const pending = instance({ provisioningDeadlineAt: '2026-08-26T10:10:00.000Z' });
-    store.databaseInstances.set(pending.id, pending);
+    const { store, pending } = await tenantInstance({ provisioningDeadlineAt: '2026-08-26T10:10:00.000Z' });
 
     const result = await reconcileDatabaseProvisioning({
       store,
@@ -84,7 +108,7 @@ describe('managed database provisioning lifecycle', () => {
 
     expect(result.transition).toBe('active');
     expect(result.instance.status).toBe('ACTIVE');
-    expect(await store.getProjectSecret('project-1', 'DATABASE_URL')).toMatchObject({
+    expect(await store.getProjectSecret(pending.projectId, 'DATABASE_URL')).toMatchObject({
       valueEncrypted: 'encrypted:postgresql://tenant:secret@pooler/project',
     });
   });
@@ -128,13 +152,12 @@ describe('managed database provisioning lifecycle', () => {
   });
 
   it('does not overwrite a concurrent terminal transition', async () => {
-    const store = new TestApiStore();
-    const pending = instance({ provisioningDeadlineAt: '2026-08-26T10:01:00.000Z' });
-    store.databaseInstances.set(pending.id, pending);
+    const { store, pending } = await tenantInstance({ provisioningDeadlineAt: '2026-08-26T10:01:00.000Z' });
     const provider = provisioner(undefined);
     (provider.getConnectionUri as ReturnType<typeof vi.fn>).mockImplementation(async () => {
       await store.completeDatabaseProvisioning(pending.id, {
         projectId: pending.projectId,
+        expectedOrganizationId: pending.organizationId,
         key: 'DATABASE_URL',
         valueEncrypted: 'winner',
       });
@@ -156,16 +179,15 @@ describe('managed database provisioning lifecycle', () => {
   });
 
   it('grants exactly one retry claim for a FAILED singleton', async () => {
-    const store = new TestApiStore();
-    const failed = instance({
+    const { store, pending: failed } = await tenantInstance({
       status: 'FAILED',
       lastErrorCode: DATABASE_PROVISION_FAILURE.timedOut,
       lastErrorAt: '2026-08-26T10:01:00.000Z',
     });
-    store.databaseInstances.set(failed.id, failed);
 
     const retry = {
       projectId: failed.projectId,
+      expectedOrganizationId: failed.organizationId,
       organizationId: failed.organizationId,
       retentionDays: failed.retentionDays,
       environment: failed.environment,

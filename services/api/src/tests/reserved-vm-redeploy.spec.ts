@@ -1,5 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
+import { encryptJson } from '@vibecore/security';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pipeline = vi.hoisted(() => ({
@@ -200,7 +201,7 @@ async function seedCurrentReservedVm(input: Awaited<ReturnType<typeof setup>>) {
     reservedVmNextChargeAt: '2026-09-01T00:00:00.000Z',
     persistentStorageClaim: `reserved-data-${deployment.id}`,
   } satisfies Partial<DeploymentRecord>);
-  await input.store.createReleaseManifest({
+  input.store.seedLegacyReleaseManifestForTest({
     projectId: input.project.id,
     deploymentId: deployment.id,
     environment: 'preview',
@@ -258,7 +259,168 @@ afterEach(() => {
   }
 });
 
+async function executeForwardServerImageBuild(input: {
+  initialDatabaseUrl?: string;
+  envVars: Record<string, string>;
+  rotateDatabaseUrlOnFirstInspection?: string;
+}) {
+  const digest = `sha256:${'8'.repeat(64)}`;
+  const ledgerDigest = `sha256:${'7'.repeat(64)}`;
+  const inspectedConnections: string[] = [];
+  const managerBodies: Array<Record<string, unknown>> = [];
+  let runtime: Awaited<ReturnType<typeof setup>>;
+  runtime = await setup({
+    migrationLedgerInspector: async ({ connectionString }) => {
+      inspectedConnections.push(connectionString);
+      if (inspectedConnections.length === 1 && input.rotateDatabaseUrlOnFirstInspection) {
+        const mapKey = `${runtime.project.id}:DATABASE_URL`;
+        const secret = runtime.store.projectSecrets.get(mapKey);
+        if (!secret) throw new Error('expected database secret fixture');
+        runtime.store.projectSecrets.set(mapKey, {
+          ...secret,
+          valueEncrypted: encryptJson({ value: input.rotateDatabaseUrlOnFirstInspection }),
+        });
+      }
+      return { status: 'EXACT', digest: ledgerDigest, entries: 2 };
+    },
+    serverImagePromotionRuntime: {
+      promote: vi.fn(async (request): Promise<PromotionResult> => {
+        const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${request.projectId.toLowerCase()}`;
+        const manifest = promotionManifest({
+          promotionId: 'promotion-effective-database-release',
+          organizationId: request.organizationId,
+          sourceRepo: request.source.repo,
+          targetRepo,
+          digest,
+        });
+        return {
+          ok: true,
+          target: { repo: targetRepo, digest },
+          promotedAttestations: ['signature', 'sbom', 'provenance'],
+          reused: false,
+          manifest,
+        };
+      }),
+    },
+  });
+  if (input.initialDatabaseUrl) {
+    await runtime.store.upsertProjectSecret({
+      projectId: runtime.project.id,
+      expectedOrganizationId: runtime.organization.id,
+      key: 'DATABASE_URL',
+      valueEncrypted: encryptJson({ value: input.initialDatabaseUrl }),
+    });
+  }
+  const projectManifest = await runtime.store.getLatestProjectManifest(runtime.project.id);
+  if (!projectManifest) throw new Error('missing project manifest fixture');
+  const queued = await runtime.store.createDeployment({
+    projectId: runtime.project.id,
+    workspaceId: runtime.workspace.id,
+    provider: 'server',
+    environment: 'preview',
+    status: 'QUEUED',
+    framework: 'node',
+    buildCommand: 'npm run build',
+    outputDirectory: 'dist',
+    machineSize: 'shared-0.5',
+    metadata: {
+      planEntitlements: PLAN_ENTITLEMENTS,
+      projectManifestDigest: projectManifest.digest,
+    },
+  });
+  const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${runtime.project.id.toLowerCase()}`;
+  pipeline.runAppImageBuild.mockResolvedValue({
+    ok: true,
+    imageUri: `${sourceRepo}:${queued.id}`,
+    digest,
+    imageSizeBytes: 12_345,
+    buildId: 'build-effective-database',
+    durationMs: 1_000,
+  });
+  globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
+    const href = String(url);
+    if (href.includes('/agent-token')) {
+      return new Response(JSON.stringify({ token: 'agent-token' }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    if (href.endsWith('/health')) return new Response('{}', { status: 200 });
+    if (href.includes('/server-deployments/start')) {
+      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
+      managerBodies.push(body);
+      return new Response(JSON.stringify({ ready: true, readyReplicas: 1, url: `https://${String(body.host)}` }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }
+    return new Response('not found', { status: 404 });
+  }) as typeof fetch;
+
+  const response = await runtime.app.inject({
+    method: 'POST',
+    url: '/internal/deployments/build',
+    headers: { authorization: 'Bearer reserved-redeploy-internal-secret' },
+    payload: {
+      projectId: runtime.project.id,
+      deploymentId: queued.id,
+      userId: runtime.user.id,
+      buildInput: {
+        provider: 'server',
+        environment: 'preview',
+        workspaceId: runtime.workspace.id,
+        buildCommand: 'npm run build',
+        outputDirectory: 'dist',
+        framework: 'node',
+        previewDeployment: true,
+        timeoutSeconds: 600,
+        artifactSizeLimitMb: 250,
+        envVars: input.envVars,
+        injectSecrets: [],
+        machineSize: 'shared-0.5',
+        runtimeKind: 'autoscale',
+        publishRegion: 'platform-default',
+        removeBrandingBadge: true,
+      },
+    },
+  });
+
+  return { runtime, queued, response, ledgerDigest, inspectedConnections, managerBodies };
+}
+
 describe('Reserved VM durable in-place redeploy', () => {
+  it('pins a body DATABASE_URL with no project DB and sends that same URL to the manager', async () => {
+    const databaseUrl = 'postgres://user:pw@body-override.test:5432/app';
+    const result = await executeForwardServerImageBuild({
+      envVars: { DATABASE_URL: databaseUrl, FEATURE_PIN: 'body-only' },
+    });
+
+    expect(result.response.statusCode, result.response.body).toBe(200);
+    expect(result.response.json().deployment.status).toBe('READY');
+    expect(new Set(result.inspectedConnections)).toEqual(new Set([databaseUrl]));
+    expect((result.managerBodies[0]?.env as Record<string, string>).DATABASE_URL).toBe(databaseUrl);
+    expect(result.runtime.store.releaseManifests[0]).toMatchObject({
+      dbMigrationPoint: result.ledgerDigest,
+    });
+    await result.runtime.app.close();
+  });
+
+  it('keeps the captured secret URL across a rotation between env assembly and DB pinning', async () => {
+    const databaseUrlA = 'postgres://user:pw@captured-a.test:5432/app';
+    const databaseUrlB = 'postgres://user:pw@rotated-b.test:5432/app';
+    const result = await executeForwardServerImageBuild({
+      initialDatabaseUrl: databaseUrlA,
+      envVars: { FEATURE_PIN: 'rotation-latch' },
+      rotateDatabaseUrlOnFirstInspection: databaseUrlB,
+    });
+
+    expect(result.response.statusCode, result.response.body).toBe(200);
+    expect(new Set(result.inspectedConnections)).toEqual(new Set([databaseUrlA]));
+    expect((result.managerBodies[0]?.env as Record<string, string>).DATABASE_URL).toBe(databaseUrlA);
+    expect((result.managerBodies[0]?.env as Record<string, string>).DATABASE_URL).not.toBe(databaseUrlB);
+    await result.runtime.app.close();
+  });
+
   it('reuses the same runtime/PVC/URL, atomically appends the release and coalesces replay enqueue', async () => {
     const oldKeyId = 'reserved-vm-payload-old';
     const oldKey = 'o'.repeat(32);

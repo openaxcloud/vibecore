@@ -189,6 +189,7 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
     const dir = staticDeploymentSnapshotDir(deployment.id);
     await mkdir(dir, { recursive: true });
     await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+    const artifactDigest = (await computeStaticSnapshotDigest(deployment.id))!;
     await store.createReleaseManifest({
       projectId,
       deploymentId: deployment.id,
@@ -196,8 +197,8 @@ describe('SEC-8 cache window — real api behind a real shared cache', () => {
       version: 1,
       provider: 'static',
       artifactKind: 'static-snapshot',
-      artifactRef: `static-deployments/${deployment.id}`,
-      artifactDigest: (await computeStaticSnapshotDigest(deployment.id))!,
+      artifactRef: `static-artifacts/sha256/${artifactDigest.slice('sha256:'.length)}`,
+      artifactDigest,
       accessPolicyVersion: deployment.accessPolicyVersion,
       planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
       projectManifestDigest: projectManifest.digest,

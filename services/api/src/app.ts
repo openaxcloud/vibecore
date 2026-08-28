@@ -1,10 +1,10 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, createHmac, createVerify, randomUUID, timingSafeEqual } from 'node:crypto';
-import { createReadStream } from 'node:fs';
-import { mkdir, mkdtemp, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { constants as fsConstants } from 'node:fs';
+import { lstat, mkdir, mkdtemp, open, readdir, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { dirname, extname, join, sep, resolve } from 'node:path';
+import { dirname, extname, join, relative, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
 import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
 import cookie from '@fastify/cookie';
@@ -39,6 +39,7 @@ import {
   availableMachineSizes,
   machineSizeFromCard,
   billingPlans,
+  BUILTIN_RATE_CARD,
   ceilCents,
   computeAgentCallBilling,
   computeAiCostCents,
@@ -179,6 +180,7 @@ import {
 } from './server-deploy-revision.js';
 import {
   buildServerDeployEnv,
+  resolveServerDeployDatabaseUrl,
   snapshotWorkspaceAppSource,
   snapshotWorkspaceImageContext,
 } from './server-deploy-transfer.js';
@@ -230,7 +232,12 @@ import {
   type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
-import { createPostgresMigrationApplier } from './db-migration-applier.js';
+import {
+  acquireExactPostgresMigrationLedgerLease,
+  createPostgresMigrationApplier,
+  inspectExactPostgresMigrationLedger,
+  type ExactMigrationLedgerInspection,
+} from './db-migration-applier.js';
 import {
   hashStatements,
   migrationRequestHash,
@@ -298,6 +305,7 @@ import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
 import {
   deploymentAccessActivationEnabled,
+  isValidDeploymentAccessPolicyRecord,
   publicDeploymentAccessPolicy,
   type DeploymentAccessMode,
 } from './deployment-access.js';
@@ -309,17 +317,23 @@ import {
   canPublishDeployment,
   canPollDeploymentStatus,
   computeStaticSnapshotDigest,
+  computeStaticArtifactDigest,
   createDeploymentLogs,
   deployProviderConfigError,
+  garbageCollectStaticArtifacts,
   pollProviderDeploymentStatus,
   providerSupportedPublishRegions,
   providerHasAuthoritativePlanEdge,
   removeStaticDeploymentSnapshot,
-  restoreStaticSnapshotInto,
+  removeStaticDeploymentRoutingAlias,
+  resolveStaticDeploymentRoutingAlias,
+  withRetainedStaticSnapshotArtifact,
+  restoreStaticArtifactInto,
   runStaticBuild,
   sanitizeDeploymentEnvVars,
   serverDeployHost,
   snapshotStaticBuild,
+  writeStaticDeploymentRoutingAlias,
   staticDeploymentSnapshotDir,
   triggerProviderDeployHook,
   triggerProviderRollback,
@@ -334,6 +348,20 @@ import {
   type RunStaticBuildResult,
   type StaticBuildLog,
 } from './deployments.js';
+import {
+  buildServerRollbackPromotionEvidence,
+  buildServerRollbackRuntimeSpec,
+  DeterministicRollbackError,
+  parseStaticRollbackRoutingEvidence,
+  parseServerRollbackRuntimeSpec,
+  rollbackManifestKeyring,
+  rollbackPlanEntitlementsDigest,
+  serverRollbackMachineMatchesRateCard,
+  validateServerRollbackManifestPins,
+  type ServerRollbackDatabasePin,
+  type ServerRollbackPromotionEvidenceV1,
+  type ServerRollbackRuntimeSpecV1,
+} from './deterministic-rollback.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import {
   CredentialImportError,
@@ -449,7 +477,7 @@ import {
   resolveDeployMachineSize,
 } from './rate-card-service.js';
 import { publicMachineSizeError } from './rate-card-public.js';
-import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import { resolveRollbackImage, resolveRollbackSecrets } from './release-rollback.js';
 // eslint-disable-next-line import/order -- app.ts has a legacy grouped import graph; keep the rollback module beside release helpers.
 import { RollbackOperationLeaseLostError, RollbackOperationLeaseManager } from './rollback-operation-lease.js';
 import {
@@ -525,6 +553,7 @@ import {
   type ImportJobRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
+  type ReleaseManifestRecord,
   type ProjectReleaseFence,
   type ProviderConfigRecord,
   type ReleasePlanEntitlementsPin,
@@ -645,6 +674,9 @@ export interface ApiAppOptions {
 
   /** Production defaults to the real transactional PostgreSQL applicator. */
   migrationApplier?: SqlApplier;
+
+  /** Read-only complete-ledger inspection seam for deterministic rollback tests. */
+  migrationLedgerInspector?: typeof inspectExactPostgresMigrationLedger;
 
   /**
    * Storage for cron-scheduled tasks. Defaults to Postgres when the store is
@@ -2160,7 +2192,7 @@ async function pathExistsAsync(targetPath: string) {
 
 async function readableFileOrUndefined(targetPath: string) {
   try {
-    const info = await stat(targetPath);
+    const info = await lstat(targetPath);
     return info.isFile() ? targetPath : undefined;
   } catch {
     return undefined;
@@ -2548,7 +2580,7 @@ function adminMfaRequired() {
 type DatabaseKind = 'postgres' | 'mysql' | 'mongodb' | 'redis';
 type DatabaseConnectionCandidate = {
   key: string;
-  source: 'env' | 'secret';
+  source: 'env' | 'secret' | 'runtime';
   value: string;
   kind: DatabaseKind;
   maskedUrl: string;
@@ -4008,7 +4040,7 @@ function stripReservedVmRecoveryEnvelopes(value: unknown): unknown {
   const output: Record<string, unknown> = {};
 
   for (const [key, item] of Object.entries(value)) {
-    if (key === 'encryptedBuildInput') continue;
+    if (key === 'encryptedBuildInput' || key === 'rollbackRuntimeSpec' || key === 'rollbackPromotionEvidence') continue;
     output[key] = stripReservedVmRecoveryEnvelopes(item);
   }
 
@@ -4038,6 +4070,17 @@ function localizeDeploymentRecord<T extends Pick<DeploymentRecord, 'logs'>>(
         const { encryptedBuildInput: _ciphertext, ...safe } = durable as Record<string, unknown>;
         publicMetadata[key] = safe;
       }
+    }
+
+    const serverDeploy = publicMetadata.serverDeploy;
+
+    if (serverDeploy && typeof serverDeploy === 'object' && !Array.isArray(serverDeploy)) {
+      const {
+        rollbackRuntimeSpec: _runtimeSpec,
+        rollbackPromotionEvidence: _promotionEvidence,
+        ...safeServerDeploy
+      } = serverDeploy as Record<string, unknown>;
+      publicMetadata.serverDeploy = safeServerDeploy;
     }
 
     (localized as T & { metadata?: unknown }).metadata = publicMetadata;
@@ -4498,6 +4541,8 @@ async function commitPromotedServerImageRelease(input: {
   dbMigrationPoint?: string;
   rollbackFence?: RollbackLeaseFence;
   releaseFence: ProjectReleaseFence;
+  /** Re-prove the environment DB topology/ledger on the held session at the commit edge. */
+  assertDatabasePinHeld: () => Promise<void>;
   reservedVmFence?: ServerImageReleaseCommitInput['reservedVmFence'];
 }): Promise<DeploymentRecord> {
   if (!readDeploymentPlanEntitlementsPin(input.deployment.metadata)) {
@@ -4507,6 +4552,12 @@ async function commitPromotedServerImageRelease(input: {
     });
   }
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
+  const runtimeSpec = release.serverDeploy.rollbackRuntimeSpec;
+  const promotionEvidence = release.serverDeploy.rollbackPromotionEvidence;
+
+  /* Producers build both strict envelopes before contacting the manager. */
+  if (!runtimeSpec) throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MISSING');
+  if (!promotionEvidence) throw new DeterministicRollbackError('ROLLBACK_PROMOTION_EVIDENCE_MISSING');
 
   const metadata = {
     ...(input.deployment.metadata as Record<string, unknown>),
@@ -4517,6 +4568,7 @@ async function commitPromotedServerImageRelease(input: {
       releaseManifestCommitted: true,
     },
   };
+  await input.assertDatabasePinHeld();
   const result = await input.store.commitServerImageRelease({
     projectId: input.deployment.projectId,
     organizationId: input.organizationId,
@@ -4527,6 +4579,8 @@ async function commitPromotedServerImageRelease(input: {
     ...(release.storeGeneration ? { storeGeneration: release.storeGeneration } : {}),
     ...(release.releaseConfigDigest ? { configDigest: release.releaseConfigDigest } : {}),
     ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
+    runtimeSpec,
+    promotionEvidence,
     url: input.url,
     previewUrl: input.deployment.environment !== 'production' ? input.url : undefined,
     productionUrl: input.deployment.environment === 'production' ? input.url : undefined,
@@ -4546,6 +4600,13 @@ async function commitPromotedServerImageRelease(input: {
   }
 
   return result.deployment;
+}
+
+async function assertEnvironmentDatabaseLeaseHeld(lease: { assertHeld(): Promise<void> } | undefined): Promise<void> {
+  if (!lease) {
+    throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+  }
+  await lease.assertHeld();
 }
 
 interface ReservedVmRedeployMetadata {
@@ -4769,7 +4830,17 @@ function readReservedVmRedeployMetadata(deployment: DeploymentRecord): ReservedV
   };
 }
 
-async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
+async function reconcileDeploymentStatus(
+  store: ApiStore,
+  deployment: DeploymentRecord,
+  environmentDatabasePinLease?: <T>(
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+    expected: ServerRollbackDatabasePin,
+    effect: (assertDatabasePinHeld: () => Promise<void>) => Promise<T>,
+  ) => Promise<T>,
+): Promise<DeploymentRecord> {
   /*
    * Meter a newly-READY deployment once (best-effort, idempotent). READY rows
    * otherwise fall straight through the BUILDING-only logic below.
@@ -4869,17 +4940,16 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
                * the accepted immutable target under the freshly claimed token and
                * require the manager to echo that exact token first.
                */
-              const targetSize = machineSizeFromCard(
-                await getActiveRateCard(store),
-                claimed.operation.targetMachineSize,
-              );
               const reapplied = await reconfigureServerDeploymentViaManager({
                 deploymentId: deployment.id,
                 runtimeKind: claimed.operation.targetRuntimeKind,
                 reservedVmTier: claimed.operation.targetTier,
                 operationId: claimed.operation.id,
                 fencingToken: claimed.operation.fencingToken,
-                ...machineSizeResources(targetSize),
+                cpuRequest: `${claimed.operation.targetCpuMillicores}m`,
+                cpuLimit: `${claimed.operation.targetCpuMillicores}m`,
+                memoryRequest: `${claimed.operation.targetMemoryMb}Mi`,
+                memoryLimit: `${claimed.operation.targetMemoryMb}Mi`,
               });
 
               if (reapplied.appliedFencingToken !== claimed.operation.fencingToken) {
@@ -4987,16 +5057,44 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
                 await releaseGuard.assert();
 
                 if (serverMeta.image) {
-                  return commitPromotedServerImageRelease({
-                    store,
-                    deployment: candidate,
-                    organizationId: project.organizationId,
-                    url,
-                    readyReplicas: live.readyReplicas,
-                    readyMessage,
-                    releaseFence: releaseGuard.fence,
-                    reservedVmFence: reservedVmReleaseFence,
+                  const runtime = parseServerRollbackRuntimeSpec(
+                    ((candidate.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>)
+                      .rollbackRuntimeSpec,
+                  );
+                  const runtimeSpec = runtime.spec;
+                  const projectSecrets = await resolveProjectSecretValues(store, candidate.projectId);
+                  const effectiveDatabaseUrl = resolveServerDeployDatabaseUrl({
+                    environment: candidate.environment,
+                    projectSecrets,
+                    envOverrides: runtime.envOverrides,
                   });
+
+                  const commit = (assertDatabasePinHeld: () => Promise<void>) =>
+                    commitPromotedServerImageRelease({
+                      store,
+                      deployment: candidate,
+                      organizationId: project.organizationId,
+                      url,
+                      readyReplicas: live.readyReplicas,
+                      readyMessage,
+                      releaseFence: releaseGuard.fence,
+                      assertDatabasePinHeld,
+                      ...(runtimeSpec.database.mode === 'exact-ledger'
+                        ? { dbMigrationPoint: runtimeSpec.database.ledgerDigest }
+                        : {}),
+                      reservedVmFence: reservedVmReleaseFence,
+                    });
+
+                  if (!environmentDatabasePinLease) {
+                    throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+                  }
+                  return environmentDatabasePinLease(
+                    candidate.projectId,
+                    candidate.environment,
+                    effectiveDatabaseUrl,
+                    runtimeSpec.database,
+                    commit,
+                  );
                 }
 
                 return store.commitFencedServerReady({
@@ -8226,6 +8324,70 @@ function serverDeployRevisionEnabledForProject(projectId: string | undefined): b
   );
 }
 
+/** Commit retained static bytes, READY and ReleaseManifest as one publication. */
+async function writeReleaseManifest(
+  store: ApiStore,
+  deployment: DeploymentRecord,
+  envVars: Record<string, string> | undefined,
+  releaseFence: ProjectReleaseFence,
+): Promise<DeploymentRecord> {
+  if (deployment.provider !== 'static' || ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+    throw Object.assign(new Error(appPublicEnglish('STATIC_RELEASE_CONFLICT')), {
+      code: 'STATIC_RELEASE_CONFLICT',
+      statusCode: 409,
+    });
+  }
+
+  const artifactDigest = await computeStaticSnapshotDigest(deployment.id);
+
+  if (!artifactDigest) {
+    throw Object.assign(
+      new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: deployment.id })),
+      {
+        code: 'ROLLBACK_STATIC_SNAPSHOT_MISSING',
+        statusCode: 409,
+      },
+    );
+  }
+
+  const environment = deployment.environment ?? 'preview';
+  const url = deployment.url;
+
+  if (!url) {
+    throw Object.assign(new Error(appPublicEnglish('STATIC_RELEASE_URL_MISSING')), {
+      code: 'STATIC_RELEASE_URL_MISSING',
+      statusCode: 409,
+    });
+  }
+
+  return withRetainedStaticSnapshotArtifact(deployment.id, artifactDigest, async (artifactRef) => {
+    const committed = await store.commitStaticRelease({
+      projectId: deployment.projectId,
+      deploymentId: deployment.id,
+      environment,
+      artifactRef,
+      artifactDigest,
+      configDigest: configDigest(envVars ?? {}),
+      accessPolicyVersion: deployment.accessPolicyVersion,
+      url,
+      previewUrl: environment !== 'production' ? url : undefined,
+      productionUrl: environment === 'production' ? url : undefined,
+      metadata: (deployment.metadata ?? {}) as Record<string, unknown>,
+      logs: deployment.logs,
+      finishedAt: new Date().toISOString(),
+      releaseFence,
+    });
+
+    if (!committed.committed && committed.deployment.status !== 'CANCELED') {
+      throw Object.assign(new Error(appPublicEnglish('STATIC_RELEASE_CONFLICT')), {
+        code: 'STATIC_RELEASE_CONFLICT',
+        statusCode: 409,
+      });
+    }
+
+    return committed.deployment;
+  });
+}
 /*
  * Run ONE isolated build pod via the workspace-manager (synchronous, like the
  * scheduled-jobs transport): revision in, docker-context artifact out. The HTTP
@@ -8706,7 +8868,11 @@ async function ensureServerDeploymentAbsentViaManager(deploymentId: string): Pro
 }
 
 /** Delete a failed static rollback and verify that no bytes remain addressable. */
-async function ensureStaticDeploymentSnapshotAbsent(deploymentId: string): Promise<void> {
+async function ensureStaticRollbackEffectAbsent(deploymentId: string, sourceDeploymentId?: string): Promise<void> {
+  if (sourceDeploymentId) {
+    await removeStaticDeploymentRoutingAlias(sourceDeploymentId, deploymentId);
+  }
+
   await removeStaticDeploymentSnapshot(deploymentId);
 
   if ((await computeStaticSnapshotDigest(deploymentId)) !== undefined) {
@@ -8714,6 +8880,17 @@ async function ensureStaticDeploymentSnapshotAbsent(deploymentId: string): Promi
       code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
       statusCode: 503,
     });
+  }
+
+  if (sourceDeploymentId) {
+    const remainingAlias = await resolveStaticDeploymentRoutingAlias(sourceDeploymentId);
+
+    if (remainingAlias === null || remainingAlias?.targetDeploymentId === deploymentId) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_CLEANUP_STILL_EXISTS', { deploymentId })), {
+        code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+        statusCode: 503,
+      });
+    }
   }
 }
 
@@ -10156,6 +10333,192 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
   const migrationApplier = options.migrationApplier ?? createPostgresMigrationApplier();
+  const migrationLedgerInspector = options.migrationLedgerInspector ?? inspectExactPostgresMigrationLedger;
+
+  /** Resolve the one DB URL actually injected into this release environment. */
+  const resolveEnvironmentDatabaseConnection = async (
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+  ): Promise<DatabaseConnectionCandidate | undefined> => {
+    if (effectiveDatabaseUrl === undefined) {
+      let databaseInstance;
+      try {
+        databaseInstance = await store.getDatabaseInstanceByProject(
+          projectId,
+          environment === 'production' ? 'production' : 'development',
+        );
+      } catch {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+      }
+      if (databaseInstance && ['PROVISIONING', 'ACTIVE'].includes(databaseInstance.status)) {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+      }
+      return undefined;
+    }
+    if (!effectiveDatabaseUrl.trim()) {
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+    }
+    const kind = detectDatabaseKind('DATABASE_URL', effectiveDatabaseUrl);
+
+    if (kind !== 'postgres') {
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNSUPPORTED');
+    }
+
+    return {
+      key: 'DATABASE_URL',
+      source: 'runtime',
+      value: effectiveDatabaseUrl,
+      kind,
+      maskedUrl: maskConnectionUrl(effectiveDatabaseUrl),
+      environment,
+    };
+  };
+
+  const databasePinFromInspection = (
+    inspection: ExactMigrationLedgerInspection,
+  ): Extract<ServerRollbackDatabasePin, { mode: 'exact-ledger' }> => {
+    if (inspection.status !== 'EXACT') {
+      throw new DeterministicRollbackError(`ROLLBACK_DB_LEDGER_${inspection.status}`);
+    }
+
+    return { mode: 'exact-ledger', ledgerDigest: inspection.digest };
+  };
+
+  const inspectEnvironmentDatabasePin = async (
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+  ): Promise<ServerRollbackDatabasePin> => {
+    const connection = await resolveEnvironmentDatabaseConnection(projectId, environment, effectiveDatabaseUrl);
+
+    if (!connection) return { mode: 'none' };
+
+    return databasePinFromInspection(
+      await migrationLedgerInspector({
+        connectionString: connection.value,
+        lockKey: `${projectId}:${environment}`,
+      }),
+    );
+  };
+
+  const assertEnvironmentDatabasePinCurrent = async (
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+    expected: ServerRollbackDatabasePin,
+  ): Promise<ServerRollbackDatabasePin> => {
+    const actual = await inspectEnvironmentDatabasePin(projectId, environment, effectiveDatabaseUrl);
+
+    if (expected.mode === 'none') {
+      if (actual.mode !== 'none') {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_PIN_MISMATCH');
+      }
+      return actual;
+    }
+
+    if (actual.mode !== 'exact-ledger') {
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_PIN_MISMATCH');
+    }
+    if (actual.ledgerDigest !== expected.ledgerDigest) {
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_MISMATCH');
+    }
+
+    return actual;
+  };
+
+  const acquireEnvironmentDatabasePinLease = async (
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+    expected: ServerRollbackDatabasePin,
+  ): Promise<{ assertHeld(): Promise<void>; release(): Promise<void> }> => {
+    const connection = await resolveEnvironmentDatabaseConnection(projectId, environment, effectiveDatabaseUrl);
+
+    if (!connection) {
+      if (expected.mode !== 'none') {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_PIN_MISMATCH');
+      }
+      return {
+        assertHeld: async () => {
+          await assertEnvironmentDatabasePinCurrent(projectId, environment, effectiveDatabaseUrl, expected);
+        },
+        async release() {},
+      };
+    }
+
+    const validateLocked = (inspection: ExactMigrationLedgerInspection): void => {
+      const actual = databasePinFromInspection(inspection);
+
+      if (expected.mode !== 'exact-ledger') {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_PIN_MISMATCH');
+      }
+      if (actual.ledgerDigest !== expected.ledgerDigest) {
+        throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_MISMATCH');
+      }
+    };
+
+    try {
+      /* Injected inspectors are a deterministic non-production test seam. */
+      if (options.migrationLedgerInspector) {
+        validateLocked(
+          await migrationLedgerInspector({
+            connectionString: connection.value,
+            lockKey: `${projectId}:${environment}`,
+          }),
+        );
+        return {
+          assertHeld: async () => {
+            validateLocked(
+              await migrationLedgerInspector({
+                connectionString: connection.value,
+                lockKey: `${projectId}:${environment}`,
+              }),
+            );
+          },
+          async release() {},
+        };
+      }
+
+      const lease = await acquireExactPostgresMigrationLedgerLease({
+        connectionString: connection.value,
+        lockKey: `${projectId}:${environment}`,
+      });
+
+      try {
+        validateLocked(lease.inspection);
+        return {
+          assertHeld: async () => {
+            validateLocked(await lease.assertHeldAndInspect());
+          },
+          release: () => lease.release(),
+        };
+      } catch (error) {
+        await lease.release();
+        throw error;
+      }
+    } catch (error) {
+      if (error instanceof DeterministicRollbackError) throw error;
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_UNAVAILABLE');
+    }
+  };
+
+  const withEnvironmentDatabasePinLease = async <T>(
+    projectId: string,
+    environment: DeploymentRecord['environment'],
+    effectiveDatabaseUrl: string | undefined,
+    expected: ServerRollbackDatabasePin,
+    effect: (assertDatabasePinHeld: () => Promise<void>) => Promise<T>,
+  ): Promise<T> => {
+    const lease = await acquireEnvironmentDatabasePinLease(projectId, environment, effectiveDatabaseUrl, expected);
+
+    try {
+      await lease.assertHeld();
+      return await effect(() => lease.assertHeld());
+    } finally {
+      await lease.release();
+    }
+  };
   const gitProvider = options.gitProvider ?? new GitCliProvider(projectTreeMutationGuard);
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
 
@@ -10202,6 +10565,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }),
       );
     }
+
+    /*
+     * Every server publish/rollback persists encrypted runtime authority. Prove
+     * the writer + historical decrypt keyring at boot, before a route or worker
+     * can promote an image or ask the manager to create an external workload.
+     * CONFIG_ENCRYPTION_KEY remains the rollout-compatible current key.
+     */
+    rollbackManifestKeyring({ production: true });
 
     assertProductionWorkspaceManagerUrl();
 
@@ -10844,7 +11215,185 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * PUBLIC URLs readable during the dedicated-origin migration, but missing /
      * corrupt policy state is denied rather than interpreted as public.
      */
-    const staticAccess = await store.getDeploymentAccessContext(deploymentId);
+    /*
+     * A byte-identical rollback may retain an index.html whose legacy absolute
+     * asset URLs still name an older deployment. Prefer a valid alias even while
+     * the source row/snapshot remains: those mutable source bytes are not the
+     * rollback authority. A corrupt alias is denied instead of falling back.
+     * Authorization, project lifetime and READY state are checked against the
+     * final target below, so the alias grants no authority.
+     */
+    const committedStaticCandidate = async (candidateId: string) => {
+      const manifest = await store.getLatestReleaseManifestForDeployment(candidateId);
+
+      if (
+        !manifest ||
+        manifest.provider !== 'static' ||
+        manifest.artifactKind !== 'static-snapshot' ||
+        !manifest.planEntitlements ||
+        !manifest.projectManifestDigest
+      ) {
+        return undefined;
+      }
+
+      const [deployment, access] = await Promise.all([
+        store.getDeployment(manifest.projectId, candidateId),
+        store.getDeploymentAccessContext(candidateId),
+      ]);
+      const deploymentPlan = readDeploymentPlanEntitlementsPin(deployment?.metadata);
+      const deploymentProjectManifestDigest = (deployment?.metadata as Record<string, unknown> | undefined)
+        ?.projectManifestDigest;
+
+      if (
+        !deployment ||
+        deployment.provider !== 'static' ||
+        deployment.environment !== manifest.environment ||
+        deployment.status !== 'READY' ||
+        deployment.accessPolicyVersion !== manifest.accessPolicyVersion ||
+        !access?.policy ||
+        access.projectId !== manifest.projectId ||
+        access.environment !== manifest.environment ||
+        access.deploymentStatus !== 'READY' ||
+        access.projectDeletedAt ||
+        access.policy.version !== manifest.accessPolicyVersion ||
+        !deploymentPlan ||
+        rollbackPlanEntitlementsDigest(deploymentPlan) !== rollbackPlanEntitlementsDigest(manifest.planEntitlements) ||
+        deploymentProjectManifestDigest !== manifest.projectManifestDigest
+      ) {
+        return undefined;
+      }
+
+      return { deployment, access, manifest };
+    };
+
+    const alias = await resolveStaticDeploymentRoutingAlias(deploymentId);
+
+    if (alias === null) {
+      reply.header('cache-control', 'private, no-store');
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    let servingCandidate = await committedStaticCandidate(deploymentId);
+
+    if (alias) {
+      for (const edge of alias.edges) {
+        const sourceManifest = await store.getLatestReleaseManifestForDeployment(edge.sourceDeploymentId);
+
+        if (
+          !sourceManifest ||
+          sourceManifest.provider !== 'static' ||
+          sourceManifest.artifactKind !== 'static-snapshot' ||
+          !sourceManifest.planEntitlements ||
+          !sourceManifest.projectManifestDigest
+        ) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        const [target, targetManifest] = await Promise.all([
+          store.getDeployment(sourceManifest.projectId, edge.targetDeploymentId),
+          store.getLatestReleaseManifestForDeployment(edge.targetDeploymentId),
+        ]);
+
+        /* A forged/cross-tenant/unrelated alias is corruption, never a fallback hint. */
+        if (
+          target &&
+          (target.provider !== 'static' ||
+            target.environment !== sourceManifest.environment ||
+            target.rolledBackFromId !== edge.sourceDeploymentId)
+        ) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        /*
+         * Crash-before-commit: the alias is written while the target is still
+         * non-terminal and before the manifest transaction. Only that exact
+         * state may retain the last fully committed source.
+         */
+        if (target && (target.status === 'QUEUED' || target.status === 'BUILDING') && !targetManifest) break;
+
+        if (
+          !targetManifest ||
+          targetManifest.provider !== 'static' ||
+          targetManifest.artifactKind !== 'static-snapshot' ||
+          targetManifest.projectId !== sourceManifest.projectId ||
+          targetManifest.environment !== sourceManifest.environment ||
+          targetManifest.artifactRef !== sourceManifest.artifactRef ||
+          targetManifest.artifactDigest !== sourceManifest.artifactDigest ||
+          targetManifest.projectManifestDigest !== sourceManifest.projectManifestDigest ||
+          !targetManifest.planEntitlements ||
+          rollbackPlanEntitlementsDigest(targetManifest.planEntitlements) !==
+            rollbackPlanEntitlementsDigest(sourceManifest.planEntitlements)
+        ) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        let edgeEvidence;
+        try {
+          edgeEvidence = parseStaticRollbackRoutingEvidence(targetManifest.promotionEvidence);
+        } catch {
+          servingCandidate = undefined;
+          break;
+        }
+
+        if (
+          edgeEvidence.projectId !== sourceManifest.projectId ||
+          edgeEvidence.environment !== sourceManifest.environment ||
+          edgeEvidence.sourceManifestId !== sourceManifest.id ||
+          edgeEvidence.sourceManifestVersion !== sourceManifest.version ||
+          edgeEvidence.sourceDeploymentId !== edge.sourceDeploymentId ||
+          edgeEvidence.artifactRef !== sourceManifest.artifactRef ||
+          edgeEvidence.artifactDigest !== sourceManifest.artifactDigest
+        ) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        /*
+         * An intermediate Deployment row may be pruned. Its append-only routing
+         * evidence still proves the edge; the next edge must eventually reach a
+         * live READY target before any bytes can be served.
+         */
+        if (!target) {
+          servingCandidate = undefined;
+          continue;
+        }
+
+        const targetCandidate = await committedStaticCandidate(edge.targetDeploymentId);
+
+        if (!targetCandidate || targetCandidate.manifest.id !== targetManifest.id) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        if (
+          targetCandidate.manifest.promotionEvidence === undefined ||
+          targetCandidate.deployment.rolledBackFromId !== edge.sourceDeploymentId
+        ) {
+          servingCandidate = undefined;
+          break;
+        }
+
+        servingCandidate = targetCandidate;
+      }
+    }
+
+    if (!servingCandidate) {
+      reply.header('cache-control', 'private, no-store');
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    const servingDeploymentId = servingCandidate.deployment.id;
+    const staticAccess = servingCandidate.access;
+    const snapshotRoot = staticDeploymentSnapshotDir(servingDeploymentId);
 
     if (!staticAccess?.policy) {
       reply.header('cache-control', 'private, no-store');
@@ -10858,15 +11407,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requirePreviewProxySecret(request);
     }
 
-    const snapshotRoot = staticDeploymentSnapshotDir(deploymentId);
-
-    if (!(await pathExistsAsync(snapshotRoot))) {
-      return reply.code(404).send({
-        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
-        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
-      });
-    }
-
     /*
      * Stop serving once the owning project is soft-deleted (mirrors the
      * /chat-shares/:token deletedAt gate). Soft-delete is reversible (restore),
@@ -10875,7 +11415,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * findUnique; an unknown deploymentId (snapshot present, row gone) is
      * treated as not-found.
      */
-    const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
+    const ownerStatus = await store.getDeploymentOwnerStatus(servingDeploymentId);
 
     /*
      * Only an atomically committed READY row may expose bytes. This also closes
@@ -10998,7 +11538,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ error: appPublicEnglish('STATIC_DEPLOY_FILE_NOT_FOUND'), code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
     }
 
-    if (realFile !== realRoot && !realFile.startsWith(`${realRoot}${sep}`)) {
+    const expectedRealFile = resolve(realRoot, relative(snapshotRoot, filePath));
+
+    if (
+      (realFile !== realRoot && !realFile.startsWith(`${realRoot}${sep}`)) ||
+      realFile !== expectedRealFile ||
+      !(await lstat(realFile).catch(() => undefined))?.isFile()
+    ) {
       return reply
         .code(403)
         .send({ error: appPublicEnglish('STATIC_DEPLOY_PATH_OUTSIDE'), code: 'STATIC_DEPLOY_FORBIDDEN' });
@@ -11017,7 +11563,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * this header makes that transition terminal.
      */
     reply.header('cache-control', 'public, no-cache, must-revalidate');
-    reply.header('x-vibecore-static-deployment', deploymentId);
+    reply.header('x-vibecore-static-deployment', servingDeploymentId);
+
+    if (servingDeploymentId !== deploymentId) {
+      reply.header('x-vibecore-static-deployment-alias', deploymentId);
+    }
 
     /*
      * This PUBLIC route serves attacker-controlled HTML/JS from the SAME origin as
@@ -11096,7 +11646,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const contentType = staticDeploymentMimeType(filePath);
     reply.type(contentType);
 
-    return reply.send(createReadStream(realFile));
+    try {
+      /* Refuse a final-component symlink swap between realpath() and open(). */
+      const handle = await open(realFile, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW);
+      const opened = await handle.stat();
+
+      if (!opened.isFile()) {
+        await handle.close();
+        return reply
+          .code(404)
+          .send({ error: appPublicEnglish('STATIC_DEPLOY_FILE_NOT_FOUND'), code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+      }
+
+      return reply.send(handle.createReadStream({ autoClose: true }));
+    } catch {
+      return reply
+        .code(404)
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_FILE_NOT_FOUND'), code: 'STATIC_DEPLOY_FILE_NOT_FOUND' });
+    }
   });
   app.get('/ready', async (request, reply) => {
     const checks: Record<string, { status: 'ok' | 'unconfigured' | 'down'; latencyMs?: number; detail?: string }> = {};
@@ -25735,6 +26302,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const envVar = await store.upsertProjectEnvVar({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       key: body.key,
       value: body.value,
       scope: body.scope,
@@ -25764,7 +26332,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(projectEnvVarDeleteSchema, request.body);
-    const envVar = await store.deleteProjectEnvVar(project.id, body.key, body.scope);
+    const envVar = await store.deleteProjectEnvVar({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      key: body.key,
+      scope: body.scope,
+    });
 
     if (!envVar) {
       return reply.code(404).send({ error: appPublicEnglish('PROJECT_ENV_NOT_FOUND'), code: 'PROJECT_ENV_NOT_FOUND' });
@@ -25838,6 +26411,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!envVars.some((entry) => entry.key === 'AUTH_JWT_SECRET')) {
       await store.upsertProjectEnvVar({
         projectId: project.id,
+        expectedOrganizationId: project.organizationId,
         key: 'AUTH_JWT_SECRET',
         value: generateAuthJwtSecret(),
       });
@@ -25907,6 +26481,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const secret = await store.upsertProjectSecret({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       key: body.key,
       valueEncrypted: encryptJson({ value: body.value }),
     });
@@ -25943,7 +26518,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const body = parse(projectKeySchema, request.body);
-    const secret = await store.deleteProjectSecret(project.id, body.key);
+    const secret = await store.deleteProjectSecret({
+      projectId: project.id,
+      expectedOrganizationId: project.organizationId,
+      key: body.key,
+    });
 
     if (!secret) {
       return reply
@@ -28765,8 +29344,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           return getSnapshotFiles(snapshot);
         },
-        persistTargetManifest: (projectId, files, actorUserId) =>
-          persistProjectFileManifest(store, projectId, params.targetOrganizationId, files, actorUserId),
+        buildTargetIdeState: (files) =>
+          mergeProjectIdeState(undefined, {
+            files: projectFileManifestState(files),
+          }),
         recordCompleted: async ({ job, targetProject }) => {
           await audit(params.request, store, {
             organizationId: targetProject.organizationId,
@@ -35090,8 +35671,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   })),
                   snapshotObjects: inventory.localSnapshotObjects,
                   staticDeploymentIds: inventory.staticDeploymentIds,
+                  staticArtifactRefs: inventory.staticArtifactRefs,
+                  staticAliasDeploymentIds: inventory.staticAliasDeploymentIds,
                 },
-                { lease },
+                {
+                  lease,
+                  isStaticArtifactRetainedOutsidePurge: (artifactRef) =>
+                    store.isReleaseArtifactRetainedOutsideProjects(artifactRef, inventory.bucketProjectIds),
+                },
               );
 
               return {
@@ -36988,7 +37575,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * a client polling this endpoint sees real status transitions.
      */
     const reconciled = await Promise.all(
-      deployments.map((deployment) => reconcileDeploymentStatus(store, deployment).catch(() => deployment)),
+      deployments.map((deployment) =>
+        reconcileDeploymentStatus(store, deployment, withEnvironmentDatabasePinLease).catch(() => deployment),
+      ),
     );
 
     const locale = transactionalLocaleForRequest(request);
@@ -37065,7 +37654,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       deployment: annotateRollbackAvailability(
-        await reconcileDeploymentStatus(store, deployment).catch(() => deployment),
+        await reconcileDeploymentStatus(store, deployment, withEnvironmentDatabasePinLease).catch(() => deployment),
       ),
     };
   });
@@ -37262,6 +37851,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const acquisition = await store.acquireDatabaseProvisioning({
       projectId: project.id,
+      expectedOrganizationId: project.organizationId,
       organizationId: project.organizationId,
       retentionDays: entitlement.retentionDays,
       environment,
@@ -37982,6 +38572,139 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(202).send({ scheduled: true, enabled: true });
   });
 
+  const prepareServerRollbackRuntimeSpec = async (input: {
+    project: ProjectRecord;
+    environment: DeploymentRecord['environment'];
+    projectManifestDigest: string;
+    planEntitlements: ReleasePlanEntitlementsPin;
+    accessPolicyVersion: number;
+    machine: { key: string; rateCardVersion: number; cpuMillicores: number; memoryMb: number };
+    port: number;
+    healthPath: string;
+    envOverrides: Record<string, string>;
+    database: ServerRollbackDatabasePin;
+  }): Promise<ServerRollbackRuntimeSpecV1> =>
+    buildServerRollbackRuntimeSpec({
+      organizationId: input.project.organizationId,
+      projectId: input.project.id,
+      environment: input.environment,
+      projectManifestDigest: input.projectManifestDigest,
+      planEntitlements: input.planEntitlements,
+      accessPolicyVersion: input.accessPolicyVersion,
+      machine: input.machine,
+      port: input.port,
+      healthPath: input.healthPath,
+      envOverrides: input.envOverrides,
+      database: input.database,
+    });
+
+  const requireRetainedReleaseAccessPolicy = async (manifest: ReleaseManifestRecord) => {
+    let policy;
+    try {
+      policy = await store.getDeploymentAccessPolicyVersion({
+        projectId: manifest.projectId,
+        environment: manifest.environment,
+        version: manifest.accessPolicyVersion,
+      });
+    } catch {
+      throw new DeterministicRollbackError('RELEASE_ACCESS_POLICY_INVALID');
+    }
+
+    if (
+      !isValidDeploymentAccessPolicyRecord(policy) ||
+      policy.projectId !== manifest.projectId ||
+      policy.environment !== manifest.environment ||
+      policy.version !== manifest.accessPolicyVersion
+    ) {
+      throw new DeterministicRollbackError('RELEASE_ACCESS_POLICY_INVALID');
+    }
+    return policy;
+  };
+
+  /**
+   * Resolve every mutable dependency needed by a server rollback while the
+   * operation is still read-only. Callers must finish this preflight before
+   * creating a rollback Deployment, recording effect intent, or contacting the
+   * workspace manager.
+   */
+  const resolveRetainedServerRollbackManifest = async (input: {
+    manifest: ReleaseManifestRecord;
+    project: ProjectRecord;
+  }) => {
+    if (input.manifest.artifactKind !== 'server-image' || input.manifest.provider !== 'server') {
+      throw new DeterministicRollbackError('ROLLBACK_MANIFEST_ARTIFACT_INVALID');
+    }
+
+    if (!input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
+      throw new DeterministicRollbackError('ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED');
+    }
+
+    await requireRetainedReleaseAccessPolicy(input.manifest);
+
+    const retained = validateServerRollbackManifestPins({
+      runtimeSpec: input.manifest.runtimeSpec,
+      promotionEvidence: input.manifest.promotionEvidence,
+      organizationId: input.project.organizationId,
+      projectId: input.project.id,
+      environment: input.manifest.environment,
+      projectManifestDigest: input.manifest.projectManifestDigest,
+      planEntitlements: input.manifest.planEntitlements,
+      accessPolicyVersion: input.manifest.accessPolicyVersion,
+      artifactRef: input.manifest.artifactRef,
+      artifactDigest: input.manifest.artifactDigest,
+    });
+
+    const storedRateCard = await store.getRateCard(retained.runtimeSpec.machine.rateCardVersion);
+    const historicalRateCard =
+      storedRateCard?.data ??
+      (retained.runtimeSpec.machine.rateCardVersion === BUILTIN_RATE_CARD.version ? BUILTIN_RATE_CARD : undefined);
+    if (
+      storedRateCard?.version !== undefined &&
+      storedRateCard.version !== retained.runtimeSpec.machine.rateCardVersion
+    ) {
+      throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID');
+    }
+    if (!serverRollbackMachineMatchesRateCard(retained.runtimeSpec.machine, historicalRateCard)) {
+      throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID');
+    }
+
+    if (
+      (retained.runtimeSpec.database.mode === 'none' && input.manifest.dbMigrationPoint !== undefined) ||
+      (retained.runtimeSpec.database.mode === 'exact-ledger' &&
+        input.manifest.dbMigrationPoint !== retained.runtimeSpec.database.ledgerDigest)
+    ) {
+      throw new DeterministicRollbackError('ROLLBACK_DB_LEDGER_PIN_MISMATCH');
+    }
+
+    let currentSecrets: Record<string, string>;
+
+    try {
+      currentSecrets = await resolveProjectSecretValues(store, input.project.id);
+    } catch {
+      throw new DeterministicRollbackError('ROLLBACK_CURRENT_SECRETS_UNAVAILABLE');
+    }
+    const effectiveDatabaseUrl = resolveServerDeployDatabaseUrl({
+      environment: retained.runtimeSpec.environment,
+      projectSecrets: currentSecrets,
+      envOverrides: retained.envOverrides,
+    });
+
+    await assertEnvironmentDatabasePinCurrent(
+      input.project.id,
+      retained.runtimeSpec.environment,
+      effectiveDatabaseUrl,
+      retained.runtimeSpec.database,
+    );
+
+    const secretResolution = resolveRollbackSecrets({
+      policy: retained.runtimeSpec.secretPolicy,
+      currentSecrets,
+      pinnedSecrets: null,
+    });
+
+    return { ...retained, secrets: secretResolution.secrets, effectiveDatabaseUrl };
+  };
+
   /*
    * The build "drive" extracted from the deploy POST so it can run in TWO places
    * with identical semantics (#26):
@@ -38309,8 +39032,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                    * THIS exact image by digest even after the current revision is gone
                    * (I-REL-1) — see release-rollback.ts.
                    */
-                  imageRef?: string;
-                  imageDigest?: string;
+                  imageRef: string;
+                  imageDigest: string;
 
                   /** Build-repository identity retained for provenance/audit only. */
                   sourceImageUri?: string;
@@ -38327,6 +39050,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             let imagePromotion: PromotionManifest | undefined;
             let imagePromotionErrorCode: string | undefined;
+            let rollbackRuntimeSpec: ServerRollbackRuntimeSpecV1 | undefined;
+            let rollbackPromotionEvidence: ServerRollbackPromotionEvidenceV1 | undefined;
+            let releaseDatabasePin: ServerRollbackDatabasePin = { mode: 'none' };
 
             /*
              * CTR-RUNTIME-NIX: the parsed (and registry-validated) ecode.lock.json,
@@ -38343,19 +39069,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                * the server-deploy infra — routing, readiness, and the environment's
                * DATABASE_URL injection — independently of any user app.
                */
-              const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-                (): Record<string, string> => ({}),
-              );
-              const dbUrl =
-                (body.environment ?? 'preview') === 'production'
-                  ? projectSecrets.PROD_DATABASE_URL
-                  : projectSecrets.DATABASE_URL;
-              serverEnv = {
-                DEPLOY_ID: queued.id,
-                PORT: String(serverPort),
-                ...(dbUrl ? { DATABASE_URL: dbUrl } : {}),
-                ...body.envVars,
-              };
+              const projectSecrets = await resolveProjectSecretValues(store, project.id);
+              serverEnv = buildServerDeployEnv({
+                deploymentId: queued.id,
+                port: serverPort,
+                environment: body.environment ?? 'preview',
+                projectSecrets,
+                envOverrides: body.envVars,
+              });
               bootCommand = ['node', '-e', SERVER_DEPLOY_PROBE_SCRIPT];
             } else if (!userId) {
               serverError = 'Open the project workspace before deploying a server.';
@@ -38693,9 +39414,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                               message: appPublicEnglish('DEPLOY_SERVER_PROMOTION_COMMITTED'),
                             });
 
-                            const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-                              (): Record<string, string> => ({}),
-                            );
+                            const projectSecrets = await resolveProjectSecretValues(store, project.id);
                             serverEnv = buildServerDeployEnv({
                               deploymentId: queued.id,
                               port: serverPort,
@@ -38731,9 +39450,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     if (!snapshot.ok || !snapshot.transfer) {
                       serverError = snapshot.message ?? 'Failed to snapshot the app for deployment.';
                     } else {
-                      const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-                        (): Record<string, string> => ({}),
-                      );
+                      const projectSecrets = await resolveProjectSecretValues(store, project.id);
                       serverEnv = buildServerDeployEnv({
                         transfer: snapshot.transfer,
                         deploymentId: queued.id,
@@ -38813,596 +39530,692 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               const machineSize = machineSizeFromCard(deployRateCard, queued.machineSize);
               const reservedVmOperationKey = (queued.metadata as Record<string, unknown> | undefined)
                 ?.reservedVmOperationKey;
+              let environmentDatabaseLease: { assertHeld(): Promise<void>; release(): Promise<void> } | undefined;
+
               try {
-                if (body.runtimeKind === 'reserved-vm') {
-                  if (typeof reservedVmOperationKey !== 'string') {
-                    throw Object.assign(reservedVmInternalError('Reserved VM operation is missing.'), {
-                      code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+                try {
+                  if (imageBuildInfo && imagePromotion) {
+                    releaseDatabasePin = await inspectEnvironmentDatabasePin(
+                      project.id,
+                      body.environment,
+                      serverEnv.DATABASE_URL,
+                    );
+                    rollbackRuntimeSpec = await prepareServerRollbackRuntimeSpec({
+                      project,
+                      environment: body.environment,
+                      projectManifestDigest: expectedManifestDigest,
+                      planEntitlements: queuedEntitlementsPin,
+                      accessPolicyVersion: queued.accessPolicyVersion,
+                      machine: {
+                        key: machineSize.key,
+                        rateCardVersion: deployRateCard.version,
+                        cpuMillicores: machineSize.cpuMillicores,
+                        memoryMb: machineSize.ramMb,
+                      },
+                      port: serverPort,
+                      healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+                      envOverrides: body.envVars,
+                      database: releaseDatabasePin,
                     });
+                    const promotedImage = imageBuildInfo;
+                    rollbackPromotionEvidence = buildServerRollbackPromotionEvidence({
+                      organizationId: project.organizationId,
+                      projectId: project.id,
+                      artifactRef: promotedImage.imageRef,
+                      artifactDigest: promotedImage.imageDigest,
+                      promotion: imagePromotion,
+                    });
+
+                    if (!isReservedVmRedeploy) {
+                      await releaseGuard.assert();
+                      await store.updateDeployment(project.id, queued.id, {
+                        status: 'BUILDING',
+                        metadata: {
+                          ...(queued.metadata as Record<string, unknown>),
+                          projectManifestDigest: expectedManifestDigest,
+                          serverDeploy: {
+                            ...(previousServerDeploy ?? {}),
+                            host,
+                            ready: false,
+                            readyReplicas: 0,
+                            applied: false,
+                            image: imageBuildInfo,
+                            promotion: imagePromotion,
+                            rollbackRuntimeSpec,
+                            rollbackPromotionEvidence,
+                            releaseConfigDigest: configDigest(body.envVars ?? {}),
+                          },
+                        },
+                      });
+                    }
                   }
 
-                  reservedVmOwnerToken = randomUUID();
-                  const claimed = await store.acquireReservedVmOperation({
-                    projectId: project.id,
-                    idempotencyKey: reservedVmOperationKey,
-                    ownerToken: reservedVmOwnerToken,
-                    ttlMs: serverDeployStartTimeoutMs() + 60_000,
-                  });
-
-                  if (!claimed.acquired) {
-                    if (claimed.operation.status === 'COMPLETED') {
-                      return claimed.deployment;
+                  if (body.runtimeKind === 'reserved-vm') {
+                    if (typeof reservedVmOperationKey !== 'string') {
+                      throw Object.assign(reservedVmInternalError('Reserved VM operation is missing.'), {
+                        code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+                      });
                     }
 
-                    if (claimed.operation.status === 'FAILED') {
+                    reservedVmOwnerToken = randomUUID();
+                    const claimed = await store.acquireReservedVmOperation({
+                      projectId: project.id,
+                      idempotencyKey: reservedVmOperationKey,
+                      ownerToken: reservedVmOwnerToken,
+                      ttlMs: serverDeployStartTimeoutMs() + 60_000,
+                    });
+
+                    if (!claimed.acquired) {
+                      if (claimed.operation.status === 'COMPLETED') {
+                        return claimed.deployment;
+                      }
+
+                      if (claimed.operation.status === 'FAILED') {
+                        throw Object.assign(
+                          reservedVmInternalError(
+                            claimed.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_PROVISIONING_FAILED'),
+                          ),
+                          {
+                            code: claimed.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+                          },
+                        );
+                      }
+
+                      /*
+                       * Another worker still owns a live DB-clock lease. Surface a
+                       * retryable failure to the durable job instead of returning 2xx:
+                       * returning here would acknowledge the job while the deployment
+                       * is still QUEUED and leave no actor to resume after lease expiry.
+                       */
                       throw Object.assign(
-                        reservedVmInternalError(
-                          claimed.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_PROVISIONING_FAILED'),
-                        ),
+                        reservedVmInternalError('Reserved VM provisioning is already being applied.'),
                         {
-                          code: claimed.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+                          code: 'RESERVED_VM_OPERATION_IN_PROGRESS',
+                          statusCode: 503,
                         },
                       );
                     }
 
-                    /*
-                     * Another worker still owns a live DB-clock lease. Surface a
-                     * retryable failure to the durable job instead of returning 2xx:
-                     * returning here would acknowledge the job while the deployment
-                     * is still QUEUED and leave no actor to resume after lease expiry.
-                     */
-                    throw Object.assign(reservedVmInternalError('Reserved VM provisioning is already being applied.'), {
-                      code: 'RESERVED_VM_OPERATION_IN_PROGRESS',
-                      statusCode: 503,
-                    });
-                  }
+                    reservedVmLease = claimed.operation;
 
-                  reservedVmLease = claimed.operation;
-
-                  if (
-                    isReservedVmRedeploy &&
-                    (claimed.operation.kind !== 'REDEPLOY' || claimed.operation.id !== reservedVmRedeploy?.operationId)
-                  ) {
-                    throw Object.assign(
-                      reservedVmInternalError('Reserved VM redeploy operation metadata does not match the lease.'),
-                      {
-                        code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
-                        statusCode: 409,
-                      },
-                    );
-                  }
-                }
-
-                await releaseGuard.assert();
-
-                if (isReservedVmRedeploy) {
-                  if (!reservedVmLease || !serverImage) {
-                    throw Object.assign(
-                      reservedVmInternalError('Reserved VM redeploy lease or promoted image is missing.'),
-                      {
-                        code: 'RESERVED_VM_REDEPLOY_PRECONDITION_FAILED',
-                        statusCode: 409,
-                      },
-                    );
-                  }
-
-                  const runtime = await reconfigureServerDeploymentViaManager({
-                    deploymentId: queued.id,
-                    ...machineSizeResources(machineSize),
-                    runtimeKind: 'reserved-vm',
-                    reservedVmTier: body.reservedVmTier,
-                    image: serverImage,
-                    command: [],
-                    args: [],
-                    env: serverEnv,
-                    healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
-                    ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
-                    operationId: reservedVmLease.id,
-                    fencingToken: reservedVmLease.fencingToken,
-                  });
-                  started = {
-                    ready: true,
-                    url: queued.url ?? `https://${host}`,
-                    name: runtime.name,
-                    readyReplicas: runtime.readyReplicas,
-                    appliedFencingToken: runtime.appliedFencingToken,
-                  };
-                } else {
-                  started = await startServerDeploymentViaManager({
-                    deploymentId: queued.id,
-                    expiryCheck: {
-                      candidate: {
-                        environmentName: queued.environment,
-                        createdAt: queued.createdAt,
-                        planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
-                        expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as
-                          | string
-                          | undefined,
-                      },
-                      ttlDays: publishedProjectTtlDays(
-                        toEntitlementPlanKey(
-                          (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
-                        ),
-                      ),
-                    },
-                    ...machineSizeResources(machineSize),
-                    image:
-                      serverImage ??
-                      process.env.SERVER_DEPLOY_IMAGE ??
-                      process.env.WORKSPACE_AGENT_IMAGE ??
-                      'vibecore/workspace-agent:2026.04.0',
-
-                    // Snapshot-image deploys run the image's own baked CMD.
-                    ...(serverImage ? {} : { command: bootCommand }),
-                    port: serverPort,
-                    host,
-                    projectId: project.id,
-                    orgId: project.organizationId,
-                    env: serverEnv,
-
-                    /*
-                     * Real apps rarely expose /health; the readiness probe defaults to `/`,
-                     * which every real web app answers (overridable per install).
-                     */
-                    healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
-
-                    // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
-                    ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
-
-                    // A Nix-enabled project keeps its /nix toolchain at runtime.
-                    nixStorePvcName: nixStorePvcForProject(project.id),
-                    runtimeKind: body.runtimeKind,
-                    ...(body.runtimeKind === 'reserved-vm' && body.reservedVmTier
-                      ? {
-                          reservedVmTier: body.reservedVmTier,
-                          operationId: reservedVmLease?.id,
-                          fencingToken: reservedVmLease?.fencingToken,
-                        }
-                      : {}),
-                  });
-                }
-
-                if (reservedVmLease && reservedVmOwnerToken) {
-                  if (started.appliedFencingToken !== reservedVmLease.fencingToken) {
-                    throw Object.assign(reservedVmInternalError('Reserved VM runtime fence was not applied.'), {
-                      code: 'RESERVED_VM_OPERATION_FENCE_LOST',
-                    });
-                  }
-                  const applied = await store.markReservedVmRuntimeApplied({
-                    operationId: reservedVmLease.id,
-                    ownerToken: reservedVmOwnerToken,
-                    fencingToken: reservedVmLease.fencingToken,
-                  });
-
-                  if (!applied) {
-                    throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
-                      code: 'RESERVED_VM_OPERATION_FENCE_LOST',
-                    });
-                  }
-                }
-              } catch (error) {
-                serverError = (error as Error).message ?? 'server deploy failed to start';
-
-                if (reservedVmLease && reservedVmOwnerToken) {
-                  if (isReservedVmRedeploy) {
-                    if ((error as { rolledBack?: boolean }).rolledBack !== true) {
-                      request.log?.error?.(
-                        { err: error, deploymentId: queued.id, operationId: reservedVmLease.id },
-                        'reserved VM redeploy outcome uncertain; operation left recoverable',
+                    if (
+                      isReservedVmRedeploy &&
+                      (claimed.operation.kind !== 'REDEPLOY' ||
+                        claimed.operation.id !== reservedVmRedeploy?.operationId)
+                    ) {
+                      throw Object.assign(
+                        reservedVmInternalError('Reserved VM redeploy operation metadata does not match the lease.'),
+                        {
+                          code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+                          statusCode: 409,
+                        },
                       );
-                      throw error;
+                    }
+                  }
+
+                  await releaseGuard.assert();
+                  if (imageBuildInfo) {
+                    environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
+                      project.id,
+                      body.environment,
+                      serverEnv.DATABASE_URL,
+                      releaseDatabasePin,
+                    );
+                    await releaseGuard.assert();
+                    await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
+                  }
+
+                  if (isReservedVmRedeploy) {
+                    if (!reservedVmLease || !serverImage) {
+                      throw Object.assign(
+                        reservedVmInternalError('Reserved VM redeploy lease or promoted image is missing.'),
+                        {
+                          code: 'RESERVED_VM_REDEPLOY_PRECONDITION_FAILED',
+                          statusCode: 409,
+                        },
+                      );
                     }
 
-                    await store.failReservedVmOperation({
-                      operationId: reservedVmLease.id,
-                      ownerToken: reservedVmOwnerToken,
-                      fencingToken: reservedVmLease.fencingToken,
-                      errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_ROLLED_BACK',
-                      errorMessage: serverError,
-                    });
-                    return store.updateDeployment(project.id, queued.id, {
-                      status: 'READY',
-                      logs: [...queued.logs, ...liveLog, { timestamp: nowIso(), level: 'error', message: serverError }],
-                    });
-                  }
-
-                  try {
-                    const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+                    const runtime = await reconfigureServerDeploymentViaManager({
                       deploymentId: queued.id,
+                      ...machineSizeResources(machineSize),
+                      runtimeKind: 'reserved-vm',
+                      reservedVmTier: body.reservedVmTier,
+                      image: serverImage,
+                      command: [],
+                      args: [],
+                      env: serverEnv,
+                      healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+                      ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
                       operationId: reservedVmLease.id,
                       fencingToken: reservedVmLease.fencingToken,
-                      ...((error as { persistentStorageDeleted?: boolean }).persistentStorageDeleted === true
+                    });
+                    started = {
+                      ready: true,
+                      url: queued.url ?? `https://${host}`,
+                      name: runtime.name,
+                      readyReplicas: runtime.readyReplicas,
+                      appliedFencingToken: runtime.appliedFencingToken,
+                    };
+                  } else {
+                    started = await startServerDeploymentViaManager({
+                      deploymentId: queued.id,
+                      expiryCheck: {
+                        candidate: {
+                          environmentName: queued.environment,
+                          createdAt: queued.createdAt,
+                          planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                          expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as
+                            | string
+                            | undefined,
+                        },
+                        ttlDays: publishedProjectTtlDays(
+                          toEntitlementPlanKey(
+                            (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                          ),
+                        ),
+                      },
+                      ...machineSizeResources(machineSize),
+                      image:
+                        serverImage ??
+                        process.env.SERVER_DEPLOY_IMAGE ??
+                        process.env.WORKSPACE_AGENT_IMAGE ??
+                        'vibecore/workspace-agent:2026.04.0',
+
+                      // Snapshot-image deploys run the image's own baked CMD.
+                      ...(serverImage ? {} : { command: bootCommand }),
+                      port: serverPort,
+                      host,
+                      projectId: project.id,
+                      orgId: project.organizationId,
+                      env: serverEnv,
+
+                      /*
+                       * Real apps rarely expose /health; the readiness probe defaults to `/`,
+                       * which every real web app answers (overridable per install).
+                       */
+                      healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+
+                      // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
+                      ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
+
+                      // A Nix-enabled project keeps its /nix toolchain at runtime.
+                      nixStorePvcName: nixStorePvcForProject(project.id),
+                      runtimeKind: body.runtimeKind,
+                      ...(body.runtimeKind === 'reserved-vm' && body.reservedVmTier
                         ? {
-                            managerAlreadyProvedClaim: (error as { persistentStorageClaimName?: string })
-                              .persistentStorageClaimName,
+                            reservedVmTier: body.reservedVmTier,
+                            operationId: reservedVmLease?.id,
+                            fencingToken: reservedVmLease?.fencingToken,
                           }
                         : {}),
                     });
-                    await store.failReservedVmOperation({
+                  }
+
+                  if (imageBuildInfo) {
+                    await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
+                  }
+
+                  if (reservedVmLease && reservedVmOwnerToken) {
+                    if (started.appliedFencingToken !== reservedVmLease.fencingToken) {
+                      throw Object.assign(reservedVmInternalError('Reserved VM runtime fence was not applied.'), {
+                        code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+                      });
+                    }
+                    const applied = await store.markReservedVmRuntimeApplied({
                       operationId: reservedVmLease.id,
                       ownerToken: reservedVmOwnerToken,
                       fencingToken: reservedVmLease.fencingToken,
-                      errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RUNTIME_APPLY_FAILED',
-                      errorMessage: serverError,
-                      createCleanup: { deletedPersistentStorageClaim },
                     });
-                  } catch (cleanupError) {
-                    request.log?.error?.(
-                      { err: cleanupError, deploymentId: queued.id, operationId: reservedVmLease.id },
-                      'reserved VM cleanup not proven; operation left recoverable',
-                    );
-                  }
-                }
-              }
-            }
 
-            let ok = Boolean(started?.ready);
-            const serverUrl = started?.url ?? `https://${host}`;
-            let reservedVmCommittedDeployment: DeploymentRecord | undefined;
-
-            if (ok && body.runtimeKind === 'reserved-vm' && !imageBuildInfo) {
-              const operationKey = (queued.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
-
-              if (reservedVmLease && reservedVmOwnerToken) {
-                reservedVmCommittedDeployment = (
-                  await store.commitReservedVmOperation({
-                    operationId: reservedVmLease.id,
-                    ownerToken: reservedVmOwnerToken,
-                    fencingToken: reservedVmLease.fencingToken,
-                    response: {
-                      ready: true,
-                      url: serverUrl,
-                      readyReplicas: started?.readyReplicas ?? 0,
-                    },
-                  })
-                ).deployment;
-              } else if (typeof operationKey === 'string') {
-                const ownerToken = randomUUID();
-                const claimed = await store.acquireReservedVmOperation({
-                  projectId: project.id,
-                  idempotencyKey: operationKey,
-                  ownerToken,
-                  ttlMs: 60_000,
-                });
-
-                if (claimed.operation.status === 'COMPLETED') {
-                  reservedVmCommittedDeployment = claimed.deployment;
-                } else if (claimed.acquired) {
-                  if (claimed.operation.phase !== 'RUNTIME_APPLIED') {
-                    const marked = await store.markReservedVmRuntimeApplied({
-                      operationId: claimed.operation.id,
-                      ownerToken,
-                      fencingToken: claimed.operation.fencingToken,
-                    });
-                    if (!marked) {
+                    if (!applied) {
                       throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
                         code: 'RESERVED_VM_OPERATION_FENCE_LOST',
                       });
                     }
                   }
+                } catch (error) {
+                  serverError = (error as Error).message ?? 'server deploy failed to start';
 
-                  reservedVmCommittedDeployment = (
-                    await store.commitReservedVmOperation({
-                      operationId: claimed.operation.id,
-                      ownerToken,
-                      fencingToken: claimed.operation.fencingToken,
-                      response: {
-                        ready: true,
-                        url: serverUrl,
-                        readyReplicas: started?.readyReplicas ?? 0,
-                      },
-                    })
-                  ).deployment;
-                } else {
-                  // Never expose READY until the exactly-once billing transition has
-                  // committed. The current lease owner/reconcile will finish it.
-                  started = { ...started!, ready: false };
-                  ok = false;
-                }
-              }
-            }
+                  if (reservedVmLease && reservedVmOwnerToken) {
+                    if (isReservedVmRedeploy) {
+                      if ((error as { rolledBack?: boolean }).rolledBack !== true) {
+                        request.log?.error?.(
+                          { err: error, deploymentId: queued.id, operationId: reservedVmLease.id },
+                          'reserved VM redeploy outcome uncertain; operation left recoverable',
+                        );
+                        throw error;
+                      }
 
-            /*
-             * Manifests applied (the manager returned a well-formed result) but the
-             * readiness poll didn't converge inside its window. This is NOT a terminal
-             * failure — the Deployment/Service are live and converging. Under capacity
-             * pressure a fresh gVisor node (scale-up + image pull + boot) routinely
-             * exceeds the poll deadline, yet the pod goes Ready minutes later and the
-             * app serves 200. Marking FAILED here both lied to the UI (app is live) and
-             * LEAKED the Deployment: the monotonic status guard locks FAILED, so
-             * reconcile could never promote it and the manifests never got torn down.
-             * Persist a non-terminal BUILDING row instead; reconcileDeploymentStatus
-             * (on read) promotes it to READY once readyReplicas>=1, or the stale-build
-             * path fails it and tears the manifests down.
-             */
-            const manifestsApplied = Boolean(started) && !serverError;
-            const converging = manifestsApplied && !ok;
-            const serverStatus = ok ? 'READY' : converging ? 'BUILDING' : 'FAILED';
-            const serverImageRequiresReleaseCommit = Boolean(imageBuildInfo);
+                      await store.failReservedVmOperation({
+                        operationId: reservedVmLease.id,
+                        ownerToken: reservedVmOwnerToken,
+                        fencingToken: reservedVmLease.fencingToken,
+                        errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_ROLLED_BACK',
+                        errorMessage: serverError,
+                      });
+                      return store.updateDeployment(project.id, queued.id, {
+                        status: 'READY',
+                        logs: [
+                          ...queued.logs,
+                          ...liveLog,
+                          { timestamp: nowIso(), level: 'error', message: serverError },
+                        ],
+                      });
+                    }
 
-            buildProgress.onLog({
-              timestamp: nowIso(),
-              level: ok ? 'info' : converging ? 'info' : 'error',
-              message: ok
-                ? appPublicEnglish('DEPLOY_SERVER_READY', {
-                    replicas: started?.readyReplicas ?? 0,
-                    url: serverUrl,
-                  })
-                : converging
-                  ? appPublicEnglish('DEPLOY_SERVER_STILL_STARTING', { url: serverUrl })
-                  : appPublicEnglish('DEPLOY_SERVER_FAILED'),
-            });
-
-            const reservedVmReleaseFence: ServerImageReleaseCommitInput['reservedVmFence'] =
-              ok && serverImageRequiresReleaseCommit && reservedVmLease && reservedVmOwnerToken
-                ? {
-                    operationId: reservedVmLease.id,
-                    ownerToken: reservedVmOwnerToken,
-                    fencingToken: reservedVmLease.fencingToken,
-                    response: {
-                      ready: true,
-                      url: serverUrl,
-                      readyReplicas: started?.readyReplicas ?? 0,
-                      ...(queued.persistentStorageClaim
-                        ? { persistentVolumeClaimName: queued.persistentStorageClaim }
-                        : {}),
-                    },
+                    try {
+                      const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+                        deploymentId: queued.id,
+                        operationId: reservedVmLease.id,
+                        fencingToken: reservedVmLease.fencingToken,
+                        ...((error as { persistentStorageDeleted?: boolean }).persistentStorageDeleted === true
+                          ? {
+                              managerAlreadyProvedClaim: (error as { persistentStorageClaimName?: string })
+                                .persistentStorageClaimName,
+                            }
+                          : {}),
+                      });
+                      await store.failReservedVmOperation({
+                        operationId: reservedVmLease.id,
+                        ownerToken: reservedVmOwnerToken,
+                        fencingToken: reservedVmLease.fencingToken,
+                        errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RUNTIME_APPLY_FAILED',
+                        errorMessage: serverError,
+                        createCleanup: { deletedPersistentStorageClaim },
+                      });
+                    } catch (cleanupError) {
+                      request.log?.error?.(
+                        { err: cleanupError, deploymentId: queued.id, operationId: reservedVmLease.id },
+                        'reserved VM cleanup not proven; operation left recoverable',
+                      );
+                    }
                   }
-                : undefined;
+                }
 
-            if (isReservedVmRedeploy) {
-              if (!reservedVmRedeploy) {
-                throw Object.assign(reservedVmInternalError('Reserved VM redeploy metadata is missing.'), {
-                  code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
-                  statusCode: 409,
-                });
-              }
-              if (!ok || !serverImageRequiresReleaseCommit || !reservedVmReleaseFence) {
-                throw Object.assign(
-                  reservedVmInternalError('Reserved VM redeploy did not reach an atomically committable release.'),
-                  {
-                    code: 'RESERVED_VM_REDEPLOY_NOT_COMMITTABLE',
-                    statusCode: 503,
-                  },
-                );
-              }
+                let ok = Boolean(started?.ready);
+                const serverUrl = started?.url ?? `https://${host}`;
+                let reservedVmCommittedDeployment: DeploymentRecord | undefined;
 
-              const releaseCandidate: DeploymentRecord = {
-                ...queued,
-                status: 'READY',
-                framework: detectedFramework ?? queued.framework,
-                url: queued.url ?? serverUrl,
-                previewUrl: queued.previewUrl,
-                productionUrl: queued.productionUrl,
-                metadata: {
-                  ...(queued.metadata as Record<string, unknown>),
-                  planEntitlements: reservedVmRedeploy.targetPlanEntitlements,
-                  projectManifestDigest: reservedVmRedeploy.targetProjectManifestDigest,
-                  serverDeploy: {
-                    ...(previousServerDeploy ?? {}),
-                    host,
-                    ready: true,
-                    readyReplicas: started?.readyReplicas ?? 0,
-                    applied: true,
-                    image: imageBuildInfo,
-                    promotion: imagePromotion,
-                    releaseConfigDigest: configDigest(body.envVars ?? {}),
-                  },
-                },
-                logs: [...queued.logs, ...liveLog],
-              };
+                if (ok && body.runtimeKind === 'reserved-vm' && !imageBuildInfo) {
+                  const operationKey = (queued.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
 
-              try {
-                await releaseGuard.assert();
-                const committed = await commitPromotedServerImageRelease({
-                  store,
-                  deployment: releaseCandidate,
-                  organizationId: project.organizationId,
-                  url: queued.url ?? serverUrl,
-                  readyReplicas: started?.readyReplicas ?? 0,
-                  readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
-                  releaseFence: releaseGuard.fence,
-                  reservedVmFence: reservedVmReleaseFence,
-                });
-                await audit(request, store, {
-                  organizationId: project.organizationId,
-                  action: 'deployment.redeploy',
-                  resourceType: 'deployment',
-                  resourceId: committed.id,
-                  metadata: {
-                    operationId: reservedVmReleaseFence.operationId,
-                    inPlace: true,
-                    promotionId: imagePromotion?.promotionId,
-                    runtimeVersion: committed.runtimeVersion,
-                  },
-                });
-                return committed;
-              } catch (error) {
+                  if (reservedVmLease && reservedVmOwnerToken) {
+                    reservedVmCommittedDeployment = (
+                      await store.commitReservedVmOperation({
+                        operationId: reservedVmLease.id,
+                        ownerToken: reservedVmOwnerToken,
+                        fencingToken: reservedVmLease.fencingToken,
+                        response: {
+                          ready: true,
+                          url: serverUrl,
+                          readyReplicas: started?.readyReplicas ?? 0,
+                        },
+                      })
+                    ).deployment;
+                  } else if (typeof operationKey === 'string') {
+                    const ownerToken = randomUUID();
+                    const claimed = await store.acquireReservedVmOperation({
+                      projectId: project.id,
+                      idempotencyKey: operationKey,
+                      ownerToken,
+                      ttlMs: 60_000,
+                    });
+
+                    if (claimed.operation.status === 'COMPLETED') {
+                      reservedVmCommittedDeployment = claimed.deployment;
+                    } else if (claimed.acquired) {
+                      if (claimed.operation.phase !== 'RUNTIME_APPLIED') {
+                        const marked = await store.markReservedVmRuntimeApplied({
+                          operationId: claimed.operation.id,
+                          ownerToken,
+                          fencingToken: claimed.operation.fencingToken,
+                        });
+                        if (!marked) {
+                          throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
+                            code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+                          });
+                        }
+                      }
+
+                      reservedVmCommittedDeployment = (
+                        await store.commitReservedVmOperation({
+                          operationId: claimed.operation.id,
+                          ownerToken,
+                          fencingToken: claimed.operation.fencingToken,
+                          response: {
+                            ready: true,
+                            url: serverUrl,
+                            readyReplicas: started?.readyReplicas ?? 0,
+                          },
+                        })
+                      ).deployment;
+                    } else {
+                      // Never expose READY until the exactly-once billing transition has
+                      // committed. The current lease owner/reconcile will finish it.
+                      started = { ...started!, ready: false };
+                      ok = false;
+                    }
+                  }
+                }
+
                 /*
-                 * The manager already proved the new generation Ready, but the DB
-                 * release transaction did not commit. Never stop the paid runtime and
-                 * never publish partial metadata: leave the fenced saga recoverable.
+                 * Manifests applied (the manager returned a well-formed result) but the
+                 * readiness poll didn't converge inside its window. This is NOT a terminal
+                 * failure — the Deployment/Service are live and converging. Under capacity
+                 * pressure a fresh gVisor node (scale-up + image pull + boot) routinely
+                 * exceeds the poll deadline, yet the pod goes Ready minutes later and the
+                 * app serves 200. Marking FAILED here both lied to the UI (app is live) and
+                 * LEAKED the Deployment: the monotonic status guard locks FAILED, so
+                 * reconcile could never promote it and the manifests never got torn down.
+                 * Persist a non-terminal BUILDING row instead; reconcileDeploymentStatus
+                 * (on read) promotes it to READY once readyReplicas>=1, or the stale-build
+                 * path fails it and tears the manifests down.
                  */
-                request.log?.error?.(
-                  { err: error, deploymentId: queued.id, operationId: reservedVmReleaseFence.operationId },
-                  'reserved VM redeploy release commit uncertain; operation left recoverable',
-                );
-                throw error;
-              }
-            }
+                const manifestsApplied = Boolean(started) && !serverError;
+                const converging = manifestsApplied && !ok;
+                const serverStatus = ok ? 'READY' : converging ? 'BUILDING' : 'FAILED';
+                const serverImageRequiresReleaseCommit = Boolean(imageBuildInfo);
 
-            const rowBeforeReady = reservedVmCommittedDeployment ?? queued;
-            let readyRow = await store.updateDeployment(project.id, queued.id, {
-              /*
-               * Every server runtime crosses BUILDING→READY in a store transaction
-               * holding the release fence. Promoted images append their manifest in
-               * that transaction; legacy boot-image runtimes use the same org/digest
-               * fence even though they have no immutable image manifest to append.
-               */
-              status: ok ? 'BUILDING' : serverStatus,
+                buildProgress.onLog({
+                  timestamp: nowIso(),
+                  level: ok ? 'info' : converging ? 'info' : 'error',
+                  message: ok
+                    ? appPublicEnglish('DEPLOY_SERVER_READY', {
+                        replicas: started?.readyReplicas ?? 0,
+                        url: serverUrl,
+                      })
+                    : converging
+                      ? appPublicEnglish('DEPLOY_SERVER_STILL_STARTING', { url: serverUrl })
+                      : appPublicEnglish('DEPLOY_SERVER_FAILED'),
+                });
 
-              /*
-               * The row was created with the STATIC heuristic's guess (outputDirectory
-               * 'dist' → "vite"), which the panel then showed for a plain Node/Express
-               * app whose real run plan the pipeline had already detected and logged as
-               * "node". Persist what actually ran.
-               */
-              framework: detectedFramework ?? rowBeforeReady.framework,
-              url: undefined,
-              previewUrl: undefined,
-              productionUrl: undefined,
-              metadata: {
-                ...(rowBeforeReady.metadata as Record<string, unknown>),
-                projectManifestDigest: expectedManifestDigest,
-                serverDeploy: {
-                  host,
-                  ready: false,
-                  readyReplicas: started?.readyReplicas ?? 0,
+                const reservedVmReleaseFence: ServerImageReleaseCommitInput['reservedVmFence'] =
+                  ok && serverImageRequiresReleaseCommit && reservedVmLease && reservedVmOwnerToken
+                    ? {
+                        operationId: reservedVmLease.id,
+                        ownerToken: reservedVmOwnerToken,
+                        fencingToken: reservedVmLease.fencingToken,
+                        response: {
+                          ready: true,
+                          url: serverUrl,
+                          readyReplicas: started?.readyReplicas ?? 0,
+                          ...(queued.persistentStorageClaim
+                            ? { persistentVolumeClaimName: queued.persistentStorageClaim }
+                            : {}),
+                        },
+                      }
+                    : undefined;
+
+                if (isReservedVmRedeploy) {
+                  if (!reservedVmRedeploy) {
+                    throw Object.assign(reservedVmInternalError('Reserved VM redeploy metadata is missing.'), {
+                      code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+                      statusCode: 409,
+                    });
+                  }
+                  if (!ok || !serverImageRequiresReleaseCommit || !reservedVmReleaseFence) {
+                    throw Object.assign(
+                      reservedVmInternalError('Reserved VM redeploy did not reach an atomically committable release.'),
+                      {
+                        code: 'RESERVED_VM_REDEPLOY_NOT_COMMITTABLE',
+                        statusCode: 503,
+                      },
+                    );
+                  }
+
+                  const releaseCandidate: DeploymentRecord = {
+                    ...queued,
+                    status: 'READY',
+                    framework: detectedFramework ?? queued.framework,
+                    url: queued.url ?? serverUrl,
+                    previewUrl: queued.previewUrl,
+                    productionUrl: queued.productionUrl,
+                    metadata: {
+                      ...(queued.metadata as Record<string, unknown>),
+                      planEntitlements: reservedVmRedeploy.targetPlanEntitlements,
+                      projectManifestDigest: reservedVmRedeploy.targetProjectManifestDigest,
+                      serverDeploy: {
+                        ...(previousServerDeploy ?? {}),
+                        host,
+                        ready: true,
+                        readyReplicas: started?.readyReplicas ?? 0,
+                        applied: true,
+                        image: imageBuildInfo,
+                        promotion: imagePromotion,
+                        ...(rollbackRuntimeSpec ? { rollbackRuntimeSpec } : {}),
+                        ...(rollbackPromotionEvidence ? { rollbackPromotionEvidence } : {}),
+                        releaseConfigDigest: configDigest(body.envVars ?? {}),
+                      },
+                    },
+                    logs: [...queued.logs, ...liveLog],
+                  };
+
+                  try {
+                    await releaseGuard.assert();
+                    const committed = await commitPromotedServerImageRelease({
+                      store,
+                      deployment: releaseCandidate,
+                      organizationId: project.organizationId,
+                      url: queued.url ?? serverUrl,
+                      readyReplicas: started?.readyReplicas ?? 0,
+                      readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+                      releaseFence: releaseGuard.fence,
+                      assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
+                      ...(releaseDatabasePin.mode === 'exact-ledger'
+                        ? { dbMigrationPoint: releaseDatabasePin.ledgerDigest }
+                        : {}),
+                      reservedVmFence: reservedVmReleaseFence,
+                    });
+                    await audit(request, store, {
+                      organizationId: project.organizationId,
+                      action: 'deployment.redeploy',
+                      resourceType: 'deployment',
+                      resourceId: committed.id,
+                      metadata: {
+                        operationId: reservedVmReleaseFence.operationId,
+                        inPlace: true,
+                        promotionId: imagePromotion?.promotionId,
+                        runtimeVersion: committed.runtimeVersion,
+                      },
+                    });
+                    return committed;
+                  } catch (error) {
+                    /*
+                     * The manager already proved the new generation Ready, but the DB
+                     * release transaction did not commit. Never stop the paid runtime and
+                     * never publish partial metadata: leave the fenced saga recoverable.
+                     */
+                    request.log?.error?.(
+                      { err: error, deploymentId: queued.id, operationId: reservedVmReleaseFence.operationId },
+                      'reserved VM redeploy release commit uncertain; operation left recoverable',
+                    );
+                    throw error;
+                  }
+                }
+
+                const rowBeforeReady = reservedVmCommittedDeployment ?? queued;
+                let readyRow = await store.updateDeployment(project.id, queued.id, {
+                  /*
+                   * Every server runtime crosses BUILDING→READY in a store transaction
+                   * holding the release fence. Promoted images append their manifest in
+                   * that transaction; legacy boot-image runtimes use the same org/digest
+                   * fence even though they have no immutable image manifest to append.
+                   */
+                  status: ok ? 'BUILDING' : serverStatus,
 
                   /*
-                   * Marks a row whose k8s manifests are live so reconcile-on-read can
-                   * re-check readiness against the manager (BUILDING → READY / teardown).
+                   * The row was created with the STATIC heuristic's guess (outputDirectory
+                   * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+                   * app whose real run plan the pipeline had already detected and logged as
+                   * "node". Persist what actually ran.
                    */
-                  applied: manifestsApplied,
-
-                  // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
-                  ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
-                  ...(imagePromotion ? { promotion: imagePromotion } : {}),
-                  ...(imageBuildInfo ? { releaseConfigDigest: configDigest(body.envVars ?? {}) } : {}),
-                  ...(imagePromotionErrorCode ? { releaseErrorCode: imagePromotionErrorCode } : {}),
-                },
-              },
-              logs: [
-                ...createDeploymentLogs(
-                  body,
-                  { ...rowBeforeReady, url: serverUrl, framework: detectedFramework ?? rowBeforeReady.framework },
-                  project,
-                ),
-                ...liveLog,
-              ],
-
-              /*
-               * A converging (BUILDING) deploy is not finished — leaving finishedAt
-               * unset keeps reconcile's stale-timeout clock running from startedAt.
-               */
-              finishedAt: converging || ok ? undefined : nowIso(),
-            });
-
-            if (ok) {
-              try {
-                await releaseGuard.assert();
-
-                if (serverImageRequiresReleaseCommit) {
-                  readyRow = await commitPromotedServerImageRelease({
-                    store,
-                    deployment: readyRow,
-                    organizationId: project.organizationId,
-                    url: serverUrl,
-                    readyReplicas: started?.readyReplicas ?? 0,
-                    readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
-                    releaseFence: releaseGuard.fence,
-                    reservedVmFence: reservedVmReleaseFence,
-                  });
-                } else {
-                  readyRow = await store.commitFencedServerReady({
-                    projectId: project.id,
-                    deploymentId: readyRow.id,
-                    releaseFence: releaseGuard.fence,
-                    url: serverUrl,
-                    previewUrl: body.environment !== 'production' ? serverUrl : undefined,
-                    productionUrl: body.environment === 'production' ? serverUrl : undefined,
-                    metadata: {
-                      ...(readyRow.metadata as Record<string, unknown>),
-                      serverDeploy: {
-                        ...((readyRow.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
-                        ready: true,
-                      },
-                    },
-                    logs: readyRow.logs,
-                    finishedAt: nowIso(),
-                  });
-                }
-              } catch (error) {
-                if (reservedVmReleaseFence) {
-                  const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
-                    deploymentId: queued.id,
-                    operationId: reservedVmReleaseFence.operationId,
-                    fencingToken: reservedVmReleaseFence.fencingToken,
-                  });
-                  await store.failReservedVmOperation({
-                    operationId: reservedVmReleaseFence.operationId,
-                    ownerToken: reservedVmReleaseFence.ownerToken,
-                    fencingToken: reservedVmReleaseFence.fencingToken,
-                    errorCode: (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED',
-                    errorMessage: (error as Error).message,
-                    createCleanup: { deletedPersistentStorageClaim },
-                  });
-                } else {
-                  await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
-                }
-                imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
-
-                const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
-                readyRow = await store.updateDeployment(project.id, queued.id, {
-                  status: 'FAILED',
+                  framework: detectedFramework ?? rowBeforeReady.framework,
+                  url: undefined,
+                  previewUrl: undefined,
+                  productionUrl: undefined,
                   metadata: {
-                    ...(readyRow.metadata as Record<string, unknown>),
+                    ...(rowBeforeReady.metadata as Record<string, unknown>),
+                    projectManifestDigest: expectedManifestDigest,
                     serverDeploy: {
-                      ...((readyRow.metadata as Record<string, unknown>)?.serverDeploy as Record<string, unknown>),
+                      host,
                       ready: false,
-                      releaseErrorCode: imagePromotionErrorCode,
+                      readyReplicas: started?.readyReplicas ?? 0,
+
+                      /*
+                       * Marks a row whose k8s manifests are live so reconcile-on-read can
+                       * re-check readiness against the manager (BUILDING → READY / teardown).
+                       */
+                      applied: manifestsApplied,
+
+                      // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
+                      ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
+                      ...(imagePromotion ? { promotion: imagePromotion } : {}),
+                      ...(rollbackRuntimeSpec ? { rollbackRuntimeSpec } : {}),
+                      ...(rollbackPromotionEvidence ? { rollbackPromotionEvidence } : {}),
+                      ...(imageBuildInfo ? { releaseConfigDigest: configDigest(body.envVars ?? {}) } : {}),
+                      ...(imagePromotionErrorCode ? { releaseErrorCode: imagePromotionErrorCode } : {}),
                     },
                   },
-                  logs: [...readyRow.logs, { timestamp: nowIso(), level: 'error', message }],
-                  finishedAt: nowIso(),
+                  logs: [
+                    ...createDeploymentLogs(
+                      body,
+                      { ...rowBeforeReady, url: serverUrl, framework: detectedFramework ?? rowBeforeReady.framework },
+                      project,
+                    ),
+                    ...liveLog,
+                  ],
+
+                  /*
+                   * A converging (BUILDING) deploy is not finished — leaving finishedAt
+                   * unset keeps reconcile's stale-timeout clock running from startedAt.
+                   */
+                  finishedAt: converging || ok ? undefined : nowIso(),
                 });
-                request.log?.error?.(
-                  {
-                    code: imagePromotionErrorCode,
-                    deploymentId: queued.id,
-                    projectId: project.id,
-                    organizationId: project.organizationId,
+
+                if (ok) {
+                  try {
+                    await releaseGuard.assert();
+
+                    if (serverImageRequiresReleaseCommit) {
+                      readyRow = await commitPromotedServerImageRelease({
+                        store,
+                        deployment: readyRow,
+                        organizationId: project.organizationId,
+                        url: serverUrl,
+                        readyReplicas: started?.readyReplicas ?? 0,
+                        readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+                        releaseFence: releaseGuard.fence,
+                        assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
+                        ...(releaseDatabasePin.mode === 'exact-ledger'
+                          ? { dbMigrationPoint: releaseDatabasePin.ledgerDigest }
+                          : {}),
+                        reservedVmFence: reservedVmReleaseFence,
+                      });
+                    } else {
+                      readyRow = await store.commitFencedServerReady({
+                        projectId: project.id,
+                        deploymentId: readyRow.id,
+                        releaseFence: releaseGuard.fence,
+                        url: serverUrl,
+                        previewUrl: body.environment !== 'production' ? serverUrl : undefined,
+                        productionUrl: body.environment === 'production' ? serverUrl : undefined,
+                        metadata: {
+                          ...(readyRow.metadata as Record<string, unknown>),
+                          serverDeploy: {
+                            ...((readyRow.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                            ready: true,
+                          },
+                        },
+                        logs: readyRow.logs,
+                        finishedAt: nowIso(),
+                      });
+                    }
+                  } catch (error) {
+                    if (reservedVmReleaseFence) {
+                      const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+                        deploymentId: queued.id,
+                        operationId: reservedVmReleaseFence.operationId,
+                        fencingToken: reservedVmReleaseFence.fencingToken,
+                      });
+                      await store.failReservedVmOperation({
+                        operationId: reservedVmReleaseFence.operationId,
+                        ownerToken: reservedVmReleaseFence.ownerToken,
+                        fencingToken: reservedVmReleaseFence.fencingToken,
+                        errorCode: (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED',
+                        errorMessage: (error as Error).message,
+                        createCleanup: { deletedPersistentStorageClaim },
+                      });
+                    } else {
+                      await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
+                    }
+                    imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
+
+                    const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
+                    readyRow = await store.updateDeployment(project.id, queued.id, {
+                      status: 'FAILED',
+                      metadata: {
+                        ...(readyRow.metadata as Record<string, unknown>),
+                        serverDeploy: {
+                          ...((readyRow.metadata as Record<string, unknown>)?.serverDeploy as Record<string, unknown>),
+                          ready: false,
+                          releaseErrorCode: imagePromotionErrorCode,
+                        },
+                      },
+                      logs: [...readyRow.logs, { timestamp: nowIso(), level: 'error', message }],
+                      finishedAt: nowIso(),
+                    });
+                    request.log?.error?.(
+                      {
+                        code: imagePromotionErrorCode,
+                        deploymentId: queued.id,
+                        projectId: project.id,
+                        organizationId: project.organizationId,
+                      },
+                      'server image release commit blocked',
+                    );
+                  }
+                }
+
+                if (shouldRecordDeploymentUsage(readyRow.status)) {
+                  await recordUsage(request, project.organizationId, 'deployments.count');
+                }
+
+                await audit(request, store, {
+                  organizationId: project.organizationId,
+                  action: 'deployment.create',
+                  resourceType: 'deployment',
+                  resourceId: readyRow.id,
+                  metadata: {
+                    provider: readyRow.provider,
+                    environment: readyRow.environment,
+                    framework: readyRow.framework,
+                    status: readyRow.status,
+                    promotionId: imagePromotion?.promotionId,
+                    promotionErrorCode: imagePromotionErrorCode,
                   },
-                  'server image release commit blocked',
-                );
+                });
+                await store.recordProjectActivity({
+                  projectId: project.id,
+                  actorUserId: request.currentUser?.id,
+                  action: 'deployment.create',
+                  metadata: {
+                    deploymentId: readyRow.id,
+                    provider: readyRow.provider,
+                    environment: readyRow.environment,
+                    url: readyRow.url,
+                  },
+                });
+
+                if (readyRow.url) {
+                  thumbnailCapturer.schedule(project.id, readyRow.url);
+                }
+
+                return readyRow;
+              } finally {
+                await environmentDatabaseLease?.release();
               }
             }
-
-            if (shouldRecordDeploymentUsage(readyRow.status)) {
-              await recordUsage(request, project.organizationId, 'deployments.count');
-            }
-
-            await audit(request, store, {
-              organizationId: project.organizationId,
-              action: 'deployment.create',
-              resourceType: 'deployment',
-              resourceId: readyRow.id,
-              metadata: {
-                provider: readyRow.provider,
-                environment: readyRow.environment,
-                framework: readyRow.framework,
-                status: readyRow.status,
-                promotionId: imagePromotion?.promotionId,
-                promotionErrorCode: imagePromotionErrorCode,
-              },
-            });
-            await store.recordProjectActivity({
-              projectId: project.id,
-              actorUserId: request.currentUser?.id,
-              action: 'deployment.create',
-              metadata: {
-                deploymentId: readyRow.id,
-                provider: readyRow.provider,
-                environment: readyRow.environment,
-                url: readyRow.url,
-              },
-            });
-
-            if (readyRow.url) {
-              thumbnailCapturer.schedule(project.id, readyRow.url);
-            }
-
-            return readyRow;
           }
 
           await releaseGuard.assert();
@@ -39578,6 +40391,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           const status = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
           const isReady = status === 'READY';
+          const waitsForStaticManifest = isReady && body.provider === 'static';
+          const persistedStatus = waitsForStaticManifest ? 'BUILDING' : status;
 
           /*
            * Only persist a usable URL: a real hook URL, or the static path-based URL.
@@ -39599,41 +40414,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             hookStatus: hookResult?.status,
             staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
           };
-          const finishedAt = status === 'BUILDING' ? undefined : new Date().toISOString();
-          let ready: DeploymentRecord;
+          let ready = await store.updateDeployment(project.id, queued.id, {
+            status: persistedStatus,
+            url: resolvedUrl,
+            previewUrl:
+              !waitsForStaticManifest && isReady && body.environment !== 'production' ? resolvedUrl : undefined,
+            productionUrl:
+              !waitsForStaticManifest && isReady && body.environment === 'production' ? resolvedUrl : undefined,
+            metadata: finalMetadata,
+            logs: augmentedLogs,
+            finishedAt: persistedStatus === 'BUILDING' ? undefined : new Date().toISOString(),
+          });
 
-          if (body.provider === 'static' && status === 'READY') {
-            if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
-              throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
+          if (waitsForStaticManifest) {
+            try {
+              ready = await writeReleaseManifest(store, ready, body.envVars, releaseGuard.fence);
+            } catch (error) {
+              request.log?.error?.(
+                { err: error, deploymentId: ready.id },
+                'static READY + release manifest transaction failed',
+              );
+              ready = await store.updateDeployment(project.id, ready.id, {
+                status: 'FAILED',
+                url: '',
+                previewUrl: '',
+                productionUrl: '',
+                logs: [
+                  ...ready.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'error',
+                    message: appPublicEnglish('DEPLOY_STATIC_SNAPSHOT_FAILED'),
+                  },
+                ],
+                finishedAt: new Date().toISOString(),
+              });
             }
-
-            const committed = await store.commitStaticRelease({
-              projectId: project.id,
-              deploymentId: queued.id,
-              environment: body.environment,
-              artifactRef: `static-deployments/${queued.id}`,
-              artifactDigest: staticArtifactDigest,
-              configDigest: configDigest(body.envVars ?? {}),
-              accessPolicyVersion: queued.accessPolicyVersion,
-              url: resolvedUrl,
-              previewUrl: body.environment !== 'production' ? resolvedUrl : undefined,
-              productionUrl: body.environment === 'production' ? resolvedUrl : undefined,
-              metadata: finalMetadata,
-              logs: augmentedLogs,
-              finishedAt,
-              releaseFence: releaseGuard.fence,
-            });
-            ready = committed.deployment;
-          } else {
-            ready = await store.updateDeployment(project.id, queued.id, {
-              status,
-              url: resolvedUrl,
-              previewUrl: isReady && body.environment !== 'production' ? resolvedUrl : undefined,
-              productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
-              metadata: finalMetadata,
-              logs: augmentedLogs,
-              finishedAt,
-            });
           }
 
           /*
@@ -41676,6 +42492,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'expired ledger reservation sweep failed');
     }
 
+    /*
+     * Bounded best-effort sweep for retained static bytes left by a failed
+     * manifest append or an interrupted erasure. The manifest lookup is
+     * repeated under the per-digest filesystem lock inside the collector, so
+     * publication always wins the race. GC degradation never fails deploy.reap.
+     */
+    let staticArtifactGc: Awaited<ReturnType<typeof garbageCollectStaticArtifacts>> | { error: string };
+    try {
+      staticArtifactGc = await garbageCollectStaticArtifacts(
+        (artifactRef) => store.isReleaseArtifactRetained(artifactRef),
+        { maxArtifacts: 100, advanceCursor: (input) => store.advanceStaticArtifactGcCursor(input) },
+      );
+      metrics.increment('static_artifact_gc_runs_total', { outcome: 'success' });
+      if (staticArtifactGc.removed.length > 0) {
+        metrics.increment('static_artifact_gc_removed_total', {}, staticArtifactGc.removed.length);
+      }
+      if (staticArtifactGc.retained.length > 0) {
+        metrics.increment('static_artifact_gc_retained_total', {}, staticArtifactGc.retained.length);
+      }
+    } catch (error) {
+      staticArtifactGc = { error: appPublicEnglish('STATIC_ARTIFACT_GC_FAILED') };
+      metrics.increment('static_artifact_gc_runs_total', { outcome: 'error' });
+      request.log.error({ err: error }, 'static artifact garbage collection sweep failed');
+    }
+
     return {
       ...reaped,
       runtimeMetering,
@@ -41689,6 +42530,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       reservedVmComputeStop,
       aiUsageReconciliation,
       expiredLedgerReservations,
+      staticArtifactGc,
     };
   });
 
@@ -42556,6 +43398,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ?.publishedFromReleaseManifestId;
 
           if (typeof sourceReleaseManifestId === 'string') {
+            const productionManifest = (await store.listReleaseManifests(project.id, 'production')).find(
+              (manifest) => manifest.deploymentId === source.id && manifest.artifactKind === 'server-image',
+            );
+
+            if (!productionManifest?.runtimeSpec || !productionManifest.promotionEvidence) {
+              return reply.code(409).send({
+                error: appPublicCopy('ROLLBACK_RUNTIME_SPEC_MISSING', locale),
+                code: 'ROLLBACK_RUNTIME_SPEC_MISSING',
+              });
+            }
+
+            try {
+              await resolveRetainedServerRollbackManifest({ manifest: productionManifest, project });
+            } catch (error) {
+              return reply.code(409).send({
+                error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+                code: (error as { code?: string }).code ?? 'ROLLBACK_RUNTIME_SPEC_INVALID',
+              });
+            }
+
             await releaseGuard.assert();
             const replayed = await store.publishReservedVmInPlace({
               projectId: project.id,
@@ -42565,6 +43427,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               expectedRuntimeVersion: source.runtimeVersion ?? 0,
               productionUrl: source.productionUrl ?? source.url ?? buildDeploymentUrl(project, source),
               sourceReleaseManifestId,
+              ...(productionManifest.dbMigrationPoint ? { dbMigrationPoint: productionManifest.dbMigrationPoint } : {}),
+              runtimeSpec: productionManifest.runtimeSpec,
+              promotionEvidence: productionManifest.promotionEvidence,
               releaseFence: releaseGuard.fence,
             });
 
@@ -42601,6 +43466,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 });
               })()
             : undefined;
+        let reservedVmRetained: Awaited<ReturnType<typeof resolveRetainedServerRollbackManifest>> | undefined;
+
+        if (reservedVmPublish) {
+          try {
+            reservedVmRetained = await resolveRetainedServerRollbackManifest({
+              manifest: reservedVmPublish.releaseSource,
+              project,
+            });
+          } catch (error) {
+            return reply.code(409).send({
+              error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+              code: (error as { code?: string }).code ?? 'ROLLBACK_RUNTIME_SPEC_INVALID',
+            });
+          }
+        }
+        const productionEnvOverrides = reservedVmRetained?.envOverrides ?? {};
 
         type PublishGate = { ok: true } | { ok: false; response: Record<string, unknown>; status: number };
 
@@ -42681,6 +43562,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         let migrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+        let releaseDatabasePin: ServerRollbackDatabasePin = { mode: 'none' };
+        let productionProjectSecrets: Record<string, string> = reservedVmRetained?.secrets ?? {};
+        let effectiveProductionDatabaseUrl: string | undefined;
 
         try {
           const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
@@ -42701,12 +43585,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           });
         }
 
+        if (migrationPlan || source.provider === 'server') {
+          try {
+            if (!reservedVmRetained) {
+              productionProjectSecrets = await resolveProjectSecretValues(store, project.id);
+            }
+            effectiveProductionDatabaseUrl = resolveServerDeployDatabaseUrl({
+              environment: 'production',
+              projectSecrets: productionProjectSecrets,
+              envOverrides: productionEnvOverrides,
+            });
+          } catch {
+            return reply.code(503).send({
+              error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
+              code: 'ROLLBACK_DB_LEDGER_UNAVAILABLE',
+              retryable: true,
+            });
+          }
+        }
+
         if (migrationPlan) {
           let productionConnection: DatabaseConnectionCandidate | undefined;
 
           try {
-            productionConnection = (await listDatabaseConnections(store, project.id)).find(
-              (connection) => connection.key === 'PROD_DATABASE_URL',
+            productionConnection = await resolveEnvironmentDatabaseConnection(
+              project.id,
+              'production',
+              effectiveProductionDatabaseUrl,
             );
           } catch (error) {
             request.log?.error?.(
@@ -42715,7 +43620,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             );
             return reply.code(503).send({
               error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
-              code: 'MIGRATION_TARGET_UNAVAILABLE',
+              code: (error as { code?: string }).code ?? 'MIGRATION_TARGET_UNAVAILABLE',
               retryable: true,
             });
           }
@@ -42789,9 +43694,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               retryable: migrationOutcome.retryable,
             });
           }
+
+          try {
+            releaseDatabasePin = await inspectEnvironmentDatabasePin(
+              project.id,
+              'production',
+              effectiveProductionDatabaseUrl,
+            );
+          } catch (error) {
+            const code = (error as { code?: string }).code ?? 'ROLLBACK_DB_LEDGER_UNAVAILABLE';
+            return reply.code(409).send({
+              error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
+              code,
+              retryable: code === 'ROLLBACK_DB_LEDGER_UNAVAILABLE',
+            });
+          }
+        } else if (source.provider === 'server') {
+          try {
+            releaseDatabasePin = await inspectEnvironmentDatabasePin(
+              project.id,
+              'production',
+              effectiveProductionDatabaseUrl,
+            );
+          } catch (error) {
+            const code = (error as { code?: string }).code ?? 'ROLLBACK_DB_LEDGER_UNAVAILABLE';
+            return reply.code(409).send({
+              error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
+              code,
+              retryable: code === 'ROLLBACK_DB_LEDGER_UNAVAILABLE',
+            });
+          }
         }
 
+        let reservedVmProductionPins:
+          | { runtimeSpec: ServerRollbackRuntimeSpecV1; promotionEvidence: unknown }
+          | undefined;
+
         if (reservedVmPublish) {
+          try {
+            const retained = reservedVmRetained!;
+            const sourcePlanEntitlements = reservedVmPublish.releaseSource.planEntitlements;
+
+            if (!sourcePlanEntitlements) {
+              throw new DeterministicRollbackError('ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED');
+            }
+            reservedVmProductionPins = {
+              runtimeSpec: await prepareServerRollbackRuntimeSpec({
+                project,
+                environment: 'production',
+                projectManifestDigest: expectedManifestDigest,
+                planEntitlements: sourcePlanEntitlements,
+                accessPolicyVersion: reservedVmPublish.releaseSource.accessPolicyVersion,
+                machine: retained.runtimeSpec.machine,
+                port: retained.runtimeSpec.port,
+                healthPath: retained.runtimeSpec.healthPath,
+                envOverrides: retained.envOverrides,
+                database: releaseDatabasePin,
+              }),
+              promotionEvidence: reservedVmPublish.releaseSource.promotionEvidence,
+            };
+          } catch (error) {
+            const code = (error as { code?: string }).code ?? 'ROLLBACK_RUNTIME_SPEC_INVALID';
+
+            return reply.code(409).send({
+              error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+              code,
+            });
+          }
+
           /*
            * A Reserved VM is already the durable production-capable runtime. Do
            * not clone it (which would change URL/PVC and double-bill); promote the
@@ -42810,16 +43780,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             return {
               ok: true as const,
-              deployment: await store.publishReservedVmInPlace({
-                projectId: project.id,
-                deploymentId: source.id,
-                organizationId: project.organizationId,
-                actorUserId: request.currentUser!.id,
-                expectedRuntimeVersion: reservedVmPublish.deployment.runtimeVersion ?? 0,
-                productionUrl: source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source),
-                sourceReleaseManifestId: reservedVmPublish.releaseSource.id,
-                releaseFence: releaseGuard.fence,
-              }),
+              deployment: await withEnvironmentDatabasePinLease(
+                project.id,
+                'production',
+                effectiveProductionDatabaseUrl,
+                releaseDatabasePin,
+                async (assertDatabasePinHeld) => {
+                  await releaseGuard.assert();
+                  await assertDatabasePinHeld();
+                  return store.publishReservedVmInPlace({
+                    projectId: project.id,
+                    deploymentId: source.id,
+                    organizationId: project.organizationId,
+                    actorUserId: request.currentUser!.id,
+                    expectedRuntimeVersion: reservedVmPublish.deployment.runtimeVersion ?? 0,
+                    productionUrl: source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source),
+                    sourceReleaseManifestId: reservedVmPublish.releaseSource.id,
+                    ...(releaseDatabasePin.mode === 'exact-ledger'
+                      ? { dbMigrationPoint: releaseDatabasePin.ledgerDigest }
+                      : {}),
+                    runtimeSpec: reservedVmProductionPins!.runtimeSpec,
+                    promotionEvidence: reservedVmProductionPins!.promotionEvidence,
+                    releaseFence: releaseGuard.fence,
+                  });
+                },
+              ),
             };
           });
 
@@ -43084,24 +44069,71 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (serverPublishPromotion) {
           const host = serverDeployHost(published.id);
           const port = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+          let environmentDatabaseLease: { assertHeld(): Promise<void>; release(): Promise<void> } | undefined;
 
           try {
-            const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-              (): Record<string, string> => ({}),
-            );
             const serverEnv = buildServerDeployEnv({
               deploymentId: published.id,
               port,
               environment: 'production',
-              projectSecrets,
+              projectSecrets: productionProjectSecrets,
               envOverrides: {},
             });
 
             const deployRateCard = await getActiveRateCard(store);
             const machineSize = machineSizeFromCard(deployRateCard, published.machineSize);
             const sourceImage = serverPublishPromotion.image as { storeGeneration?: string };
+            const publishedEntitlementsPin = readDeploymentPlanEntitlementsPin(published.metadata);
+
+            if (!publishedEntitlementsPin) {
+              throw new DeterministicRollbackError('ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED');
+            }
+            const rollbackRuntimeSpec = await prepareServerRollbackRuntimeSpec({
+              project,
+              environment: 'production',
+              projectManifestDigest: expectedManifestDigest,
+              planEntitlements: publishedEntitlementsPin,
+              accessPolicyVersion: published.accessPolicyVersion,
+              machine: {
+                key: machineSize.key,
+                rateCardVersion: deployRateCard.version,
+                cpuMillicores: machineSize.cpuMillicores,
+                memoryMb: machineSize.ramMb,
+              },
+              port,
+              healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+              envOverrides: {},
+              database: releaseDatabasePin,
+            });
+            const rollbackPromotionEvidence = buildServerRollbackPromotionEvidence({
+              organizationId: project.organizationId,
+              projectId: project.id,
+              artifactRef: serverPublishPromotion.target.repo,
+              artifactDigest: serverPublishPromotion.target.digest,
+              promotion: serverPublishPromotion.manifest,
+            });
+
+            published = await store.updateDeployment(project.id, published.id, {
+              status: 'BUILDING',
+              metadata: {
+                ...(published.metadata as Record<string, unknown>),
+                serverDeploy: {
+                  ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                  rollbackRuntimeSpec,
+                  rollbackPromotionEvidence,
+                },
+              },
+            });
 
             await releaseGuard.assert();
+            environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
+              project.id,
+              'production',
+              serverEnv.DATABASE_URL,
+              releaseDatabasePin,
+            );
+            await releaseGuard.assert();
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
             const started = await startServerDeploymentViaManager({
               deploymentId: published.id,
               ...machineSizeResources(machineSize),
@@ -43115,6 +44147,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               nixStorePvcName: nixStorePvcForProject(project.id),
               ...(sourceImage.storeGeneration ? { nixGenerationRef: sourceImage.storeGeneration } : {}),
             });
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
 
             const url = started.url ?? `https://${host}`;
             published = await store.updateDeployment(project.id, published.id, {
@@ -43141,6 +44174,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 readyReplicas: started.readyReplicas,
                 readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
                 releaseFence: releaseGuard.fence,
+                assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
+                ...(releaseDatabasePin.mode === 'exact-ledger'
+                  ? { dbMigrationPoint: releaseDatabasePin.ledgerDigest }
+                  : {}),
               });
             }
           } catch (error) {
@@ -43172,6 +44209,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               { code, deploymentId: published.id, projectId: project.id, organizationId: project.organizationId },
               'production server image release blocked',
             );
+          } finally {
+            await environmentDatabaseLease?.release();
           }
         }
 
@@ -43200,6 +44239,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               if (provisioner.active) {
                 const acquisition = await store.acquireDatabaseProvisioning({
                   projectId: project.id,
+                  expectedOrganizationId: project.organizationId,
                   organizationId: project.organizationId,
                   retentionDays: entitlement.retentionDays,
                   environment: 'production',
@@ -43846,6 +44886,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const redeployStatus = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
     const redeployReady = redeployStatus === 'READY';
+    const waitsForStaticManifest = redeployReady && source.provider === 'static';
+    const persistedRedeployStatus = waitsForStaticManifest ? 'BUILDING' : redeployStatus;
 
     // Only persist a usable URL: a real hook URL, or the static path-based URL.
     const resolvedUrl = failed
@@ -43876,41 +44918,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         async (releaseGuard) => {
           await releaseGuard.assert();
-
-          if (source.provider === 'static' && redeployStatus === 'READY') {
-            if (!resolvedUrl || !finishedAt || !staticArtifactDigest) {
-              throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
-            }
-
-            const committed = await store.commitStaticRelease({
-              projectId: project.id,
-              deploymentId: redeploy.id,
-              environment: redeploy.environment,
-              artifactRef: `static-deployments/${redeploy.id}`,
-              artifactDigest: staticArtifactDigest,
-              configDigest: configDigest(sourceEnvVars),
-              accessPolicyVersion: redeploy.accessPolicyVersion,
-              url: resolvedUrl,
-              previewUrl: redeploy.environment !== 'production' ? resolvedUrl : undefined,
-              productionUrl: redeploy.environment === 'production' ? resolvedUrl : undefined,
-              metadata: finalMetadata,
-              logs: [...redeploy.logs, ...rebuildLogs],
-              finishedAt,
-              releaseFence: releaseGuard.fence,
-            });
-
-            return committed.deployment;
-          }
-
-          return store.updateDeployment(project.id, redeploy.id, {
-            status: redeployStatus,
+          const staged = await store.updateDeployment(project.id, redeploy.id, {
+            status: persistedRedeployStatus,
             url: resolvedUrl,
-            previewUrl: redeployReady && redeploy.environment !== 'production' ? resolvedUrl : undefined,
-            productionUrl: redeployReady && redeploy.environment === 'production' ? resolvedUrl : undefined,
+            previewUrl:
+              !waitsForStaticManifest && redeployReady && redeploy.environment !== 'production'
+                ? resolvedUrl
+                : undefined,
+            productionUrl:
+              !waitsForStaticManifest && redeployReady && redeploy.environment === 'production'
+                ? resolvedUrl
+                : undefined,
             metadata: finalMetadata,
             logs: [...redeploy.logs, ...rebuildLogs],
-            finishedAt,
+            finishedAt: persistedRedeployStatus === 'BUILDING' ? undefined : finishedAt,
           });
+
+          if (!waitsForStaticManifest) return staged;
+          if (!resolvedUrl || !staticArtifactDigest) {
+            throw new Error(STATIC_RELEASE_ARTIFACT_DIGEST_MISSING);
+          }
+
+          return writeReleaseManifest(store, staged, sourceEnvVars, releaseGuard.fence);
         },
       );
     } catch (error) {
@@ -44026,23 +45055,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * `acquireRollbackOperation` repeats this check under the project lock so a
      * concurrent runtime change cannot slip between preflight and insertion.
      */
-    const rollbackPreflightManifests = await store.listReleaseManifests(project.id, environment, { take: 2 });
-    const rollbackPreflightDeployments = await Promise.all(
-      rollbackPreflightManifests.map((manifest) => store.getDeployment(project.id, manifest.deploymentId)),
-    );
+    const existingRollbackOperation = await store.getRollbackOperation(project.id, idempotencyKey);
 
-    if (
-      rollbackPreflightDeployments.some(
-        (deployment) =>
-          deployment?.runtimeKind === 'reserved-vm' ||
-          Boolean(deployment?.reservedVmTier) ||
-          Boolean(deployment?.persistentStorageClaim),
-      )
-    ) {
-      return reply.code(409).send({
-        error: appPublicCopy('RESERVED_VM_ROLLBACK_UNPINNED', locale),
-        code: 'RESERVED_VM_ROLLBACK_UNPINNED',
-      });
+    if (!existingRollbackOperation) {
+      const rollbackPreflightManifests = await store.listReleaseManifests(project.id, environment, { take: 2 });
+      const rollbackPreflightDeployments = await Promise.all(
+        rollbackPreflightManifests.map((manifest) => store.getDeployment(project.id, manifest.deploymentId)),
+      );
+
+      if (
+        rollbackPreflightDeployments.some(
+          (deployment) =>
+            deployment?.runtimeKind === 'reserved-vm' ||
+            Boolean(deployment?.reservedVmTier) ||
+            Boolean(deployment?.persistentStorageClaim),
+        )
+      ) {
+        return reply.code(409).send({
+          error: appPublicCopy('RESERVED_VM_ROLLBACK_UNPINNED', locale),
+          code: 'RESERVED_VM_ROLLBACK_UNPINNED',
+        });
+      }
+
+      /*
+       * Reject an unsupported/legacy/tampered server manifest before acquiring
+       * durable rollback authority. In particular PINNED has no immutable secret
+       * snapshot in v1 and must leave both RollbackIdempotencyRequest and the
+       * workspace manager untouched. Existing operations skip this moving-head
+       * preflight so crash recovery and durable replay remain bound to their
+       * already-frozen manifest; the exact validation is repeated below under
+       * the release barrier before any new effect.
+       */
+      try {
+        const selected = selectPreviousRelease(rollbackPreflightManifests);
+
+        await requireRetainedReleaseAccessPolicy(selected.previous);
+
+        if (selected.previous.artifactKind === 'server-image') {
+          await resolveRetainedServerRollbackManifest({
+            manifest: selected.previous,
+            project,
+          });
+        }
+      } catch (error) {
+        if (error instanceof RollbackManifestError || error instanceof DeterministicRollbackError) {
+          return reply.code(error.statusCode).send({
+            error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
     }
 
     const requestFingerprint = rollbackRequestFingerprint(environment);
@@ -44219,7 +45283,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (previous.artifactKind === 'server-image') {
           await ensureServerDeploymentAbsentViaManager(operation.deploymentId);
         } else {
-          await ensureStaticDeploymentSnapshotAbsent(operation.deploymentId);
+          await ensureStaticRollbackEffectAbsent(operation.deploymentId, previous.deploymentId);
         }
 
         await leaseManager.guard();
@@ -44339,7 +45403,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       async (releaseGuard) => {
         // ---- STATIC: re-materialise + re-verify the previous snapshot bytes. ----
         if (previous.artifactKind === 'static-snapshot') {
-          const recomputed = await computeStaticSnapshotDigest(previous.deploymentId);
+          await requireRetainedReleaseAccessPolicy(previous);
+          const recomputed = await computeStaticArtifactDigest(previous.artifactRef);
 
           if (!recomputed) {
             return reply.code(409).send({
@@ -44406,7 +45471,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await leaseManager.guard();
 
             try {
-              await ensureStaticDeploymentSnapshotAbsent(rollback.id);
+              await ensureStaticRollbackEffectAbsent(rollback.id, previous.deploymentId);
             } catch (cleanupError) {
               request.log.error({ err: cleanupError, deploymentId: rollback.id }, 'rollback snapshot cleanup failed');
               request.rollbackOperation = undefined;
@@ -44434,7 +45499,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               fencingToken: operation.fencingToken,
             });
             await leaseManager.guard();
-            await restoreStaticSnapshotInto(previous.deploymentId, rollback.id, async () => {
+            await restoreStaticArtifactInto(previous.artifactRef, previous.artifactDigest, rollback.id, async () => {
               await releaseGuard.assert();
               await leaseManager.guard();
               await store.assertProjectStorageMutable(project.id);
@@ -44455,6 +45520,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             assertArtifactMatchesManifest(restoredDigest, previous);
 
+            await writeStaticDeploymentRoutingAlias(previous.deploymentId, rollback.id, async () => {
+              await releaseGuard.assert();
+              await leaseManager.guard();
+              await store.assertProjectStorageMutable(project.id);
+            });
+
             const url = buildDeploymentUrl(project, rollback);
 
             await releaseGuard.assert();
@@ -44467,7 +45538,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               deploymentId: rollback.id,
               environment,
               provider: previous.provider,
-              artifactRef: `static-deployments/${rollback.id}`,
+              artifactRef: previous.artifactRef,
               artifactDigest: restoredDigest,
               ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
               ...(previous.configDigest ? { configDigest: previous.configDigest } : {}),
@@ -44542,7 +45613,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             }
 
             try {
-              await ensureStaticDeploymentSnapshotAbsent(rollback.id);
+              await ensureStaticRollbackEffectAbsent(rollback.id, previous.deploymentId);
             } catch (cleanupError) {
               request.log.error({ err: cleanupError, deploymentId: rollback.id }, 'rollback snapshot cleanup failed');
               request.rollbackOperation = undefined;
@@ -44586,34 +45657,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
           }
 
-          const previousDeployment = await store.getDeployment(project.id, previous.deploymentId);
+          let retained;
 
-          const previousServerDeploy = (previousDeployment?.metadata as Record<string, unknown> | undefined)
-            ?.serverDeploy as Record<string, unknown> | undefined;
-
-          /*
-           * Deployment rows may be pruned before their immutable ReleaseManifest.
-           * The release transaction also persists the complete promotion proof in
-           * AdminAuditLog, so rollback can still verify the retained digest.
-           */
-          const previousPromotion =
-            previousServerDeploy?.promotion ?? (await store.getServerImageReleasePromotion(previous.deploymentId));
-
-          if (
-            !isCommittedPromotionForTenant(
-              previousPromotion,
-              project.organizationId,
-              previous.artifactDigest,
-              previous.artifactRef,
-            )
-          ) {
+          try {
+            retained = await resolveRetainedServerRollbackManifest({
+              manifest: previous,
+              project,
+            });
+          } catch (error) {
+            const code = (error as { code?: string }).code ?? 'ROLLBACK_RUNTIME_SPEC_INVALID';
             return reply.code(409).send({
-              error: appPublicCopy('DEPLOY_SERVER_PROMOTION_REQUIRED', locale),
-              code: 'ROLLBACK_PROMOTION_EVIDENCE_MISSING',
+              error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+              code,
             });
           }
 
-          const rollbackDefaultVcpu = machineSizeFromCard(await getActiveRateCard(store), undefined).vcpu;
+          const previousPromotion = retained.promotionEvidence.promotion;
+          const rollbackVcpu = retained.runtimeSpec.machine.cpuMillicores / 1_000;
 
           const rollbackMetadata = {
             planEntitlements: previousEntitlementsPin,
@@ -44634,6 +45694,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 environment,
                 status: 'QUEUED',
                 accessPolicyVersion: previous.accessPolicyVersion,
+                machineSize: retained.runtimeSpec.machine.key,
                 rolledBackFromId: previous.deploymentId,
                 metadata: rollbackMetadata,
               },
@@ -44648,7 +45709,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   request,
                   project.organizationId,
                   'deployment.create',
-                  tenantDeploymentContext({ provider: 'server', vcpu: rollbackDefaultVcpu, timeoutSeconds: 600 }),
+                  tenantDeploymentContext({ provider: 'server', vcpu: rollbackVcpu, timeoutSeconds: 600 }),
                 );
                 await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -44673,6 +45734,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           let managerStartAttempted = false;
+          let environmentDatabaseLease: { assertHeld(): Promise<void>; release(): Promise<void> } | undefined;
           try {
             const plan = resolveRollbackImage(
               {
@@ -44686,45 +45748,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               { revisionExists: false },
             );
 
-            const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
-              (): Record<string, string> => ({}),
-            );
-
-            const secretResolution = resolveRollbackSecrets({ policy: 'CURRENT', currentSecrets, pinnedSecrets: null });
-
             const rbHost = serverDeployHost(rollback.id);
-            const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+            const rbPort = retained.runtimeSpec.port;
 
             const rbEnv = buildServerDeployEnv({
               deploymentId: rollback.id,
               port: rbPort,
               environment,
-              projectSecrets: secretResolution.secrets,
-              envOverrides: {},
+              projectSecrets: retained.secrets,
+              envOverrides: retained.envOverrides,
             });
-
-            const deployRateCard = await getActiveRateCard(store);
-            const machineSize = machineSizeFromCard(deployRateCard, undefined);
+            const pinnedResources = {
+              cpuRequest: `${retained.runtimeSpec.machine.cpuMillicores}m`,
+              cpuLimit: `${retained.runtimeSpec.machine.cpuMillicores}m`,
+              memoryRequest: `${retained.runtimeSpec.machine.memoryMb}Mi`,
+              memoryLimit: `${retained.runtimeSpec.machine.memoryMb}Mi`,
+            };
 
             await releaseGuard.assert();
+            environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
+              project.id,
+              environment,
+              rbEnv.DATABASE_URL,
+              retained.runtimeSpec.database,
+            );
+            await releaseGuard.assert();
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
             operation = await store.beginRollbackEffect({
               operationId: operation.id,
               ownerToken,
               fencingToken: operation.fencingToken,
             });
             await leaseManager.guard();
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
             await releaseGuard.assert();
             managerStartAttempted = true;
             const started = await startServerDeploymentViaManager({
               deploymentId: rollback.id,
-              ...machineSizeResources(machineSize),
+              ...pinnedResources,
               image: plan.pullRef,
               port: rbPort,
               host: rbHost,
               projectId: project.id,
               orgId: project.organizationId,
               env: rbEnv,
-              healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+              healthPath: retained.runtimeSpec.healthPath,
               nixStorePvcName: nixStorePvcForProject(project.id),
               ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
             });
@@ -44761,6 +45829,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
                     },
                     promotion: previousPromotion,
+                    rollbackRuntimeSpec: previous.runtimeSpec,
+                    rollbackPromotionEvidence: previous.promotionEvidence,
                     ...(previous.configDigest ? { releaseConfigDigest: previous.configDigest } : {}),
                   },
                 },
@@ -44788,6 +45858,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               readyReplicas: started?.readyReplicas ?? 0,
               readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
               releaseFence: releaseGuard.fence,
+              assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
               ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
               rollbackFence: {
                 operationId: operation.id,
@@ -44880,6 +45951,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   }
                 : {}),
             });
+          } finally {
+            await environmentDatabaseLease?.release();
           }
         }
 
@@ -44894,6 +45967,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
+    const locale = transactionalLocaleForRequest(request);
     const target = await store.getDeployment(project.id, deploymentId);
 
     if (!target) {
@@ -44945,6 +46019,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const expectedManifestDigest =
       typeof targetBoundDigest === 'string' ? targetBoundDigest : (await currentProjectManifest(store, project)).digest;
 
+    if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
+      return reply.code(409).send({
+        error: appPublicEnglish('DEPLOYMENT_SERVER_ROLLBACK_DISABLED'),
+        code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
+      });
+    }
+
+    let serverRollbackManifest: ReleaseManifestRecord | undefined;
+    let serverRollbackRetained: Awaited<ReturnType<typeof resolveRetainedServerRollbackManifest>> | undefined;
+
+    if (target.provider === 'server') {
+      serverRollbackManifest = (await store.listReleaseManifests(project.id, target.environment)).find(
+        (manifest) =>
+          manifest.deploymentId === target.id &&
+          manifest.artifactKind === 'server-image' &&
+          manifest.provider === 'server' &&
+          manifest.accessPolicyVersion === target.accessPolicyVersion,
+      );
+
+      if (!serverRollbackManifest) {
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_RUNTIME_SPEC_MISSING', locale),
+          code: 'ROLLBACK_RUNTIME_SPEC_MISSING',
+        });
+      }
+
+      try {
+        serverRollbackRetained = await resolveRetainedServerRollbackManifest({
+          manifest: serverRollbackManifest,
+          project,
+        });
+      } catch (error) {
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_RUNTIME_SPEC_INVALID';
+
+        return reply.code(409).send({
+          error: localizeBackendErrorForResponse(
+            (error as Error).message,
+            transactionalLocaleForRequest(request),
+            'ROLLBACK_REQUEST_FAILED',
+          ),
+          code,
+        });
+      }
+    }
+
     return withProjectReleaseBarrier(
       store,
       {
@@ -44981,13 +46100,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * SERVER_DEPLOY_ROLLBACK_FROM_DIGEST=0 is an explicit kill switch: it REFUSES
          * server rollbacks loudly instead of falling back to that URL-copy row.
          */
-        if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
-          return reply.code(409).send({
-            error: appPublicEnglish('DEPLOYMENT_SERVER_ROLLBACK_DISABLED'),
-            code: 'SERVER_ROLLBACK_DIGEST_DISABLED',
-          });
-        }
-
         /*
          * Server digest-rollback re-deploys the retained image via the manager and
          * then promotes the row to READY. Create it NON-TERMINAL (QUEUED) too — the
@@ -44998,9 +46110,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const rollbackMetadata = (target.metadata ?? {}) as Record<string, unknown>;
 
         const rollbackMachineVcpu =
-          target.provider === 'server'
-            ? machineSizeFromCard(await getActiveRateCard(store), target.machineSize).vcpu
-            : 0;
+          target.provider === 'server' ? serverRollbackRetained!.runtimeSpec.machine.cpuMillicores / 1_000 : 0;
 
         const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
           await ensureTenantAdmission(
@@ -45036,6 +46146,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             commitSha: target.commitSha,
             customDomain: target.customDomain,
             accessPolicyVersion: target.accessPolicyVersion,
+            ...(target.provider === 'server' ? { machineSize: serverRollbackRetained!.runtimeSpec.machine.key } : {}),
             metadata: {
               ...(target.metadata as Record<string, unknown>),
               projectManifestDigest: expectedManifestDigest,
@@ -45109,87 +46220,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * unsatisfiable secret policy) instead of leaving a dead-URL row.
          */
         if (willServerDigestRollback) {
+          let environmentDatabaseLease: { assertHeld(): Promise<void>; release(): Promise<void> } | undefined;
           try {
-            const serverMeta = (target.metadata as Record<string, unknown>)?.serverDeploy as
-              | {
-                  image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string };
-                  secretPolicy?: string;
-                  promotion?: unknown;
-                  releaseConfigDigest?: string;
-                }
-              | undefined;
-
-            const image = serverMeta?.image ?? {};
-
-            const retained = {
-              deploymentId: target.id,
-              projectId: project.id,
-              imageRef: (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, ''),
-              imageDigest: image.imageDigest ?? '',
-              createdAt: new Date().toISOString(),
-
-              // CTR-RUNTIME-NIX point 2: carry the ORIGINAL release's pinned generation.
-              ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
-            };
-
-            /*
-             * The whole point of the fix: resolve ENTIRELY from the retained digest,
-             * independent of whether the current revision still exists. This is the
-             * single gate — a missing digest throws ROLLBACK_NO_RETAINED_DIGEST.
-             */
-            const plan = resolveRollbackImage(retained, { revisionExists: false });
-
-            const secretPolicy = (serverMeta?.secretPolicy as SecretPolicy) ?? 'CURRENT';
-
-            const currentSecrets = await resolveProjectSecretValues(store, project.id).catch(
-              (): Record<string, string> => ({}),
+            const manifest = serverRollbackManifest!;
+            const retained = serverRollbackRetained!;
+            const plan = resolveRollbackImage(
+              {
+                deploymentId: manifest.deploymentId,
+                projectId: project.id,
+                imageRef: manifest.artifactRef,
+                imageDigest: manifest.artifactDigest,
+                createdAt: manifest.createdAt,
+                ...(manifest.storeGeneration ? { storeGeneration: manifest.storeGeneration } : {}),
+              },
+              { revisionExists: false },
             );
 
-            const secretResolution = resolveRollbackSecrets({
-              policy: secretPolicy,
-              currentSecrets,
-              pinnedSecrets: null,
-            });
-
-            if (
-              !isCommittedPromotionForTenant(
-                serverMeta?.promotion,
-                project.organizationId,
-                retained.imageDigest,
-                retained.imageRef,
-              )
-            ) {
-              throw Object.assign(new Error(appPublicEnglish('DEPLOY_SERVER_PROMOTION_REQUIRED')), {
-                code: 'ROLLBACK_PROMOTION_EVIDENCE_MISSING',
-                statusCode: 409,
-              });
-            }
-
             const rbHost = serverDeployHost(rollback.id);
-            const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+            const rbPort = retained.runtimeSpec.port;
 
             const rbEnv = buildServerDeployEnv({
               deploymentId: rollback.id,
               port: rbPort,
               environment: target.environment ?? 'preview',
-              projectSecrets: secretResolution.secrets,
-              envOverrides: {},
+              projectSecrets: retained.secrets,
+              envOverrides: retained.envOverrides,
             });
-
-            const deployRateCard = await getActiveRateCard(store);
-            const machineSize = machineSizeFromCard(deployRateCard, target.machineSize);
+            const pinnedResources = {
+              cpuRequest: `${retained.runtimeSpec.machine.cpuMillicores}m`,
+              cpuLimit: `${retained.runtimeSpec.machine.cpuMillicores}m`,
+              memoryRequest: `${retained.runtimeSpec.machine.memoryMb}Mi`,
+              memoryLimit: `${retained.runtimeSpec.machine.memoryMb}Mi`,
+            };
 
             await releaseGuard.assert();
+            environmentDatabaseLease = await acquireEnvironmentDatabasePinLease(
+              project.id,
+              target.environment,
+              rbEnv.DATABASE_URL,
+              retained.runtimeSpec.database,
+            );
+            await releaseGuard.assert();
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
             const started = await startServerDeploymentViaManager({
               deploymentId: rollback.id,
-              ...machineSizeResources(machineSize),
+              ...pinnedResources,
               image: plan.pullRef,
               port: rbPort,
               host: rbHost,
               projectId: project.id,
               orgId: project.organizationId,
               env: rbEnv,
-              healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+              healthPath: retained.runtimeSpec.healthPath,
               nixStorePvcName: nixStorePvcForProject(project.id),
 
               /*
@@ -45201,9 +46283,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                */
               ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
             });
+            await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
 
             const ok = Boolean(started?.ready);
             const rbUrl = started?.url ?? `https://${rbHost}`;
+
+            if (!ok) {
+              throw Object.assign(new Error(appPublicEnglish('ROLLBACK_SERVER_NOT_READY')), {
+                code: 'ROLLBACK_SERVER_NOT_READY',
+                statusCode: 503,
+              });
+            }
+
             finalDeployment = await store.updateDeployment(project.id, rollback.id, {
               status: 'BUILDING',
               metadata: {
@@ -45214,17 +46305,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   readyReplicas: started?.readyReplicas ?? 0,
                   applied: Boolean(started),
                   rolledBackFromDigest: plan.imageDigest,
-                  secretPolicy: secretResolution.policy,
+                  secretPolicy: retained.runtimeSpec.secretPolicy,
 
                   // Persist the re-pinned generation so a rollback-of-a-rollback carries it too.
                   image: {
-                    imageRef: retained.imageRef,
+                    imageRef: manifest.artifactRef,
                     imageUri: plan.pullRef,
                     imageDigest: plan.imageDigest,
                     ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
                   },
-                  promotion: serverMeta?.promotion,
-                  releaseConfigDigest: serverMeta?.releaseConfigDigest ?? configDigest({}),
+                  promotion: retained.promotionEvidence.promotion,
+                  rollbackRuntimeSpec: manifest.runtimeSpec,
+                  rollbackPromotionEvidence: manifest.promotionEvidence,
+                  ...(manifest.configDigest ? { releaseConfigDigest: manifest.configDigest } : {}),
                 },
               },
               logs: [
@@ -45234,7 +46327,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   level: 'info' as const,
                   message: appPublicEnglish('DEPLOYMENT_ROLLBACK_DIGEST_REDEPLOYED', {
                     pullRef: plan.pullRef,
-                    secretPolicy: secretResolution.policy,
+                    secretPolicy: retained.runtimeSpec.secretPolicy,
                   }),
                 },
               ],
@@ -45251,6 +46344,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 readyReplicas: started?.readyReplicas ?? 0,
                 readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
                 releaseFence: releaseGuard.fence,
+                assertDatabasePinHeld: () => assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease),
+                ...(manifest.dbMigrationPoint ? { dbMigrationPoint: manifest.dbMigrationPoint } : {}),
               });
             }
           } catch (error) {
@@ -45284,6 +46379,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
 
             return reply.code(statusCode === 409 ? 409 : 502).send({ error: (error as Error).message, code });
+          } finally {
+            await environmentDatabaseLease?.release();
           }
         }
 
@@ -45831,6 +46928,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     requirePreviewProxySecret,
     audit: (request, entry) => audit(request, store, entry),
     appPublicBaseUrl,
+    commitReadyDeploymentAccessPolicy: async ({ project, deployment, releaseSource, mutation }) => {
+      if (!releaseSource.projectManifestDigest) {
+        throw Object.assign(new Error(appPublicEnglish('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH')), {
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+          statusCode: 409,
+        });
+      }
+
+      return withProjectReleaseBarrier(
+        store,
+        {
+          projectId: project.id,
+          expectedOrganizationId: project.organizationId,
+          expectedManifestDigest: releaseSource.projectManifestDigest,
+          operationId: `deployment-access:${deployment.id}:${randomUUID()}`,
+        },
+        async (releaseGuard) => {
+          await releaseGuard.assert();
+
+          if (releaseSource.artifactKind !== 'server-image') {
+            return store.setDeploymentAccessPolicy({ ...mutation, releaseFence: releaseGuard.fence });
+          }
+
+          const sourceRuntime = parseServerRollbackRuntimeSpec(releaseSource.runtimeSpec);
+          await releaseGuard.assert();
+          return store.setDeploymentAccessPolicy({
+            ...mutation,
+            releaseFence: releaseGuard.fence,
+            releaseDatabasePin: sourceRuntime.spec.database,
+          });
+        },
+      );
+    },
   });
 
   return app;

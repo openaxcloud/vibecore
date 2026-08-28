@@ -2,7 +2,13 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
-import { RESERVED_VM_TIERS, type PlanKey, type QuotaKey, type QuotaOverrideKey } from '@vibecore/billing';
+import {
+  BUILTIN_RATE_CARD,
+  RESERVED_VM_TIERS,
+  type PlanKey,
+  type QuotaKey,
+  type QuotaOverrideKey,
+} from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import {
@@ -15,6 +21,7 @@ import {
 } from '../account-purge.js';
 import { DELETION_GRACE_PERIOD_DAYS } from '../data-deletion.js';
 import {
+  isValidDeploymentAccessPolicyRecord,
   normalizeDeploymentAccessMode,
   type DeploymentAccessMode,
   type DeploymentAccessPolicyRecord,
@@ -30,6 +37,21 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from '../project-manifest.js';
+import { remixIdeStateDigest, validRemixIdeStatePin } from '../remix-ide-state.js';
+import {
+  buildServerRollbackPromotionEvidence,
+  buildStaticRollbackRoutingEvidence,
+  DeterministicRollbackError,
+  parseStaticRollbackRoutingEvidence,
+  parseServerRollbackPromotionEvidence,
+  parseServerRollbackRuntimeSpec,
+  rebindServerRollbackRuntimeSpecAccessPolicy,
+  rollbackManifestDigest,
+  rollbackPlanEntitlementsDigest,
+  sameServerRollbackRuntimePinsForPublish,
+  serverRollbackMachineMatchesRateCard,
+  validateServerReleaseCommitPins,
+} from '../deterministic-rollback.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
 import { DEFAULT_ENV_VAR_SCOPE, parseReleasePlanEntitlementsPin, sameReleasePlanEntitlementsPin } from '../store.js';
 import {
@@ -107,8 +129,9 @@ import type {
   RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
-  StaticRollbackReleaseCommitInput,
+  SetDeploymentAccessPolicyInput,
   StaticReleaseCommitInput,
+  StaticRollbackReleaseCommitInput,
   StaticReleaseCommitResult,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
@@ -662,6 +685,15 @@ export class TestApiStore implements ApiStore {
           .map((manifest) => manifest.deploymentId),
       ]),
     ];
+    const staticArtifactRefs = [
+      ...new Set(
+        this.releaseManifests
+          .filter(
+            (manifest) => bucketProjectIds.includes(manifest.projectId) && manifest.artifactKind === 'static-snapshot',
+          )
+          .map((manifest) => manifest.artifactRef),
+      ),
+    ];
     return {
       userId,
       status: 'ready_to_purge',
@@ -673,6 +705,8 @@ export class TestApiStore implements ApiStore {
         workspaceProjectIds,
         localSnapshotObjects,
         staticDeploymentIds,
+        staticArtifactRefs,
+        staticAliasDeploymentIds: staticDeploymentIds,
       },
     };
   }
@@ -2014,7 +2048,15 @@ export class TestApiStore implements ApiStore {
     return [...this.projectTemplates.values()].filter((template) => template.organizationId === organizationId);
   }
 
-  async upsertProjectEnvVar(input: { projectId: string; key: string; value: string; scope?: EnvVarScope }) {
+  async upsertProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    value: string;
+    scope?: EnvVarScope;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
     // Omitted scope defaults to production (pre-scope back-compat).
     const scope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
     const key = `${input.projectId}:${input.key}:${scope}`;
@@ -2038,22 +2080,38 @@ export class TestApiStore implements ApiStore {
     return [...this.projectEnvVars.values()].filter((envVar) => envVar.projectId === projectId);
   }
 
-  async deleteProjectEnvVar(projectId: string, key: string, scope?: EnvVarScope) {
-    const targetScope = scope ?? DEFAULT_ENV_VAR_SCOPE;
-    const mapKey = `${projectId}:${key}:${targetScope}`;
+  async deleteProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    scope?: EnvVarScope;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    const targetScope = input.scope ?? DEFAULT_ENV_VAR_SCOPE;
+    const mapKey = `${input.projectId}:${input.key}:${targetScope}`;
     const existing = this.projectEnvVars.get(mapKey);
     this.projectEnvVars.delete(mapKey);
 
     return existing;
   }
 
-  async upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }) {
+  async upsertProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    valueEncrypted: string;
+  }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
     const key = `${input.projectId}:${input.key}`;
     const existing = this.projectSecrets.get(key);
 
     const secret: ProjectSecretRecord = {
       id: existing?.id ?? id('secret'),
-      ...input,
+      projectId: input.projectId,
+      key: input.key,
+      valueEncrypted: input.valueEncrypted,
       createdAt: existing?.createdAt ?? now(),
       updatedAt: now(),
     };
@@ -2072,8 +2130,10 @@ export class TestApiStore implements ApiStore {
     return this.projectSecrets.get(`${projectId}:${key}`);
   }
 
-  async deleteProjectSecret(projectId: string, key: string) {
-    const mapKey = `${projectId}:${key}`;
+  async deleteProjectSecret(input: { projectId: string; expectedOrganizationId: string; key: string }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    const mapKey = `${input.projectId}:${input.key}`;
     const existing = this.projectSecrets.get(mapKey);
     this.projectSecrets.delete(mapKey);
 
@@ -4010,12 +4070,21 @@ export class TestApiStore implements ApiStore {
 
   async createDatabaseInstance(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
     environment?: string;
     provisioningDeadlineAt?: string;
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    if (input.organizationId !== input.expectedOrganizationId) {
+      throw Object.assign(new Error('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION'), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
     const instance: DatabaseInstanceRecord = {
       id: id('database_instance'),
       projectId: input.projectId,
@@ -4038,12 +4107,15 @@ export class TestApiStore implements ApiStore {
 
   async acquireDatabaseProvisioning(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
   }) {
+    this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
     const environment = input.environment === 'production' ? 'production' : 'development';
 
     /*
@@ -4081,8 +4153,15 @@ export class TestApiStore implements ApiStore {
 
   async completeDatabaseProvisioning(
     instanceId: string,
-    connection: { projectId: string; key: string; valueEncrypted: string },
+    connection: {
+      projectId: string;
+      expectedOrganizationId: string;
+      key: string;
+      valueEncrypted: string;
+    },
   ) {
+    this.assertProjectTenantMutation(connection.projectId, connection.expectedOrganizationId);
+    this._assertNoActiveProjectReleaseBarrier(connection.projectId);
     const instance = this.databaseInstances.get(instanceId);
 
     if (!instance || instance.projectId !== connection.projectId || instance.status !== 'PROVISIONING') {
@@ -4917,6 +4996,34 @@ export class TestApiStore implements ApiStore {
     }
   }
 
+  private _validateReservedVmReleaseManifest(input: {
+    manifest: ReleaseManifestRecord;
+    organizationId: string;
+    projectId: string;
+    machineKey?: string;
+    promotion: unknown;
+  }) {
+    if (!input.machineKey || !input.manifest.planEntitlements || !input.manifest.projectManifestDigest) {
+      throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+    }
+
+    return validateServerReleaseCommitPins({
+      runtimeSpec: input.manifest.runtimeSpec,
+      promotionEvidence: input.manifest.promotionEvidence,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      environment: input.manifest.environment,
+      projectManifestDigest: input.manifest.projectManifestDigest,
+      planEntitlements: input.manifest.planEntitlements,
+      accessPolicyVersion: input.manifest.accessPolicyVersion,
+      machineKey: input.machineKey,
+      artifactRef: input.manifest.artifactRef,
+      artifactDigest: input.manifest.artifactDigest,
+      dbMigrationPoint: input.manifest.dbMigrationPoint,
+      promotion: input.promotion,
+    });
+  }
+
   private _reservedVmPublishCandidate(
     input: {
       projectId: string;
@@ -4972,18 +5079,42 @@ export class TestApiStore implements ApiStore {
           )
         : undefined;
       const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
+      const committedProductionPin = parseReleasePlanEntitlementsPin(committedProductionRelease?.planEntitlements);
+      const releaseSourcePins = releaseSource
+        ? this._validateReservedVmReleaseManifest({
+            manifest: releaseSource,
+            organizationId: input.organizationId,
+            projectId: input.projectId,
+            machineKey: deployment.machineSize,
+            promotion: serverDeploy?.promotion,
+          })
+        : undefined;
+      const committedProductionPins = committedProductionRelease
+        ? this._validateReservedVmReleaseManifest({
+            manifest: committedProductionRelease,
+            organizationId: input.organizationId,
+            projectId: input.projectId,
+            machineKey: deployment.machineSize,
+            promotion: serverDeploy?.promotion,
+          })
+        : undefined;
 
       if (
         metadata.publishedFromReleaseManifestId === sourceReleaseManifestId &&
         releaseSource &&
         releaseSourcePin &&
         committedProductionRelease &&
+        committedProductionPin &&
         releaseSource.provider === 'server' &&
         releaseSource.artifactKind === 'server-image' &&
         releaseSource.accessPolicyVersion === deployment.accessPolicyVersion &&
         releaseSource.projectManifestDigest === input.releaseFence.expectedManifestDigest &&
         committedProductionRelease.projectManifestDigest === releaseSource.projectManifestDigest &&
         sameReleasePlanEntitlementsPin(committedProductionRelease.planEntitlements, releaseSourcePin) &&
+        releaseSourcePins !== undefined &&
+        committedProductionPins !== undefined &&
+        sameServerRollbackRuntimePinsForPublish(releaseSourcePins, committedProductionPins) &&
+        releaseSourcePins?.promotionEvidence.hash === committedProductionPins?.promotionEvidence.hash &&
         image?.imageRef === releaseSource.artifactRef &&
         image?.imageDigest === releaseSource.artifactDigest &&
         isCommittedPromotionForTenant(
@@ -5028,12 +5159,22 @@ export class TestApiStore implements ApiStore {
       )
       .sort((left, right) => right.version - left.version)[0];
     const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource?.planEntitlements);
+    const releaseSourcePins = releaseSource
+      ? this._validateReservedVmReleaseManifest({
+          manifest: releaseSource,
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          machineKey: deployment.machineSize,
+          promotion: serverDeploy?.promotion,
+        })
+      : undefined;
 
     if (
       !releaseSource ||
       !releaseSourcePin ||
       releaseSource.provider !== 'server' ||
       releaseSource.artifactKind !== 'server-image' ||
+      !releaseSourcePins ||
       releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
       releaseSource.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
       image?.imageRef !== releaseSource.artifactRef ||
@@ -5074,6 +5215,9 @@ export class TestApiStore implements ApiStore {
     expectedRuntimeVersion: number;
     productionUrl: string;
     sourceReleaseManifestId: string;
+    dbMigrationPoint?: string;
+    runtimeSpec: unknown;
+    promotionEvidence: unknown;
     releaseFence: ProjectReleaseFence;
   }) {
     await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
@@ -5081,6 +5225,39 @@ export class TestApiStore implements ApiStore {
       input,
       input.sourceReleaseManifestId,
     );
+    const metadata = (deployment.metadata ?? {}) as Record<string, unknown>;
+    const serverDeploy = metadata.serverDeploy as Record<string, unknown> | undefined;
+    const releaseSourcePin = parseReleasePlanEntitlementsPin(releaseSource.planEntitlements);
+
+    if (!releaseSourcePin || releaseSource.projectManifestDigest !== input.releaseFence.expectedManifestDigest) {
+      throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+    }
+    const publishedPins = validateServerReleaseCommitPins({
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
+      organizationId: input.organizationId,
+      projectId: input.projectId,
+      environment: 'production',
+      projectManifestDigest: input.releaseFence.expectedManifestDigest,
+      planEntitlements: releaseSourcePin,
+      accessPolicyVersion: releaseSource.accessPolicyVersion,
+      machineKey: deployment.machineSize ?? '',
+      artifactRef: releaseSource.artifactRef,
+      artifactDigest: releaseSource.artifactDigest,
+      dbMigrationPoint: input.dbMigrationPoint,
+      promotion: serverDeploy?.promotion,
+    });
+    const sourcePins = parseServerRollbackRuntimeSpec(releaseSource.runtimeSpec);
+    const sourcePromotion = parseServerRollbackPromotionEvidence(releaseSource.promotionEvidence);
+    if (
+      !sameServerRollbackRuntimePinsForPublish(
+        { runtimeSpec: sourcePins.spec, envOverrides: sourcePins.envOverrides },
+        publishedPins,
+      ) ||
+      sourcePromotion.hash !== publishedPins.promotionEvidence.hash
+    ) {
+      throw new Error('RESERVED_VM_RELEASE_SOURCE_INVALID');
+    }
 
     if (replayed) return deployment;
 
@@ -5104,6 +5281,9 @@ export class TestApiStore implements ApiStore {
       id: id('release_manifest'),
       environment: 'production',
       version: latestVersion + 1,
+      dbMigrationPoint: input.dbMigrationPoint,
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
       createdAt: now(),
     });
     this.deployments.set(deployment.id, updated);
@@ -5393,7 +5573,6 @@ export class TestApiStore implements ApiStore {
     if (!deployment) {
       return undefined;
     }
-
     const project = this.projects.get(deployment.projectId);
 
     const subscription = project ? this.subscriptions.get(project.organizationId) : undefined;
@@ -5446,18 +5625,25 @@ export class TestApiStore implements ApiStore {
     return (await this.getDeploymentAccessContext(deploymentId))?.policy;
   }
 
-  async setDeploymentAccessPolicy(input: {
-    projectId: string;
-    deploymentId: string;
-    mode: DeploymentAccessMode;
-    passwordHash?: string;
-    createdByUserId?: string;
-    expectedVersion?: number;
-    releaseSource?: ReleaseManifestRecord;
-  }) {
+  async getDeploymentAccessPolicyVersion(input: { projectId: string; environment: string; version: number }) {
+    const policy = this.deploymentAccessPolicies.find(
+      (candidate) =>
+        candidate.projectId === input.projectId &&
+        candidate.environment === input.environment &&
+        candidate.version === input.version,
+    );
+    return isValidDeploymentAccessPolicyRecord(policy) ? policy : undefined;
+  }
+
+  async setDeploymentAccessPolicy(input: SetDeploymentAccessPolicyInput) {
     const deployment = await this.getDeployment(input.projectId, input.deploymentId);
 
     if (!deployment) {
+      return undefined;
+    }
+    const project = this.projects.get(deployment.projectId);
+
+    if (!project) {
       return undefined;
     }
 
@@ -5468,7 +5654,7 @@ export class TestApiStore implements ApiStore {
       });
     }
 
-    if (deployment.status === 'READY' && !input.releaseSource) {
+    if (deployment.status === 'READY' && (!input.releaseSource || !input.releaseFence)) {
       throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED'), {
         statusCode: 409,
         code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_REQUIRED',
@@ -5490,6 +5676,27 @@ export class TestApiStore implements ApiStore {
       });
     }
 
+    if (input.releaseSource) {
+      const currentProjectManifest = await this.getLatestProjectManifest(deployment.projectId);
+      const releaseHead = this.releaseManifests
+        .filter(
+          (manifest) => manifest.projectId === deployment.projectId && manifest.environment === deployment.environment,
+        )
+        .sort((left, right) => right.version - left.version)[0];
+
+      if (
+        !input.releaseFence ||
+        input.releaseFence.expectedOrganizationId !== project.organizationId ||
+        input.releaseFence.expectedManifestDigest !== currentProjectManifest?.digest ||
+        releaseHead?.id !== input.releaseSource.id
+      ) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+    }
+
     const mode = normalizeDeploymentAccessMode(input.mode);
     const passwordHash = input.passwordHash?.trim();
 
@@ -5504,6 +5711,101 @@ export class TestApiStore implements ApiStore {
       this.deploymentAccessPolicies
         .filter((policy) => policy.projectId === deployment.projectId && policy.environment === deployment.environment)
         .reduce((max, policy) => Math.max(max, policy.version), 0) + 1;
+    let reboundServerRuntimeSpec: unknown;
+    let retainedServerPromotionEvidence: unknown;
+
+    if (
+      input.releaseSource &&
+      (deployment.provider === 'server' || input.releaseSource.artifactKind === 'server-image')
+    ) {
+      if (
+        deployment.provider !== 'server' ||
+        input.releaseSource.provider !== 'server' ||
+        input.releaseSource.artifactKind !== 'server-image' ||
+        input.releaseSource.accessPolicyVersion !== deployment.accessPolicyVersion ||
+        !input.releaseDatabasePin
+      ) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+
+      const sourcePromotion = parseServerRollbackPromotionEvidence(input.releaseSource.promotionEvidence);
+      const sourcePlanEntitlements = parseReleasePlanEntitlementsPin(input.releaseSource.planEntitlements);
+
+      if (!sourcePlanEntitlements || !input.releaseSource.projectManifestDigest) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+      const validated = validateServerReleaseCommitPins({
+        runtimeSpec: input.releaseSource.runtimeSpec,
+        promotionEvidence: input.releaseSource.promotionEvidence,
+        organizationId: project.organizationId,
+        projectId: deployment.projectId,
+        environment: input.releaseSource.environment,
+        projectManifestDigest: input.releaseSource.projectManifestDigest,
+        planEntitlements: sourcePlanEntitlements,
+        accessPolicyVersion: deployment.accessPolicyVersion,
+        machineKey: deployment.machineSize ?? '',
+        artifactRef: input.releaseSource.artifactRef,
+        artifactDigest: input.releaseSource.artifactDigest,
+        ...(input.releaseSource.dbMigrationPoint ? { dbMigrationPoint: input.releaseSource.dbMigrationPoint } : {}),
+        promotion: sourcePromotion.promotion,
+      });
+      if (rollbackManifestDigest(input.releaseDatabasePin) !== rollbackManifestDigest(validated.runtimeSpec.database)) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+      reboundServerRuntimeSpec = rebindServerRollbackRuntimeSpecAccessPolicy(
+        validated.runtimeSpec,
+        version,
+        input.releaseDatabasePin,
+      );
+      retainedServerPromotionEvidence = validated.promotionEvidence;
+
+      validateServerReleaseCommitPins({
+        runtimeSpec: reboundServerRuntimeSpec,
+        promotionEvidence: retainedServerPromotionEvidence,
+        organizationId: project.organizationId,
+        projectId: deployment.projectId,
+        environment: input.releaseSource.environment,
+        projectManifestDigest: input.releaseSource.projectManifestDigest,
+        planEntitlements: sourcePlanEntitlements,
+        accessPolicyVersion: version,
+        machineKey: deployment.machineSize ?? '',
+        artifactRef: input.releaseSource.artifactRef,
+        artifactDigest: input.releaseSource.artifactDigest,
+        ...(input.releaseDatabasePin.mode === 'exact-ledger'
+          ? { dbMigrationPoint: input.releaseDatabasePin.ledgerDigest }
+          : {}),
+        promotion: sourcePromotion.promotion,
+      });
+    } else if (input.releaseSource?.promotionEvidence !== undefined) {
+      const staticEvidence = parseStaticRollbackRoutingEvidence(input.releaseSource.promotionEvidence);
+
+      if (
+        deployment.provider !== 'static' ||
+        input.releaseSource.provider !== 'static' ||
+        input.releaseSource.artifactKind !== 'static-snapshot' ||
+        staticEvidence.projectId !== deployment.projectId ||
+        staticEvidence.environment !== deployment.environment ||
+        staticEvidence.sourceDeploymentId !== deployment.rolledBackFromId ||
+        staticEvidence.artifactRef !== input.releaseSource.artifactRef ||
+        staticEvidence.artifactDigest !== input.releaseSource.artifactDigest
+      ) {
+        throw Object.assign(new Error('DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH'), {
+          statusCode: 409,
+          code: 'DEPLOYMENT_ACCESS_RELEASE_MANIFEST_MISMATCH',
+        });
+      }
+
+      retainedServerPromotionEvidence = staticEvidence;
+    }
     const policy: DeploymentAccessPolicyRecord = {
       id: id('access_policy'),
       projectId: deployment.projectId,
@@ -5529,6 +5831,14 @@ export class TestApiStore implements ApiStore {
         deploymentId: deployment.id,
         version: latestVersion + 1,
         accessPolicyVersion: version,
+        runtimeSpec: reboundServerRuntimeSpec ?? input.releaseSource.runtimeSpec,
+        promotionEvidence: retainedServerPromotionEvidence ?? input.releaseSource.promotionEvidence,
+        dbMigrationPoint:
+          input.releaseDatabasePin === undefined
+            ? input.releaseSource.dbMigrationPoint
+            : input.releaseDatabasePin.mode === 'exact-ledger'
+              ? input.releaseDatabasePin.ledgerDigest
+              : undefined,
         createdAt: now(),
       });
     }
@@ -5761,6 +6071,8 @@ export class TestApiStore implements ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    runtimeSpec?: unknown;
+    promotionEvidence?: unknown;
     accessPolicyVersion: number;
     planEntitlements: ReleasePlanEntitlementsPin;
     projectManifestDigest: string;
@@ -5794,6 +6106,68 @@ export class TestApiStore implements ApiStore {
       });
     }
 
+    if (input.artifactKind === 'server-image') {
+      const project = this.projects.get(input.projectId);
+      const serverDeploy = (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+        | Record<string, unknown>
+        | undefined;
+      if (
+        !project ||
+        input.provider !== 'server' ||
+        deployment.provider !== 'server' ||
+        !deployment.machineSize ||
+        input.runtimeSpec === undefined ||
+        input.promotionEvidence === undefined
+      ) {
+        throw new DeterministicRollbackError('ROLLBACK_MANIFEST_LEGACY_UNSUPPORTED');
+      }
+      parseServerRollbackPromotionEvidence(input.promotionEvidence);
+      const retained = validateServerReleaseCommitPins({
+        runtimeSpec: input.runtimeSpec,
+        promotionEvidence: input.promotionEvidence,
+        organizationId: project.organizationId,
+        projectId: input.projectId,
+        environment: input.environment,
+        projectManifestDigest: input.projectManifestDigest,
+        planEntitlements,
+        accessPolicyVersion: input.accessPolicyVersion,
+        machineKey: deployment.machineSize,
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
+        promotion: serverDeploy?.promotion,
+      });
+      if (
+        !serverRollbackMachineMatchesRateCard(
+          retained.runtimeSpec.machine,
+          retained.runtimeSpec.machine.rateCardVersion === BUILTIN_RATE_CARD.version ? BUILTIN_RATE_CARD : undefined,
+        )
+      ) {
+        throw new DeterministicRollbackError('ROLLBACK_RUNTIME_SPEC_MACHINE_INVALID');
+      }
+    } else {
+      if (
+        input.provider !== 'static' ||
+        deployment.provider !== 'static' ||
+        input.runtimeSpec !== undefined ||
+        !/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(input.artifactRef) ||
+        !/^sha256:[a-f0-9]{64}$/u.test(input.artifactDigest)
+      ) {
+        throw new DeterministicRollbackError('ROLLBACK_MANIFEST_ARTIFACT_INVALID');
+      }
+      if (input.promotionEvidence !== undefined) {
+        const evidence = parseStaticRollbackRoutingEvidence(input.promotionEvidence);
+        if (
+          evidence.projectId !== input.projectId ||
+          evidence.environment !== input.environment ||
+          evidence.artifactRef !== input.artifactRef ||
+          evidence.artifactDigest !== input.artifactDigest
+        ) {
+          throw new DeterministicRollbackError('ROLLBACK_STATIC_ROUTING_EVIDENCE_INVALID');
+        }
+      }
+    }
+
     const row: ReleaseManifestRecord = {
       id: `rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
       projectId: input.projectId,
@@ -5807,6 +6181,8 @@ export class TestApiStore implements ApiStore {
       storeGeneration: input.storeGeneration,
       configDigest: input.configDigest,
       dbMigrationPoint: input.dbMigrationPoint,
+      runtimeSpec: input.runtimeSpec,
+      promotionEvidence: input.promotionEvidence,
       accessPolicyVersion: input.accessPolicyVersion,
       planEntitlements,
       projectManifestDigest: input.projectManifestDigest,
@@ -5814,6 +6190,17 @@ export class TestApiStore implements ApiStore {
     };
     this.releaseManifests.push(row);
 
+    return row;
+  }
+
+  /** Test-only legacy seeding seam; production `createReleaseManifest` stays strict. */
+  seedLegacyReleaseManifestForTest(input: Omit<ReleaseManifestRecord, 'id' | 'createdAt'>): ReleaseManifestRecord {
+    const row: ReleaseManifestRecord = {
+      ...input,
+      id: `legacy-rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
+      createdAt: new Date().toISOString(),
+    };
+    this.releaseManifests.push(row);
     return row;
   }
 
@@ -5828,8 +6215,25 @@ export class TestApiStore implements ApiStore {
       .slice(0, options?.take ?? 100);
   }
 
+  async isReleaseArtifactRetained(artifactRef: string): Promise<boolean> {
+    return this.releaseManifests.some((manifest) => manifest.artifactRef === artifactRef);
+  }
+
+  async isReleaseArtifactRetainedOutsideProjects(artifactRef: string, excludedProjectIds: string[]): Promise<boolean> {
+    const excluded = new Set(excludedProjectIds);
+    return this.releaseManifests.some(
+      (manifest) => manifest.artifactRef === artifactRef && !excluded.has(manifest.projectId),
+    );
+  }
+
   async getReleaseManifest(projectId: string, manifestId: string) {
     return this.releaseManifests.find((manifest) => manifest.projectId === projectId && manifest.id === manifestId);
+  }
+
+  async getLatestReleaseManifestForDeployment(deploymentId: string) {
+    return this.releaseManifests
+      .filter((manifest) => manifest.deploymentId === deploymentId)
+      .sort((left, right) => right.version - left.version)[0];
   }
 
   private _rollbackOperationKey(projectId: string, idempotencyKey: string) {
@@ -6101,6 +6505,7 @@ export class TestApiStore implements ApiStore {
         existing.projectId !== input.deployment.projectId ||
         existing.provider !== input.deployment.provider ||
         existing.environment !== input.deployment.environment ||
+        existing.machineSize !== input.deployment.machineSize ||
         existing.accessPolicyVersion !== input.deployment.accessPolicyVersion ||
         existing.rolledBackFromId !== input.deployment.rolledBackFromId ||
         persistedMetadata.rollbackOperationId !== operation.id ||
@@ -6292,6 +6697,7 @@ export class TestApiStore implements ApiStore {
         (deployment.metadata as { planEntitlements?: unknown } | undefined)?.planEntitlements,
       );
       const committedPin = parseReleasePlanEntitlementsPin(input.metadata.planEntitlements);
+      const expectedRef = `static-artifacts/sha256/${input.artifactDigest.replace(/^sha256:/u, '')}`;
       const policy = this.deploymentAccessPolicies.find(
         (candidate) =>
           candidate.projectId === input.projectId &&
@@ -6304,7 +6710,7 @@ export class TestApiStore implements ApiStore {
         deployment.provider !== 'static' ||
         deployment.environment !== input.environment ||
         deployment.accessPolicyVersion !== input.accessPolicyVersion ||
-        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        input.artifactRef !== expectedRef ||
         input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !policy ||
         !queuedPin ||
@@ -6402,7 +6808,8 @@ export class TestApiStore implements ApiStore {
         source.provider !== input.provider ||
         source.artifactDigest !== input.artifactDigest ||
         source.accessPolicyVersion !== input.accessPolicyVersion ||
-        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        source.artifactRef !== input.artifactRef ||
+        !/^static-artifacts\/sha256\/[a-f0-9]{64}$/u.test(input.artifactRef) ||
         !sameNullable(source.storeGeneration, input.storeGeneration) ||
         !sameNullable(source.configDigest, input.configDigest) ||
         !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint) ||
@@ -6413,6 +6820,16 @@ export class TestApiStore implements ApiStore {
       ) {
         throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
       }
+
+      const routingEvidence = buildStaticRollbackRoutingEvidence({
+        projectId: input.projectId,
+        environment: input.environment,
+        sourceManifestId: source.id,
+        sourceManifestVersion: source.version,
+        sourceDeploymentId: source.deploymentId,
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+      });
 
       const accessPolicy = this.deploymentAccessPolicies.find(
         (candidate) =>
@@ -6429,6 +6846,14 @@ export class TestApiStore implements ApiStore {
       const existing = existingRows[0];
 
       if (existing) {
+        let existingRoutingEvidence;
+
+        try {
+          existingRoutingEvidence = parseStaticRollbackRoutingEvidence(existing.promotionEvidence);
+        } catch {
+          throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
+        }
+
         if (
           existingRows.length !== 1 ||
           existing.projectId !== input.projectId ||
@@ -6444,6 +6869,7 @@ export class TestApiStore implements ApiStore {
           existing.accessPolicyVersion !== input.accessPolicyVersion ||
           !sameReleasePlanEntitlementsPin(existing.planEntitlements, sourcePin) ||
           existing.projectManifestDigest !== source.projectManifestDigest ||
+          existingRoutingEvidence.hash !== routingEvidence.hash ||
           deployment.status !== 'READY'
         ) {
           throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
@@ -6491,6 +6917,7 @@ export class TestApiStore implements ApiStore {
         ...(input.storeGeneration ? { storeGeneration: input.storeGeneration } : {}),
         ...(input.configDigest ? { configDigest: input.configDigest } : {}),
         ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
+        promotionEvidence: routingEvidence,
         accessPolicyVersion: input.accessPolicyVersion,
         planEntitlements: sourcePin,
         projectManifestDigest: source.projectManifestDigest,
@@ -6540,6 +6967,8 @@ export class TestApiStore implements ApiStore {
       const project = this.projects.get(input.projectId);
       const serverDeploy = input.metadata.serverDeploy as Record<string, unknown> | undefined;
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
+      const retainedRuntime = parseServerRollbackRuntimeSpec(input.runtimeSpec).spec;
+      const retainedPromotion = parseServerRollbackPromotionEvidence(input.promotionEvidence);
       const rollbackOperationId = (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId;
       const rollbackOperation = input.rollbackFence ? this._requireRollbackLease(input.rollbackFence) : undefined;
       const rollbackSource = rollbackOperation ? this._requireRollbackSource(rollbackOperation) : undefined;
@@ -6591,6 +7020,17 @@ export class TestApiStore implements ApiStore {
         deploymentPin !== undefined &&
         sameReleasePlanEntitlementsPin(deploymentPin, reservedRedeployIntent.targetPlanEntitlements) &&
         deploymentProjectManifestDigest === reservedRedeployIntent.targetProjectManifestDigest;
+      const releaseMachineMatchesHistoricalCard = serverRollbackMachineMatchesRateCard(
+        retainedRuntime.machine,
+        retainedRuntime.machine.rateCardVersion === BUILTIN_RATE_CARD.version ? BUILTIN_RATE_CARD : undefined,
+      );
+      const reservedReleaseMachineMatches =
+        !reservedOperation ||
+        !['CREATE', 'REDEPLOY'].includes(reservedOperation.kind) ||
+        (retainedRuntime.machine.key === reservedOperation.targetMachineSize &&
+          retainedRuntime.machine.cpuMillicores === reservedOperation.targetCpuMillicores &&
+          retainedRuntime.machine.memoryMb === reservedOperation.targetMemoryMb &&
+          retainedRuntime.machine.rateCardVersion === reservedOperation.rateCardVersion);
 
       if (
         !project ||
@@ -6608,10 +7048,40 @@ export class TestApiStore implements ApiStore {
         releaseProjectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         !isCommittedPromotionForTenant(
           serverDeploy?.promotion,
-          project.organizationId,
+          project?.organizationId ?? '',
           input.artifactDigest,
           input.artifactRef,
         )
+      ) {
+        throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
+      }
+      const expectedPromotion = buildServerRollbackPromotionEvidence({
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        promotion: serverDeploy.promotion,
+      });
+
+      if (
+        retainedRuntime.organizationId !== input.organizationId ||
+        retainedRuntime.projectId !== input.projectId ||
+        retainedRuntime.projectManifestDigest !== releaseProjectManifestDigest ||
+        retainedRuntime.plan.key !== releasePin.plan ||
+        retainedRuntime.plan.entitlementsDigest !== rollbackPlanEntitlementsDigest(releasePin) ||
+        retainedRuntime.accessPolicyVersion !== deployment.accessPolicyVersion ||
+        retainedRuntime.machine.key !== deployment.machineSize ||
+        !releaseMachineMatchesHistoricalCard ||
+        !reservedReleaseMachineMatches ||
+        retainedRuntime.secretPolicy !== 'CURRENT' ||
+        (retainedRuntime.database.mode === 'none'
+          ? input.dbMigrationPoint !== undefined
+          : input.dbMigrationPoint !== retainedRuntime.database.ledgerDigest) ||
+        retainedPromotion.organizationId !== input.organizationId ||
+        retainedPromotion.projectId !== input.projectId ||
+        retainedPromotion.artifactRef !== input.artifactRef ||
+        retainedPromotion.artifactDigest !== input.artifactDigest ||
+        retainedPromotion.hash !== expectedPromotion.hash
       ) {
         throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
       }
@@ -6633,7 +7103,9 @@ export class TestApiStore implements ApiStore {
             !rollbackSourcePin ||
             !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
             !sameNullable(rollbackSource.configDigest, input.configDigest) ||
-            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
+            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint) ||
+            parseServerRollbackRuntimeSpec(rollbackSource.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+            parseServerRollbackPromotionEvidence(rollbackSource.promotionEvidence).hash !== retainedPromotion.hash))
       ) {
         throw new Error('ROLLBACK_OWNERSHIP_LOST');
       }
@@ -6654,6 +7126,8 @@ export class TestApiStore implements ApiStore {
           !sameNullable(existing.storeGeneration, input.storeGeneration) ||
           !sameNullable(existing.configDigest, input.configDigest) ||
           !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          parseServerRollbackRuntimeSpec(existing.runtimeSpec).spec.hash !== retainedRuntime.hash ||
+          parseServerRollbackPromotionEvidence(existing.promotionEvidence).hash !== retainedPromotion.hash ||
           (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1) ||
           existing.accessPolicyVersion !== deployment.accessPolicyVersion ||
           !sameReleasePlanEntitlementsPin(existing.planEntitlements, releasePin) ||
@@ -6733,6 +7207,8 @@ export class TestApiStore implements ApiStore {
         storeGeneration: input.storeGeneration,
         configDigest: input.configDigest,
         dbMigrationPoint: input.dbMigrationPoint,
+        runtimeSpec: input.runtimeSpec,
+        promotionEvidence: input.promotionEvidence,
         accessPolicyVersion: deployment.accessPolicyVersion,
         planEntitlements: releasePin,
         projectManifestDigest: releaseProjectManifestDigest as string,
@@ -6882,6 +7358,11 @@ export class TestApiStore implements ApiStore {
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */
   async getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined> {
+    return undefined;
+  }
+
+  /** Test store has no historical rows unless a mutation test overrides this lookup. */
+  async getRateCard(_version: number): Promise<{ version: number; data: unknown } | undefined> {
     return undefined;
   }
 
@@ -7492,7 +7973,24 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
-    Object.assign(row, input.patch ?? {}, { state: input.state, version: row.version + 1, updatedAt: now() });
+    const stagesTargetIdeState =
+      input.patch?.targetIdeState !== undefined || input.patch?.targetIdeStateDigest !== undefined;
+    const mustStageTargetIdeState = row.state === 'SOURCE_SANITIZED' && input.state === 'CLONING';
+    if (
+      (stagesTargetIdeState && !mustStageTargetIdeState) ||
+      (mustStageTargetIdeState &&
+        (input.patch?.targetProjectId !== row.targetProjectId ||
+          !validRemixIdeStatePin(input.patch?.targetIdeState, input.patch?.targetIdeStateDigest)))
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+        statusCode: 409,
+        code: 'REMIX_TARGET_DIGEST_MISMATCH',
+      });
+    }
+
+    const patch = input.patch ? { ...input.patch } : {};
+    if (patch.targetIdeState !== undefined) patch.targetIdeState = structuredClone(patch.targetIdeState);
+    Object.assign(row, patch, { state: input.state, version: row.version + 1, updatedAt: now() });
 
     return row;
   }
@@ -7617,10 +8115,102 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
+  async acquireClaimedRemixDatabase(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
+    projectId: string;
+    retentionDays: number;
+    environment: 'development';
+    provisioningDeadlineAt: string;
+  }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
+    const job = this.remixJobs.get(input.remixJobId);
+    const project = this.projects.get(input.projectId);
+    this._assertAccountPurgeMutationAllowed({
+      userIds: [job?.actorUserId],
+      organizationIds: [input.organizationId],
+      projectIds: [job?.sourceProjectId, job?.targetProjectId, input.projectId],
+    });
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+
+    if (
+      !job ||
+      !project ||
+      project.organizationId !== input.organizationId ||
+      project.deletedAt === undefined ||
+      job.state !== 'DATABASE_PINNED' ||
+      job.organizationId !== input.organizationId ||
+      job.operationToken !== input.operationToken ||
+      job.version !== input.expectedVersion ||
+      job.requestHash !== input.requestHash ||
+      job.targetProjectId !== input.projectId ||
+      !job.operationExpiresAt ||
+      Date.parse(job.operationExpiresAt) <= Date.now()
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_OWNERSHIP_LOST')), {
+        statusCode: 409,
+        code: 'REMIX_OWNERSHIP_LOST',
+      });
+    }
+
+    const existing = Array.from(this.databaseInstances.values()).find(
+      (row) => row.projectId === input.projectId && row.environment === input.environment,
+    );
+    if (!existing) {
+      const instance: DatabaseInstanceRecord = {
+        id: id('database_instance'),
+        projectId: input.projectId,
+        organizationId: input.organizationId,
+        environment: input.environment,
+        status: 'PROVISIONING',
+        engine: 'postgres',
+        sizeBytes: 0,
+        retentionDays: input.retentionDays,
+        pitrEnabled: input.retentionDays > 0,
+        provisioningDeadlineAt: input.provisioningDeadlineAt,
+        createdAt: now(),
+        updatedAt: now(),
+      };
+      this.databaseInstances.set(instance.id, instance);
+      return { instance, acquired: true, created: true };
+    }
+
+    if (
+      existing.organizationId !== input.organizationId ||
+      existing.retentionDays !== input.retentionDays ||
+      existing.pitrEnabled !== input.retentionDays > 0 ||
+      (existing.status !== 'PROVISIONING' && existing.status !== 'FAILED')
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+        statusCode: 409,
+        code: 'REMIX_DATABASE_TARGET_MISMATCH',
+      });
+    }
+
+    if (existing.status === 'PROVISIONING') {
+      return { instance: existing, acquired: false, created: false };
+    }
+
+    const instance: DatabaseInstanceRecord = {
+      ...existing,
+      status: 'PROVISIONING',
+      provisioningDeadlineAt: input.provisioningDeadlineAt,
+      lastErrorCode: undefined,
+      lastErrorAt: undefined,
+      updatedAt: now(),
+    };
+    this.databaseInstances.set(instance.id, instance);
+    return { instance, acquired: true, created: false };
+  }
+
   async completeClaimedRemixDatabase(input: {
     remixJobId: string;
     organizationId: string;
     operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
     databaseInstanceId: string;
     projectId: string;
     valueEncrypted: string;
@@ -7632,15 +8222,24 @@ export class TestApiStore implements ApiStore {
       organizationIds: [input.organizationId],
       projectIds: [job?.sourceProjectId, job?.targetProjectId, input.projectId],
     });
+    this._assertNoActiveProjectReleaseBarrier(input.projectId);
+    const project = this.projects.get(input.projectId);
 
     if (
       !job ||
+      !project ||
+      project.organizationId !== input.organizationId ||
+      project.deletedAt === undefined ||
       job.state !== 'DB_FORKING' ||
       job.organizationId !== input.organizationId ||
       job.operationToken !== input.operationToken ||
+      job.version !== input.expectedVersion ||
+      job.requestHash !== input.requestHash ||
       job.targetProjectId !== input.projectId ||
       job.targetDatabaseInstanceId !== input.databaseInstanceId ||
       !instance ||
+      instance.projectId !== input.projectId ||
+      instance.organizationId !== input.organizationId ||
       instance.status !== 'PROVISIONING'
     ) {
       return undefined;
@@ -7648,10 +8247,15 @@ export class TestApiStore implements ApiStore {
 
     instance.status = 'ACTIVE';
     instance.pitrEnabled = true;
-    await this.upsertProjectSecret({
+    const secretKey = `${input.projectId}:DATABASE_URL`;
+    const existingSecret = this.projectSecrets.get(secretKey);
+    this.projectSecrets.set(secretKey, {
+      id: existingSecret?.id ?? id('secret'),
       projectId: input.projectId,
       key: 'DATABASE_URL',
       valueEncrypted: input.valueEncrypted,
+      createdAt: existingSecret?.createdAt ?? now(),
+      updatedAt: now(),
     });
     job.state = 'INDEXING';
     job.dbForked = true;
@@ -7665,6 +8269,8 @@ export class TestApiStore implements ApiStore {
     remixJobId: string;
     organizationId: string;
     operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
     targetProjectId: string;
   }) {
     const job = this.remixJobs.get(input.remixJobId);
@@ -7677,21 +8283,76 @@ export class TestApiStore implements ApiStore {
 
     if (
       !job ||
-      job.state !== 'INDEXING' ||
       job.organizationId !== input.organizationId ||
-      job.operationToken !== input.operationToken ||
-      job.targetProjectId !== input.targetProjectId ||
-      !project
+      !project ||
+      project.organizationId !== input.organizationId
     ) {
       return undefined;
     }
 
+    if (
+      job.requestHash !== input.requestHash ||
+      job.targetProjectId !== input.targetProjectId ||
+      !validRemixIdeStatePin(job.targetIdeState, job.targetIdeStateDigest)
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+        statusCode: 409,
+        code: 'REMIX_TARGET_DIGEST_MISMATCH',
+      });
+    }
+
+    const existingIdeState = this.projectIdeStates.get(project.id);
+    if (job.state === 'COMPLETED') {
+      if (
+        project.deletedAt !== undefined ||
+        !existingIdeState ||
+        remixIdeStateDigest(existingIdeState.state) !== job.targetIdeStateDigest
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+          statusCode: 409,
+          code: 'REMIX_TARGET_DIGEST_MISMATCH',
+        });
+      }
+      return job;
+    }
+
+    if (
+      job.state !== 'INDEXING' ||
+      job.operationToken !== input.operationToken ||
+      !job.operationExpiresAt ||
+      Date.parse(job.operationExpiresAt) <= Date.now() ||
+      job.version !== input.expectedVersion ||
+      project.deletedAt === undefined
+    ) {
+      return undefined;
+    }
+
+    if (existingIdeState && remixIdeStateDigest(existingIdeState.state) !== job.targetIdeStateDigest) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+        statusCode: 409,
+        code: 'REMIX_TARGET_DIGEST_MISMATCH',
+      });
+    }
+
+    const timestamp = now();
+    if (!existingIdeState) {
+      this.projectIdeStates.set(project.id, {
+        projectId: project.id,
+        state: structuredClone(job.targetIdeState),
+        version: 1,
+        updatedByUserId: job.actorUserId,
+        updatedAt: timestamp,
+        createdAt: timestamp,
+      });
+    }
+
     project.deletedAt = undefined;
+    project.updatedAt = timestamp;
     job.state = 'COMPLETED';
     job.operationToken = undefined;
     job.operationExpiresAt = undefined;
     job.version += 1;
-    job.updatedAt = now();
+    job.updatedAt = timestamp;
 
     return job;
   }
@@ -8917,6 +9578,36 @@ export class TestApiStore implements ApiStore {
     this.systemSettings.set(key, { key, value: next, updatedAt: now() });
 
     return next;
+  }
+
+  async advanceStaticArtifactGcCursor(input: {
+    rootIdentity: string;
+    sortedDigests: string[];
+    limit: number;
+  }): Promise<string[]> {
+    if (
+      !/^[a-f0-9]{64}$/u.test(input.rootIdentity) ||
+      !Number.isSafeInteger(input.limit) ||
+      input.limit < 1 ||
+      input.limit > 10_000 ||
+      input.sortedDigests.some((digest) => !/^[a-f0-9]{64}$/u.test(digest))
+    ) {
+      throw new TypeError('STATIC_ARTIFACT_GC_CURSOR_INPUT_INVALID');
+    }
+    const digests = [...new Set(input.sortedDigests)].sort();
+    const key = `static-artifact-gc:${input.rootIdentity}`;
+    const setting = this.systemSettings.get(key);
+    const value = setting?.value as { version?: unknown; lastDigest?: unknown } | undefined;
+    const lastDigest = value?.version === 1 && typeof value.lastDigest === 'string' ? value.lastDigest : undefined;
+    const firstAfter = lastDigest === undefined ? 0 : digests.findIndex((digest) => digest > lastDigest);
+    const start = firstAfter < 0 ? 0 : firstAfter;
+    const batch = digests.slice(start, start + input.limit);
+    this.systemSettings.set(key, {
+      key,
+      value: { version: 1, lastDigest: batch.at(-1) ?? null },
+      updatedAt: now(),
+    });
+    return batch;
   }
 
   async listSystemSettings() {

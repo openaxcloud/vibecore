@@ -219,6 +219,9 @@ export interface RemixJobRecord {
   storageInventory?: unknown;
   storageShareId?: string;
   scanFindings?: unknown;
+  /** Server-only verified IDE state staged until atomic target reveal. */
+  targetIdeState?: unknown;
+  targetIdeStateDigest?: string;
   scrubbedCount: number;
   dbForked: boolean;
   sourceSnapshotId?: string;
@@ -247,6 +250,8 @@ export interface RemixJobTransitionPatch {
   sourceSnapshotHash?: string | null;
   detachedKeys?: unknown;
   scanFindings?: unknown;
+  targetIdeState?: unknown;
+  targetIdeStateDigest?: string;
   scrubbedCount?: number;
   dbForked?: boolean;
   storageConsentVersion?: string | null;
@@ -844,6 +849,10 @@ export interface ReleaseManifestRecord {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  /** Strict self-hashed v1 server runtime envelope; absent only on legacy rows. */
+  runtimeSpec?: unknown;
+  /** Strict self-hashed v1 tenant promotion envelope; absent only on legacy rows. */
+  promotionEvidence?: unknown;
   accessPolicyVersion: number;
   /** Immutable publication policy; legacy NULL rows are deliberately not rollback-capable. */
   planEntitlements?: ReleasePlanEntitlementsPin;
@@ -986,6 +995,7 @@ export interface RollbackDeploymentCreateInput {
   environment: DeploymentRecord['environment'];
   status: DeploymentRecord['status'];
   accessPolicyVersion: number;
+  machineSize?: string;
   rolledBackFromId: string;
   metadata: Record<string, unknown>;
 }
@@ -1033,7 +1043,6 @@ export interface StaticReleaseCommitResult {
   deployment: DeploymentRecord;
   manifest?: ReleaseManifestRecord;
 }
-
 export interface DeploymentAccessContext {
   deploymentId: string;
   projectId: string;
@@ -1042,6 +1051,24 @@ export interface DeploymentAccessContext {
   deploymentStatus: DeploymentRecord['status'];
   projectDeletedAt?: string;
   policy?: DeploymentAccessPolicyRecord;
+}
+
+export type ReleaseDatabasePin = { mode: 'none' } | { mode: 'exact-ledger'; ledgerDigest: string };
+
+export interface SetDeploymentAccessPolicyInput {
+  projectId: string;
+  deploymentId: string;
+  mode: DeploymentAccessMode;
+  passwordHash?: string;
+  createdByUserId?: string;
+  expectedVersion?: number;
+
+  /** READY deployments append a config-only ReleaseManifest from this exact source. */
+  releaseSource?: ReleaseManifestRecord;
+  releaseFence?: ProjectReleaseFence;
+
+  /** Required for a READY server release and exactly equal to the source runtime's DB pin. */
+  releaseDatabasePin?: ReleaseDatabasePin;
 }
 
 export type DeploymentAccessTicketMutationResult =
@@ -1074,6 +1101,8 @@ export interface ServerImageReleaseCommitInput {
   storeGeneration?: string;
   configDigest?: string;
   dbMigrationPoint?: string;
+  runtimeSpec: unknown;
+  promotionEvidence: unknown;
   url: string;
   previewUrl?: string;
   productionUrl?: string;
@@ -2312,17 +2341,24 @@ export interface ApiStore {
   listProjectTemplates(organizationId: string): Promise<ProjectTemplateRecord[]>;
   upsertProjectEnvVar(input: {
     projectId: string;
+    expectedOrganizationId: string;
     key: string;
     value: string;
     scope?: EnvVarScope;
   }): Promise<ProjectEnvironmentRecord>;
   listProjectEnvVars(projectId: string): Promise<ProjectEnvironmentRecord[]>;
-  deleteProjectEnvVar(
-    projectId: string,
-    key: string,
-    scope?: EnvVarScope,
-  ): Promise<ProjectEnvironmentRecord | undefined>;
-  upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
+  deleteProjectEnvVar(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    scope?: EnvVarScope;
+  }): Promise<ProjectEnvironmentRecord | undefined>;
+  upsertProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+    valueEncrypted: string;
+  }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
 
@@ -2499,10 +2535,23 @@ export interface ApiStore {
     slug: string;
     manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
+  acquireClaimedRemixDatabase(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
+    projectId: string;
+    retentionDays: number;
+    environment: 'development';
+    provisioningDeadlineAt: string;
+  }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeClaimedRemixDatabase(input: {
     remixJobId: string;
     organizationId: string;
     operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
     databaseInstanceId: string;
     projectId: string;
     valueEncrypted: string;
@@ -2511,6 +2560,8 @@ export interface ApiStore {
     remixJobId: string;
     organizationId: string;
     operationToken: string;
+    expectedVersion: number;
+    requestHash: string;
     targetProjectId: string;
   }): Promise<RemixJobRecord | undefined>;
   beginRemixCleanup(input: {
@@ -2730,7 +2781,11 @@ export interface ApiStore {
    * atomically in storage.
    */
   reapExpiredImportJobs(nowIso?: string): Promise<string[]>;
-  deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  deleteProjectSecret(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    key: string;
+  }): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;
     expectedOrganizationId: string;
@@ -3263,6 +3318,7 @@ export interface ApiStore {
    */
   createDatabaseInstance(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
@@ -3276,6 +3332,7 @@ export interface ApiStore {
    */
   acquireDatabaseProvisioning(input: {
     projectId: string;
+    expectedOrganizationId: string;
     organizationId: string;
     retentionDays: number;
     region?: string;
@@ -3284,7 +3341,12 @@ export interface ApiStore {
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeDatabaseProvisioning(
     id: string,
-    connection: { projectId: string; key: string; valueEncrypted: string },
+    connection: {
+      projectId: string;
+      expectedOrganizationId: string;
+      key: string;
+      valueEncrypted: string;
+    },
   ): Promise<DatabaseInstanceRecord | undefined>;
   failDatabaseProvisioning(
     id: string,
@@ -3431,6 +3493,9 @@ export interface ApiStore {
     expectedRuntimeVersion: number;
     productionUrl: string;
     sourceReleaseManifestId: string;
+    dbMigrationPoint?: string;
+    runtimeSpec: unknown;
+    promotionEvidence: unknown;
     releaseFence: ProjectReleaseFence;
   }): Promise<DeploymentRecord>;
   markReservedVmRuntimeApplied(input: {
@@ -3493,17 +3558,12 @@ export interface ApiStore {
   >;
   getDeploymentAccessContext(deploymentId: string): Promise<DeploymentAccessContext | undefined>;
   getDeploymentAccessPolicy(deploymentId: string): Promise<DeploymentAccessPolicyRecord | undefined>;
-  setDeploymentAccessPolicy(input: {
+  getDeploymentAccessPolicyVersion(input: {
     projectId: string;
-    deploymentId: string;
-    mode: DeploymentAccessMode;
-    passwordHash?: string;
-    createdByUserId?: string;
-    expectedVersion?: number;
-
-    /** READY deployments append a config-only ReleaseManifest from this source. */
-    releaseSource?: ReleaseManifestRecord;
+    environment: string;
+    version: number;
   }): Promise<DeploymentAccessPolicyRecord | undefined>;
+  setDeploymentAccessPolicy(input: SetDeploymentAccessPolicyInput): Promise<DeploymentAccessPolicyRecord | undefined>;
   isDeploymentAccessUserAuthorized(input: {
     deploymentId: string;
     userId: string;
@@ -3559,6 +3619,8 @@ export interface ApiStore {
     storeGeneration?: string;
     configDigest?: string;
     dbMigrationPoint?: string;
+    runtimeSpec?: unknown;
+    promotionEvidence?: unknown;
     accessPolicyVersion: number;
     planEntitlements: ReleasePlanEntitlementsPin;
     projectManifestDigest: string;
@@ -3569,6 +3631,14 @@ export interface ApiStore {
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
   getReleaseManifest(projectId: string, manifestId: string): Promise<ReleaseManifestRecord | undefined>;
+  getLatestReleaseManifestForDeployment(deploymentId: string): Promise<ReleaseManifestRecord | undefined>;
+  /** Durable GC fence for content-addressed static artifacts. */
+  isReleaseArtifactRetained(artifactRef: string): Promise<boolean>;
+  /**
+   * Account-erasure fence: true only when a manifest outside the projects
+   * being purged still owns the deduplicated static artifact.
+   */
+  isReleaseArtifactRetainedOutsideProjects(artifactRef: string, excludedProjectIds: string[]): Promise<boolean>;
 
   /**
    * Insert, reacquire, or replay a project-scoped operation. `ACQUIRED` is
@@ -3679,6 +3749,9 @@ export interface ApiStore {
    * caller falls back to the built-in card). `data` is the serialized RateCard.
    */
   getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined>;
+
+  /** One immutable historical rate card, used to validate an exact runtime machine pin. */
+  getRateCard(version: number): Promise<{ version: number; data: unknown } | undefined>;
 
   /**
    * The ACTIVE versioned Agent Routing Card row (undefined when none — the
@@ -3869,6 +3942,12 @@ export interface ApiStore {
    * read-modify-write race can't lose a suspend/unsuspend. Returns the new list.
    */
   mutateSystemSettingIds(key: string, change: { add?: string; remove?: string }): Promise<string[]>;
+  /** Cross-replica durable keyset claim for bounded static artifact GC. */
+  advanceStaticArtifactGcCursor(input: {
+    rootIdentity: string;
+    sortedDigests: string[];
+    limit: number;
+  }): Promise<string[]>;
   getEnterpriseSettings(organizationId: string): Promise<EnterpriseSettingsRecord>;
   updateEnterpriseSettings(
     input: Partial<Omit<EnterpriseSettingsRecord, 'updatedAt'>> & { organizationId: string },

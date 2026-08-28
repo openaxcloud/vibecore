@@ -30,6 +30,7 @@ async function canReachDatabase() {
 const runDbTests = (await canReachDatabase()) ? describe.sequential : describe.skip;
 const FINGERPRINT = 'a'.repeat(64);
 const SOURCE_DIGEST = `sha256:${'b'.repeat(64)}`;
+const SOURCE_ARTIFACT_REF = `static-artifacts/sha256/${'b'.repeat(64)}`;
 const CONFIG_DIGEST = `sha256:${'c'.repeat(64)}`;
 const PLAN_ENTITLEMENTS = {
   version: PLAN_ENTITLEMENTS_VERSION,
@@ -91,7 +92,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     version: 1,
     provider: 'static',
     artifactKind: 'static-snapshot',
-    artifactRef: `static-deployments/${previous.id}`,
+    artifactRef: SOURCE_ARTIFACT_REF,
     artifactDigest: SOURCE_DIGEST,
     configDigest: CONFIG_DIGEST,
     accessPolicyVersion: previous.accessPolicyVersion,
@@ -105,7 +106,7 @@ async function seedStaticHistory(store: PrismaApiStore, label: string) {
     version: 2,
     provider: 'static',
     artifactKind: 'static-snapshot',
-    artifactRef: `static-deployments/${current.id}`,
+    artifactRef: `static-artifacts/sha256/${'d'.repeat(64)}`,
     artifactDigest: `sha256:${'d'.repeat(64)}`,
     accessPolicyVersion: current.accessPolicyVersion,
     planEntitlements: PLAN_ENTITLEMENTS,
@@ -240,7 +241,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         deploymentId: operation.deploymentId!,
         environment: 'preview',
         provider: 'static',
-        artifactRef: `static-deployments/${operation.deploymentId}`,
+        artifactRef: SOURCE_ARTIFACT_REF,
         artifactDigest: SOURCE_DIGEST,
         configDigest: CONFIG_DIGEST,
         accessPolicyVersion: seeded.sourceManifest.accessPolicyVersion,
@@ -424,7 +425,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             deploymentId,
             environment: 'preview' as const,
             provider: 'static',
-            artifactRef: `static-deployments/${deploymentId}`,
+            artifactRef: SOURCE_ARTIFACT_REF,
             artifactDigest: SOURCE_DIGEST,
             configDigest: CONFIG_DIGEST,
             accessPolicyVersion: seeded!.sourceManifest.accessPolicyVersion,
@@ -542,18 +543,20 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         },
       });
       for (const version of [1, 2]) {
-        await store.createReleaseManifest({
-          projectId: project.id,
-          deploymentId: created.id,
-          environment: 'preview',
-          version,
-          provider: 'server',
-          artifactKind: 'server-image',
-          artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
-          artifactDigest: `sha256:${String(version).repeat(64)}`,
-          accessPolicyVersion: created.accessPolicyVersion,
-          planEntitlements: PLAN_ENTITLEMENTS,
-          projectManifestDigest: manifestDigest,
+        await prisma.releaseManifest.create({
+          data: {
+            projectId: project.id,
+            deploymentId: created.id,
+            environment: 'preview',
+            version,
+            provider: 'server',
+            artifactKind: 'server-image',
+            artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
+            artifactDigest: `sha256:${String(version).repeat(64)}`,
+            accessPolicyVersion: created.accessPolicyVersion,
+            planEntitlements: PLAN_ENTITLEMENTS,
+            projectManifestDigest: manifestDigest,
+          },
         });
       }
 

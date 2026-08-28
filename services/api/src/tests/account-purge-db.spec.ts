@@ -76,6 +76,8 @@ async function createSessionFencePlan(tx: Prisma.TransactionClient, userId: stri
         workspaceProjectIds: [],
         localSnapshotObjects: [],
         staticDeploymentIds: [],
+        staticArtifactRefs: [],
+        staticAliasDeploymentIds: [],
       },
     },
   });
@@ -106,6 +108,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
             workspaceProjectIds: [projectId],
             localSnapshotObjects: [],
             staticDeploymentIds: [],
+            staticArtifactRefs: [],
+            staticAliasDeploymentIds: [],
           },
         },
       });
@@ -274,6 +278,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         data: { projectId: project.id, provider: 'static', status: 'READY' },
       });
       const manifestOnlyDeploymentId = `manifest-only-${suffix()}`;
+      const staticArtifactDigest = 'a'.repeat(64);
+      const staticArtifactRef = `static-artifacts/sha256/${staticArtifactDigest}`;
       const releaseManifest = await prisma.releaseManifest.create({
         data: {
           projectId: project.id,
@@ -282,8 +288,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
           version: 1,
           provider: 'static',
           artifactKind: 'static-snapshot',
-          artifactRef: manifestOnlyDeploymentId,
-          artifactDigest: `sha256:${'a'.repeat(64)}`,
+          artifactRef: staticArtifactRef,
+          artifactDigest: `sha256:${staticArtifactDigest}`,
         },
       });
       releaseManifestIds.push(releaseManifest.id);
@@ -294,10 +300,21 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         join(projectRoot, '_objects', 'snapshots', project.id, 'checkpoint.zip'),
         join(staticRoot, deployment.id, 'index.html'),
         join(staticRoot, manifestOnlyDeploymentId, 'index.html'),
+        join(staticRoot, '.artifacts', 'sha256', staticArtifactDigest, 'index.html'),
+        join(staticRoot, '.aliases', manifestOnlyDeploymentId),
+        join(staticRoot, '.aliases', 'outside-source'),
       ];
       for (const path of files) {
         await mkdir(join(path, '..'), { recursive: true });
-        await writeFile(path, 'subject-data', 'utf8');
+        await writeFile(
+          path,
+          path.endsWith(manifestOnlyDeploymentId)
+            ? 'outside-target\n'
+            : path.endsWith('outside-source')
+              ? `${manifestOnlyDeploymentId}\n`
+              : 'subject-data',
+          'utf8',
+        );
       }
 
       const store = new PrismaApiStore(prisma, undefined, { ...lease, ttlMs: 5_000 });
@@ -311,8 +328,16 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
                 workspaceStorage: [],
                 snapshotObjects: inventory.localSnapshotObjects,
                 staticDeploymentIds: inventory.staticDeploymentIds,
+                staticArtifactRefs: inventory.staticArtifactRefs,
+                staticAliasDeploymentIds: inventory.staticAliasDeploymentIds,
               },
-              { lease: purgeLease, projectRoot, staticRoot },
+              {
+                lease: purgeLease,
+                projectRoot,
+                staticRoot,
+                isStaticArtifactRetainedOutsidePurge: (artifactRef) =>
+                  store.isReleaseArtifactRetainedOutsideProjects(artifactRef, inventory.bucketProjectIds),
+              },
             );
             return { classes: local.classes, verified: local.verified };
           },
@@ -328,6 +353,8 @@ runDbTests('account purge — PostgreSQL multi-client fencing', () => {
         'local_project_checkpoints',
         'local_workspace_storage',
         'static_deployment_snapshots',
+        'static_release_artifacts',
+        'static_routing_aliases',
       ];
       expect(
         result.proof.classes

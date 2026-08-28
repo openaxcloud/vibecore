@@ -1,9 +1,16 @@
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PLAN_ENTITLEMENTS_VERSION } from '@vibecore/billing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import { appPublicEnglish } from '../app-public-copy.js';
+import {
+  computeStaticArtifactDigest,
+  computeStaticSnapshotDigest,
+  garbageCollectStaticArtifacts,
+  staticDeploymentArtifactRef,
+} from '../deployments.js';
 import {
   reapStaleDeployments,
   resolveDeployBuildTimeoutMs,
@@ -15,6 +22,26 @@ import type { EmailProvider } from '../email.js';
 class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
+
+class StaticManifestAppendFailingStore extends TestApiStore {
+  override async createReleaseManifest(input: Parameters<TestApiStore['createReleaseManifest']>[0]) {
+    if (input.artifactKind === 'static-snapshot') {
+      throw Object.assign(new Error('injected static manifest append failure'), {
+        code: 'STATIC_MANIFEST_APPEND_INJECTED_FAILURE',
+      });
+    }
+
+    return super.createReleaseManifest(input);
+  }
+}
+
+const STATIC_RELEASE_PLAN_ENTITLEMENTS = {
+  version: PLAN_ENTITLEMENTS_VERSION,
+  plan: 'pro' as const,
+  badgeRequired: false,
+  publishRegion: 'platform-default',
+  publishRegions: 'all' as const,
+};
 
 function buildTestApiApp(options: ApiAppOptions = {}) {
   return buildApiApp({ emailProvider: new QuietEmailProvider(), ...options });
@@ -103,8 +130,8 @@ describe('internal deploy build + reap endpoints', () => {
   });
 
   async function setup(options: ApiAppOptions) {
-    const store = new TestApiStore();
-    const app = await buildTestApiApp({ store, ...options });
+    const store = options.store instanceof TestApiStore ? options.store : new TestApiStore();
+    const app = await buildTestApiApp({ ...options, store });
 
     const register = await app.inject({
       method: 'POST',
@@ -133,6 +160,15 @@ describe('internal deploy build + reap endpoints', () => {
     return { app, store, auth, projectId };
   }
 
+  async function exactStaticReleaseMetadata(store: TestApiStore, projectId: string) {
+    const manifest = await store.getLatestProjectManifest(projectId);
+    if (!manifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+    return {
+      planEntitlements: STATIC_RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: manifest.digest,
+    };
+  }
+
   it('drives a QUEUED deployment to READY with logs flushed', async () => {
     const { app, store, auth, projectId } = await setup({
       staticBuildRunner: async (input) => {
@@ -157,6 +193,7 @@ describe('internal deploy build + reap endpoints', () => {
       status: 'QUEUED',
       buildCommand: 'npm run build',
       outputDirectory: 'dist',
+      metadata: await exactStaticReleaseMetadata(store, projectId),
     });
 
     const built = await app.inject({
@@ -199,6 +236,7 @@ describe('internal deploy build + reap endpoints', () => {
       status: 'QUEUED',
       buildCommand: 'npm run build',
       outputDirectory: 'dist',
+      metadata: await exactStaticReleaseMetadata(store, projectId),
     });
 
     const built = await app.inject({
@@ -219,6 +257,55 @@ describe('internal deploy build + reap endpoints', () => {
     const persisted = await store.getDeployment(projectId, queued.id);
     expect(persisted?.status).toBe('FAILED');
     expect(JSON.stringify(persisted?.logs)).toContain('build failed');
+
+    await app.close();
+  });
+
+  it('never exposes READY or a manifest when the atomic static append fails', async () => {
+    const store = new StaticManifestAppendFailingStore();
+    const { app, auth, projectId } = await setup({
+      store,
+      staticBuildRunner: async (input) => {
+        const root = await mkdtemp(join(tmpdir(), `vc-build-${input.projectId}-`));
+        const outputDir = join(root, 'dist');
+        await mkdir(outputDir, { recursive: true });
+        await writeFile(join(outputDir, 'index.html'), '<!doctype html><h1>atomic</h1>', 'utf8');
+        return { ok: true, outputDir, logs: [] };
+      },
+    });
+    const queued = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      status: 'QUEUED',
+      buildCommand: 'npm run build',
+      outputDirectory: 'dist',
+      metadata: await exactStaticReleaseMetadata(store, projectId),
+    });
+
+    const built = await app.inject({
+      method: 'POST',
+      url: '/internal/deployments/build',
+      headers: { authorization: 'Bearer internal-secret-test' },
+      payload: {
+        projectId,
+        deploymentId: queued.id,
+        userId: auth.user.id,
+        buildInput: { provider: 'static', buildCommand: 'npm run build', outputDirectory: 'dist' },
+      },
+    });
+
+    expect(built.statusCode).toBe(200);
+    expect(built.json().deployment.status).toBe('FAILED');
+    expect((await store.getDeployment(projectId, queued.id))?.status).toBe('FAILED');
+    expect(await store.listReleaseManifests(projectId, 'preview')).toEqual([]);
+    const artifactDigest = await computeStaticSnapshotDigest(queued.id);
+    expect(artifactDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    const artifactRef = staticDeploymentArtifactRef(artifactDigest!);
+    expect(await computeStaticArtifactDigest(artifactRef)).toBe(artifactDigest);
+
+    const gc = await garbageCollectStaticArtifacts((ref) => store.isReleaseArtifactRetained(ref));
+    expect(gc.removed).toContain(artifactRef);
+    expect(await computeStaticArtifactDigest(artifactRef)).toBeUndefined();
 
     await app.close();
   });
@@ -291,6 +378,57 @@ describe('internal deploy build + reap endpoints', () => {
     expect((await store.getDeployment(projectId, stale.id))?.status).toBe('FAILED');
 
     delete process.env.DEPLOY_BUILD_TIMEOUT_MS;
+    await app.close();
+  });
+
+  it('runs bounded static artifact GC from the production reaper and preserves manifest references', async () => {
+    const { app, store, projectId } = await setup({ staticBuildRunner: async () => ({ ok: true, logs: [] }) });
+    const orphanDigest = 'c'.repeat(64);
+    const retainedDigest = 'd'.repeat(64);
+    const orphanRef = `static-artifacts/sha256/${orphanDigest}`;
+    const retainedRef = `static-artifacts/sha256/${retainedDigest}`;
+    await Promise.all([
+      mkdir(join(tempStaticRoot, '.artifacts', 'sha256', orphanDigest), { recursive: true }),
+      mkdir(join(tempStaticRoot, '.artifacts', 'sha256', retainedDigest), { recursive: true }),
+    ]);
+    await Promise.all([
+      writeFile(join(tempStaticRoot, '.artifacts', 'sha256', orphanDigest, 'index.html'), 'orphan', 'utf8'),
+      writeFile(join(tempStaticRoot, '.artifacts', 'sha256', retainedDigest, 'index.html'), 'retained', 'utf8'),
+    ]);
+    const projectManifest = await store.getLatestProjectManifest(projectId);
+    if (!projectManifest) throw new Error('missing project manifest fixture');
+    const retainedDeployment = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      metadata: await exactStaticReleaseMetadata(store, projectId),
+    });
+    await store.createReleaseManifest({
+      projectId,
+      deploymentId: retainedDeployment.id,
+      environment: 'preview',
+      version: 1,
+      provider: 'static',
+      artifactKind: 'static-snapshot',
+      artifactRef: retainedRef,
+      artifactDigest: `sha256:${retainedDigest}`,
+      accessPolicyVersion: 1,
+      planEntitlements: STATIC_RELEASE_PLAN_ENTITLEMENTS,
+      projectManifestDigest: projectManifest.digest,
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/internal/deployments/reap',
+      headers: { authorization: 'Bearer internal-secret-test' },
+      payload: {},
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().staticArtifactGc).toEqual({ removed: [orphanRef], retained: [retainedRef] });
+    await expect(computeStaticArtifactDigest(orphanRef)).resolves.toBeUndefined();
+    await expect(computeStaticArtifactDigest(retainedRef)).resolves.toBeTruthy();
     await app.close();
   });
 });
