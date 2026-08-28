@@ -34594,8 +34594,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * n'a pas été préparé.
          */
         return reply.code(409).send({
-          error:
-            "Des migrations sont déclarées mais la base de production n'est pas encore joignable (PROD_DATABASE_URL absente).",
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE_MESSAGE', transactionalLocaleForRequest(request)),
           code: 'MIGRATION_TARGET_UNAVAILABLE',
         });
       }
@@ -34633,9 +34632,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
 
       if (!migrationOutcome.ok) {
-        // 409 : le publish n'a pas eu lieu ; l'état de la base est décrit par le code.
+        /*
+         * 409 : le publish n'a pas eu lieu ; l'état de la base est décrit par le
+         * code. Le message rendu vient du CATALOGUE, indexé sur ce code stable :
+         * `migrationOutcome.error` est un motif technique rédigé en français
+         * pour l'audit et les journaux, et le renvoyer tel quel servait ce
+         * français à tout le monde, y compris à un utilisateur anglophone. Le
+         * détail technique reste disponible dans `detail`, et l'entrée d'audit
+         * juste au-dessus le conserve intégralement.
+         */
+        const migrationCopyKey = `${migrationOutcome.code}_MESSAGE` as AppPublicCopyKey;
+
         return reply.code(409).send({
-          error: migrationOutcome.error,
+          error: appPublicCopy(migrationCopyKey, transactionalLocaleForRequest(request)),
+          detail: migrationOutcome.error,
           code: migrationOutcome.code,
           executionId: migrationOutcome.executionId,
           state: migrationOutcome.state,

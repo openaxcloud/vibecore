@@ -1422,6 +1422,24 @@
       "justification": "These are machine discriminants on the guard's verdict object (`reason:`), never rendered: no component reads `reason`, and the halt notice shown to the user comes from the workbenchRuntime.patch.* catalogue in both locales.",
       "owner": "runtime-platform-and-i18n",
       "expiresOn": "2027-08-24"
+    },
+    {
+      "id": "api-db-migration-internal-reasons",
+      "path": "services/api/src/db-migration-execution.ts",
+      "rule": "*",
+      "textPattern": "^(?:backup en phase \\{…\\}|backup non abouti avant \\{…\\} ms \\(phase=\\{…\\}\\)|inconnue|moteur \\{…\\} : pas de DDL transactionnel, un échec partiel ne serait pas annulable|une migration est déjà active sur \\{…\\}/\\{…\\}|backup refusé par le provisionneur — aucune instruction exécutée|le backup n'a pas pu être lancé — migration refusée, la base est intacte|backup non vérifié|backup non vérifié \\(\\{…\\}\\) — migration refusée, aucune instruction exécutée|aboutissement non observé|migration annulée, base inchangée : \\{…\\}|COMMIT non confirmé — état de la base indéterminé, reprise manuelle requise|COMMIT non confirmé : l'état du schéma est indéterminé, reprise manuelle requise)$",
+      "justification": "Technical reasons of the publish-migration state machine. Written to DBMigrationExecution.error and to the audit entry, and returned to the caller only under `detail`; the rendered message now comes from the catalogue, keyed on the stable MIGRATION_* code. Translating these would break audit correlation with the recorded state.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "api-database-provisioner-internal",
+      "path": "services/api/src/database-provisioner.ts",
+      "rule": "*",
+      "textPattern": "^(?:\\{…\\}:production|provisionneur inactif : aucun backup réel|SHARED_TENANT_UNAVAILABLE|Backup CR \\{…\\} introuvable|manager (?:apply|get|getSecret) failed: \\{…\\})$",
+      "justification": "Provisioner-internal identifiers and operator diagnostics (Kubernetes CR names, manager call failures, a resource key). They reach logs and audit, never a screen; the API converts provisioner failures into stable codes before answering.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
     }
   ]
 }

@@ -2578,5 +2578,29 @@
   "DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER": {
     "en": "Password protection is only available for static deployments. This deployment is served from another domain, where the password gate cannot be enforced.",
     "fr": "La protection par mot de passe n’est disponible que pour les déploiements statiques. Ce déploiement est servi depuis un autre domaine, où la porte de mot de passe ne peut pas être appliquée."
+  },
+  "MIGRATION_TARGET_UNAVAILABLE_MESSAGE": {
+    "en": "Migrations are declared but the production database is not reachable yet (PROD_DATABASE_URL is missing).",
+    "fr": "Des migrations sont déclarées mais la base de production n’est pas encore joignable (PROD_DATABASE_URL absente)."
+  },
+  "MIGRATION_ENGINE_UNSUPPORTED_MESSAGE": {
+    "en": "This database engine has no transactional DDL: a partial failure could not be rolled back, so the migration is refused.",
+    "fr": "Ce moteur de base n’a pas de DDL transactionnel : un échec partiel ne serait pas annulable, la migration est donc refusée."
+  },
+  "MIGRATION_LOCK_HELD_MESSAGE": {
+    "en": "A migration is already running for this project and environment. Wait for it to finish, then publish again.",
+    "fr": "Une migration est déjà en cours pour ce projet et cet environnement. Attendez la fin, puis republiez."
+  },
+  "MIGRATION_BACKUP_UNVERIFIED_MESSAGE": {
+    "en": "The backup could not be verified — the migration was refused and your database is untouched.",
+    "fr": "Le backup n’a pas pu être vérifié — la migration a été refusée et votre base est intacte."
+  },
+  "MIGRATION_FAILED_SAFE_MESSAGE": {
+    "en": "The migration was rolled back. Your database is unchanged and the previous version is still being served.",
+    "fr": "La migration a été annulée. Votre base est inchangée et la version précédente reste servie."
+  },
+  "MIGRATION_MANUAL_RECOVERY_MESSAGE": {
+    "en": "The commit was not confirmed, so the schema state is undetermined and needs manual recovery. Publishing was refused to keep the previous version live.",
+    "fr": "Le COMMIT n’a pas été confirmé : l’état du schéma est indéterminé et demande une reprise manuelle. La publication a été refusée pour continuer à servir la version précédente."
   }
 }
