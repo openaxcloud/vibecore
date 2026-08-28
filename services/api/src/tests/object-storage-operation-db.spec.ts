@@ -103,6 +103,7 @@ async function insertVerifiedDatabasePlan(
   `);
   return receipt;
 }
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 
 async function canReachSagaTables(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -1813,8 +1814,12 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       actorUserId: actor.id,
       expectedProjectName: seeded.project.name,
     });
-    const erasePhysical = vi.fn(async () => undefined);
+    let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
+    const erasePhysical = vi.fn(async (_assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => {
+      registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
+    });
     const verifyPhysicalAbsence = vi.fn(async (_assertLease, lease: ObjectStorageOperationLease) => {
+      registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
       const volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
         operationId: lease.operationId,
         projectId: seeded.project.id,
@@ -1836,6 +1841,8 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          artifactRegistry: registryReceipt!,
           workspaceManager: {
             schemaVersion: 'workspace-project-erasure-v3',
             projectId: seeded.project.id,
@@ -2088,11 +2095,15 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       actorUserId: actor.id,
       expectedProjectName: seeded.project.name,
     });
-    const erasePhysical = vi.fn(async () => undefined);
+    let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
+    const erasePhysical = vi.fn(async (_assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => {
+      registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
+    });
     let verificationAttempts = 0;
     const verifyPhysicalAbsence = vi.fn(async (_assertLease, lease: ObjectStorageOperationLease) => {
       verificationAttempts += 1;
       if (verificationAttempts === 1) throw new Error('SIMULATED_CRASH_AFTER_PROVIDER_EFFECT');
+      registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
       const volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
         operationId: lease.operationId,
         projectId: seeded.project.id,
@@ -2114,6 +2125,8 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          artifactRegistry: registryReceipt!,
           workspaceManager: {
             schemaVersion: 'workspace-project-erasure-v3',
             projectId: seeded.project.id,
@@ -2184,6 +2197,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
 
   it('deletes retained WorkspaceRuntime recovery inventory only in the final Project transaction', async () => {
     const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
     const seeded = await seedProject(prisma, 'object-saga-delete-runtime-fence');
     const shape = request({
       kind: 'PROJECT_PERMANENT_DELETE',
@@ -2196,8 +2210,10 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
     });
     let lease: ObjectStorageOperationLease | undefined;
     let databaseReceipt: ProjectDatabaseErasureReceipt | undefined;
+    let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
+    let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
     const runtimeEffectId = `runtime-draining-${suffix()}`;
-    const verification = {
+    const verification = () => ({
       outcome: 'VERIFIED_ABSENT' as const,
       verifier: 'workspace-runtime-fence-test-v1',
       evidence: {
@@ -2211,7 +2227,9 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
         },
         gcs: { bucketAbsent: true, objectCount: 0 },
-        managedDatabase: undefined as unknown as ProjectDatabaseErasureReceipt,
+        managedDatabase: databaseReceipt!,
+        cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+        artifactRegistry: registryReceipt!,
         workspaceManager: {
           schemaVersion: 'workspace-project-erasure-v3',
           projectId: seeded.project.id,
@@ -2229,25 +2247,27 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
             ownedRuntimeSecretsAbsent: true,
             persistentVolumeClaimsAbsent: true,
           },
-          volumes: {
-            schemaVersion: 'project-volume-erasure-receipt-v1' as const,
-            operationId: 'unverified-operation',
-            projectId: seeded.project.id,
-            organizationId: seeded.source.id,
-            inventoryHash: '0'.repeat(64),
-            verificationHash: '0'.repeat(64),
-            finalScanHash: '0'.repeat(64),
-            quiescenceHash: '0'.repeat(64),
-            entryCount: 0,
-            erasedEntryCount: 0,
-            alreadyAbsentEntryCount: 0,
-            persistentVolumeClaimsAbsent: true as const,
-            persistentVolumesAbsent: true as const,
-            providerVolumesAbsent: true as const,
-          },
+          volumes:
+            volumeProof ??
+            ({
+              schemaVersion: 'project-volume-erasure-receipt-v1',
+              operationId: 'unverified-operation',
+              projectId: seeded.project.id,
+              organizationId: seeded.source.id,
+              inventoryHash: '0'.repeat(64),
+              verificationHash: '0'.repeat(64),
+              finalScanHash: '0'.repeat(64),
+              quiescenceHash: '0'.repeat(64),
+              entryCount: 0,
+              erasedEntryCount: 0,
+              alreadyAbsentEntryCount: 0,
+              persistentVolumeClaimsAbsent: true,
+              persistentVolumesAbsent: true,
+              providerVolumesAbsent: true,
+            } as const),
         },
       },
-    };
+    });
 
     try {
       lease = await prisma.$transaction(async (tx) => {
@@ -2255,18 +2275,18 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         if (acquired.kind !== 'ACQUIRED') throw new Error('EXPECTED_ACQUIRED');
         await recordPermanentDeletionStaticArtifactPlan(tx, acquired.lease, EMPTY_STATIC_ARTIFACT_PLAN);
         databaseReceipt = await insertVerifiedDatabasePlan(tx, acquired.lease, seeded.project.id, seeded.source.id);
-        verification.evidence.managedDatabase = databaseReceipt;
         await markObjectStorageOperationEffectStarted(tx, acquired.lease, { phase: 'workspace-erasure' });
         await beginObjectStorageOperationVerification(tx, acquired.lease, { phase: 'workspace-verify' });
         return acquired.lease;
       });
+      registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
       await expect(
-        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification: verification() })),
       ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_PROJECT_VOLUME_ERASURE_UNVERIFIED' });
       await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toMatchObject({
         id: seeded.project.id,
       });
-      verification.evidence.workspaceManager.volumes = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
+      volumeProof = await seedVerifiedEmptyProjectVolumeErasure(prisma, {
         operationId: lease.operationId,
         projectId: seeded.project.id,
         organizationId: seeded.source.id,
@@ -2298,7 +2318,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       `;
 
       await expect(
-        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification: verification() })),
       ).rejects.toMatchObject({ code: 'OBJECT_STORAGE_OPERATION_PROJECT_RUNTIME_EFFECT_ACTIVE' });
       await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toMatchObject({
         id: seeded.project.id,
@@ -2321,19 +2341,20 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       `;
 
       await expect(
-        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification })),
+        prisma.$transaction((tx) => finalizeObjectStorageOperation(tx, lease!, { verification: verification() })),
       ).resolves.toMatchObject({ status: 'COMMITTED' });
       await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.toBeNull();
       await expect(prisma.workspaceRuntime.count({ where: { projectId: seeded.project.id } })).resolves.toBe(0);
     } finally {
       await prisma.workspaceRuntime.deleteMany({ where: { projectId: seeded.project.id } }).catch(() => undefined);
       await cleanupMutableSaga(prisma, seeded.project.id, [seeded.source.id, seeded.target.id]);
-      await prisma.$disconnect();
+      await store.disconnect();
     }
   });
 
   it('finalizes and replays permanent deletion after Project cascade and enforces append-only history', async () => {
     const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
     const seeded = await seedProject(prisma, 'object-saga-delete');
     const shape = request({
       kind: 'PROJECT_PERMANENT_DELETE',
@@ -2395,7 +2416,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       prisma.projectPermanentDeletionArtifactPlan.count({ where: { operationId: acquired.operation.id } }),
     ).resolves.toBe(10_001);
 
-    const finalized = await prisma.$transaction(
+    const phase = await prisma.$transaction(
       async (tx) => {
         const databaseReceipt = await insertVerifiedDatabasePlan(
           tx,
@@ -2412,44 +2433,54 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
           ownershipEpoch: seeded.project.ownershipEpoch,
           fencingToken: acquired.lease.fencingToken,
         });
-        const verification = {
-          outcome: 'VERIFIED_ABSENT' as const,
-          verifier: 'gcs-inventory-v1',
-          evidence: {
-            schemaVersion: 'project-permanent-erasure-v3',
-            filesystem: {
-              projectTreeAbsent: true,
-              workspaceTreesAbsent: true,
-              objectCacheAbsent: true,
-              staticSnapshotsAbsent: true,
-              staticAliasesAbsent: true,
-              staticArtifactSummary,
-            },
-            gcs: { bucketAbsent: true, objectCount: 0 },
-            managedDatabase: databaseReceipt,
-            workspaceManager: {
-              schemaVersion: 'workspace-project-erasure-v3',
-              projectId: seeded.project.id,
-              organizationId: seeded.source.id,
-              databaseInventoryRetained: true,
-              runtimeEffectsDrained: true,
-              kubernetes: {
-                deploymentsAbsent: true,
-                replicaSetsAbsent: true,
-                podsAbsent: true,
-                servicesAbsent: true,
-                endpointsAbsent: true,
-                endpointSlicesAbsent: true,
-                ingressesAbsent: true,
-                ownedRuntimeSecretsAbsent: true,
-                persistentVolumeClaimsAbsent: true,
-              },
-              volumes,
-            },
+        return { lease: acquired.lease, databaseReceipt, volumes };
+      },
+      { timeout: 30_000 },
+    );
+    const { lease, databaseReceipt, volumes } = phase;
+    const registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, seeded.project.id);
+    const verification = {
+      outcome: 'VERIFIED_ABSENT' as const,
+      verifier: 'gcs-inventory-v1',
+      evidence: {
+        schemaVersion: 'project-permanent-erasure-v3',
+        filesystem: {
+          projectTreeAbsent: true,
+          workspaceTreesAbsent: true,
+          objectCacheAbsent: true,
+          staticSnapshotsAbsent: true,
+          staticAliasesAbsent: true,
+          staticArtifactSummary,
+        },
+        gcs: { bucketAbsent: true, objectCount: 0 },
+        managedDatabase: databaseReceipt,
+        cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+        artifactRegistry: registryReceipt,
+        workspaceManager: {
+          schemaVersion: 'workspace-project-erasure-v3',
+          projectId: seeded.project.id,
+          organizationId: seeded.source.id,
+          databaseInventoryRetained: true,
+          runtimeEffectsDrained: true,
+          kubernetes: {
+            deploymentsAbsent: true,
+            replicaSetsAbsent: true,
+            podsAbsent: true,
+            servicesAbsent: true,
+            endpointsAbsent: true,
+            endpointSlicesAbsent: true,
+            ingressesAbsent: true,
+            ownedRuntimeSecretsAbsent: true,
+            persistentVolumeClaimsAbsent: true,
           },
-        };
+          volumes,
+        },
+      },
+    };
+    const finalized = await prisma.$transaction(
+      async (tx) => {
         await expect(
-          finalizeObjectStorageOperation(tx, acquired.lease, {
+          finalizeObjectStorageOperation(tx, lease, {
             verification: {
               ...verification,
               evidence: {
@@ -2465,7 +2496,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
         await expect(tx.project.findUnique({ where: { id: seeded.project.id } })).resolves.toMatchObject({
           id: seeded.project.id,
         });
-        return finalizeObjectStorageOperation(tx, acquired.lease, {
+        return finalizeObjectStorageOperation(tx, lease, {
           verification,
         });
       },
@@ -2618,7 +2649,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       await replayClient.organization
         .deleteMany({ where: { id: { in: [seeded.source.id, seeded.target.id] } } })
         .catch(() => undefined);
-      await Promise.allSettled([prisma.$disconnect(), replayClient.$disconnect()]);
+      await Promise.allSettled([store.disconnect(), replayClient.$disconnect()]);
     }
   });
 });

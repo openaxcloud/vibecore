@@ -2257,6 +2257,8 @@ function assertPermanentDeletionEvidence(
 ): void {
   const filesystem = evidence.filesystem;
   const gcs = evidence.gcs;
+  const cloudBuild = evidence.cloudBuild;
+  const artifactRegistry = evidence.artifactRegistry;
   const workspaceManager = evidence.workspaceManager;
   const managedDatabase = evidence.managedDatabase;
   if (
@@ -2287,6 +2289,27 @@ function assertPermanentDeletionEvidence(
     managedDatabase.proof.kubernetesAbsent !== true ||
     managedDatabase.proof.sharedTenantsAbsent !== true ||
     managedDatabase.proof.backupGenerationsAbsent !== true ||
+    !cloudBuild ||
+    typeof cloudBuild !== 'object' ||
+    Array.isArray(cloudBuild) ||
+    typeof cloudBuild.producerCount !== 'number' ||
+    !Number.isSafeInteger(cloudBuild.producerCount) ||
+    cloudBuild.producerCount < 0 ||
+    typeof cloudBuild.terminalProofCount !== 'number' ||
+    cloudBuild.terminalProofCount !== cloudBuild.producerCount ||
+    typeof cloudBuild.lateSuccessCount !== 'number' ||
+    !Number.isSafeInteger(cloudBuild.lateSuccessCount) ||
+    cloudBuild.lateSuccessCount < 0 ||
+    cloudBuild.lateSuccessCount > cloudBuild.producerCount ||
+    !artifactRegistry ||
+    typeof artifactRegistry !== 'object' ||
+    Array.isArray(artifactRegistry) ||
+    artifactRegistry.schemaVersion !== 1 ||
+    typeof artifactRegistry.inventoryHash !== 'string' ||
+    typeof artifactRegistry.dispositionDigest !== 'string' ||
+    typeof artifactRegistry.packageCount !== 'number' ||
+    !Number.isSafeInteger(artifactRegistry.packageCount) ||
+    artifactRegistry.packageCount < 0 ||
     !workspaceManager ||
     typeof workspaceManager !== 'object' ||
     Array.isArray(workspaceManager) ||
@@ -2339,7 +2362,7 @@ function assertPermanentDeletionEvidence(
   ) {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',
-      'Permanent deletion requires exhaustive filesystem and GCS absence proof',
+      'Permanent deletion requires exhaustive producer, registry, filesystem and GCS absence proof',
       409,
     );
   }
@@ -3508,6 +3531,78 @@ export async function finalizeObjectStorageOperation(
         409,
       );
     }
+
+    const registryRows = await tx.$queryRaw<
+      Array<{ inventoryHash: string; state: string; receipt: ObjectStorageJsonValue | null }>
+    >`
+      SELECT "inventoryHash", "state"::text AS "state", "receipt"
+      FROM "ProjectRegistryErasure"
+      WHERE "operationId" = ${locked.row.id}
+        AND "projectIdSnapshot" = ${permanentReceipt.scope.projectIdSnapshot}
+      FOR UPDATE
+    `;
+    const registry = registryRows[0];
+    const registryProof = verification.evidence.artifactRegistry as ObjectStorageJsonObject;
+    if (
+      !registry ||
+      registry.state !== 'VERIFIED' ||
+      !registry.receipt ||
+      registry.inventoryHash !== registryProof.inventoryHash ||
+      canonicalJson(registry.receipt) !== canonicalJson(registryProof)
+    ) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_REGISTRY_ERASURE_INCOMPLETE',
+        'Project registry erasure does not have a matching durable verified receipt',
+        409,
+      );
+    }
+    const imageBuilds = await tx.$queryRaw<
+      Array<{
+        id: string;
+        phase: string;
+        providerBuildId: string | null;
+        providerStatus: string | null;
+        cancellationProof: unknown;
+      }>
+    >`
+      SELECT "id", "phase"::text AS "phase", "providerBuildId", "providerStatus", "cancellationProof"
+      FROM "AppImageBuildOperation"
+      WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+      ORDER BY "id"
+      FOR UPDATE
+    `;
+    const terminalBuildStatuses = new Set(['SUCCESS', 'FAILURE', 'INTERNAL_ERROR', 'TIMEOUT', 'CANCELLED', 'EXPIRED']);
+    const invalidBuildProof = imageBuilds.some(({ phase, providerBuildId, providerStatus, cancellationProof }) => {
+      if (
+        phase !== 'CANCELLED' ||
+        !cancellationProof ||
+        typeof cancellationProof !== 'object' ||
+        Array.isArray(cancellationProof)
+      ) {
+        return true;
+      }
+      const proof = cancellationProof as Record<string, unknown>;
+      if (proof.terminal !== true) return true;
+      if (proof.providerSubmissionAbsent === true) return providerBuildId !== null || providerStatus !== null;
+      return (
+        !providerBuildId ||
+        !providerStatus ||
+        !terminalBuildStatuses.has(providerStatus) ||
+        proof.buildId !== providerBuildId ||
+        proof.providerStatus !== providerStatus ||
+        proof.requiresRegistrySweep !== true ||
+        proof.lateSuccess !== (providerStatus === 'SUCCESS') ||
+        typeof proof.verifiedAt !== 'string' ||
+        !Number.isFinite(Date.parse(proof.verifiedAt))
+      );
+    });
+    if (invalidBuildProof) {
+      throw operationError(
+        'OBJECT_STORAGE_OPERATION_PROJECT_IMAGE_BUILD_ACTIVE',
+        'Project Cloud Build producers do not have terminal cancellation proofs',
+        409,
+      );
+    }
     const runtimeEffects = await tx.$queryRaw<Array<{ id: string; ownershipEpoch: number; state: string }>>`
       SELECT "id", "ownershipEpoch", "state"::text AS "state"
       FROM "ProjectRuntimeEffect"
@@ -3533,6 +3628,7 @@ export async function finalizeObjectStorageOperation(
     await tx.$executeRaw`DELETE FROM "WorkspaceRuntime" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "ScheduledTask" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "ProjectRuntimeEffect" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
+    await tx.$executeRaw`DELETE FROM "AppImageBuildOperation" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "Project" WHERE "id" = ${permanentReceipt.scope.projectIdSnapshot}`;
     const cascade = await tx.$queryRaw<
       Array<{
@@ -3547,6 +3643,7 @@ export async function finalizeObjectStorageOperation(
         databaseSnapshotRowsAbsent: boolean;
         databaseRestoreRowsAbsent: boolean;
         databaseErasurePlanRetained: boolean;
+        appImageBuildRowsAbsent: boolean;
       }>
     >(Prisma.sql`
       SELECT
@@ -3599,7 +3696,11 @@ export async function finalizeObjectStorageOperation(
           WHERE "operationId" = ${locked.row.id}
             AND "stage" = 'VERIFIED'::"ProjectDatabaseErasureStage"
             AND "receipt" IS NOT NULL
-        ) AS "databaseErasurePlanRetained"
+        ) AS "databaseErasurePlanRetained",
+        NOT EXISTS (
+          SELECT 1 FROM "AppImageBuildOperation"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "appImageBuildRowsAbsent"
     `);
     if (
       cascade[0]?.projectReleaseReferencesAbsent !== true ||
@@ -3612,7 +3713,8 @@ export async function finalizeObjectStorageOperation(
       cascade[0]?.databaseInstanceRowsAbsent !== true ||
       cascade[0]?.databaseSnapshotRowsAbsent !== true ||
       cascade[0]?.databaseRestoreRowsAbsent !== true ||
-      cascade[0]?.databaseErasurePlanRetained !== true
+      cascade[0]?.databaseErasurePlanRetained !== true ||
+      cascade[0]?.appImageBuildRowsAbsent !== true
     ) {
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_CASCADE_INCOMPLETE',
@@ -3637,6 +3739,7 @@ export async function finalizeObjectStorageOperation(
             databaseSnapshotRowsAbsent: true,
             databaseRestoreRowsAbsent: true,
             databaseErasurePlanRetained: true,
+            appImageBuildRowsAbsent: true,
           },
         },
       },

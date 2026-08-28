@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import type { OciAttachment } from './artifact-promotion.js';
 import type { ArtifactRegistryPackageSnapshot } from './artifact-registry-adapter.js';
-import { buildServerRollbackPromotionEvidence } from './deterministic-rollback.js';
+import {
+  buildServerRollbackPromotionEvidence,
+  parseServerRollbackPromotionEvidence,
+  rollbackManifestDigest,
+} from './deterministic-rollback.js';
 import {
   captureProjectRegistryErasureInventory,
   executeProjectRegistryErasure,
@@ -10,6 +14,7 @@ import {
   type ProjectRegistryErasureProvider,
   type ProjectRegistryReferenceAuthority,
   type RegistryErasureReference,
+  validateProjectRegistryErasureReceipt,
 } from './project-registry-erasure.js';
 import type { ReleaseManifestRecord } from './store.js';
 
@@ -309,6 +314,68 @@ describe('project Artifact Registry permanent erasure', () => {
     const secondReplay = await execute(provider, authority, inventory);
     expect(secondReplay.receipt).toEqual(replay.receipt);
     expect(JSON.stringify(replay.receipt)).not.toContain(PROJECT_ID);
+  });
+
+  it('rejects fabricated receipts even when their inventory identity is valid', async () => {
+    const provider = new MemoryProvider();
+    provider.seed(SOURCE, { buildTag: true });
+    provider.seed(TARGET);
+
+    const authority = new MemoryAuthority();
+    const inventory = await capture(provider, authority);
+    const { receipt } = await execute(provider, authority, inventory);
+
+    expect(() =>
+      validateProjectRegistryErasureReceipt(
+        {
+          ...receipt,
+          erasedManifestCount: receipt.erasedManifestCount - 1,
+          retainedManifestCount: receipt.retainedManifestCount + 2,
+        },
+        inventory,
+      ),
+    ).toThrowError(expect.objectContaining({ code: 'REGISTRY_ERASURE_RECEIPT_INVALID' }));
+
+    expect(() =>
+      validateProjectRegistryErasureReceipt(
+        {
+          ...receipt,
+          dispositionDigest: 'sha256:forged',
+        },
+        inventory,
+      ),
+    ).toThrowError(expect.objectContaining({ code: 'REGISTRY_ERASURE_RECEIPT_INVALID' }));
+  });
+
+  it('fails closed when otherwise committed promotion evidence omits its retention tag', async () => {
+    const parsed = parseServerRollbackPromotionEvidence(promotionEvidence());
+    const promotion = { ...parsed.promotion };
+    delete promotion.retentionTag;
+    const body = {
+      schemaVersion: parsed.schemaVersion,
+      organizationId: parsed.organizationId,
+      projectId: parsed.projectId,
+      artifactRef: parsed.artifactRef,
+      artifactDigest: parsed.artifactDigest,
+      promotion,
+    };
+    const missingRetentionTag = { ...body, hash: rollbackManifestDigest(body) };
+
+    await expect(
+      captureProjectRegistryErasureInventory({
+        projectId: PROJECT_ID,
+        sourceImages: [],
+        tenantImages: [],
+        releaseManifests: [
+          {
+            ...releases()[0]!,
+            promotionEvidence: missingRetentionTag,
+          },
+        ],
+        provider: new MemoryProvider(),
+        referenceAuthority: new MemoryAuthority(),
+      }),
+    ).rejects.toMatchObject({ code: 'REGISTRY_ERASURE_EVIDENCE_INVALID' });
   });
 
   it('rechecks global refcounts under the package fence and retains shared image/referrer evidence exactly', async () => {

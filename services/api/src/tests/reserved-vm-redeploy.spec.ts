@@ -25,11 +25,13 @@ vi.mock('../server-deploy-transfer.js', async (importOriginal) => ({
 }));
 
 import { buildApiApp, type ApiAppOptions } from '../app.js';
+import { appImageBuildOperationTag, type AppImageBuildDeps, type AppImageBuildResult } from '../app-image-build.js';
 import type { PromotionResult } from '../artifact-promotion.js';
 import type { DeployBuildJobData } from '../deploy-queue.js';
 import type { EmailProvider } from '../email.js';
 import type { PromotionManifest } from '../lifecycle-state-machines.js';
 import { RESERVED_VM_TERMS_VERSION } from '../reserved-vm.js';
+import type { ServerImagePromotionInput } from '../server-image-promotion.js';
 import type { DeploymentRecord } from '../store.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -59,6 +61,26 @@ const PLAN_ENTITLEMENTS = {
   publishRegion: 'platform-default',
   publishRegions: 'all' as const,
 };
+
+function testPromotionRepositories(input: ServerImagePromotionInput): readonly string[] {
+  return [input.source.repo, `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`];
+}
+
+function mockSuccessfulAppImageBuild(result: Extract<AppImageBuildResult, { ok: true }>): void {
+  pipeline.runAppImageBuild.mockImplementationOnce(async (_spec: unknown, deps: AppImageBuildDeps = {}) => {
+    if (deps.lifecycle) {
+      const operationTag = appImageBuildOperationTag(deps.lifecycle.operationId);
+      await deps.lifecycle.markSubmissionStarted({ operationTag });
+      await deps.lifecycle.recordBuildIdentity({ buildId: result.buildId, operationTag });
+      await deps.lifecycle.recordTerminal({
+        buildId: result.buildId,
+        providerStatus: 'SUCCESS',
+        ...(result.digest ? { digest: result.digest } : {}),
+      });
+    }
+    return result;
+  });
+}
 
 function promotionManifest(input: {
   promotionId: string;
@@ -332,6 +354,7 @@ async function executeForwardServerImageBuild(input: {
       return { status: 'EXACT', digest: ledgerDigest, entries: 2 };
     },
     serverImagePromotionRuntime: {
+      packageRepositories: testPromotionRepositories,
       promote: vi.fn(async (request): Promise<PromotionResult> => {
         const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${request.projectId.toLowerCase()}`;
         const manifest = promotionManifest({
@@ -378,7 +401,7 @@ async function executeForwardServerImageBuild(input: {
     },
   });
   const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${runtime.project.id.toLowerCase()}`;
-  pipeline.runAppImageBuild.mockResolvedValue({
+  mockSuccessfulAppImageBuild({
     ok: true,
     imageUri: `${sourceRepo}:${queued.id}`,
     digest,
@@ -485,6 +508,7 @@ describe('Reserved VM durable in-place redeploy', () => {
     let stops = 0;
     const runtime = await setup({
       serverImagePromotionRuntime: {
+        packageRepositories: testPromotionRepositories,
         promote: vi.fn(async (request): Promise<PromotionResult> => {
           const manifest = promotionManifest({
             promotionId: 'promotion-redeploy-release',
@@ -516,7 +540,7 @@ describe('Reserved VM durable in-place redeploy', () => {
       status: 'ACTIVE',
     });
     seeded.deployment.buildCommand = buildCommandSentinel;
-    pipeline.runAppImageBuild.mockResolvedValue({
+    mockSuccessfulAppImageBuild({
       ok: true,
       imageUri: `${seeded.sourceRepo}:${seeded.deployment.id}`,
       digest: nextDigest,
@@ -688,6 +712,7 @@ describe('Reserved VM durable in-place redeploy', () => {
     let reconfigures = 0;
     const runtime = await setup({
       serverImagePromotionRuntime: {
+        packageRepositories: testPromotionRepositories,
         promote: vi.fn(async (request): Promise<PromotionResult> => {
           const manifest = promotionManifest({
             promotionId: 'promotion-rolled-back-release',
@@ -707,7 +732,7 @@ describe('Reserved VM durable in-place redeploy', () => {
       },
     });
     const seeded = await seedCurrentReservedVm(runtime);
-    pipeline.runAppImageBuild.mockResolvedValue({
+    mockSuccessfulAppImageBuild({
       ok: true,
       imageUri: `${seeded.sourceRepo}:${seeded.deployment.id}`,
       digest: nextDigest,

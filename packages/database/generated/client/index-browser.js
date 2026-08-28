@@ -419,6 +419,19 @@ exports.Prisma.ProjectPermanentDeletionReceiptScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ProjectRegistryErasureScalarFieldEnum = {
+  operationId: 'operationId',
+  projectIdSnapshot: 'projectIdSnapshot',
+  inventoryHash: 'inventoryHash',
+  inventory: 'inventory',
+  state: 'state',
+  receipt: 'receipt',
+  preparedAt: 'preparedAt',
+  effectStartedAt: 'effectStartedAt',
+  verifiedAt: 'verifiedAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProjectSlugRedirectScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -903,6 +916,42 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
   planEntitlements: 'planEntitlements',
   projectManifestDigest: 'projectManifestDigest',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.AppImageBuildOperationScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  deploymentId: 'deploymentId',
+  phase: 'phase',
+  operationTag: 'operationTag',
+  intentHash: 'intentHash',
+  gcpProject: 'gcpProject',
+  region: 'region',
+  sourceBucket: 'sourceBucket',
+  sourceObject: 'sourceObject',
+  imageUri: 'imageUri',
+  sourceRepository: 'sourceRepository',
+  sourceTag: 'sourceTag',
+  buildServiceAccount: 'buildServiceAccount',
+  timeoutSeconds: 'timeoutSeconds',
+  providerBuildId: 'providerBuildId',
+  providerStatus: 'providerStatus',
+  logUrl: 'logUrl',
+  imageDigest: 'imageDigest',
+  targetRepository: 'targetRepository',
+  targetDigest: 'targetDigest',
+  promotionReferences: 'promotionReferences',
+  cancellationProof: 'cancellationProof',
+  lastErrorCode: 'lastErrorCode',
+  submissionStartedAt: 'submissionStartedAt',
+  identifiedAt: 'identifiedAt',
+  terminalAt: 'terminalAt',
+  promotionRecordedAt: 'promotionRecordedAt',
+  cancelledAt: 'cancelledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.RollbackIdempotencyRequestScalarFieldEnum = {
@@ -2505,6 +2554,12 @@ exports.ObjectStorageVersionGcStatus = exports.$Enums.ObjectStorageVersionGcStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
+exports.ProjectRegistryErasureState = exports.$Enums.ProjectRegistryErasureState = {
+  PREPARED: 'PREPARED',
+  ERASING: 'ERASING',
+  VERIFIED: 'VERIFIED'
+};
+
 exports.CollaborationGroupSource = exports.$Enums.CollaborationGroupSource = {
   MANUAL: 'MANUAL',
   SCIM: 'SCIM'
@@ -2542,6 +2597,15 @@ exports.DeploymentStatus = exports.$Enums.DeploymentStatus = {
   READY: 'READY',
   FAILED: 'FAILED',
   CANCELED: 'CANCELED'
+};
+
+exports.AppImageBuildPhase = exports.$Enums.AppImageBuildPhase = {
+  PREPARED: 'PREPARED',
+  SUBMITTING: 'SUBMITTING',
+  IDENTIFIED: 'IDENTIFIED',
+  TERMINAL: 'TERMINAL',
+  REJECTED: 'REJECTED',
+  CANCELLED: 'CANCELLED'
 };
 
 exports.SubscriptionStatus = exports.$Enums.SubscriptionStatus = {
@@ -2822,6 +2886,7 @@ exports.Prisma.ModelName = {
   ObjectStorageOperationProjectScope: 'ObjectStorageOperationProjectScope',
   ObjectStorageVersionGcSchedule: 'ObjectStorageVersionGcSchedule',
   ProjectPermanentDeletionReceipt: 'ProjectPermanentDeletionReceipt',
+  ProjectRegistryErasure: 'ProjectRegistryErasure',
   ProjectSlugRedirect: 'ProjectSlugRedirect',
   AgentMemory: 'AgentMemory',
   AgentMemoryPreference: 'AgentMemoryPreference',
@@ -2856,6 +2921,7 @@ exports.Prisma.ModelName = {
   ReservedVmBillingPeriod: 'ReservedVmBillingPeriod',
   DeploymentEnvironment: 'DeploymentEnvironment',
   ReleaseManifest: 'ReleaseManifest',
+  AppImageBuildOperation: 'AppImageBuildOperation',
   RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
   DeploymentAccessPolicy: 'DeploymentAccessPolicy',
   DeploymentAccessExchangeTicket: 'DeploymentAccessExchangeTicket',

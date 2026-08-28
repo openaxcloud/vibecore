@@ -12,6 +12,7 @@ import {
 } from '../project-manifest.js';
 import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -41,6 +42,7 @@ function hardDeleteProject(
   actorUserId: string,
 ) {
   let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
+  let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
   return store.hardDeleteProject({
     projectId: project.id,
     expectedOrganizationId: project.organizationId,
@@ -56,6 +58,7 @@ function hardDeleteProject(
     ...emptyManagedDatabaseErasureCallbacks(),
     preflightPhysicalErasure: async () => ({ summary: emptyStaticArtifactSummary, artifacts: [] }),
     erasePhysical: async (_assertLease, lease) => {
+      registryReceipt = await persistEmptyProjectRegistryErasure(store, lease, project.id);
       const current = await prisma.project.findUniqueOrThrow({
         where: { id: project.id },
         select: { ownershipEpoch: true },
@@ -68,41 +71,46 @@ function hardDeleteProject(
         fencingToken: lease.fencingToken,
       });
     },
-    verifyPhysicalAbsence: async () => ({
-      outcome: 'VERIFIED_ABSENT',
-      verifier: 'project-manifest-db-test',
-      evidence: {
-        schemaVersion: 'project-permanent-erasure-v3',
-        filesystem: {
-          projectTreeAbsent: true,
-          workspaceTreesAbsent: true,
-          objectCacheAbsent: true,
-          staticSnapshotsAbsent: true,
-          staticAliasesAbsent: true,
-          staticArtifactSummary: emptyStaticArtifactSummary,
-        },
-        gcs: { bucketAbsent: true, objectCount: 0 },
-        workspaceManager: {
-          schemaVersion: 'workspace-project-erasure-v3',
-          projectId: project.id,
-          organizationId: project.organizationId,
-          databaseInventoryRetained: true,
-          runtimeEffectsDrained: true,
-          kubernetes: {
-            deploymentsAbsent: true,
-            replicaSetsAbsent: true,
-            podsAbsent: true,
-            servicesAbsent: true,
-            endpointsAbsent: true,
-            endpointSlicesAbsent: true,
-            ingressesAbsent: true,
-            ownedRuntimeSecretsAbsent: true,
-            persistentVolumeClaimsAbsent: true,
+    verifyPhysicalAbsence: async (_assertLease, lease) => {
+      registryReceipt ??= await persistEmptyProjectRegistryErasure(store, lease, project.id);
+      return {
+        outcome: 'VERIFIED_ABSENT',
+        verifier: 'project-manifest-db-test',
+        evidence: {
+          schemaVersion: 'project-permanent-erasure-v3',
+          filesystem: {
+            projectTreeAbsent: true,
+            workspaceTreesAbsent: true,
+            objectCacheAbsent: true,
+            staticSnapshotsAbsent: true,
+            staticAliasesAbsent: true,
+            staticArtifactSummary: emptyStaticArtifactSummary,
           },
-          volumes: volumeProof!,
+          gcs: { bucketAbsent: true, objectCount: 0 },
+          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+          artifactRegistry: registryReceipt!,
+          workspaceManager: {
+            schemaVersion: 'workspace-project-erasure-v3',
+            projectId: project.id,
+            organizationId: project.organizationId,
+            databaseInventoryRetained: true,
+            runtimeEffectsDrained: true,
+            kubernetes: {
+              deploymentsAbsent: true,
+              replicaSetsAbsent: true,
+              podsAbsent: true,
+              servicesAbsent: true,
+              endpointsAbsent: true,
+              endpointSlicesAbsent: true,
+              ingressesAbsent: true,
+              ownedRuntimeSecretsAbsent: true,
+              persistentVolumeClaimsAbsent: true,
+            },
+            volumes: volumeProof!,
+          },
         },
-      },
-    }),
+      };
+    },
   });
 }
 

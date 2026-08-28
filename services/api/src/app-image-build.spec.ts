@@ -436,6 +436,56 @@ describe('runAppImageBuild', () => {
     expect(state).toMatchObject({ phase: 'TERMINAL', buildId: 'build-response-loss' });
   });
 
+  it('treats transient create HTTP responses as ambiguous and reconciles instead of recording a false rejection', async () => {
+    const operationId = 'deploy-operation-create-503';
+    let state: DurableAppImageBuildState = { phase: 'PREPARED' };
+    let postCount = 0;
+    const recordSubmissionRejected = vi.fn();
+    const lifecycle: DurableAppImageBuildLifecycle = {
+      operationId,
+      assertAuthority: async () => undefined,
+      readState: async () => state,
+      markSubmissionStarted: async () => {
+        state = { phase: 'SUBMITTING' };
+      },
+      recordBuildIdentity: async ({ buildId }) => {
+        state = { phase: 'IDENTIFIED', buildId };
+      },
+      recordSubmissionRejected,
+      recordTerminal: async ({ buildId, providerStatus }) => {
+        state = { phase: 'TERMINAL', buildId, providerStatus };
+      },
+    };
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      const value = String(url);
+      if (value.endsWith('/builds') && init?.method === 'POST') {
+        postCount += 1;
+        return new Response('upstream response lost', { status: 503 });
+      }
+      if (value.includes('/builds?filter=')) {
+        return jsonResponse({ builds: [durableBuild(operationId, 'build-after-503', 'WORKING')] });
+      }
+      if (value.endsWith('/builds/build-after-503')) {
+        return jsonResponse(durableBuild(operationId, 'build-after-503', 'SUCCESS'));
+      }
+      throw new Error(`unexpected fetch ${value}`);
+    }) as unknown as typeof fetch;
+
+    await expect(
+      runAppImageBuild(SPEC, {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        sleep: async () => undefined,
+        pollIntervalMs: 0,
+        submissionReconcileAttempts: 1,
+        lifecycle,
+      }),
+    ).resolves.toMatchObject({ ok: true, buildId: 'build-after-503' });
+    expect(postCount).toBe(1);
+    expect(recordSubmissionRejected).not.toHaveBeenCalled();
+    expect(state).toMatchObject({ phase: 'TERMINAL', buildId: 'build-after-503' });
+  });
+
   it('lets a fresh fence reclaim cancellation and proves the provider terminal before registry erasure', async () => {
     const operationId = 'deploy-operation-cancel-reclaim';
 
@@ -506,6 +556,48 @@ describe('runAppImageBuild', () => {
       },
     });
     expect(persistedProofs).toHaveLength(1);
+  });
+
+  it('records a late SUCCESS as terminal push evidence and still requires the exact registry sweep', async () => {
+    const operationId = 'deploy-operation-cancel-late-success';
+    const digest = `sha256:${'a'.repeat(64)}`;
+    const persistedProofs: unknown[] = [];
+    const fetchImpl = vi.fn(async (url: string | URL, init?: RequestInit) => {
+      expect(init?.method).not.toBe('POST');
+      expect(String(url)).toMatch(/\/builds\/build-late-success$/u);
+      return jsonResponse(
+        durableBuild(operationId, 'build-late-success', 'SUCCESS', {
+          results: { images: [{ name: SPEC.imageUri, digest }] },
+        }),
+      );
+    }) as unknown as typeof fetch;
+
+    const result = await cancelAppImageBuildAndWait(
+      SPEC,
+      { operationId, buildId: 'build-late-success' },
+      {
+        fetchImpl,
+        getAccessToken: async () => 'tok',
+        assertAuthority: async () => undefined,
+        recordCancellationProof: async (proof) => {
+          persistedProofs.push(proof);
+        },
+      },
+    );
+
+    expect(result).toMatchObject({
+      ok: true,
+      proof: {
+        buildId: 'build-late-success',
+        providerStatus: 'SUCCESS',
+        terminal: true,
+        requiresRegistrySweep: true,
+        lateSuccess: true,
+        digest,
+      },
+    });
+    expect(persistedProofs).toEqual([expect.objectContaining({ lateSuccess: true, digest })]);
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 
   it('refuses a late successful build when authority is lost during the provider poll', async () => {

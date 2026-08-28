@@ -149,7 +149,14 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
-import { runAppImageBuild } from './app-image-build.js';
+import {
+  appImageBuildIntentHash,
+  appImageBuildOperationTag,
+  cancelAppImageBuildAndWait,
+  runAppImageBuild,
+  type AppImageBuildProviderIdentity,
+} from './app-image-build.js';
+import { ArtifactRegistryOciAdapter } from './artifact-registry-adapter.js';
 import {
   appPublicCopy,
   appPublicEnglish,
@@ -205,9 +212,16 @@ import {
 import {
   createLiveServerImagePromotionRuntimeFromEnv,
   isCommittedPromotionForTenant,
+  type ServerImagePromotionInput,
   type ServerImagePromotionRuntime,
 } from './server-image-promotion.js';
 import type { PromotionManifest } from './lifecycle-state-machines.js';
+import {
+  captureProjectRegistryErasureInventory,
+  executeProjectRegistryErasure,
+  type ProjectRegistryErasureProvider,
+  type ProjectRegistryErasureReceipt,
+} from './project-registry-erasure.js';
 import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-audit.js';
 import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
@@ -781,6 +795,9 @@ export interface ApiAppOptions {
 
   /** Live OCI/Artifact Registry promotion seam; production resolves ADC/WI from env. */
   serverImagePromotionRuntime?: ServerImagePromotionRuntime;
+
+  /** Exact registry inventory/delete seam; production resolves ADC/WI. */
+  projectRegistryErasureProvider?: ProjectRegistryErasureProvider;
 
   /**
    * Override the durable deploy-build enqueue path. Production uses the default
@@ -8459,6 +8476,150 @@ function effectiveRestoreEntitlement(
   return { allowed: entitlement.allowed && retentionDays > 0, retentionDays };
 }
 
+async function eraseProjectImageProducersAndRegistry(input: {
+  store: ApiStore;
+  projectId: string;
+  lease: ObjectStorageOperationLease;
+  assertLease: () => Promise<void>;
+  provider: ProjectRegistryErasureProvider;
+}): Promise<{
+  registry: ProjectRegistryErasureReceipt;
+  cloudBuild: { producerCount: number; terminalProofCount: number; lateSuccessCount: number };
+}> {
+  const { store, projectId, lease, assertLease, provider } = input;
+  await assertLease();
+  const producers = await store.listProjectAppImageBuildsForDeletion(lease);
+
+  for (const producer of producers) {
+    await assertLease();
+    if (producer.state.phase === 'CANCELLED') continue;
+    if (producer.state.phase === 'PREPARED' || producer.state.phase === 'REJECTED') {
+      await store.markUnsubmittedAppImageBuildCancelled({ lease, operationId: producer.id });
+      continue;
+    }
+
+    const buildId =
+      producer.state.phase === 'IDENTIFIED' || producer.state.phase === 'TERMINAL'
+        ? producer.state.buildId
+        : producer.providerBuildId;
+    const cancellation = await cancelAppImageBuildAndWait(
+      {
+        gcpProject: producer.gcpProject,
+        region: producer.region,
+        sourceBucket: producer.sourceBucket,
+        sourceObject: producer.sourceObject,
+        imageUri: producer.imageUri,
+        buildServiceAccount: producer.buildServiceAccount,
+        timeoutSeconds: producer.timeoutSeconds,
+      },
+      { operationId: producer.id, ...(buildId ? { buildId } : {}) },
+      {
+        assertAuthority: () => assertLease(),
+        recordRecoveredBuildIdentity: ({ buildId: recoveredId, operationTag, logUrl }) =>
+          store.recordAppImageBuildRecoveredIdentityForDeletion({
+            lease,
+            operationId: producer.id,
+            buildId: recoveredId,
+            operationTag,
+            ...(logUrl ? { logUrl } : {}),
+          }),
+        recordCancellationProof: (proof) =>
+          store.recordAppImageBuildCancellationProof({ lease, operationId: producer.id, proof }),
+      },
+    );
+    if (!cancellation.ok) {
+      throw Object.assign(new Error(cancellation.error), {
+        code: cancellation.code,
+        statusCode: 503,
+      });
+    }
+  }
+
+  await assertLease();
+  const prior = await store.readProjectRegistryErasure(lease);
+  if (prior?.state === 'VERIFIED') {
+    const terminal = await store.listProjectAppImageBuildsForDeletion(lease);
+    return {
+      registry: prior.receipt,
+      cloudBuild: {
+        producerCount: terminal.length,
+        terminalProofCount: terminal.filter((row) => row.state.phase === 'CANCELLED').length,
+        lateSuccessCount: terminal.filter(
+          (row) =>
+            row.cancellationProof &&
+            'lateSuccess' in row.cancellationProof &&
+            row.cancellationProof.lateSuccess === true,
+        ).length,
+      },
+    };
+  }
+
+  const authority = await store.resolveProjectRegistryErasureAuthority(projectId);
+  const referenceAuthority = {
+    countOutsideProject: (
+      reference: Parameters<ApiStore['countProjectRegistryReferencesOutsideProject']>[0],
+      excluded: string,
+    ) => store.countProjectRegistryReferencesOutsideProject(reference, excluded),
+  };
+  const repositories = prior ? prior.inventory.packages.map((pkg) => pkg.repository) : authority.projectPackages;
+
+  const erase = async (): Promise<ProjectRegistryErasureReceipt> => {
+    const inventory =
+      prior?.inventory ??
+      (await captureProjectRegistryErasureInventory({
+        projectId,
+        projectPackages: authority.projectPackages,
+        sourceImages: authority.sourceImages,
+        tenantImages: authority.tenantImages,
+        releaseManifests: authority.releaseManifests,
+        provider,
+        referenceAuthority,
+      }));
+    await assertLease();
+    await store.prepareProjectRegistryErasure({ lease, inventory });
+    await store.beginProjectRegistryErasure(lease);
+    const receipt = await executeProjectRegistryErasure({
+      inventory,
+      provider,
+      referenceAuthority,
+      guard: {
+        assertPreparedAndLease: async ({ projectId: guardedProjectId, inventoryHash }) => {
+          await assertLease();
+          const durable = await store.readProjectRegistryErasure(lease);
+          if (
+            !durable ||
+            durable.inventory.projectId !== guardedProjectId ||
+            durable.inventory.inventoryHash !== inventoryHash
+          ) {
+            throw new Error('REGISTRY_ERASURE_DURABLE_GUARD_LOST');
+          }
+        },
+        /* The outer, sorted session-lock set covers capture through receipt. */
+        withPackageFence: (_repository, effect) => effect(),
+      },
+    });
+    await store.completeProjectRegistryErasure({ lease, receipt });
+    return receipt;
+  };
+
+  const receipt = repositories.length > 0 ? await store.withRegistryPackageFences(repositories, erase) : await erase();
+  const terminal = await store.listProjectAppImageBuildsForDeletion(lease);
+  if (terminal.some((row) => row.state.phase !== 'CANCELLED')) {
+    throw new Error('APP_IMAGE_BUILD_TERMINAL_PROOF_INCOMPLETE');
+  }
+  return {
+    registry: receipt,
+    cloudBuild: {
+      producerCount: terminal.length,
+      terminalProofCount: terminal.length,
+      lateSuccessCount: terminal.filter(
+        (row) =>
+          row.cancellationProof && 'lateSuccess' in row.cancellationProof && row.cancellationProof.lateSuccess === true,
+      ).length,
+    },
+  };
+}
+
 async function releaseAccountPurgeWorkspaceBarriers(
   workspaceIds: string[],
   planId: string,
@@ -10570,6 +10731,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const projectWorkspaceDeletion = options.projectWorkspaceDeletion ?? projectWorkspaceDeletionRequest;
   const projectDatabaseErasureServiceFactory =
     options.projectDatabaseErasureServiceFactory ?? createProjectDatabaseErasureService;
+  const projectRegistryErasureProvider = options.projectRegistryErasureProvider ?? new ArtifactRegistryOciAdapter();
 
   const mcpMarketplace =
     options.mcpMarketplace ??
@@ -10867,6 +11029,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     defaultServerImagePromotionRuntime ??= createLiveServerImagePromotionRuntimeFromEnv();
 
     return defaultServerImagePromotionRuntime;
+  };
+
+  const resolvePromotionPackageAuthority = (
+    runtime: ServerImagePromotionRuntime,
+    input: ServerImagePromotionInput,
+  ): { repositories: string[]; targetRepository: string } => {
+    const repositories = [...new Set(runtime.packageRepositories(input))];
+    const targetRepository = repositories.find((repository) => repository !== input.source.repo);
+    if (repositories.length !== 2 || !repositories.includes(input.source.repo) || !targetRepository) {
+      throw new ServerImageReleaseGateError('PROMOTION_PACKAGE_AUTHORITY_INVALID');
+    }
+    return { repositories, targetRepository };
   };
 
   const allowedOrigins =
@@ -28632,6 +28806,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (replay) return replay;
 
     const objectStorage = resolveRawObjectStorage();
+    let producerErasureProof: Awaited<ReturnType<typeof eraseProjectImageProducersAndRegistry>> | undefined;
 
     if (!objectStorage.active) {
       throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
@@ -28695,6 +28870,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * not strand a provider effect that may already have been dispatched. */
         const assertAuthorities = assertLease;
         await assertAuthorities();
+        producerErasureProof = await eraseProjectImageProducersAndRegistry({
+          store,
+          projectId: input.projectId,
+          lease,
+          assertLease: assertAuthorities,
+          provider: projectRegistryErasureProvider,
+        });
+        await assertAuthorities();
         await projectWorkspaceDeletion(
           'purge',
           input.projectId,
@@ -28712,6 +28895,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       },
       verifyPhysicalAbsence: async (assertLease, lease, databaseEffects) => {
         const assertAuthorities = assertLease;
+        await assertAuthorities();
+        producerErasureProof ??= await eraseProjectImageProducersAndRegistry({
+          store,
+          projectId: input.projectId,
+          lease,
+          assertLease: assertAuthorities,
+          provider: projectRegistryErasureProvider,
+        });
         await assertAuthorities();
         const workspaceManager = await projectWorkspaceDeletion(
           'verify',
@@ -28761,6 +28952,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               staticArtifactSummary: filesystem.staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
+            cloudBuild: producerErasureProof.cloudBuild,
+            artifactRegistry: producerErasureProof.registry,
             workspaceManager,
           },
         };
@@ -40907,29 +41100,95 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                         serverError = context.message ?? 'Failed to snapshot the workspace for the app image.';
                       } else {
                         const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
+                        const buildSpec = {
+                          gcpProject: repoMatch[2],
+                          region: repoMatch[1],
+                          sourceBucket: context.bucket,
+                          sourceObject: context.object,
+                          imageUri,
+                          cosignKmsKey: process.env.SERVER_DEPLOY_COSIGN_KMS_KEY ?? '',
+                          buildServiceAccount: process.env.SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT ?? '',
+                          baseImage,
+
+                          /*
+                           * Revision mode already ran the build in the isolated pod;
+                           * Cloud Build must only COPY, never re-run a toolchain.
+                           */
+                          buildCommand: revisionMode ? null : runPlan.buildCommand,
+                          startCommand: runPlan.startCommand,
+                          timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
+                        };
+                        const buildOperationId = `app-image-build:${queued.id}`;
+                        const operationTag = appImageBuildOperationTag(buildOperationId);
+                        const providerIdentity: AppImageBuildProviderIdentity = buildSpec;
 
                         await releaseGuard.assert();
-                        const buildResult = await runAppImageBuild(
-                          {
-                            gcpProject: repoMatch[2],
-                            region: repoMatch[1],
-                            sourceBucket: context.bucket,
-                            sourceObject: context.object,
-                            imageUri,
-                            cosignKmsKey: process.env.SERVER_DEPLOY_COSIGN_KMS_KEY ?? '',
-                            buildServiceAccount: process.env.SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT ?? '',
-                            baseImage,
+                        await store.prepareAppImageBuild({
+                          operationId: buildOperationId,
+                          projectId: project.id,
+                          deploymentId: queued.id,
+                          provider: providerIdentity,
+                          operationTag,
+                          intentHash: appImageBuildIntentHash(buildSpec),
+                          releaseFence: releaseGuard.fence,
+                        });
 
-                            /*
-                             * Revision mode already ran the build in the isolated pod;
-                             * Cloud Build must only COPY, never re-run a toolchain.
-                             */
-                            buildCommand: revisionMode ? null : runPlan.buildCommand,
-                            startCommand: runPlan.startCommand,
-                            timeoutSeconds: Number(process.env.SERVER_DEPLOY_IMAGE_BUILD_TIMEOUT_S) || 600,
-                          },
-                          {
-                            onLog: (level, message) => buildProgress.onLog({ timestamp: nowIso(), level, message }),
+                        const buildResult = await store.withRegistryPackageFences(
+                          [imageUri.replace(/:[^:/]+$/u, '')],
+                          async () => {
+                            await releaseGuard.assert();
+                            return runAppImageBuild(buildSpec, {
+                              onLog: (level, message) => buildProgress.onLog({ timestamp: nowIso(), level, message }),
+                              lifecycle: {
+                                operationId: buildOperationId,
+                                assertAuthority: () =>
+                                  store.assertAppImageBuildAuthority({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                                readState: () =>
+                                  store.readAppImageBuildState({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                                markSubmissionStarted: ({ operationTag: durableTag }) =>
+                                  store.markAppImageBuildSubmissionStarted({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    operationTag: durableTag,
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                                recordBuildIdentity: ({ buildId, operationTag: durableTag, logUrl }) =>
+                                  store.recordAppImageBuildIdentity({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    buildId,
+                                    operationTag: durableTag,
+                                    ...(logUrl ? { logUrl } : {}),
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                                recordSubmissionRejected: ({ operationTag: durableTag, status }) =>
+                                  store.recordAppImageBuildSubmissionRejected({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    operationTag: durableTag,
+                                    status,
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                                recordTerminal: ({ buildId, providerStatus, logUrl, digest }) =>
+                                  store.recordAppImageBuildTerminal({
+                                    operationId: buildOperationId,
+                                    projectId: project.id,
+                                    buildId,
+                                    providerStatus,
+                                    ...(logUrl ? { logUrl } : {}),
+                                    ...(digest ? { digest } : {}),
+                                    releaseFence: releaseGuard.fence,
+                                  }),
+                              },
+                            });
                           },
                         );
 
@@ -40960,25 +41219,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                           try {
                             buildProgress.onPhase('promoting');
-
-                            await releaseGuard.assert();
-                            const promoted = await resolveServerImagePromotionRuntime().promote({
+                            const promotionInput = {
                               organizationId: project.organizationId,
                               projectId: project.id,
                               source: { repo: sourceImageRef, digest: buildResult.digest! },
-                            });
-                            await releaseGuard.assert();
-
-                            if (
-                              !isCommittedPromotionForTenant(
-                                promoted.manifest,
-                                project.organizationId,
-                                promoted.target.digest,
-                                promoted.target.repo,
-                              )
-                            ) {
-                              throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
-                            }
+                            };
+                            const promotionRuntime = resolveServerImagePromotionRuntime();
+                            const promotionAuthority = resolvePromotionPackageAuthority(
+                              promotionRuntime,
+                              promotionInput,
+                            );
+                            const promoted = await store.withRegistryPackageFences(
+                              promotionAuthority.repositories,
+                              async () => {
+                                await releaseGuard.assert();
+                                await store.prepareAppImageBuildPromotion({
+                                  operationId: buildOperationId,
+                                  projectId: project.id,
+                                  targetRepository: promotionAuthority.targetRepository,
+                                  releaseFence: releaseGuard.fence,
+                                });
+                                await releaseGuard.assert();
+                                const result = await promotionRuntime.promote(promotionInput);
+                                await releaseGuard.assert();
+                                if (
+                                  !isCommittedPromotionForTenant(
+                                    result.manifest,
+                                    project.organizationId,
+                                    result.target.digest,
+                                    result.target.repo,
+                                  )
+                                ) {
+                                  throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+                                }
+                                await store.recordAppImageBuildPromotion({
+                                  operationId: buildOperationId,
+                                  projectId: project.id,
+                                  targetRepository: result.target.repo,
+                                  targetDigest: result.target.digest,
+                                  promotionReferences: result.manifest,
+                                  releaseFence: releaseGuard.fence,
+                                });
+                                return result;
+                              },
+                            );
 
                             imagePromotion = promoted.manifest;
                             serverImage = `${promoted.target.repo}@${promoted.target.digest}`;
@@ -45608,13 +45892,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           try {
-            await releaseGuard.assert();
-            const promoted = await resolveServerImagePromotionRuntime().promote({
+            const promotionInput = {
               organizationId: project.organizationId,
               projectId: project.id,
               source: { repo: sourceImageRef, digest: sourceImage.imageDigest! },
+            };
+            const promotionRuntime = resolveServerImagePromotionRuntime();
+            const promotionAuthority = resolvePromotionPackageAuthority(promotionRuntime, promotionInput);
+            const promoted = await store.withRegistryPackageFences(promotionAuthority.repositories, async () => {
+              await releaseGuard.assert();
+              const durableRegistryAuthority = await store.resolveProjectRegistryErasureAuthority(project.id);
+              if (!durableRegistryAuthority.projectPackages.includes(promotionAuthority.targetRepository)) {
+                throw new ServerImageReleaseGateError('PROMOTION_PACKAGE_AUTHORITY_MISSING');
+              }
+              await releaseGuard.assert();
+              const result = await promotionRuntime.promote(promotionInput);
+              await releaseGuard.assert();
+              return result;
             });
-            await releaseGuard.assert();
 
             if (
               !isCommittedPromotionForTenant(

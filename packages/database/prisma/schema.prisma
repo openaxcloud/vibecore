@@ -387,6 +387,24 @@ enum ProjectVolumeErasureState {
   VERIFIED
 }
 
+/// Durable Cloud Build submission lifecycle. SUBMITTING is deliberately
+/// ambiguous after a process crash: only the provider-side operation tag may
+/// recover it, and permanent deletion may not assume that no build exists.
+enum AppImageBuildPhase {
+  PREPARED
+  SUBMITTING
+  IDENTIFIED
+  TERMINAL
+  REJECTED
+  CANCELLED
+}
+
+enum ProjectRegistryErasureState {
+  PREPARED
+  ERASING
+  VERIFIED
+}
+
 model Project {
   id                               String                               @id @default(cuid())
   organizationId                   String
@@ -455,6 +473,7 @@ model Project {
   objectStorageOperationScopes     ObjectStorageOperationProjectScope[]
   objectStorageVersionGcSchedule   ObjectStorageVersionGcSchedule?
   runtimeEffects                   ProjectRuntimeEffect[]
+  appImageBuilds                   AppImageBuildOperation[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -499,6 +518,7 @@ model ObjectStorageOperation {
   capabilityReservations      ObjectStorageCapabilityReservation[]
   permanentDeletionReceipt    ProjectPermanentDeletionReceipt?
   projectVolumeErasure        ProjectVolumeErasure?
+  registryErasure             ProjectRegistryErasure?
   versionGcSchedules          ObjectStorageVersionGcSchedule[]         @relation("ObjectStorageVersionGcLastOperation")
   databaseErasurePlan         ProjectDatabaseErasurePlan?
 
@@ -749,6 +769,27 @@ model ProjectPermanentDeletionReceipt {
   @@unique([idempotencyScopeHash, idempotencyKey])
   @@index([organizationId, deletedAt])
   @@index([requestHash])
+}
+
+/// Exact, durable Artifact Registry inventory and compact verified receipt for
+/// one permanent-delete saga. The inventory is captured only after all Cloud
+/// Build producers are terminal, then becomes immutable before the first
+/// registry mutation. It intentionally survives the Project cascade through
+/// the retained ObjectStorageOperation.
+model ProjectRegistryErasure {
+  operationId       String                      @id
+  projectIdSnapshot String
+  inventoryHash     String                      @unique
+  inventory         Json
+  state             ProjectRegistryErasureState @default(PREPARED)
+  receipt           Json?
+  preparedAt        DateTime                    @default(now())
+  effectStartedAt   DateTime?
+  verifiedAt        DateTime?
+  updatedAt         DateTime                    @updatedAt
+  operation         ObjectStorageOperation      @relation(fields: [operationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@index([projectIdSnapshot, state])
 }
 
 // F13: preserves an old project slug after a rename so the previous canonical
@@ -1558,6 +1599,55 @@ model ReleaseManifest {
   @@unique([projectId, environment, version])
   @@index([projectId, environment])
   @@index([deploymentId])
+}
+
+/// Durable Cloud Build producer identity. The row is committed before the
+/// provider POST and retained until project permanent deletion has obtained a
+/// fresh terminal/cancellation proof and completed the exact registry sweep.
+/// `operationTag` is the only safe reconciliation key when the POST response is
+/// lost; source/target package identities are non-secret and immutable.
+model AppImageBuildOperation {
+  id                  String             @id
+  projectId           String
+  organizationId      String
+  ownershipEpoch      Int
+  deploymentId        String
+  phase               AppImageBuildPhase @default(PREPARED)
+  operationTag        String             @unique
+  intentHash          String
+  gcpProject          String
+  region              String
+  sourceBucket        String
+  sourceObject        String
+  imageUri            String
+  sourceRepository    String
+  sourceTag           String
+  buildServiceAccount String
+  timeoutSeconds      Int
+  providerBuildId     String?
+  providerStatus      String?
+  logUrl              String?
+  imageDigest         String?
+  targetRepository    String?
+  targetDigest        String?
+  promotionReferences Json?
+  cancellationProof   Json?
+  lastErrorCode       String?
+  submissionStartedAt DateTime?
+  identifiedAt        DateTime?
+  terminalAt          DateTime?
+  promotionRecordedAt DateTime?
+  cancelledAt         DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  project             Project            @relation(fields: [projectId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([projectId, deploymentId])
+  @@unique([gcpProject, region, providerBuildId])
+  @@index([projectId, phase, createdAt])
+  @@index([organizationId, phase, createdAt])
+  @@index([sourceRepository, imageDigest])
+  @@index([targetRepository, targetDigest])
 }
 
 // Durable execution + response ledger for POST

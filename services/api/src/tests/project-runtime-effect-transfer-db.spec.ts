@@ -10,6 +10,7 @@ import { projectPermanentDeletionRequestHash } from '../project-permanent-deleti
 import { objectStorageStaticArtifactSummary, type ObjectStorageOperationLease } from '../object-storage-operation.js';
 import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
+import { persistEmptyProjectRegistryErasure } from './project-registry-erasure-test-helper.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe.sequential : describe.skip;
 const EMPTY_STATIC_ARTIFACT_SUMMARY = objectStorageStaticArtifactSummary([]);
@@ -229,6 +230,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
         expectedProjectName: fixture.project.name,
       });
       let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
+      let registryReceipt: Awaited<ReturnType<typeof persistEmptyProjectRegistryErasure>> | undefined;
       const deletion = apiStore.hardDeleteProject({
         projectId: fixture.project.id,
         expectedOrganizationId: fixture.organizationBId,
@@ -240,6 +242,7 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
         preflightPhysicalErasure: async () => EMPTY_STATIC_ARTIFACT_PLAN,
         erasePhysical: async (assertLease, lease) => {
           await assertLease();
+          registryReceipt = await persistEmptyProjectRegistryErasure(apiStore, lease, fixture.project.id);
           const managerLease = workspaceDeletionLease(fixture, fixture.organizationBId, lease);
           const inventory = await workspaceStore.acquireProjectDeletionFence(managerLease, ['EFFECT_STARTED']);
           expect(inventory.runtimeEffectIds).toEqual([historicalEffect.id]);
@@ -273,7 +276,8 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
           });
           await expect(workspaceStore.completeProjectDeletion(managerLease)).resolves.toBe(1);
         },
-        verifyPhysicalAbsence: async () => {
+        verifyPhysicalAbsence: async (_assertLease, lease) => {
+          registryReceipt ??= await persistEmptyProjectRegistryErasure(apiStore, lease, fixture.project.id);
           await expect(
             prisma.projectRuntimeEffect.findUniqueOrThrow({
               where: { id: historicalEffect.id },
@@ -300,6 +304,8 @@ runDbTests('project runtime-effect ownership transfer (PostgreSQL)', () => {
                 staticArtifactSummary: EMPTY_STATIC_ARTIFACT_SUMMARY,
               },
               gcs: { bucketAbsent: true, objectCount: 0 },
+              cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+              artifactRegistry: registryReceipt!,
               workspaceManager: {
                 schemaVersion: 'workspace-project-erasure-v3',
                 projectId: fixture.project.id,

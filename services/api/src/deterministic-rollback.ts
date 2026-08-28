@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { decryptJson, encryptJson } from '@vibecore/security';
 import { z } from 'zod';
 
+import type { PromotionManifest } from './lifecycle-state-machines.js';
 import { isCommittedPromotionForTenant } from './server-image-promotion.js';
 import type { ReleasePlanEntitlementsPin } from './store.js';
 
@@ -423,7 +424,9 @@ export function buildServerRollbackPromotionEvidence(input: {
   return promotionEvidenceSchema.parse({ ...body, hash: rollbackManifestDigest(body) });
 }
 
-export function parseServerRollbackPromotionEvidence(value: unknown): ServerRollbackPromotionEvidenceV1 {
+export function parseServerRollbackPromotionEvidence(
+  value: unknown,
+): ServerRollbackPromotionEvidenceV1 & { promotion: PromotionManifest } {
   const parsed = promotionEvidenceSchema.safeParse(value);
 
   if (!parsed.success) throw new DeterministicRollbackError('ROLLBACK_PROMOTION_EVIDENCE_INVALID');
@@ -434,9 +437,11 @@ export function parseServerRollbackPromotionEvidence(value: unknown): ServerRoll
     throw new DeterministicRollbackError('ROLLBACK_PROMOTION_EVIDENCE_TAMPERED');
   }
 
+  const promotion = parsed.data.promotion;
+
   if (
     !isCommittedPromotionForTenant(
-      parsed.data.promotion,
+      promotion,
       parsed.data.organizationId,
       parsed.data.artifactDigest,
       parsed.data.artifactRef,
@@ -445,7 +450,7 @@ export function parseServerRollbackPromotionEvidence(value: unknown): ServerRoll
     throw new DeterministicRollbackError('ROLLBACK_PROMOTION_EVIDENCE_INVALID');
   }
 
-  return parsed.data;
+  return { ...parsed.data, promotion };
 }
 
 /**

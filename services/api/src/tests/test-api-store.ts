@@ -12,6 +12,8 @@ import {
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
 import type { ProjectCheckpointLease } from '../checkpoint-lease.js';
+import type { AppImageBuildCancellationProof, AppImageBuildTerminalStatus } from '../app-image-build.js';
+import { parseArtifactRegistryImageRepository } from '../artifact-registry-adapter.js';
 import {
   anonymizedEmail,
   buildErasureProof,
@@ -78,6 +80,13 @@ import {
 } from '../project-database-erasure.js';
 import type { ProjectDatabaseLegacyAuthorityRequest } from '../project-database-erasure-ledger.js';
 import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from '../project-storage.js';
+import {
+  validateProjectRegistryErasureInventory,
+  validateProjectRegistryErasureReceipt,
+  type ProjectRegistryErasureInventory,
+  type ProjectRegistryErasureReceipt,
+  type RegistryErasureReference,
+} from '../project-registry-erasure.js';
 import {
   parseObjectStorageStaticArtifactSummary,
   type ObjectStorageCheckpointBarrierAuthority,
@@ -149,6 +158,7 @@ import type {
   AiTokenUsageRecord,
   AiToolCallRecord,
   AgentCheckpointRecord,
+  AppImageBuildOperationRecord,
   UserSpendLimitRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
@@ -194,6 +204,7 @@ import type {
   ObjectStorageCapabilityCommand,
   ProjectConnectionLinkRecord,
   ProjectReleaseFence,
+  ProjectRegistryErasureAuthorityRecord,
   ReconnectionAlertRecord,
   UserConnectionRecord,
   UserConnectionStatus,
@@ -322,6 +333,8 @@ function assertPermanentDeletionProof(
 ): void {
   const filesystem = proof.evidence.filesystem as Record<string, unknown> | undefined;
   const gcs = proof.evidence.gcs as Record<string, unknown> | undefined;
+  const cloudBuild = proof.evidence.cloudBuild as Record<string, unknown> | undefined;
+  const artifactRegistry = proof.evidence.artifactRegistry as Record<string, unknown> | undefined;
   const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown> | undefined;
   const kubernetes = workspaceManager?.kubernetes as Record<string, unknown> | undefined;
   const volumes = workspaceManager?.volumes as Record<string, unknown> | undefined;
@@ -349,6 +362,12 @@ function assertPermanentDeletionProof(
     staticArtifactSummary.digest === expected.digest &&
     gcs?.bucketAbsent === true &&
     gcs.objectCount === 0 &&
+    Number.isSafeInteger(cloudBuild?.producerCount) &&
+    cloudBuild?.terminalProofCount === cloudBuild?.producerCount &&
+    Number.isSafeInteger(cloudBuild?.lateSuccessCount) &&
+    artifactRegistry?.schemaVersion === 1 &&
+    typeof artifactRegistry.inventoryHash === 'string' &&
+    typeof artifactRegistry.dispositionDigest === 'string' &&
     workspaceManager?.schemaVersion === 'workspace-project-erasure-v3' &&
     workspaceManager.databaseInventoryRetained === true &&
     workspaceManager.runtimeEffectsDrained === true &&
@@ -484,6 +503,15 @@ export class TestApiStore implements ApiStore {
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
+  readonly appImageBuildOperations = new Map<string, AppImageBuildOperationRecord>();
+  readonly projectRegistryErasures = new Map<
+    string,
+    {
+      state: 'PREPARED' | 'ERASING' | 'VERIFIED';
+      inventory: ProjectRegistryErasureInventory;
+      receipt?: ProjectRegistryErasureReceipt;
+    }
+  >();
   readonly reservedVmOperations = new Map<string, ReservedVmLease>();
   readonly reservedVmRuntimeFences = new Map<string, number>();
   readonly deploymentAccessPolicies: DeploymentAccessPolicyRecord[] = [];
@@ -833,6 +861,402 @@ export class TestApiStore implements ApiStore {
 
   withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
     return this.withProjectPhysicalBarriers([projectId], effect);
+  }
+
+  withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T> {
+    const ordered = [
+      ...new Set(repositories.map((repo) => parseArtifactRegistryImageRepository(repo).original)),
+    ].sort();
+    if (ordered.length === 0) throw new TypeError('REGISTRY_PACKAGE_FENCE_REQUIRED');
+    const acquire = (index: number): Promise<T> => {
+      const repository = ordered[index];
+      return repository
+        ? this.withSerializedMutation(`artifact-registry-package:${repository}`, () => acquire(index + 1))
+        : effect();
+    };
+    return acquire(0);
+  }
+
+  async prepareAppImageBuild(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    provider: {
+      gcpProject: string;
+      region: string;
+      sourceBucket: string;
+      sourceObject: string;
+      imageUri: string;
+      buildServiceAccount: string;
+      timeoutSeconds?: number;
+    };
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<AppImageBuildOperationRecord> {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    const project = this.projects.get(input.projectId);
+    if (!project || project.permanentDeletionStartedAt) throw new Error('APP_IMAGE_BUILD_AUTHORITY_INVALID');
+    const separator = input.provider.imageUri.lastIndexOf(':');
+    const sourceRepository = parseArtifactRegistryImageRepository(input.provider.imageUri.slice(0, separator)).original;
+    const sourceTag = input.provider.imageUri.slice(separator + 1);
+    const expected: AppImageBuildOperationRecord = {
+      id: input.operationId,
+      projectId: input.projectId,
+      organizationId: project.organizationId,
+      ownershipEpoch: 0,
+      deploymentId: input.deploymentId,
+      operationTag: input.operationTag,
+      intentHash: input.intentHash,
+      gcpProject: input.provider.gcpProject,
+      region: input.provider.region,
+      sourceBucket: input.provider.sourceBucket,
+      sourceObject: input.provider.sourceObject,
+      imageUri: input.provider.imageUri,
+      buildServiceAccount: input.provider.buildServiceAccount,
+      timeoutSeconds: input.provider.timeoutSeconds ?? 600,
+      sourceRepository,
+      sourceTag,
+      state: { phase: 'PREPARED' },
+    };
+    const existing = this.appImageBuildOperations.get(input.operationId);
+    if (existing) {
+      const stable = (value: AppImageBuildOperationRecord) => ({
+        id: value.id,
+        projectId: value.projectId,
+        organizationId: value.organizationId,
+        ownershipEpoch: value.ownershipEpoch,
+        deploymentId: value.deploymentId,
+        operationTag: value.operationTag,
+        intentHash: value.intentHash,
+        gcpProject: value.gcpProject,
+        region: value.region,
+        sourceBucket: value.sourceBucket,
+        sourceObject: value.sourceObject,
+        imageUri: value.imageUri,
+        buildServiceAccount: value.buildServiceAccount,
+        timeoutSeconds: value.timeoutSeconds,
+        sourceRepository: value.sourceRepository,
+        sourceTag: value.sourceTag,
+      });
+      if (JSON.stringify(stable(existing)) !== JSON.stringify(stable(expected))) {
+        throw new Error('APP_IMAGE_BUILD_INTENT_CONFLICT');
+      }
+      return structuredClone(existing);
+    }
+    this.appImageBuildOperations.set(input.operationId, expected);
+    return structuredClone(expected);
+  }
+
+  private async assertTestBuildAuthority(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<AppImageBuildOperationRecord> {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    const row = this.appImageBuildOperations.get(input.operationId);
+    if (!row || row.projectId !== input.projectId) throw new Error('APP_IMAGE_BUILD_AUTHORITY_LOST');
+    return row;
+  }
+
+  async readAppImageBuildState(input: { operationId: string; projectId: string; releaseFence: ProjectReleaseFence }) {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.state.phase === 'CANCELLED') throw new Error('APP_IMAGE_BUILD_CANCELLED');
+    return structuredClone(row.state);
+  }
+
+  async assertAppImageBuildAuthority(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.assertTestBuildAuthority(input);
+  }
+
+  async markAppImageBuildSubmissionStarted(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.operationTag !== input.operationTag || row.state.phase !== 'PREPARED') {
+      if (row.operationTag === input.operationTag && row.state.phase === 'SUBMITTING') return;
+      throw new Error('APP_IMAGE_BUILD_PHASE_CONFLICT');
+    }
+    row.state = { phase: 'SUBMITTING' };
+  }
+
+  async recordAppImageBuildIdentity(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+    if (row.state.phase === 'IDENTIFIED' && row.state.buildId === input.buildId) return;
+    if (row.state.phase !== 'SUBMITTING') throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+    row.providerBuildId = input.buildId;
+    row.state = { phase: 'IDENTIFIED', buildId: input.buildId, ...(input.logUrl ? { logUrl: input.logUrl } : {}) };
+  }
+
+  async recordAppImageBuildSubmissionRejected(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    status: number;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+    if (row.state.phase === 'REJECTED') return;
+    if (row.state.phase !== 'SUBMITTING') throw new Error('APP_IMAGE_BUILD_REJECTION_CONFLICT');
+    row.state = { phase: 'REJECTED' };
+  }
+
+  async recordAppImageBuildTerminal(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    providerStatus: AppImageBuildTerminalStatus;
+    logUrl?: string;
+    digest?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.state.phase === 'TERMINAL') return;
+    if (row.state.phase !== 'IDENTIFIED' || row.state.buildId !== input.buildId) {
+      throw new Error('APP_IMAGE_BUILD_TERMINAL_CONFLICT');
+    }
+    row.providerBuildId = input.buildId;
+    row.imageDigest = input.digest;
+    row.state = {
+      phase: 'TERMINAL',
+      buildId: input.buildId,
+      providerStatus: input.providerStatus,
+      ...(input.logUrl ? { logUrl: input.logUrl } : {}),
+    };
+  }
+
+  async prepareAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.state.phase !== 'TERMINAL' || row.state.providerStatus !== 'SUCCESS' || !row.imageDigest) {
+      throw new Error('APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID');
+    }
+    const targetRepository = parseArtifactRegistryImageRepository(input.targetRepository).original;
+    if (targetRepository.split('/').at(-1) !== `p-${input.projectId.toLowerCase()}`) {
+      throw new Error('APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID');
+    }
+    if (row.targetRepository && row.targetRepository !== targetRepository) {
+      throw new Error('APP_IMAGE_BUILD_PROMOTION_CONFLICT');
+    }
+    row.targetRepository = targetRepository;
+  }
+
+  async recordAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    targetDigest: string;
+    promotionReferences: unknown;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const row = await this.assertTestBuildAuthority(input);
+    if (row.state.phase !== 'TERMINAL' || row.state.providerStatus !== 'SUCCESS') {
+      throw new Error('APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID');
+    }
+    const targetRepository = parseArtifactRegistryImageRepository(input.targetRepository).original;
+    if (row.targetRepository !== targetRepository) throw new Error('APP_IMAGE_BUILD_PROMOTION_INTENT_MISSING');
+    row.targetDigest = input.targetDigest;
+    row.promotionReferences = structuredClone(input.promotionReferences);
+  }
+
+  private projectIdFromTestDeletionLease(lease: ObjectStorageOperationLease): string {
+    const prefix = 'test-permanent-delete:';
+    if (!lease.operationId.startsWith(prefix)) throw new Error('PROJECT_PERMANENT_DELETION_PROVIDER_AUTHORITY_INVALID');
+    const projectId = lease.operationId.slice(prefix.length);
+    if (!this.projects.get(projectId)?.permanentDeletionStartedAt) {
+      throw new Error('PROJECT_PERMANENT_DELETION_PROVIDER_AUTHORITY_INVALID');
+    }
+    return projectId;
+  }
+
+  async listProjectAppImageBuildsForDeletion(lease: ObjectStorageOperationLease) {
+    const projectId = this.projectIdFromTestDeletionLease(lease);
+    return [...this.appImageBuildOperations.values()]
+      .filter((row) => row.projectId === projectId)
+      .map((row) => structuredClone(row));
+  }
+
+  async markUnsubmittedAppImageBuildCancelled(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+  }): Promise<void> {
+    const projectId = this.projectIdFromTestDeletionLease(input.lease);
+    const row = this.appImageBuildOperations.get(input.operationId);
+    if (!row || row.projectId !== projectId || !['PREPARED', 'REJECTED'].includes(row.state.phase)) {
+      throw new Error('APP_IMAGE_BUILD_PROVIDER_OUTCOME_REQUIRED');
+    }
+    row.state = { phase: 'CANCELLED' };
+    row.cancellationProof = { terminal: true, providerSubmissionAbsent: true };
+  }
+
+  async recordAppImageBuildRecoveredIdentityForDeletion(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+  }): Promise<void> {
+    const projectId = this.projectIdFromTestDeletionLease(input.lease);
+    const row = this.appImageBuildOperations.get(input.operationId);
+    if (
+      !row ||
+      row.projectId !== projectId ||
+      row.operationTag !== input.operationTag ||
+      row.state.phase !== 'SUBMITTING'
+    ) {
+      throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+    }
+    row.providerBuildId = input.buildId;
+    row.state = { phase: 'IDENTIFIED', buildId: input.buildId, ...(input.logUrl ? { logUrl: input.logUrl } : {}) };
+  }
+
+  async recordAppImageBuildCancellationProof(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    proof: AppImageBuildCancellationProof;
+  }): Promise<void> {
+    const projectId = this.projectIdFromTestDeletionLease(input.lease);
+    const row = this.appImageBuildOperations.get(input.operationId);
+    if (!row || row.projectId !== projectId || row.providerBuildId !== input.proof.buildId) {
+      throw new Error('APP_IMAGE_BUILD_CANCELLATION_AUTHORITY_INVALID');
+    }
+    row.state = { phase: 'CANCELLED' };
+    row.imageDigest ??= input.proof.digest;
+    row.cancellationProof = structuredClone(input.proof);
+  }
+
+  async resolveProjectRegistryErasureAuthority(projectId: string): Promise<ProjectRegistryErasureAuthorityRecord> {
+    const builds = [...this.appImageBuildOperations.values()].filter((row) => row.projectId === projectId);
+    return {
+      projectPackages: [
+        ...new Set(builds.flatMap((row) => [row.sourceRepository, row.targetRepository].filter(Boolean) as string[])),
+      ].sort(),
+      sourceImages: builds.flatMap((row) =>
+        row.imageDigest ? [{ repo: row.sourceRepository, digest: row.imageDigest, tags: [row.sourceTag] }] : [],
+      ),
+      tenantImages: builds.flatMap((row) =>
+        row.targetRepository && row.targetDigest ? [{ repo: row.targetRepository, digest: row.targetDigest }] : [],
+      ),
+      releaseManifests: this.releaseManifests
+        .filter((row) => row.projectId === projectId)
+        .map((row) => ({
+          projectId: row.projectId,
+          artifactKind: row.artifactKind,
+          artifactRef: row.artifactRef,
+          artifactDigest: row.artifactDigest,
+          ...(row.promotionEvidence !== undefined ? { promotionEvidence: row.promotionEvidence } : {}),
+        })),
+    };
+  }
+
+  async countProjectRegistryReferencesOutsideProject(
+    reference: RegistryErasureReference,
+    excludedProjectId: string,
+  ): Promise<number> {
+    let count = 0;
+    for (const row of this.appImageBuildOperations.values()) {
+      if (row.projectId === excludedProjectId) continue;
+      if (reference.kind === 'manifest') {
+        if (row.sourceRepository === reference.repository && row.imageDigest === reference.digest) count += 1;
+        if (row.targetRepository === reference.repository && row.targetDigest === reference.digest) count += 1;
+      } else if (
+        row.sourceRepository === reference.repository &&
+        row.sourceTag === reference.tag &&
+        row.imageDigest === reference.digest
+      )
+        count += 1;
+    }
+    for (const row of this.releaseManifests) {
+      if (
+        row.projectId !== excludedProjectId &&
+        reference.kind === 'manifest' &&
+        row.artifactRef === reference.repository &&
+        row.artifactDigest === reference.digest
+      )
+        count += 1;
+    }
+    return count;
+  }
+
+  async readProjectRegistryErasure(lease: ObjectStorageOperationLease) {
+    this.projectIdFromTestDeletionLease(lease);
+    const row = this.projectRegistryErasures.get(lease.operationId);
+    if (!row) return undefined;
+    if (row.state === 'VERIFIED') {
+      if (!row.receipt) throw new Error('REGISTRY_ERASURE_RECEIPT_MISSING');
+      validateProjectRegistryErasureReceipt(row.receipt, row.inventory);
+      return {
+        state: 'VERIFIED' as const,
+        inventory: structuredClone(row.inventory),
+        receipt: structuredClone(row.receipt),
+      };
+    }
+    return { state: row.state, inventory: structuredClone(row.inventory) };
+  }
+
+  async prepareProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    inventory: ProjectRegistryErasureInventory;
+  }): Promise<void> {
+    const projectId = this.projectIdFromTestDeletionLease(input.lease);
+    validateProjectRegistryErasureInventory(input.inventory);
+    if (input.inventory.projectId !== projectId) throw new Error('REGISTRY_ERASURE_PROJECT_MISMATCH');
+    const existing = this.projectRegistryErasures.get(input.lease.operationId);
+    if (existing && existing.inventory.inventoryHash !== input.inventory.inventoryHash) {
+      throw new Error('REGISTRY_ERASURE_INTENT_CONFLICT');
+    }
+    this.projectRegistryErasures.set(
+      input.lease.operationId,
+      existing ?? {
+        state: 'PREPARED',
+        inventory: structuredClone(input.inventory),
+      },
+    );
+  }
+
+  async beginProjectRegistryErasure(lease: ObjectStorageOperationLease): Promise<void> {
+    this.projectIdFromTestDeletionLease(lease);
+    const row = this.projectRegistryErasures.get(lease.operationId);
+    if (!row) throw new Error('REGISTRY_ERASURE_INVENTORY_MISSING');
+    if (row.state === 'PREPARED') row.state = 'ERASING';
+  }
+
+  async completeProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    receipt: ProjectRegistryErasureReceipt;
+  }): Promise<void> {
+    this.projectIdFromTestDeletionLease(input.lease);
+    const row = this.projectRegistryErasures.get(input.lease.operationId);
+    if (!row || row.inventory.inventoryHash !== input.receipt.inventoryHash) {
+      throw new Error('REGISTRY_ERASURE_RECEIPT_MISMATCH');
+    }
+    validateProjectRegistryErasureReceipt(input.receipt, row.inventory);
+    if (row.state !== 'ERASING' && row.state !== 'VERIFIED') throw new Error('REGISTRY_ERASURE_NOT_STARTED');
+    if (row.state === 'VERIFIED' && JSON.stringify(row.receipt) !== JSON.stringify(input.receipt)) {
+      throw new Error('REGISTRY_ERASURE_RECEIPT_CONFLICT');
+    }
+    row.state = 'VERIFIED';
+    row.receipt = structuredClone(input.receipt);
   }
 
   private _assertAccountPurgeMutationAllowed(scope: {
@@ -3048,6 +3472,17 @@ export class TestApiStore implements ApiStore {
           evidence: { ...physicalProof.evidence, managedDatabase: databaseReceipt },
         };
         assertPermanentDeletionProof(proof, staticArtifactPlan.summary);
+        const registryErasure = this.projectRegistryErasures.get(lease.operationId);
+        if (!registryErasure || registryErasure.state !== 'VERIFIED' || !registryErasure.receipt) {
+          throw new Error('PROJECT_REGISTRY_ERASURE_INCOMPLETE');
+        }
+        if (
+          [...this.appImageBuildOperations.values()].some(
+            (build) => build.projectId === input.projectId && build.state.phase !== 'CANCELLED',
+          )
+        ) {
+          throw new Error('PROJECT_IMAGE_BUILD_CANCELLATION_INCOMPLETE');
+        }
         const workspaceManager = proof.evidence.workspaceManager as Record<string, unknown>;
         if (
           workspaceManager.projectId !== input.projectId ||
@@ -3103,6 +3538,9 @@ export class TestApiStore implements ApiStore {
         });
         this.projects.delete(input.projectId);
         this.projectManifestRevisions.delete(input.projectId);
+        for (const [operationId, build] of this.appImageBuildOperations) {
+          if (build.projectId === input.projectId) this.appImageBuildOperations.delete(operationId);
+        }
 
         return { ...receipt, project: { ...receipt.project }, proof: structuredClone(receipt.proof), replayed: false };
       },

@@ -14,6 +14,12 @@ import type {
   PurgeStorageDeps,
   PurgeUserAccountResult,
 } from './account-purge.js';
+import type {
+  AppImageBuildCancellationProof,
+  AppImageBuildProviderIdentity,
+  AppImageBuildTerminalStatus,
+  DurableAppImageBuildState,
+} from './app-image-build.js';
 import type { DeploymentAccessMode, DeploymentAccessPolicyRecord } from './deployment-access.js';
 import type { LoginLockoutState, LoginThrottleConfig } from './login-throttle.js';
 import type { RollbackSuccessReceipt } from './rollback-response.js';
@@ -39,6 +45,13 @@ import type {
   ProjectDatabaseErasureReceipt,
 } from './project-database-erasure.js';
 import type { ProjectDatabaseLegacyAuthorityRequest } from './project-database-erasure-ledger.js';
+import type {
+  ProjectRegistryErasureInventory,
+  ProjectRegistryErasureReceipt,
+  ProjectRegistryImageReference,
+  ProjectRegistryReleaseReference,
+  RegistryErasureReference,
+} from './project-registry-erasure.js';
 
 export interface UserRecord {
   id: string;
@@ -1048,6 +1061,32 @@ export interface ProjectReleaseFence {
   fence: number;
   expectedOrganizationId: string;
   expectedManifestDigest: string;
+}
+
+export interface AppImageBuildOperationRecord extends AppImageBuildProviderIdentity {
+  id: string;
+  projectId: string;
+  organizationId: string;
+  ownershipEpoch: number;
+  deploymentId: string;
+  operationTag: string;
+  intentHash: string;
+  sourceRepository: string;
+  sourceTag: string;
+  state: DurableAppImageBuildState | { phase: 'CANCELLED' };
+  providerBuildId?: string;
+  imageDigest?: string;
+  targetRepository?: string;
+  targetDigest?: string;
+  promotionReferences?: unknown;
+  cancellationProof?: AppImageBuildCancellationProof | { terminal: true; providerSubmissionAbsent: true };
+}
+
+export interface ProjectRegistryErasureAuthorityRecord {
+  projectPackages: string[];
+  sourceImages: ProjectRegistryImageReference[];
+  tenantImages: ProjectRegistryImageReference[];
+  releaseManifests: ProjectRegistryReleaseReference[];
 }
 
 export type RollbackOperationStatus = 'IN_PROGRESS' | 'COMPLETED';
@@ -2224,6 +2263,115 @@ export interface ApiStore {
   withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T>;
   /** Purge-only physical barrier; authority was frozen durably before erasure. */
   withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
+  /** Session locks shared by every Artifact Registry publisher and eraser. */
+  withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T>;
+
+  /** Commit the immutable Cloud Build intent under the current release fence. */
+  prepareAppImageBuild(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    provider: AppImageBuildProviderIdentity;
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<AppImageBuildOperationRecord>;
+  readAppImageBuildState(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<DurableAppImageBuildState>;
+  assertAppImageBuildAuthority(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  markAppImageBuildSubmissionStarted(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  recordAppImageBuildIdentity(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  recordAppImageBuildSubmissionRejected(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    status: number;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  recordAppImageBuildTerminal(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    providerStatus: AppImageBuildTerminalStatus;
+    logUrl?: string;
+    digest?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  /** Persist the target package before promotion can mutate Artifact Registry. */
+  prepareAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  recordAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    targetDigest: string;
+    promotionReferences: unknown;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+
+  /** Build producers retained for cancellation by the permanent-delete saga. */
+  listProjectAppImageBuildsForDeletion(lease: ObjectStorageOperationLease): Promise<AppImageBuildOperationRecord[]>;
+  markUnsubmittedAppImageBuildCancelled(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+  }): Promise<void>;
+  recordAppImageBuildRecoveredIdentityForDeletion(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+  }): Promise<void>;
+  recordAppImageBuildCancellationProof(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    proof: AppImageBuildCancellationProof;
+  }): Promise<void>;
+
+  resolveProjectRegistryErasureAuthority(projectId: string): Promise<ProjectRegistryErasureAuthorityRecord>;
+  countProjectRegistryReferencesOutsideProject(
+    reference: RegistryErasureReference,
+    excludedProjectId: string,
+  ): Promise<number>;
+  readProjectRegistryErasure(
+    lease: ObjectStorageOperationLease,
+  ): Promise<
+    | { state: 'PREPARED' | 'ERASING'; inventory: ProjectRegistryErasureInventory; receipt?: undefined }
+    | { state: 'VERIFIED'; inventory: ProjectRegistryErasureInventory; receipt: ProjectRegistryErasureReceipt }
+    | undefined
+  >;
+  prepareProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    inventory: ProjectRegistryErasureInventory;
+  }): Promise<void>;
+  beginProjectRegistryErasure(lease: ObjectStorageOperationLease): Promise<void>;
+  completeProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    receipt: ProjectRegistryErasureReceipt;
+  }): Promise<void>;
   createUser(input: {
     email: string;
     name?: string;

@@ -15,6 +15,8 @@ import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
 import { appPublicEnglish } from './app-public-copy.js';
 import type { ProjectCheckpointLease } from './checkpoint-lease.js';
+import type { AppImageBuildCancellationProof, AppImageBuildTerminalStatus } from './app-image-build.js';
+import { assertSha256Digest, parseArtifactRegistryImageRepository } from './artifact-registry-adapter.js';
 import { LedgerStore } from './ledger-store.js';
 import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
 import type { AccountPurgeProjectDeletionAuthority, PurgeStorageDeps } from './account-purge.js';
@@ -51,6 +53,13 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from './project-manifest.js';
+import {
+  validateProjectRegistryErasureInventory,
+  validateProjectRegistryErasureReceipt,
+  type ProjectRegistryErasureInventory,
+  type ProjectRegistryErasureReceipt,
+  type RegistryErasureReference,
+} from './project-registry-erasure.js';
 import { remixIdeStateDigest, validRemixIdeStatePin } from './remix-ide-state.js';
 import { buildRollbackSuccessReceipt, type RollbackSuccessReceipt } from './rollback-response.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
@@ -227,6 +236,7 @@ import type {
   AiTokenUsageRecord,
   AiToolCallRecord,
   AgentCheckpointRecord,
+  AppImageBuildOperationRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
   CheckpointStatus,
@@ -288,6 +298,7 @@ import type {
   ProjectManifestRevisionRecord,
   ProjectReleaseBarrierLease,
   ProjectReleaseFence,
+  ProjectRegistryErasureAuthorityRecord,
   ProjectRecord,
   ProjectPhysicalMutationScope,
   ProjectPermanentDeletionResult,
@@ -3299,6 +3310,749 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
     return this.withProjectPhysicalBarrier(projectId, effect);
+  }
+
+  async withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T> {
+    const ordered = [
+      ...new Set(repositories.map((value) => parseArtifactRegistryImageRepository(value).original)),
+    ].sort();
+    if (ordered.length === 0) throw new TypeError('REGISTRY_PACKAGE_FENCE_REQUIRED');
+
+    const keys = ordered.map((repository) => `artifact-registry-package:${repository}`);
+    const acquired: string[] = [];
+    let client: PoolClient | undefined;
+    let destroyClient = false;
+
+    try {
+      client = await this.physicalLockPool.connect();
+      await client.query(`SELECT set_config('statement_timeout', $1, false)`, [
+        `${this.projectPhysicalLockAcquireTimeoutMs}ms`,
+      ]);
+      for (const key of keys) {
+        await client.query('SELECT pg_advisory_lock(hashtextextended($1, 0))', [key]);
+        acquired.push(key);
+      }
+      await client.query(`SELECT set_config('statement_timeout', '0', false)`);
+      return await effect();
+    } catch (error) {
+      if (acquired.length !== keys.length) {
+        /* A timed-out pg query may still be draining protocol messages. Never
+         * issue reset/unlock queries on that socket; destroy it on release. */
+        destroyClient = true;
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_PACKAGE_LOCK_TIMEOUT',
+          statusCode: 503,
+          cause: error,
+        });
+      }
+      throw error;
+    } finally {
+      if (client) {
+        if (!destroyClient) {
+          for (const key of acquired.reverse()) {
+            if (destroyClient) break;
+            try {
+              const unlocked = await client.query<{ unlocked: boolean }>(
+                'SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS unlocked',
+                [key],
+              );
+              destroyClient ||= unlocked.rows[0]?.unlocked !== true;
+            } catch {
+              destroyClient = true;
+            }
+          }
+        }
+        if (!destroyClient) {
+          try {
+            await client.query(`SELECT set_config('statement_timeout', '0', false)`);
+          } catch {
+            destroyClient = true;
+          }
+        }
+        client.release(destroyClient);
+      }
+    }
+  }
+
+  async prepareAppImageBuild(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    provider: {
+      gcpProject: string;
+      region: string;
+      sourceBucket: string;
+      sourceObject: string;
+      imageUri: string;
+      buildServiceAccount: string;
+      timeoutSeconds?: number;
+    };
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<AppImageBuildOperationRecord> {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(input.intentHash)) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'APP_IMAGE_BUILD_INTENT_HASH_INVALID',
+        statusCode: 400,
+      });
+    }
+    const separator = input.provider.imageUri.lastIndexOf(':');
+    const slash = input.provider.imageUri.lastIndexOf('/');
+    if (separator <= slash || separator === input.provider.imageUri.length - 1) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'APP_IMAGE_BUILD_IDENTITY_INVALID',
+        statusCode: 400,
+      });
+    }
+    const parsedSourceRepository = parseArtifactRegistryImageRepository(input.provider.imageUri.slice(0, separator));
+    const sourceRepository = parsedSourceRepository.original;
+    const sourceTag = input.provider.imageUri.slice(separator + 1);
+    if (
+      !/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u.test(sourceTag) ||
+      parsedSourceRepository.packagePath.at(-1) !== `p-${input.projectId.toLowerCase()}` ||
+      parsedSourceRepository.project !== input.provider.gcpProject ||
+      parsedSourceRepository.location !== input.provider.region
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'APP_IMAGE_BUILD_IDENTITY_INVALID',
+        statusCode: 400,
+      });
+    }
+    const timeoutSeconds = input.provider.timeoutSeconds ?? 600;
+
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      /* Interactive transactions share one pg socket: keep queries serialized
+       * so a slow query can never overlap the next protocol message. */
+      const project = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true, ownershipEpoch: true, permanentDeletionStartedAt: true },
+      });
+      const deployment = await tx.deployment.findFirst({
+        where: { id: input.deploymentId, projectId: input.projectId },
+        select: { id: true },
+      });
+      const existing = await tx.appImageBuildOperation.findUnique({ where: { id: input.operationId } });
+      if (
+        !project ||
+        project.permanentDeletionStartedAt ||
+        !deployment ||
+        project.organizationId !== input.releaseFence.expectedOrganizationId
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'APP_IMAGE_BUILD_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      const expected = {
+        projectId: input.projectId,
+        organizationId: project.organizationId,
+        ownershipEpoch: project.ownershipEpoch,
+        deploymentId: input.deploymentId,
+        operationTag: input.operationTag,
+        intentHash: input.intentHash,
+        gcpProject: input.provider.gcpProject,
+        region: input.provider.region,
+        sourceBucket: input.provider.sourceBucket,
+        sourceObject: input.provider.sourceObject,
+        imageUri: input.provider.imageUri,
+        sourceRepository,
+        sourceTag,
+        buildServiceAccount: input.provider.buildServiceAccount,
+        timeoutSeconds,
+      };
+      if (existing) {
+        for (const [key, value] of Object.entries(expected)) {
+          if ((existing as Record<string, unknown>)[key] !== value) {
+            throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+              code: 'APP_IMAGE_BUILD_INTENT_CONFLICT',
+              statusCode: 409,
+            });
+          }
+        }
+        return mapAppImageBuildOperation(existing);
+      }
+      return mapAppImageBuildOperation(
+        await tx.appImageBuildOperation.create({ data: { id: input.operationId, ...expected } }),
+      );
+    });
+  }
+
+  private async withAppImageBuildReleaseAuthority<T>(
+    input: { operationId: string; projectId: string; releaseFence: ProjectReleaseFence },
+    effect: (tx: Prisma.TransactionClient, row: any) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      const rows = await tx.$queryRaw<any[]>(Prisma.sql`
+        SELECT * FROM "AppImageBuildOperation"
+        WHERE "id" = ${input.operationId} AND "projectId" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      if (!row || row.organizationId !== input.releaseFence.expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'APP_IMAGE_BUILD_AUTHORITY_LOST',
+          statusCode: 409,
+        });
+      }
+      return effect(tx, row);
+    });
+  }
+
+  async readAppImageBuildState(input: { operationId: string; projectId: string; releaseFence: ProjectReleaseFence }) {
+    return this.withAppImageBuildReleaseAuthority(input, async (_tx, row) => {
+      const mapped = mapAppImageBuildOperation(row);
+      if (mapped.state.phase === 'CANCELLED') {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'APP_IMAGE_BUILD_CANCELLED',
+          statusCode: 409,
+        });
+      }
+      return mapped.state;
+    });
+  }
+
+  async assertAppImageBuildAuthority(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.withAppImageBuildReleaseAuthority(input, async () => undefined);
+  }
+
+  async markAppImageBuildSubmissionStarted(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+      if (row.phase === 'SUBMITTING') return;
+      const changed = await tx.appImageBuildOperation.updateMany({
+        where: { id: input.operationId, projectId: input.projectId, phase: 'PREPARED' },
+        data: { phase: 'SUBMITTING', submissionStartedAt: new Date(), lastErrorCode: null },
+      });
+      if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_PHASE_CONFLICT');
+    });
+  }
+
+  async recordAppImageBuildIdentity(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+      if (row.phase === 'IDENTIFIED' && row.providerBuildId === input.buildId) return;
+      const changed = await tx.appImageBuildOperation.updateMany({
+        where: { id: input.operationId, projectId: input.projectId, phase: 'SUBMITTING', providerBuildId: null },
+        data: {
+          phase: 'IDENTIFIED',
+          providerBuildId: input.buildId,
+          logUrl: input.logUrl ?? null,
+          identifiedAt: new Date(),
+        },
+      });
+      if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+    });
+  }
+
+  async recordAppImageBuildSubmissionRejected(input: {
+    operationId: string;
+    projectId: string;
+    operationTag: string;
+    status: number;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+      if (row.phase === 'REJECTED') return;
+      const changed = await tx.appImageBuildOperation.updateMany({
+        where: { id: input.operationId, projectId: input.projectId, phase: 'SUBMITTING', providerBuildId: null },
+        data: { phase: 'REJECTED', lastErrorCode: `CLOUD_BUILD_HTTP_${input.status}` },
+      });
+      if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_REJECTION_CONFLICT');
+    });
+  }
+
+  async recordAppImageBuildTerminal(input: {
+    operationId: string;
+    projectId: string;
+    buildId: string;
+    providerStatus: AppImageBuildTerminalStatus;
+    logUrl?: string;
+    digest?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (
+        row.phase === 'TERMINAL' &&
+        row.providerBuildId === input.buildId &&
+        row.providerStatus === input.providerStatus &&
+        (row.imageDigest ?? undefined) === input.digest
+      )
+        return;
+      const changed = await tx.appImageBuildOperation.updateMany({
+        where: {
+          id: input.operationId,
+          projectId: input.projectId,
+          phase: 'IDENTIFIED',
+          providerBuildId: input.buildId,
+        },
+        data: {
+          phase: 'TERMINAL',
+          providerStatus: input.providerStatus,
+          logUrl: input.logUrl ?? row.logUrl,
+          imageDigest: input.digest ?? null,
+          terminalAt: new Date(),
+        },
+      });
+      if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_TERMINAL_CONFLICT');
+    });
+  }
+
+  async prepareAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const targetRepository = parseArtifactRegistryImageRepository(input.targetRepository).original;
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (
+        row.phase !== 'TERMINAL' ||
+        row.providerStatus !== 'SUCCESS' ||
+        !row.imageDigest ||
+        targetRepository.split('/').at(-1) !== `p-${input.projectId.toLowerCase()}`
+      ) {
+        throw new Error('APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID');
+      }
+      if (row.targetRepository) {
+        if (row.targetRepository !== targetRepository) throw new Error('APP_IMAGE_BUILD_PROMOTION_CONFLICT');
+        return;
+      }
+      await tx.appImageBuildOperation.update({
+        where: { id: input.operationId },
+        data: { targetRepository },
+      });
+    });
+  }
+
+  async recordAppImageBuildPromotion(input: {
+    operationId: string;
+    projectId: string;
+    targetRepository: string;
+    targetDigest: string;
+    promotionReferences: unknown;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<void> {
+    const targetRepository = parseArtifactRegistryImageRepository(input.targetRepository).original;
+    assertSha256Digest(input.targetDigest);
+    await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      if (row.phase !== 'TERMINAL' || row.providerStatus !== 'SUCCESS' || row.imageDigest !== input.targetDigest) {
+        throw new Error('APP_IMAGE_BUILD_PROMOTION_AUTHORITY_INVALID');
+      }
+      if (
+        targetRepository.split('/').at(-1) !== `p-${input.projectId.toLowerCase()}` ||
+        !isCommittedPromotionForTenant(
+          input.promotionReferences,
+          row.organizationId,
+          input.targetDigest,
+          targetRepository,
+        )
+      ) {
+        throw new Error('APP_IMAGE_BUILD_PROMOTION_EVIDENCE_INVALID');
+      }
+      if (row.targetDigest || row.promotionReferences) {
+        if (
+          row.targetRepository !== targetRepository ||
+          row.targetDigest !== input.targetDigest ||
+          JSON.stringify(row.promotionReferences) !== JSON.stringify(input.promotionReferences)
+        )
+          throw new Error('APP_IMAGE_BUILD_PROMOTION_CONFLICT');
+        return;
+      }
+      if (row.targetRepository !== targetRepository) throw new Error('APP_IMAGE_BUILD_PROMOTION_INTENT_MISSING');
+      await tx.appImageBuildOperation.update({
+        where: { id: input.operationId },
+        data: {
+          targetRepository,
+          targetDigest: input.targetDigest,
+          promotionReferences: input.promotionReferences as unknown as Prisma.InputJsonValue,
+          promotionRecordedAt: new Date(),
+        },
+      });
+    });
+  }
+
+  private async withPermanentDeletionProviderAuthority<T>(
+    lease: ObjectStorageOperationLease,
+    effect: (tx: Prisma.TransactionClient, scope: { projectId: string; organizationId: string }) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (tx) => {
+      await assertObjectStorageOperationFence(tx, lease);
+      const scopes = await tx.$queryRaw<Array<{ projectId: string; organizationId: string }>>(Prisma.sql`
+        SELECT scope."projectIdSnapshot" AS "projectId",
+               scope."expectedOrganizationId" AS "organizationId"
+        FROM "ObjectStorageOperation" operation
+        JOIN "ObjectStorageOperationProjectScope" scope ON scope."operationId" = operation."id"
+        JOIN "Project" project ON project."id" = scope."projectId"
+        WHERE operation."id" = ${lease.operationId}
+          AND operation."kind" = 'PROJECT_PERMANENT_DELETE'::"ObjectStorageOperationKind"
+          AND project."permanentDeletionStartedAt" IS NOT NULL
+          AND project."organizationId" = scope."expectedOrganizationId"
+        FOR UPDATE OF operation, scope, project
+      `);
+      if (scopes.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROJECT_PERMANENT_DELETION_PROVIDER_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      return effect(tx, scopes[0]!);
+    });
+  }
+
+  async listProjectAppImageBuildsForDeletion(
+    lease: ObjectStorageOperationLease,
+  ): Promise<AppImageBuildOperationRecord[]> {
+    return this.withPermanentDeletionProviderAuthority(lease, async (tx, scope) => {
+      const rows = await tx.$queryRaw<any[]>(Prisma.sql`
+        SELECT * FROM "AppImageBuildOperation"
+        WHERE "projectId" = ${scope.projectId}
+        ORDER BY "id"
+        FOR UPDATE
+      `);
+      return rows.map(mapAppImageBuildOperation);
+    });
+  }
+
+  async markUnsubmittedAppImageBuildCancelled(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+  }): Promise<void> {
+    await this.withPermanentDeletionProviderAuthority(input.lease, async (tx, scope) => {
+      const row = await tx.appImageBuildOperation.findFirst({
+        where: { id: input.operationId, projectId: scope.projectId },
+      });
+      if (!row) throw new Error('APP_IMAGE_BUILD_NOT_FOUND');
+      if (row.phase === 'CANCELLED') return;
+      if (!['PREPARED', 'REJECTED'].includes(row.phase)) {
+        throw new Error('APP_IMAGE_BUILD_PROVIDER_OUTCOME_REQUIRED');
+      }
+      await tx.appImageBuildOperation.update({
+        where: { id: row.id },
+        data: {
+          phase: 'CANCELLED',
+          cancelledAt: new Date(),
+          cancellationProof: {
+            schemaVersion: 'app-image-build-cancellation-v1',
+            terminal: true,
+            providerSubmissionAbsent: true,
+          },
+        },
+      });
+    });
+  }
+
+  async recordAppImageBuildRecoveredIdentityForDeletion(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    buildId: string;
+    operationTag: string;
+    logUrl?: string;
+  }): Promise<void> {
+    await this.withPermanentDeletionProviderAuthority(input.lease, async (tx, scope) => {
+      const row = await tx.appImageBuildOperation.findFirst({
+        where: { id: input.operationId, projectId: scope.projectId },
+      });
+      if (!row || row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
+      if (row.phase === 'IDENTIFIED' && row.providerBuildId === input.buildId) return;
+      if (row.phase !== 'SUBMITTING' || row.providerBuildId) throw new Error('APP_IMAGE_BUILD_IDENTITY_CONFLICT');
+      await tx.appImageBuildOperation.update({
+        where: { id: row.id },
+        data: {
+          phase: 'IDENTIFIED',
+          providerBuildId: input.buildId,
+          logUrl: input.logUrl ?? null,
+          identifiedAt: new Date(),
+        },
+      });
+    });
+  }
+
+  async recordAppImageBuildCancellationProof(input: {
+    lease: ObjectStorageOperationLease;
+    operationId: string;
+    proof: AppImageBuildCancellationProof;
+  }): Promise<void> {
+    await this.withPermanentDeletionProviderAuthority(input.lease, async (tx, scope) => {
+      const row = await tx.appImageBuildOperation.findFirst({
+        where: { id: input.operationId, projectId: scope.projectId },
+      });
+      if (!row) throw new Error('APP_IMAGE_BUILD_NOT_FOUND');
+      if (row.phase === 'CANCELLED') {
+        if (JSON.stringify(row.cancellationProof) !== JSON.stringify(input.proof)) {
+          throw new Error('APP_IMAGE_BUILD_CANCELLATION_PROOF_CONFLICT');
+        }
+        return;
+      }
+      if (!['IDENTIFIED', 'TERMINAL'].includes(row.phase) || row.providerBuildId !== input.proof.buildId) {
+        throw new Error('APP_IMAGE_BUILD_CANCELLATION_AUTHORITY_INVALID');
+      }
+      if (row.phase === 'TERMINAL' && row.providerStatus !== input.proof.providerStatus) {
+        throw new Error('APP_IMAGE_BUILD_TERMINAL_STATUS_CONFLICT');
+      }
+      if (row.imageDigest && input.proof.digest && row.imageDigest !== input.proof.digest) {
+        throw new Error('APP_IMAGE_BUILD_DIGEST_CONFLICT');
+      }
+      await tx.appImageBuildOperation.update({
+        where: { id: row.id },
+        data: {
+          phase: 'CANCELLED',
+          providerStatus: input.proof.providerStatus,
+          imageDigest: row.imageDigest ?? input.proof.digest ?? null,
+          logUrl: input.proof.logUrl ?? row.logUrl,
+          cancellationProof: input.proof as unknown as Prisma.InputJsonValue,
+          cancelledAt: new Date(),
+        },
+      });
+    });
+  }
+
+  async resolveProjectRegistryErasureAuthority(projectId: string): Promise<ProjectRegistryErasureAuthorityRecord> {
+    const [builds, releases] = await Promise.all([
+      this.prisma.appImageBuildOperation.findMany({ where: { projectId }, orderBy: { id: 'asc' } }),
+      this.prisma.releaseManifest.findMany({
+        where: { projectId },
+        orderBy: [{ environment: 'asc' }, { version: 'asc' }],
+      }),
+    ]);
+    const projectPackages = new Set<string>();
+    const sourceImages: ProjectRegistryErasureAuthorityRecord['sourceImages'] = [];
+    const tenantImages: ProjectRegistryErasureAuthorityRecord['tenantImages'] = [];
+    for (const build of builds) {
+      projectPackages.add(build.sourceRepository);
+      if (build.imageDigest) {
+        sourceImages.push({ repo: build.sourceRepository, digest: build.imageDigest, tags: [build.sourceTag] });
+      }
+      if (build.targetRepository) {
+        projectPackages.add(build.targetRepository);
+        if (build.targetDigest) {
+          const promotionReferences = build.promotionReferences;
+          if (
+            !isCommittedPromotionForTenant(
+              promotionReferences,
+              build.organizationId,
+              build.targetDigest,
+              build.targetRepository,
+            )
+          ) {
+            throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+              code: 'REGISTRY_REFERENCE_AUTHORITY_CORRUPT',
+              statusCode: 500,
+            });
+          }
+          const promotion = promotionReferences;
+          tenantImages.push({
+            repo: build.targetRepository,
+            digest: build.targetDigest,
+            ...(promotion.retentionTag ? { tags: [promotion.retentionTag] } : {}),
+          });
+        }
+      }
+    }
+    for (const release of releases) {
+      if (release.artifactKind !== 'server-image') continue;
+      projectPackages.add(parseArtifactRegistryImageRepository(release.artifactRef).original);
+      if (release.promotionEvidence !== null) {
+        const evidence = parseServerRollbackPromotionEvidence(release.promotionEvidence);
+        const promotion = evidence.promotion;
+        projectPackages.add(parseArtifactRegistryImageRepository(promotion.sourceRepo).original);
+        projectPackages.add(parseArtifactRegistryImageRepository(promotion.targetRepo).original);
+      }
+    }
+    return {
+      projectPackages: [...projectPackages].sort(),
+      sourceImages,
+      tenantImages,
+      releaseManifests: releases.map((release) => ({
+        projectId: release.projectId,
+        artifactKind: release.artifactKind,
+        artifactRef: release.artifactRef,
+        artifactDigest: release.artifactDigest,
+        ...(release.promotionEvidence !== null ? { promotionEvidence: release.promotionEvidence } : {}),
+      })),
+    };
+  }
+
+  async countProjectRegistryReferencesOutsideProject(
+    reference: RegistryErasureReference,
+    excludedProjectId: string,
+  ): Promise<number> {
+    const [builds, releases] = await Promise.all([
+      this.prisma.appImageBuildOperation.findMany({ where: { projectId: { not: excludedProjectId } } }),
+      this.prisma.releaseManifest.findMany({
+        where: { projectId: { not: excludedProjectId }, artifactKind: 'server-image' },
+      }),
+    ]);
+    let count = 0;
+    const matchManifest = (repository: string | null, digest: string | null) =>
+      reference.kind === 'manifest' && repository === reference.repository && digest === reference.digest;
+    const matchTag = (repository: string | null, tag: string | undefined, digest: string | null) =>
+      reference.kind === 'tag' &&
+      repository === reference.repository &&
+      tag === reference.tag &&
+      digest === reference.digest;
+
+    for (const build of builds) {
+      if (matchManifest(build.sourceRepository, build.imageDigest)) count += 1;
+      if (matchTag(build.sourceRepository, build.sourceTag, build.imageDigest)) count += 1;
+      if (matchManifest(build.targetRepository, build.targetDigest)) count += 1;
+      const promotionReferences = build.promotionReferences;
+      if (promotionReferences !== null) {
+        if (
+          !build.targetRepository ||
+          !build.targetDigest ||
+          !isCommittedPromotionForTenant(
+            promotionReferences,
+            build.organizationId,
+            build.targetDigest,
+            build.targetRepository,
+          )
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'REGISTRY_REFERENCE_AUTHORITY_CORRUPT',
+            statusCode: 500,
+          });
+        }
+        const promotion = promotionReferences;
+        const sourceRepo = promotion.sourceRepo;
+        const targetRepo = promotion.targetRepo;
+        const sourceDigest = promotion.sourceDigest;
+        const retentionTag = promotion.retentionTag;
+        if (matchManifest(sourceRepo, sourceDigest)) count += 1;
+        if (matchManifest(targetRepo, sourceDigest)) count += 1;
+        if (matchTag(targetRepo, retentionTag, sourceDigest)) count += 1;
+        for (const attachment of promotion.attachments) {
+          if (matchManifest(sourceRepo, attachment.digest)) count += 1;
+          if (matchManifest(targetRepo, attachment.digest)) count += 1;
+        }
+      }
+    }
+    for (const release of releases) {
+      if (matchManifest(release.artifactRef, release.artifactDigest)) count += 1;
+      if (release.promotionEvidence === null) continue;
+      try {
+        const evidence = parseServerRollbackPromotionEvidence(release.promotionEvidence);
+        const promotion = evidence.promotion;
+        if (matchManifest(promotion.sourceRepo, promotion.sourceDigest)) count += 1;
+        if (matchManifest(promotion.targetRepo, promotion.sourceDigest)) count += 1;
+        if (matchTag(promotion.targetRepo, promotion.retentionTag, promotion.sourceDigest)) count += 1;
+        for (const attachment of promotion.attachments) {
+          if (matchManifest(promotion.sourceRepo, attachment.digest)) count += 1;
+          if (matchManifest(promotion.targetRepo, attachment.digest)) count += 1;
+        }
+      } catch {
+        /* Malformed immutable evidence is fail-closed, never treated as zero. */
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_REFERENCE_AUTHORITY_CORRUPT',
+          statusCode: 500,
+        });
+      }
+    }
+    return count;
+  }
+
+  async readProjectRegistryErasure(lease: ObjectStorageOperationLease) {
+    return this.withPermanentDeletionProviderAuthority(lease, async (tx) => {
+      const row = await tx.projectRegistryErasure.findUnique({ where: { operationId: lease.operationId } });
+      if (!row) return undefined;
+      const inventory = row.inventory as unknown as ProjectRegistryErasureInventory;
+      validateProjectRegistryErasureInventory(inventory);
+      if (row.inventoryHash !== inventory.inventoryHash) throw new Error('REGISTRY_ERASURE_INVENTORY_HASH_MISMATCH');
+      if (row.state === 'VERIFIED') {
+        if (!row.receipt) throw new Error('REGISTRY_ERASURE_RECEIPT_MISSING');
+        const receipt = row.receipt as unknown as ProjectRegistryErasureReceipt;
+        validateProjectRegistryErasureReceipt(receipt, inventory);
+        return {
+          state: 'VERIFIED' as const,
+          inventory,
+          receipt,
+        };
+      }
+      return { state: row.state, inventory } as const;
+    });
+  }
+
+  async prepareProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    inventory: ProjectRegistryErasureInventory;
+  }): Promise<void> {
+    validateProjectRegistryErasureInventory(input.inventory);
+    await this.withPermanentDeletionProviderAuthority(input.lease, async (tx, scope) => {
+      if (input.inventory.projectId !== scope.projectId) throw new Error('REGISTRY_ERASURE_PROJECT_MISMATCH');
+      const existing = await tx.projectRegistryErasure.findUnique({ where: { operationId: input.lease.operationId } });
+      if (existing) {
+        if (existing.inventoryHash !== input.inventory.inventoryHash)
+          throw new Error('REGISTRY_ERASURE_INTENT_CONFLICT');
+        return;
+      }
+      await tx.projectRegistryErasure.create({
+        data: {
+          operationId: input.lease.operationId,
+          projectIdSnapshot: scope.projectId,
+          inventoryHash: input.inventory.inventoryHash,
+          inventory: input.inventory as unknown as Prisma.InputJsonValue,
+        },
+      });
+    });
+  }
+
+  async beginProjectRegistryErasure(lease: ObjectStorageOperationLease): Promise<void> {
+    await this.withPermanentDeletionProviderAuthority(lease, async (tx) => {
+      const row = await tx.projectRegistryErasure.findUnique({ where: { operationId: lease.operationId } });
+      if (!row) throw new Error('REGISTRY_ERASURE_INVENTORY_MISSING');
+      if (row.state === 'ERASING' || row.state === 'VERIFIED') return;
+      await tx.projectRegistryErasure.update({
+        where: { operationId: lease.operationId },
+        data: { state: 'ERASING', effectStartedAt: new Date() },
+      });
+    });
+  }
+
+  async completeProjectRegistryErasure(input: {
+    lease: ObjectStorageOperationLease;
+    receipt: ProjectRegistryErasureReceipt;
+  }): Promise<void> {
+    await this.withPermanentDeletionProviderAuthority(input.lease, async (tx) => {
+      const row = await tx.projectRegistryErasure.findUnique({ where: { operationId: input.lease.operationId } });
+      if (!row) throw new Error('REGISTRY_ERASURE_INVENTORY_MISSING');
+      const inventory = row.inventory as unknown as ProjectRegistryErasureInventory;
+      validateProjectRegistryErasureReceipt(input.receipt, inventory);
+      if (row.inventoryHash !== input.receipt.inventoryHash) throw new Error('REGISTRY_ERASURE_RECEIPT_MISMATCH');
+      if (row.state === 'VERIFIED') {
+        if (JSON.stringify(row.receipt) !== JSON.stringify(input.receipt))
+          throw new Error('REGISTRY_ERASURE_RECEIPT_CONFLICT');
+        return;
+      }
+      if (row.state !== 'ERASING') throw new Error('REGISTRY_ERASURE_NOT_STARTED');
+      await tx.projectRegistryErasure.update({
+        where: { operationId: input.lease.operationId },
+        data: {
+          state: 'VERIFIED',
+          receipt: input.receipt as unknown as Prisma.InputJsonValue,
+          verifiedAt: new Date(),
+        },
+      });
+    });
   }
 
   private objectStorageOperationHeartbeat(
@@ -24102,6 +24856,73 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
         : undefined,
     createdAt: toIso(row.createdAt)!,
   };
+}
+
+function mapAppImageBuildOperation(row: any): AppImageBuildOperationRecord {
+  const common = {
+    id: row.id,
+    projectId: row.projectId,
+    organizationId: row.organizationId,
+    ownershipEpoch: row.ownershipEpoch,
+    deploymentId: row.deploymentId,
+    operationTag: row.operationTag,
+    intentHash: row.intentHash,
+    gcpProject: row.gcpProject,
+    region: row.region,
+    sourceBucket: row.sourceBucket,
+    sourceObject: row.sourceObject,
+    imageUri: row.imageUri,
+    buildServiceAccount: row.buildServiceAccount,
+    timeoutSeconds: row.timeoutSeconds,
+    sourceRepository: row.sourceRepository,
+    sourceTag: row.sourceTag,
+    ...(row.providerBuildId ? { providerBuildId: row.providerBuildId } : {}),
+    ...(row.imageDigest ? { imageDigest: row.imageDigest } : {}),
+    ...(row.targetRepository ? { targetRepository: row.targetRepository } : {}),
+    ...(row.targetDigest ? { targetDigest: row.targetDigest } : {}),
+    ...(row.promotionReferences !== null && row.promotionReferences !== undefined
+      ? { promotionReferences: row.promotionReferences }
+      : {}),
+    ...(row.cancellationProof !== null && row.cancellationProof !== undefined
+      ? { cancellationProof: row.cancellationProof as AppImageBuildOperationRecord['cancellationProof'] }
+      : {}),
+  };
+
+  if (row.phase === 'PREPARED' || row.phase === 'SUBMITTING' || row.phase === 'REJECTED') {
+    return { ...common, state: { phase: row.phase } };
+  }
+  if (row.phase === 'CANCELLED') {
+    return { ...common, state: { phase: 'CANCELLED' } };
+  }
+  if (row.phase === 'IDENTIFIED' && row.providerBuildId) {
+    return {
+      ...common,
+      state: {
+        phase: 'IDENTIFIED',
+        buildId: row.providerBuildId,
+        ...(row.logUrl ? { logUrl: row.logUrl } : {}),
+      },
+    };
+  }
+  if (
+    row.phase === 'TERMINAL' &&
+    row.providerBuildId &&
+    ['SUCCESS', 'FAILURE', 'INTERNAL_ERROR', 'TIMEOUT', 'CANCELLED', 'EXPIRED'].includes(row.providerStatus)
+  ) {
+    return {
+      ...common,
+      state: {
+        phase: 'TERMINAL',
+        buildId: row.providerBuildId,
+        providerStatus: row.providerStatus as AppImageBuildTerminalStatus,
+        ...(row.logUrl ? { logUrl: row.logUrl } : {}),
+      },
+    };
+  }
+  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+    code: 'APP_IMAGE_BUILD_LEDGER_CORRUPT',
+    statusCode: 500,
+  });
 }
 
 function validDeploymentAccessPolicy(row: any): boolean {

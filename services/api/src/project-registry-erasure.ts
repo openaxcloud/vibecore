@@ -7,8 +7,14 @@ import {
   type ArtifactRegistryPackageSnapshot,
 } from './artifact-registry-adapter.js';
 import { parseServerRollbackPromotionEvidence } from './deterministic-rollback.js';
-import type { PromotionManifest } from './lifecycle-state-machines.js';
-import type { ReleaseManifestRecord } from './store.js';
+
+export interface ProjectRegistryReleaseReference {
+  projectId: string;
+  artifactKind: string;
+  artifactRef: string;
+  artifactDigest: string;
+  promotionEvidence?: unknown;
+}
 
 const PROJECT_ID_RE = /^[A-Za-z0-9][A-Za-z0-9_-]{3,127}$/u;
 const OCI_TAG_RE = /^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$/u;
@@ -117,6 +123,7 @@ export interface ProjectRegistryErasureInventory {
 }
 
 export interface ProjectRegistryErasureReceipt {
+  [key: string]: string | number;
   schemaVersion: 1;
   projectIdHash: string;
   inventoryHash: string;
@@ -294,26 +301,6 @@ function addImageReferences(
   }
 }
 
-function strictPromotion(value: unknown): PromotionManifest {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    fail('REGISTRY_ERASURE_EVIDENCE_INVALID', 'Registry promotion evidence is malformed.');
-  }
-
-  const promotion = value as Partial<PromotionManifest>;
-
-  if (
-    typeof promotion.sourceRepo !== 'string' ||
-    typeof promotion.targetRepo !== 'string' ||
-    typeof promotion.sourceDigest !== 'string' ||
-    typeof promotion.retentionTag !== 'string' ||
-    !Array.isArray(promotion.attachments)
-  ) {
-    fail('REGISTRY_ERASURE_EVIDENCE_INVALID', 'Registry promotion evidence is incomplete.');
-  }
-
-  return promotion as PromotionManifest;
-}
-
 /**
  * Pure authority derivation. It reads no provider state and intentionally keeps
  * policy names, encrypted runtime data, actor data and credentials out of the
@@ -321,17 +308,19 @@ function strictPromotion(value: unknown): PromotionManifest {
  */
 function deriveProjectRegistryErasureAuthority(input: {
   projectId: string;
+  projectPackages?: readonly string[];
   sourceImages: readonly ProjectRegistryImageReference[];
   tenantImages: readonly ProjectRegistryImageReference[];
-  releaseManifests: ReadonlyArray<
-    Pick<ReleaseManifestRecord, 'projectId' | 'artifactKind' | 'artifactRef' | 'artifactDigest' | 'promotionEvidence'>
-  >;
+  releaseManifests: ReadonlyArray<ProjectRegistryReleaseReference>;
 }): Map<string, KnownPackage> {
   if (!PROJECT_ID_RE.test(input.projectId)) {
     fail('REGISTRY_ERASURE_PROJECT_INVALID', 'Project id cannot form an Artifact Registry package.');
   }
 
   const packages = new Map<string, KnownPackage>();
+  for (const repository of input.projectPackages ?? []) {
+    packageFor(packages, assertProjectPackage(input.projectId, repository));
+  }
   addImageReferences(packages, input.projectId, input.sourceImages);
   addImageReferences(packages, input.projectId, input.tenantImages);
 
@@ -364,7 +353,7 @@ function deriveProjectRegistryErasureAuthority(input: {
       fail('REGISTRY_ERASURE_EVIDENCE_CONFLICT', 'Release and promotion evidence disagree.');
     }
 
-    const promotion = strictPromotion(evidence.promotion);
+    const promotion = evidence.promotion;
     const sourceRepository = assertProjectPackage(input.projectId, promotion.sourceRepo);
     const targetRepository = assertProjectPackage(input.projectId, promotion.targetRepo);
     const imageDigest = assertDigest(promotion.sourceDigest);
@@ -375,14 +364,19 @@ function deriveProjectRegistryErasureAuthority(input: {
 
     addManifest(packages, { repository: sourceRepository, digest: imageDigest, kind: 'image' });
     addManifest(packages, { repository: targetRepository, digest: imageDigest, kind: 'image' });
-    addTag(packages, targetRepository, assertTag(promotion.retentionTag!), imageDigest);
+    const retentionTag = promotion.retentionTag;
 
-    for (const rawAttachment of promotion.attachments) {
-      if (!rawAttachment || typeof rawAttachment !== 'object' || Array.isArray(rawAttachment)) {
+    if (typeof retentionTag !== 'string') {
+      fail('REGISTRY_ERASURE_EVIDENCE_INVALID', 'Promotion retention-tag evidence is missing.');
+    }
+
+    addTag(packages, targetRepository, assertTag(retentionTag), imageDigest);
+
+    for (const attachment of promotion.attachments) {
+      if (!attachment || typeof attachment !== 'object' || Array.isArray(attachment)) {
         fail('REGISTRY_ERASURE_EVIDENCE_INVALID', 'Promotion attachment evidence is malformed.');
       }
 
-      const attachment = rawAttachment as PromotionManifest['attachments'][number];
       const attachmentDigest = assertDigest(attachment.digest);
       const subjectDigest = assertDigest(attachment.subjectDigest);
 
@@ -423,11 +417,10 @@ function assertReferenceCount(value: number): number {
  */
 export async function captureProjectRegistryErasureInventory(input: {
   projectId: string;
+  projectPackages?: readonly string[];
   sourceImages: readonly ProjectRegistryImageReference[];
   tenantImages: readonly ProjectRegistryImageReference[];
-  releaseManifests: ReadonlyArray<
-    Pick<ReleaseManifestRecord, 'projectId' | 'artifactKind' | 'artifactRef' | 'artifactDigest' | 'promotionEvidence'>
-  >;
+  releaseManifests: ReadonlyArray<ProjectRegistryReleaseReference>;
   provider: Pick<ProjectRegistryErasureProvider, 'snapshotPackage'>;
   referenceAuthority: ProjectRegistryReferenceAuthority;
 }): Promise<ProjectRegistryErasureInventory> {
@@ -543,7 +536,7 @@ export async function captureProjectRegistryErasureInventory(input: {
   return { ...body, inventoryHash: digestValue(body) };
 }
 
-function validateInventory(inventory: ProjectRegistryErasureInventory): void {
+export function validateProjectRegistryErasureInventory(inventory: ProjectRegistryErasureInventory): void {
   const { inventoryHash, ...body } = inventory;
 
   if (inventory.schemaVersion !== 1 || digestValue(body) !== inventoryHash) {
@@ -621,6 +614,43 @@ function validateInventory(inventory: ProjectRegistryErasureInventory): void {
   }
 }
 
+/** Reject fabricated or internally inconsistent receipts before durable commit. */
+export function validateProjectRegistryErasureReceipt(
+  receipt: ProjectRegistryErasureReceipt,
+  inventory: ProjectRegistryErasureInventory,
+): void {
+  validateProjectRegistryErasureInventory(inventory);
+  const manifestCount = inventory.packages.reduce((sum, pkg) => sum + pkg.manifests.length, 0);
+  const tagCount = inventory.packages.reduce((sum, pkg) => sum + pkg.tags.length, 0);
+  const counts = [
+    receipt.packageCount,
+    receipt.manifestCount,
+    receipt.tagCount,
+    receipt.erasedPackageCount,
+    receipt.retainedPackageCount,
+    receipt.erasedManifestCount,
+    receipt.retainedManifestCount,
+    receipt.erasedTagCount,
+    receipt.retainedTagCount,
+  ];
+
+  if (
+    receipt.schemaVersion !== 1 ||
+    receipt.projectIdHash !== digestValue(inventory.projectId) ||
+    receipt.inventoryHash !== inventory.inventoryHash ||
+    receipt.packageCount !== inventory.packages.length ||
+    receipt.manifestCount !== manifestCount ||
+    receipt.tagCount !== tagCount ||
+    counts.some((count) => !Number.isSafeInteger(count) || count < 0) ||
+    receipt.erasedPackageCount + receipt.retainedPackageCount !== receipt.packageCount ||
+    receipt.erasedManifestCount + receipt.retainedManifestCount !== receipt.manifestCount ||
+    receipt.erasedTagCount + receipt.retainedTagCount !== receipt.tagCount ||
+    !/^sha256:[a-f0-9]{64}$/u.test(receipt.dispositionDigest)
+  ) {
+    fail('REGISTRY_ERASURE_RECEIPT_INVALID', 'Registry erasure receipt is inconsistent with its inventory.');
+  }
+}
+
 function assertSnapshotWithinInventory(
   snapshot: ArtifactRegistryPackageSnapshot,
   pkg: ProjectRegistryInventoryPackage,
@@ -688,7 +718,7 @@ export async function executeProjectRegistryErasure(input: {
   referenceAuthority: ProjectRegistryReferenceAuthority;
   guard: ProjectRegistryErasureGuard;
 }): Promise<ProjectRegistryErasureReceipt> {
-  validateInventory(input.inventory);
+  validateProjectRegistryErasureInventory(input.inventory);
   await assertLease(input.guard, input.inventory);
 
   const dispositions: Disposition[] = [];
@@ -870,7 +900,7 @@ export async function executeProjectRegistryErasure(input: {
   const count = (type: Disposition['type'], disposition: Disposition['disposition']) =>
     dispositions.filter((entry) => entry.type === type && entry.disposition === disposition).length;
 
-  return {
+  const receipt: ProjectRegistryErasureReceipt = {
     schemaVersion: 1,
     projectIdHash: digestValue(input.inventory.projectId),
     inventoryHash: input.inventory.inventoryHash,
@@ -885,4 +915,6 @@ export async function executeProjectRegistryErasure(input: {
     retainedTagCount: count('tag', 'RETAINED_SHARED'),
     dispositionDigest: digestValue(dispositions),
   };
+  validateProjectRegistryErasureReceipt(receipt, input.inventory);
+  return receipt;
 }
