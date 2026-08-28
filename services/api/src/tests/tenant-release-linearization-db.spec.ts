@@ -5,6 +5,7 @@ import { PrismaCloudGovernanceStore } from '../cloud-governance-store.js';
 import { lockProjectAfterPurgeTopology, lockProjectMutation } from '../project-mutation-lock.js';
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 import { PrismaApiStore } from '../prisma-store.js';
+import { eraseIsolatedDatabaseInstanceFixture } from './project-database-erasure-db-test-support.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) return false;
@@ -334,9 +335,21 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
               organizationId: organizations.source.id,
               environment: 'development',
               status: 'ACTIVE',
+              physicalTier: 'ISOLATED',
+              physicalClusterName: `db-${project.id}`,
+              physicalBackupBucket: 'vibecore-test-db-backups',
+              physicalBackupPrefix: `test-fixtures/${project.id}/development/`,
+              physicalClusterUid: `fixture-cluster-uid-${project.id}`,
+              physicalRetentionDays: 7,
+              physicalAuthorityAt: new Date(),
             },
           });
-          return () => prisma.databaseInstance.delete({ where: { id: row.id } });
+          return () =>
+            eraseIsolatedDatabaseInstanceFixture(prisma, {
+              databaseInstanceId: row.id,
+              projectId: project.id,
+              organizationId: organizations.source.id,
+            });
         },
       },
       {
@@ -470,14 +483,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
       data: { organizationId: organizations.source.id, name: 'Release fence', slug: `release-fence-${suffix()}` },
     });
     const revision = await seedManifest(storeA, project.id, organizations.source.id);
-    const provisioning = await prismaA.databaseInstance.create({
-      data: {
-        projectId: project.id,
-        organizationId: organizations.source.id,
-        environment: 'production',
-        status: 'PROVISIONING',
-      },
-    });
+    const provisioningId = `release-provisioning-${suffix()}`;
     const ownerToken = `release-owner-${suffix()}`;
     const lease = await storeA.acquireProjectReleaseBarrier({
       projectId: project.id,
@@ -490,6 +496,21 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
 
     try {
       expect(lease).toBeDefined();
+      const staleWorkerDeployment = await storeA.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: organizations.source.id,
+        releaseFence: {
+          checkpointId: lease!.checkpointId,
+          ownerToken,
+          fence: lease!.fence,
+          expectedOrganizationId: organizations.source.id,
+          expectedManifestDigest: revision.digest,
+        },
+        provider: 'server',
+        environment: 'preview',
+        status: 'BUILDING',
+        metadata: { projectManifestDigest: revision.digest },
+      });
       const nextManifest = { ...createDefaultProjectManifest(project.id), manifestVersion: 2 };
       const attempts = await Promise.allSettled([
         storeB.transferProject({
@@ -538,7 +559,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
             retentionDays: 7,
           },
         }),
-        storeB.completeDatabaseProvisioning(provisioning.id, {
+        storeB.completeDatabaseProvisioning(provisioningId, {
           projectId: project.id,
           expectedOrganizationId: organizations.source.id,
           key: 'PROD_DATABASE_URL',
@@ -564,7 +585,10 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         }),
       ).rejects.toMatchObject({ code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE' });
 
-      await prismaA.project.update({ where: { id: project.id }, data: { organizationId: organizations.source.id } });
+      const restoredProject = await prismaA.project.update({
+        where: { id: project.id },
+        data: { organizationId: organizations.source.id },
+      });
       await prismaA.projectManifestRevision.create({
         data: {
           projectId: project.id,
@@ -585,14 +609,6 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         }),
       ).rejects.toMatchObject({ code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' });
 
-      const staleWorkerDeployment = await storeA.createDeployment({
-        projectId: project.id,
-        expectedOrganizationId: organizations.source.id,
-        provider: 'server',
-        environment: 'preview',
-        status: 'BUILDING',
-        metadata: { projectManifestDigest: revision.digest },
-      });
       await prismaA.$executeRaw`
         UPDATE "ProjectCheckpoint"
         SET "barrierExpiresAt" = clock_timestamp() - INTERVAL '1 second'
@@ -603,7 +619,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         storeB.transferProject({
           projectId: project.id,
           expectedOrganizationId: organizations.source.id,
-          expectedOwnershipEpoch: 0,
+          expectedOwnershipEpoch: restoredProject.ownershipEpoch,
           targetOrganizationId: organizations.target.id,
           idempotencyKey: 'release-expired-transfer-0001',
           assertExternalStorageDetached: async () => undefined,
