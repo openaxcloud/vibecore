@@ -151,11 +151,17 @@ import {
 } from './agent-routing-service.js';
 import {
   appImageBuildIntentHash,
+  appImageBuildMutationIsAmbiguous,
   appImageBuildOperationTag,
   cancelAppImageBuildAndWait,
   runAppImageBuild,
+  runTrustedImageSigning,
+  type AppImageBuildTerminalStatus,
+  type AppImageBuildResult,
   type AppImageBuildProviderIdentity,
 } from './app-image-build.js';
+import { registryMutationIntentHash } from './registry-mutation.js';
+import type { AttestationKind, PromotionResult } from './artifact-promotion.js';
 import { ArtifactRegistryOciAdapter } from './artifact-registry-adapter.js';
 import {
   appPublicCopy,
@@ -216,12 +222,8 @@ import {
   type ServerImagePromotionRuntime,
 } from './server-image-promotion.js';
 import type { PromotionManifest } from './lifecycle-state-machines.js';
-import {
-  captureProjectRegistryErasureInventory,
-  executeProjectRegistryErasure,
-  type ProjectRegistryErasureProvider,
-  type ProjectRegistryErasureReceipt,
-} from './project-registry-erasure.js';
+import type { ProjectRegistryErasureProvider } from './project-registry-erasure.js';
+import { captureCancelAndSweepProjectImages } from './project-image-erasure-coordinator.js';
 import { auditSkill, localizeAuditFindings, type SkillContent } from './skill-audit.js';
 import { parseSkillManifest, type SkillManifest } from './skill-manifest.js';
 import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
@@ -8327,147 +8329,132 @@ async function projectWorkspaceDeletionRequest(
   return proof;
 }
 
-async function eraseProjectImageProducersAndRegistry(input: {
-  store: ApiStore;
-  projectId: string;
-  lease: ObjectStorageOperationLease;
-  assertLease: () => Promise<void>;
-  provider: ProjectRegistryErasureProvider;
-}): Promise<{
-  registry: ProjectRegistryErasureReceipt;
-  cloudBuild: { producerCount: number; terminalProofCount: number; lateSuccessCount: number };
-}> {
-  const { store, projectId, lease, assertLease, provider } = input;
-  await assertLease();
-  const producers = await store.listProjectAppImageBuildsForDeletion(lease);
+async function eraseProjectImageProducersAndRegistry(
+  input: Parameters<typeof captureCancelAndSweepProjectImages>[0],
+): ReturnType<typeof captureCancelAndSweepProjectImages> {
+  return captureCancelAndSweepProjectImages(input);
+}
 
-  for (const producer of producers) {
-    await assertLease();
-    if (producer.state.phase === 'CANCELLED') continue;
-    if (producer.state.phase === 'PREPARED' || producer.state.phase === 'REJECTED') {
-      await store.markUnsubmittedAppImageBuildCancelled({ lease, operationId: producer.id });
-      continue;
-    }
-
-    const buildId =
-      producer.state.phase === 'IDENTIFIED' || producer.state.phase === 'TERMINAL'
-        ? producer.state.buildId
-        : producer.providerBuildId;
-    const cancellation = await cancelAppImageBuildAndWait(
-      {
-        gcpProject: producer.gcpProject,
-        region: producer.region,
-        sourceBucket: producer.sourceBucket,
-        sourceObject: producer.sourceObject,
-        imageUri: producer.imageUri,
-        buildServiceAccount: producer.buildServiceAccount,
-        timeoutSeconds: producer.timeoutSeconds,
-      },
-      { operationId: producer.id, ...(buildId ? { buildId } : {}) },
-      {
-        assertAuthority: () => assertLease(),
-        recordRecoveredBuildIdentity: ({ buildId: recoveredId, operationTag, logUrl }) =>
-          store.recordAppImageBuildRecoveredIdentityForDeletion({
-            lease,
-            operationId: producer.id,
-            buildId: recoveredId,
-            operationTag,
-            ...(logUrl ? { logUrl } : {}),
-          }),
-        recordCancellationProof: (proof) =>
-          store.recordAppImageBuildCancellationProof({ lease, operationId: producer.id, proof }),
-      },
-    );
-    if (!cancellation.ok) {
-      throw Object.assign(new Error(cancellation.error), {
-        code: cancellation.code,
-        statusCode: 503,
-      });
-    }
+function registryEvidenceRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('REGISTRY_MUTATION_RECEIPT_CORRUPT');
   }
+  return value as Record<string, unknown>;
+}
 
-  await assertLease();
-  const prior = await store.readProjectRegistryErasure(lease);
-  if (prior?.state === 'VERIFIED') {
-    const terminal = await store.listProjectAppImageBuildsForDeletion(lease);
+function appImageBuildFailureCode(value: unknown): Exclude<AppImageBuildResult, { ok: true }>['code'] {
+  switch (value) {
+    case 'CLOUD_BUILD_CREATE_FAILED':
+      return value;
+    case undefined:
+      return undefined;
+    default:
+      throw new Error('REGISTRY_MUTATION_BUILD_RECEIPT_CORRUPT');
+  }
+}
+
+function appImageBuildFailureStatus(value: unknown): Exclude<AppImageBuildTerminalStatus, 'SUCCESS'> | undefined {
+  switch (value) {
+    case 'FAILURE':
+    case 'INTERNAL_ERROR':
+    case 'TIMEOUT':
+    case 'CANCELLED':
+    case 'EXPIRED':
+      return value;
+    case undefined:
+      return undefined;
+    default:
+      throw new Error('REGISTRY_MUTATION_BUILD_RECEIPT_CORRUPT');
+  }
+}
+
+function parseVerifiedAppImageBuildEvidence(evidence: unknown): AppImageBuildResult {
+  const record = registryEvidenceRecord(evidence);
+  if (record.ok === true) {
+    if (
+      typeof record.imageUri !== 'string' ||
+      typeof record.buildId !== 'string' ||
+      typeof record.durationMs !== 'number' ||
+      !Number.isFinite(record.durationMs) ||
+      record.durationMs < 0 ||
+      (record.digest !== undefined &&
+        (typeof record.digest !== 'string' || !/^sha256:[a-f0-9]{64}$/u.test(record.digest))) ||
+      (record.imageSizeBytes !== undefined &&
+        (typeof record.imageSizeBytes !== 'number' ||
+          !Number.isSafeInteger(record.imageSizeBytes) ||
+          record.imageSizeBytes < 0))
+    ) {
+      throw new Error('REGISTRY_MUTATION_BUILD_RECEIPT_CORRUPT');
+    }
     return {
-      registry: prior.receipt,
-      cloudBuild: {
-        producerCount: terminal.length,
-        terminalProofCount: terminal.filter((row) => row.state.phase === 'CANCELLED').length,
-        lateSuccessCount: terminal.filter(
-          (row) =>
-            row.cancellationProof &&
-            'lateSuccess' in row.cancellationProof &&
-            row.cancellationProof.lateSuccess === true,
-        ).length,
-      },
+      ok: true,
+      imageUri: record.imageUri,
+      buildId: record.buildId,
+      durationMs: record.durationMs,
+      ...(record.digest ? { digest: record.digest } : {}),
+      ...(record.imageSizeBytes !== undefined ? { imageSizeBytes: record.imageSizeBytes } : {}),
     };
   }
-
-  const authority = await store.resolveProjectRegistryErasureAuthority(projectId);
-  const referenceAuthority = {
-    countOutsideProject: (
-      reference: Parameters<ApiStore['countProjectRegistryReferencesOutsideProject']>[0],
-      excluded: string,
-    ) => store.countProjectRegistryReferencesOutsideProject(reference, excluded),
+  if (
+    record.ok !== false ||
+    typeof record.error !== 'string' ||
+    (record.buildId !== undefined && typeof record.buildId !== 'string') ||
+    (record.logUrl !== undefined && typeof record.logUrl !== 'string')
+  ) {
+    throw new Error('REGISTRY_MUTATION_BUILD_RECEIPT_CORRUPT');
+  }
+  const providerStatus = appImageBuildFailureStatus(record.providerStatus);
+  return {
+    ok: false,
+    error: record.error,
+    ...(record.code !== undefined ? { code: appImageBuildFailureCode(record.code) } : {}),
+    ...(record.buildId ? { buildId: record.buildId } : {}),
+    ...(record.logUrl ? { logUrl: record.logUrl } : {}),
+    ...(providerStatus ? { providerStatus } : {}),
   };
-  const repositories = prior ? prior.inventory.packages.map((pkg) => pkg.repository) : authority.projectPackages;
+}
 
-  const erase = async (): Promise<ProjectRegistryErasureReceipt> => {
-    const inventory =
-      prior?.inventory ??
-      (await captureProjectRegistryErasureInventory({
-        projectId,
-        projectPackages: authority.projectPackages,
-        sourceImages: authority.sourceImages,
-        tenantImages: authority.tenantImages,
-        releaseManifests: authority.releaseManifests,
-        provider,
-        referenceAuthority,
-      }));
-    await assertLease();
-    await store.prepareProjectRegistryErasure({ lease, inventory });
-    await store.beginProjectRegistryErasure(lease);
-    const receipt = await executeProjectRegistryErasure({
-      inventory,
-      provider,
-      referenceAuthority,
-      guard: {
-        assertPreparedAndLease: async ({ projectId: guardedProjectId, inventoryHash }) => {
-          await assertLease();
-          const durable = await store.readProjectRegistryErasure(lease);
-          if (
-            !durable ||
-            durable.inventory.projectId !== guardedProjectId ||
-            durable.inventory.inventoryHash !== inventoryHash
-          ) {
-            throw new Error('REGISTRY_ERASURE_DURABLE_GUARD_LOST');
-          }
-        },
-        /* The outer, sorted session-lock set covers capture through receipt. */
-        withPackageFence: (_repository, effect) => effect(),
-      },
-    });
-    await store.completeProjectRegistryErasure({ lease, receipt });
-    return receipt;
-  };
-
-  const receipt = repositories.length > 0 ? await store.withRegistryPackageFences(repositories, erase) : await erase();
-  const terminal = await store.listProjectAppImageBuildsForDeletion(lease);
-  if (terminal.some((row) => row.state.phase !== 'CANCELLED')) {
-    throw new Error('APP_IMAGE_BUILD_TERMINAL_PROOF_INCOMPLETE');
+function parseVerifiedTrustedSigningEvidence(evidence: unknown) {
+  const record = registryEvidenceRecord(evidence);
+  if (
+    record.status !== 'SUCCESS' ||
+    typeof record.buildId !== 'string' ||
+    (record.logUrl !== undefined && typeof record.logUrl !== 'string')
+  ) {
+    throw new Error('REGISTRY_MUTATION_SIGNING_RECEIPT_CORRUPT');
   }
   return {
-    registry: receipt,
-    cloudBuild: {
-      producerCount: terminal.length,
-      terminalProofCount: terminal.length,
-      lateSuccessCount: terminal.filter(
-        (row) =>
-          row.cancellationProof && 'lateSuccess' in row.cancellationProof && row.cancellationProof.lateSuccess === true,
-      ).length,
-    },
+    ok: true as const,
+    buildId: record.buildId,
+    durationMs: 0,
+    ...(record.logUrl ? { logUrl: record.logUrl } : {}),
+  };
+}
+
+function promotionAttestation(value: unknown): value is AttestationKind {
+  return value === 'signature' || value === 'sbom' || value === 'provenance';
+}
+
+function parseVerifiedPromotionEvidence(evidence: unknown, organizationId: string): PromotionResult {
+  const record = registryEvidenceRecord(evidence);
+  const target = registryEvidenceRecord(record.target);
+  if (
+    record.ok !== true ||
+    typeof target.repo !== 'string' ||
+    typeof target.digest !== 'string' ||
+    !Array.isArray(record.promotedAttestations) ||
+    !record.promotedAttestations.every(promotionAttestation) ||
+    typeof record.reused !== 'boolean' ||
+    !isCommittedPromotionForTenant(record.manifest, organizationId, target.digest, target.repo)
+  ) {
+    throw new Error('REGISTRY_MUTATION_PROMOTION_RECEIPT_CORRUPT');
+  }
+  return {
+    ok: true,
+    target: { repo: target.repo, digest: target.digest },
+    promotedAttestations: [...record.promotedAttestations],
+    manifest: record.manifest,
+    reused: record.reused,
   };
 }
 
@@ -28807,8 +28794,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               staticArtifactSummary: filesystem.staticArtifactSummary,
             },
             gcs: { bucketAbsent: true, objectCount: 0 },
-            cloudBuild: producerErasureProof.cloudBuild,
-            artifactRegistry: producerErasureProof.registry,
+            projectImages: producerErasureProof,
             workspaceManager,
           },
         };
@@ -40690,6 +40676,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                           imageUri,
                           cosignKmsKey: process.env.SERVER_DEPLOY_COSIGN_KMS_KEY ?? '',
                           buildServiceAccount: process.env.SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT ?? '',
+                          signingServiceAccount: process.env.SERVER_DEPLOY_SIGNING_SERVICE_ACCOUNT ?? '',
                           baseImage,
 
                           /*
@@ -40705,7 +40692,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                         const providerIdentity: AppImageBuildProviderIdentity = buildSpec;
 
                         await releaseGuard.assert();
-                        await store.prepareAppImageBuild({
+                        const preparedBuild = await store.prepareAppImageBuild({
                           operationId: buildOperationId,
                           projectId: project.id,
                           deploymentId: queued.id,
@@ -40715,20 +40702,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                           releaseFence: releaseGuard.fence,
                         });
 
-                        const buildResult = await store.withRegistryPackageFences(
-                          [imageUri.replace(/:[^:/]+$/u, '')],
-                          async () => {
+                        const sourceRepository = imageUri.replace(/:[^:/]+$/u, '');
+                        const buildResult = await store.withRegistryMutation(
+                          {
+                            operationId: `registry-mutation:build:${buildOperationId}`,
+                            projectId: project.id,
+                            organizationId: preparedBuild.organizationId,
+                            ownershipEpoch: preparedBuild.ownershipEpoch,
+                            kind: 'APP_IMAGE_BUILD',
+                            repositories: [sourceRepository],
+                            intentHash: registryMutationIntentHash({
+                              buildOperationId,
+                              intentHash: appImageBuildIntentHash(buildSpec),
+                              sourceRepository,
+                            }),
+                          },
+                          async (registryGuard) => {
                             await releaseGuard.assert();
-                            return runAppImageBuild(buildSpec, {
+                            await registryGuard.assertActive();
+                            const result = await runAppImageBuild(buildSpec, {
                               onLog: (level, message) => buildProgress.onLog({ timestamp: nowIso(), level, message }),
+                              signal: registryGuard.signal,
                               lifecycle: {
                                 operationId: buildOperationId,
-                                assertAuthority: () =>
-                                  store.assertAppImageBuildAuthority({
+                                assertAuthority: async () => {
+                                  await registryGuard.assertActive();
+                                  await store.assertAppImageBuildAuthority({
                                     operationId: buildOperationId,
                                     projectId: project.id,
                                     releaseFence: releaseGuard.fence,
-                                  }),
+                                  });
+                                },
                                 readState: () =>
                                   store.readAppImageBuildState({
                                     operationId: buildOperationId,
@@ -40742,15 +40746,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                                     operationTag: durableTag,
                                     releaseFence: releaseGuard.fence,
                                   }),
-                                recordBuildIdentity: ({ buildId, operationTag: durableTag, logUrl }) =>
-                                  store.recordAppImageBuildIdentity({
+                                recordBuildIdentity: async ({ buildId, operationTag: durableTag, logUrl }) => {
+                                  await store.recordAppImageBuildIdentity({
                                     operationId: buildOperationId,
                                     projectId: project.id,
                                     buildId,
                                     operationTag: durableTag,
                                     ...(logUrl ? { logUrl } : {}),
                                     releaseFence: releaseGuard.fence,
-                                  }),
+                                  });
+                                  await registryGuard.recordProviderOperationId(buildId);
+                                },
                                 recordSubmissionRejected: ({ operationTag: durableTag, status }) =>
                                   store.recordAppImageBuildSubmissionRejected({
                                     operationId: buildOperationId,
@@ -40771,6 +40777,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                                   }),
                               },
                             });
+                            if (appImageBuildMutationIsAmbiguous(result)) {
+                              throw Object.assign(new Error(result.error), { code: result.code });
+                            }
+                            await registryGuard.recordProviderEvidence(result);
+                            return result;
+                          },
+                          {
+                            replayVerified: parseVerifiedAppImageBuildEvidence,
                           },
                         );
 
@@ -40780,6 +40794,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                           imagePromotionErrorCode = 'PROMOTION_SOURCE_DIGEST_MISSING';
                           serverError = appPublicEnglish('DEPLOY_SERVER_PROMOTION_FAILED');
                         } else {
+                          const signingOperationId = `registry-mutation:sign:${buildOperationId}`;
+                          const signingSpec = {
+                            gcpProject: buildSpec.gcpProject,
+                            region: buildSpec.region,
+                            imageUri: sourceRepository,
+                            digest: buildResult.digest,
+                            cosignKmsKey: buildSpec.cosignKmsKey,
+                            signingServiceAccount: buildSpec.signingServiceAccount,
+                            operationTag: appImageBuildOperationTag(signingOperationId),
+                            timeoutSeconds: buildSpec.timeoutSeconds,
+                          };
+                          await store.withRegistryMutation(
+                            {
+                              operationId: signingOperationId,
+                              projectId: project.id,
+                              organizationId: preparedBuild.organizationId,
+                              ownershipEpoch: preparedBuild.ownershipEpoch,
+                              kind: 'TRUSTED_IMAGE_SIGNING',
+                              repositories: [sourceRepository],
+                              intentHash: registryMutationIntentHash(signingSpec),
+                            },
+                            async (registryGuard) => {
+                              const signing = await runTrustedImageSigning(signingSpec, {
+                                signal: registryGuard.signal,
+                                assertAuthority: async () => {
+                                  await registryGuard.assertActive();
+                                  await releaseGuard.assert();
+                                },
+                                recordProviderBuildId: (buildId) => registryGuard.recordProviderOperationId(buildId),
+                                recordProviderEvidence: (evidence) => registryGuard.recordProviderEvidence(evidence),
+                              });
+                              if (!signing.ok) {
+                                throw Object.assign(new Error(signing.error), { code: signing.code });
+                              }
+                              return signing;
+                            },
+                            {
+                              replayVerified: parseVerifiedTrustedSigningEvidence,
+                            },
+                          );
                           buildProgress.onLog({
                             timestamp: nowIso(),
                             level: 'info',
@@ -40811,10 +40865,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                               promotionRuntime,
                               promotionInput,
                             );
-                            const promoted = await store.withRegistryPackageFences(
-                              promotionAuthority.repositories,
-                              async () => {
+                            const promoted = await store.withRegistryMutation(
+                              {
+                                operationId: `registry-mutation:promotion:${buildOperationId}`,
+                                projectId: project.id,
+                                organizationId: preparedBuild.organizationId,
+                                ownershipEpoch: preparedBuild.ownershipEpoch,
+                                kind: 'IMAGE_PROMOTION',
+                                repositories: [...promotionAuthority.repositories],
+                                intentHash: registryMutationIntentHash({
+                                  buildOperationId,
+                                  promotionInput,
+                                  targetRepository: promotionAuthority.targetRepository,
+                                }),
+                              },
+                              async (registryGuard) => {
                                 await releaseGuard.assert();
+                                await registryGuard.assertActive();
                                 await store.prepareAppImageBuildPromotion({
                                   operationId: buildOperationId,
                                   projectId: project.id,
@@ -40822,7 +40889,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                                   releaseFence: releaseGuard.fence,
                                 });
                                 await releaseGuard.assert();
-                                const result = await promotionRuntime.promote(promotionInput);
+                                const result = await promotionRuntime.promote({
+                                  ...promotionInput,
+                                  signal: registryGuard.signal,
+                                });
+                                await registryGuard.assertActive();
                                 await releaseGuard.assert();
                                 if (
                                   !isCommittedPromotionForTenant(
@@ -40842,7 +40913,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                                   promotionReferences: result.manifest,
                                   releaseFence: releaseGuard.fence,
                                 });
+                                await registryGuard.recordProviderEvidence(result);
                                 return result;
+                              },
+                              {
+                                replayVerified: (evidence) =>
+                                  parseVerifiedPromotionEvidence(evidence, project.organizationId),
                               },
                             );
 
@@ -45432,17 +45508,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             };
             const promotionRuntime = resolveServerImagePromotionRuntime();
             const promotionAuthority = resolvePromotionPackageAuthority(promotionRuntime, promotionInput);
-            const promoted = await store.withRegistryPackageFences(promotionAuthority.repositories, async () => {
-              await releaseGuard.assert();
-              const durableRegistryAuthority = await store.resolveProjectRegistryErasureAuthority(project.id);
-              if (!durableRegistryAuthority.projectPackages.includes(promotionAuthority.targetRepository)) {
-                throw new ServerImageReleaseGateError('PROMOTION_PACKAGE_AUTHORITY_MISSING');
-              }
-              await releaseGuard.assert();
-              const result = await promotionRuntime.promote(promotionInput);
-              await releaseGuard.assert();
-              return result;
-            });
+            const durableRegistryAuthority = await store.resolveProjectRegistryErasureAuthority(project.id);
+            if (!durableRegistryAuthority.projectPackages.includes(promotionAuthority.targetRepository)) {
+              throw new ServerImageReleaseGateError('PROMOTION_PACKAGE_AUTHORITY_MISSING');
+            }
+            const promoted = await store.withRegistryMutation(
+              {
+                operationId: `registry-mutation:publish:${source.id}:${releaseGuard.fence}`,
+                projectId: project.id,
+                organizationId: durableRegistryAuthority.organizationId,
+                ownershipEpoch: durableRegistryAuthority.ownershipEpoch,
+                kind: 'IMAGE_PROMOTION',
+                repositories: [...promotionAuthority.repositories],
+                intentHash: registryMutationIntentHash({
+                  sourceDeploymentId: source.id,
+                  promotionInput,
+                  targetRepository: promotionAuthority.targetRepository,
+                  releaseFence: releaseGuard.fence,
+                }),
+              },
+              async (registryGuard) => {
+                await releaseGuard.assert();
+                await registryGuard.assertActive();
+                const result = await promotionRuntime.promote({
+                  ...promotionInput,
+                  signal: registryGuard.signal,
+                });
+                await registryGuard.assertActive();
+                await releaseGuard.assert();
+                if (
+                  !isCommittedPromotionForTenant(
+                    result.manifest,
+                    project.organizationId,
+                    result.target.digest,
+                    result.target.repo,
+                  )
+                ) {
+                  throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+                }
+                await registryGuard.recordProviderEvidence(result);
+                return result;
+              },
+              {
+                replayVerified: (evidence) => parseVerifiedPromotionEvidence(evidence, project.organizationId),
+              },
+            );
 
             if (
               !isCommittedPromotionForTenant(

@@ -141,6 +141,8 @@ export interface ServerImagePromotionInput {
   organizationId: string;
   projectId: string;
   source: RegistryRef;
+  /** Durable registry fence; a lost owner must stop between provider calls. */
+  signal?: AbortSignal;
 }
 
 export interface ServerImagePromotionRuntime {
@@ -177,6 +179,7 @@ export class LiveServerImagePromotionRuntime implements ServerImagePromotionRunt
   }
 
   async promote(input: ServerImagePromotionInput): Promise<PromotionResult> {
+    input.signal?.throwIfAborted();
     const tenant = this._config.tenants.get(input.organizationId);
 
     if (!tenant) {
@@ -215,13 +218,16 @@ export class LiveServerImagePromotionRuntime implements ServerImagePromotionRunt
       targetRepo,
       targetTenant: input.organizationId,
       adapter: this._adapter,
+      ...(input.signal ? { signal: input.signal } : {}),
       binaryAuthorization: async () => {
+        input.signal?.throwIfAborted();
         const evaluatedImage = `${targetRepo}@${input.source.digest}`;
 
         const evaluation = await this._binaryAuthorization.evaluate(tenant.binaryAuthorizationPolicy, {
           repo: targetRepo,
           digest: input.source.digest,
         });
+        input.signal?.throwIfAborted();
 
         return {
           admitted: evaluation.admitted,
@@ -232,6 +238,7 @@ export class LiveServerImagePromotionRuntime implements ServerImagePromotionRunt
         };
       },
     });
+    input.signal?.throwIfAborted();
 
     const releaseGate = releaseMayBeCut(result.manifest);
 

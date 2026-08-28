@@ -13,6 +13,10 @@ resource "google_service_account" "platform_workload" {
   display_name = "VibeCore platform workload identity"
 }
 
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 locals {
   server_deploy_builder_enabled = var.server_deploy_builder_repository != null && var.server_deploy_cosign_kms_key_id != ""
   server_deploy_builder_repository = var.server_deploy_builder_repository != null ? var.server_deploy_builder_repository : {
@@ -28,6 +32,14 @@ resource "google_service_account" "server_deploy_builder" {
   count        = local.server_deploy_builder_enabled ? 1 : 0
   account_id   = "${var.name_prefix}-app-builder"
   display_name = "VibeCore server deploy image builder"
+}
+
+# KMS-capable identity for platform-authored signing steps only. It never reads
+# the user source bucket and is distinct from the untrusted Docker builder.
+resource "google_service_account" "server_deploy_signer" {
+  count        = local.server_deploy_builder_enabled ? 1 : 0
+  account_id   = "${var.name_prefix}-app-signer"
+  display_name = "VibeCore trusted app image signer"
 }
 
 resource "google_project_iam_member" "node_logging" {
@@ -93,8 +105,8 @@ resource "google_service_account_iam_member" "platform_api_workload_identity" {
 }
 
 # The API submits, reconciles, polls and cancels per-app Cloud Builds. Image
-# signing itself executes as the dedicated builder; editor is required by the
-# durable crash-recovery and hard-delete cancellation paths (never a default SA).
+# signing executes in the distinct trusted signer build; editor is required by
+# the durable crash-recovery and hard-delete cancellation paths (never a default SA).
 resource "google_project_iam_member" "platform_cloud_build_submitter" {
   count   = local.server_deploy_builder_enabled ? 1 : 0
   project = var.project_id
@@ -108,6 +120,30 @@ resource "google_service_account_iam_member" "platform_server_deploy_builder_act
   service_account_id = google_service_account.server_deploy_builder[0].name
   role               = "roles/iam.serviceAccountUser"
   member             = "serviceAccount:${google_service_account.platform_workload.email}"
+}
+
+resource "google_service_account_iam_member" "platform_server_deploy_signer_act_as" {
+  count              = local.server_deploy_builder_enabled ? 1 : 0
+  service_account_id = google_service_account.server_deploy_signer[0].name
+  role               = "roles/iam.serviceAccountUser"
+  member             = "serviceAccount:${google_service_account.platform_workload.email}"
+}
+
+# With a user-specified build identity, the Google-managed Cloud Build service
+# agent must mint that identity's short-lived token. Scope this exact principal
+# to each build GSA; no project-wide TokenCreator grant is used.
+resource "google_service_account_iam_member" "cloud_build_agent_builder_token_creator" {
+  count              = local.server_deploy_builder_enabled ? 1 : 0
+  service_account_id = google_service_account.server_deploy_builder[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
+}
+
+resource "google_service_account_iam_member" "cloud_build_agent_signer_token_creator" {
+  count              = local.server_deploy_builder_enabled ? 1 : 0
+  service_account_id = google_service_account.server_deploy_signer[0].name
+  role               = "roles/iam.serviceAccountTokenCreator"
+  member             = "serviceAccount:service-${data.google_project.current.number}@gcp-sa-cloudbuild.iam.gserviceaccount.com"
 }
 
 # The builder reads dynamic per-project source-context buckets in this project.
@@ -126,6 +162,13 @@ resource "google_project_iam_member" "server_deploy_builder_log_writer" {
   member  = "serviceAccount:${google_service_account.server_deploy_builder[0].email}"
 }
 
+resource "google_project_iam_member" "server_deploy_signer_log_writer" {
+  count   = local.server_deploy_builder_enabled ? 1 : 0
+  project = var.project_id
+  role    = "roles/logging.logWriter"
+  member  = "serviceAccount:${google_service_account.server_deploy_signer[0].email}"
+}
+
 # Source image writes are repository-scoped; tenant target repositories remain
 # inaccessible to the builder and are written only by the promotion runtime.
 resource "google_artifact_registry_repository_iam_member" "server_deploy_builder_writer" {
@@ -135,6 +178,15 @@ resource "google_artifact_registry_repository_iam_member" "server_deploy_builder
   repository = local.server_deploy_builder_repository.repository
   role       = "roles/artifactregistry.writer"
   member     = "serviceAccount:${google_service_account.server_deploy_builder[0].email}"
+}
+
+resource "google_artifact_registry_repository_iam_member" "server_deploy_signer_writer" {
+  count      = local.server_deploy_builder_enabled ? 1 : 0
+  project    = local.server_deploy_builder_repository.project
+  location   = local.server_deploy_builder_repository.location
+  repository = local.server_deploy_builder_repository.repository
+  role       = "roles/artifactregistry.writer"
+  member     = "serviceAccount:${google_service_account.server_deploy_signer[0].email}"
 }
 
 # Base/runtime images can live in repositories distinct from the app-build
@@ -153,11 +205,18 @@ resource "google_artifact_registry_repository_iam_member" "server_deploy_builder
 }
 
 # KMS scope is the one asymmetric signing key, never project-wide.
-resource "google_kms_crypto_key_iam_member" "server_deploy_builder_signer" {
+resource "google_kms_crypto_key_iam_member" "server_deploy_trusted_signer" {
   count         = local.server_deploy_builder_enabled ? 1 : 0
   crypto_key_id = var.server_deploy_cosign_kms_key_id
   role          = "roles/cloudkms.signerVerifier"
-  member        = "serviceAccount:${google_service_account.server_deploy_builder[0].email}"
+  member        = "serviceAccount:${google_service_account.server_deploy_signer[0].email}"
+}
+
+resource "google_kms_crypto_key_iam_member" "server_deploy_trusted_signer_viewer" {
+  count         = local.server_deploy_builder_enabled ? 1 : 0
+  crypto_key_id = var.server_deploy_cosign_kms_key_id
+  role          = "roles/cloudkms.viewer"
+  member        = "serviceAccount:${google_service_account.server_deploy_signer[0].email}"
 }
 
 # Least-privilege, repository-scoped data-plane grants. Every repository that

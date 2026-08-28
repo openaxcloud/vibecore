@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import {
   assertAccountPurgeMutationAllowed,
+  assertAccountPurgeProjectChildrenComplete,
   assertAccountPurgeStateMachinesSafeToStart,
   fencePurgedUserStateMachines,
 } from './account-purge-state-machine-fence.js';
@@ -1315,9 +1316,20 @@ export class AccountPurgeStore {
         const chatShares = await tx.chatShare.deleteMany({ where: { authorUserId: userId } });
         classes.push({ dataClass: 'chat_shares', action: 'deleted', models: { ChatShare: chatShares.count } });
 
-        const projects = soleOrgIds.length
-          ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
-          : { count: 0 };
+        const accountProjectIds = soleOrgIds.length
+          ? (
+              await tx.project.findMany({
+                where: { organizationId: { in: soleOrgIds } },
+                select: { id: true },
+              })
+            ).map(({ id }) => id)
+          : [];
+        await assertAccountPurgeProjectChildrenComplete(tx, accountProjectIds);
+        /* Project rows must already have been removed by deterministic
+         * PROJECT_PERMANENT_DELETE child operations. Deleting them here would
+         * bypass Cloud Build cancellation, registry sweep and the canonical
+         * receipt consumed by the account-purge parent. */
+        const projects = { count: 0 };
         classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projects.count } });
 
         const importJobs = soleOrgIds.length

@@ -12,6 +12,7 @@ import type { AccountPurgePreview, PurgeStorageDeps, PurgeUserAccountResult } fr
 import type {
   AppImageBuildCancellationProof,
   AppImageBuildProviderIdentity,
+  AppImageBuildSubmissionResolutionEvidence,
   AppImageBuildTerminalStatus,
   DurableAppImageBuildState,
 } from './app-image-build.js';
@@ -1037,7 +1038,63 @@ export interface AppImageBuildOperationRecord extends AppImageBuildProviderIdent
   cancellationProof?: AppImageBuildCancellationProof | { terminal: true; providerSubmissionAbsent: true };
 }
 
+export type RegistryMutationKind = 'APP_IMAGE_BUILD' | 'TRUSTED_IMAGE_SIGNING' | 'IMAGE_PROMOTION' | 'PROJECT_ERASURE';
+
+export interface RegistryMutationIntent {
+  operationId: string;
+  projectId: string;
+  organizationId: string;
+  ownershipEpoch: number;
+  kind: RegistryMutationKind;
+  repositories: string[];
+  intentHash: string;
+}
+
+export interface RegistryMutationGuard {
+  readonly signal: AbortSignal;
+  readonly ownerToken: string;
+  readonly fencingToken: bigint;
+  readonly backendPid: number;
+  assertActive(): Promise<void>;
+  recordProviderOperationId(providerOperationId: string): Promise<void>;
+  recordProviderEvidence(evidence: unknown): Promise<void>;
+}
+
+interface RegistryMutationRecoveryEvidenceBase {
+  schemaVersion: 'registry-mutation-recovery-v1';
+  operatorUserId: string;
+  auditEventId: string;
+  operationId: string;
+  projectId: string;
+  organizationId: string;
+  intentHash: string;
+  observationWindowStartedAt: string;
+  observationWindowEndedAt: string;
+}
+
+export type RegistryMutationRecoveryEvidence =
+  | (RegistryMutationRecoveryEvidenceBase & {
+      resolution: 'VERIFIED';
+      providerEvidenceHash: string;
+      providerQueries: Array<{
+        queriedAt: string;
+        providerOperationId?: string;
+        result: 'MATCHED_EFFECT';
+      }>;
+    })
+  | (RegistryMutationRecoveryEvidenceBase & {
+      resolution: 'FAILED_SAFE';
+      providerEvidenceHash?: never;
+      providerQueries: Array<{
+        queriedAt: string;
+        providerOperationId?: string;
+        result: 'ABSENT';
+      }>;
+    });
+
 export interface ProjectRegistryErasureAuthorityRecord {
+  organizationId: string;
+  ownershipEpoch: number;
   projectPackages: string[];
   sourceImages: ProjectRegistryImageReference[];
   tenantImages: ProjectRegistryImageReference[];
@@ -2218,8 +2275,17 @@ export interface ApiStore {
   withProjectPhysicalAccesses<T>(scopes: ProjectPhysicalMutationScope[], effect: () => Promise<T>): Promise<T>;
   /** Purge-only physical barrier; authority was frozen durably before erasure. */
   withProjectPhysicalErasure<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
-  /** Session locks shared by every Artifact Registry publisher and eraser. */
-  withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T>;
+  /**
+   * Durable mutation ledger plus sorted session locks shared by every Artifact
+   * Registry publisher and eraser. Losing the PostgreSQL session aborts the
+   * supplied signal and leaves AMBIGUOUS durable state; a stale owner can never
+   * certify its provider effect.
+   */
+  withRegistryMutation<T>(
+    intent: RegistryMutationIntent,
+    effect: (guard: RegistryMutationGuard) => Promise<T>,
+    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+  ): Promise<T>;
 
   /** Commit the immutable Cloud Build intent under the current release fence. */
   prepareAppImageBuild(input: {
@@ -2262,6 +2328,12 @@ export interface ApiStore {
     status: number;
     releaseFence: ProjectReleaseFence;
   }): Promise<void>;
+  /** Operator-only internal recovery; DB deadline and exhaustive evidence are enforced durably. */
+  resolveAppImageBuildSubmission(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: AppImageBuildSubmissionResolutionEvidence;
+  }): Promise<AppImageBuildOperationRecord>;
   recordAppImageBuildTerminal(input: {
     operationId: string;
     projectId: string;
@@ -2285,6 +2357,12 @@ export interface ApiStore {
     targetDigest: string;
     promotionReferences: unknown;
     releaseFence: ProjectReleaseFence;
+  }): Promise<void>;
+  /** Resolve an AMBIGUOUS registry effect only from an audited provider proof. */
+  resolveAmbiguousRegistryMutation(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: RegistryMutationRecoveryEvidence;
   }): Promise<void>;
 
   /** Build producers retained for cancellation by the permanent-delete saga. */

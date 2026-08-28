@@ -71,8 +71,13 @@ function hardDeleteProject(
             staticArtifactSummary: emptyStaticArtifactSummary,
           },
           gcs: { bucketAbsent: true, objectCount: 0 },
-          cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
-          artifactRegistry: registryReceipt!,
+          projectImages: {
+            schemaVersion: 1,
+            projectId: project.id,
+            operationId: lease.operationId,
+            cloudBuild: { producerCount: 0, terminalProofCount: 0, lateSuccessCount: 0 },
+            registry: registryReceipt!,
+          },
           workspaceManager: {
             schemaVersion: 'workspace-project-erasure-v2',
             projectId: project.id,

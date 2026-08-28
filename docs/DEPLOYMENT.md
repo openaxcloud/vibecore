@@ -194,8 +194,8 @@ proof is missing or too short; never expose it to browser bundles.
 
 ### Activate verified server-image promotion (currently OFF)
 
-Do not add `ARTIFACT_PROMOTION_CONFIG_JSON` to the map above, or set
-`SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT`, until this entire sequence has completed.
+Do not add `ARTIFACT_PROMOTION_CONFIG_JSON` to the map above, or enable the
+snapshot flag, until this entire sequence has completed.
 The API deliberately refuses snapshot-image publication without both values;
 it never falls back to the project's default Compute/Cloud Build identity and
 never cuts a release from an unpromoted image.
@@ -210,19 +210,22 @@ never cuts a release from an unpromoted image.
    `artifact_promotion_repositories` (source **and** isolated target
    `repoAdmin` grants), and `binary_authorization_policy_projects`; apply. The
    source delete permission is required by the exact project-erasure saga, not
-   only promotion rollback. This creates the dedicated builder GSA, grants the
-   API `actAs` plus Cloud Build reconcile/cancel authority, scopes build output
-   to the source repo, and scopes KMS signing to one CryptoKey. See
+   only promotion rollback. This creates a KMS-free builder GSA and a distinct
+   trusted signer GSA, grants the API `actAs` plus Cloud Build reconcile/cancel
+   authority, and scopes KMS signing to the signer on one CryptoKey. See
    [PROJECT_IMAGE_LIFECYCLE_RUNBOOK.md](PROJECT_IMAGE_LIFECYCLE_RUNBOOK.md).
 3. Add a Secret Manager version for
    `vibecore-prod-artifact-promotion-config-json` containing the strictly
    validated source/tenant repository and policy map. Then add
    `ARTIFACT_PROMOTION_CONFIG_JSON` to the sync map above.
-4. Set Helm `platformEnv.runtime.serverDeployBuildServiceAccount` to the full
-   `projects/<project>/serviceAccounts/<dedicated-builder-email>` resource and
-   deploy. Verify a real build produces the image signature, signed SPDX
-   attestation and Cloud Build provenance against one immutable digest before
-   enabling another tenant.
+4. Deploy through the production workflow. `values-prod.yaml` and the
+   `--reuse-values` workflow pin both full service-account resources; Helm
+   refuses `serverDeploySnapshotImage=1` if either identity, KMS key, source
+   repo or API Workload Identity is empty. The builder and signer bindings are
+   source-repository-only; Terraform rejects an accidental tenant-target grant.
+   Verify a real build produces the image signature, signed SPDX attestation
+   and Cloud Build provenance against one immutable digest before enabling
+   another tenant.
 
 As of the repository audit on 2026-08-26, the production source repo and KMS
 key exist, but the promotion Secret and platform policies do not; activation

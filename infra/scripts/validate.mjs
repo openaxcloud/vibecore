@@ -29,6 +29,17 @@ function helmTemplate(args = []) {
   );
 }
 
+function assertHelmTemplateFails(args, pattern, description) {
+  try {
+    helmTemplate(args);
+  } catch (error) {
+    const output = `${error?.stdout ?? ''}\n${error?.stderr ?? ''}`;
+    if (pattern.test(output)) return;
+    throw new Error(`${description} failed for the wrong reason: ${output}`);
+  }
+  throw new Error(`${description} unexpectedly rendered`);
+}
+
 function workspaceHelmTemplate(args = []) {
   return execFileSync(
     'helm',
@@ -209,6 +220,27 @@ assertIncludes(
 );
 
 const prodPlatform = helmTemplate(['--values', resolve(root, 'helm/platform/values-prod.yaml')]);
+if (renderedConfigValue(defaultPlatform, 'SERVER_DEPLOY_SNAPSHOT_IMAGE') !== '0') {
+  throw new Error('Default chart must keep snapshot-image publication disabled');
+}
+if (renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_SNAPSHOT_IMAGE') !== '1') {
+  throw new Error('Production chart must explicitly enable snapshot-image publication');
+}
+assertIncludes(
+  renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT'),
+  'vibecore-prod-app-builder@',
+  'production isolated builder identity',
+);
+assertIncludes(
+  renderedConfigValue(prodPlatform, 'SERVER_DEPLOY_SIGNING_SERVICE_ACCOUNT'),
+  'vibecore-prod-app-signer@',
+  'production trusted signer identity',
+);
+assertHelmTemplateFails(
+  ['--set-string', 'platformEnv.runtime.serverDeploySnapshotImage=1'],
+  /snapshot-image deploys require platformEnv\.runtime\.serverDeployImageRepo/u,
+  'snapshot-image fail-closed render',
+);
 assertStrictCorsOrigins(
   prodPlatform,
   'https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai',

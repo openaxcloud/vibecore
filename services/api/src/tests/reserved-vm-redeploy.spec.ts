@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const pipeline = vi.hoisted(() => ({
   createWorkspaceBuildAgent: vi.fn(),
   runAppImageBuild: vi.fn(),
+  runTrustedImageSigning: vi.fn(),
   snapshotWorkspaceImageContext: vi.fn(),
 }));
 
@@ -17,6 +18,7 @@ vi.mock('../deploy-workspace-agent.js', async (importOriginal) => ({
 vi.mock('../app-image-build.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../app-image-build.js')>()),
   runAppImageBuild: pipeline.runAppImageBuild,
+  runTrustedImageSigning: pipeline.runTrustedImageSigning,
 }));
 
 vi.mock('../server-deploy-transfer.js', async (importOriginal) => ({
@@ -47,6 +49,9 @@ const ENV_KEYS = [
   'SERVER_DEPLOY_SNAPSHOT_IMAGE',
   'SERVER_DEPLOY_IMAGE_REPO',
   'SERVER_DEPLOY_IMAGE',
+  'SERVER_DEPLOY_COSIGN_KMS_KEY',
+  'SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT',
+  'SERVER_DEPLOY_SIGNING_SERVICE_ACCOUNT',
   'SERVER_DEPLOY_REVISION_ROLLOUT_PERCENT',
   'RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID',
   'RESERVED_VM_PAYLOAD_ENCRYPTION_KEY',
@@ -297,10 +302,18 @@ beforeEach(() => {
   process.env.SERVER_DEPLOY_SNAPSHOT_IMAGE = '1';
   process.env.SERVER_DEPLOY_IMAGE_REPO = 'europe-west9-docker.pkg.dev/build-project/build-repo';
   process.env.SERVER_DEPLOY_IMAGE = 'registry.example/workspace@sha256:base';
+  process.env.SERVER_DEPLOY_COSIGN_KMS_KEY =
+    'gcpkms://projects/build-project/locations/europe-west9/keyRings/signing/cryptoKeys/apps';
+  process.env.SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT =
+    'projects/build-project/serviceAccounts/app-builder@build-project.iam.gserviceaccount.com';
+  process.env.SERVER_DEPLOY_SIGNING_SERVICE_ACCOUNT =
+    'projects/build-project/serviceAccounts/app-signer@build-project.iam.gserviceaccount.com';
   process.env.SERVER_DEPLOY_REVISION_ROLLOUT_PERCENT = '0';
 
   pipeline.createWorkspaceBuildAgent.mockReset();
   pipeline.runAppImageBuild.mockReset();
+  pipeline.runTrustedImageSigning.mockReset();
+  pipeline.runTrustedImageSigning.mockResolvedValue({ ok: true, buildId: 'trusted-signing', durationMs: 1 });
   pipeline.snapshotWorkspaceImageContext.mockReset();
   pipeline.createWorkspaceBuildAgent.mockReturnValue({
     readFile: vi.fn(async (path: string) => {

@@ -107,6 +107,8 @@ platformEnv:
     # Full projects/.../serviceAccounts/... resource for the dedicated Cloud
     # Build identity. Empty keeps snapshot-image publication fail-closed.
     serverDeployBuildServiceAccount: ''
+    # Distinct KMS-capable identity for platform-authored signing only.
+    serverDeploySigningServiceAccount: ''
     # Reproducible (revision-based) server deploys: '*' or comma-separated
     # project-id allowlist; empty = off (Phase-A snapshot path unchanged).
     serverDeployRevisionProjects: ''

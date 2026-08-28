@@ -5,6 +5,17 @@ well-known URLs (Google/GitHub) and cluster-internal DNS — none of them belong
 in Secret Manager. Mounted via `envFrom` alongside the existing secret so the
 API and web pods see them as process.env entries.
 */ -}}
+{{- $snapshotEnabled := eq (toString .Values.platformEnv.runtime.serverDeploySnapshotImage) "1" -}}
+{{- if $snapshotEnabled -}}
+{{- $_ := required "snapshot-image deploys require platformEnv.runtime.serverDeployImageRepo" .Values.platformEnv.runtime.serverDeployImageRepo -}}
+{{- $_ := required "snapshot-image deploys require platformEnv.runtime.serverDeployCosignKmsKey" .Values.platformEnv.runtime.serverDeployCosignKmsKey -}}
+{{- $_ := required "snapshot-image deploys require platformEnv.runtime.serverDeployBuildServiceAccount" .Values.platformEnv.runtime.serverDeployBuildServiceAccount -}}
+{{- $_ := required "snapshot-image deploys require platformEnv.runtime.serverDeploySigningServiceAccount" .Values.platformEnv.runtime.serverDeploySigningServiceAccount -}}
+{{- $_ := required "snapshot-image deploys require global.workloadIdentity.api" .Values.global.workloadIdentity.api -}}
+{{- if eq .Values.platformEnv.runtime.serverDeployBuildServiceAccount .Values.platformEnv.runtime.serverDeploySigningServiceAccount -}}
+{{- fail "snapshot-image builder and trusted signer service accounts must be distinct" -}}
+{{- end -}}
+{{- end -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -231,6 +242,10 @@ data:
   # of 404ing because the path prefix `/p/<ws>/<port>/` is dropped.
   PREVIEW_DOMAIN: {{ .Values.global.previewDomain | quote }}
 
+  # Always explicit: a fresh/staging install cannot inherit the application's
+  # historical implicit enablement. Production sets this to "1" together with
+  # the complete identity/repository tuple validated at the top of this file.
+  SERVER_DEPLOY_SNAPSHOT_IMAGE: {{ .Values.platformEnv.runtime.serverDeploySnapshotImage | default "0" | quote }}
   {{- if .Values.platformEnv.runtime.serverDeployImageRepo }}
   # Snapshot-image server deploys (Replit-parity: Publish = the workspace,
   # imaged). The api snapshots the FULL workspace (deps included), Cloud Build
@@ -239,18 +254,15 @@ data:
   # app images are pushed to; the flag rides the same key so ONE `--set`
   # enables the pipeline (NOTE: CD runs `helm upgrade --reuse-values`, which
   # ignores newly-added values keys until they are `--set` once by hand).
-  SERVER_DEPLOY_SNAPSHOT_IMAGE: {{ .Values.platformEnv.runtime.serverDeploySnapshotImage | default "1" | quote }}
   SERVER_DEPLOY_IMAGE_REPO: {{ .Values.platformEnv.runtime.serverDeployImageRepo | quote }}
-  {{- if .Values.platformEnv.runtime.serverDeployCosignKmsKey }}
   # Resource name only; signing runs in Cloud Build under ADC and private key
   # material never enters this ConfigMap or the API pod.
   SERVER_DEPLOY_COSIGN_KMS_KEY: {{ .Values.platformEnv.runtime.serverDeployCosignKmsKey | quote }}
-  {{- end }}
-  {{- if .Values.platformEnv.runtime.serverDeployBuildServiceAccount }}
   # Explicit dedicated Cloud Build identity; missing means image publication
   # fails closed before a build is submitted (no implicit default SA).
   SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT: {{ .Values.platformEnv.runtime.serverDeployBuildServiceAccount | quote }}
-  {{- end }}
+  # KMS-capable identity used only by the no-source trusted signing job.
+  SERVER_DEPLOY_SIGNING_SERVICE_ACCOUNT: {{ .Values.platformEnv.runtime.serverDeploySigningServiceAccount | quote }}
   {{- if .Values.platformEnv.runtime.serverDeployRevisionProjects }}
   # Reproducible pipeline rollout gate (docs/DEPLOY_REPRODUCIBLE_PIPELINE.md):
   # for the listed project ids ('*' = all) the docker-build context is produced

@@ -14,7 +14,11 @@ import { createDatabaseClient, getDatabaseUrl, Prisma, type DatabaseClient } fro
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { assertAccountPurgeMutationAllowed, assertStateMachineNotPurged } from './account-purge-state-machine-fence.js';
 import { appPublicEnglish } from './app-public-copy.js';
-import type { AppImageBuildCancellationProof, AppImageBuildTerminalStatus } from './app-image-build.js';
+import type {
+  AppImageBuildCancellationProof,
+  AppImageBuildSubmissionResolutionEvidence,
+  AppImageBuildTerminalStatus,
+} from './app-image-build.js';
 import { assertSha256Digest, parseArtifactRegistryImageRepository } from './artifact-registry-adapter.js';
 import { LedgerStore } from './ledger-store.js';
 import { AccountPurgeStore, type AccountPurgeLeaseOptions } from './account-purge-store.js';
@@ -59,6 +63,7 @@ import {
   type ProjectRegistryErasureReceipt,
   type RegistryErasureReference,
 } from './project-registry-erasure.js';
+import { isRegistryMutationRecoveryEvidence, registryMutationIntentHash } from './registry-mutation.js';
 import { remixIdeStateDigest, validRemixIdeStatePin } from './remix-ide-state.js';
 import { buildRollbackSuccessReceipt, type RollbackSuccessReceipt } from './rollback-response.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
@@ -251,6 +256,9 @@ import type {
   ProjectReleaseBarrierLease,
   ProjectReleaseFence,
   ProjectRegistryErasureAuthorityRecord,
+  RegistryMutationGuard,
+  RegistryMutationIntent,
+  RegistryMutationRecoveryEvidence,
   ProjectRecord,
   ProjectPhysicalMutationScope,
   ProjectPermanentDeletionResult,
@@ -2669,7 +2677,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
     private readonly accountPurgeLease?: AccountPurgeLeaseOptions,
-    private readonly projectPhysicalLock?: { acquireTimeoutMs?: number },
+    private readonly projectPhysicalLock?: {
+      acquireTimeoutMs?: number;
+      registryMutationLeaseMs?: number;
+      registryMutationHeartbeatMs?: number;
+    },
   ) {}
 
   #accountPurge?: AccountPurgeStore;
@@ -2895,19 +2907,161 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     return this.withProjectPhysicalBarrier(projectId, effect);
   }
 
-  async withRegistryPackageFences<T>(repositories: string[], effect: () => Promise<T>): Promise<T> {
+  async withRegistryMutation<T>(
+    intent: RegistryMutationIntent,
+    effect: (guard: RegistryMutationGuard) => Promise<T>,
+    options?: { replayVerified(evidence: unknown): T | Promise<T> },
+  ): Promise<T> {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(intent.intentHash)) {
+      throw new TypeError('REGISTRY_MUTATION_INTENT_HASH_INVALID');
+    }
     const ordered = [
-      ...new Set(repositories.map((value) => parseArtifactRegistryImageRepository(value).original)),
+      ...new Set(intent.repositories.map((value) => parseArtifactRegistryImageRepository(value).original)),
     ].sort();
     if (ordered.length === 0) throw new TypeError('REGISTRY_PACKAGE_FENCE_REQUIRED');
+    if (
+      ordered.some(
+        (repository) =>
+          parseArtifactRegistryImageRepository(repository).packagePath.join('/') !==
+          `p-${intent.projectId.toLowerCase()}`,
+      )
+    ) {
+      throw new TypeError('REGISTRY_MUTATION_PROJECT_PACKAGE_INVALID');
+    }
+
+    const replay: { present: boolean; evidence?: unknown } = { present: false };
+    await this.prisma.$transaction(async (tx) => {
+      const projectRows = await tx.$queryRaw<
+        Array<{ organizationId: string; ownershipEpoch: number; permanentDeletionStartedAt: Date | null }>
+      >(Prisma.sql`
+        SELECT "organizationId", "ownershipEpoch", "permanentDeletionStartedAt"
+        FROM "Project"
+        WHERE "id" = ${intent.projectId}
+        FOR UPDATE
+      `);
+      const project = projectRows[0];
+      if (
+        !project ||
+        project.organizationId !== intent.organizationId ||
+        project.ownershipEpoch !== intent.ownershipEpoch ||
+        (intent.kind !== 'PROJECT_ERASURE' && project.permanentDeletionStartedAt !== null)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_PROJECT_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      const existing = await tx.registryMutationOperation.findUnique({ where: { id: intent.operationId } });
+      if (!existing) {
+        await tx.registryMutationOperation.create({
+          data: {
+            id: intent.operationId,
+            projectId: intent.projectId,
+            organizationId: intent.organizationId,
+            ownershipEpoch: intent.ownershipEpoch,
+            kind: intent.kind,
+            repositories: ordered,
+            intentHash: intent.intentHash,
+          },
+        });
+        return;
+      }
+
+      if (
+        existing.projectId !== intent.projectId ||
+        existing.organizationId !== intent.organizationId ||
+        existing.ownershipEpoch !== intent.ownershipEpoch ||
+        existing.kind !== intent.kind ||
+        existing.intentHash !== intent.intentHash ||
+        JSON.stringify(existing.repositories) !== JSON.stringify(ordered)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_INTENT_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      if (existing.state === 'VERIFIED' && existing.providerEvidence !== null && options) {
+        replay.present = true;
+        replay.evidence = existing.providerEvidence;
+        return;
+      }
+
+      const registryDatabaseNow = await databaseNow(tx);
+      if (existing.state === 'IN_FLIGHT' && existing.leaseExpiresAt && existing.leaseExpiresAt <= registryDatabaseNow) {
+        await tx.registryMutationOperation.update({
+          where: { id: existing.id },
+          data: {
+            state: 'AMBIGUOUS',
+            ambiguousAt: registryDatabaseNow,
+            lastErrorCode: 'REGISTRY_MUTATION_LEASE_EXPIRED',
+            ownerToken: null,
+            leaseExpiresAt: null,
+          },
+        });
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_AMBIGUOUS',
+          statusCode: 409,
+        });
+      }
+      if (existing.state !== 'PREPARED') {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code:
+            existing.state === 'AMBIGUOUS'
+              ? 'REGISTRY_MUTATION_AMBIGUOUS'
+              : existing.state === 'IN_FLIGHT'
+                ? 'REGISTRY_MUTATION_ACTIVE'
+                : 'REGISTRY_MUTATION_ALREADY_TERMINAL',
+          statusCode: 409,
+        });
+      }
+    });
+
+    if (replay.present && options) {
+      return options.replayVerified(replay.evidence);
+    }
 
     const keys = ordered.map((repository) => `artifact-registry-package:${repository}`);
     const acquired: string[] = [];
+    const ownerToken = randomUUID();
+    const controller = new AbortController();
     let client: PoolClient | undefined;
+    let backendPid = 0;
+    let fencingToken = 0n;
+    let claimed = false;
     let destroyClient = false;
+    let stopHeartbeat = false;
+    let wakeHeartbeat!: () => void;
+    const heartbeatWake = new Promise<void>((resolve) => {
+      wakeHeartbeat = resolve;
+    });
+    const stopRegistryHeartbeat = () => {
+      stopHeartbeat = true;
+      wakeHeartbeat();
+    };
+    let heartbeat: Promise<void> | undefined;
+    let lost: unknown;
+    let queryTail: Promise<unknown> = Promise.resolve();
+
+    const sessionQuery = <R>(query: () => Promise<R>): Promise<R> => {
+      const next = queryTail.then(query, query);
+      queryTail = next.then(
+        () => undefined,
+        () => undefined,
+      );
+      return next;
+    };
+    const abortLostSession = (error: unknown) => {
+      lost ??= error;
+      destroyClient = true;
+      controller.abort(error);
+    };
+    const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
     try {
       client = await this.physicalLockPool.connect();
+      client.on('error', abortLostSession);
       await client.query(`SELECT set_config('statement_timeout', $1, false)`, [
         `${this.projectPhysicalLockAcquireTimeoutMs}ms`,
       ]);
@@ -2916,11 +3070,176 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         acquired.push(key);
       }
       await client.query(`SELECT set_config('statement_timeout', '0', false)`);
-      return await effect();
+      backendPid = Number((await client.query<{ pid: number }>('SELECT pg_backend_pid() AS pid')).rows[0]?.pid);
+      if (!Number.isSafeInteger(backendPid) || backendPid <= 0)
+        throw new Error('REGISTRY_MUTATION_BACKEND_PID_INVALID');
+
+      /* The package locks were just acquired. Recheck durable blockers now,
+       * rather than trusting the pre-lock snapshot: a session loss releases its
+       * advisory lock before the prior owner can persist AMBIGUOUS. */
+      await client.query(
+        `UPDATE "RegistryMutationOperation"
+         SET "state" = 'AMBIGUOUS'::"RegistryMutationState",
+             "ambiguousAt" = clock_timestamp(), "ownerToken" = NULL,
+             "leaseExpiresAt" = NULL, "lastErrorCode" = 'REGISTRY_MUTATION_LEASE_EXPIRED',
+             "updatedAt" = clock_timestamp()
+         WHERE "projectId" = $1 AND "id" <> $2
+           AND "state" = 'IN_FLIGHT'::"RegistryMutationState"
+           AND "leaseExpiresAt" <= clock_timestamp()`,
+        [intent.projectId, intent.operationId],
+      );
+      const blockers = await client.query<{ id: string; state: string; repositories: unknown }>(
+        `SELECT "id", "state"::text AS "state", "repositories"
+         FROM "RegistryMutationOperation"
+         WHERE "projectId" = $1 AND "id" <> $2
+           AND "state" IN ('IN_FLIGHT'::"RegistryMutationState", 'AMBIGUOUS'::"RegistryMutationState")`,
+        [intent.projectId, intent.operationId],
+      );
+      const blocker = blockers.rows.find((row) => {
+        const repositories = Array.isArray(row.repositories) ? row.repositories : [];
+        return repositories.some((repository) => typeof repository === 'string' && ordered.includes(repository));
+      });
+      if (blocker) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: blocker.state === 'AMBIGUOUS' ? 'REGISTRY_MUTATION_AMBIGUOUS' : 'REGISTRY_MUTATION_ACTIVE',
+          statusCode: 409,
+        });
+      }
+
+      const claimedRows = await client.query<{ fencingToken: string }>(
+        `UPDATE "RegistryMutationOperation"
+         SET "state" = 'IN_FLIGHT'::"RegistryMutationState",
+             "fencingToken" = "fencingToken" + 1,
+             "ownerToken" = $2,
+             "leaseExpiresAt" = clock_timestamp() + ($3::bigint * interval '1 millisecond'),
+             "backendPid" = $4,
+             "effectStartedAt" = clock_timestamp(),
+             "heartbeatAt" = clock_timestamp(),
+             "lastErrorCode" = NULL,
+             "updatedAt" = clock_timestamp()
+         WHERE "id" = $1 AND "state" = 'PREPARED'::"RegistryMutationState"
+         RETURNING "fencingToken"::text AS "fencingToken"`,
+        [intent.operationId, ownerToken, this.registryMutationLeaseMs, backendPid],
+      );
+      if (!claimedRows.rows[0]) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_CLAIM_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      fencingToken = BigInt(claimedRows.rows[0].fencingToken);
+      claimed = true;
+
+      heartbeat = (async () => {
+        while (!stopHeartbeat) {
+          await Promise.race([delay(this.registryMutationHeartbeatMs), heartbeatWake]);
+          if (stopHeartbeat) return;
+          try {
+            const beat = await sessionQuery(() =>
+              client!.query(
+                `UPDATE "RegistryMutationOperation"
+                 SET "leaseExpiresAt" = clock_timestamp() + ($4::bigint * interval '1 millisecond'),
+                     "heartbeatAt" = clock_timestamp(), "updatedAt" = clock_timestamp()
+                 WHERE "id" = $1 AND "ownerToken" = $2 AND "fencingToken" = $3
+                   AND "state" = 'IN_FLIGHT'::"RegistryMutationState"`,
+                [intent.operationId, ownerToken, fencingToken.toString(), this.registryMutationLeaseMs],
+              ),
+            );
+            if (beat.rowCount !== 1) throw new Error('REGISTRY_MUTATION_FENCE_LOST');
+          } catch (error) {
+            abortLostSession(error);
+            return;
+          }
+        }
+      })();
+
+      const assertActive = async () => {
+        if (controller.signal.aborted) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'REGISTRY_MUTATION_FENCE_LOST',
+            statusCode: 409,
+            cause: controller.signal.reason,
+          });
+        }
+      };
+      const record = async (column: 'providerOperationId' | 'providerEvidence', value: unknown) => {
+        await assertActive();
+        const sql =
+          column === 'providerOperationId'
+            ? `UPDATE "RegistryMutationOperation" SET "providerOperationId" = COALESCE("providerOperationId", $4),
+                 "updatedAt" = clock_timestamp()
+               WHERE "id" = $1 AND "ownerToken" = $2 AND "fencingToken" = $3
+                 AND "state" = 'IN_FLIGHT'::"RegistryMutationState"
+                 AND ("providerOperationId" IS NULL OR "providerOperationId" = $4)`
+            : `UPDATE "RegistryMutationOperation" SET "providerEvidence" = $4::jsonb,
+                 "updatedAt" = clock_timestamp()
+               WHERE "id" = $1 AND "ownerToken" = $2 AND "fencingToken" = $3
+                 AND "state" = 'IN_FLIGHT'::"RegistryMutationState"`;
+        const result = await sessionQuery(() =>
+          client!.query(sql, [
+            intent.operationId,
+            ownerToken,
+            fencingToken.toString(),
+            column === 'providerOperationId' ? String(value) : JSON.stringify(value),
+          ]),
+        ).catch((error) => {
+          abortLostSession(error);
+          throw error;
+        });
+        if (result.rowCount !== 1) {
+          abortLostSession(new Error('REGISTRY_MUTATION_FENCE_LOST'));
+          await assertActive();
+        }
+      };
+
+      const result = await effect({
+        signal: controller.signal,
+        ownerToken,
+        fencingToken,
+        backendPid,
+        assertActive,
+        recordProviderOperationId: (providerOperationId) => record('providerOperationId', providerOperationId),
+        recordProviderEvidence: (evidence) => record('providerEvidence', evidence),
+      });
+
+      stopRegistryHeartbeat();
+      await heartbeat;
+      await queryTail;
+      await assertActive();
+      const verified = await client.query(
+        `UPDATE "RegistryMutationOperation"
+         SET "state" = 'VERIFIED'::"RegistryMutationState", "verifiedAt" = clock_timestamp(),
+             "ownerToken" = NULL, "leaseExpiresAt" = NULL, "heartbeatAt" = clock_timestamp(),
+             "lastErrorCode" = NULL, "updatedAt" = clock_timestamp()
+         WHERE "id" = $1 AND "ownerToken" = $2 AND "fencingToken" = $3
+           AND "state" = 'IN_FLIGHT'::"RegistryMutationState"`,
+        [intent.operationId, ownerToken, fencingToken.toString()],
+      );
+      if (verified.rowCount !== 1) throw new Error('REGISTRY_MUTATION_FENCE_LOST');
+      return result;
     } catch (error) {
+      stopRegistryHeartbeat();
+      await heartbeat?.catch(abortLostSession);
+      if (claimed) {
+        await this.prisma
+          .$executeRaw(
+            Prisma.sql`
+          UPDATE "RegistryMutationOperation"
+          SET "state" = 'AMBIGUOUS'::"RegistryMutationState",
+              "ambiguousAt" = clock_timestamp(),
+              "ownerToken" = NULL,
+              "leaseExpiresAt" = NULL,
+              "lastErrorCode" = ${lost ? 'REGISTRY_MUTATION_PG_SESSION_LOST' : 'REGISTRY_MUTATION_EFFECT_UNCERTAIN'},
+              "updatedAt" = clock_timestamp()
+          WHERE "id" = ${intent.operationId}
+            AND "ownerToken" = ${ownerToken}
+            AND "fencingToken" = ${fencingToken}
+            AND "state" = 'IN_FLIGHT'::"RegistryMutationState"
+        `,
+          )
+          .catch(() => undefined);
+      }
       if (acquired.length !== keys.length) {
-        /* A timed-out pg query may still be draining protocol messages. Never
-         * issue reset/unlock queries on that socket; destroy it on release. */
         destroyClient = true;
         throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
           code: 'REGISTRY_PACKAGE_LOCK_TIMEOUT',
@@ -2930,10 +3249,10 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
       throw error;
     } finally {
+      stopRegistryHeartbeat();
       if (client) {
         if (!destroyClient) {
           for (const key of acquired.reverse()) {
-            if (destroyClient) break;
             try {
               const unlocked = await client.query<{ unlocked: boolean }>(
                 'SELECT pg_advisory_unlock(hashtextextended($1, 0)) AS unlocked',
@@ -2942,19 +3261,85 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               destroyClient ||= unlocked.rows[0]?.unlocked !== true;
             } catch {
               destroyClient = true;
+              break;
             }
           }
         }
-        if (!destroyClient) {
-          try {
-            await client.query(`SELECT set_config('statement_timeout', '0', false)`);
-          } catch {
-            destroyClient = true;
-          }
-        }
+        if (!destroyClient) client.removeListener('error', abortLostSession);
         client.release(destroyClient);
       }
     }
+  }
+
+  async resolveAmbiguousRegistryMutation(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: RegistryMutationRecoveryEvidence;
+  }): Promise<void> {
+    const evidence = input.evidence;
+    if (!isRegistryMutationRecoveryEvidence(evidence)) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'REGISTRY_MUTATION_RECOVERY_EVIDENCE_INVALID',
+        statusCode: 400,
+      });
+    }
+    await this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{
+          state: string;
+          projectId: string;
+          organizationId: string;
+          intentHash: string;
+          providerOperationId: string | null;
+          providerEvidence: unknown | null;
+          ambiguousAt: Date | null;
+        }>
+      >(Prisma.sql`
+        SELECT "state"::text AS "state", "projectId", "organizationId", "intentHash",
+               "providerOperationId", "providerEvidence", "ambiguousAt"
+        FROM "RegistryMutationOperation"
+        WHERE "id" = ${input.operationId}
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      const now = await databaseNow(tx);
+      const queryProviderIds = evidence.providerQueries.flatMap(({ providerOperationId }) =>
+        providerOperationId === undefined ? [] : [providerOperationId],
+      );
+      if (
+        !row ||
+        row.organizationId !== input.expectedOrganizationId ||
+        row.state !== 'AMBIGUOUS' ||
+        row.ambiguousAt === null ||
+        evidence.operationId !== input.operationId ||
+        evidence.projectId !== row.projectId ||
+        evidence.organizationId !== row.organizationId ||
+        evidence.intentHash !== row.intentHash ||
+        Date.parse(evidence.observationWindowStartedAt) < row.ambiguousAt.getTime() ||
+        Date.parse(evidence.observationWindowEndedAt) > now.getTime() ||
+        queryProviderIds.some((providerOperationId) => providerOperationId !== row.providerOperationId) ||
+        (row.providerOperationId !== null && queryProviderIds.length !== evidence.providerQueries.length) ||
+        (evidence.resolution === 'VERIFIED' &&
+          (row.providerEvidence === null ||
+            evidence.providerEvidenceHash !== registryMutationIntentHash(row.providerEvidence))) ||
+        (evidence.resolution === 'FAILED_SAFE' && (row.providerOperationId !== null || row.providerEvidence !== null))
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'REGISTRY_MUTATION_RECOVERY_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      await tx.registryMutationOperation.update({
+        where: { id: input.operationId },
+        data: {
+          state: evidence.resolution,
+          recoveredAt: now,
+          recoveryEvidence: evidence as unknown as Prisma.InputJsonValue,
+          ...(evidence.resolution === 'VERIFIED' ? { verifiedAt: now } : {}),
+          lastErrorCode: null,
+        },
+      });
+    });
   }
 
   async prepareAppImageBuild(input: {
@@ -3055,7 +3440,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             });
           }
         }
-        return mapAppImageBuildOperation(existing);
+        return mapAppImageBuildOperation(existing, await databaseNow(tx));
       }
       return mapAppImageBuildOperation(
         await tx.appImageBuildOperation.create({ data: { id: input.operationId, ...expected } }),
@@ -3086,8 +3471,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async readAppImageBuildState(input: { operationId: string; projectId: string; releaseFence: ProjectReleaseFence }) {
-    return this.withAppImageBuildReleaseAuthority(input, async (_tx, row) => {
-      const mapped = mapAppImageBuildOperation(row);
+    return this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
+      const mapped = mapAppImageBuildOperation(row, await databaseNow(tx));
       if (mapped.state.phase === 'CANCELLED') {
         throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
           code: 'APP_IMAGE_BUILD_CANCELLED',
@@ -3115,11 +3500,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     await this.withAppImageBuildReleaseAuthority(input, async (tx, row) => {
       if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
       if (row.phase === 'SUBMITTING') return;
-      const changed = await tx.appImageBuildOperation.updateMany({
-        where: { id: input.operationId, projectId: input.projectId, phase: 'PREPARED' },
-        data: { phase: 'SUBMITTING', submissionStartedAt: new Date(), lastErrorCode: null },
-      });
-      if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_PHASE_CONFLICT');
+      const changed = await tx.$executeRaw(Prisma.sql`
+        UPDATE "AppImageBuildOperation"
+        SET "phase" = 'SUBMITTING'::"AppImageBuildPhase",
+            "submissionStartedAt" = clock_timestamp(),
+            "submissionResolveAfter" = clock_timestamp() + interval '15 minutes',
+            "lastErrorCode" = NULL,
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "phase" = 'PREPARED'::"AppImageBuildPhase"
+      `);
+      if (changed !== 1) throw new Error('APP_IMAGE_BUILD_PHASE_CONFLICT');
     });
   }
 
@@ -3135,7 +3527,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       if (row.operationTag !== input.operationTag) throw new Error('APP_IMAGE_BUILD_OPERATION_TAG_MISMATCH');
       if (row.phase === 'IDENTIFIED' && row.providerBuildId === input.buildId) return;
       const changed = await tx.appImageBuildOperation.updateMany({
-        where: { id: input.operationId, projectId: input.projectId, phase: 'SUBMITTING', providerBuildId: null },
+        where: {
+          id: input.operationId,
+          projectId: input.projectId,
+          phase: { in: ['SUBMITTING', 'MANUAL_RECOVERY'] },
+          providerBuildId: null,
+        },
         data: {
           phase: 'IDENTIFIED',
           providerBuildId: input.buildId,
@@ -3162,6 +3559,97 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         data: { phase: 'REJECTED', lastErrorCode: `CLOUD_BUILD_HTTP_${input.status}` },
       });
       if (changed.count !== 1) throw new Error('APP_IMAGE_BUILD_REJECTION_CONFLICT');
+    });
+  }
+
+  async resolveAppImageBuildSubmission(input: {
+    operationId: string;
+    expectedOrganizationId: string;
+    evidence: AppImageBuildSubmissionResolutionEvidence;
+  }): Promise<AppImageBuildOperationRecord> {
+    const evidence = input.evidence;
+    const observationStartedAt = Date.parse(evidence.observationWindowStartedAt);
+    const observationEndedAt = Date.parse(evidence.observationWindowEndedAt);
+    const expectedFilter = `tags="${evidence.operationTag}"`;
+    const queryInstants = evidence.providerQueries.map(({ queriedAt }) => Date.parse(queriedAt));
+    if (
+      evidence.schemaVersion !== 'app-image-build-submission-resolution-v1' ||
+      !['MANUAL_RECOVERY', 'REJECTED_ABSENT'].includes(evidence.resolution) ||
+      !evidence.operatorUserId.trim() ||
+      !evidence.auditEventId.trim() ||
+      !Number.isFinite(observationStartedAt) ||
+      !Number.isFinite(observationEndedAt) ||
+      new Date(observationStartedAt).toISOString() !== evidence.observationWindowStartedAt ||
+      new Date(observationEndedAt).toISOString() !== evidence.observationWindowEndedAt ||
+      observationStartedAt >= observationEndedAt ||
+      evidence.providerQueries.length < 2 ||
+      evidence.providerQueries.length > 16 ||
+      evidence.providerQueries.some(
+        ({ queriedAt, filter, result }, index) =>
+          !Number.isFinite(Date.parse(queriedAt)) ||
+          new Date(Date.parse(queriedAt)).toISOString() !== queriedAt ||
+          Date.parse(queriedAt) < observationStartedAt ||
+          Date.parse(queriedAt) > observationEndedAt ||
+          (index > 0 && Date.parse(queriedAt) <= queryInstants[index - 1]!) ||
+          filter !== expectedFilter ||
+          !['ABSENT', 'FOUND', 'AMBIGUOUS'].includes(result),
+      ) ||
+      (evidence.resolution === 'REJECTED_ABSENT' && evidence.providerQueries.some(({ result }) => result !== 'ABSENT'))
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'APP_IMAGE_BUILD_RECOVERY_EVIDENCE_INVALID',
+        statusCode: 400,
+      });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<
+        Array<{
+          organizationId: string;
+          phase: string;
+          submissionResolveAfter: Date | null;
+          operationTag: string;
+          gcpProject: string;
+          region: string;
+        }>
+      >(Prisma.sql`
+        SELECT "organizationId", "phase"::text AS "phase", "submissionResolveAfter",
+               "operationTag", "gcpProject", "region"
+        FROM "AppImageBuildOperation"
+        WHERE "id" = ${input.operationId}
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      const databaseClock = await databaseNow(tx);
+      if (
+        !row ||
+        row.organizationId !== input.expectedOrganizationId ||
+        !['SUBMITTING', 'MANUAL_RECOVERY'].includes(row.phase) ||
+        !row.submissionResolveAfter ||
+        row.submissionResolveAfter > databaseClock ||
+        row.operationTag !== evidence.operationTag ||
+        row.gcpProject !== evidence.gcpProject ||
+        row.region !== evidence.region ||
+        observationStartedAt < row.submissionResolveAfter.getTime() ||
+        observationEndedAt > databaseClock.getTime()
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'APP_IMAGE_BUILD_RECOVERY_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      const updated = await tx.appImageBuildOperation.update({
+        where: { id: input.operationId },
+        data: {
+          phase: evidence.resolution,
+          manualRecoveryAt: databaseClock,
+          manualRecoveryEvidence: evidence as unknown as Prisma.InputJsonValue,
+          lastErrorCode:
+            evidence.resolution === 'MANUAL_RECOVERY'
+              ? 'CLOUD_BUILD_SUBMISSION_MANUAL_RECOVERY'
+              : 'CLOUD_BUILD_SUBMISSION_PROVED_ABSENT',
+        },
+      });
+      return mapAppImageBuildOperation(updated, databaseClock);
     });
   }
 
@@ -3313,7 +3801,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         ORDER BY "id"
         FOR UPDATE
       `);
-      return rows.map(mapAppImageBuildOperation);
+      const clock = await databaseNow(tx);
+      return rows.map((row) => mapAppImageBuildOperation(row, clock));
     });
   }
 
@@ -3327,7 +3816,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
       if (!row) throw new Error('APP_IMAGE_BUILD_NOT_FOUND');
       if (row.phase === 'CANCELLED') return;
-      if (!['PREPARED', 'REJECTED'].includes(row.phase)) {
+      if (!['PREPARED', 'REJECTED', 'REJECTED_ABSENT'].includes(row.phase)) {
         throw new Error('APP_IMAGE_BUILD_PROVIDER_OUTCOME_REQUIRED');
       }
       await tx.appImageBuildOperation.update({
@@ -3411,13 +3900,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   }
 
   async resolveProjectRegistryErasureAuthority(projectId: string): Promise<ProjectRegistryErasureAuthorityRecord> {
-    const [builds, releases] = await Promise.all([
+    const [project, builds, releases] = await Promise.all([
+      this.prisma.project.findUnique({
+        where: { id: projectId },
+        select: { organizationId: true, ownershipEpoch: true },
+      }),
       this.prisma.appImageBuildOperation.findMany({ where: { projectId }, orderBy: { id: 'asc' } }),
       this.prisma.releaseManifest.findMany({
         where: { projectId },
         orderBy: [{ environment: 'asc' }, { version: 'asc' }],
       }),
     ]);
+    if (!project) throw new Error('PROJECT_NOT_FOUND');
     const projectPackages = new Set<string>();
     const sourceImages: ProjectRegistryErasureAuthorityRecord['sourceImages'] = [];
     const tenantImages: ProjectRegistryErasureAuthorityRecord['tenantImages'] = [];
@@ -3463,6 +3957,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       }
     }
     return {
+      organizationId: project.organizationId,
+      ownershipEpoch: project.ownershipEpoch,
       projectPackages: [...projectPackages].sort(),
       sourceImages,
       tenantImages,
@@ -3705,6 +4201,22 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
   private get projectPhysicalLockAcquireTimeoutMs(): number {
     const configured = this.projectPhysicalLock?.acquireTimeoutMs ?? PROJECT_PHYSICAL_LOCK_ACQUIRE_TIMEOUT_MS;
     return Math.max(50, Math.min(Number.isFinite(configured) ? Math.trunc(configured) : 5 * 60_000, 15 * 60_000));
+  }
+
+  private get registryMutationLeaseMs(): number {
+    const configured = this.projectPhysicalLock?.registryMutationLeaseMs ?? 30_000;
+    return Math.max(250, Math.min(Number.isFinite(configured) ? Math.trunc(configured) : 30_000, 5 * 60_000));
+  }
+
+  private get registryMutationHeartbeatMs(): number {
+    const configured = this.projectPhysicalLock?.registryMutationHeartbeatMs ?? 5_000;
+    return Math.max(
+      50,
+      Math.min(
+        Number.isFinite(configured) ? Math.trunc(configured) : 5_000,
+        Math.floor(this.registryMutationLeaseMs / 3),
+      ),
+    );
   }
 
   private get physicalLockPool(): Pool {
@@ -23209,7 +23721,7 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
   };
 }
 
-function mapAppImageBuildOperation(row: any): AppImageBuildOperationRecord {
+function mapAppImageBuildOperation(row: any, authoritativeNow?: Date): AppImageBuildOperationRecord {
   const common = {
     id: row.id,
     projectId: row.projectId,
@@ -23239,8 +23751,31 @@ function mapAppImageBuildOperation(row: any): AppImageBuildOperationRecord {
       : {}),
   };
 
-  if (row.phase === 'PREPARED' || row.phase === 'SUBMITTING' || row.phase === 'REJECTED') {
+  if (row.phase === 'PREPARED' || row.phase === 'REJECTED') {
     return { ...common, state: { phase: row.phase } };
+  }
+  if (row.phase === 'SUBMITTING' && row.submissionResolveAfter) {
+    return {
+      ...common,
+      state: {
+        phase: 'SUBMITTING',
+        resolveAfter: row.submissionResolveAfter.toISOString(),
+        overdue: authoritativeNow ? row.submissionResolveAfter <= authoritativeNow : false,
+      },
+    };
+  }
+  if (
+    (row.phase === 'MANUAL_RECOVERY' || row.phase === 'REJECTED_ABSENT') &&
+    row.submissionResolveAfter &&
+    row.manualRecoveryEvidence
+  ) {
+    const evidence = row.manualRecoveryEvidence as AppImageBuildSubmissionResolutionEvidence;
+    return row.phase === 'MANUAL_RECOVERY'
+      ? {
+          ...common,
+          state: { phase: 'MANUAL_RECOVERY', resolveAfter: row.submissionResolveAfter.toISOString(), evidence },
+        }
+      : { ...common, state: { phase: 'REJECTED_ABSENT', evidence } };
   }
   if (row.phase === 'CANCELLED') {
     return { ...common, state: { phase: 'CANCELLED' } };

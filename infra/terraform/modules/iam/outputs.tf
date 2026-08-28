@@ -4,3 +4,6 @@ output "platform_workload_service_account" { value = google_service_account.plat
 output "server_deploy_builder_service_account" {
   value = try(google_service_account.server_deploy_builder[0].email, null)
 }
+output "server_deploy_signer_service_account" {
+  value = try(google_service_account.server_deploy_signer[0].email, null)
+}
