@@ -241,11 +241,10 @@ import {
   type WriteBarrierPort,
 } from './account-storage-purge.js';
 import {
-  DEFAULT_SHARED_CLUSTER,
   DB_NAMESPACE,
   ManagerK8sPort,
   clusterName,
-  resolveDatabaseTier,
+  databaseBackupPrefix,
   resolveDefaultDatabaseProvisioner,
   type DatabaseProvisioner,
   type ProvisionResult,
@@ -255,6 +254,7 @@ import {
   ManagerProjectDatabaseKubernetesPort,
   PgProjectDatabaseSharedSqlPort,
   ProjectDatabaseErasureService,
+  type ProjectDatabaseErasureEffects,
 } from './project-database-erasure.js';
 import {
   acquireExactPostgresMigrationLedgerLease,
@@ -581,6 +581,7 @@ import {
   type ApiStore,
   type CollaborationPresenceRecord,
   type DatabaseInstanceRecord,
+  type DatabasePhysicalAuthority,
   type DeploymentRecord,
   type DeploymentRuntimeKind,
   type ReservedVmBillingStore,
@@ -712,6 +713,12 @@ export interface ApiAppOptions {
   /** Production defaults to CNPG; injected only for deterministic migration tests. */
   databaseProvisioner?: DatabaseProvisioner;
 
+  /** Deterministic test seam; production reads set-once authority from DatabaseInstance. */
+  databasePhysicalAuthorityResolver?: (
+    projectId: string,
+    environment: 'development' | 'production',
+  ) => Promise<DatabasePhysicalAuthority | undefined>;
+
   /** Production defaults to the real transactional PostgreSQL applicator. */
   migrationApplier?: SqlApplier;
 
@@ -753,7 +760,7 @@ export interface ApiAppOptions {
   projectDatabaseErasureServiceFactory?: (
     lease: ObjectStorageOperationLease,
     expectedOrganizationId: string,
-  ) => Pick<ProjectDatabaseErasureService, 'purge' | 'verify'>;
+  ) => Pick<ProjectDatabaseErasureService, 'preflight' | 'purge' | 'verify'>;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -8295,6 +8302,7 @@ function workspaceProjectDeletionLeaseBody(
   projectId: string,
   expectedOrganizationId: string,
   lease: ObjectStorageOperationLease,
+  volumeCandidates: ProjectDatabaseErasureEffects['persistentVolumeClaims'],
 ) {
   return {
     operationId: lease.operationId,
@@ -8304,6 +8312,7 @@ function workspaceProjectDeletionLeaseBody(
     scopeHash: lease.scopeHash,
     projectId,
     expectedOrganizationId,
+    volumeCandidates,
   };
 }
 
@@ -8313,6 +8322,7 @@ async function projectWorkspaceDeletionRequest(
   expectedOrganizationId: string,
   lease: ObjectStorageOperationLease,
   assertLease: () => Promise<void>,
+  volumeCandidates: ProjectDatabaseErasureEffects['persistentVolumeClaims'],
 ): Promise<WorkspaceProjectDeletionProof> {
   const advanced = await advanceProjectVolumeErasureSaga({
     scope: { operationId: lease.operationId, projectId, organizationId: expectedOrganizationId },
@@ -8324,7 +8334,9 @@ async function projectWorkspaceDeletionRequest(
           {
             method: 'POST',
             headers: workspaceManagerControlHeaders(true),
-            body: JSON.stringify(workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease)),
+            body: JSON.stringify(
+              workspaceProjectDeletionLeaseBody(projectId, expectedOrganizationId, lease, volumeCandidates),
+            ),
             signal: AbortSignal.timeout(180_000),
           },
         );
@@ -8354,20 +8366,22 @@ function createProjectDatabaseErasureService(
   lease: ObjectStorageOperationLease,
   expectedOrganizationId: string,
 ): ProjectDatabaseErasureService {
-  const backupBucket = process.env.DB_BACKUP_BUCKET?.trim();
-  if (!backupBucket) {
-    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-      code: 'PROJECT_DATABASE_ERASURE_BACKUP_BUCKET_REQUIRED',
-      statusCode: 503,
-    });
-  }
   const baseUrl = workspaceManagerUrl();
   const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
   const managerK8s = new ManagerK8sPort(baseUrl, secret);
   const kubernetes = new ManagerProjectDatabaseKubernetesPort(baseUrl, lease, expectedOrganizationId, secret);
-  const backups = new GcsProjectDatabaseBackupPort(backupBucket);
-  const sharedSql = new PgProjectDatabaseSharedSqlPort(async (sharedClusterName) => {
-    const admin = await managerK8s.getSecret(DB_NAMESPACE, `${sharedClusterName}-app`);
+  // The immutable per-instance authority may refer to a predecessor bucket;
+  // GCS IAM, not mutable DB_BACKUP_BUCKET, is the provider boundary here.
+  const backups = new GcsProjectDatabaseBackupPort();
+  const sharedSql = new PgProjectDatabaseSharedSqlPort(async (tenant) => {
+    const sharedCluster = await managerK8s.get('Cluster', DB_NAMESPACE, tenant.sharedClusterName);
+    if (!tenant.sharedClusterUid || sharedCluster?.metadata?.uid !== tenant.sharedClusterUid) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROJECT_DATABASE_ERASURE_SHARED_CLUSTER_IDENTITY_CHANGED',
+        statusCode: 409,
+      });
+    }
+    const admin = await managerK8s.getSecret(DB_NAMESPACE, `${tenant.sharedClusterName}-app`);
     const username = admin?.username?.trim();
     const password = admin?.password;
     const database = admin?.dbname?.trim() || 'app';
@@ -8377,9 +8391,72 @@ function createProjectDatabaseErasureService(
         statusCode: 503,
       });
     }
-    return `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${sharedClusterName}-rw.${DB_NAMESPACE}.svc:5432/${encodeURIComponent(database)}`;
+    return `postgresql://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${tenant.sharedClusterName}-rw.${DB_NAMESPACE}.svc:5432/${encodeURIComponent(database)}`;
   });
   return new ProjectDatabaseErasureService(kubernetes, backups, sharedSql);
+}
+
+function newIsolatedDatabaseAuthority(input: {
+  projectId: string;
+  environment: 'development' | 'production';
+  retentionDays: number;
+}): DatabasePhysicalAuthority {
+  const backupBucket = process.env.DB_BACKUP_BUCKET?.trim();
+  if (!backupBucket || !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(backupBucket)) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'DATABASE_PHYSICAL_AUTHORITY_BACKUP_BUCKET_REQUIRED',
+      statusCode: 503,
+    });
+  }
+  return {
+    tier: 'isolated',
+    clusterName: clusterName(input.projectId, input.environment),
+    backupBucket,
+    backupPrefix: databaseBackupPrefix(input.projectId, input.environment),
+    // CNPG's physical archive always has at least a one-day retention policy,
+    // even when the current plan exposes no user-facing PITR entitlement.
+    retentionDays: Math.max(1, input.retentionDays),
+  };
+}
+
+function requireRestorablePhysicalAuthority(
+  authority: DatabasePhysicalAuthority | undefined,
+): DatabasePhysicalAuthority {
+  if (
+    !authority ||
+    authority.tier !== 'isolated' ||
+    !authority.backupBucket ||
+    !authority.backupPrefix ||
+    authority.retentionDays < 1
+  ) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code:
+        authority?.tier === 'shared'
+          ? 'DATABASE_SHARED_RESTORE_UNSUPPORTED'
+          : 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+      statusCode: 409,
+    });
+  }
+  return authority;
+}
+
+function requireRestorableDatabaseAuthority(instance: DatabaseInstanceRecord): DatabasePhysicalAuthority {
+  return requireRestorablePhysicalAuthority(instance.physicalAuthority);
+}
+
+function effectiveRestoreEntitlement(
+  entitlement: { allowed: boolean; retentionDays: number },
+  authority: DatabasePhysicalAuthority,
+): { allowed: boolean; retentionDays: number } {
+  if (authority.tier !== 'isolated') {
+    return { allowed: false, retentionDays: 0 };
+  }
+
+  // Billing may expand after the archive was created, but it cannot retroactively
+  // create WAL/base backups. The persisted physical window is therefore an upper
+  // bound on the current logical entitlement. A downgrade still disables access.
+  const retentionDays = Math.min(entitlement.retentionDays, authority.retentionDays);
+  return { allowed: entitlement.allowed && retentionDays > 0, retentionDays };
 }
 
 async function releaseAccountPurgeWorkspaceBarriers(
@@ -18220,7 +18297,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const reconcileManagedDatabase = async (
     instance: DatabaseInstanceRecord,
     options: {
-      planKey?: string;
       nowMs?: number;
       warn?: (context: Record<string, unknown>, message: string) => void;
     } = {},
@@ -18231,7 +18307,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       store,
       provisioner,
       instance,
-      tier: resolveDatabaseTier(options.planKey),
       nowMs: options.nowMs,
       encryptConnectionUri: (uri) => encryptJson({ value: uri }),
     });
@@ -27088,8 +27163,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    const billing = await billingState(project.organizationId).catch(() => undefined);
-
     const managedInstances = (
       await Promise.all(
         (['development', 'production'] as const).map(async (environment) => {
@@ -27100,7 +27173,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           return reconcileManagedDatabase(instance, {
-            planKey: billing?.plan.key,
             warn: (context, message) => request.log?.warn?.(context, message),
           }).catch((error) => {
             request.log?.warn?.({ err: error, databaseInstanceId: instance.id }, 'managed database reconcile failed');
@@ -28580,20 +28652,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const backupBucket = process.env.DB_BACKUP_BUCKET?.trim();
-    if (!backupBucket) {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-        code: 'PROJECT_DATABASE_ERASURE_BACKUP_BUCKET_REQUIRED',
-        statusCode: 503,
-      });
-    }
-    const databaseBilling = await billingState(input.organizationId).catch((error) => {
-      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED'), { cause: error }), {
-        code: 'PROJECT_DATABASE_ERASURE_TIER_AUTHORITY_UNAVAILABLE',
-        statusCode: 503,
-      });
-    });
-    const databaseTier = resolveDatabaseTier(databaseBilling?.plan.key);
     await assertParentLease();
 
     return store.hardDeleteProject({
@@ -28607,11 +28665,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       ...(input.accountPurgeDeletionAuthority
         ? { accountPurgeDeletionAuthority: input.accountPurgeDeletionAuthority }
         : {}),
-      databaseErasureConfiguration: {
-        tier: databaseTier,
-        ...(databaseTier === 'shared' ? { sharedClusterName: DEFAULT_SHARED_CLUSTER } : {}),
-        backupBucket,
-      },
+      resolveLegacyDatabaseAuthorities: async (requests, lease) =>
+        new ManagerProjectDatabaseKubernetesPort(
+          workspaceManagerUrl(),
+          lease,
+          input.organizationId,
+          process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+        ).resolveLegacyAuthorities({ projectId: input.projectId, instances: requests }),
+      preflightManagedDatabases: async (plan, fence, lease) =>
+        projectDatabaseErasureServiceFactory(lease, input.organizationId).preflight(plan, fence),
       purgeManagedDatabases: async (plan, fence, lease) => {
         const service = projectDatabaseErasureServiceFactory(lease, input.organizationId);
         return service.purge(plan, fence);
@@ -28626,14 +28688,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await assertParentLease();
         return plan;
       },
-      erasePhysical: async (assertLease, lease) => {
+      erasePhysical: async (assertLease, lease, databaseEffects) => {
         /* EFFECT_STARTED was committed only while the parent PurgePlan row was
          * locked and live. From this point the exact child operation lease is
          * the durable recovery authority; expiring the coordinator lease must
          * not strand a provider effect that may already have been dispatched. */
         const assertAuthorities = assertLease;
         await assertAuthorities();
-        await projectWorkspaceDeletion('purge', input.projectId, input.organizationId, lease, assertAuthorities);
+        await projectWorkspaceDeletion(
+          'purge',
+          input.projectId,
+          input.organizationId,
+          lease,
+          assertAuthorities,
+          databaseEffects.persistentVolumeClaims,
+        );
         await assertAuthorities();
         await projectStorage.eraseProjectDataWithinPhysicalAccess(input.projectId);
         await assertAuthorities();
@@ -28641,7 +28710,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await assertAuthorities();
         await objectStorage.deleteBucket(input.projectId, assertAuthorities);
       },
-      verifyPhysicalAbsence: async (assertLease, lease) => {
+      verifyPhysicalAbsence: async (assertLease, lease, databaseEffects) => {
         const assertAuthorities = assertLease;
         await assertAuthorities();
         const workspaceManager = await projectWorkspaceDeletion(
@@ -28650,6 +28719,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           input.organizationId,
           lease,
           assertAuthorities,
+          databaseEffects.persistentVolumeClaims,
         );
         const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(input.projectId);
         const bucketStillExists = await objectStorage.bucketExists(input.projectId);
@@ -28677,11 +28747,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           verifiedAt: new Date().toISOString(),
           verifier: 'api-project-permanent-delete-v1',
           evidence: {
-            schemaVersion: 'project-permanent-erasure-v1',
+            schemaVersion: 'project-permanent-erasure-v3',
             filesystem: {
               projectTreeAbsent: filesystem.treeAbsent,
               workspaceTreesAbsent:
-                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
+                workspaceManager.runtimeEffectsDrained &&
+                workspaceManager.volumes.persistentVolumeClaimsAbsent &&
+                workspaceManager.volumes.persistentVolumesAbsent &&
+                workspaceManager.volumes.providerVolumesAbsent,
               objectCacheAbsent: filesystem.exportsAbsent,
               staticSnapshotsAbsent: filesystem.staticSnapshotsAbsent,
               staticAliasesAbsent: filesystem.staticAliasesAbsent,
@@ -29144,7 +29217,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await advance('DB_SNAPSHOTTING');
 
       const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
-      const databaseProvisioned = Boolean(dbInstance);
+      const databasePhysicalAuthority = dbInstance?.physicalAuthority;
+      const databaseProvisioned = databasePhysicalAuthority?.tier === 'isolated';
 
       let databaseDependencyDeclared = false;
 
@@ -29166,6 +29240,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId,
           organizationId: checkpointProject.organizationId,
           snapshotId: dbSnapId,
+          environment: dbInstance!.environment,
+          physicalAuthority: databasePhysicalAuthority!,
         });
         await leaseManager.guard();
 
@@ -30023,6 +30099,131 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
+  const permanentlyDeleteRemixTarget = async (input: {
+    remixJobId: string;
+    targetProjectId: string;
+    expectedOrganizationId: string;
+    guard: () => Promise<void>;
+  }): Promise<void> => {
+    await input.guard();
+    const target = await store.getProject(input.targetProjectId);
+    if (!target) return;
+    if (target.organizationId !== input.expectedOrganizationId) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION')), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_MUTATION',
+        statusCode: 409,
+      });
+    }
+
+    const objectStorage = resolveRawObjectStorage();
+    if (
+      !objectStorage.active ||
+      projectStorage.supportsProjectStaticErasure?.() !== true ||
+      !projectStorage.prepareProjectStaticErasureWithinPhysicalAccess ||
+      !projectStorage.eraseProjectStaticDataWithinPhysicalAccess ||
+      !projectStorage.verifyProjectDataAbsentWithinPhysicalAccess
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'REMIX_PROJECT_ERASURE_BACKEND_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    const authorityId = `remix-cleanup:${input.remixJobId}`;
+    const idempotencyKey = `remix-cleanup:${input.remixJobId}:${target.id}`;
+    const requestHash = projectPermanentDeletionRequestHash({
+      projectId: target.id,
+      organizationId: target.organizationId,
+      actorUserId: authorityId,
+      expectedProjectName: target.name,
+    });
+    await store.hardDeleteProject({
+      projectId: target.id,
+      expectedOrganizationId: target.organizationId,
+      expectedProjectName: target.name,
+      idempotencyKey,
+      requestHash,
+      actorUserId: authorityId,
+      resolveLegacyDatabaseAuthorities: async (requests, lease) =>
+        new ManagerProjectDatabaseKubernetesPort(
+          workspaceManagerUrl(),
+          lease,
+          target.organizationId,
+          process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+        ).resolveLegacyAuthorities({ projectId: target.id, instances: requests }),
+      preflightManagedDatabases: async (plan, fence, lease) =>
+        projectDatabaseErasureServiceFactory(lease, target.organizationId).preflight(plan, fence),
+      purgeManagedDatabases: async (plan, fence, lease) =>
+        projectDatabaseErasureServiceFactory(lease, target.organizationId).purge(plan, fence),
+      verifyManagedDatabases: async (plan, fence, lease, effects) =>
+        projectDatabaseErasureServiceFactory(lease, target.organizationId).verify(plan, fence, effects),
+      preflightPhysicalErasure: () => projectStorage.prepareProjectStaticErasureWithinPhysicalAccess!(target.id),
+      erasePhysical: async (assertLease, lease, databaseEffects) => {
+        await projectWorkspaceDeletion(
+          'purge',
+          target.id,
+          target.organizationId,
+          lease,
+          assertLease,
+          databaseEffects.persistentVolumeClaims,
+        );
+        await assertLease();
+        await projectStorage.eraseProjectDataWithinPhysicalAccess(target.id);
+        await assertLease();
+        await projectStorage.eraseProjectStaticDataWithinPhysicalAccess!(target.id);
+        await assertLease();
+        await objectStorage.deleteBucket(target.id, assertLease);
+      },
+      verifyPhysicalAbsence: async (assertLease, lease, databaseEffects) => {
+        const workspaceManager = await projectWorkspaceDeletion(
+          'verify',
+          target.id,
+          target.organizationId,
+          lease,
+          assertLease,
+          databaseEffects.persistentVolumeClaims,
+        );
+        const filesystem = await projectStorage.verifyProjectDataAbsentWithinPhysicalAccess!(target.id);
+        const bucketStillExists = await objectStorage.bucketExists(target.id);
+        const objectCount = bucketStillExists ? (await objectStorage.listObjects(target.id)).objects.length : 0;
+        if (
+          !filesystem.treeAbsent ||
+          !filesystem.exportsAbsent ||
+          !filesystem.snapshotsAbsent ||
+          filesystem.staticSnapshotsAbsent !== true ||
+          filesystem.staticAliasesAbsent !== true ||
+          !filesystem.staticArtifactSummary ||
+          bucketStillExists ||
+          objectCount > 0
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'REMIX_PROJECT_ERASURE_INCOMPLETE',
+            statusCode: 503,
+          });
+        }
+        return {
+          outcome: 'VERIFIED_ABSENT' as const,
+          verifiedAt: new Date().toISOString(),
+          verifier: 'api-remix-target-delete-v1',
+          evidence: {
+            schemaVersion: 'project-permanent-erasure-v3',
+            filesystem: {
+              projectTreeAbsent: true,
+              workspaceTreesAbsent:
+                workspaceManager.runtimeEffectsDrained && workspaceManager.kubernetes.persistentVolumeClaimsAbsent,
+              objectCacheAbsent: true,
+              staticSnapshotsAbsent: true,
+              staticAliasesAbsent: true,
+              staticArtifactSummary: filesystem.staticArtifactSummary,
+            },
+            gcs: { bucketAbsent: true, objectCount: 0 },
+            workspaceManager,
+          },
+        };
+      },
+    });
+  };
+
   const runSecureRemixClone = async (params: {
     request: FastifyRequest;
     sourceProject: { id: string; organizationId: string };
@@ -30095,6 +30296,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             storage: resolveRawObjectStorage(),
           }),
         databaseProvisioner,
+        databasePhysicalAuthority: newIsolatedDatabaseAuthority,
+        permanentlyDeleteTargetProject: permanentlyDeleteRemixTarget,
         ensureProjectQuota: async (organizationId) => {
           await ensureTenantAdmission(params.request, organizationId, 'project.create', { action: 'project.create' });
           await ensureQuota(params.request, organizationId, 'projects.count');
@@ -36516,7 +36719,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 };
               }),
             permanentlyDeleteOwnedProject: async (authority, lease) => {
-              if (authority.userId !== userId || authority.planId !== lease.planId) {
+              if (
+                authority.userId !== userId ||
+                authority.planId !== lease.planId ||
+                authority.ownerToken !== lease.ownerToken
+              ) {
                 throw Object.assign(new Error(appPublicEnglish('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE')), {
                   code: 'ACCOUNT_PURGE_PROJECT_DELETE_AUTHORITY_INVALID',
                   statusCode: 409,
@@ -36919,13 +37126,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let provisioningErrors = 0;
 
     for (const instance of provisioningInstances) {
-      const state = await billingState(instance.organizationId).catch(() => undefined);
-
       const reconciled = await reconcileDatabaseProvisioning({
         store,
         provisioner,
         instance,
-        tier: resolveDatabaseTier(state?.plan.key),
         nowMs,
         encryptConnectionUri: (uri) => encryptJson({ value: uri }),
       }).catch((error) => {
@@ -36954,6 +37158,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     for (const instance of instances) {
+      if (!instance.physicalAuthority || instance.physicalAuthority.tier !== 'isolated') {
+        continue;
+      }
       // Daily automatic snapshot, retained for the plan window.
       const expiresAt = new Date(nowMs + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
 
@@ -36970,6 +37177,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               projectId: instance.projectId,
               organizationId: instance.organizationId,
               snapshotId: snapshot.id,
+              environment: instance.environment,
+              physicalAuthority: instance.physicalAuthority,
             })
             .catch(() => {});
         }
@@ -38703,10 +38912,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!instance) {
       return { entitlement, instance: null, snapshots: [], restores: [] };
     }
-
     if (instance.status === 'PROVISIONING') {
       instance = await reconcileManagedDatabase(instance, {
-        planKey: state?.plan.key,
         warn: (context, message) => request.log?.warn?.(context, message),
       }).catch((error) => {
         request.log?.warn?.({ err: error, databaseInstanceId: instance!.id }, 'managed database reconcile failed');
@@ -38740,6 +38947,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .object({
           snapshotId: z.string().min(1).optional(),
           targetTimestamp: z.string().datetime().optional(),
+          environment: z.enum(['development', 'production']).default('development'),
         })
         .refine((value) => Boolean(value.snapshotId || value.targetTimestamp), {
           message: appPublicEnglish('SNAPSHOT_OR_TIMESTAMP_REQUIRED'),
@@ -38747,14 +38955,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.body ?? {},
     );
 
-    const instance = await store.getDatabaseInstanceByProject(project.id);
+    const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
+    const physicalAuthority = requireRestorableDatabaseAuthority(instance);
 
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const restoreEntitlement = effectiveRestoreEntitlement(entitlement, physicalAuthority);
     const nowMs = Date.now();
 
     /*
@@ -38778,7 +38988,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const validation = validateRestoreTarget({
       enabled: true,
-      entitlement,
+      entitlement: restoreEntitlement,
       targetTimestampMs,
       nowMs,
       locale: transactionalLocaleForRequest(request),
@@ -38812,7 +39022,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           restoreId: restore.id,
           targetTimeIso: new Date(targetTimestampMs).toISOString(),
-          retentionDays: entitlement.retentionDays,
+          retentionDays: restoreEntitlement.retentionDays,
+          environment: instance.environment,
+          physicalAuthority,
         })
         .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
         .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
@@ -38837,12 +39049,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
+    const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment ?? 'development';
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
     const provisioner = resolveDefaultDatabaseProvisioner();
-    const tier = resolveDatabaseTier(state?.plan.key);
+    const tier = 'isolated' as const;
     const existing = await store.getDatabaseInstanceByProject(project.id, environment);
 
     if (existing && existing.status !== 'FAILED') {
@@ -38863,6 +39075,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * reconciled to FAILED. An existing FAILED row is the only state a retry may
      * claim; every live state remains singleton and idempotent.
      */
+    const requestedPhysicalAuthority =
+      existing?.physicalAuthority ??
+      newIsolatedDatabaseAuthority({
+        projectId: project.id,
+        environment,
+        retentionDays: entitlement.retentionDays,
+      });
     const acquisition = await store.acquireDatabaseProvisioning({
       projectId: project.id,
       expectedOrganizationId: project.organizationId,
@@ -38870,6 +39089,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       retentionDays: entitlement.retentionDays,
       environment,
       provisioningDeadlineAt: databaseProvisionDeadline(),
+      physicalAuthority: requestedPhysicalAuthority,
     });
 
     if (!acquisition.acquired) {
@@ -38885,6 +39105,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         retentionDays: entitlement.retentionDays,
         tier,
         environment,
+        physicalAuthority: acquisition.instance.physicalAuthority ?? requestedPhysicalAuthority,
       });
     } catch (error) {
       request.log?.warn?.({ err: error, databaseInstanceId: acquisition.instance.id }, 'db provision kickoff failed');
@@ -38956,13 +39177,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:write',
     );
 
-    const instance = await store.getDatabaseInstanceByProject(project.id);
+    const body = parse(
+      z.object({
+        label: z.string().max(200).optional(),
+        environment: z.enum(['development', 'production']).default('development'),
+      }),
+      request.body ?? {},
+    );
+    const instance = await store.getDatabaseInstanceByProject(project.id, body.environment);
 
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
+    const physicalAuthority = requireRestorableDatabaseAuthority(instance);
 
-    const body = parse(z.object({ label: z.string().max(200).optional() }), request.body ?? {});
     const expiresAt = new Date(Date.now() + Math.max(1, instance.retentionDays) * 24 * 60 * 60 * 1000).toISOString();
 
     const snapshot = await store.createDatabaseSnapshot({
@@ -38977,7 +39205,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (provisioner.active) {
       await provisioner
-        .takeSnapshot({ projectId: project.id, organizationId: project.organizationId, snapshotId: snapshot.id })
+        .takeSnapshot({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          snapshotId: snapshot.id,
+          environment: instance.environment,
+          physicalAuthority,
+        })
         .catch((error) => request.log?.warn?.({ err: error }, 'db snapshot kickoff failed (non-fatal)'));
     }
 
@@ -39094,9 +39328,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!instance) {
       return reply.code(409).send({ error: appPublicEnglish('DATABASE_PROJECT_MISSING'), code: 'NO_DATABASE' });
     }
+    const physicalAuthority = requireRestorableDatabaseAuthority(instance);
 
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
+    const restoreEntitlement = effectiveRestoreEntitlement(entitlement, physicalAuthority);
     const nowMs = Date.now();
 
     /*
@@ -39121,7 +39357,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const validation = validateRestoreTarget({
       enabled: true,
-      entitlement,
+      entitlement: restoreEntitlement,
       targetTimestampMs,
       nowMs,
       locale: transactionalLocaleForRequest(request),
@@ -39170,7 +39406,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           organizationId: project.organizationId,
           restoreId: restore.id,
           targetTimeIso: new Date(targetTimestampMs).toISOString(),
-          retentionDays: entitlement.retentionDays,
+          retentionDays: restoreEntitlement.retentionDays,
+          environment: instance.environment,
+          physicalAuthority,
         })
         .then(() => store.updateDatabaseRestore(restore.id, { status: 'RUNNING', startedAt: new Date().toISOString() }))
         .catch((error) => request.log?.warn?.({ err: error }, 'restore kickoff failed (non-fatal)'));
@@ -45114,6 +45352,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
           }
 
+          const productionDatabaseInstance = options.databasePhysicalAuthorityResolver
+            ? undefined
+            : await store.getDatabaseInstanceByProject(project.id, 'production').catch(() => undefined);
+          let migrationPhysicalAuthority: DatabasePhysicalAuthority;
+          try {
+            const resolvedAuthority = options.databasePhysicalAuthorityResolver
+              ? await options.databasePhysicalAuthorityResolver(project.id, 'production')
+              : productionDatabaseInstance?.physicalAuthority;
+            if (!resolvedAuthority || resolvedAuthority.tier !== 'isolated') {
+              throw new Error('managed production database authority is absent');
+            }
+            migrationPhysicalAuthority = requireRestorablePhysicalAuthority(resolvedAuthority);
+          } catch {
+            return reply.code(409).send({
+              error: appPublicCopy('MIGRATION_BACKUP_UNVERIFIED', locale),
+              code: 'MIGRATION_BACKUP_UNVERIFIED',
+              retryable: false,
+            });
+          }
+
           const statementsSha256 = hashStatements(migrationPlan.migrations);
 
           const requestHash = migrationRequestHash({
@@ -45138,6 +45396,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             migrations: migrationPlan.migrations,
             connectionString: productionConnection.value,
             engine: productionConnection.kind,
+            physicalAuthority: migrationPhysicalAuthority,
             deploymentId: source.id,
             createdByUserId: request.currentUser?.id,
             backwardCompatible: migrationPlan.backwardCompatible,
@@ -45723,6 +45982,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               const provisioner = databaseProvisioner;
 
               if (provisioner.active) {
+                const requestedPhysicalAuthority =
+                  existingProd?.physicalAuthority ??
+                  newIsolatedDatabaseAuthority({
+                    projectId: project.id,
+                    environment: 'production',
+                    retentionDays: entitlement.retentionDays,
+                  });
                 const acquisition = await store.acquireDatabaseProvisioning({
                   projectId: project.id,
                   expectedOrganizationId: project.organizationId,
@@ -45730,6 +45996,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   retentionDays: entitlement.retentionDays,
                   environment: 'production',
                   provisioningDeadlineAt: databaseProvisionDeadline(),
+                  physicalAuthority: requestedPhysicalAuthority,
                 });
 
                 if (acquisition.acquired) {
@@ -45739,8 +46006,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     projectId: project.id,
                     organizationId: project.organizationId,
                     retentionDays: entitlement.retentionDays,
-                    tier: resolveDatabaseTier(billing?.plan.key),
+                    tier: 'isolated',
                     environment: 'production',
+                    physicalAuthority: acquisition.instance.physicalAuthority ?? requestedPhysicalAuthority,
                   });
 
                   if (!outcome.applied) {

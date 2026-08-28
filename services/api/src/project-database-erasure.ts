@@ -5,13 +5,9 @@ import { Client as PgClient } from 'pg';
 
 import {
   DB_NAMESPACE,
-  clusterName,
   onDemandBackupName,
   restoreClusterName,
-  sharedDbName,
-  tenantRoleName,
   type DatabaseEnvironment,
-  type DatabaseTier,
 } from './database-provisioner.js';
 import type { ObjectStorageJsonObject, ObjectStorageOperationLease } from './object-storage-operation.js';
 
@@ -52,28 +48,48 @@ export interface ProjectDatabaseInstanceErasureInventory {
   sizeBytes: number;
   retentionDays: number;
   pitrEnabled: boolean;
+  physicalAuthority: ProjectDatabasePhysicalAuthority;
   snapshots: ProjectDatabaseSnapshotErasureInventory[];
   restores: ProjectDatabaseRestoreErasureInventory[];
 }
 
+export interface ProjectDatabasePhysicalAuthority {
+  tier: 'shared' | 'isolated';
+  clusterName: string;
+  databaseCrName?: string;
+  databaseName?: string;
+  roleName?: string;
+  backupBucket?: string;
+  backupPrefix?: string;
+  clusterUid?: string;
+  databaseCrUid?: string;
+  retentionDays: number;
+  capturedAt: string;
+}
+
+export interface ProjectDatabaseLegacyAuthorityResolution {
+  instanceId: string;
+  authority: Omit<ProjectDatabasePhysicalAuthority, 'capturedAt'>;
+}
+
 export interface ProjectDatabaseErasureCatalog {
-  schemaVersion: 1;
+  schemaVersion: 2;
   projectId: string;
   organizationId: string;
   capturedAt: string;
-  /** Plan-derived topology. Both development and production use this tier. */
-  tier: DatabaseTier;
-  /** Required only for the shared tier; never a per-project deletion target. */
-  sharedClusterName?: string;
-  /** Concrete DB_BACKUP_BUCKET, without `gs://`. */
-  backupBucket: string;
   instances: ProjectDatabaseInstanceErasureInventory[];
 }
 
 export interface ProjectDatabaseErasurePlan extends ProjectDatabaseErasureCatalog {
   operationId: string;
   inventorySha256: string;
-  backupPrefix: string;
+  backupTargets: Array<{ bucket: string; prefix: string }>;
+  sharedRetentionBarriers: Array<{
+    clusterName: string;
+    clusterUid?: string;
+    retentionDays: number;
+    notBefore: string;
+  }>;
   targets: {
     environments: DatabaseEnvironment[];
     clusterNames: string[];
@@ -86,6 +102,7 @@ export interface ProjectDatabaseErasurePlan extends ProjectDatabaseErasureCatalo
       database: string;
       role: string;
       sharedClusterName: string;
+      sharedClusterUid?: string;
     }>;
   };
 }
@@ -182,16 +199,25 @@ export interface ProjectDatabaseKubernetesPort {
 export interface ProjectDatabaseBackupVersion {
   key: string;
   generation: string;
+  softDeleted: boolean;
+  hardDeleteTime?: string;
 }
 
 /** A generation-aware view over the dedicated CNPG backup bucket. */
 export interface ProjectDatabaseBackupPort {
-  listFirstPage(input: { bucket: string; prefix: string; limit: number }): Promise<ProjectDatabaseBackupVersion[]>;
+  inspectBucket(input: { bucket: string }): Promise<{ softDeleteRetentionSeconds: number }>;
+  listFirstPage(input: {
+    bucket: string;
+    prefix: string;
+    limit: number;
+    softDeleted: boolean;
+  }): Promise<ProjectDatabaseBackupVersion[]>;
   deleteVersion(input: { bucket: string; key: string; generation: string }): Promise<'deleted' | 'absent'>;
 }
 
 export interface ProjectDatabaseSharedTenant {
   sharedClusterName: string;
+  sharedClusterUid?: string;
   environment: DatabaseEnvironment;
   database: string;
   role: string;
@@ -204,7 +230,7 @@ export interface ProjectDatabaseSharedSqlPort {
 }
 
 export type ProjectDatabaseErasureReceipt = ObjectStorageJsonObject & {
-  schemaVersion: 1;
+  schemaVersion: 2;
   operationId: string;
   projectId: string;
   organizationId: string;
@@ -214,13 +240,18 @@ export type ProjectDatabaseErasureReceipt = ObjectStorageJsonObject & {
     kubernetesResourcesDeleted: number;
     sharedTenantsErased: number;
     backupGenerationsDeleted: number;
+    persistentVolumeClaims: Array<{
+      namespace: typeof DB_NAMESPACE;
+      pvcName: string;
+      expectedPvcUid: string;
+    }>;
   };
   proof: ObjectStorageJsonObject & {
     kubernetesNamespace: typeof DB_NAMESPACE;
     kubernetesAbsent: true;
     sharedTenantsAbsent: true;
-    backupBucket: string;
-    backupPrefix: string;
+    backupTargets: Array<{ bucket: string; prefix: string; generationsAbsent: true; softDeletedAbsent: true }>;
+    sharedRetentionBarriers: Array<{ clusterName: string; notBefore: string; satisfiedAt: string }>;
     backupGenerationsAbsent: true;
   };
 };
@@ -236,7 +267,11 @@ export type ProjectDatabaseErasureErrorCode =
   | 'SHARED_SQL_ERASURE_INCOMPLETE'
   | 'UNSAFE_BACKUP_TARGET'
   | 'BACKUP_ERASURE_INCOMPLETE'
+  | 'BACKUP_SOFT_DELETE_POLICY_ENABLED'
+  | 'BACKUP_SOFT_DELETE_RETENTION_ACTIVE'
+  | 'SHARED_BACKUP_RETENTION_ACTIVE'
   | 'BACKUP_GENERATION_UNPINNABLE'
+  | 'BACKUP_IAM_PREFLIGHT_FAILED'
   | 'BACKUP_BUCKET_MISMATCH';
 
 export class ProjectDatabaseErasureError extends Error {
@@ -317,28 +352,14 @@ function uniqueById<T extends { id: string }>(values: readonly T[], field: strin
 export function buildProjectDatabaseErasurePlan(
   input: ProjectDatabaseErasureCatalog & { operationId: string },
 ): ProjectDatabaseErasurePlan {
-  if (input.schemaVersion !== 1) {
+  if (input.schemaVersion !== 2) {
     throw new ProjectDatabaseErasureError('Unsupported database erasure inventory version', 'INVALID_INVENTORY');
   }
 
   const projectId = requireSafeText(input.projectId, 'projectId', 63);
   const organizationId = requireSafeText(input.organizationId, 'organizationId', 128);
   const operationId = requireSafeText(input.operationId, 'operationId', 128);
-  const backupBucket = requireSafeText(input.backupBucket, 'backupBucket', 222);
-
-  if (backupBucket.startsWith('gs://') || backupBucket.includes('/')) {
-    throw new ProjectDatabaseErasureError('backupBucket must be a GCS bucket name', 'INVALID_INVENTORY');
-  }
-
-  if (input.tier !== 'isolated' && input.tier !== 'shared') {
-    throw new ProjectDatabaseErasureError('Invalid database tier', 'INVALID_INVENTORY');
-  }
-
-  const sharedClusterName = input.sharedClusterName?.trim();
-
-  if (input.tier === 'shared' && !sharedClusterName) {
-    throw new ProjectDatabaseErasureError('Shared topology requires sharedClusterName', 'INVALID_INVENTORY');
-  }
+  const capturedAt = requireIsoDate(input.capturedAt, 'capturedAt');
 
   uniqueById(input.instances, 'DatabaseInstance');
   const environments = new Set<DatabaseEnvironment>();
@@ -360,6 +381,47 @@ export function buildProjectDatabaseErasurePlan(
       uniqueById(instance.snapshots, 'DatabaseSnapshot');
       uniqueById(instance.restores, 'DatabaseRestore');
 
+      const physical = instance.physicalAuthority;
+      if (!physical || (physical.tier !== 'isolated' && physical.tier !== 'shared')) {
+        throw new ProjectDatabaseErasureError('Database physical authority is missing', 'INVALID_INVENTORY');
+      }
+      const clusterName = requireSafeText(physical.clusterName, 'physicalAuthority.clusterName', 253);
+      const databaseCrName = physical.databaseCrName
+        ? requireSafeText(physical.databaseCrName, 'physicalAuthority.databaseCrName', 253)
+        : undefined;
+      const databaseName = physical.databaseName
+        ? requireSafeText(physical.databaseName, 'physicalAuthority.databaseName', 63)
+        : undefined;
+      const roleName = physical.roleName
+        ? requireSafeText(physical.roleName, 'physicalAuthority.roleName', 63)
+        : undefined;
+      const backupBucket = physical.backupBucket
+        ? requireSafeText(physical.backupBucket, 'physicalAuthority.backupBucket', 222)
+        : undefined;
+      const backupPrefix = physical.backupPrefix
+        ? requireSafeText(physical.backupPrefix, 'physicalAuthority.backupPrefix', 1024)
+        : undefined;
+      const clusterUid = physical.clusterUid
+        ? requireSafeText(physical.clusterUid, 'physicalAuthority.clusterUid', 255)
+        : undefined;
+      const databaseCrUid = physical.databaseCrUid
+        ? requireSafeText(physical.databaseCrUid, 'physicalAuthority.databaseCrUid', 255)
+        : undefined;
+      const physicalRetentionDays = requireNonNegativeNumber(physical.retentionDays, 'physicalAuthority.retentionDays');
+      if (physicalRetentionDays > 3650) {
+        throw new ProjectDatabaseErasureError('Database physical retention is invalid', 'INVALID_INVENTORY');
+      }
+      if (
+        Boolean(backupBucket) !== Boolean(backupPrefix) ||
+        (backupBucket && (backupBucket.startsWith('gs://') || backupBucket.includes('/'))) ||
+        (backupPrefix && (!backupPrefix.endsWith('/') || backupPrefix.startsWith('/'))) ||
+        (physical.tier === 'isolated' &&
+          (!backupBucket || !backupPrefix || databaseCrName || databaseName || roleName)) ||
+        (physical.tier === 'shared' && (!databaseCrName || !databaseName || !roleName))
+      ) {
+        throw new ProjectDatabaseErasureError('Database physical authority is incomplete', 'INVALID_INVENTORY');
+      }
+
       return {
         ...instance,
         id: requireSafeText(instance.id, 'DatabaseInstance.id', 128),
@@ -369,6 +431,19 @@ export function buildProjectDatabaseErasurePlan(
         region: instance.region ? requireSafeText(instance.region, 'DatabaseInstance.region', 128) : undefined,
         sizeBytes: requireNonNegativeNumber(instance.sizeBytes, 'DatabaseInstance.sizeBytes'),
         retentionDays: requireNonNegativeNumber(instance.retentionDays, 'DatabaseInstance.retentionDays'),
+        physicalAuthority: {
+          tier: physical.tier,
+          clusterName,
+          databaseCrName,
+          databaseName,
+          roleName,
+          backupBucket,
+          backupPrefix,
+          clusterUid,
+          databaseCrUid,
+          retentionDays: physicalRetentionDays,
+          capturedAt: requireIsoDate(physical.capturedAt, 'physicalAuthority.capturedAt'),
+        },
         snapshots: instance.snapshots
           .map((snapshot) => {
             if (snapshot.kind !== 'auto' && snapshot.kind !== 'manual') {
@@ -425,54 +500,83 @@ export function buildProjectDatabaseErasurePlan(
   }
 
   const catalog: ProjectDatabaseErasureCatalog = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     projectId,
     organizationId,
-    capturedAt: requireIsoDate(input.capturedAt, 'capturedAt'),
-    tier: input.tier,
-    sharedClusterName,
-    backupBucket,
+    capturedAt,
     instances,
   };
-  const targetEnvironments: DatabaseEnvironment[] = ['development', 'production'];
-  const clusterNames = targetEnvironments.map((environment) => clusterName(projectId, environment));
+  const targetEnvironments = instances.map(({ environment }) => environment);
+  const isolatedInstances = instances.filter(({ physicalAuthority }) => physicalAuthority.tier === 'isolated');
+  const sharedInstances = instances.filter(({ physicalAuthority }) => physicalAuthority.tier === 'shared');
+  const clusterNames = isolatedInstances.map(({ physicalAuthority }) => physicalAuthority.clusterName);
   const restoreClusterNames = instances.flatMap((instance) =>
     instance.restores.map((restore) => restoreClusterName(projectId, restore.id)),
   );
   const backupNames = instances.flatMap((instance) =>
-    instance.snapshots.map((snapshot) => onDemandBackupName(projectId, snapshot.id, instance.environment)),
+    instance.snapshots.map((snapshot) =>
+      onDemandBackupName(projectId, snapshot.id, instance.environment, instance.physicalAuthority.clusterName),
+    ),
   );
+  const backupTargets = [
+    ...new Map(
+      isolatedInstances.map(({ physicalAuthority }) => [
+        `${physicalAuthority.backupBucket!}\u0000${physicalAuthority.backupPrefix!}`,
+        { bucket: physicalAuthority.backupBucket!, prefix: physicalAuthority.backupPrefix! },
+      ]),
+    ).values(),
+  ].sort((left, right) => left.bucket.localeCompare(right.bucket) || left.prefix.localeCompare(right.prefix));
+  const sharedRetentionBarriers = [
+    ...new Map(
+      sharedInstances.map(({ physicalAuthority }) => {
+        const notBefore = new Date(
+          Date.parse(capturedAt) + physicalAuthority.retentionDays * 24 * 60 * 60 * 1_000,
+        ).toISOString();
+        const value = {
+          clusterName: physicalAuthority.clusterName,
+          clusterUid: physicalAuthority.clusterUid,
+          retentionDays: physicalAuthority.retentionDays,
+          notBefore,
+        };
+        return [`${value.clusterName}\u0000${value.clusterUid ?? ''}\u0000${value.notBefore}`, value] as const;
+      }),
+    ).values(),
+  ].sort((left, right) => left.clusterName.localeCompare(right.clusterName));
 
   return {
     ...catalog,
     operationId,
     inventorySha256: inventoryDigest(catalog),
-    backupPrefix: `db/${projectId}/`,
+    backupTargets,
+    sharedRetentionBarriers,
     targets: {
       environments: targetEnvironments,
-      clusterNames,
+      clusterNames: [...new Set(clusterNames)].sort(),
       scheduledBackupNames: clusterNames.map((name) => `${name}-daily`),
       backupNames: [...new Set(backupNames)].sort(),
       restoreClusterNames: [...new Set(restoreClusterNames)].sort(),
-      databaseCrNames: [...clusterNames],
-      sharedTenants:
-        input.tier === 'shared'
-          ? targetEnvironments.map((environment) => ({
-              environment,
-              database: sharedDbName(projectId, environment),
-              role: tenantRoleName(projectId, environment),
-              sharedClusterName: sharedClusterName!,
-            }))
-          : [],
+      databaseCrNames: [
+        ...new Set(sharedInstances.map(({ physicalAuthority }) => physicalAuthority.databaseCrName!)),
+      ].sort(),
+      sharedTenants: sharedInstances.map(({ environment, physicalAuthority }) => ({
+        environment,
+        database: physicalAuthority.databaseName!,
+        role: physicalAuthority.roleName!,
+        sharedClusterName: physicalAuthority.clusterName,
+        sharedClusterUid: physicalAuthority.clusterUid,
+      })),
     },
   };
 }
 
 const KUBERNETES_DELETE_ORDER = new Map<ProjectDatabaseKubernetesKind, number>(
   [
+    // Quiesce every controller before the volume saga can dispatch provider
+    // deletion. Cluster deletes are UID/RV-fenced and use Orphan propagation.
+    'Cluster',
+    'Database',
     'ScheduledBackup',
     'Backup',
-    'Database',
     'Deployment',
     'Job',
     'Pod',
@@ -483,20 +587,11 @@ const KUBERNETES_DELETE_ORDER = new Map<ProjectDatabaseKubernetesKind, number>(
     'ConfigMap',
     'ServiceAccount',
     'PodDisruptionBudget',
-    // Keep the controller discoverable until its current descendants are gone.
-    'Cluster',
-    'PersistentVolumeClaim',
   ].map((kind, index) => [kind as ProjectDatabaseKubernetesKind, index]),
 );
 
 function isSafeProjectClusterName(plan: ProjectDatabaseErasurePlan, name: string): boolean {
-  const development = clusterName(plan.projectId, 'development');
-
-  return (
-    plan.targets.clusterNames.includes(name) ||
-    plan.targets.restoreClusterNames.includes(name) ||
-    name.startsWith(`${development}-r-`)
-  );
+  return plan.targets.clusterNames.includes(name) || plan.targets.restoreClusterNames.includes(name);
 }
 
 function assertSafeKubernetesResource(
@@ -521,6 +616,35 @@ function assertSafeKubernetesResource(
     throw new ProjectDatabaseErasureError('Refusing to delete a non-project CNPG Cluster', 'UNSAFE_KUBERNETES_TARGET');
   }
 
+  if (resource.kind === 'Database' && !plan.targets.databaseCrNames.includes(resource.name)) {
+    throw new ProjectDatabaseErasureError('Refusing to delete an uncaptured CNPG Database', 'UNSAFE_KUBERNETES_TARGET');
+  }
+
+  const isolatedAuthority = plan.instances.find(
+    ({ physicalAuthority }) => physicalAuthority.tier === 'isolated' && physicalAuthority.clusterName === resource.name,
+  )?.physicalAuthority;
+  if (resource.kind === 'Cluster' && isolatedAuthority?.clusterUid && isolatedAuthority.clusterUid !== resource.uid) {
+    throw new ProjectDatabaseErasureError(
+      'CNPG Cluster UID changed after authority capture',
+      'UNSAFE_KUBERNETES_TARGET',
+    );
+  }
+
+  const sharedAuthority = plan.instances.find(
+    ({ physicalAuthority }) =>
+      physicalAuthority.tier === 'shared' && physicalAuthority.databaseCrName === resource.name,
+  )?.physicalAuthority;
+  if (
+    resource.kind === 'Database' &&
+    sharedAuthority?.databaseCrUid &&
+    sharedAuthority.databaseCrUid !== resource.uid
+  ) {
+    throw new ProjectDatabaseErasureError(
+      'CNPG Database UID changed after authority capture',
+      'UNSAFE_KUBERNETES_TARGET',
+    );
+  }
+
   const ownerCluster = resource.ownership.clusterName;
 
   if (ownerCluster && !isSafeProjectClusterName(plan, ownerCluster)) {
@@ -530,7 +654,8 @@ function assertSafeKubernetesResource(
     );
   }
 
-  if (plan.sharedClusterName && (resource.name === plan.sharedClusterName || ownerCluster === plan.sharedClusterName)) {
+  const sharedClusters = new Set(plan.targets.sharedTenants.map(({ sharedClusterName }) => sharedClusterName));
+  if (sharedClusters.has(resource.name) || (ownerCluster && sharedClusters.has(ownerCluster))) {
     throw new ProjectDatabaseErasureError(
       'Refusing to delete shared database infrastructure',
       'UNSAFE_KUBERNETES_TARGET',
@@ -548,6 +673,20 @@ export interface ProjectDatabaseErasureServiceOptions {
 
 interface ManagerDatabaseErasureResponse {
   resources?: ProjectDatabaseKubernetesResource[];
+  nextCursor?: string;
+  authorities?: Array<{
+    instanceId: string;
+    tier: 'shared' | 'isolated';
+    clusterName: string;
+    databaseCrName?: string;
+    databaseName?: string;
+    roleName?: string;
+    backupBucket?: string;
+    backupPrefix?: string;
+    clusterUid?: string;
+    databaseCrUid?: string;
+    retentionDays: number;
+  }>;
   outcome?: 'deleted' | 'absent';
 }
 
@@ -583,7 +722,7 @@ export class ManagerProjectDatabaseKubernetesPort implements ProjectDatabaseKube
     };
   }
 
-  private async call(projectId: string, action: 'inventory' | 'delete', body: Record<string, unknown>) {
+  private async call(projectId: string, action: 'authority' | 'inventory' | 'delete', body: Record<string, unknown>) {
     const response = await this.fetchImpl(
       `${this.baseUrl.replace(/\/+$/, '')}/projects/${encodeURIComponent(projectId)}/permanent-delete/databases/${action}`,
       {
@@ -613,11 +752,47 @@ export class ManagerProjectDatabaseKubernetesPort implements ProjectDatabaseKube
     knownClusterNames: readonly string[];
     knownResourceNames?: Readonly<Partial<Record<ProjectDatabaseKubernetesKind, readonly string[]>>>;
   }): Promise<ProjectDatabaseKubernetesResource[]> {
-    const response = await this.call(input.projectId, 'inventory', this.body(input));
-    if (!Array.isArray(response.resources)) {
-      throw new ProjectDatabaseErasureError('Workspace-manager database inventory is unreadable', 'INVALID_PLAN');
+    const resources: ProjectDatabaseKubernetesResource[] = [];
+    const identities = new Set<string>();
+    let cursor: string | undefined;
+    for (let page = 0; page < 10_000; page += 1) {
+      const response = await this.call(input.projectId, 'inventory', {
+        ...this.body(input),
+        ...(cursor ? { cursor } : {}),
+        limit: 250,
+      });
+      if (!Array.isArray(response.resources)) {
+        throw new ProjectDatabaseErasureError('Workspace-manager database inventory is unreadable', 'INVALID_PLAN');
+      }
+      for (const resource of response.resources) {
+        const identity = `${resource.kind}:${resource.name}`;
+        if (identities.has(identity)) {
+          throw new ProjectDatabaseErasureError('Workspace-manager inventory pagination repeated', 'INVALID_PLAN');
+        }
+        identities.add(identity);
+        resources.push(resource);
+      }
+      if (!response.nextCursor) return resources;
+      if (response.nextCursor === cursor || response.resources.length === 0) {
+        throw new ProjectDatabaseErasureError('Workspace-manager inventory cursor stalled', 'INVALID_PLAN');
+      }
+      cursor = response.nextCursor;
     }
-    return response.resources;
+    throw new ProjectDatabaseErasureError('Workspace-manager inventory exceeded page limit', 'INVALID_PLAN');
+  }
+
+  async resolveLegacyAuthorities(input: {
+    projectId: string;
+    instances: readonly { id: string; environment: DatabaseEnvironment; retentionDays: number }[];
+  }): Promise<ProjectDatabaseLegacyAuthorityResolution[]> {
+    const response = await this.call(input.projectId, 'authority', {
+      ...this.body({ projectId: input.projectId, knownClusterNames: [] }),
+      instances: input.instances,
+    });
+    if (!Array.isArray(response.authorities) || response.authorities.length !== input.instances.length) {
+      throw new ProjectDatabaseErasureError('Workspace-manager database authority is unreadable', 'INVALID_PLAN');
+    }
+    return response.authorities.map(({ instanceId, ...authority }) => ({ instanceId, authority }));
   }
 
   async delete(input: {
@@ -714,24 +889,61 @@ export class ProjectDatabaseErasureService {
     plan: ProjectDatabaseErasurePlan,
     fence: ProjectDatabaseErasureFence,
     knownClusterNames: Set<string>,
-  ): Promise<number> {
+  ): Promise<{
+    deleted: number;
+    persistentVolumeClaims: Array<{
+      namespace: typeof DB_NAMESPACE;
+      pvcName: string;
+      expectedPvcUid: string;
+    }>;
+  }> {
     let deleted = 0;
+    const persistentVolumeClaims = new Map<
+      string,
+      { namespace: typeof DB_NAMESPACE; pvcName: string; expectedPvcUid: string }
+    >();
 
     for (let attempt = 1; attempt <= this.kubernetesSettleAttempts; attempt += 1) {
       await this.guard(plan, fence, 'KUBERNETES_PURGE', `inventory:${attempt}`);
       const resources = await this.inventoryKubernetes(plan, knownClusterNames);
+      for (const resource of resources) {
+        if (resource.kind !== 'PersistentVolumeClaim') continue;
+        const key = `${resource.namespace}/${resource.name}`;
+        const previous = persistentVolumeClaims.get(key);
+        if (previous && previous.expectedPvcUid !== resource.uid) {
+          throw new ProjectDatabaseErasureError('CNPG PVC UID changed during quiescence', 'UNSAFE_KUBERNETES_TARGET');
+        }
+        persistentVolumeClaims.set(key, {
+          namespace: resource.namespace,
+          pvcName: resource.name,
+          expectedPvcUid: resource.uid,
+        });
+      }
+      const controllerResources = resources.filter(({ kind }) => kind !== 'PersistentVolumeClaim');
 
-      if (resources.length === 0) {
-        return deleted;
+      if (controllerResources.length === 0) {
+        return {
+          deleted,
+          persistentVolumeClaims: [...persistentVolumeClaims.values()].sort((left, right) =>
+            left.pvcName.localeCompare(right.pvcName),
+          ),
+        };
       }
 
-      resources.sort(
+      controllerResources.sort(
         (left, right) =>
           (KUBERNETES_DELETE_ORDER.get(left.kind) ?? Number.MAX_SAFE_INTEGER) -
             (KUBERNETES_DELETE_ORDER.get(right.kind) ?? Number.MAX_SAFE_INTEGER) || left.name.localeCompare(right.name),
       );
 
-      for (const resource of resources) {
+      // A live CNPG Cluster is an asynchronous PVC producer. Fence it first
+      // with propagation=Orphan, then re-inventory and prove the CR absent before
+      // touching any descendant. This prevents the operator from recreating a
+      // PVC while the shared volume saga is erasing provider volumes.
+      const clusterControllers = controllerResources.filter(({ kind }) => kind === 'Cluster');
+      const deletionBatch = clusterControllers.length > 0 ? clusterControllers : controllerResources;
+
+      for (const resource of deletionBatch) {
         const effect = `delete:${resource.kind}:${resource.name}:${resource.resourceVersion}`;
         await this.guard(plan, fence, 'KUBERNETES_PURGE', effect);
         const result = await this.kubernetes.delete({
@@ -755,7 +967,9 @@ export class ProjectDatabaseErasureService {
       }
     }
 
-    const residue = await this.inventoryKubernetes(plan, knownClusterNames);
+    const residue = (await this.inventoryKubernetes(plan, knownClusterNames)).filter(
+      ({ kind }) => kind !== 'PersistentVolumeClaim',
+    );
 
     if (residue.length > 0) {
       throw new ProjectDatabaseErasureError(
@@ -764,7 +978,12 @@ export class ProjectDatabaseErasureService {
       );
     }
 
-    return deleted;
+    return {
+      deleted,
+      persistentVolumeClaims: [...persistentVolumeClaims.values()].sort((left, right) =>
+        left.pvcName.localeCompare(right.pvcName),
+      ),
+    };
   }
 
   private async purgeSharedTenants(
@@ -803,21 +1022,34 @@ export class ProjectDatabaseErasureService {
     return erased;
   }
 
-  private assertSafeBackupVersion(plan: ProjectDatabaseErasurePlan, version: ProjectDatabaseBackupVersion): void {
-    if (!version.key.startsWith(plan.backupPrefix) || !version.generation.trim()) {
+  private assertSafeBackupVersion(
+    target: { bucket: string; prefix: string },
+    version: ProjectDatabaseBackupVersion,
+    softDeleted: boolean,
+  ): void {
+    if (
+      !version.key.startsWith(target.prefix) ||
+      !version.generation.trim() ||
+      version.softDeleted !== softDeleted ||
+      (softDeleted && (!version.hardDeleteTime || !Number.isFinite(Date.parse(version.hardDeleteTime))))
+    ) {
       throw new ProjectDatabaseErasureError('Backup target escaped the project prefix', 'UNSAFE_BACKUP_TARGET');
     }
   }
 
-  private async listBackupPage(plan: ProjectDatabaseErasurePlan): Promise<ProjectDatabaseBackupVersion[]> {
+  private async listBackupPage(
+    target: { bucket: string; prefix: string },
+    softDeleted: boolean,
+  ): Promise<ProjectDatabaseBackupVersion[]> {
     const versions = await this.backups.listFirstPage({
-      bucket: plan.backupBucket,
-      prefix: plan.backupPrefix,
+      bucket: target.bucket,
+      prefix: target.prefix,
       limit: this.backupPageSize,
+      softDeleted,
     });
 
     for (const version of versions) {
-      this.assertSafeBackupVersion(plan, version);
+      this.assertSafeBackupVersion(target, version, softDeleted);
     }
 
     return versions;
@@ -826,26 +1058,91 @@ export class ProjectDatabaseErasureService {
   private async purgeBackups(plan: ProjectDatabaseErasurePlan, fence: ProjectDatabaseErasureFence): Promise<number> {
     let deleted = 0;
 
-    while (true) {
-      await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', 'list-generations');
-      const versions = await this.listBackupPage(plan);
-
-      if (versions.length === 0) {
-        return deleted;
+    for (const target of plan.backupTargets) {
+      await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', `bucket-policy:${target.bucket}`);
+      const bucket = await this.backups.inspectBucket({ bucket: target.bucket });
+      if (bucket.softDeleteRetentionSeconds !== 0) {
+        throw new ProjectDatabaseErasureError(
+          'Backup bucket soft-delete policy must be disabled before permanent deletion',
+          'BACKUP_SOFT_DELETE_POLICY_ENABLED',
+        );
       }
+      while (true) {
+        await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', `list-generations:${target.bucket}:${target.prefix}`);
+        const versions = await this.listBackupPage(target, false);
+        if (versions.length === 0) break;
 
-      for (const version of versions) {
-        const effect = `delete:${version.key}:${version.generation}`;
-        await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', effect);
-        const result = await this.backups.deleteVersion({
-          bucket: plan.backupBucket,
-          key: version.key,
-          generation: version.generation,
-        });
-        deleted += result === 'deleted' ? 1 : 0;
-        await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', `${effect}:complete`);
+        for (const version of versions) {
+          const effect = `delete:${target.bucket}:${version.key}:${version.generation}`;
+          await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', effect);
+          const result = await this.backups.deleteVersion({
+            bucket: target.bucket,
+            key: version.key,
+            generation: version.generation,
+          });
+          deleted += result === 'deleted' ? 1 : 0;
+          await this.guard(plan, fence, 'BACKUP_PREFIX_PURGE', `${effect}:complete`);
+        }
       }
     }
+    return deleted;
+  }
+
+  private async verifyBackupTargets(
+    plan: ProjectDatabaseErasurePlan,
+    fence: ProjectDatabaseErasureFence,
+  ): Promise<Array<{ bucket: string; prefix: string; generationsAbsent: true; softDeletedAbsent: true }>> {
+    const proof: Array<{ bucket: string; prefix: string; generationsAbsent: true; softDeletedAbsent: true }> = [];
+    for (const target of plan.backupTargets) {
+      await this.guard(plan, fence, 'FINAL_VERIFICATION', `bucket-policy:${target.bucket}`);
+      const policy = await this.backups.inspectBucket({ bucket: target.bucket });
+      if (policy.softDeleteRetentionSeconds !== 0) {
+        throw new ProjectDatabaseErasureError(
+          'Backup bucket soft-delete policy is enabled',
+          'BACKUP_SOFT_DELETE_POLICY_ENABLED',
+        );
+      }
+      const live = await this.listBackupPage(target, false);
+      if (live.length > 0) {
+        throw new ProjectDatabaseErasureError('Backup generations reappeared', 'BACKUP_ERASURE_INCOMPLETE');
+      }
+      const softDeleted = await this.listBackupPage(target, true);
+      if (softDeleted.length > 0) {
+        const retryAt = softDeleted
+          .map(({ hardDeleteTime }) => hardDeleteTime!)
+          .sort((left, right) => left.localeCompare(right))
+          .at(-1)!;
+        const error = new ProjectDatabaseErasureError(
+          'Soft-deleted backup generations remain provider-readable',
+          Date.parse(retryAt) > this.now().getTime()
+            ? 'BACKUP_SOFT_DELETE_RETENTION_ACTIVE'
+            : 'BACKUP_ERASURE_INCOMPLETE',
+        );
+        throw Object.assign(error, { retryAt });
+      }
+      proof.push({ ...target, generationsAbsent: true, softDeletedAbsent: true });
+    }
+    return proof;
+  }
+
+  private verifySharedRetentionBarriers(plan: ProjectDatabaseErasurePlan): Array<{
+    clusterName: string;
+    notBefore: string;
+    satisfiedAt: string;
+  }> {
+    const satisfiedAt = this.now().toISOString();
+    for (const barrier of plan.sharedRetentionBarriers) {
+      if (Date.parse(satisfiedAt) < Date.parse(barrier.notBefore)) {
+        throw Object.assign(
+          new ProjectDatabaseErasureError(
+            'Shared-cluster backup retention has not elapsed',
+            'SHARED_BACKUP_RETENTION_ACTIVE',
+          ),
+          { retryAt: barrier.notBefore },
+        );
+      }
+    }
+    return plan.sharedRetentionBarriers.map(({ clusterName, notBefore }) => ({ clusterName, notBefore, satisfiedAt }));
   }
 
   private async verifySharedTenantsAbsent(
@@ -880,9 +1177,6 @@ export class ProjectDatabaseErasureService {
       projectId: plan.projectId,
       organizationId: plan.organizationId,
       capturedAt: plan.capturedAt,
-      tier: plan.tier,
-      sharedClusterName: plan.sharedClusterName,
-      backupBucket: plan.backupBucket,
       instances: plan.instances,
     });
 
@@ -901,16 +1195,12 @@ export class ProjectDatabaseErasureService {
     const knownClusterNames = new Set(this.knownClusterNames(plan));
     await this.guard(plan, fence, 'FINAL_VERIFICATION');
     const kubernetesResidue = await this.inventoryKubernetes(plan, knownClusterNames);
-    await this.guard(plan, fence, 'FINAL_VERIFICATION', 'backup-generations');
-    const backupResidue = await this.listBackupPage(plan);
+    const backupTargets = await this.verifyBackupTargets(plan, fence);
+    const sharedRetentionBarriers = this.verifySharedRetentionBarriers(plan);
     await this.verifySharedTenantsAbsent(plan, fence);
 
     if (kubernetesResidue.length > 0) {
       throw new ProjectDatabaseErasureError('Kubernetes resources reappeared', 'KUBERNETES_ERASURE_INCOMPLETE');
-    }
-
-    if (backupResidue.length > 0) {
-      throw new ProjectDatabaseErasureError('Backup generations reappeared', 'BACKUP_ERASURE_INCOMPLETE');
     }
 
     await fence.checkpoint({
@@ -918,12 +1208,14 @@ export class ProjectDatabaseErasureService {
       evidence: {
         kubernetesResidueCount: 0,
         backupGenerationResidueCount: 0,
+        backupSoftDeletedResidueCount: 0,
+        sharedRetentionBarrierCount: sharedRetentionBarriers.length,
         sharedTenantsAbsent: true,
       },
     });
 
     const receipt: ProjectDatabaseErasureReceipt = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       operationId: plan.operationId,
       projectId: plan.projectId,
       organizationId: plan.organizationId,
@@ -934,8 +1226,8 @@ export class ProjectDatabaseErasureService {
         kubernetesNamespace: DB_NAMESPACE,
         kubernetesAbsent: true,
         sharedTenantsAbsent: true,
-        backupBucket: plan.backupBucket,
-        backupPrefix: plan.backupPrefix,
+        backupTargets,
+        sharedRetentionBarriers,
         backupGenerationsAbsent: true,
       },
     };
@@ -960,6 +1252,36 @@ export class ProjectDatabaseErasureService {
     return this.verifyAbsent(plan, fence, effects);
   }
 
+  /**
+   * Read-only RBAC/IAM/secret preflight while the parent operation is PREPARED.
+   * A missing permission therefore fails safe before any provider effect can be
+   * dispatched and before verify-first recovery becomes mandatory.
+   */
+  async preflight(plan: ProjectDatabaseErasurePlan, fence: ProjectDatabaseErasureFence): Promise<void> {
+    this.rebound(plan);
+    await this.guard(plan, fence, 'INVENTORY_BOUND', 'preflight:kubernetes');
+    await this.inventoryKubernetes(plan, new Set(this.knownClusterNames(plan)));
+    for (const target of plan.backupTargets) {
+      await this.guard(plan, fence, 'INVENTORY_BOUND', `preflight:gcs:${target.bucket}`);
+      const policy = await this.backups.inspectBucket({ bucket: target.bucket });
+      if (policy.softDeleteRetentionSeconds !== 0) {
+        throw new ProjectDatabaseErasureError(
+          'Backup bucket soft-delete policy must be disabled before erasure',
+          'BACKUP_SOFT_DELETE_POLICY_ENABLED',
+        );
+      }
+      await this.listBackupPage(target, false);
+      await this.listBackupPage(target, true);
+    }
+    if (plan.targets.sharedTenants.length > 0 && !this.sharedSql) {
+      throw new ProjectDatabaseErasureError('Shared SQL erasure port is required', 'SHARED_SQL_PORT_REQUIRED');
+    }
+    for (const tenant of plan.targets.sharedTenants) {
+      await this.guard(plan, fence, 'INVENTORY_BOUND', `preflight:shared:${tenant.environment}`);
+      await this.sharedSql!.inspectTenant(tenant);
+    }
+  }
+
   /** Execute provider mutations outside DB transactions, stopping before proof. */
   async purge(
     plan: ProjectDatabaseErasurePlan,
@@ -979,10 +1301,15 @@ export class ProjectDatabaseErasureService {
     });
 
     const knownClusterNames = new Set(this.knownClusterNames(plan));
-    const kubernetesResourcesDeleted = await this.purgeKubernetes(plan, fence, knownClusterNames);
+    const kubernetes = await this.purgeKubernetes(plan, fence, knownClusterNames);
     await fence.checkpoint({
       ...this.context(plan, 'KUBERNETES_PURGE'),
-      evidence: { deleted: kubernetesResourcesDeleted, namespace: DB_NAMESPACE },
+      evidence: {
+        deleted: kubernetes.deleted,
+        namespace: DB_NAMESPACE,
+        persistentVolumeClaims: kubernetes.persistentVolumeClaims,
+        controllersQuiesced: true,
+      },
     });
 
     const sharedTenantsErased = await this.purgeSharedTenants(plan, fence);
@@ -995,13 +1322,17 @@ export class ProjectDatabaseErasureService {
     await fence.checkpoint({
       ...this.context(plan, 'BACKUP_PREFIX_PURGE'),
       evidence: {
-        bucket: plan.backupBucket,
-        prefix: plan.backupPrefix,
+        targets: plan.backupTargets,
         deletedGenerations: backupGenerationsDeleted,
       },
     });
 
-    return { kubernetesResourcesDeleted, sharedTenantsErased, backupGenerationsDeleted };
+    return {
+      kubernetesResourcesDeleted: kubernetes.deleted,
+      sharedTenantsErased,
+      backupGenerationsDeleted,
+      persistentVolumeClaims: kubernetes.persistentVolumeClaims,
+    };
   }
 
   /** Execute provider effects outside DB transactions and return only live proof. */
@@ -1016,11 +1347,17 @@ export class ProjectDatabaseErasureService {
 
 interface GcsBackupFileLike {
   name: string;
-  metadata?: { generation?: string | number };
+  metadata?: { generation?: string | number; hardDeleteTime?: string };
   delete(options: { ifGenerationMatch: string }): Promise<unknown>;
 }
 
 interface GcsBackupBucketLike {
+  iam: {
+    testPermissions(permissions: string[]): Promise<[{ permissions?: string[] }, ...unknown[]]>;
+  };
+  getMetadata(): Promise<
+    [{ softDeletePolicy?: { retentionDurationSeconds?: string | number | null } | null }, ...unknown[]]
+  >;
   getFiles(options: Record<string, unknown>): Promise<[GcsBackupFileLike[], unknown?]>;
   file(name: string, options: { generation: string }): GcsBackupFileLike;
 }
@@ -1036,29 +1373,53 @@ function providerCode(error: unknown): string | number | undefined {
 /** Real, generation-pinned GCS adapter for DB_BACKUP_BUCKET. */
 export class GcsProjectDatabaseBackupPort implements ProjectDatabaseBackupPort {
   constructor(
-    private readonly bucketName: string,
+    private readonly bucketName?: string,
     private readonly storage: GcsBackupStorageLike = new Storage() as unknown as GcsBackupStorageLike,
   ) {}
 
   private bucket(inputBucket: string): GcsBackupBucketLike {
-    if (inputBucket !== this.bucketName) {
+    if (
+      !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(inputBucket) ||
+      (this.bucketName && inputBucket !== this.bucketName)
+    ) {
       throw new ProjectDatabaseErasureError(
         'Backup bucket does not match the configured adapter',
         'BACKUP_BUCKET_MISMATCH',
       );
     }
 
-    return this.storage.bucket(this.bucketName);
+    return this.storage.bucket(inputBucket);
+  }
+
+  async inspectBucket(input: { bucket: string }): Promise<{ softDeleteRetentionSeconds: number }> {
+    const bucket = this.bucket(input.bucket);
+    const requiredPermissions = ['storage.buckets.get', 'storage.objects.delete', 'storage.objects.list'];
+    const [permissionResult] = await bucket.iam.testPermissions(requiredPermissions);
+    const granted = new Set(permissionResult.permissions ?? []);
+    if (requiredPermissions.some((permission) => !granted.has(permission))) {
+      throw new ProjectDatabaseErasureError(
+        'Backup bucket IAM does not authorize exhaustive erasure',
+        'BACKUP_IAM_PREFLIGHT_FAILED',
+      );
+    }
+    const [metadata] = await bucket.getMetadata();
+    const raw = metadata.softDeletePolicy?.retentionDurationSeconds ?? 0;
+    const seconds = Number(raw);
+    if (!Number.isSafeInteger(seconds) || seconds < 0) {
+      throw new ProjectDatabaseErasureError('Backup bucket soft-delete policy is unreadable', 'INVALID_PLAN');
+    }
+    return { softDeleteRetentionSeconds: seconds };
   }
 
   async listFirstPage(input: {
     bucket: string;
     prefix: string;
     limit: number;
+    softDeleted: boolean;
   }): Promise<ProjectDatabaseBackupVersion[]> {
     const [files] = await this.bucket(input.bucket).getFiles({
       prefix: input.prefix,
-      versions: true,
+      ...(input.softDeleted ? { softDeleted: true } : { versions: true }),
       autoPaginate: false,
       maxResults: Math.max(1, Math.min(1_000, input.limit)),
     });
@@ -1073,7 +1434,12 @@ export class GcsProjectDatabaseBackupPort implements ProjectDatabaseBackupPort {
         );
       }
 
-      return { key: file.name, generation: String(generation) };
+      return {
+        key: file.name,
+        generation: String(generation),
+        softDeleted: input.softDeleted,
+        ...(input.softDeleted && file.metadata?.hardDeleteTime ? { hardDeleteTime: file.metadata.hardDeleteTime } : {}),
+      };
     });
   }
 
@@ -1102,7 +1468,7 @@ export interface ProjectDatabaseAdminSqlClient {
   end(): Promise<void>;
 }
 
-export type ProjectDatabaseAdminUriResolver = (sharedClusterName: string) => Promise<string>;
+export type ProjectDatabaseAdminUriResolver = (tenant: ProjectDatabaseSharedTenant) => Promise<string>;
 
 function assertPostgresIdentifier(value: string): string {
   if (!/^[a-z_][a-z0-9_]{0,62}$/.test(value)) {
@@ -1126,10 +1492,10 @@ export class PgProjectDatabaseSharedSqlPort implements ProjectDatabaseSharedSqlP
   ) {}
 
   private async withClient<T>(
-    sharedClusterName: string,
+    tenant: ProjectDatabaseSharedTenant,
     run: (client: ProjectDatabaseAdminSqlClient) => Promise<T>,
   ): Promise<T> {
-    const adminUri = await this.resolveAdminUri(sharedClusterName);
+    const adminUri = await this.resolveAdminUri(tenant);
     const client = this.createClient(adminUri);
     await client.connect();
 
@@ -1145,7 +1511,7 @@ export class PgProjectDatabaseSharedSqlPort implements ProjectDatabaseSharedSqlP
     const role = assertPostgresIdentifier(input.role);
 
     await guard('resolve-admin');
-    await this.withClient(input.sharedClusterName, async (client) => {
+    await this.withClient(input, async (client) => {
       await guard('terminate-connections');
       await client.query(
         'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()',
@@ -1176,7 +1542,7 @@ export class PgProjectDatabaseSharedSqlPort implements ProjectDatabaseSharedSqlP
     const database = assertPostgresIdentifier(input.database);
     const role = assertPostgresIdentifier(input.role);
 
-    return this.withClient(input.sharedClusterName, async (client) => {
+    return this.withClient(input, async (client) => {
       const result = await client.query(
         'SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = $1) AS "databaseExists", EXISTS (SELECT 1 FROM pg_roles WHERE rolname = $2) AS "roleExists"',
         [database, role],

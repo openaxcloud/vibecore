@@ -94,6 +94,13 @@ function input(store = new TestApiStore(), applier = new MemoryApplier()) {
     migrations,
     connectionString: 'postgres://target',
     engine: 'postgres',
+    physicalAuthority: {
+      tier: 'isolated' as const,
+      clusterName: 'db-project-1-prod',
+      backupBucket: 'vibecore-test-db-backups',
+      backupPrefix: 'db/project-1/production/',
+      retentionDays: 28,
+    },
     deploymentId: 'deployment-1',
     backwardCompatible: true,
     forwardCompatible: false,

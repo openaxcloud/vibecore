@@ -15,6 +15,7 @@ import {
   buildSharedTenantUri,
   buildTenantProvisionSql,
   clusterName,
+  databaseBackupPrefix,
   onDemandBackupName,
   resolveDatabaseProvisioner,
   resolveDatabaseTier,
@@ -26,14 +27,36 @@ import {
   type K8sManifest,
   type TenantSqlExecutor,
 } from '../database-provisioner.js';
+import type { DatabasePhysicalAuthority } from '../store.js';
 
 const ORIGINAL_FLAG = process.env.DB_ROLLBACK_ENABLED;
 const ORIGINAL_BUCKET = process.env.DB_BACKUP_BUCKET;
+const ORIGINAL_SHARED_CLUSTER = process.env.DB_SHARED_CLUSTER;
+
+function isolatedAuthority(
+  projectId: string,
+  environment: 'development' | 'production' = 'development',
+  retentionDays = 28,
+  backupBucket = 'bkt',
+): DatabasePhysicalAuthority {
+  return {
+    tier: 'isolated',
+    clusterName: clusterName(projectId, environment),
+    backupBucket,
+    backupPrefix: databaseBackupPrefix(projectId, environment),
+    retentionDays,
+  };
+}
+
+function sharedAuthority(cluster = 'shared-pg-0', retentionDays = 7): DatabasePhysicalAuthority {
+  return { tier: 'shared', clusterName: cluster, retentionDays };
+}
 
 afterEach(() => {
   for (const [key, val] of [
     ['DB_ROLLBACK_ENABLED', ORIGINAL_FLAG],
     ['DB_BACKUP_BUCKET', ORIGINAL_BUCKET],
+    ['DB_SHARED_CLUSTER', ORIGINAL_SHARED_CLUSTER],
   ] as const) {
     if (val === undefined) {
       delete (process.env as Record<string, string | undefined>)[key];
@@ -45,11 +68,26 @@ afterEach(() => {
 
 class FakeK8s implements K8sApplyPort {
   applied: K8sManifest[] = [];
+  csiEffects: Array<{
+    action: string;
+    resourceId: string;
+    targets: readonly { namespace: string; pvcName: string }[];
+  }> = [];
   deleted: string[] = [];
   clusters = new Map<string, { status?: Record<string, unknown> }>();
 
   async apply(manifest: K8sManifest) {
     this.applied.push(manifest);
+  }
+
+  async applyCsiCluster(input: {
+    manifest: K8sManifest;
+    action: 'CNPG_PROVISION' | 'CNPG_RESTORE' | 'CNPG_REMIX';
+    resourceId: string;
+    targets: readonly { namespace: typeof DB_NAMESPACE; pvcName: string }[];
+  }) {
+    this.csiEffects.push({ action: input.action, resourceId: input.resourceId, targets: input.targets });
+    this.applied.push(input.manifest);
   }
 
   async get(kind: string, _ns: string, name: string) {
@@ -69,9 +107,9 @@ class FakeK8s implements K8sApplyPort {
 }
 
 describe('tiered routing (v3)', () => {
-  it('routes free→shared and paid→isolated', () => {
-    expect(resolveDatabaseTier('free')).toBe('shared');
-    expect(resolveDatabaseTier(undefined)).toBe('shared');
+  it('routes every newly provisioned database to an isolated cluster', () => {
+    expect(resolveDatabaseTier('free')).toBe('isolated');
+    expect(resolveDatabaseTier(undefined)).toBe('isolated');
     expect(resolveDatabaseTier('team')).toBe('isolated');
     expect(resolveDatabaseTier('enterprise')).toBe('isolated');
   });
@@ -128,9 +166,17 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
       organizationId: 'org-1',
       retentionDays: 28,
       tier: 'isolated',
+      physicalAuthority: isolatedAuthority('p1'),
     });
     expect(res.clusterName).toBe(clusterName('p1'));
     expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(true);
+    expect(k8s.csiEffects).toEqual([
+      {
+        action: 'CNPG_PROVISION',
+        resourceId: 'cnpg-provision:p1:development',
+        targets: [{ namespace: DB_NAMESPACE, pvcName: 'db-p1-1' }],
+      },
+    ]);
 
     expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBeUndefined();
 
@@ -155,15 +201,7 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
     await expect(p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).rejects.toThrow('manager RBAC denied');
   });
 
-  it('shared tier: applies only the project Database CRD; shared Pooler stays Helm-owned', async () => {
-    /*
-     * BUG-QA-DB-PROVISIONING-STUCK : ce chemin exige desormais que le locataire
-     * (role proprietaire + base) soit REELLEMENT en place. La CR `Database` le
-     * reference par son owner ; la poser sans le role produisait un
-     * `APPLIED=false` definitif ("role does not exist", SQLSTATE 42704) et un
-     * statut PROVISIONING qui ne finissait jamais. Le test fournit donc les
-     * prerequis que la production a bien de son cote.
-     */
+  it('shared tier is legacy read-only and never applies SQL or Kubernetes mutations', async () => {
     process.env.DB_SHARED_TENANT_SECRET = 'tenant-secret-de-test';
 
     const k8s = new FakeK8s();
@@ -178,16 +216,12 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
+      physicalAuthority: sharedAuthority(),
     });
 
-    expect(result.applied).toBe(true);
-    expect(k8s.applied.some((m) => m.kind === 'Pooler')).toBe(false);
-    expect(k8s.applied.some((m) => m.kind === 'Database')).toBe(true);
-    expect(k8s.applied.some((m) => m.kind === 'Cluster')).toBe(false);
-
-    // Le role proprietaire a bien ete cree AVANT la CR qui le reference.
-    expect(sqlExec.calls).toHaveLength(1);
-    expect(sqlExec.calls[0].role).toBe('t_p1');
+    expect(result).toMatchObject({ applied: false, reason: 'SHARED_TIER_LEGACY_READ_ONLY' });
+    expect(k8s.applied).toEqual([]);
+    expect(sqlExec.calls).toEqual([]);
   });
 
   it('shared tier: n_applique RIEN quand le locataire ne peut pas etre cree', async () => {
@@ -203,10 +237,29 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
+      physicalAuthority: sharedAuthority(),
     });
 
     expect(result.applied).toBe(false);
-    expect(result.reason).toBe('SHARED_TENANT_UNAVAILABLE');
+    expect(result.reason).toBe('SHARED_TIER_LEGACY_READ_ONLY');
+    expect(k8s.applied).toEqual([]);
+  });
+
+  it('never falls back to DB_SHARED_CLUSTER when legacy physical authority is absent', async () => {
+    process.env.DB_SHARED_CLUSTER = 'mutable-config-cluster';
+    const k8s = new FakeK8s();
+    const p = new CnpgProvisioner(k8s, 'bkt');
+
+    await expect(
+      p.provisionInstance({
+        projectId: 'p1',
+        organizationId: 'org-1',
+        retentionDays: 7,
+        tier: 'shared',
+        physicalAuthority: sharedAuthority('mutable-config-cluster'),
+      }),
+    ).rejects.toMatchObject({ code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED', statusCode: 409 });
+    await expect(p.getConnectionUri({ projectId: 'p1', tier: 'shared' })).resolves.toBeUndefined();
     expect(k8s.applied).toEqual([]);
   });
 });
@@ -215,7 +268,14 @@ class FakeTenantSqlExecutor implements TenantSqlExecutor {
   calls: Array<{ adminUri: string; role: string; db: string; password: string }> = [];
   verificationCalls: Array<{ uri: string; expectedRole?: string; expectedDatabase?: string }> = [];
 
-  async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }) {
+  async provisionTenant(input: {
+    adminUri: string;
+    role: string;
+    db: string;
+    password: string;
+    guard: () => Promise<void>;
+  }) {
+    await input.guard();
     this.calls.push(input);
   }
 
@@ -245,12 +305,16 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
   it('grants the tenant role to the admin BEFORE creating the owned database (PG16 SET ROLE rule)', async () => {
     const { client, statements } = fakeClient({ role: false, db: false });
     const exec = new PgTenantSqlExecutor(() => client);
+    let guardCalls = 0;
 
     await exec.provisionTenant({
       adminUri: 'postgresql://app:x@h:5432/app',
       role: 't_p1',
       db: 'proj_p1',
       password: 'pw',
+      guard: async () => {
+        guardCalls += 1;
+      },
     });
 
     const grantIdx = statements.findIndex((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s));
@@ -258,6 +322,7 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     expect(grantIdx).toBeGreaterThanOrEqual(0);
     expect(createDbIdx).toBeGreaterThanOrEqual(0);
     expect(grantIdx).toBeLessThan(createDbIdx);
+    expect(guardCalls).toBeGreaterThanOrEqual(statements.length + 1);
   });
 
   it('does not create the database (nor re-grant) when it already exists — idempotent', async () => {
@@ -269,6 +334,7 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
       role: 't_p1',
       db: 'proj_p1',
       password: 'pw',
+      guard: async () => {},
     });
 
     expect(statements.some((s) => /CREATE DATABASE/.test(s))).toBe(false);
@@ -352,21 +418,21 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
     );
   });
 
-  it('provisionInstance(shared) creates the tenant via the SQL executor with cuid-safe ids', async () => {
-    const { sql, prov } = sharedSetup();
+  it('provisionInstance(shared) refuses to recreate a legacy tenant', async () => {
+    const { k8s, sql, prov } = sharedSetup();
 
-    await prov.provisionInstance({
+    const result = await prov.provisionInstance({
       projectId: 'abc123',
       organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
+      physicalAuthority: sharedAuthority(),
     });
 
-    expect(sql.calls).toHaveLength(1);
-    expect(sql.calls[0]).toMatchObject({ role: tenantRoleName('abc123'), db: sharedDbName('abc123') });
-    expect(sql.calls[0].password).toBe(sharedTenantPassword('abc123'));
-    expect(sql.calls[0].adminUri).toContain('app:adminpw@shared-pg-0-rw.project-databases.svc:5432/app');
+    expect(result).toMatchObject({ applied: false, reason: 'SHARED_TIER_LEGACY_READ_ONLY' });
+    expect(sql.calls).toEqual([]);
+    expect(k8s.applied).toEqual([]);
   });
 
   it('getConnectionUri(shared) returns the pooled tenant DATABASE_URL', async () => {
@@ -398,14 +464,20 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
     expect(sql.calls).toHaveLength(0);
   });
 
-  it('degrades to undefined when the shared cluster admin secret is missing', async () => {
+  it('does not depend on the mutable shared-cluster admin secret for read-only legacy readiness', async () => {
     process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
     const k8s = new FakeK8s(); // no shared-pg-0-app secret
     const sql = new FakeTenantSqlExecutor();
     const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
 
     const uri = await prov.getConnectionUri({ projectId: 'abc123', tier: 'shared', sharedClusterName: 'shared-pg-0' });
-    expect(uri).toBeUndefined();
+    expect(uri).toBe(
+      buildSharedTenantUri({
+        projectId: 'abc123',
+        password: sharedTenantPassword('abc123')!,
+        sharedClusterName: 'shared-pg-0',
+      }),
+    );
     expect(sql.calls).toHaveLength(0);
   });
 });
@@ -417,7 +489,7 @@ describe('CNPG manifest builders', () => {
     expect(m.kind).toBe('Cluster');
     expect(m.metadata.namespace).toBe(DB_NAMESPACE);
     const backup = m.spec?.backup as any;
-    expect(backup.barmanObjectStore.destinationPath).toBe('gs://bkt/db/p1');
+    expect(backup.barmanObjectStore.destinationPath).toBe('gs://bkt/db/p1/development');
     expect(backup.retentionPolicy).toBe('28d');
   });
 
@@ -439,13 +511,14 @@ describe('CNPG manifest builders', () => {
   it('builds a restore Cluster targeting an exact timestamp (PITR)', () => {
     const m = buildRestoreClusterManifest({
       projectId: 'p1',
+      organizationId: 'org-1',
       restoreId: 'r1',
       targetTimeIso: '2026-06-01T00:00:00.000Z',
       backupBucket: 'bkt',
     });
     const recovery = (m.spec?.bootstrap as any).recovery;
     expect(recovery.recoveryTarget.targetTime).toBe('2026-06-01T00:00:00.000Z');
-    expect((m.spec?.externalClusters as any)[0].barmanObjectStore.destinationPath).toBe('gs://bkt/db/p1');
+    expect((m.spec?.externalClusters as any)[0].barmanObjectStore.destinationPath).toBe('gs://bkt/db/p1/development');
   });
 
   it('builds a daily scheduled backup referencing the cluster', () => {
@@ -459,7 +532,12 @@ describe('CnpgProvisioner', () => {
   it('applies Cluster + ScheduledBackup on provision', async () => {
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
-    const result = await prov.provisionInstance({ projectId: 'p1', organizationId: 'org-1', retentionDays: 28 });
+    const result = await prov.provisionInstance({
+      projectId: 'p1',
+      organizationId: 'org-1',
+      retentionDays: 28,
+      physicalAuthority: isolatedAuthority('p1'),
+    });
     expect(result.applied).toBe(true);
     expect(k8s.applied.map((m) => m.kind)).toEqual(['Cluster', 'ScheduledBackup']);
   });
@@ -469,9 +547,16 @@ describe('CnpgProvisioner', () => {
     const prov = new CnpgProvisioner(k8s, 'bkt');
     const { clusterName: name } = await prov.startRestore({
       projectId: 'p1',
+      organizationId: 'org-1',
       restoreId: 'r1',
       targetTimeIso: '2026-06-01T00:00:00.000Z',
       retentionDays: 28,
+      environment: 'development',
+      physicalAuthority: isolatedAuthority('p1'),
+    });
+    expect(k8s.csiEffects[0]).toMatchObject({
+      action: 'CNPG_RESTORE',
+      resourceId: 'cnpg-restore:p1:r1',
     });
 
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(false);
@@ -482,8 +567,26 @@ describe('CnpgProvisioner', () => {
   it('verifies the exact environment-scoped Backup CR before reporting completion', async () => {
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
-    const input = { projectId: 'p1', snapshotId: 'migration-1', environment: 'production' as const };
-    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+    const input = {
+      projectId: 'p1',
+      snapshotId: 'migration-1',
+      environment: 'production' as const,
+      physicalAuthority: {
+        ...isolatedAuthority('p1', 'production'),
+        clusterName: 'legacy-exact-prod-cluster',
+      },
+    };
+    const name = onDemandBackupName(
+      input.projectId,
+      input.snapshotId,
+      input.environment,
+      input.physicalAuthority.clusterName,
+    );
+    await expect(prov.takeSnapshot({ ...input, organizationId: 'org-1' })).resolves.toEqual({ applied: true });
+    expect(k8s.applied[0]).toMatchObject({
+      metadata: { name },
+      spec: { cluster: { name: input.physicalAuthority.clusterName } },
+    });
 
     await expect(prov.backupStatus(input)).resolves.toMatchObject({
       found: false,
@@ -504,9 +607,17 @@ describe('CnpgProvisioner', () => {
       phase: 'completed',
       completed: true,
     });
-    expect(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment)).toMatchObject({
+    expect(
+      buildOnDemandBackupManifest(
+        input.projectId,
+        input.snapshotId,
+        input.environment,
+        'org-1',
+        input.physicalAuthority.clusterName,
+      ),
+    ).toMatchObject({
       metadata: { name },
-      spec: { cluster: { name: clusterName(input.projectId, input.environment) } },
+      spec: { cluster: { name: input.physicalAuthority.clusterName } },
     });
   });
 
@@ -533,8 +644,10 @@ describe('physical remix database fork', () => {
     expect(manifest.metadata.name).toBe(clusterName('target-1'));
     expect(manifest.metadata.labels?.['vibecore.ai/project-id']).toBe('target-1');
     expect(spec.bootstrap.recovery.recoveryTarget.targetTime).toBe('2026-08-26T10:15:00.000Z');
-    expect(spec.externalClusters[0].barmanObjectStore.destinationPath).toBe('gs://backup-bucket/db/source-1');
-    expect(spec.backup.barmanObjectStore.destinationPath).toBe('gs://backup-bucket/db/target-1');
+    expect(spec.externalClusters[0].barmanObjectStore.destinationPath).toBe(
+      'gs://backup-bucket/db/source-1/development',
+    );
+    expect(spec.backup.barmanObjectStore.destinationPath).toBe('gs://backup-bucket/db/target-1/development');
     expect(JSON.stringify(manifest)).not.toContain('DATABASE_URL');
   });
 
@@ -549,8 +662,14 @@ describe('physical remix database fork', () => {
       targetOrganizationId: 'org-target',
       targetTimeIso: '2026-08-26T10:15:00.000Z',
       retentionDays: 14,
+      sourcePhysicalAuthority: isolatedAuthority('source-1', 'development', 14, 'backup-bucket'),
+      targetPhysicalAuthority: isolatedAuthority('target-1', 'development', 14, 'backup-bucket'),
     });
     expect(started).toMatchObject({ applied: true, clusterName: clusterName('target-1') });
+    expect(k8s.csiEffects[0]).toMatchObject({
+      action: 'CNPG_REMIX',
+      resourceId: 'cnpg-remix:target-1',
+    });
     expect(k8s.applied.map((manifest) => `${manifest.kind}/${manifest.metadata.name}`)).toEqual([
       `Cluster/${clusterName('target-1')}`,
       `ScheduledBackup/${clusterName('target-1')}-daily`,
@@ -586,6 +705,8 @@ describe('physical remix database fork', () => {
         targetOrganizationId: 'org-target',
         targetTimeIso: '2026-08-26T10:15:00.000Z',
         retentionDays: 14,
+        sourcePhysicalAuthority: isolatedAuthority('source-guard', 'development', 14, 'backup-bucket'),
+        targetPhysicalAuthority: isolatedAuthority('target-guard', 'development', 14, 'backup-bucket'),
         guard: async () => {
           guardCalls += 1;
 
@@ -647,7 +768,14 @@ describe('resolveDatabaseProvisioner (dormancy)', () => {
   it('Noop provisioner never reports applied/ready', async () => {
     const noop = new NoopProvisioner();
     expect(
-      (await noop.provisionInstance({ projectId: 'p1', organizationId: 'org-1', retentionDays: 28 })).applied,
+      (
+        await noop.provisionInstance({
+          projectId: 'p1',
+          organizationId: 'org-1',
+          retentionDays: 28,
+          physicalAuthority: isolatedAuthority('p1'),
+        })
+      ).applied,
     ).toBe(false);
     expect((await noop.takeSnapshot({ projectId: 'p1', snapshotId: 's1' })).applied).toBe(false);
   });
@@ -677,28 +805,26 @@ describe('P2d dev/prod split (environment-scoped naming)', () => {
     delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
   });
 
-  it('provisionInstance(production, shared) provisions the prod-suffixed tenant', async () => {
+  it('provisionInstance(production, shared) remains legacy read-only', async () => {
     process.env.DB_SHARED_TENANT_SECRET = 'unit-test-tenant-secret';
     const k8s = new FakeK8s();
     k8s.secrets.set('shared-pg-0-app', { username: 'app', password: 'adminpw', dbname: 'app' });
     const sql = new FakeTenantSqlExecutor();
     const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
 
-    await prov.provisionInstance({
+    const result = await prov.provisionInstance({
       projectId: 'abc123',
       organizationId: 'org-1',
       retentionDays: 7,
       tier: 'shared',
       sharedClusterName: 'shared-pg-0',
       environment: 'production',
+      physicalAuthority: sharedAuthority(),
     });
 
-    expect(sql.calls[0]).toMatchObject({
-      role: tenantRoleName('abc123', 'production'),
-      db: sharedDbName('abc123', 'production'),
-    });
-    const dbCr = k8s.applied.find((m) => m.kind === 'Database');
-    expect((dbCr?.spec as { name?: string })?.name).toBe(sharedDbName('abc123', 'production'));
+    expect(result).toMatchObject({ applied: false, reason: 'SHARED_TIER_LEGACY_READ_ONLY' });
+    expect(sql.calls).toEqual([]);
+    expect(k8s.applied).toEqual([]);
     delete (process.env as Record<string, string | undefined>).DB_SHARED_TENANT_SECRET;
   });
 
@@ -724,6 +850,7 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
       retentionDays: 28,
       tier: 'isolated',
       environment: 'production',
+      physicalAuthority: isolatedAuthority('abc123', 'production'),
     });
 
     const cluster = k8s.applied.find((m) => m.kind === 'Cluster');
@@ -744,6 +871,7 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
       retentionDays: 28,
       tier: 'isolated',
       environment: 'development',
+      physicalAuthority: isolatedAuthority('abc123', 'development'),
     });
     await prov.provisionInstance({
       projectId: 'abc123',
@@ -751,10 +879,15 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
       retentionDays: 28,
       tier: 'isolated',
       environment: 'production',
+      physicalAuthority: isolatedAuthority('abc123', 'production'),
     });
 
     const clusters = k8s.applied.filter((m) => m.kind === 'Cluster').map((m) => m.metadata.name);
     expect(clusters).toEqual(['db-abc123', 'db-abc123-prod']);
+    const destinations = k8s.applied
+      .filter((manifest) => manifest.kind === 'Cluster')
+      .map((manifest) => ((manifest.spec?.backup as any).barmanObjectStore as any).destinationPath);
+    expect(destinations).toEqual(['gs://bkt/db/abc123/development', 'gs://bkt/db/abc123/production']);
   });
 
   it('getConnectionUri(isolated, production) reads the -prod cluster app secret', async () => {

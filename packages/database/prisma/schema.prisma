@@ -3031,6 +3031,11 @@ enum DatabaseInstanceStatus {
   DELETED
 }
 
+enum DatabasePhysicalTier {
+  SHARED
+  ISOLATED
+}
+
 /// Managed Postgres database for a project (Replit "Database" tab). Phase-1
 /// scaffold for point-in-time rollback: the row models the instance and its
 /// retention window; provisioning + WAL-based PITR are wired in later phases and
@@ -3050,6 +3055,20 @@ model DatabaseInstance {
   sizeBytes              BigInt                 @default(0)
   retentionDays          Int                    @default(7)
   pitrEnabled            Boolean                @default(false)
+  // Immutable, server-captured authority for the provider resources backing
+  // this logical instance. Legacy rows intentionally remain nullable until a
+  // deletion-fenced live CNPG reconciliation binds the exact resources.
+  physicalTier           DatabasePhysicalTier?
+  physicalClusterName    String?
+  physicalDatabaseCrName String?
+  physicalDatabaseName   String?
+  physicalRoleName       String?
+  physicalBackupBucket   String?
+  physicalBackupPrefix   String?
+  physicalClusterUid     String?
+  physicalDatabaseCrUid  String?
+  physicalRetentionDays  Int?
+  physicalAuthorityAt    DateTime?
   // Durable provisioning lifecycle. A request is never allowed to remain
   // PROVISIONING past this deadline; FAILED keeps a stable, non-secret reason
   // and can be atomically claimed for a retry.
@@ -3067,6 +3086,7 @@ model DatabaseInstance {
   @@index([organizationId])
   @@index([status])
   @@index([status, provisioningDeadlineAt])
+  @@index([physicalTier, physicalClusterName])
 }
 
 /// A recovery point for a DatabaseInstance — either a scheduled automatic

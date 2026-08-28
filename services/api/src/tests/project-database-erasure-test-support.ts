@@ -12,9 +12,12 @@ import type {
  */
 export function emptyManagedDatabaseErasureCallbacks() {
   return {
-    databaseErasureConfiguration: {
-      tier: 'isolated' as const,
-      backupBucket: 'vibecore-test-db-backups',
+    resolveLegacyDatabaseAuthorities: async () => [],
+    preflightManagedDatabases: async (
+      plan: ProjectDatabaseErasurePlan,
+      fence: ProjectDatabaseErasureFence,
+    ): Promise<void> => {
+      await fence.assertActive({ ...plan, stage: 'INVENTORY_BOUND', effect: 'test-preflight' });
     },
     purgeManagedDatabases: async (
       plan: ProjectDatabaseErasurePlan,
@@ -41,7 +44,7 @@ export function emptyManagedDatabaseErasureCallbacks() {
         organizationId: plan.organizationId,
         inventorySha256: plan.inventorySha256,
         stage: 'KUBERNETES_PURGE',
-        evidence: { deleted: 0 },
+        evidence: { deleted: 0, persistentVolumeClaims: [] },
       });
       await fence.checkpoint({
         operationId: plan.operationId,
@@ -63,6 +66,7 @@ export function emptyManagedDatabaseErasureCallbacks() {
         kubernetesResourcesDeleted: 0,
         sharedTenantsErased: 0,
         backupGenerationsDeleted: 0,
+        persistentVolumeClaims: [],
       };
     },
     verifyManagedDatabases: async (
@@ -80,11 +84,13 @@ export function emptyManagedDatabaseErasureCallbacks() {
         evidence: {
           kubernetesResidueCount: 0,
           backupGenerationResidueCount: 0,
+          backupSoftDeletedResidueCount: 0,
+          sharedRetentionBarrierCount: 0,
           sharedTenantsAbsent: true,
         },
       });
       const receipt: ProjectDatabaseErasureReceipt = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         operationId: plan.operationId,
         projectId: plan.projectId,
         organizationId: plan.organizationId,
@@ -95,8 +101,16 @@ export function emptyManagedDatabaseErasureCallbacks() {
           kubernetesNamespace: 'project-databases',
           kubernetesAbsent: true,
           sharedTenantsAbsent: true,
-          backupBucket: plan.backupBucket,
-          backupPrefix: plan.backupPrefix,
+          backupTargets: plan.backupTargets.map((target) => ({
+            ...target,
+            generationsAbsent: true as const,
+            softDeletedAbsent: true as const,
+          })),
+          sharedRetentionBarriers: plan.sharedRetentionBarriers.map((barrier) => ({
+            clusterName: barrier.clusterName,
+            notBefore: barrier.notBefore,
+            satisfiedAt: barrier.notBefore,
+          })),
           backupGenerationsAbsent: true,
         },
       };

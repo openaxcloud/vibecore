@@ -234,6 +234,9 @@ async function setup(label: string, options: { staticVerifier?: boolean; unsafeS
           },
         },
         {
+          async inspectBucket() {
+            return { softDeleteRetentionSeconds: 0 };
+          },
           async listFirstPage() {
             return [];
           },

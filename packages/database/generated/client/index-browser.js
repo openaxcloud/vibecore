@@ -269,6 +269,21 @@ exports.Prisma.ObjectStorageOperationScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ProjectDatabaseErasurePlanScalarFieldEnum = {
+  operationId: 'operationId',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  ownershipEpoch: 'ownershipEpoch',
+  inventorySha256: 'inventorySha256',
+  plan: 'plan',
+  stage: 'stage',
+  evidence: 'evidence',
+  receipt: 'receipt',
+  verifiedAt: 'verifiedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ProjectVolumeErasureScalarFieldEnum = {
   operationId: 'operationId',
   projectIdSnapshot: 'projectIdSnapshot',
@@ -1796,6 +1811,17 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   sizeBytes: 'sizeBytes',
   retentionDays: 'retentionDays',
   pitrEnabled: 'pitrEnabled',
+  physicalTier: 'physicalTier',
+  physicalClusterName: 'physicalClusterName',
+  physicalDatabaseCrName: 'physicalDatabaseCrName',
+  physicalDatabaseName: 'physicalDatabaseName',
+  physicalRoleName: 'physicalRoleName',
+  physicalBackupBucket: 'physicalBackupBucket',
+  physicalBackupPrefix: 'physicalBackupPrefix',
+  physicalClusterUid: 'physicalClusterUid',
+  physicalDatabaseCrUid: 'physicalDatabaseCrUid',
+  physicalRetentionDays: 'physicalRetentionDays',
+  physicalAuthorityAt: 'physicalAuthorityAt',
   provisioningDeadlineAt: 'provisioningDeadlineAt',
   lastErrorCode: 'lastErrorCode',
   lastErrorAt: 'lastErrorAt',
@@ -2446,6 +2472,15 @@ exports.ObjectStorageOperationStatus = exports.$Enums.ObjectStorageOperationStat
   MANUAL_RECOVERY: 'MANUAL_RECOVERY'
 };
 
+exports.ProjectDatabaseErasureStage = exports.$Enums.ProjectDatabaseErasureStage = {
+  INVENTORY_BOUND: 'INVENTORY_BOUND',
+  KUBERNETES_PURGE: 'KUBERNETES_PURGE',
+  SHARED_SQL_PURGE: 'SHARED_SQL_PURGE',
+  BACKUP_PREFIX_PURGE: 'BACKUP_PREFIX_PURGE',
+  FINAL_VERIFICATION: 'FINAL_VERIFICATION',
+  VERIFIED: 'VERIFIED'
+};
+
 exports.ProjectVolumeErasureState = exports.$Enums.ProjectVolumeErasureState = {
   PREPARED: 'PREPARED',
   INVENTORIED: 'INVENTORIED',
@@ -2614,6 +2649,11 @@ exports.DatabaseInstanceStatus = exports.$Enums.DatabaseInstanceStatus = {
   DELETED: 'DELETED'
 };
 
+exports.DatabasePhysicalTier = exports.$Enums.DatabasePhysicalTier = {
+  SHARED: 'SHARED',
+  ISOLATED: 'ISOLATED'
+};
+
 exports.DatabaseRestoreStatus = exports.$Enums.DatabaseRestoreStatus = {
   PENDING: 'PENDING',
   RUNNING: 'RUNNING',
@@ -2772,6 +2812,7 @@ exports.Prisma.ModelName = {
   RolePermission: 'RolePermission',
   Project: 'Project',
   ObjectStorageOperation: 'ObjectStorageOperation',
+  ProjectDatabaseErasurePlan: 'ProjectDatabaseErasurePlan',
   ProjectVolumeErasure: 'ProjectVolumeErasure',
   ProjectVolumeErasureTarget: 'ProjectVolumeErasureTarget',
   ObjectStorageOperationPinnedObject: 'ObjectStorageOperationPinnedObject',

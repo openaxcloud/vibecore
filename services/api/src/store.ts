@@ -34,10 +34,11 @@ import type { ProjectCheckpointLease } from './checkpoint-lease.js';
 import type {
   ProjectDatabaseErasureFence,
   ProjectDatabaseErasureEffects,
+  ProjectDatabaseLegacyAuthorityResolution,
   ProjectDatabaseErasurePlan,
   ProjectDatabaseErasureReceipt,
 } from './project-database-erasure.js';
-import type { ProjectDatabaseErasureConfiguration } from './project-database-erasure-ledger.js';
+import type { ProjectDatabaseLegacyAuthorityRequest } from './project-database-erasure-ledger.js';
 
 export interface UserRecord {
   id: string;
@@ -487,6 +488,21 @@ export interface ProjectPhysicalMutationScope {
   workspaceId?: string;
 }
 
+/** Immutable provider authority captured before a managed-database effect. */
+export interface DatabasePhysicalAuthority {
+  tier: 'shared' | 'isolated';
+  clusterName: string;
+  databaseCrName?: string;
+  databaseName?: string;
+  roleName?: string;
+  backupBucket?: string;
+  backupPrefix?: string;
+  clusterUid?: string;
+  databaseCrUid?: string;
+  /** Provider retention governing shared physical backups; zero means disabled. */
+  retentionDays: number;
+}
+
 /**
  * Managed Postgres database for a project (Replit "Database" tab). Phase-1
  *  scaffold for point-in-time rollback — see database-rollback-service.ts.
@@ -504,6 +520,7 @@ export interface DatabaseInstanceRecord {
   sizeBytes: number;
   retentionDays: number;
   pitrEnabled: boolean;
+  physicalAuthority?: DatabasePhysicalAuthority & { capturedAt: string };
   provisioningDeadlineAt?: string;
   lastErrorCode?: string;
   lastErrorAt?: string;
@@ -2507,12 +2524,20 @@ export interface ApiStore {
       actorUserId: string;
       ipAddress?: string;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
-      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      resolveLegacyDatabaseAuthorities: (
+        requests: readonly ProjectDatabaseLegacyAuthorityRequest[],
+        lease: ObjectStorageOperationLease,
+      ) => Promise<readonly ProjectDatabaseLegacyAuthorityResolution[]>;
       purgeManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
         lease: ObjectStorageOperationLease,
       ) => Promise<ProjectDatabaseErasureEffects>;
+      preflightManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<void>;
       verifyManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
@@ -2520,10 +2545,15 @@ export interface ApiStore {
         effects: ProjectDatabaseErasureEffects,
       ) => Promise<ProjectDatabaseErasureReceipt>;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
-      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      erasePhysical: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
+      ) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
         lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult>;
@@ -2766,6 +2796,7 @@ export interface ApiStore {
     retentionDays: number;
     environment: 'development';
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeClaimedRemixDatabase(input: {
     remixJobId: string;
@@ -3590,6 +3621,7 @@ export interface ApiStore {
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
   completeDatabaseProvisioning(
     id: string,

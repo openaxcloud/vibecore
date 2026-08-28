@@ -388,6 +388,7 @@ export interface WorkspaceK8sClient {
     name: string,
     expectedResourceVersion: string,
     expectedUid?: string,
+    options?: { propagationPolicy?: 'Orphan' | 'Background' | 'Foreground' },
   ): Promise<void>;
   delete(kind: string, namespace: string, name: string): Promise<void>;
   get(kind: string, namespace: string, name: string): Promise<K8sObject | undefined>;
@@ -1575,6 +1576,7 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
     name: string,
     expectedResourceVersion: string,
     expectedUid?: string,
+    options?: { propagationPolicy?: 'Orphan' | 'Background' | 'Foreground' },
   ) {
     const resource = FENCED_DELETE_RESOURCE_PATH.get(kind);
     const host = process.env.KUBERNETES_SERVICE_HOST;
@@ -1607,6 +1609,7 @@ export class KubectlWorkspaceK8sClient implements WorkspaceK8sClient {
         resourceVersion: expectedResourceVersion,
         ...(expectedUid ? { uid: expectedUid } : {}),
       },
+      ...(options?.propagationPolicy ? { propagationPolicy: options.propagationPolicy } : {}),
     });
     const path = `${resource.prefix}/namespaces/${encodeURIComponent(namespace)}/${resource.plural}/${encodeURIComponent(name)}`;
 

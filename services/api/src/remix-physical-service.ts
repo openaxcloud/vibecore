@@ -23,7 +23,7 @@ import {
   type RemixState,
   type RemixStoragePolicy,
 } from './remix-pipeline.js';
-import type { ApiStore, ProjectRecord, RemixJobRecord } from './store.js';
+import type { ApiStore, DatabasePhysicalAuthority, ProjectRecord, RemixJobRecord } from './store.js';
 
 const REMIX_LEASE_MS = 5 * 60_000;
 
@@ -53,6 +53,17 @@ export interface RemixPhysicalServiceDeps {
     idempotencyKey: string;
   }): Promise<ObjectStorageCommandExecution>;
   databaseProvisioner: DatabaseProvisioner;
+  databasePhysicalAuthority(input: {
+    projectId: string;
+    environment: 'development';
+    retentionDays: number;
+  }): DatabasePhysicalAuthority;
+  permanentlyDeleteTargetProject(input: {
+    remixJobId: string;
+    targetProjectId: string;
+    expectedOrganizationId: string;
+    guard: () => Promise<void>;
+  }): Promise<void>;
   ensureProjectQuota(organizationId: string): Promise<void>;
   createSourceSnapshot(input: {
     remixJobId: string;
@@ -164,29 +175,56 @@ function safeFailure(error: unknown): { code: string; error: string } {
   return { code, error: appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED') };
 }
 
-function databasePin(
-  value: unknown,
-):
+function databasePin(value: unknown):
   | { mode: 'DETACH' }
-  | { mode: 'CLONE'; instanceId: string; environment: 'development'; targetTime: string; retentionDays: number }
+  | {
+      mode: 'CLONE';
+      instanceId: string;
+      environment: 'development';
+      targetTime: string;
+      retentionDays: number;
+      physicalAuthority: DatabasePhysicalAuthority;
+    }
   | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
   const pin = value as Record<string, unknown>;
   if (pin.mode === 'DETACH') return { mode: 'DETACH' };
+  const authority = pin.physicalAuthority;
   if (
     pin.mode === 'CLONE' &&
     typeof pin.instanceId === 'string' &&
     pin.environment === 'development' &&
     typeof pin.targetTime === 'string' &&
     Number.isFinite(Date.parse(pin.targetTime)) &&
-    typeof pin.retentionDays === 'number'
+    typeof pin.retentionDays === 'number' &&
+    authority &&
+    typeof authority === 'object' &&
+    !Array.isArray(authority)
   ) {
+    const physical = authority as Record<string, unknown>;
+    if (
+      physical.tier !== 'isolated' ||
+      typeof physical.clusterName !== 'string' ||
+      typeof physical.backupBucket !== 'string' ||
+      typeof physical.backupPrefix !== 'string' ||
+      typeof physical.retentionDays !== 'number'
+    ) {
+      return undefined;
+    }
     return {
       mode: 'CLONE',
       instanceId: pin.instanceId,
       environment: 'development',
       targetTime: pin.targetTime,
       retentionDays: pin.retentionDays,
+      physicalAuthority: {
+        tier: 'isolated',
+        clusterName: physical.clusterName,
+        backupBucket: physical.backupBucket,
+        backupPrefix: physical.backupPrefix,
+        retentionDays: physical.retentionDays,
+        ...(typeof physical.clusterUid === 'string' ? { clusterUid: physical.clusterUid } : {}),
+      },
     };
   }
   return undefined;
@@ -256,48 +294,18 @@ async function compensate(
       targetProjectId,
     });
 
-    if (ownedCleanup.storagePolicy === 'CLONE') {
-      await cleanupGuard();
-      await deps.executeObjectStorageCommand({
-        scopes: [{ projectId: targetProjectId, expectedOrganizationId: ownedCleanup.organizationId }],
-        command: { type: 'DELETE_BUCKET', projectId: targetProjectId },
-        idempotencyKey: `remix-cleanup-bucket:${ownedCleanup.id}:${targetProjectId}`,
-      });
-      await cleanupGuard();
-    }
-
-    if (ownedCleanup.targetDatabaseInstanceId) {
-      if (!deps.databaseProvisioner.active) {
-        throw Object.assign(new Error(appPublicEnglish('REMIX_DATABASE_CLEANUP_UNAVAILABLE')), {
-          code: 'REMIX_DATABASE_CLEANUP_UNAVAILABLE',
-        });
-      }
-      await deps.databaseProvisioner.teardownFork({ targetProjectId, guard: cleanupGuard });
-    }
-
-    await deps.projectStorage.deleteProjectFiles(
-      targetProjectId,
-      { expectedOrganizationId: ownedCleanup.organizationId },
-      cleanupGuard,
-    );
-    if (
-      (
-        await deps.projectStorage.listFiles(targetProjectId, {
-          expectedOrganizationId: ownedCleanup.organizationId,
-        })
-      ).length !== 0
-    ) {
-      throw Object.assign(new Error(appPublicEnglish('REMIX_FILES_CLEANUP_INCOMPLETE')), {
-        code: 'REMIX_FILES_CLEANUP_VERIFICATION_FAILED',
-      });
-    }
-
-    await deps.store.deleteClaimedRemixProject({
+    // A partial remix target can own CNPG PVCs, GCS generations, runtimes and
+    // provider volumes. Cleanup must therefore replay the one canonical project
+    // permanent-delete saga; direct Cluster/PVC/Project deletion cannot produce
+    // the required database + volume subreceipts.
+    await cleanupGuard();
+    await deps.permanentlyDeleteTargetProject({
       remixJobId: ownedCleanup.id,
-      organizationId: ownedCleanup.organizationId,
-      operationToken,
       targetProjectId,
+      expectedOrganizationId: ownedCleanup.organizationId,
+      guard: cleanupGuard,
     });
+    await cleanupGuard();
     ownedCleanup = (await deps.store.getRemixJob(ownedCleanup.id, ownedCleanup.organizationId)) ?? ownedCleanup;
   }
 
@@ -758,7 +766,13 @@ export async function executePhysicalRemix(
       if (!sourceDatabase) {
         await advance('DATABASE_PINNED', { sourceDatabasePin: { mode: 'DETACH' } });
       } else {
-        if (sourceDatabase.status !== 'ACTIVE' || !sourceDatabase.pitrEnabled) {
+        if (
+          sourceDatabase.status !== 'ACTIVE' ||
+          !sourceDatabase.pitrEnabled ||
+          sourceDatabase.physicalAuthority?.tier !== 'isolated' ||
+          !sourceDatabase.physicalAuthority.backupBucket ||
+          !sourceDatabase.physicalAuthority.backupPrefix
+        ) {
           throw new RemixInvariantError('Source database has no verified PITR stream', 'REMIX_DATABASE_NOT_FORKABLE');
         }
         const targetTime = await deps.store.getDatabaseTime();
@@ -769,6 +783,16 @@ export async function executePhysicalRemix(
             environment: 'development',
             targetTime,
             retentionDays: sourceDatabase.retentionDays,
+            physicalAuthority: {
+              tier: 'isolated',
+              clusterName: sourceDatabase.physicalAuthority.clusterName,
+              backupBucket: sourceDatabase.physicalAuthority.backupBucket,
+              backupPrefix: sourceDatabase.physicalAuthority.backupPrefix,
+              retentionDays: sourceDatabase.physicalAuthority.retentionDays,
+              ...(sourceDatabase.physicalAuthority.clusterUid
+                ? { clusterUid: sourceDatabase.physicalAuthority.clusterUid }
+                : {}),
+            },
           },
         });
       }
@@ -789,6 +813,14 @@ export async function executePhysicalRemix(
             code: 'REMIX_DATABASE_BACKEND_REQUIRED',
           });
         }
+        const existingTarget = await deps.store.getDatabaseInstanceByProject(current.targetProjectId, 'development');
+        const targetPhysicalAuthority =
+          existingTarget?.physicalAuthority ??
+          deps.databasePhysicalAuthority({
+            projectId: current.targetProjectId,
+            environment: 'development',
+            retentionDays: pin.retentionDays,
+          });
         const acquisition = await deps.store.acquireClaimedRemixDatabase({
           remixJobId: current.id,
           projectId: current.targetProjectId,
@@ -798,6 +830,7 @@ export async function executePhysicalRemix(
           requestHash: input.requestHash,
           retentionDays: pin.retentionDays,
           environment: 'development',
+          physicalAuthority: targetPhysicalAuthority,
           // The source pin was stamped by PostgreSQL. Derive the target's
           // provisioning deadline from that same authoritative clock so a
           // skewed worker cannot create an effectively immortal/orphaned claim.
@@ -824,9 +857,20 @@ export async function executePhysicalRemix(
           !sourceDatabase ||
           sourceDatabase.id !== pin.instanceId ||
           sourceDatabase.status !== 'ACTIVE' ||
-          !sourceDatabase.pitrEnabled
+          !sourceDatabase.pitrEnabled ||
+          !sourceDatabase.physicalAuthority ||
+          JSON.stringify(sourceDatabase.physicalAuthority, Object.keys(pin.physicalAuthority).sort()) !==
+            JSON.stringify(pin.physicalAuthority, Object.keys(pin.physicalAuthority).sort())
         ) {
           throw new RemixInvariantError('Pinned source database changed before fork', 'REMIX_DATABASE_SOURCE_CHANGED');
+        }
+        const targetDatabase = await deps.store.getDatabaseInstanceByProject(current.targetProjectId, 'development');
+        if (
+          !targetDatabase ||
+          targetDatabase.id !== current.targetDatabaseInstanceId ||
+          !targetDatabase.physicalAuthority
+        ) {
+          throw new RemixInvariantError('Fork target physical authority is missing', 'REMIX_DATABASE_TARGET_MISSING');
         }
         await guard();
         // forkInstance is an idempotent apply of the same pinned recovery
@@ -838,6 +882,8 @@ export async function executePhysicalRemix(
           targetOrganizationId: current.organizationId,
           targetTimeIso: pin.targetTime,
           retentionDays: pin.retentionDays,
+          sourcePhysicalAuthority: pin.physicalAuthority,
+          targetPhysicalAuthority: targetDatabase.physicalAuthority,
           guard,
         });
         if (!fork.applied) {

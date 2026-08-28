@@ -21,6 +21,14 @@ function instance(overrides: Partial<DatabaseInstanceRecord> = {}): DatabaseInst
     sizeBytes: 0,
     retentionDays: 7,
     pitrEnabled: true,
+    physicalAuthority: {
+      tier: 'isolated',
+      clusterName: 'db-project-1',
+      backupBucket: 'database-backups',
+      backupPrefix: 'db/project-1/',
+      retentionDays: 7,
+      capturedAt: '2026-08-26T10:00:00.000Z',
+    },
     createdAt: '2026-08-26T10:00:00.000Z',
     updatedAt: '2026-08-26T10:00:00.000Z',
     ...overrides,
@@ -62,6 +70,14 @@ async function pendingFixture(overrides: Partial<DatabaseInstanceRecord> = {}) {
   const pending = instance({
     projectId: project.id,
     organizationId: organization.id,
+    physicalAuthority: {
+      tier: 'isolated',
+      clusterName: `db-${project.id}`,
+      backupBucket: 'database-backups',
+      backupPrefix: `db/${project.id}/`,
+      retentionDays: overrides.retentionDays ?? 7,
+      capturedAt: '2026-08-26T10:00:00.000Z',
+    },
     ...overrides,
   });
   store.databaseInstances.set(pending.id, pending);
@@ -85,7 +101,6 @@ describe('managed database provisioning lifecycle', () => {
       store,
       provisioner: new NoopProvisioner(),
       instance: instance(),
-      tier: 'shared',
       nowMs: Date.parse('2026-08-26T10:00:01.000Z'),
       encryptConnectionUri: (value) => `encrypted:${value}`,
     });
@@ -104,7 +119,6 @@ describe('managed database provisioning lifecycle', () => {
       store,
       provisioner: provisioner('postgresql://tenant:secret@pooler/project'),
       instance: pending,
-      tier: 'shared',
       nowMs: Date.parse('2026-08-26T10:01:00.000Z'),
       encryptConnectionUri: (value) => `encrypted:${value}`,
     });
@@ -125,7 +139,6 @@ describe('managed database provisioning lifecycle', () => {
       store,
       provisioner: provisioner(undefined),
       instance: pending,
-      tier: 'isolated',
       nowMs: Date.parse('2026-08-26T10:01:01.000Z'),
       encryptConnectionUri: (value) => value,
     });
@@ -145,7 +158,6 @@ describe('managed database provisioning lifecycle', () => {
       store,
       provisioner: provider,
       instance: pending,
-      tier: 'isolated',
       nowMs: Date.parse('2026-08-26T10:01:00.000Z'),
       encryptConnectionUri: (value) => value,
     });
@@ -174,7 +186,6 @@ describe('managed database provisioning lifecycle', () => {
       store,
       provisioner: provider,
       instance: pending,
-      tier: 'isolated',
       nowMs: Date.parse('2026-08-26T10:01:01.000Z'),
       encryptConnectionUri: (value) => value,
     });
@@ -197,6 +208,13 @@ describe('managed database provisioning lifecycle', () => {
       retentionDays: failed.retentionDays,
       environment: failed.environment,
       provisioningDeadlineAt: '2026-08-26T10:20:00.000Z',
+      physicalAuthority: {
+        tier: 'isolated' as const,
+        clusterName: `db-${failed.projectId}`,
+        backupBucket: 'database-backups',
+        backupPrefix: `db/${failed.projectId}/`,
+        retentionDays: failed.retentionDays,
+      },
     };
     const [first, second] = await Promise.all([
       store.acquireDatabaseProvisioning(retry),
@@ -206,5 +224,60 @@ describe('managed database provisioning lifecycle', () => {
     expect([first, second].filter((result) => result.acquired)).toHaveLength(1);
     expect(Array.from(store.databaseInstances.values())).toHaveLength(1);
     expect((await store.getDatabaseInstanceByProject(failed.projectId))?.status).toBe('PROVISIONING');
+  });
+
+  it('never retargets a failed instance after backup configuration or plan topology drift', async () => {
+    const { store, pending: failed } = await pendingFixture({
+      status: 'FAILED',
+      lastErrorCode: DATABASE_PROVISION_FAILURE.timedOut,
+      lastErrorAt: '2026-08-26T10:01:00.000Z',
+    });
+
+    await expect(
+      store.acquireDatabaseProvisioning({
+        projectId: failed.projectId,
+        expectedOrganizationId: failed.organizationId,
+        organizationId: failed.organizationId,
+        retentionDays: failed.retentionDays,
+        environment: failed.environment,
+        provisioningDeadlineAt: '2026-08-26T10:20:00.000Z',
+        physicalAuthority: {
+          tier: 'isolated',
+          clusterName: `db-${failed.projectId}`,
+          backupBucket: 'replacement-backup-bucket',
+          backupPrefix: `db/${failed.projectId}/`,
+          retentionDays: failed.retentionDays,
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH', statusCode: 409 });
+    expect((await store.getDatabaseInstanceByProject(failed.projectId))?.status).toBe('FAILED');
+  });
+
+  it('requires live-CNPG reconciliation for a nullable legacy authority before any retry', async () => {
+    const { store, pending: legacy } = await pendingFixture({
+      status: 'FAILED',
+      physicalAuthority: undefined,
+    });
+
+    await expect(
+      store.acquireDatabaseProvisioning({
+        projectId: legacy.projectId,
+        expectedOrganizationId: legacy.organizationId,
+        organizationId: legacy.organizationId,
+        retentionDays: legacy.retentionDays,
+        environment: legacy.environment,
+        provisioningDeadlineAt: '2026-08-26T10:20:00.000Z',
+        physicalAuthority: {
+          tier: 'isolated',
+          clusterName: `db-${legacy.projectId}`,
+          backupBucket: 'database-backups',
+          backupPrefix: `db/${legacy.projectId}/`,
+          retentionDays: legacy.retentionDays,
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+      statusCode: 409,
+    });
   });
 });

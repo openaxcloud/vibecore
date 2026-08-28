@@ -159,6 +159,23 @@ import {
   projectPermanentDeletionOperationRequest,
   projectPermanentDeletionRequestHash,
 } from './project-permanent-deletion.js';
+import {
+  captureProjectDatabaseErasurePlan,
+  checkpointProjectDatabaseErasure,
+  persistLegacyProjectDatabaseAuthorities,
+  readLegacyProjectDatabaseAuthorityRequests,
+  readProjectDatabaseErasureEffects,
+  readProjectDatabaseErasurePlan,
+  readVerifiedProjectDatabaseErasureReceipt,
+  type ProjectDatabaseLegacyAuthorityRequest,
+} from './project-database-erasure-ledger.js';
+import type {
+  ProjectDatabaseErasureEffects,
+  ProjectDatabaseErasureFence,
+  ProjectDatabaseLegacyAuthorityResolution,
+  ProjectDatabaseErasurePlan,
+  ProjectDatabaseErasureReceipt,
+} from './project-database-erasure.js';
 import { projectOrganizationChangedError, projectPhysicalMutationLockKey } from './project-physical-mutation.js';
 import {
   withProjectLock,
@@ -280,6 +297,7 @@ import type {
   ProjectStorageObjectRecord,
   ProjectTemplateRecord,
   DatabaseInstanceRecord,
+  DatabasePhysicalAuthority,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
   DatabaseMigrationExecutionRecord,
@@ -2569,6 +2587,17 @@ function mapDatabaseInstance(row: {
   sizeBytes: bigint;
   retentionDays: number;
   pitrEnabled: boolean;
+  physicalTier: 'SHARED' | 'ISOLATED' | null;
+  physicalClusterName: string | null;
+  physicalDatabaseCrName: string | null;
+  physicalDatabaseName: string | null;
+  physicalRoleName: string | null;
+  physicalBackupBucket: string | null;
+  physicalBackupPrefix: string | null;
+  physicalClusterUid: string | null;
+  physicalDatabaseCrUid: string | null;
+  physicalRetentionDays: number | null;
+  physicalAuthorityAt: Date | null;
   provisioningDeadlineAt: Date | null;
   lastErrorCode: string | null;
   lastErrorAt: Date | null;
@@ -2586,12 +2615,108 @@ function mapDatabaseInstance(row: {
     sizeBytes: Number(row.sizeBytes),
     retentionDays: row.retentionDays,
     pitrEnabled: row.pitrEnabled,
+    ...(row.physicalAuthorityAt && row.physicalTier && row.physicalClusterName && row.physicalRetentionDays !== null
+      ? {
+          physicalAuthority: {
+            tier: row.physicalTier === 'SHARED' ? ('shared' as const) : ('isolated' as const),
+            clusterName: row.physicalClusterName,
+            databaseCrName: row.physicalDatabaseCrName ?? undefined,
+            databaseName: row.physicalDatabaseName ?? undefined,
+            roleName: row.physicalRoleName ?? undefined,
+            backupBucket: row.physicalBackupBucket ?? undefined,
+            backupPrefix: row.physicalBackupPrefix ?? undefined,
+            clusterUid: row.physicalClusterUid ?? undefined,
+            databaseCrUid: row.physicalDatabaseCrUid ?? undefined,
+            retentionDays: row.physicalRetentionDays,
+            capturedAt: row.physicalAuthorityAt.toISOString(),
+          },
+        }
+      : {}),
     provisioningDeadlineAt: toIso(row.provisioningDeadlineAt),
     lastErrorCode: row.lastErrorCode ?? undefined,
     lastErrorAt: toIso(row.lastErrorAt),
     createdAt: toIso(row.createdAt)!,
     updatedAt: toIso(row.updatedAt)!,
   };
+}
+
+function databasePhysicalAuthorityData(authority: DatabasePhysicalAuthority, capturedAt: Date) {
+  const safe = (value: string | undefined, field: string, maximum: number): string | null => {
+    if (value === undefined) return null;
+    const normalized = value.trim();
+    if (!normalized || normalized.length > maximum || /[\u0000-\u001f\u007f]/.test(normalized)) {
+      throw Object.assign(new Error(`Invalid ${field}`), {
+        code: 'DATABASE_PHYSICAL_AUTHORITY_INVALID',
+        statusCode: 400,
+      });
+    }
+    return normalized;
+  };
+  const clusterName = safe(authority.clusterName, 'clusterName', 253);
+  const databaseCrName = safe(authority.databaseCrName, 'databaseCrName', 253);
+  const databaseName = safe(authority.databaseName, 'databaseName', 63);
+  const roleName = safe(authority.roleName, 'roleName', 63);
+  const backupBucket = safe(authority.backupBucket, 'backupBucket', 222);
+  const backupPrefix = safe(authority.backupPrefix, 'backupPrefix', 1024);
+  const clusterUid = safe(authority.clusterUid, 'clusterUid', 255);
+  const databaseCrUid = safe(authority.databaseCrUid, 'databaseCrUid', 255);
+
+  if (
+    !clusterName ||
+    !/^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$/.test(clusterName) ||
+    !Number.isInteger(authority.retentionDays) ||
+    authority.retentionDays < 0 ||
+    authority.retentionDays > 3650 ||
+    (authority.tier === 'isolated' && (!backupBucket || !backupPrefix || databaseCrName || databaseName || roleName)) ||
+    (authority.tier === 'shared' &&
+      (!databaseCrName ||
+        !/^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$/.test(databaseCrName) ||
+        !databaseName ||
+        !/^[a-z_][a-z0-9_]{0,62}$/.test(databaseName) ||
+        !roleName ||
+        !/^[a-z_][a-z0-9_]{0,62}$/.test(roleName))) ||
+    Boolean(backupBucket) !== Boolean(backupPrefix) ||
+    (backupBucket !== null && !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(backupBucket)) ||
+    (backupPrefix !== null &&
+      (!backupPrefix.endsWith('/') || backupPrefix.startsWith('/') || backupPrefix.split('/').includes('..')))
+  ) {
+    throw Object.assign(new Error('Managed database physical authority is incomplete'), {
+      code: 'DATABASE_PHYSICAL_AUTHORITY_INVALID',
+      statusCode: 400,
+    });
+  }
+
+  return {
+    physicalTier: authority.tier === 'shared' ? ('SHARED' as const) : ('ISOLATED' as const),
+    physicalClusterName: clusterName,
+    physicalDatabaseCrName: databaseCrName,
+    physicalDatabaseName: databaseName,
+    physicalRoleName: roleName,
+    physicalBackupBucket: backupBucket,
+    physicalBackupPrefix: backupPrefix,
+    physicalClusterUid: clusterUid,
+    physicalDatabaseCrUid: databaseCrUid,
+    physicalRetentionDays: authority.retentionDays,
+    physicalAuthorityAt: capturedAt,
+  };
+}
+
+function sameDatabasePhysicalAuthority(record: DatabaseInstanceRecord, expected: DatabasePhysicalAuthority): boolean {
+  if (!record.physicalAuthority) return false;
+  const actual = record.physicalAuthority;
+  const normalized = (value: string | undefined) => value?.trim() || undefined;
+  return (
+    actual.tier === expected.tier &&
+    actual.clusterName === normalized(expected.clusterName) &&
+    actual.databaseCrName === normalized(expected.databaseCrName) &&
+    actual.databaseName === normalized(expected.databaseName) &&
+    actual.roleName === normalized(expected.roleName) &&
+    actual.backupBucket === normalized(expected.backupBucket) &&
+    actual.backupPrefix === normalized(expected.backupPrefix) &&
+    actual.clusterUid === normalized(expected.clusterUid) &&
+    actual.databaseCrUid === normalized(expected.databaseCrUid) &&
+    actual.retentionDays === expected.retentionDays
+  );
 }
 
 function mapDatabaseSnapshot(row: {
@@ -4927,7 +5052,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     const project = await tx.project.findUnique({
       where: { id: scope.projectId },
-      select: { organizationId: true, deletedAt: true, permanentDeletionStartedAt: true },
+      select: { organizationId: true, ownershipEpoch: true, deletedAt: true, permanentDeletionStartedAt: true },
     });
 
     if (
@@ -6126,12 +6251,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       actorUserId: string;
       ipAddress?: string;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
-      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      resolveLegacyDatabaseAuthorities: (
+        requests: readonly ProjectDatabaseLegacyAuthorityRequest[],
+        lease: ObjectStorageOperationLease,
+      ) => Promise<readonly ProjectDatabaseLegacyAuthorityResolution[]>;
       purgeManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
         lease: ObjectStorageOperationLease,
       ) => Promise<ProjectDatabaseErasureEffects>;
+      preflightManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<void>;
       verifyManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
@@ -6139,10 +6272,15 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         effects: ProjectDatabaseErasureEffects,
       ) => Promise<ProjectDatabaseErasureReceipt>;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
-      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      erasePhysical: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
+      ) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
         lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
@@ -6317,10 +6455,30 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         }
 
         const heartbeat = this.objectStorageOperationHeartbeat(claimed.lease);
+        const assertDeletionAuthority = heartbeat.assert;
 
         try {
+          await assertDeletionAuthority();
           let databasePlan: ProjectDatabaseErasurePlan;
           let databaseEffects: ProjectDatabaseErasureEffects;
+          const databaseFence = (plan: ProjectDatabaseErasurePlan): ProjectDatabaseErasureFence => ({
+            assertActive: async (context) => {
+              if (
+                context.operationId !== plan.operationId ||
+                context.projectId !== plan.projectId ||
+                context.organizationId !== plan.organizationId ||
+                context.inventorySha256 !== plan.inventorySha256
+              ) {
+                throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+                  code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+                  statusCode: 409,
+                });
+              }
+              await assertDeletionAuthority();
+            },
+            checkpoint: (context) =>
+              this.prisma.$transaction((tx) => checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context)),
+          });
           if (!recoveryVerificationOnly) {
             if (!resumePersistedVolumeBatch) {
               let runtimePreflight: { inFlightEffectIds: string[] };
@@ -6413,8 +6571,32 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               }
 
               try {
+                /* Reconcile legacy null authority from exact live CNPG objects,
+                 * then latch it under the deletion fence before any provider I/O. */
+                const legacyAuthorityRequests = await this.prisma.$transaction((tx) =>
+                  readLegacyProjectDatabaseAuthorityRequests(tx, heartbeat.lease(), {
+                    projectId: input.projectId,
+                    expectedOrganizationId: input.expectedOrganizationId,
+                  }),
+                );
+                if (legacyAuthorityRequests.length > 0) {
+                  const resolutions = await input.resolveLegacyDatabaseAuthorities(
+                    legacyAuthorityRequests,
+                    heartbeat.lease(),
+                  );
+                  await assertDeletionAuthority();
+                  await this.prisma.$transaction((tx) =>
+                    persistLegacyProjectDatabaseAuthorities(tx, heartbeat.lease(), {
+                      projectId: input.projectId,
+                      expectedOrganizationId: input.expectedOrganizationId,
+                      requests: legacyAuthorityRequests,
+                      resolutions,
+                    }),
+                  );
+                }
+
                 const staticArtifactPlan = await input.preflightPhysicalErasure();
-                await heartbeat.assert();
+                await assertDeletionAuthority();
                 databasePlan = await this.prisma.$transaction(async (tx) => {
                   await recordPermanentDeletionStaticArtifactPlan(
                     tx,
@@ -6425,7 +6607,6 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   return captureProjectDatabaseErasurePlan(tx, heartbeat.lease(), {
                     projectId: input.projectId,
                     expectedOrganizationId: input.expectedOrganizationId,
-                    configuration: input.databaseErasureConfiguration,
                   });
                 });
               } catch (error) {
@@ -6438,6 +6619,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                 );
                 throw error;
               }
+              await input.preflightManagedDatabases(databasePlan, databaseFence(databasePlan), heartbeat.lease());
+              await assertDeletionAuthority();
               try {
                 await this.prisma.$transaction((tx) =>
                   markObjectStorageOperationEffectStarted(
@@ -6458,42 +6641,23 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                   .catch(() => undefined);
                 throw error;
               }
-              const databaseFence: ProjectDatabaseErasureFence = {
-                assertActive: async (context) => {
-                  if (
-                    context.operationId !== databasePlan.operationId ||
-                    context.projectId !== databasePlan.projectId ||
-                    context.organizationId !== databasePlan.organizationId ||
-                    context.inventorySha256 !== databasePlan.inventorySha256
-                  ) {
-                    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-                      code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
-                      statusCode: 409,
-                    });
-                  }
-                  await heartbeat.assert();
-                },
-                checkpoint: (context) =>
-                  this.prisma.$transaction((tx) => checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context)),
-              };
-              databaseEffects = await input.purgeManagedDatabases(databasePlan, databaseFence, heartbeat.lease());
-              await heartbeat.assert();
+              databaseEffects = await input.purgeManagedDatabases(
+                databasePlan,
+                databaseFence(databasePlan),
+                heartbeat.lease(),
+              );
+              await assertDeletionAuthority();
             } else {
               databasePlan = await this.prisma.$transaction((tx) =>
                 readProjectDatabaseErasurePlan(tx, heartbeat.lease()),
               );
               databaseEffects = await this.prisma
                 .$transaction((tx) => readProjectDatabaseErasureEffects(tx, heartbeat.lease()))
-                .catch(() => input.purgeManagedDatabases(databasePlan, {
-                  assertActive: async () => heartbeat.assert(),
-                  checkpoint: (context) =>
-                    this.prisma.$transaction((tx) =>
-                      checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context),
-                    ),
-                }, heartbeat.lease()));
+                .catch(() => input.purgeManagedDatabases(databasePlan, databaseFence(databasePlan), heartbeat.lease()));
+              await assertDeletionAuthority();
             }
             try {
-              await input.erasePhysical(heartbeat.assert, heartbeat.lease());
+              await input.erasePhysical(assertDeletionAuthority, heartbeat.lease(), databaseEffects);
             } catch (error) {
               const replay = error as { code?: unknown; progress?: unknown };
               if (replay.code === 'PROJECT_WORKSPACE_ERASURE_REPLAY_REQUIRED') {
@@ -6508,7 +6672,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
               }
               throw error;
             }
-            await heartbeat.assert();
+            await assertDeletionAuthority();
             await this.prisma.$transaction((tx) =>
               beginObjectStorageOperationVerification(tx, heartbeat.lease(), {
                 command: 'project-permanent-delete-verify',
@@ -6538,29 +6702,20 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
           let proof: ObjectStorageVerification;
           try {
-            const databaseFence: ProjectDatabaseErasureFence = {
-              assertActive: async (context) => {
-                if (
-                  context.operationId !== databasePlan.operationId ||
-                  context.projectId !== databasePlan.projectId ||
-                  context.organizationId !== databasePlan.organizationId ||
-                  context.inventorySha256 !== databasePlan.inventorySha256
-                ) {
-                  throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
-                    code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
-                    statusCode: 409,
-                  });
-                }
-                await heartbeat.assert();
-              },
-              checkpoint: (context) =>
-                this.prisma.$transaction((tx) => checkpointProjectDatabaseErasure(tx, heartbeat.lease(), context)),
-            };
-            await input.verifyManagedDatabases(databasePlan, databaseFence, heartbeat.lease(), databaseEffects);
+            const physicalProof = await input.verifyPhysicalAbsence(
+              assertDeletionAuthority,
+              heartbeat.lease(),
+              databaseEffects,
+            );
+            await input.verifyManagedDatabases(
+              databasePlan,
+              databaseFence(databasePlan),
+              heartbeat.lease(),
+              databaseEffects,
+            );
             const databaseReceipt = await this.prisma.$transaction((tx) =>
               readVerifiedProjectDatabaseErasureReceipt(tx, heartbeat.lease()),
             );
-            const physicalProof = await input.verifyPhysicalAbsence(heartbeat.assert, heartbeat.lease());
             proof = {
               ...physicalProof,
               evidence: {
@@ -6584,7 +6739,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             throw error;
           }
 
-          await heartbeat.assert();
+          await assertDeletionAuthority();
           await heartbeat.stop();
 
           const replay = await this.prisma.$transaction(async (tx) => {
@@ -8419,6 +8574,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     retentionDays: number;
     environment: 'development';
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
     const scope = await this.prisma.remixJob.findFirst({
       where: { id: input.remixJobId, organizationId: input.organizationId },
@@ -8473,6 +8629,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         where: { projectId_environment: { projectId: input.projectId, environment: input.environment } },
       });
       if (!existing) {
+        const authorityData = databasePhysicalAuthorityData(input.physicalAuthority, now);
         const created = await tx.databaseInstance.create({
           data: {
             projectId: input.projectId,
@@ -8481,9 +8638,19 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             retentionDays: input.retentionDays,
             pitrEnabled: input.retentionDays > 0,
             provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
+            ...authorityData,
           },
         });
         return { instance: mapDatabaseInstance(created), acquired: true, created: true };
+      }
+      const existingRecord = mapDatabaseInstance(existing);
+      if (!sameDatabasePhysicalAuthority(existingRecord, input.physicalAuthority)) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+          statusCode: 409,
+          code: existingRecord.physicalAuthority
+            ? 'REMIX_DATABASE_TARGET_MISMATCH'
+            : 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+        });
       }
 
       if (
@@ -12964,13 +13131,33 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     targetTimestamp?: string;
     requestedByUserId?: string;
   }): Promise<DatabaseRestoreRecord> {
-    const row = await this.prisma.databaseRestore.create({
-      data: {
-        databaseInstanceId: input.databaseInstanceId,
-        snapshotId: input.snapshotId ?? null,
-        targetTimestamp: input.targetTimestamp ? new Date(input.targetTimestamp) : null,
-        requestedByUserId: input.requestedByUserId ?? null,
-      },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const instance = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "DatabaseInstance"
+        WHERE "id" = ${input.databaseInstanceId}
+        FOR UPDATE
+      `;
+      if (!instance[0]) {
+        throw Object.assign(new Error('Managed database was not found'), {
+          code: 'DATABASE_INSTANCE_NOT_FOUND',
+          statusCode: 404,
+        });
+      }
+      const count = await tx.databaseRestore.count({ where: { databaseInstanceId: input.databaseInstanceId } });
+      if (count >= 512) {
+        throw Object.assign(new Error('Managed database restore inventory limit reached'), {
+          code: 'DATABASE_RESTORE_LIMIT_REACHED',
+          statusCode: 429,
+        });
+      }
+      return tx.databaseRestore.create({
+        data: {
+          databaseInstanceId: input.databaseInstanceId,
+          snapshotId: input.snapshotId ?? null,
+          targetTimestamp: input.targetTimestamp ? new Date(input.targetTimestamp) : null,
+          requestedByUserId: input.requestedByUserId ?? null,
+        },
+      });
     });
 
     return mapDatabaseRestore(row);
@@ -13016,6 +13203,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
     const environment = input.environment ?? 'development';
     return this.prisma.$transaction(async (tx) => {
@@ -13026,6 +13214,18 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           statusCode: 409,
         });
       }
+
+      const authorityClock = await tx.$queryRaw<Array<{ capturedAt: Date }>>`
+        SELECT date_trunc('milliseconds', clock_timestamp()) AS "capturedAt"
+      `;
+      const capturedAt = authorityClock[0]?.capturedAt;
+      if (!(capturedAt instanceof Date)) {
+        throw Object.assign(new Error('Database clock is unavailable'), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_CLOCK_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+      const authorityData = databasePhysicalAuthorityData(input.physicalAuthority, capturedAt);
 
       const existing = await tx.databaseInstance.findUnique({
         where: { projectId_environment: { projectId: input.projectId, environment } },
@@ -13040,9 +13240,27 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
             region: input.region ?? null,
             pitrEnabled: input.retentionDays > 0,
             provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
+            ...authorityData,
           },
         });
         return { instance: mapDatabaseInstance(created), acquired: true, created: true };
+      }
+
+      const existingRecord = mapDatabaseInstance(existing);
+      if (!existingRecord.physicalAuthority) {
+        throw Object.assign(new Error('Legacy database authority must be reconciled from live CNPG resources'), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+          statusCode: 409,
+        });
+      }
+      if (!sameDatabasePhysicalAuthority(existingRecord, input.physicalAuthority)) {
+        throw Object.assign(
+          new Error('Managed database physical authority cannot follow billing or configuration drift'),
+          {
+            code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
+            statusCode: 409,
+          },
+        );
       }
 
       const claimed = await tx.databaseInstance.updateMany({

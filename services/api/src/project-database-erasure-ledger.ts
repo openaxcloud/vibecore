@@ -5,17 +5,17 @@ import {
   buildProjectDatabaseErasurePlan,
   type ProjectDatabaseErasureEffects,
   type ProjectDatabaseErasureFenceContext,
+  type ProjectDatabaseLegacyAuthorityResolution,
   type ProjectDatabaseErasurePlan,
   type ProjectDatabaseErasureReceipt,
 } from './project-database-erasure.js';
-import type { DatabaseTier } from './database-provisioner.js';
 
 type Tx = Prisma.TransactionClient;
 
-export interface ProjectDatabaseErasureConfiguration {
-  tier: DatabaseTier;
-  sharedClusterName?: string;
-  backupBucket: string;
+export interface ProjectDatabaseLegacyAuthorityRequest {
+  id: string;
+  environment: 'development' | 'production';
+  retentionDays: number;
 }
 
 interface StoredPlanRow {
@@ -76,9 +76,6 @@ function parseStoredPlan(row: StoredPlanRow): ProjectDatabaseErasurePlan {
     projectId: plan.projectId,
     organizationId: plan.organizationId,
     capturedAt: plan.capturedAt,
-    tier: plan.tier,
-    sharedClusterName: plan.sharedClusterName,
-    backupBucket: plan.backupBucket,
     instances: plan.instances,
   });
   if (
@@ -107,11 +104,48 @@ function acknowledgedEffects(row: StoredPlanRow): ProjectDatabaseErasureEffects 
     }
     return count;
   };
+  const kubernetesEvidence =
+    evidence.KUBERNETES_PURGE === undefined
+      ? undefined
+      : asJsonObject(evidence.KUBERNETES_PURGE, 'database erasure KUBERNETES_PURGE evidence');
+  const persistentVolumeClaims = kubernetesEvidence?.persistentVolumeClaims;
+  if (kubernetesEvidence !== undefined && !Array.isArray(persistentVolumeClaims)) {
+    throw ledgerError(
+      'PROJECT_DATABASE_ERASURE_LEDGER_CORRUPT',
+      'Database erasure PVC candidate inventory is missing',
+      500,
+    );
+  }
+  const pvcIdentities = new Set<string>();
+  const persistentVolumeClaimList: unknown[] = Array.isArray(persistentVolumeClaims) ? persistentVolumeClaims : [];
+  const normalizedPersistentVolumeClaims = persistentVolumeClaimList.map((candidate) => {
+    const value = asJsonObject(candidate, 'database erasure PVC candidate');
+    if (
+      value.namespace !== 'project-databases' ||
+      typeof value.pvcName !== 'string' ||
+      !value.pvcName ||
+      typeof value.expectedPvcUid !== 'string' ||
+      !value.expectedPvcUid
+    ) {
+      throw ledgerError('PROJECT_DATABASE_ERASURE_LEDGER_CORRUPT', 'Database erasure PVC candidate is invalid', 500);
+    }
+    const identity = `${value.namespace}/${value.pvcName}`;
+    if (pvcIdentities.has(identity)) {
+      throw ledgerError('PROJECT_DATABASE_ERASURE_LEDGER_CORRUPT', 'Database erasure PVC candidate is duplicated', 500);
+    }
+    pvcIdentities.add(identity);
+    return {
+      namespace: 'project-databases' as const,
+      pvcName: value.pvcName,
+      expectedPvcUid: value.expectedPvcUid,
+    };
+  });
 
   return {
     kubernetesResourcesDeleted: acknowledgedCount('KUBERNETES_PURGE', 'deleted'),
     sharedTenantsErased: acknowledgedCount('SHARED_SQL_PURGE', 'erased'),
     backupGenerationsDeleted: acknowledgedCount('BACKUP_PREFIX_PURGE', 'deletedGenerations'),
+    persistentVolumeClaims: normalizedPersistentVolumeClaims,
   };
 }
 
@@ -121,15 +155,40 @@ function parseStoredReceipt(row: StoredPlanRow, value: unknown): ProjectDatabase
   const proof = asJsonObject(receipt.proof, 'database erasure receipt proof');
   const plan = parseStoredPlan(row);
   const expectedEffects = acknowledgedEffects(row);
+  const verifiedAt = typeof receipt.verifiedAt === 'string' ? new Date(receipt.verifiedAt) : undefined;
+  const sharedRetentionProof = Array.isArray(proof.sharedRetentionBarriers)
+    ? proof.sharedRetentionBarriers.map((value) => asJsonObject(value, 'shared retention barrier proof'))
+    : undefined;
+  const sharedRetentionValid =
+    sharedRetentionProof?.length === plan.sharedRetentionBarriers.length &&
+    sharedRetentionProof.every((entry, index) => {
+      const expected = plan.sharedRetentionBarriers[index];
+      const satisfiedAt = typeof entry.satisfiedAt === 'string' ? new Date(entry.satisfiedAt) : undefined;
+      return (
+        expected !== undefined &&
+        sameJson(Object.keys(entry).sort(), ['clusterName', 'notBefore', 'satisfiedAt']) &&
+        entry.clusterName === expected.clusterName &&
+        entry.notBefore === expected.notBefore &&
+        satisfiedAt !== undefined &&
+        Number.isFinite(satisfiedAt.getTime()) &&
+        satisfiedAt.toISOString() === entry.satisfiedAt &&
+        satisfiedAt.getTime() >= Date.parse(expected.notBefore) &&
+        verifiedAt !== undefined &&
+        satisfiedAt.getTime() <= verifiedAt.getTime()
+      );
+    });
   const expectedProof = {
     kubernetesNamespace: 'project-databases',
     kubernetesAbsent: true,
     sharedTenantsAbsent: true,
-    backupBucket: plan.backupBucket,
-    backupPrefix: plan.backupPrefix,
+    backupTargets: plan.backupTargets.map((target) => ({
+      ...target,
+      generationsAbsent: true,
+      softDeletedAbsent: true,
+    })),
+    sharedRetentionBarriers: sharedRetentionProof,
     backupGenerationsAbsent: true,
   };
-  const verifiedAt = typeof receipt.verifiedAt === 'string' ? new Date(receipt.verifiedAt) : undefined;
 
   if (
     !sameJson(Object.keys(receipt).sort(), [
@@ -142,7 +201,7 @@ function parseStoredReceipt(row: StoredPlanRow, value: unknown): ProjectDatabase
       'schemaVersion',
       'verifiedAt',
     ]) ||
-    receipt.schemaVersion !== 1 ||
+    receipt.schemaVersion !== 2 ||
     receipt.operationId !== row.operationId ||
     receipt.projectId !== row.projectId ||
     receipt.organizationId !== row.organizationId ||
@@ -150,6 +209,7 @@ function parseStoredReceipt(row: StoredPlanRow, value: unknown): ProjectDatabase
     !verifiedAt ||
     !Number.isFinite(verifiedAt.getTime()) ||
     verifiedAt.toISOString() !== receipt.verifiedAt ||
+    !sharedRetentionValid ||
     !sameJson(effects, expectedEffects) ||
     !sameJson(proof, expectedProof)
   ) {
@@ -175,6 +235,132 @@ async function readStoredPlan(tx: Tx, operationId: string, forUpdate = false): P
   return rows[0];
 }
 
+export async function readLegacyProjectDatabaseAuthorityRequests(
+  tx: Tx,
+  lease: ObjectStorageOperationLease,
+  input: { projectId: string; expectedOrganizationId: string },
+): Promise<ProjectDatabaseLegacyAuthorityRequest[]> {
+  await assertObjectStorageOperationFence(tx, lease);
+  const rows = await tx.$queryRaw<
+    Array<{ id: string; environment: string; retentionDays: number; organizationId: string }>
+  >(Prisma.sql`
+    SELECT "id", "environment", "retentionDays", "organizationId"
+    FROM "DatabaseInstance"
+    WHERE "projectId" = ${input.projectId}
+      AND "physicalAuthorityAt" IS NULL
+    ORDER BY "environment", "id"
+    FOR SHARE
+  `);
+  if (
+    rows.some(
+      (row) =>
+        row.organizationId !== input.expectedOrganizationId ||
+        (row.environment !== 'development' && row.environment !== 'production'),
+    )
+  ) {
+    throw ledgerError('PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH', 'Legacy database authority escaped tenant scope');
+  }
+  return rows.map(({ id, environment, retentionDays }) => ({
+    id,
+    environment: environment as 'development' | 'production',
+    retentionDays,
+  }));
+}
+
+export async function persistLegacyProjectDatabaseAuthorities(
+  tx: Tx,
+  lease: ObjectStorageOperationLease,
+  input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    requests: readonly ProjectDatabaseLegacyAuthorityRequest[];
+    resolutions: readonly ProjectDatabaseLegacyAuthorityResolution[];
+  },
+): Promise<void> {
+  await assertObjectStorageOperationFence(tx, lease);
+  const resolutionById = new Map(input.resolutions.map((resolution) => [resolution.instanceId, resolution]));
+  if (
+    resolutionById.size !== input.resolutions.length ||
+    input.requests.length !== input.resolutions.length ||
+    input.requests.some(({ id }) => !resolutionById.has(id))
+  ) {
+    throw ledgerError('PROJECT_DATABASE_PHYSICAL_AUTHORITY_INCOMPLETE', 'Legacy CNPG authority set is incomplete');
+  }
+  const clock = await tx.$queryRaw<Array<{ capturedAt: Date }>>`
+    SELECT date_trunc('milliseconds', clock_timestamp()) AS "capturedAt"
+  `;
+  if (!(clock[0]?.capturedAt instanceof Date)) {
+    throw ledgerError('PROJECT_DATABASE_ERASURE_DATABASE_CLOCK_UNAVAILABLE', 'Database clock unavailable', 503);
+  }
+  for (const request of input.requests) {
+    const authority = resolutionById.get(request.id)!.authority;
+    const safe = (value: string | undefined, field: string, max: number): string | null => {
+      const normalized = value?.trim();
+      if (value === undefined) return null;
+      if (!normalized || normalized.length > max || /[\u0000-\u001f\u007f]/.test(normalized)) {
+        throw ledgerError('PROJECT_DATABASE_PHYSICAL_AUTHORITY_INVALID', `Invalid ${field}`, 400);
+      }
+      return normalized;
+    };
+    const clusterName = safe(authority.clusterName, 'clusterName', 253);
+    const databaseCrName = safe(authority.databaseCrName, 'databaseCrName', 253);
+    const databaseName = safe(authority.databaseName, 'databaseName', 63);
+    const roleName = safe(authority.roleName, 'roleName', 63);
+    const backupBucket = safe(authority.backupBucket, 'backupBucket', 222);
+    const backupPrefix = safe(authority.backupPrefix, 'backupPrefix', 1024);
+    const clusterUid = safe(authority.clusterUid, 'clusterUid', 255);
+    const databaseCrUid = safe(authority.databaseCrUid, 'databaseCrUid', 255);
+    if (
+      !clusterName ||
+      !/^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$/.test(clusterName) ||
+      !clusterUid ||
+      !Number.isInteger(authority.retentionDays) ||
+      authority.retentionDays < 0 ||
+      authority.retentionDays > 3650 ||
+      Boolean(backupBucket) !== Boolean(backupPrefix) ||
+      (authority.tier === 'isolated' &&
+        (!backupBucket || !backupPrefix || databaseCrName || databaseName || roleName)) ||
+      (authority.tier === 'shared' &&
+        (!databaseCrName ||
+          !/^[a-z0-9](?:[-a-z0-9.]*[a-z0-9])?$/.test(databaseCrName) ||
+          !databaseCrUid ||
+          !databaseName ||
+          !/^[a-z_][a-z0-9_]{0,62}$/.test(databaseName) ||
+          !roleName ||
+          !/^[a-z_][a-z0-9_]{0,62}$/.test(roleName))) ||
+      (backupBucket !== null && !/^[a-z0-9][a-z0-9._-]{1,220}[a-z0-9]$/.test(backupBucket)) ||
+      (backupPrefix !== null &&
+        (!backupPrefix.endsWith('/') || backupPrefix.startsWith('/') || backupPrefix.split('/').includes('..')))
+    ) {
+      throw ledgerError('PROJECT_DATABASE_PHYSICAL_AUTHORITY_INVALID', 'Legacy CNPG authority is incomplete', 409);
+    }
+    const updated = await tx.$executeRaw(Prisma.sql`
+      UPDATE "DatabaseInstance"
+      SET "physicalTier" = ${authority.tier === 'shared' ? 'SHARED' : 'ISOLATED'}::"DatabasePhysicalTier",
+          "physicalClusterName" = ${clusterName},
+          "physicalDatabaseCrName" = ${databaseCrName},
+          "physicalDatabaseName" = ${databaseName},
+          "physicalRoleName" = ${roleName},
+          "physicalBackupBucket" = ${backupBucket},
+          "physicalBackupPrefix" = ${backupPrefix},
+          "physicalClusterUid" = ${clusterUid},
+          "physicalDatabaseCrUid" = ${databaseCrUid},
+          "physicalRetentionDays" = ${authority.retentionDays},
+          "physicalAuthorityAt" = ${clock[0].capturedAt},
+          "updatedAt" = clock_timestamp()
+      WHERE "id" = ${request.id}
+        AND "projectId" = ${input.projectId}
+        AND "organizationId" = ${input.expectedOrganizationId}
+        AND "environment" = ${request.environment}
+        AND "physicalAuthorityAt" IS NULL
+    `);
+    if (updated !== 1) {
+      throw ledgerError('PROJECT_DATABASE_PHYSICAL_AUTHORITY_FENCE_LOST', 'Legacy CNPG authority changed');
+    }
+  }
+  await assertObjectStorageOperationFence(tx, lease);
+}
+
 /** Capture every relational database identity while the delete lease is live. */
 export async function captureProjectDatabaseErasurePlan(
   tx: Tx,
@@ -182,7 +368,6 @@ export async function captureProjectDatabaseErasurePlan(
   input: {
     projectId: string;
     expectedOrganizationId: string;
-    configuration: ProjectDatabaseErasureConfiguration;
   },
 ): Promise<ProjectDatabaseErasurePlan> {
   await assertObjectStorageOperationFence(tx, lease);
@@ -224,17 +409,46 @@ export async function captureProjectDatabaseErasurePlan(
       sizeBytes: bigint;
       retentionDays: number;
       pitrEnabled: boolean;
+      physicalTier: 'SHARED' | 'ISOLATED' | null;
+      physicalClusterName: string | null;
+      physicalDatabaseCrName: string | null;
+      physicalDatabaseName: string | null;
+      physicalRoleName: string | null;
+      physicalBackupBucket: string | null;
+      physicalBackupPrefix: string | null;
+      physicalClusterUid: string | null;
+      physicalDatabaseCrUid: string | null;
+      physicalRetentionDays: number | null;
+      physicalAuthorityAt: Date | null;
     }>
   >`
     SELECT
       "id", "projectId", "organizationId", "environment", "status"::text AS "status", "engine", "region",
-      "sizeBytes", "retentionDays", "pitrEnabled"
+      "sizeBytes", "retentionDays", "pitrEnabled", "physicalTier"::text AS "physicalTier",
+      "physicalClusterName", "physicalDatabaseCrName", "physicalDatabaseName", "physicalRoleName",
+      "physicalBackupBucket", "physicalBackupPrefix", "physicalClusterUid", "physicalDatabaseCrUid",
+      "physicalRetentionDays", "physicalAuthorityAt"
     FROM "DatabaseInstance"
     WHERE "projectId" = ${input.projectId}
     ORDER BY "environment", "id"
     FOR SHARE
   `;
   const instanceIds = instances.map(({ id }) => id);
+  if (
+    instances.some(
+      (instance) =>
+        !instance.physicalTier ||
+        !instance.physicalClusterName ||
+        instance.physicalRetentionDays === null ||
+        !instance.physicalAuthorityAt,
+    )
+  ) {
+    throw ledgerError(
+      'PROJECT_DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+      'Every DatabaseInstance requires immutable physical authority before erasure capture',
+      409,
+    );
+  }
   const snapshots = instanceIds.length
     ? await tx.$queryRaw<
         Array<{
@@ -296,14 +510,11 @@ export async function captureProjectDatabaseErasurePlan(
     throw ledgerError('PROJECT_DATABASE_ERASURE_DATABASE_CLOCK_UNAVAILABLE', 'Database clock unavailable', 503);
   }
   const plan = buildProjectDatabaseErasurePlan({
-    schemaVersion: 1,
+    schemaVersion: 2,
     operationId: lease.operationId,
     projectId: input.projectId,
     organizationId: input.expectedOrganizationId,
     capturedAt: capturedAt.toISOString(),
-    tier: input.configuration.tier,
-    sharedClusterName: input.configuration.sharedClusterName,
-    backupBucket: input.configuration.backupBucket,
     instances: instances.map((instance) => ({
       id: instance.id,
       projectId: instance.projectId,
@@ -315,6 +526,19 @@ export async function captureProjectDatabaseErasurePlan(
       sizeBytes: safeNumber(instance.sizeBytes, 'DatabaseInstance.sizeBytes'),
       retentionDays: instance.retentionDays,
       pitrEnabled: instance.pitrEnabled,
+      physicalAuthority: {
+        tier: instance.physicalTier === 'SHARED' ? 'shared' : 'isolated',
+        clusterName: instance.physicalClusterName!,
+        databaseCrName: instance.physicalDatabaseCrName ?? undefined,
+        databaseName: instance.physicalDatabaseName ?? undefined,
+        roleName: instance.physicalRoleName ?? undefined,
+        backupBucket: instance.physicalBackupBucket ?? undefined,
+        backupPrefix: instance.physicalBackupPrefix ?? undefined,
+        clusterUid: instance.physicalClusterUid ?? undefined,
+        databaseCrUid: instance.physicalDatabaseCrUid ?? undefined,
+        retentionDays: instance.physicalRetentionDays!,
+        capturedAt: instance.physicalAuthorityAt!.toISOString(),
+      },
       snapshots: snapshots
         .filter((snapshot) => snapshot.databaseInstanceId === instance.id)
         .map((snapshot) => ({
@@ -417,7 +641,7 @@ export async function checkpointProjectDatabaseErasure(
     if (
       context.stage === 'VERIFIED' &&
       row.receipt !== null &&
-      sameJson(asJsonObject(row.receipt, 'database erasure receipt').proof, stageEvidence.proof)
+      sameJson(asJsonObject(row.receipt, 'database erasure receipt'), stageEvidence)
     ) {
       return;
     }

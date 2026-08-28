@@ -72,10 +72,11 @@ import {
   buildProjectDatabaseErasurePlan,
   type ProjectDatabaseErasureEffects,
   type ProjectDatabaseErasureFence,
+  type ProjectDatabaseLegacyAuthorityResolution,
   type ProjectDatabaseErasurePlan,
   type ProjectDatabaseErasureReceipt,
 } from '../project-database-erasure.js';
-import type { ProjectDatabaseErasureConfiguration } from '../project-database-erasure-ledger.js';
+import type { ProjectDatabaseLegacyAuthorityRequest } from '../project-database-erasure-ledger.js';
 import type { ProjectStaticArtifactAuthority, ProjectStaticErasureInventory } from '../project-storage.js';
 import {
   parseObjectStorageStaticArtifactSummary,
@@ -214,6 +215,7 @@ import type {
   ChatShareRecord,
   ProjectStorageObjectRecord,
   DatabaseInstanceRecord,
+  DatabasePhysicalAuthority,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
   DatabaseMigrationExecutionRecord,
@@ -268,6 +270,25 @@ function canonicalClassifierCostMillicents(
 
 function sameNullable(left: string | undefined, right: string | undefined) {
   return (left ?? null) === (right ?? null);
+}
+
+function sameDatabasePhysicalAuthority(
+  actual: (DatabasePhysicalAuthority & { capturedAt?: string }) | undefined,
+  expected: DatabasePhysicalAuthority,
+): boolean {
+  return (
+    actual !== undefined &&
+    actual.tier === expected.tier &&
+    actual.clusterName === expected.clusterName &&
+    sameNullable(actual.databaseCrName, expected.databaseCrName) &&
+    sameNullable(actual.databaseName, expected.databaseName) &&
+    sameNullable(actual.roleName, expected.roleName) &&
+    sameNullable(actual.backupBucket, expected.backupBucket) &&
+    sameNullable(actual.backupPrefix, expected.backupPrefix) &&
+    sameNullable(actual.clusterUid, expected.clusterUid) &&
+    sameNullable(actual.databaseCrUid, expected.databaseCrUid) &&
+    actual.retentionDays === expected.retentionDays
+  );
 }
 
 function canonicalObjectStorageInventory(inventory: ObjectStorageInventory): ObjectStorageInventory {
@@ -2799,22 +2820,35 @@ export class TestApiStore implements ApiStore {
       ipAddress?: string;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
       preflightPhysicalErasure: () => Promise<ObjectStorageStaticErasurePlan>;
-      databaseErasureConfiguration: ProjectDatabaseErasureConfiguration;
+      resolveLegacyDatabaseAuthorities: (
+        requests: readonly ProjectDatabaseLegacyAuthorityRequest[],
+        lease: ObjectStorageOperationLease,
+      ) => Promise<readonly ProjectDatabaseLegacyAuthorityResolution[]>;
       purgeManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
         lease: ObjectStorageOperationLease,
       ) => Promise<ProjectDatabaseErasureEffects>;
+      preflightManagedDatabases: (
+        plan: ProjectDatabaseErasurePlan,
+        fence: ProjectDatabaseErasureFence,
+        lease: ObjectStorageOperationLease,
+      ) => Promise<void>;
       verifyManagedDatabases: (
         plan: ProjectDatabaseErasurePlan,
         fence: ProjectDatabaseErasureFence,
         lease: ObjectStorageOperationLease,
         effects: ProjectDatabaseErasureEffects,
       ) => Promise<ProjectDatabaseErasureReceipt>;
-      erasePhysical: (assertLease: () => Promise<void>, lease: ObjectStorageOperationLease) => Promise<void>;
+      erasePhysical: (
+        assertLease: () => Promise<void>,
+        lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
+      ) => Promise<void>;
       verifyPhysicalAbsence: (
         assertLease: () => Promise<void>,
         lease: ObjectStorageOperationLease,
+        databaseEffects: ProjectDatabaseErasureEffects,
       ) => Promise<ObjectStorageVerification>;
     },
   ): Promise<ProjectPermanentDeletionResult> {
@@ -2927,13 +2961,34 @@ export class TestApiStore implements ApiStore {
         const instances = [...this.databaseInstances.values()].filter(
           (instance) => instance.projectId === input.projectId,
         );
+        const legacyRequests = instances
+          .filter((instance) => !instance.physicalAuthority)
+          .map((instance) => ({
+            id: instance.id,
+            environment: instance.environment,
+            retentionDays: instance.retentionDays,
+          }));
+        if (legacyRequests.length > 0) {
+          const resolutions = await input.resolveLegacyDatabaseAuthorities(legacyRequests, lease);
+          const resolutionById = new Map(resolutions.map((resolution) => [resolution.instanceId, resolution]));
+          if (resolutionById.size !== legacyRequests.length) {
+            throw Object.assign(new Error('PROJECT_DATABASE_PHYSICAL_AUTHORITY_INCOMPLETE'), {
+              code: 'PROJECT_DATABASE_PHYSICAL_AUTHORITY_INCOMPLETE',
+            });
+          }
+          for (const request of legacyRequests) {
+            const instance = this.databaseInstances.get(request.id)!;
+            const resolution = resolutionById.get(request.id);
+            if (!resolution) throw new Error('PROJECT_DATABASE_PHYSICAL_AUTHORITY_INCOMPLETE');
+            instance.physicalAuthority = { ...resolution.authority, capturedAt: now() };
+          }
+        }
         const databasePlan = buildProjectDatabaseErasurePlan({
-          schemaVersion: 1,
+          schemaVersion: 2,
           operationId: lease.operationId,
           projectId: input.projectId,
           organizationId: input.expectedOrganizationId,
           capturedAt: now(),
-          ...input.databaseErasureConfiguration,
           instances: instances.map((instance) => ({
             id: instance.id,
             projectId: instance.projectId,
@@ -2945,6 +3000,7 @@ export class TestApiStore implements ApiStore {
             sizeBytes: instance.sizeBytes,
             retentionDays: instance.retentionDays,
             pitrEnabled: instance.pitrEnabled,
+            physicalAuthority: instance.physicalAuthority!,
             snapshots: [...this.databaseSnapshots.values()]
               .filter((snapshot) => snapshot.databaseInstanceId === instance.id)
               .map((snapshot) => ({
@@ -2981,11 +3037,12 @@ export class TestApiStore implements ApiStore {
           },
           checkpoint: async () => undefined,
         };
+        await input.preflightManagedDatabases(databasePlan, databaseFence, lease);
         const databaseEffects = await input.purgeManagedDatabases(databasePlan, databaseFence, lease);
-        await input.erasePhysical(assertLease, lease);
+        await input.erasePhysical(assertLease, lease, databaseEffects);
         await assertLease();
+        const physicalProof = await input.verifyPhysicalAbsence(assertLease, lease, databaseEffects);
         const databaseReceipt = await input.verifyManagedDatabases(databasePlan, databaseFence, lease, databaseEffects);
-        const physicalProof = await input.verifyPhysicalAbsence(assertLease, lease);
         const proof: ObjectStorageVerification = {
           ...physicalProof,
           evidence: { ...physicalProof.evidence, managedDatabase: databaseReceipt },
@@ -3015,7 +3072,7 @@ export class TestApiStore implements ApiStore {
           organizationId: project.organizationId,
           idempotencyKey: input.idempotencyKey,
           requestHash: input.requestHash,
-          operationId: id('object_storage_operation'),
+          operationId: lease.operationId,
           project: {
             id: project.id,
             organizationId: project.organizationId,
@@ -5507,6 +5564,21 @@ export class TestApiStore implements ApiStore {
     targetTimestamp?: string;
     requestedByUserId?: string;
   }) {
+    if (!this.databaseInstances.has(input.databaseInstanceId)) {
+      throw Object.assign(new Error('Managed database was not found'), {
+        code: 'DATABASE_INSTANCE_NOT_FOUND',
+        statusCode: 404,
+      });
+    }
+    if (
+      [...this.databaseRestores.values()].filter((restore) => restore.databaseInstanceId === input.databaseInstanceId)
+        .length >= 512
+    ) {
+      throw Object.assign(new Error('Managed database restore inventory limit reached'), {
+        code: 'DATABASE_RESTORE_LIMIT_REACHED',
+        statusCode: 429,
+      });
+    }
     const restore: DatabaseRestoreRecord = {
       id: id('database_restore'),
       databaseInstanceId: input.databaseInstanceId,
@@ -5565,6 +5637,7 @@ export class TestApiStore implements ApiStore {
     region?: string;
     environment?: string;
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }) {
     this._assertNoActiveProjectReleaseBarrier(input.projectId);
     if (input.organizationId !== input.expectedOrganizationId) {
@@ -5594,6 +5667,7 @@ export class TestApiStore implements ApiStore {
           sizeBytes: 0,
           retentionDays: input.retentionDays,
           pitrEnabled: input.retentionDays > 0,
+          physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
           provisioningDeadlineAt: input.provisioningDeadlineAt,
           createdAt: now(),
           updatedAt: now(),
@@ -5601,6 +5675,19 @@ export class TestApiStore implements ApiStore {
         this.databaseInstances.set(instance.id, instance);
 
         return { instance, acquired: true, created: true };
+      }
+
+      if (!existing.physicalAuthority) {
+        throw Object.assign(new Error('Legacy database authority must be reconciled from live CNPG resources'), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_RECONCILIATION_REQUIRED',
+          statusCode: 409,
+        });
+      }
+      if (!sameDatabasePhysicalAuthority(existing.physicalAuthority, input.physicalAuthority)) {
+        throw Object.assign(new Error('Managed database physical authority cannot change'), {
+          code: 'DATABASE_PHYSICAL_AUTHORITY_MISMATCH',
+          statusCode: 409,
+        });
       }
 
       if (existing.status !== 'FAILED') {
@@ -9780,6 +9867,7 @@ export class TestApiStore implements ApiStore {
     retentionDays: number;
     environment: 'development';
     provisioningDeadlineAt: string;
+    physicalAuthority: DatabasePhysicalAuthority;
   }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
     const job = this.remixJobs.get(input.remixJobId);
     const project = this.projects.get(input.projectId);
@@ -9824,6 +9912,7 @@ export class TestApiStore implements ApiStore {
         sizeBytes: 0,
         retentionDays: input.retentionDays,
         pitrEnabled: input.retentionDays > 0,
+        physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
         provisioningDeadlineAt: input.provisioningDeadlineAt,
         createdAt: now(),
         updatedAt: now(),
@@ -9838,6 +9927,12 @@ export class TestApiStore implements ApiStore {
       existing.pitrEnabled !== input.retentionDays > 0 ||
       (existing.status !== 'PROVISIONING' && existing.status !== 'FAILED')
     ) {
+      throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
+        statusCode: 409,
+        code: 'REMIX_DATABASE_TARGET_MISMATCH',
+      });
+    }
+    if (!sameDatabasePhysicalAuthority(existing.physicalAuthority, input.physicalAuthority)) {
       throw Object.assign(new Error(appPublicEnglish('REMIX_PHYSICAL_DATA_FAILED')), {
         statusCode: 409,
         code: 'REMIX_DATABASE_TARGET_MISMATCH',

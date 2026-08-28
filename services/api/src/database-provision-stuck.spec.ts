@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { CnpgProvisioner, DB_NAMESPACE } from './database-provisioner.js';
+import { CnpgProvisioner } from './database-provisioner.js';
 
 /*
  * BUG-QA-DB-PROVISIONING-STUCK — « PROVISIONING » qui ne finit jamais.
@@ -11,11 +11,9 @@ import { CnpgProvisioner, DB_NAMESPACE } from './database-provisioner.js';
  *   Database db-<projet>   APPLIED=false
  *   ERROR: role "t_<projet>" does not exist (SQLSTATE 42704)
  *
- * Le provisionneur créait le rôle propriétaire AVANT la `Database` CR — mais en
- * « best-effort », échec avalé. Quand la création du rôle ne se faisait pas, la
- * CR était posée quand même ; CNPG refusait alors indéfiniment de créer la base,
- * et la ligne côté produit restait « PROVISIONING » sans que rien ne la
- * réconcilie ni ne permette de réessayer.
+ * Les nouveaux projets n'utilisent plus le tier partagé. Ce chemin est conservé
+ * uniquement pour relire les autorités physiques legacy et doit donc rester
+ * strictement read-only : aucune CR, aucun Pooler et aucun SQL de provisioning.
  *
  * Le déclencheur le plus simple est l'absence de `DB_SHARED_TENANT_SECRET`, mais
  * TOUTE défaillance empruntait le même trou : cluster partagé injoignable,
@@ -46,6 +44,8 @@ const INPUT = {
   organizationId: 'org-1',
   retentionDays: 7,
   tier: 'shared' as const,
+  sharedClusterName: 'shared-pg-0',
+  physicalAuthority: { tier: 'shared' as const, clusterName: 'shared-pg-0', retentionDays: 7 },
 };
 
 describe('provisionInstance (tier partagé) — plus de ressource empoisonnée', () => {
@@ -60,7 +60,7 @@ describe('provisionInstance (tier partagé) — plus de ressource empoisonnée',
       const result = await provisioner.provisionInstance(INPUT);
 
       expect(result.applied).toBe(false);
-      expect(result.reason).toBe('SHARED_TENANT_UNAVAILABLE');
+      expect(result.reason).toBe('SHARED_TIER_LEGACY_READ_ONLY');
 
       // C'est CETTE CR qui restait en échec pour toujours.
       expect(applied.find((a) => a.kind === 'Database')).toBeUndefined();
@@ -103,7 +103,7 @@ describe('provisionInstance (tier partagé) — plus de ressource empoisonnée',
     expect(applied).toEqual([]);
   });
 
-  it('le chemin nominal pose bien le Pooler PUIS la Database, et le locataire d_abord', async () => {
+  it('même avec tous les secrets disponibles, le chemin legacy partagé reste read-only', async () => {
     process.env.DB_SHARED_TENANT_SECRET = 'secret-de-test';
 
     const { k8s, sqlExec, applied } = harness();
@@ -111,16 +111,8 @@ describe('provisionInstance (tier partagé) — plus de ressource empoisonnée',
 
     const result = await provisioner.provisionInstance(INPUT);
 
-    expect(result.applied).toBe(true);
-    expect(result.reason).toBeUndefined();
-
-    // Le rôle propriétaire est créé AVANT la CR qui le référence.
-    expect(sqlExec.provisionTenant).toHaveBeenCalledOnce();
-    expect(applied.map((a) => a.kind)).toEqual(['Pooler', 'Database']);
-
-    const tenant = (sqlExec.provisionTenant as any).mock.calls[0][0];
-    expect(tenant.role).toBe(`t_${INPUT.projectId}`);
-    expect(tenant.db).toBe(`proj_${INPUT.projectId}`);
-    expect(tenant.adminUri).toContain(`.${DB_NAMESPACE}.svc:5432/`);
+    expect(result).toMatchObject({ applied: false, reason: 'SHARED_TIER_LEGACY_READ_ONLY' });
+    expect(sqlExec.provisionTenant).not.toHaveBeenCalled();
+    expect(applied).toEqual([]);
   });
 });

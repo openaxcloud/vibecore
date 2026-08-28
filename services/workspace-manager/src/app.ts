@@ -94,6 +94,19 @@ const projectDeletionLeaseSchema = z.object({
   expectedOrganizationId: z.string().min(1).max(200),
 });
 
+const projectWorkspaceDeletionSchema = projectDeletionLeaseSchema.extend({
+  volumeCandidates: z
+    .array(
+      z.object({
+        namespace: z.literal('project-databases'),
+        pvcName: z.string().min(1).max(253),
+        expectedPvcUid: z.string().min(1).max(255),
+      }),
+    )
+    .max(512)
+    .default([]),
+});
+
 /*
  * Body for POST /app-builds/run — ONE isolated server-deploy build (reproducible
  * pipeline): fetch the project revision, install+build in a throwaway gVisor
@@ -732,7 +745,8 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     return manager.unfreezeWorkspace((request.params as any).workspaceId, lease);
   });
   app.post('/projects/:projectId/permanent-delete/workspaces/purge', async (request) => {
-    const lease = projectDeletionLeaseSchema.parse(request.body);
+    const body = projectWorkspaceDeletionSchema.parse(request.body);
+    const { volumeCandidates, ...lease } = body;
     const projectId = (request.params as { projectId: string }).projectId;
     if (lease.projectId !== projectId) {
       throw Object.assign(new Error(workspaceManagerMessage('requestFailed', 'en')), {
@@ -740,10 +754,11 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         statusCode: 409,
       });
     }
-    return manager.purgeProjectWorkspaces(runtimeNamespace(), lease);
+    return manager.purgeProjectWorkspaces(runtimeNamespace(), lease, ['EFFECT_STARTED'], volumeCandidates);
   });
   app.post('/projects/:projectId/permanent-delete/workspaces/verify', async (request) => {
-    const lease = projectDeletionLeaseSchema.parse(request.body);
+    const body = projectWorkspaceDeletionSchema.parse(request.body);
+    const { volumeCandidates, ...lease } = body;
     const projectId = (request.params as { projectId: string }).projectId;
     if (lease.projectId !== projectId) {
       throw Object.assign(new Error(workspaceManagerMessage('requestFailed', 'en')), {
@@ -751,7 +766,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         statusCode: 409,
       });
     }
-    return manager.verifyProjectWorkspacesAbsent(runtimeNamespace(), lease);
+    return manager.verifyProjectWorkspacesAbsent(runtimeNamespace(), lease, ['VERIFYING'], true, volumeCandidates);
   });
   app.post('/account-purge/reconcile', async (request) => {
     const { take } = z.object({ take: z.number().int().min(1).max(500).default(500) }).parse(request.body ?? {});
@@ -907,11 +922,24 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   type DatabaseErasureKind = (typeof DB_ERASURE_KINDS)[number];
 
   const databaseErasureInventorySchema = projectDeletionLeaseSchema.extend({
-    knownClusterNames: z.array(z.string().min(1).max(253)).max(512),
+    knownClusterNames: z.array(z.string().min(1).max(253)).max(10_000),
     knownResourceNames: z
       .record(z.array(z.string().min(1).max(253)).max(10_000))
       .optional()
       .default({}),
+    cursor: z.string().min(1).max(512).optional(),
+    limit: z.number().int().min(1).max(500).default(250),
+  });
+  const databaseAuthoritySchema = projectDeletionLeaseSchema.extend({
+    instances: z
+      .array(
+        z.object({
+          id: z.string().min(1).max(128),
+          environment: z.enum(['development', 'production']),
+          retentionDays: z.number().int().min(0).max(3650),
+        }),
+      )
+      .max(2),
   });
   const databaseErasureResourceSchema = z.object({
     kind: z.enum(DB_ERASURE_KINDS),
@@ -946,7 +974,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   const cnpgCsiApplySchema = z.object({
     manifest: z
       .object({
-        apiVersion: z.string(),
+        apiVersion: z.literal('postgresql.cnpg.io/v1'),
         kind: z.literal('Cluster'),
         metadata: z
           .object({
@@ -1026,6 +1054,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     if (!dbResourceGuard(manifest.kind, namespace, reply)) {
       return;
+    }
+
+    if (manifest.kind === 'Cluster') {
+      return reply.code(403).send({
+        error: workspaceManagerMessage('databaseResourceForbidden', 'en'),
+        code: 'DB_CSI_EFFECT_REQUIRED',
+      });
     }
 
     if (manifest.apiVersion !== 'postgresql.cnpg.io/v1') {
@@ -1196,6 +1231,13 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       return;
     }
 
+    if (kind === 'Cluster' || kind === 'PersistentVolumeClaim') {
+      return reply.code(409).send({
+        error: workspaceManagerMessage('databaseResourceForbidden', 'en'),
+        code: kind === 'PersistentVolumeClaim' ? 'PROJECT_DATABASE_PVC_DELETE_DELEGATED' : 'DB_ERASURE_SAGA_REQUIRED',
+      });
+    }
+
     await manager.k8s.delete(kind, namespace, name);
 
     return { deleted: true };
@@ -1206,7 +1248,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
     knownClusterNames: readonly string[],
     knownResourceNames: Readonly<Record<string, readonly string[]>>,
   ) => {
-    await manager.assertProjectDeletionLease(lease, ['EFFECT_STARTED', 'VERIFYING']);
+    await manager.assertProjectDeletionLease(lease, ['PREPARED', 'EFFECT_STARTED', 'VERIFYING']);
     if (knownClusterNames.some((name) => !deterministicDatabaseResourceNameAllowed('Cluster', name, lease.projectId))) {
       throw Object.assign(new Error('Database erasure cluster escaped the project namespace'), {
         code: 'PROJECT_DATABASE_RESOURCE_NAME_INVALID',
@@ -1330,6 +1372,58 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       }
     }
 
+    /*
+     * CNPG descendants are not uniformly labelled across operator versions.
+     * Complete the inventory from exact ownerReference UIDs, never from names
+     * alone: a deleted/recreated parent with the same name is a different
+     * authority. The bounded fixed-point walk also captures grandchildren
+     * (for example Cluster -> Service -> EndpointSlice).
+     */
+    const ownerReferenceCandidates = new Map<
+      DatabaseErasureKind,
+      Awaited<ReturnType<typeof manager.k8s.listByLabel>>
+    >();
+    for (const kind of DB_ERASURE_KINDS) {
+      ownerReferenceCandidates.set(kind, await manager.k8s.listByLabel(kind, DB_ROLLBACK_NAMESPACE, ''));
+    }
+    for (let pass = 0; pass < DB_ERASURE_KINDS.length; pass += 1) {
+      let added = 0;
+      const owners = new Map(
+        [...resources.values()].map((resource) => [
+          resource.uid,
+          { kind: resource.kind, name: resource.name, clusterName: resource.ownership.clusterName },
+        ]),
+      );
+      for (const [kind, candidates] of ownerReferenceCandidates) {
+        for (const object of candidates) {
+          if (resources.has(`${kind}:${object.metadata.name}`)) continue;
+          const owner = object.metadata.ownerReferences
+            ?.map((reference) => ({ reference, authority: reference.uid ? owners.get(reference.uid) : undefined }))
+            .find(
+              ({ reference, authority }) =>
+                authority &&
+                (!reference.name || reference.name === authority.name) &&
+                (!reference.kind || reference.kind === authority.kind),
+            )?.authority;
+          if (!owner) continue;
+          add(
+            kind,
+            object,
+            'owner-reference',
+            owner.clusterName ?? (owner.kind === 'Cluster' ? owner.name : undefined),
+          );
+          added += 1;
+          if (resources.size > 10_000) {
+            throw Object.assign(new Error('Database erasure inventory exceeds the safe bound'), {
+              code: 'PROJECT_DATABASE_RESOURCE_INVENTORY_LIMIT',
+              statusCode: 409,
+            });
+          }
+        }
+      }
+      if (added === 0) break;
+    }
+
     const serviceNames = [...resources.values()].filter(({ kind }) => kind === 'Service').map(({ name }) => name);
     for (const serviceName of serviceNames) {
       for (const object of await manager.k8s.listByLabel(
@@ -1341,11 +1435,130 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       }
       add('Endpoints', await manager.k8s.get('Endpoints', DB_ROLLBACK_NAMESPACE, serviceName), 'service-label');
     }
-    await manager.assertProjectDeletionLease(lease, ['EFFECT_STARTED', 'VERIFYING']);
+    await manager.assertProjectDeletionLease(lease, ['PREPARED', 'EFFECT_STARTED', 'VERIFYING']);
     return [...resources.values()].sort(
       (left, right) => left.kind.localeCompare(right.kind) || left.name.localeCompare(right.name),
     );
   };
+
+  const parseDatabaseBackupAuthority = (cluster: Awaited<ReturnType<typeof manager.k8s.get>>) => {
+    const backup = cluster?.spec?.backup;
+    const barman =
+      backup && typeof backup === 'object' && !Array.isArray(backup)
+        ? (backup as Record<string, unknown>).barmanObjectStore
+        : undefined;
+    const destination =
+      barman && typeof barman === 'object' && !Array.isArray(barman)
+        ? (barman as Record<string, unknown>).destinationPath
+        : undefined;
+    const retentionPolicy =
+      backup && typeof backup === 'object' && !Array.isArray(backup)
+        ? (backup as Record<string, unknown>).retentionPolicy
+        : undefined;
+    if (typeof destination !== 'string' || typeof retentionPolicy !== 'string') {
+      throw Object.assign(new Error('CNPG backup authority is incomplete'), {
+        code: 'PROJECT_DATABASE_BACKUP_AUTHORITY_INCOMPLETE',
+        statusCode: 409,
+      });
+    }
+    const destinationMatch = /^gs:\/\/([^/]+)\/(.+)$/.exec(destination.trim());
+    const retentionMatch = /^(\d{1,4})d$/.exec(retentionPolicy.trim());
+    const retentionDays = retentionMatch ? Number(retentionMatch[1]) : Number.NaN;
+    if (!destinationMatch || !Number.isInteger(retentionDays) || retentionDays < 0 || retentionDays > 3650) {
+      throw Object.assign(new Error('CNPG backup authority is invalid'), {
+        code: 'PROJECT_DATABASE_BACKUP_AUTHORITY_INVALID',
+        statusCode: 409,
+      });
+    }
+    return {
+      backupBucket: destinationMatch[1]!,
+      backupPrefix: `${destinationMatch[2]!.replace(/^\/+|\/+$/g, '')}/`,
+      retentionDays,
+    };
+  };
+
+  app.post('/projects/:projectId/permanent-delete/databases/authority', async (request) => {
+    const routeProjectId = z.object({ projectId: z.string().min(1).max(200) }).parse(request.params).projectId;
+    const body = databaseAuthoritySchema.parse(request.body ?? {});
+    if (body.projectId !== routeProjectId) {
+      throw Object.assign(new Error('Database authority project scope changed'), {
+        code: 'PROJECT_DATABASE_ERASURE_SCOPE_MISMATCH',
+        statusCode: 409,
+      });
+    }
+    await manager.assertProjectDeletionLease(body, ['PREPARED']);
+    const authorities = [] as Array<Record<string, unknown>>;
+    for (const instance of body.instances) {
+      const resourceName = `db-${body.projectId}${instance.environment === 'production' ? '-prod' : ''}`
+        .toLowerCase()
+        .slice(0, 53);
+      const [database, isolatedCluster] = await Promise.all([
+        manager.k8s.get('Database', DB_ROLLBACK_NAMESPACE, resourceName),
+        manager.k8s.get('Cluster', DB_ROLLBACK_NAMESPACE, resourceName),
+      ]);
+      if (Boolean(database) === Boolean(isolatedCluster)) {
+        throw Object.assign(new Error('CNPG topology is absent or ambiguous'), {
+          code: 'PROJECT_DATABASE_PHYSICAL_AUTHORITY_AMBIGUOUS',
+          statusCode: 409,
+        });
+      }
+      const owned = database ?? isolatedCluster!;
+      if (
+        owned.metadata.labels?.['vibecore.ai/project-id'] !== body.projectId ||
+        owned.metadata.labels?.['vibecore.ai/org-id'] !== body.expectedOrganizationId ||
+        !owned.metadata.uid ||
+        !owned.metadata.resourceVersion
+      ) {
+        throw Object.assign(new Error('CNPG topology tenant identity changed'), {
+          code: 'PROJECT_DATABASE_PHYSICAL_AUTHORITY_TENANT_MISMATCH',
+          statusCode: 409,
+        });
+      }
+      if (isolatedCluster) {
+        authorities.push({
+          instanceId: instance.id,
+          tier: 'isolated',
+          clusterName: isolatedCluster.metadata.name,
+          clusterUid: isolatedCluster.metadata.uid,
+          ...parseDatabaseBackupAuthority(isolatedCluster),
+        });
+        continue;
+      }
+      const clusterSpec = database!.spec?.cluster;
+      const sharedClusterName =
+        clusterSpec && typeof clusterSpec === 'object' && !Array.isArray(clusterSpec)
+          ? (clusterSpec as Record<string, unknown>).name
+          : undefined;
+      const databaseName = database!.spec?.name;
+      const roleName = database!.spec?.owner;
+      if (typeof sharedClusterName !== 'string' || typeof databaseName !== 'string' || typeof roleName !== 'string') {
+        throw Object.assign(new Error('CNPG Database authority is incomplete'), {
+          code: 'PROJECT_DATABASE_PHYSICAL_AUTHORITY_INCOMPLETE',
+          statusCode: 409,
+        });
+      }
+      const sharedCluster = await manager.k8s.get('Cluster', DB_ROLLBACK_NAMESPACE, sharedClusterName);
+      if (!sharedCluster?.metadata.uid || !sharedCluster.metadata.resourceVersion) {
+        throw Object.assign(new Error('Referenced shared CNPG Cluster is unavailable'), {
+          code: 'PROJECT_DATABASE_SHARED_CLUSTER_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+      authorities.push({
+        instanceId: instance.id,
+        tier: 'shared',
+        clusterName: sharedClusterName,
+        clusterUid: sharedCluster.metadata.uid,
+        databaseCrName: database!.metadata.name,
+        databaseCrUid: database!.metadata.uid,
+        databaseName,
+        roleName,
+        ...parseDatabaseBackupAuthority(sharedCluster),
+      });
+    }
+    await manager.assertProjectDeletionLease(body, ['PREPARED']);
+    return { authorities };
+  });
 
   app.post('/projects/:projectId/permanent-delete/databases/inventory', async (request) => {
     const routeProjectId = z.object({ projectId: z.string().min(1).max(200) }).parse(request.params).projectId;
@@ -1356,8 +1569,16 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         statusCode: 409,
       });
     }
+    const resources = await inventoryProjectDatabaseResources(body, body.knownClusterNames, body.knownResourceNames);
+    const afterCursor = body.cursor
+      ? resources.filter((resource) => `${resource.kind}:${resource.name}` > body.cursor!)
+      : resources;
+    const page = afterCursor.slice(0, body.limit);
     return {
-      resources: await inventoryProjectDatabaseResources(body, body.knownClusterNames, body.knownResourceNames),
+      resources: page,
+      ...(afterCursor.length > page.length && page.length > 0
+        ? { nextCursor: `${page[page.length - 1]!.kind}:${page[page.length - 1]!.name}` }
+        : {}),
     };
   });
 
@@ -1382,6 +1603,12 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
         statusCode: 409,
       });
     }
+    if (current.kind === 'PersistentVolumeClaim') {
+      throw Object.assign(new Error('CNPG PVC deletion is delegated to the project volume erasure saga'), {
+        code: 'PROJECT_DATABASE_PVC_DELETE_DELEGATED',
+        statusCode: 409,
+      });
+    }
     if (!manager.k8s.deleteFenced) {
       throw Object.assign(new Error('Fenced Kubernetes delete is unavailable'), {
         code: 'PROJECT_DATABASE_FENCED_DELETE_UNAVAILABLE',
@@ -1395,6 +1622,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       current.name,
       current.resourceVersion,
       current.uid,
+      current.kind === 'Cluster' ? { propagationPolicy: 'Orphan' } : undefined,
     );
     await manager.assertProjectDeletionLease(body, ['EFFECT_STARTED']);
     return { outcome: 'deleted' as const };

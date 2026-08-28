@@ -62,29 +62,32 @@ async function insertVerifiedDatabasePlan(
   organizationId: string,
 ): Promise<ProjectDatabaseErasureReceipt> {
   const plan = buildProjectDatabaseErasurePlan({
-    schemaVersion: 1,
+    schemaVersion: 2,
     operationId: lease.operationId,
     projectId,
     organizationId,
     capturedAt: new Date().toISOString(),
-    tier: 'isolated',
-    backupBucket: 'vibecore-test-db-backups',
     instances: [],
   });
   const receipt: ProjectDatabaseErasureReceipt = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     operationId: lease.operationId,
     projectId,
     organizationId,
     inventorySha256: plan.inventorySha256,
     verifiedAt: plan.capturedAt,
-    effects: { kubernetesResourcesDeleted: 0, sharedTenantsErased: 0, backupGenerationsDeleted: 0 },
+    effects: {
+      kubernetesResourcesDeleted: 0,
+      sharedTenantsErased: 0,
+      backupGenerationsDeleted: 0,
+      persistentVolumeClaims: [],
+    },
     proof: {
       kubernetesNamespace: 'project-databases',
       kubernetesAbsent: true,
       sharedTenantsAbsent: true,
-      backupBucket: plan.backupBucket,
-      backupPrefix: plan.backupPrefix,
+      backupTargets: [],
+      sharedRetentionBarriers: [],
       backupGenerationsAbsent: true,
     },
   };
@@ -122,9 +125,12 @@ const EMPTY_STATIC_ARTIFACT_PLAN = { summary: EMPTY_STATIC_ARTIFACT_SUMMARY, art
 
 function managedDatabaseDeletionCallbacks() {
   return {
-    databaseErasureConfiguration: {
-      tier: 'isolated' as const,
-      backupBucket: 'vibecore-test-db-backups',
+    resolveLegacyDatabaseAuthorities: async () => [],
+    preflightManagedDatabases: async (
+      plan: ProjectDatabaseErasurePlan,
+      fence: ProjectDatabaseErasureFence,
+    ): Promise<void> => {
+      await fence.assertActive({ ...plan, stage: 'INVENTORY_BOUND', effect: 'test-preflight' });
     },
     purgeManagedDatabases: async (plan: ProjectDatabaseErasurePlan, fence: ProjectDatabaseErasureFence) => {
       await fence.assertActive({ ...plan, stage: 'INVENTORY_BOUND' });
@@ -153,10 +159,15 @@ function managedDatabaseDeletionCallbacks() {
               ? { deletedGenerations: 0 }
               : stage === 'SHARED_SQL_PURGE'
                 ? { erased: 0 }
-                : { deleted: 0 },
+                : { deleted: 0, persistentVolumeClaims: [] },
         });
       }
-      return { kubernetesResourcesDeleted: 0, sharedTenantsErased: 0, backupGenerationsDeleted: 0 };
+      return {
+        kubernetesResourcesDeleted: 0,
+        sharedTenantsErased: 0,
+        backupGenerationsDeleted: 0,
+        persistentVolumeClaims: [],
+      };
     },
     verifyManagedDatabases: async (
       plan: ProjectDatabaseErasurePlan,
@@ -173,11 +184,13 @@ function managedDatabaseDeletionCallbacks() {
         evidence: {
           kubernetesResidueCount: 0,
           backupGenerationResidueCount: 0,
+          backupSoftDeletedResidueCount: 0,
+          sharedRetentionBarrierCount: 0,
           sharedTenantsAbsent: true,
         },
       });
       const receipt: ProjectDatabaseErasureReceipt = {
-        schemaVersion: 1,
+        schemaVersion: 2,
         operationId: plan.operationId,
         projectId: plan.projectId,
         organizationId: plan.organizationId,
@@ -188,8 +201,16 @@ function managedDatabaseDeletionCallbacks() {
           kubernetesNamespace: 'project-databases',
           kubernetesAbsent: true,
           sharedTenantsAbsent: true,
-          backupBucket: plan.backupBucket,
-          backupPrefix: plan.backupPrefix,
+          backupTargets: plan.backupTargets.map((target) => ({
+            ...target,
+            generationsAbsent: true as const,
+            softDeletedAbsent: true as const,
+          })),
+          sharedRetentionBarriers: plan.sharedRetentionBarriers.map((barrier) => ({
+            clusterName: barrier.clusterName,
+            notBefore: barrier.notBefore,
+            satisfiedAt: barrier.notBefore,
+          })),
           backupGenerationsAbsent: true,
         },
       };
@@ -1938,6 +1959,7 @@ runDbTests('object-storage operation saga — real PostgreSQL', () => {
       });
     });
     const deletion = {
+      ...managedDatabaseDeletionCallbacks(),
       projectId: seeded.project.id,
       expectedOrganizationId: seeded.source.id,
       expectedProjectName: seeded.project.name,

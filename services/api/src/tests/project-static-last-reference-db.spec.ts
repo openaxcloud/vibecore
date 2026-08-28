@@ -9,6 +9,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
 import { LocalProjectStorage, type ProjectStorage, withProjectLock } from '../project-storage.js';
 import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
+import { seedVerifiedEmptyProjectVolumeErasure } from './project-volume-erasure-fixture.js';
 
 async function canReachStaticPlanTables(): Promise<boolean> {
   if (!process.env.DATABASE_URL) return false;
@@ -157,6 +159,7 @@ runDbTests('static artifact last-reference erasure', () => {
       label: 'a' | 'b',
     ) => {
       const idempotencyKey = `static-last-ref-${label}-${suffix}`;
+      let volumeProof: Awaited<ReturnType<typeof seedVerifiedEmptyProjectVolumeErasure>> | undefined;
       return store.hardDeleteProject({
         projectId: project.id,
         expectedOrganizationId: organizationId,
@@ -169,11 +172,23 @@ runDbTests('static artifact last-reference erasure', () => {
           actorUserId: actor.id,
           expectedProjectName: project.name,
         }),
+        ...emptyManagedDatabaseErasureCallbacks(),
         preflightPhysicalErasure:
           label === 'a' ? () => storage.prepareProjectStaticErasureWithinPhysicalAccess(project.id) : preflightB,
-        erasePhysical: async () => {
+        erasePhysical: async (_assertLease, lease) => {
           await storage.eraseProjectDataWithinPhysicalAccess(project.id);
           await storage.eraseProjectStaticDataWithinPhysicalAccess!(project.id);
+          const projectRow = await (label === 'a' ? prismaA : prismaB).project.findUniqueOrThrow({
+            where: { id: project.id },
+            select: { ownershipEpoch: true },
+          });
+          volumeProof = await seedVerifiedEmptyProjectVolumeErasure(label === 'a' ? prismaA : prismaB, {
+            operationId: lease.operationId,
+            projectId: project.id,
+            organizationId,
+            ownershipEpoch: projectRow.ownershipEpoch,
+            fencingToken: lease.fencingToken,
+          });
           if (label === 'a') {
             aErased.resolve();
             await releaseA.promise;
@@ -188,7 +203,7 @@ runDbTests('static artifact last-reference erasure', () => {
             outcome: 'VERIFIED_ABSENT',
             verifier: 'static-last-reference-db-test-v1',
             evidence: {
-              schemaVersion: 'project-permanent-erasure-v1',
+              schemaVersion: 'project-permanent-erasure-v3',
               filesystem: {
                 projectTreeAbsent: filesystem.treeAbsent,
                 workspaceTreesAbsent: filesystem.treeAbsent,
@@ -198,6 +213,25 @@ runDbTests('static artifact last-reference erasure', () => {
                 staticArtifactSummary: filesystem.staticArtifactSummary!,
               },
               gcs: { bucketAbsent: true, objectCount: 0 },
+              workspaceManager: {
+                schemaVersion: 'workspace-project-erasure-v3',
+                projectId: project.id,
+                organizationId,
+                databaseInventoryRetained: true,
+                runtimeEffectsDrained: true,
+                kubernetes: {
+                  deploymentsAbsent: true,
+                  replicaSetsAbsent: true,
+                  podsAbsent: true,
+                  servicesAbsent: true,
+                  endpointsAbsent: true,
+                  endpointSlicesAbsent: true,
+                  ingressesAbsent: true,
+                  ownedRuntimeSecretsAbsent: true,
+                  persistentVolumeClaimsAbsent: true,
+                },
+                volumes: volumeProof!,
+              },
             },
           };
         },

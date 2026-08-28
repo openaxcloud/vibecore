@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 
 import type { DatabaseProvisioner } from './database-provisioner.js';
+import type { DatabasePhysicalAuthority } from './store.js';
 import { MigrationRolledBackError } from './db-migration-applier.js';
 import { MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY } from './db-migration-lock.js';
 
@@ -314,6 +315,7 @@ async function waitForVerifiedBackup(input: {
   projectId: string;
   environment: 'production';
   snapshotId: string;
+  physicalAuthority: DatabasePhysicalAuthority;
   timeoutMs: number;
   pollIntervalMs: number;
   lease: LeaseSession;
@@ -334,6 +336,7 @@ async function waitForVerifiedBackup(input: {
             projectId: input.projectId,
             environment: input.environment,
             snapshotId: input.snapshotId,
+            physicalAuthority: input.physicalAuthority,
           })
           .catch((): { found: boolean; completed: boolean; phase?: string } => ({
             found: false,
@@ -404,6 +407,7 @@ export interface RunPublishMigrationInput {
   migrations: DeclaredMigration[];
   connectionString: string;
   engine: string;
+  physicalAuthority: DatabasePhysicalAuthority;
   deploymentId?: string;
   createdByUserId?: string;
   backwardCompatible: boolean;
@@ -547,6 +551,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       organizationId: input.organizationId,
       environment: input.environment,
       snapshotId,
+      physicalAuthority: input.physicalAuthority,
     });
     await lease.guard();
 
@@ -566,6 +571,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       projectId: input.projectId,
       environment: input.environment,
       snapshotId,
+      physicalAuthority: input.physicalAuthority,
       timeoutMs: input.backupTimeoutMs ?? DEFAULT_BACKUP_TIMEOUT_MS,
       pollIntervalMs: input.backupPollIntervalMs ?? DEFAULT_BACKUP_POLL_MS,
       lease,

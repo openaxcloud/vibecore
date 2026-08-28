@@ -63,3 +63,54 @@ roleRef:
   name: workspace-manager-databases
   apiGroup: rbac.authorization.k8s.io
 {{- end }}
+{{- if dig "hardenedRbacManaged" "enabled" false (.Values.database | default dict) }}
+---
+# Collision-free, explicitly enabled authority for the hardened database control plane.
+# The v2 name deliberately does not attempt to adopt the historical out-of-band
+# `workspace-manager-databases` Role. This remains default-off so a chart upgrade
+# cannot silently broaden the workspace-manager service account's permissions.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: workspace-manager-databases-v2
+  namespace: project-databases
+  labels:
+    app.kubernetes.io/part-of: vibecore
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+  - apiGroups: ["postgresql.cnpg.io"]
+    resources: ["clusters", "databases", "scheduledbackups", "backups"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["secrets", "pods", "services", "endpoints", "configmaps", "serviceaccounts", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: ["policy"]
+    resources: ["poddisruptionbudgets"]
+    verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workspace-manager-databases-v2
+  namespace: project-databases
+  labels:
+    app.kubernetes.io/part-of: vibecore
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "vibecore-platform.fullname" . }}-workspace-manager
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: Role
+  name: workspace-manager-databases-v2
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

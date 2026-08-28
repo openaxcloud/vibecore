@@ -192,6 +192,13 @@ describe('project transfer creator fences — TestApiStore', () => {
         organizationId: fixture.sourceOrganization.id,
         retentionDays: 7,
         environment: 'development',
+        physicalAuthority: {
+          tier: 'isolated' as const,
+          clusterName: `db-${fixture.project.id}`.toLowerCase().slice(0, 53),
+          backupBucket: 'vibecore-test-db-backups',
+          backupPrefix: `db/${fixture.project.id}/development/`,
+          retentionDays: 7,
+        },
       };
 
       await expect(fixture.store.createDatabaseInstance(base)).rejects.toMatchObject(staleMutationError);
@@ -318,6 +325,13 @@ describe('project transfer creator fences — TestApiStore', () => {
             retentionDays: 7,
             environment: 'development',
             provisioningDeadlineAt: '2026-08-28T12:00:00.000Z',
+            physicalAuthority: {
+              tier: 'isolated' as const,
+              clusterName: `db-${fixture.project.id}`.toLowerCase().slice(0, 53),
+              backupBucket: 'vibecore-test-db-backups',
+              backupPrefix: `db/${fixture.project.id}/development/`,
+              retentionDays: 7,
+            },
           }),
       },
       {

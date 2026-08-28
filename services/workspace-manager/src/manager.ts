@@ -434,11 +434,11 @@ export interface WorkspaceStore {
   /** Production-only, DB-authoritative project deletion fence. */
   acquireProjectDeletionFence?(
     lease: WorkspaceProjectDeletionLease,
-    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
   ): Promise<WorkspaceProjectDeletionInventory>;
   assertProjectDeletionLease?(
     lease: WorkspaceProjectDeletionLease,
-    allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[],
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
   ): Promise<void>;
   completeProjectDeletion?(lease: WorkspaceProjectDeletionLease): Promise<number>;
   inspectProjectDeletionState?(lease: WorkspaceProjectDeletionLease): Promise<WorkspaceProjectDeletionState>;
@@ -3260,6 +3260,13 @@ export class WorkspaceManager {
     return this.store.executeProjectCsiProvisionEffect(input, effect);
   }
 
+  assertProjectDeletionLease(
+    lease: WorkspaceProjectDeletionLease,
+    allowedStatuses: readonly ('PREPARED' | 'EFFECT_STARTED' | 'VERIFYING')[],
+  ): Promise<void> {
+    return this.projectDeletionStore().assertLease(lease, allowedStatuses);
+  }
+
   executeDeploymentProvisionEffect<T>(
     input: string | { deploymentId: string; projectId: string; expectedOrganizationId: string },
     effect: (assertAuthority: () => Promise<void>) => Promise<T>,
@@ -3386,6 +3393,7 @@ export class WorkspaceManager {
     namespace: string,
     lease: WorkspaceProjectDeletionLease,
     allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[] = ['EFFECT_STARTED'],
+    additionalVolumeCandidates: readonly WorkspaceProjectVolumeCandidate[] = [],
   ): Promise<WorkspaceProjectDeletionResult> {
     const authority = this.projectDeletionStore();
     const inventory = await authority.acquire(lease, allowedStatuses);
@@ -3475,7 +3483,37 @@ export class WorkspaceManager {
       add('PersistentVolumeClaim', `reserved-data-${deploymentId}`);
     }
 
+    const exactAdditionalCandidates = new Map<string, WorkspaceProjectVolumeCandidate>();
+    for (const candidate of additionalVolumeCandidates) {
+      if (candidate.namespace !== 'project-databases' || !candidate.pvcName || !candidate.expectedPvcUid) {
+        throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+          statusCode: 409,
+        });
+      }
+      const key = `${candidate.namespace}/${candidate.pvcName}`;
+      const previous = exactAdditionalCandidates.get(key);
+      if (previous && previous.expectedPvcUid !== candidate.expectedPvcUid) {
+        throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+          statusCode: 409,
+        });
+      }
+      exactAdditionalCandidates.set(key, candidate);
+    }
+
     let volumePlan = await authority.loadVolumePlan(lease);
+    if (
+      volumePlan &&
+      [...exactAdditionalCandidates.values()].some((candidate) => {
+        const target = volumePlan!.targets.find(
+          (entry) => entry.namespace === candidate.namespace && entry.pvcName === candidate.pvcName,
+        );
+        return !target || target.expectedPvcUid !== candidate.expectedPvcUid;
+      })
+    ) {
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
+        statusCode: 409,
+      });
+    }
     if (!volumePlan) {
       const candidateUids = new Map<string, string>();
       const volumeCandidates = new Map<string, WorkspaceProjectVolumeCandidate>();
@@ -3499,6 +3537,7 @@ export class WorkspaceManager {
             : {}),
         });
       };
+      for (const candidate of exactAdditionalCandidates.values()) mergeCandidate(candidate);
       for (const target of inventory.runtimeEffectTargets) {
         if (target.kind === 'PersistentVolumeClaim') {
           mergeCandidate({
@@ -3700,7 +3739,7 @@ export class WorkspaceManager {
     });
     volumePlan = await authority.recordVolumeFinalScan(lease, finalScan);
     await authority.complete(lease);
-    return this.verifyProjectWorkspacesAbsent(namespace, lease, allowedStatuses, false);
+    return this.verifyProjectWorkspacesAbsent(namespace, lease, allowedStatuses, false, additionalVolumeCandidates);
   }
 
   async verifyProjectWorkspacesAbsent(
@@ -3708,6 +3747,7 @@ export class WorkspaceManager {
     lease: WorkspaceProjectDeletionLease,
     allowedStatuses: readonly ('EFFECT_STARTED' | 'VERIFYING')[] = ['VERIFYING'],
     resumeIfIncomplete = true,
+    additionalVolumeCandidates: readonly WorkspaceProjectVolumeCandidate[] = [],
   ): Promise<WorkspaceProjectDeletionResult> {
     const authority = this.projectDeletionStore();
     await authority.assertLease(lease, allowedStatuses);
@@ -3813,7 +3853,7 @@ export class WorkspaceManager {
       exactRuntimeEffectResources.some((object) => object !== undefined)
     ) {
       if (resumeIfIncomplete && allowedStatuses.includes('VERIFYING')) {
-        return this.purgeProjectWorkspaces(namespace, lease, ['VERIFYING']);
+        return this.purgeProjectWorkspaces(namespace, lease, ['VERIFYING'], additionalVolumeCandidates);
       }
       throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.projectDeletionResourceRemains, {
         statusCode: 503,

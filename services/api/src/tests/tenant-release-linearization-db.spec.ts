@@ -530,6 +530,13 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
           retentionDays: 7,
           environment: 'development',
           provisioningDeadlineAt: new Date(Date.now() + 60_000).toISOString(),
+          physicalAuthority: {
+            tier: 'isolated' as const,
+            clusterName: `db-${project.id}`.toLowerCase().slice(0, 53),
+            backupBucket: 'vibecore-test-db-backups',
+            backupPrefix: `db/${project.id}/development/`,
+            retentionDays: 7,
+          },
         }),
         storeB.completeDatabaseProvisioning(provisioning.id, {
           projectId: project.id,

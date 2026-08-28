@@ -685,6 +685,23 @@ describe('WorkspaceManager', () => {
     ] as const) {
       await k8s.apply({ apiVersion: 'v1', kind, metadata: { namespace: deletionInput.namespace, name, labels } });
     }
+    const cnpgVolumeCandidate = {
+      namespace: 'project-databases',
+      pvcName: 'project-1-development-1',
+      expectedPvcUid: 'uid-project-1-development-1',
+    } as const;
+    await k8s.apply({
+      apiVersion: 'v1',
+      kind: 'PersistentVolumeClaim',
+      metadata: {
+        namespace: cnpgVolumeCandidate.namespace,
+        name: cnpgVolumeCandidate.pvcName,
+        labels: {
+          'vibecore.ai/project-id': deletionInput.projectId,
+          'vibecore.ai/org-id': deletionInput.orgId,
+        },
+      },
+    });
     // More than the historical request batch size proves that replay cannot
     // loop forever over durable names whose Kubernetes objects are now absent.
     for (let ordinal = 0; ordinal < 30; ordinal += 1) {
@@ -708,14 +725,24 @@ describe('WorkspaceManager', () => {
       expectedOrganizationId: deletionInput.orgId,
     };
 
-    let proof = await manager.purgeProjectWorkspaces(deletionInput.namespace, lease);
+    let proof = await manager.purgeProjectWorkspaces(
+      deletionInput.namespace,
+      lease,
+      ['EFFECT_STARTED'],
+      [cnpgVolumeCandidate],
+    );
     expect(proof).toMatchObject({
       schemaVersion: 'workspace-project-erasure-progress-v1',
       phase: 'volume-erasure',
       processed: 1,
     });
     while (proof.schemaVersion === 'workspace-project-erasure-progress-v1') {
-      proof = await manager.purgeProjectWorkspaces(deletionInput.namespace, lease);
+      proof = await manager.purgeProjectWorkspaces(
+        deletionInput.namespace,
+        lease,
+        ['EFFECT_STARTED'],
+        [cnpgVolumeCandidate],
+      );
     }
 
     expect(proof).toMatchObject({
@@ -737,8 +764,8 @@ describe('WorkspaceManager', () => {
       },
       volumes: {
         schemaVersion: 'project-volume-erasure-receipt-v1',
-        entryCount: 3,
-        erasedEntryCount: 2,
+        entryCount: 4,
+        erasedEntryCount: 3,
         alreadyAbsentEntryCount: 1,
         persistentVolumeClaimsAbsent: true,
         persistentVolumesAbsent: true,
