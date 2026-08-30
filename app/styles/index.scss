@@ -496,8 +496,27 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  --vc-action-primary: var(--vc-ide-accent-action);
+  /*
+   * SOURCE UNIQUE de l'action primaire : l'orange de marque.
+   *
+   * Avant, ces deux jetons se définissaient L'UN PAR L'AUTRE, et le sens de la
+   * dérivation s'inversait selon la coque : `:root` posait
+   * `--vc-ide-accent-action: #0099ff` puis en dérivait le primaire (donc BLEU),
+   * tandis que `.vc-user-area-shell` posait `--vc-action-primary: #f97316` puis
+   * en dérivait l'accent (donc ORANGE). La même action primaire sortait bleue
+   * ou orange selon la règle qui l'emportait — d'où des boutons bleus
+   * apparaissant au hasard dans le produit.
+   *
+   * Le sens est désormais fixe et unique : `--vc-action-primary` porte la
+   * valeur, `--vc-ide-accent-action` en dérive, jamais l'inverse.
+   * `deploy-color-tokens.spec.ts` refuse toute réintroduction d'un cycle.
+   *
+   * Contraste vérifié : texte #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y
+   * passerait PAS (2,80:1) — c'est pourquoi le premier plan est sombre ici et
+   * blanc en thème clair, où le ton renforcé #c2410c prend le relais.
+   */
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
   // CTA plein porteur de texte blanc. Dans l'IDE il reste sur l'accent action ;
   // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
   // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
@@ -507,9 +526,12 @@ html:has(.vc-app-shell-grid) body {
   // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
   // repasserait donc SOUS AA au survol.
   --vc-action-primary-strong-hover: #a33c00;
-  --vc-action-primary-hover: #007fe0;
-  --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  // Survol : orange assombri. #111827 dessus = 4,98:1 (AA).
+  --vc-action-primary-hover: #ea580c;
+  // #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y passerait pas : 2,80:1.
+  --vc-action-primary-foreground: #111827;
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
@@ -851,13 +873,18 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
-  --vc-ide-accent-action: #006fd6;
-  --vc-action-primary: var(--vc-ide-accent-action);
+  // Thème clair : le ton renforcé de la marque. Blanc dessus = 5,18:1 (AA) ;
+  // #f97316 y serait trop clair pour porter du blanc.
+  --vc-action-primary: #c2410c;
+  --vc-ide-accent-action: var(--vc-action-primary);
   --vc-action-primary-strong: #c2410c;
   --vc-action-primary-strong-hover: #a33c00;
-  --vc-action-primary-hover: #0059ab;
+  // Survol clair : le ton renforcé assombri. Blanc dessus = 7,31:1 (AA).
+  --vc-action-primary-hover: #9a3412;
+  // Blanc sur #c2410c = 5,18:1 (AA).
   --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
@@ -872,7 +899,14 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success-on-tint: #0d6b39;
   --vc-ide-accent-warning-on-tint: #9a4708;
   --vc-ide-accent-error-on-tint: #b91c1c;
-  --vc-ide-accent-action-on-tint: #1d4ed8;
+  /*
+   * #9a3412, pas #c2410c : sur sa propre teinte claire — 14% d'orange sur blanc,
+   * soit rgb(254,235,222) — le ton renforcé ne rend que 4,48:1 et passe donc
+   * SOUS le seuil AA. #9a3412 rend 6,32:1. Le #1d4ed8 qui figurait ici venait de
+   * l'époque où l'action primaire était bleue ; il n'a plus de sens sur une
+   * teinte orange.
+   */
+  --vc-ide-accent-action-on-tint: #9a3412;
   --vc-ide-accent: var(--vc-ide-accent-action);
   --vc-ide-accent-primary: var(--vc-ide-accent-action);
   --vc-ide-accent-green: var(--vc-ide-accent-success);
@@ -1122,8 +1156,10 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
