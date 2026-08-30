@@ -835,6 +835,40 @@ html:has(.vc-app-shell-grid) body {
  * stay fixed is sized in px inside its own `max-width:1024px` queries and is
  * unaffected.
  */
+/*
+ * IOS-ZOOM-001 — Safari iOS zoome sur tout champ dont la police RENDUE est
+ * inférieure à 16px, et ne dézoome jamais tout seul. Avi le constate sur la
+ * zone de saisie de l'agent : l'écran saute dès qu'il touche le champ.
+ *
+ * LA CAUSE EST CELLE QU'ON CONNAÎT. `--vc-type-interface-size` redéfinit la base
+ * rem à 14px sous 1024px. Un champ écrit `text-base` (1rem) rend donc 14px —
+ * sous le seuil. Les pages d'authentification y échappent parce qu'elles posent
+ * une taille explicite ; le reste du produit, non.
+ *
+ * CE QU'ON NE FAIT PAS : `maximum-scale=1` ou `user-scalable=no` dans la balise
+ * viewport. C'est la solution de facilité, elle empêche l'utilisateur de zoomer
+ * VOLONTAIREMENT — un vrai défaut d'accessibilité — et elle ne corrige pas la
+ * cause.
+ *
+ * On impose donc 16px EN PIXELS, seule unité que la base rem ne peut pas
+ * déformer, exactement comme pour les planchers tactiles.
+ *
+ * Portée limitée à <=1024px, là où vivent les appareils iOS : au-delà, Safari ne
+ * zoome pas au focus, et gonfler les champs y romprait la densité assumée du
+ * desktop sans rien corriger.
+ *
+ * Les types NON TEXTUELS sont exclus : une case à cocher ou un curseur n'a pas
+ * de texte à zoomer, et leur imposer une taille de police déforme leur boîte.
+ */
+@media (max-width: 1024px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select {
+    /* 16px, en pixels. Voir IOS-ZOOM-001 : en rem, la base le dégonflerait. */
+    font-size: 16px;
+  }
+}
+
 @media (max-width: 1024px) {
   :root {
     --vc-type-interface-size: 14px;
