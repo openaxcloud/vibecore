@@ -5,9 +5,17 @@
  * erreurs. Les quatre `TS2304` qu'elle masquait — le panneau Intégrations qui ne
  * s'affichait pas du tout — sont CORRIGÉES, avec deux autres plantages.
  *
- * Il reste 12 erreurs de typage, plus aucune de type « nom introuvable ». Elles
- * ne sont pas oubliées : `BaseChat.ts-nocheck-debt.spec.ts` fige le compte et
- * échoue s'il remonte.
+ * Deuxième passe le 2026-08-31 : les 5 erreurs à risque d'exécution sont
+ * traitées (TS2339 champ absent du type de l'état, TS18048/TS2345 sur deux
+ * `filter(Boolean)` qui ne restreignaient rien, TS2345 sur un corps réseau
+ * `unknown`, TS2684 qui cachait un vrai décalage d'indentation des branches
+ * racines). 12 → 7.
+ *
+ * Il reste 7 erreurs, toutes de la même famille : des types structurellement
+ * voisins (`IdePaneTab` vs `ProjectIdePaneTab`) que TypeScript refuse
+ * d'assimiler. Aucune n'a de conséquence à l'exécution. Elles ne sont pas
+ * oubliées : `BaseChat.ts-nocheck-debt.spec.ts` fige le compte et échoue s'il
+ * remonte.
  *
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
@@ -3765,8 +3773,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [agentPatchProposals, language, scheduleAppliedFilesToast, projectAutoApply]);
 
+    /*
+     * `backendConversationId` est optionnel et non absent : les conversations
+     * venues du backend le portent (c'est la clé de rollback côté serveur),
+     * celles reconstruites depuis la mémoire locale non. Le type l'omettait,
+     * alors que `projectConversationCheckpoints` le lit — TS2339 masqué par
+     * `@ts-nocheck`. Le lire restait correct à l'exécution, mais rien
+     * n'empêchait plus de le supprimer par erreur.
+     */
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
-      Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
+      Array<{
+        id: string;
+        title?: string;
+        messages: Message[];
+        createdAt?: string;
+        updatedAt?: string;
+        backendConversationId?: string;
+      }>
     >([]);
 
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
@@ -4873,15 +4896,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }),
         );
 
-        return hydrated.filter(Boolean);
+        /*
+         * Même correction qu'en mémoire : `filter(Boolean)` retire bien les
+         * conversations dont l'hydratation a échoué (retour `undefined`), mais
+         * seul un prédicat de type le dit à TypeScript.
+         */
+        return hydrated.filter((conversation): conversation is NonNullable<typeof conversation> =>
+          Boolean(conversation),
+        );
       }
 
       async function loadProjectConversationMemory() {
         try {
           const memory = await getProjectIdeMemory(safeProjectId, safeWorkspaceId);
 
+          /*
+           * Prédicat de type et non simple booléen : le filtre RETIRE bien les
+           * entrées nulles à l'exécution, mais sans `is` TypeScript garde
+           * `possibly undefined` sur chaque élément (TS18048, masqué par
+           * `@ts-nocheck`). Le comportement est identique ; c'est le type qui
+           * décrit enfin ce que le filtre garantit.
+           */
           const memoryConversations = (memory?.chat?.conversations ?? []).filter(
-            (conversation) => conversation && Array.isArray(conversation.messages),
+            (conversation): conversation is NonNullable<typeof conversation> =>
+              Boolean(conversation) && Array.isArray(conversation?.messages),
           );
 
           const liveAiConversationId = memory?.chat?.metadata?.aiConversationId;
@@ -18811,26 +18849,36 @@ function ProjectAgentStudioPanel({
         </PanelSectionTitle>
         {branchCount ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
-            {tree.flatMap(function flatten(node, depth = 0): React.ReactNode[] {
-              const label = node.conversation.title?.trim() || node.conversation.id;
+            {/*
+             * DÉFAUT RÉEL, pas seulement de typage : `flatMap` passe l'INDICE en
+             * deuxième argument. Le paramètre s'appelant `depth`, chaque branche
+             * racine recevait sa position comme profondeur — la 2e racine était
+             * décalée de 12 px, la 3e de 24 px, comme si elles étaient imbriquées
+             * les unes dans les autres. L'enveloppe force `depth = 0` à la
+             * racine ; c'est aussi ce que disait TS2684, masqué par `@ts-nocheck`.
+             */}
+            {tree.flatMap((rootNode) =>
+              (function flatten(node: (typeof tree)[number], depth: number): React.ReactNode[] {
+                const label = node.conversation.title?.trim() || node.conversation.id;
 
-              return [
-                <li key={node.conversation.id} className="flex items-center gap-2 py-1.5 text-sm">
-                  <span className="i-ph:git-branch text-bolt-elements-textSecondary" aria-hidden />
-                  <span
-                    className="truncate text-bolt-elements-textPrimary"
-                    style={{ paddingLeft: `${depth * 12}px` }}
-                    title={label}
-                  >
-                    {label}
-                  </span>
-                  <span className="ml-auto text-xs text-bolt-elements-textSecondary">
-                    {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
-                  </span>
-                </li>,
-                ...node.children.flatMap((child) => flatten(child, depth + 1)),
-              ];
-            })}
+                return [
+                  <li key={node.conversation.id} className="flex items-center gap-2 py-1.5 text-sm">
+                    <span className="i-ph:git-branch text-bolt-elements-textSecondary" aria-hidden />
+                    <span
+                      className="truncate text-bolt-elements-textPrimary"
+                      style={{ paddingLeft: `${depth * 12}px` }}
+                      title={label}
+                    >
+                      {label}
+                    </span>
+                    <span className="ml-auto text-xs text-bolt-elements-textSecondary">
+                      {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
+                    </span>
+                  </li>,
+                  ...node.children.flatMap((child) => flatten(child, depth + 1)),
+                ];
+              })(rootNode, 0),
+            )}
           </ul>
         ) : (
           <p className="text-sm text-bolt-elements-textSecondary">
