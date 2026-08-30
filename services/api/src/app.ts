@@ -25686,12 +25686,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ workspace });
   });
+  /*
+   * Le statut rendu doit décrire le CLUSTER, pas une ligne qui a cessé d'y
+   * correspondre.
+   *
+   * Mesuré en production le 2026-08-30 : 125 espaces de travail se déclaraient
+   * `RUNNING` en base alors qu'UN SEUL pod tournait dans le namespace
+   * `workspaces`. Un seul enregistrement avait été mis à jour dans les 24
+   * dernières heures. L'IDE lisait ce statut, affichait « en cours d'exécution »,
+   * et chaque opération sur un fichier répondait 425 : le produit mentait à son
+   * utilisateur, puis lui donnait tort.
+   *
+   * La dérive vient de ce que le statut n'est écrit QUE sur des transitions
+   * volontaires. Un pod qui disparaît autrement — éviction, réduction de nœuds,
+   * reclamation d'inactivité côté cluster — ne repasse par aucune de ces
+   * écritures, et la ligne reste indéfiniment sur sa dernière valeur.
+   *
+   * On ne fait pas confiance à la ligne : on SONDE. Et la correction est
+   * persistée, pour que la prochaine lecture — et les tableaux de bord qui
+   * comptent les espaces actifs — parte d'une base juste.
+   */
+  const RUNNING_PROBE_GRACE_MS = 30_000;
+
+  const reconcileWorkspaceStatus = async <T extends { id: string; status: string; updatedAt?: Date | string }>(
+    workspace: T,
+  ): Promise<T> => {
+    if (workspace.status !== 'RUNNING') {
+      /*
+       * PENDING et STARTING ne sont PAS sondés : ne pas être joignable est leur
+       * état normal, et les rétrograder transformerait un démarrage en panne.
+       * STOPPED et FAILED ne prétendent rien : il n'y a rien à corriger.
+       */
+      return workspace;
+    }
+
+    /*
+     * Une écriture toute fraîche a la priorité sur la sonde : un pod qui vient
+     * d'être marqué RUNNING peut n'avoir pas encore de route réseau, et le
+     * rétrograder ici annulerait un démarrage réussi une seconde plus tôt.
+     */
+    const updatedAt = workspace.updatedAt ? new Date(workspace.updatedAt).getTime() : 0;
+
+    if (updatedAt && Date.now() - updatedAt < RUNNING_PROBE_GRACE_MS) {
+      return workspace;
+    }
+
+    let reachable: boolean;
+
+    try {
+      reachable = await probeAgentHealth(workspace.id);
+    } catch {
+      /*
+       * Une sonde qui échoue pour une raison qui ne la regarde pas ne doit pas
+       * décider du statut. Dans le doute, on rend ce qui est stocké : mentir dans
+       * l'autre sens serait tout aussi faux.
+       */
+      return workspace;
+    }
+
+    if (reachable) {
+      return workspace;
+    }
+
+    /*
+     * STOPPED et non FAILED : un pod reclamé n'est pas une panne. C'est aussi
+     * l'état depuis lequel le chemin d'écriture sait relancer un provisionnement
+     * (voir `agentMutateEnsuring`), donc l'utilisateur retrouve son espace en
+     * travaillant, sans geste explicite.
+     */
+    await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+
+    return { ...workspace, status: 'STOPPED' };
+  };
+
   app.get('/workspaces/:workspaceId', async (request) => ({
-    workspace: await requireWorkspace(
-      request,
-      store,
-      parse(workspaceParams, request.params).workspaceId,
-      'workspaces:read',
+    workspace: await reconcileWorkspaceStatus(
+      await requireWorkspace(request, store, parse(workspaceParams, request.params).workspaceId, 'workspaces:read'),
     ),
   }));
 
