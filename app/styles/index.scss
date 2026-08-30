@@ -20164,11 +20164,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      *
      * `clamp(236px, 36dvh, 360px)` décrivait un composer à TROIS blocs. Avec le
      * champ sur une ligne et UNE rangée de commandes, deux lignes suffisent :
-     * ~44px de champ + ~44px de commandes + marges. La valeur mesurée
-     * (`--vc-agent-composer-measured-height`) reste prioritaire — ce repli ne
-     * sert que le premier rendu, avant mesure.
+     * ~44px de champ + ~44px de commandes + marges.
+     *
+     * POURQUOI 168 ET NON 132. Un premier jet à 132px a fait tomber
+     * `ui-details` : « transcript tail above composer ». Ce repli ne sert pas
+     * qu'à réserver de la place — il sert AUSSI de rembourrage au bas du fil,
+     * pour que le dernier message ne glisse pas sous la zone de saisie. Trop
+     * court, la queue du transcript passait dessous.
+     *
+     * 168px couvre le composer au repos ET la pile d'avertissements quand elle
+     * est présente. C'est encore 29 % de moins que les 236px d'avant, et la
+     * valeur MESURÉE (`--vc-agent-composer-measured-height`) reprend la main dès
+     * le premier rendu : ce repli ne gouverne que la toute première image.
      */
-    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(132px, 20dvh, 200px));
+    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(168px, 26dvh, 240px));
     height: 100%;
     max-height: 100%;
     padding-bottom: 0;
