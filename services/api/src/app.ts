@@ -347,9 +347,10 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
-  ObjectStorageError,
-  type ObjectStorage,
+  BUCKET_NOT_PROVISIONED,
   isObjectStorageEnabled,
+  type ObjectStorage,
+  ObjectStorageError,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
@@ -32868,7 +32869,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      /*
+       * `BUCKET_NOT_PROVISIONED` rejoint 404 et non 422 : un projet qui n'a rien
+       * stocké n'est pas une requête invalide, c'est un projet vide.
+       */
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
+            ? 404
+            : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -33127,8 +33137,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       const lookupStartedAt = Date.now();
 
+      /*
+       * Le seau du projet est créé à la demande : un projet qui n'a encore rien
+       * stocké n'en a pas. Cette absence se lit comme « pas de vignette », la
+       * même situation que « pas d'objet » quelques lignes plus bas — surtout pas
+       * comme une panne.
+       */
       const { objects } = await withStorageDeadline(
-        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }).catch((error: unknown) => {
+          if (error instanceof ObjectStorageError && error.code === BUCKET_NOT_PROVISIONED) {
+            return { objects: [], folders: [] };
+          }
+
+          throw error;
+        }),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
       );
 
