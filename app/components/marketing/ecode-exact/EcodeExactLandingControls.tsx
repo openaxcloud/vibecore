@@ -652,6 +652,19 @@ export function BuildModeSelector({
     return null;
   }
 
+  /*
+   * TACTILE-002 — `w-full sm:w-auto` sous un parent `flex-col sm:flex-row`
+   * donnait, en 390, un bouton « Fermer » de 309x44 occupant une LIGNE ENTIÈRE
+   * sous le titre. Mesuré : 87 % de la largeur de la modale dépensée pour la
+   * sortie, au moment le plus décisif du parcours, et les deux choix repoussés
+   * d'autant vers le bas.
+   *
+   * Il redevient ce qu'un bouton de fermeture doit être : une croix ancrée en
+   * haut à droite, à toutes les largeurs. Le libellé reste porté par
+   * `aria-label`, donc rien n'est perdu au lecteur d'écran ni aux tests qui
+   * cherchent par nom accessible. 44px de côté : la cible tactile est conservée.
+   */
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -680,19 +693,6 @@ export function BuildModeSelector({
                 {copy.buildMode.approach}
               </p>
             </div>
-            {/*
-              * TACTILE-002 — `w-full sm:w-auto` sous un parent `flex-col sm:flex-row`
-              * donnait, en 390, un bouton « Fermer » de 309x44 occupant une LIGNE
-              * ENTIÈRE sous le titre. Mesuré : 87 % de la largeur de la modale
-              * dépensée pour la sortie, au moment le plus décisif du parcours, et
-              * les deux choix repoussés d'autant vers le bas.
-              *
-              * Il redevient ce qu'un bouton de fermeture doit être : une croix
-              * ancrée en haut à droite, à toutes les largeurs. Le libellé reste
-              * porté par `aria-label`, donc rien n'est perdu au lecteur d'écran ni
-              * aux tests qui cherchent par nom accessible. 44px de côté : la cible
-              * tactile est conservée.
-              */}
             <Button
               type="button"
               variant="ghost"
