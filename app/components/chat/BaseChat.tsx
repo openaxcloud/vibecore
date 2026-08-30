@@ -202,11 +202,17 @@ import {
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
+import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
-  isRedundantPanelSearchParamUpdate,
-  readPanelSearchParam,
-  withPanelSearchParam,
-} from '~/utils/project-ide-panel-url';
+  IDE_AGENT_PANEL,
+  ideMobileTarget,
+  isIdeRightPanel,
+  isIdeWorkspacePanel,
+  resolveIdePanelKey,
+  type IdeManagementPanel,
+  type IdeRightPanel,
+  type IdeWorkspacePanel,
+} from '~/lib/ide/panel-registry';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -420,48 +426,11 @@ function readProjectBottomTerminalUiState() {
   }
 }
 
-const IDE_MANAGEMENT_PANELS = [
-  'overview',
-  'studio',
-
-  /*
-   * BUG-IDE-013 — « Problèmes » doit être un panneau à part entière.
-   *
-   * La barre d'état comptait juste (« Problèmes 1 0 ») mais le clic n'ouvrait
-   * rien : `openBottomTerminal('problems')` routait vers la surface TERMINAL,
-   * gelée, qui ignore `bottomTerminalView` et affiche toujours le Shell.
-   * L'utilisateur voyait donc qu'il avait une erreur sans aucun moyen de savoir
-   * laquelle. En faire un panneau lui donne une adresse (`?panel=problems`) et,
-   * sur mobile, une tuile propre — sans toucher à la surface gelée.
-   */
-  'problems',
-  'database',
-  'object-storage',
-  'packages',
-  'skills',
-  'monitoring',
-  'ports',
-  'extensions',
-  'integrations',
-  'workflows',
-  'debugger',
-  'deployments',
-  'security',
-  'env',
-  'secrets',
-  'git',
-  'activity',
-  'terminal',
-  'logs',
-  'collaborators',
-  'domains',
-  'snapshots',
-  'settings',
-] as const;
-
-const IDE_RIGHT_PANELS = ['files'] as const;
-const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
-const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
+/*
+ * Les listes de panneaux vivent désormais dans `~/lib/ide/panel-registry` :
+ * une seule source de vérité pour l'URL, l'en-tête et le contenu.
+ * BUG-IDE-PANEL-RESOLUTION-001.
+ */
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
 /*
@@ -581,9 +550,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   locks: 'chat.copy.lockedFiles_9c2ea979',
 };
 
-type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
-type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
-type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
 type IdePaneTab = {
   id: string;
   panel: IdeWorkspacePanel;
@@ -599,7 +565,6 @@ type AgentToolAction = {
   icon: string;
 };
 
-const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {};
 type ProjectSnapshot = {
   id: string;
   label?: string;
@@ -1880,18 +1845,6 @@ function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
   }
 
   return result;
-}
-
-function isIdeRightPanel(panel: string): panel is IdeRightPanel {
-  return (IDE_RIGHT_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
-  return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
-  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
 }
 
 function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}): IdePaneTab {
@@ -3290,6 +3243,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
+    /*
+     * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
+     * contenu lisent cette unique valeur — elle est écrite par le seul entonnoir
+     * `setMobileIdePanel`, que l'ouverture vienne de l'URL, d'un onglet ou d'un outil.
+     */
+    const [mobileServicePanel, setMobileServicePanel] = useState<IdeManagementPanel>('deployments');
+
     const { setActivePanel: persistMobilePanel } = useMobileIdePersistence(projectIdeMode ? projectId : undefined);
 
     const ensureMobileOpenTab = useCallback(
@@ -3314,9 +3274,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
     const setMobileIdePanel = useCallback(
       (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
+        const tabId = options.activeTabId ?? (panel === 'chat' ? 'agent' : panel);
+
+        /*
+         * BUG-IDE-PANEL-RESOLUTION-001 — l'onglet demandé décide du contenu ET
+         * de l'en-tête. Sans ça, un onglet ouvert hors URL (outil, raccourci,
+         * barre du bas) laissait le contenu sur sa valeur précédente pendant que
+         * l'en-tête affichait le nouvel onglet.
+         */
+        if (panel === 'deploy') {
+          const tabResolution = resolveIdePanelKey(tabId);
+
+          if (tabResolution.status === 'canonical' || tabResolution.status === 'alias') {
+            const target = ideMobileTarget(tabResolution.panel);
+
+            if (target.servicePanel) {
+              setMobileServicePanel(target.servicePanel);
+            }
+          }
+        }
+
         setMobilePanel(panel);
         persistMobilePanel(panel);
-        ensureMobileOpenTab(options.activeTabId ?? (panel === 'chat' ? 'agent' : panel));
+        ensureMobileOpenTab(tabId);
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
@@ -3424,7 +3404,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -3882,7 +3861,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
-    const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
+
+    /*
+     * BUG-IDE-PANEL-RESOLUTION-001 — une seule résolution, explicite, pour tout
+     * l'IDE. `agent`/`chat` sont acceptés (le dock Agent est un panneau
+     * affichable), les alias historiques sont canonisés dans l'URL, et une clé
+     * inconnue n'est plus muette : elle est signalée et retirée de l'URL au
+     * lieu d'afficher un panneau que personne n'a demandé.
+     */
+    const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
+    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
+    const activeProjectPanel =
+      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
+        ? projectPanelResolution.panel
+        : '';
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
@@ -3910,9 +3903,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [setSearchParams],
     );
 
-    const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
-      return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
-    }, [activeProjectPanel]);
+    /*
+     * Canonisation et traitement EXPLICITE de la clé d'URL.
+     *  - alias connu (`chat`, `deploy`, `web`…) → l'URL est réécrite vers la clé
+     *    canonique, pour que le lien partagé et l'état affiché coïncident ;
+     *  - clé inconnue → message visible + paramètre retiré, au lieu du repli
+     *    muet sur `deployments` qui affichait un panneau jamais demandé.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return;
+      }
+
+      if (projectPanelResolution.status === 'alias') {
+        setProjectPanelSearchParam(projectPanelResolution.panel);
+        return;
+      }
+
+      if (projectPanelResolution.status === 'unknown') {
+        // Un seul message par clé : `searchParams` change d'identité à chaque rendu.
+        if (warnedUnknownPanelRef.current !== projectPanelResolution.requested) {
+          warnedUnknownPanelRef.current = projectPanelResolution.requested;
+          toast.warn(t('chat.copy.unknownIdePanel_9d1c4b70', { value0: projectPanelResolution.requested }));
+        }
+
+        setProjectPanelSearchParam(undefined);
+      }
+    }, [projectIdeMode, projectPanelResolution, setProjectPanelSearchParam, t]);
+
+    /*
+     * Le panneau de service affiché sur la surface mobile « deploy ». Il ne se
+     * déduit plus par défaut : il ne change QUE lorsqu'une clé résolue désigne
+     * réellement un panneau de service. L'en-tête lit la même valeur, donc
+     * en-tête et contenu ne peuvent plus diverger (« Agent » au-dessus de
+     * Déploiements), quel que soit l'ordre de montage des onglets.
+     */
+    const activeMobileServicePanel = mobileServicePanel;
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -5813,32 +5839,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      // Le dock Agent est un panneau affichable : `?panel=agent` doit l'ouvrir, pas être ignoré.
+      if (activeProjectPanel === IDE_AGENT_PANEL) {
+        if (useMobileIde) {
+          setMobileIdePanel('chat');
+        } else {
+          setProjectAgentPanelOpen(true);
+        }
+
+        return;
+      }
+
       if (isIdeWorkspacePanel(activeProjectPanel)) {
         if (useMobileIde) {
-          if (activeProjectPanel === 'terminal') {
-            setMobileIdePanel('terminal');
-          } else if (activeProjectPanel === 'preview') {
-            setMobileIdePanel('preview');
-          } else if (activeProjectPanel === 'files') {
-            setMobileIdePanel('files');
-          } else if (activeProjectPanel === 'search') {
-            setMobileIdePanel('search');
-          } else if (activeProjectPanel === 'editor') {
-            setMobileIdePanel('editor');
-          } else if (activeProjectPanel === 'locks') {
-            setMobileIdePanel('locks');
-          } else if (isIdeManagementPanel(activeProjectPanel)) {
-            setMobileIdePanel('deploy', {
-              activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
-            });
-          }
+          const target = ideMobileTarget(activeProjectPanel);
+          setMobileIdePanel(target.surface, { activeTabId: target.tabId });
 
           return;
         }
 
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
       }
-    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      openWorkspacePanel,
+      projectIdeMode,
+      projectStateReady,
+      setMobileIdePanel,
+      setProjectAgentPanelOpen,
+      useMobileIde,
+    ]);
 
     /*
      * Audit v3 (M): surface save failures. Previously the result was
@@ -6216,10 +6246,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [data]);
     useEffect(() => {
-      console.log(transcript);
-    }, [transcript]);
-
-    useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
 
@@ -6349,8 +6375,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .map((result) => result[0])
             .map((result) => result.transcript)
             .join('');
-
-          setTranscript(transcript);
 
           if (handleInputChange) {
             const syntheticEvent = {
@@ -6526,7 +6550,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
           setIsListening(false);
 
           // Clear the input by triggering handleInputChange with empty value
@@ -9137,8 +9160,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeMobileOpenTabId === 'agent' ||
       activeMobileOpenTabId === 'assistant' ||
       activeMobileOpenTabId === 'actions';
+
+    /*
+     * L'en-tête dérive du panneau de service RÉSOLU, pas de `activeMobileOpenTabId`
+     * (état d'onglet monté plus tard) : c'est ce décalage qui produisait
+     * `?panel=studio` → Vue d'ensemble et `?panel=debugger` → Git à froid.
+     */
     const mobileServiceHeaderTab =
-      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+      useMobileIde && mobilePanel === 'deploy'
+        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+            id: activeMobileServicePanel,
+            name: panelTitle(activeMobileServicePanel, t),
+            icon: panelIcon(activeMobileServicePanel),
+          })
+        : undefined;
     const mobileMoreMenuItems = useMemo(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {

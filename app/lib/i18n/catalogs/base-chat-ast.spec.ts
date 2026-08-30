@@ -132,23 +132,34 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc GELÉ, re-scellée deux fois seulement :
+     * Empreinte du bloc GELÉ. Re-scellée à chaque évolution VÉRIFIÉE, jamais à
+     * l'aveugle : la procédure est de comparer la tranche
+     * [frozenStartOffset, frozenEndOffset) entre la branche et `origin/main`,
+     * et de n'accepter que des différences qu'on sait nommer.
      *
-     * 1. externalisation des libellés visibles vers le catalogue FR (étape 3/3) ;
-     * 2. RPL-IDE-001.8 — ajout de l'en-tête Spotlight dans la palette de
-     *    commandes.
+     * Re-scellements successifs :
      *
-     * La plage gelée va de `const mobileHeaderTab =` jusqu'au premier
-     * `{projectIdeMode && (`, et englobe donc bien plus que l'en-tête mobile :
-     * la palette de commandes s'y trouve aussi. Le re-scellement n°2 ne
-     * concerne QUE la palette — diff vérifié, un seul hunk, le markup mobile
-     * Terminal/en-tête est identique à `origin/main` au caractère près.
+     *   1. externalisation des libellés visibles vers le catalogue FR (3/3) ;
+     *   2. RPL-IDE-001.8 — en-tête Spotlight dans la palette de commandes ;
+     *   3. BUG-IDE-PANEL-RESOLUTION-001, à la demande explicite du propriétaire
+     *      (« une seule source de vérité pour l'en-tête et le contenu ») :
+     *      `mobileServiceHeaderTab` ne dérive plus de `activeMobileOpenTabId`
+     *      — un état d'onglet monté tardivement — mais du panneau de service
+     *      RÉSOLU, celui-là même que rend le contenu. C'est ce décalage qui
+     *      affichait l'en-tête « Agent » au-dessus du contenu « Déploiements »,
+     *      et qui envoyait `?panel=studio` sur Vue d'ensemble et
+     *      `?panel=debugger` sur Git à froid.
      *
-     * Toute évolution du hash hors de ces deux cas signale une dérive de mise
-     * en page à refuser. Pour vérifier ce qui a bougé plutôt que de re-sceller
-     * à l'aveugle, comparer la tranche `[frozenStartOffset, frozenEndOffset)`
-     * entre la branche et `origin/main`.
+     * Vérifié pour ce re-scellement : la tranche diffère de `origin/main`
+     * (f19699c3…) par 14 lignes, toutes dans ce seul hunk. `mobileHeaderTab` —
+     * l'en-tête de la coque mobile gelée — n'est PAS touché : mêmes valeurs,
+     * mêmes classes, même rendu.
+     *
+     * Toute évolution du hash hors de ces cas signale une dérive de mise en
+     * page à refuser.
      */
+    expect(frozenHash).toBe('aaf047770a225ef9be205c2a3f921ffaaa84d0b855e07db51762c5b9b70a99aa');
+
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
      * décrite juste au-dessus, et non à l'aveugle : la tranche
@@ -158,7 +169,6 @@ describe('BaseChat strengthened-AST catalog', () => {
      * conditionnent. Le markup mobile Terminal/en-tête est identique à
      * `origin/main` au caractère près.
      */
-    expect(frozenHash).toBe('f19699c395a846aeee4aa418be7b3e735df4815eb9e09cd3ddf550a12a5857f0');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

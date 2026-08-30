@@ -2,6 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
+import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
+
 /*
  * UNIF-IDE lot 1 — gardes de non-régression SOURCE sur BaseChat.tsx.
  *
@@ -30,16 +32,6 @@ const codeOnly = (source: string) =>
 
 const baseChatCode = codeOnly(baseChatSource);
 
-function extractStringArray(name: string): string[] {
-  const match = baseChatCode.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\] as const;`));
-
-  if (!match) {
-    throw new Error(`Unable to locate const ${name} in BaseChat.tsx`);
-  }
-
-  return [...match[1].matchAll(/'([a-z0-9-]+)'/g)].map((entry) => entry[1]);
-}
-
 function extractPanelIconKeys(): string[] {
   /*
    * UNIF-05 (lot 3) : le registre ne vit plus dans BaseChat — la source unique
@@ -58,7 +50,7 @@ function extractPanelIconKeys(): string[] {
 
 describe('UNIF-IDE — registre d’icônes des panneaux', () => {
   it('couvre chaque panneau workspace + management déclaré (aucun repli i-ph:squares-four)', () => {
-    const managementPanels = extractStringArray('IDE_MANAGEMENT_PANELS');
+    const managementPanels = [...IDE_MANAGEMENT_PANELS];
     const workspaceBase = ['editor', 'preview', 'files', 'search', 'locks'];
     const iconKeys = new Set(extractPanelIconKeys());
 

@@ -7972,7 +7972,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox {
-  min-height: 80px;
+  /*
+   * Composer compact (demande d'Avi) : le plancher passe de 80 à 56px. La zone
+   * de saisie doit être discrète au repos et grandir avec le texte, pas
+   * réserver un tiers du panneau Agent pour un champ vide.
+   */
+  min-height: 56px;
   border-color: var(--vc-ide-border-visible) !important;
   border-radius: 12px !important;
   background: var(--vc-ide-bg-card) !important;
@@ -7981,8 +7986,16 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox textarea {
-  min-height: 76px;
-  padding: 8px 56px 50px 8px !important;
+  /*
+   * Le rembourrage bas de 50px réservait la place d'une barre d'outils
+   * SUPERPOSÉE. Dans le composer de l'IDE elle est un FRÈRE rendu en dessous
+   * (`.bolt-chatbox-input-shell > .bolt-chatbox-toolbar`) : ces 50px n'étaient
+   * plus qu'un vide mort entre le texte et les icônes, et ils gonflaient la
+   * hauteur au repos calculée par l'auto-agrandissement (scrollHeight).
+   * Le rembourrage droit reste : il dégage le bouton d'envoi, en absolu.
+   */
+  min-height: 44px;
+  padding: 8px 56px 8px 8px !important;
   color: var(--vc-ide-text-primary);
   font-size: 13px !important;
 }
