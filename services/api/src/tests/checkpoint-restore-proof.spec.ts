@@ -166,6 +166,75 @@ describe('P0-V3-09 — restore RÉEL prouvé par le contenu', () => {
     expect(after.find((f) => f.path === 'JUNK.txt')).toBeUndefined();
   });
 
+  it('restaure EN ARRIÈRE, même quand le manifeste de l IDE décrit l état plus récent', async () => {
+    /*
+     * LE DÉFAUT QUE CE CAS FIGE.
+     *
+     * `restoreSnapshot` vide l'arbre et réécrit les fichiers du checkpoint : le
+     * stockage est juste. Mais l'état IDE persisté décrivait encore l'état
+     * d'AVANT, et la relecture (`listProjectFilesIncludingIdeState`) le
+     * réappliquait par-dessus. Le contenu restauré était donc immédiatement
+     * réécrit, le hachage ne correspondait plus, et l'appel rendait 409 avec
+     * l'empreinte de l'état COURANT.
+     *
+     * Mesuré : un README ramené de 55 à 17 octets refusé deux fois de suite.
+     *
+     * POURQUOI LE CAS EXISTANT NE LE VOYAIT PAS. Il casse le projet via
+     * `projectStorage.restoreSnapshot` en direct, ce qui ne touche PAS au
+     * manifeste. Le parcours réel passe par l'API, qui lui le persiste. D'où un
+     * test vert et une production en échec.
+     *
+     * Ici on casse par le CHEMIN RÉEL : une écriture de fichier par l'API.
+     */
+    const { app, projectStorage, project } = await setup();
+
+    const original = '# court\n'; // 8 octets
+    await projectStorage.writeFiles(project.id, [{ path: 'README.md', content: original }]);
+
+    const created = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/checkpoints`,
+      headers: auth('r-token'),
+    });
+    expect(created.statusCode).toBe(201);
+
+    const ckpt = created.json().checkpoint;
+
+    /*
+     * GRANDIR, et surtout laisser le MANIFESTE décrire ce nouvel état.
+     *
+     * On passe par `PUT /projects/:id/ide-state`, l'endpoint que l'éditeur
+     * appelle lui-même — et non par l'écriture runtime, qui exige un agent de
+     * workspace absent de ce harnais. C'est bien le chemin qui crée la
+     * précondition du défaut : un manifeste plus récent que le checkpoint.
+     */
+    const grown = `${original}${'x'.repeat(60)}\n`;
+    await projectStorage.writeFiles(project.id, [{ path: 'README.md', content: grown }]);
+
+    const stateWrite = await app.inject({
+      method: 'PUT',
+      url: `/projects/${project.id}/ide-state`,
+      headers: auth('r-token'),
+      payload: { state: { files: { entries: [{ path: 'README.md', content: grown }] } } },
+    });
+    expect([200, 204]).toContain(stateWrite.statusCode);
+
+    // RESTAURER EN ARRIÈRE : du long vers le court.
+    const restored = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/checkpoints/${ckpt.id}/restore`,
+      headers: auth('r-token'),
+    });
+
+    expect(restored.statusCode, JSON.stringify(restored.json())).toBe(200);
+    expect(restored.json().restored).toBe(true);
+    expect(restored.json().restoredHash).toBe(ckpt.manifest.contentHashes.files);
+
+    // Et dans le STOCKAGE, pas seulement dans la réponse.
+    const after = await projectStorage.listFiles(project.id);
+    expect(after.find((f) => f.path === 'README.md')?.content).toBe(original);
+  });
+
   it('le restore laisse un POINT DE RETOUR exploitable (on peut revenir à l état cassé)', async () => {
     const { app, projectStorage, project } = await setup();
 

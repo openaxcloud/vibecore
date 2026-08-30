@@ -24657,6 +24657,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       await rawProjectStorage.restoreSnapshot({ projectId: project.id, files });
 
+      /*
+       * (2 bis) LE MANIFESTE DE L'IDE SUIT LES FICHIERS.
+       *
+       * `restoreSnapshot` vide l'arbre et réécrit les fichiers du checkpoint :
+       * le DISQUE est juste. Mais l'état IDE persisté, lui, décrit encore
+       * l'état d'AVANT — et `listProjectFilesIncludingIdeState` le réapplique
+       * par-dessus (`syncProjectStorageWithFileManifest`).
+       *
+       * Conséquence mesurée : restaurer EN ARRIÈRE échouait systématiquement.
+       * Un README ramené de 55 à 17 octets était aussitôt réécrit à 55 par le
+       * manifeste, le hachage relu ne correspondait plus, et l'appel rendait
+       * 409 avec l'empreinte de l'état COURANT. Restaurer un checkpoint déjà
+       * conforme réussissait, puisque le manifeste décrivait déjà cet état :
+       * la fonction ne marchait que là où elle n'avait rien à faire.
+       *
+       * Le manifeste est donc réaligné sur les fichiers restaurés AVANT la
+       * relecture. La barrière de sûreté reste armée pendant l'opération, et le
+       * point de retour créé plus haut reste exploitable si quoi que ce soit
+       * échoue ensuite.
+       */
+      await persistProjectFileManifest(store, project.id, files, request.currentUser?.id);
+
       // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
       const afterRestore = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
       const restoredHash = createHash('sha256')
