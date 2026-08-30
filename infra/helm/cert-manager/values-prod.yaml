@@ -1,0 +1,14 @@
+# cert-manager (chart jetstack/cert-manager, ÉPINGLÉ v1.20.2) — release `cert-manager`,
+# ns `cert-manager`.
+#
+# Relevé le 2026-08-30 depuis la release vivante (`helm get values cert-manager`) et mis
+# sous contrôle de version : ces valeurs n'existaient nulle part ailleurs que dans le
+# cluster. Une seule valeur personnalisée, mais la perdre obligerait à redécouvrir par
+# essais successifs comment l'entrée TLS de la production a été installée.
+#
+#   helm upgrade cert-manager jetstack/cert-manager \
+#     --version v1.20.2 -n cert-manager \
+#     -f infra/helm/cert-manager/values-prod.yaml \
+#     --kube-context connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+crds:
+  enabled: true

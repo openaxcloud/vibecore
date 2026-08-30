@@ -1,0 +1,15 @@
+# CloudNativePG (chart cloudnative-pg/cloudnative-pg, ÉPINGLÉ 0.28.3) — release `cnpg`,
+# ns `cnpg-system`. C'est l'opérateur qui porte les bases des projets clients.
+#
+# Relevé le 2026-08-30 depuis la release vivante (`helm get values cnpg`).
+#
+# `clusterWide: true` n'est pas cosmétique : l'opérateur surveille TOUS les namespaces,
+# dont `project-databases` où vivent les bases des projets. Le repasser à false
+# détacherait l'opérateur de ces bases.
+#
+#   helm upgrade cnpg cloudnative-pg/cloudnative-pg \
+#     --version 0.28.3 -n cnpg-system \
+#     -f infra/helm/cnpg/values-prod.yaml \
+#     --kube-context connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+config:
+  clusterWide: true
