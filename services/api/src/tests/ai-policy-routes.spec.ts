@@ -19,8 +19,8 @@ async function setup() {
   });
   const org = await store.createOrganization({ name: 'AI Org', slug: 'ai-org', ownerUserId: user.id });
   await store.createSession({ userId: user.id, token: 'ai-token', expiresAt: new Date(Date.now() + 3600_000) });
-  // Team plan → BYOK is allowed by default (so the block is what flips it off).
-  await store.upsertSubscription({ organizationId: org.id, planKey: 'team', status: 'ACTIVE' });
+  // Pro plan → BYOK is allowed by default (so the block is what flips it off).
+  await store.upsertSubscription({ organizationId: org.id, planKey: 'pro', status: 'ACTIVE' });
   const project = await store.createProject({ organizationId: org.id, name: 'P', slug: 'p' });
   return { app, store, org, project, token: 'ai-token' };
 }
@@ -28,7 +28,7 @@ async function setup() {
 const auth = (token: string) => ({ authorization: `Bearer ${token}` });
 
 describe('Disable external AI integrations (org policy)', () => {
-  it('allows BYOK by default on a team plan, blocks it once the policy is set', async () => {
+  it('allows BYOK by default on a pro plan, blocks it once the policy is set', async () => {
     const { app, org, project, token } = await setup();
 
     const before = await app.inject({

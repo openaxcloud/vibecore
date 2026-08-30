@@ -373,9 +373,13 @@ export default function Pricing() {
     /*
      * Carry the selected plan + monthly/annual interval into the checkout flow so
      * the annual (discounted) price the user is looking at is the one applied.
+     * Emit the canonical checkout key (this replica's internal column key `teams`
+     * displays as "Pro" and maps to the Pro plan), so the URL never carries a
+     * silent alias.
      */
     const interval = billingPeriod === 'yearly' ? 'annual' : 'monthly';
-    const target = `/subscribe?plan=${encodeURIComponent(tier.tierKey)}&interval=${interval}`;
+    const checkoutPlan = tier.tierKey === 'teams' ? 'pro' : tier.tierKey;
+    const target = `/subscribe?plan=${encodeURIComponent(checkoutPlan)}&interval=${interval}`;
     navigate(user ? target : `/login?returnTo=${encodeURIComponent(target)}`);
   };
 

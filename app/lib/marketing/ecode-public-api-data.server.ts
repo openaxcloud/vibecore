@@ -1,7 +1,7 @@
 export type EcodePaymentPlan = {
   id: string;
   name: string;
-  tier: 'free' | 'core' | 'teams' | 'enterprise';
+  tier: 'free' | 'core' | 'pro' | 'enterprise';
   price: number;
   interval: 'month' | 'year';
   creditsMonthly: number;
@@ -85,12 +85,12 @@ const planDefinitions = {
       'Autonomous long builds',
     ],
   },
-  teams: {
-    name: 'Teams',
-    tier: 'teams',
-    priceMonthly: 40,
-    priceYearly: 35,
-    creditsMonthly: 40,
+  pro: {
+    name: 'Pro',
+    tier: 'pro',
+    priceMonthly: 100,
+    priceYearly: 95,
+    creditsMonthly: 100,
     allowances: {
       vcpus: 8,
       ramGb: 16,
@@ -99,17 +99,17 @@ const planDefinitions = {
       developmentMinutes: -1,
       publicApps: -1,
       privateApps: -1,
-      collaborators: -1,
+      collaborators: 15,
     },
     features: [
       'Everything included with E-Code Core',
-      '€40/mo in usage credits included',
+      '€100/mo in usage credits included',
       'Credits granted upfront on annual plan',
-      '50 Viewer seats',
-      'Centralized billing',
-      'Role-based access control',
+      '15 collaborators, 50 Viewer seats',
+      'Most powerful models',
+      '28-day database rollbacks',
       'Private deployments',
-      'Pay-as-you-go for additional usage',
+      'Premium support',
     ],
   },
   enterprise: {
@@ -129,7 +129,7 @@ const planDefinitions = {
       collaborators: -1,
     },
     features: [
-      'Everything in Teams',
+      'Everything in Pro',
       'Custom Viewer Seats',
       'SSO/SAML',
       'SCIM',
@@ -171,8 +171,8 @@ export const ecodePaymentPlans: EcodePaymentPlan[] = [
   toPaymentPlan('free', planDefinitions.starter, 'month'),
   toPaymentPlan('core', planDefinitions.core, 'month'),
   toPaymentPlan('core', planDefinitions.core, 'year'),
-  toPaymentPlan('teams', planDefinitions.teams, 'month'),
-  toPaymentPlan('teams', planDefinitions.teams, 'year'),
+  toPaymentPlan('pro', planDefinitions.pro, 'month'),
+  toPaymentPlan('pro', planDefinitions.pro, 'year'),
   toPaymentPlan('enterprise', planDefinitions.enterprise, 'month'),
   toPaymentPlan('enterprise', planDefinitions.enterprise, 'year'),
 ];
