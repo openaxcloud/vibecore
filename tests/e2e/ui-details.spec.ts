@@ -31,7 +31,7 @@ async function mountResponsiveAppShellDocument(page: Page) {
             --bolt-elements-textPrimary: #f5f9fc;
             --bolt-elements-textSecondary: #c2c8cc;
             --bolt-elements-textTertiary: #8b949e;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ui-shadow-lg: 0 18px 48px rgb(0 4 20 / 0.55);
             --vc-ui-tooltip-bg: #101827;
             --vc-ui-tooltip-border: #2b3245;
@@ -164,7 +164,7 @@ async function mountAgentMessageContextDocument(page: Page) {
             --mobile-nav-inner-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
             --vc-animation-popover: 150ms;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-bg-card: #1a2030;
             --vc-ide-bg-elevated: #0e1525;
             --vc-ide-bg-hover: #2b3245;
@@ -414,7 +414,7 @@ async function mountFloatingSurfacesDocument(page: Page) {
             --mobile-nav-border-top: rgb(122 133 153 / 0.42);
             --mobile-nav-height: 72px;
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-bg-app: #0a0f1c;
             --vc-ide-bg-card: #1a2030;
             --vc-ide-bg-card-hover: #2b3245;
@@ -680,7 +680,7 @@ async function mountMobilePreviewShellDocument(page: Page) {
             --mobile-nav-height: 72px;
             --mobile-nav-shadow: 0 20px 60px rgb(0 4 20 / 0.55);
             --vc-font-code: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-            --vc-ide-accent-action: #0099ff;
+            --vc-ide-accent-action: #f97316;
             --vc-ide-accent-success: #3fb950;
             --vc-ide-bg-app: #0a0f1c;
             --vc-ide-bg-card: #1a2030;
@@ -859,7 +859,7 @@ async function mountMobileAgentComposerDocument(page: Page) {
             --vc-ide-bg-hover: #2b3245;
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-accent-error: #ff5d5d;
-            --vc-ide-accent-primary: #0099ff;
+            --vc-ide-accent-primary: #f97316;
             --vc-ide-accent-success: #20c997;
             --vc-ide-border-visible: #2b3245;
             --vc-ide-border-subtle: #1a2030;
@@ -1740,7 +1740,8 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
-    themeAction: '#0099ff',
+    // CHARTE-IDE-001 — l'accent d'action suit l'orange de marque.
+    themeAction: '#f97316',
     themeOrange: '#f26207',
     themeError: '#f85149',
     themeWarning: '#d29922',

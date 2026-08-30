@@ -17,16 +17,30 @@ import type { JSONValue, Message } from 'ai';
 import type { TFunction } from 'i18next';
 import Cookies from 'js-cookie';
 import { Copy, Download, Trash2, Users } from 'lucide-react';
-import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  type RefCallback,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   bringFloatingPaneToFront as engineBringFloatingPaneToFront,
   dockPane as engineDockPane,
   floatPane as engineFloatPane,
+  moveTab as engineMoveTab,
+  reorderTab as engineReorderTab,
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
   updateFloatingBounds as engineUpdateFloatingBounds,
+  updatePane as engineUpdatePane,
   type ProjectEditorWindowState,
 } from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
@@ -41,7 +55,21 @@ import {
   renderImageToCanvas,
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
+import { devServerStatusText } from './dev-server-status';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
+import {
+  TAB_DRAG_PANE_MIME,
+  TAB_DRAG_TAB_MIME,
+  dropSlotForTab,
+  isProjectEditorTabDrag,
+  samePaneReorderIndex,
+} from './project-editor-tab-drag';
+import {
+  PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
+  PROJECT_EDITOR_TOOL_SHORTCUTS,
+  projectEditorToolList,
+  projectEditorToolsByCategory,
+} from './project-editor-tool-catalog';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   describeAutoApplyFailure,
@@ -91,6 +119,16 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
+import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import {
+  IdePanelHeader,
+  PanelButton,
+  PanelEmptyState,
+  PanelInput,
+  PanelSectionTitle,
+  PanelToolTabs,
+} from '~/components/project-ide/PanelPrimitives';
+import { Badge } from '~/components/ui/Badge';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -104,6 +142,7 @@ import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
+import { resolveProjectThemePreference } from '~/lib/stores/project-theme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -130,6 +169,7 @@ const LazyTerminalTabs = lazy(() =>
   import('~/components/workbench/terminal/TerminalTabs').then((module) => ({ default: module.TerminalTabs })),
 );
 import ProgressCompilation from './ProgressCompilation';
+import { isAgentRunDegraded, isAgentRunFailed } from './bundled-artifact-state';
 import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -156,7 +196,23 @@ import {
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useNavigate, useSearchParams } from 'react-router';
-import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import {
+  isMobileWorkbenchPanel,
+  resolveMobileWorkbenchPanel,
+  shouldMountMobileWorkbench,
+  type MobileWorkbenchPanelId,
+} from '~/components/chat/mobile-workbench-keepalive';
+import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import {
+  IDE_AGENT_PANEL,
+  ideMobileTarget,
+  isIdeRightPanel,
+  isIdeWorkspacePanel,
+  resolveIdePanelKey,
+  type IdeManagementPanel,
+  type IdeRightPanel,
+  type IdeWorkspacePanel,
+} from '~/lib/ide/panel-registry';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -164,11 +220,7 @@ import {
   isCompactPreviewRunActive,
   resolveCompactPreviewRunState,
 } from '~/lib/runtime/preview-run-state';
-import {
-  formatProjectPanelRefreshCadence,
-  formatProjectPanelUpdatedLabel,
-  projectPanelRefreshIntervalMs,
-} from '~/utils/project-panel-refresh';
+import { projectPanelRefreshIntervalMs } from '~/utils/project-panel-refresh';
 import { countHiddenMobileBottomTabs, selectVisibleMobileBottomTabs } from '~/lib/mobile-bottom-tabs';
 import {
   ECODE_MOBILE_MORE_ITEMS,
@@ -188,6 +240,7 @@ import {
   type Keybinding,
   type KeybindingOverrideMap,
 } from '~/lib/keybindings';
+import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import {
   formatBaseChatAstDate,
@@ -224,39 +277,19 @@ function isProjectThemePreference(preference: unknown): preference is ProjectThe
   return preference === 'dark' || preference === 'light' || preference === 'system';
 }
 
-function resolveProjectThemePreference(preference: unknown): Theme {
-  if (!isProjectThemePreference(preference)) {
-    return DEFAULT_THEME;
-  }
-
-  if (preference === 'dark' || preference === 'light') {
-    return preference;
-  }
-
-  /*
-   * 'system' / unset → respect the user's persisted toggle if they have one, else
-   * the app default (light, matching Replit). We intentionally do NOT follow the OS
-   * color-scheme: it made the IDE dark on dark-mode machines and persisted that to
-   * bolt_theme, flipping the whole app to dark and overriding both the light default
-   * and an explicit light toggle.
-   */
-  if (typeof localStorage !== 'undefined') {
-    const persisted = localStorage.getItem(kTheme);
-
-    if (persisted === 'dark' || persisted === 'light') {
-      return persisted;
-    }
-  }
-
-  return DEFAULT_THEME;
-}
-
 function applyProjectThemePreference(preference: unknown): Theme {
-  const resolvedTheme = resolveProjectThemePreference(preference);
+  const { theme: resolvedTheme, explicite } = resolveProjectThemePreference(preference);
 
   themeStore.set(resolvedTheme);
 
-  if (typeof localStorage !== 'undefined') {
+  /*
+   * On n'écrit `bolt_theme` que pour un choix réel. Persister le défaut
+   * fabriquait une préférence que l'utilisateur n'avait jamais exprimée : au
+   * chargement suivant, `initStore` la recopiait dans le cookie partagé et
+   * l'épinglait sur toutes les surfaces — un simple passage dans l'IDE suffisait
+   * à figer le compte en clair.
+   */
+  if (explicite && typeof localStorage !== 'undefined') {
     localStorage.setItem(kTheme, resolvedTheme);
   }
 
@@ -393,91 +426,83 @@ function readProjectBottomTerminalUiState() {
   }
 }
 
-const IDE_MANAGEMENT_PANELS = [
-  'overview',
-  'studio',
-  'database',
-  'object-storage',
-  'packages',
-  'skills',
-  'monitoring',
-  'ports',
-  'extensions',
-  'integrations',
-  'workflows',
-  'debugger',
-  'deployments',
-  'security',
-  'env',
-  'secrets',
-  'git',
-  'activity',
-  'terminal',
-  'logs',
-  'collaborators',
-  'domains',
-  'snapshots',
-  'settings',
-] as const;
-
-const IDE_RIGHT_PANELS = ['files'] as const;
-const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
-const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
+/*
+ * Les listes de panneaux vivent désormais dans `~/lib/ide/panel-registry` :
+ * une seule source de vérité pour l'URL, l'en-tête et le contenu.
+ * BUG-IDE-PANEL-RESOLUTION-001.
+ */
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
-const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] as const;
+/*
+ * Les TROIS onglets fixes de la barre mobile, dans l'ordre demandé par Avi :
+ * Webview, Agent, Déploiement. L'éditeur en a été retiré — il devient un panneau
+ * à la demande, atteignable par la grille du sélecteur, la feuille d'outils ou
+ * l'ouverture d'un fichier, qui le réinsèrent via `ensureMobileOpenTab`.
+ * Ces trois-là ne se ferment pas : la croix des tuiles s'appuie sur cette liste.
+ */
+const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
+/*
+ * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
+ * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
+ * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
+ * - `agent` (marque, rendue à part) ;
+ * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
+ *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
+ *   registre (même si la valeur actuelle y est identique).
+ */
 const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
+  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  files: { id: 'files', name: 'Library', icon: 'i-ph:folder-open' },
-  editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
-  search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
-  locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
+  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
+  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
+  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
+  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
   terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   actions: { id: 'actions', name: 'Agent', icon: 'agent' },
   assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
+  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
   console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
-  debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
-  debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
-  developer: { id: 'developer', name: 'Debugger', icon: 'i-ph:bug' },
-  git: { id: 'git', name: 'Git', icon: 'i-ph:git-branch' },
-  history: { id: 'history', name: 'Activity', icon: 'i-ph:activity' },
-  activity: { id: 'activity', name: 'Activity', icon: 'i-ph:activity' },
-  integrations: { id: 'integrations', name: 'Integrations', icon: 'i-ph:package' },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: 'i-ph:users' },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: 'i-ph:users' },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: 'i-ph:users' },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: 'i-ph:users' },
-  packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
-  skills: { id: 'skills', name: 'Skills', icon: 'i-ph:sparkle' },
-  secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
-  settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
-  workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: 'i-ph:stack' },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
-  extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
-  security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
+  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
+  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
+  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
+  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
+  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
+  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
+  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
+  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
+  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
+  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
+  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
+  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
+  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
+  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
+  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
   shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
-  storage: { id: 'storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  env: { id: 'env', name: 'Environment variables', icon: 'i-ph:brackets-curly' },
-  logs: { id: 'logs', name: 'Logs', icon: 'i-ph:list-magnifying-glass' },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: 'i-ph:chart-line' },
-  ports: { id: 'ports', name: 'Ports', icon: 'i-ph:plugs' },
-  domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
-  overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
-  studio: { id: 'studio', name: 'Agent Studio', icon: 'i-ph:robot' },
-  web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
+  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
+  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
+  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
+  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
+  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
+  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
+  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
+  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
+  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
 
@@ -495,6 +520,7 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'chat.copy.projectSummary_398c8190',
   studio: 'chat.copy.agentSupervisor_ac7559cf',
+  problems: 'chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad',
   database: 'chat.copy.sqlBrowser_4bdd94d4',
   'object-storage': 'chat.copy.fileStorage_4fbddfd9',
   packages: 'chat.copy.dependenciesManager_5bf6692e',
@@ -524,9 +550,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   locks: 'chat.copy.lockedFiles_9c2ea979',
 };
 
-type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
-type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
-type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
 type IdePaneTab = {
   id: string;
   panel: IdeWorkspacePanel;
@@ -542,7 +565,6 @@ type AgentToolAction = {
   icon: string;
 };
 
-const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {};
 type ProjectSnapshot = {
   id: string;
   label?: string;
@@ -1102,58 +1124,11 @@ function previewPortCompactText(
     : t('baseChatAst.port.compactNone');
 }
 
-function previewCommandFromLogs(logs: string[]) {
-  for (const log of [...logs].reverse()) {
-    const message = typeof log === 'string' ? log : '';
-    const match = message.match(/Starting preview with ([^\n]+)/i);
-
-    if (match?.[1]) {
-      return match[1].replace(/\s+in\s+.+$/i, '').trim();
-    }
-  }
-
-  return undefined;
-}
-
-function devServerStatusText(
-  t: TFunction,
-  input: {
-    previews: Array<{ ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-    logs: string[];
-    previewServerState: { status: string; command?: string; error?: string };
-  },
-) {
-  const command = input.previewServerState.command ?? previewCommandFromLogs(input.logs);
-
-  if (input.previews.some((preview) => preview.ready !== false)) {
-    return command ? t('baseChatAst.dev.activeCommand', { command }) : t('baseChatAst.dev.active');
-  }
-
-  if (input.workspaceError || input.previewServerState.status === 'error') {
-    return t('baseChatAst.dev.blocked');
-  }
-
-  if (input.previewServerState.status === 'static') {
-    return t('baseChatAst.dev.static');
-  }
-
-  if (
-    input.workspaceLoading ||
-    input.previewServerState.status === 'starting' ||
-    input.previewServerState.status === 'stopping' ||
-    command
-  ) {
-    if (input.previewServerState.status === 'stopping') {
-      return command ? t('baseChatAst.dev.stoppingCommand', { command }) : t('baseChatAst.dev.stopping');
-    }
-
-    return command ? t('baseChatAst.dev.startingCommand', { command }) : t('baseChatAst.dev.starting');
-  }
-
-  return t('baseChatAst.dev.idle');
-}
+/*
+ * previewCommandFromLogs / devServerStatusText live in ./dev-server-status so
+ * the BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing
+ * this whole file (see dev-server-status.spec.ts).
+ */
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
   online: 3,
@@ -1872,18 +1847,6 @@ function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
   return result;
 }
 
-function isIdeRightPanel(panel: string): panel is IdeRightPanel {
-  return (IDE_RIGHT_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
-  return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
-  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
-}
-
 function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}): IdePaneTab {
   const suffix =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -1917,13 +1880,30 @@ function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
 
-function formatRailItemTooltip(t: TFunction, label: string, fallbackDescription: string, badgeLabel?: string) {
+/*
+ * Contrat explicite : cette fonction ne traduit QUE ce qu'elle possède — les
+ * descriptions de `IDE_RAIL_TOOLTIP_HELP`, qui sont des clés. La `description`
+ * reçue en argument est du TEXTE DÉJÀ RÉSOLU, et n'est plus retraduite.
+ *
+ * Elle l'était, sans distinguer les deux cas. Or `IDE_RAIL_TOOLTIP_HELP` est
+ * indexée par libellés ANGLAIS (« Files », « Search ») alors que l'appelant
+ * passe le libellé traduit : la carte ne matche jamais en français, on tombait
+ * donc toujours sur l'argument — et quand celui-ci était déjà du texte français,
+ * `t(« Parcourir les fichiers du projet »)` ne résolvait rien et rendait
+ * l'étiquette de secours « Unavailable ».
+ *
+ * Mesuré en réel : `title="Bibliothèque. Unavailable. 8 fichiers"`. Ma première
+ * tentative — envelopper l'argument d'un `t()` de plus au site d'appel — a
+ * AGGRAVÉ le défaut : `t(t(clé))` échouait pour les huit items au lieu d'un
+ * seul. C'est en mesurant les trois formats après déploiement que je l'ai vu.
+ */
+function formatRailItemTooltip(t: TFunction, label: string, description: string, badgeLabel?: string) {
   const help = IDE_RAIL_TOOLTIP_HELP[label];
-  const description = t(help?.description ?? fallbackDescription);
+  const resolved = help?.description ? t(help.description) : description;
 
   const details = [
     label,
-    description,
+    resolved,
     badgeLabel,
     help?.shortcut ? t('chat.copy.shortcutValue', { shortcut: help.shortcut }) : undefined,
   ].filter(Boolean);
@@ -2120,6 +2100,15 @@ function findLeaf(node: IdePaneNode, paneId: string): IdePaneLeaf | undefined {
   }
 
   return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
+}
+
+/**
+ * RPL-IDE-001.4 — a floating pane is a leaf too, and a tab can be dragged in or
+ * out of one. Floating panes live outside the docked tree, so `findLeaf` alone
+ * misses them.
+ */
+function findFloatingLeaf(floatingPanes: IdeFloatingPane[], paneId: string): IdePaneLeaf | undefined {
+  return floatingPanes.find((floating) => floating.pane.id === paneId)?.pane;
 }
 
 function findLeafContainingTab(node: IdePaneNode, tabId: string): IdePaneLeaf | undefined {
@@ -2973,6 +2962,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >('chat');
 
+    /*
+     * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
+     * Une fois un panneau workbench (Webview, Shell, éditeur, fichiers,
+     * recherche) ouvert, LazyWorkbench reste monté pour la session et n'est que
+     * MASQUÉ quand Agent/gestion/locks est actif. Avant, chaque retour vers un
+     * panneau workbench remontait tout le workbench à froid (Suspense plein
+     * écran, terminal et éditeur réinitialisés) et, sur un pod endormi, la
+     * Preview remontée relançait le re-provisionnement avec son overlay
+     * « Webview startup » sur toute la zone — vécu comme « ouvrir un panneau
+     * recharge tout l'IDE ». Voir mobile-workbench-keepalive.ts.
+     */
+    const [mobileWorkbenchKeepAlive, setMobileWorkbenchKeepAlive] = useState(false);
+    const lastMobileWorkbenchPanelRef = useRef<MobileWorkbenchPanelId | undefined>(undefined);
+    const mobileWorkbenchPanelActive = useMobileIde && isMobileWorkbenchPanel(mobilePanel);
+
+    useEffect(() => {
+      if (mobileWorkbenchPanelActive && isMobileWorkbenchPanel(mobilePanel)) {
+        setMobileWorkbenchKeepAlive(true);
+        lastMobileWorkbenchPanelRef.current = mobilePanel;
+      }
+    }, [mobilePanel, mobileWorkbenchPanelActive]);
+
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
     const [mobileTabSearchQuery, setMobileTabSearchQuery] = useState('');
@@ -3232,6 +3243,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
+    /*
+     * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
+     * contenu lisent cette unique valeur — elle est écrite par le seul entonnoir
+     * `setMobileIdePanel`, que l'ouverture vienne de l'URL, d'un onglet ou d'un outil.
+     */
+    const [mobileServicePanel, setMobileServicePanel] = useState<IdeManagementPanel>('deployments');
+
     const { setActivePanel: persistMobilePanel } = useMobileIdePersistence(projectIdeMode ? projectId : undefined);
 
     const ensureMobileOpenTab = useCallback(
@@ -3256,9 +3274,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
     const setMobileIdePanel = useCallback(
       (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
+        const tabId = options.activeTabId ?? (panel === 'chat' ? 'agent' : panel);
+
+        /*
+         * BUG-IDE-PANEL-RESOLUTION-001 — l'onglet demandé décide du contenu ET
+         * de l'en-tête. Sans ça, un onglet ouvert hors URL (outil, raccourci,
+         * barre du bas) laissait le contenu sur sa valeur précédente pendant que
+         * l'en-tête affichait le nouvel onglet.
+         */
+        if (panel === 'deploy') {
+          const tabResolution = resolveIdePanelKey(tabId);
+
+          if (tabResolution.status === 'canonical' || tabResolution.status === 'alias') {
+            const target = ideMobileTarget(tabResolution.panel);
+
+            if (target.servicePanel) {
+              setMobileServicePanel(target.servicePanel);
+            }
+          }
+        }
+
         setMobilePanel(panel);
         persistMobilePanel(panel);
-        ensureMobileOpenTab(options.activeTabId ?? (panel === 'chat' ? 'agent' : panel));
+        ensureMobileOpenTab(tabId);
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
@@ -3366,10 +3404,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [agentRunFailed, setAgentRunFailed] = useState(false);
+
+    // BUG-UX-AGENT-DONE-FALSE : run allé au bout mais pas proprement (partiel / accord faible / rôles incomplets).
+    const [agentRunDegraded, setAgentRunDegraded] = useState(false);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
@@ -3428,9 +3469,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
+
+    /*
+     * RPL-IDE-001.8 — `spotlight` is a fourth mode of the same palette engine:
+     * it shows every section (files, tools, commands, open tabs) and adds a
+     * project header, and it is what the app name in the topbar opens.
+     */
+    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+
+    /** RPL-IDE-001.8 — project name shown in the Spotlight header, sent by the topbar. */
+    const [spotlightProjectName, setSpotlightProjectName] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+
+    /*
+     * BUG-MOB-PALETTE-KEYBOARD-001 — sur un appareil purement tactile, ne PAS
+     * lever le clavier logiciel à l'ouverture de la palette : c'est lui qui
+     * masquait la moitié basse de la liste et déplaçait la mise en page entre
+     * le toucher et le `click`, si bien que la sélection partait sur une autre
+     * cible (« la palette reste », « la vue ne bascule pas »). Voir
+     * `~/lib/command-palette-focus` pour le détail du mécanisme. Mesuré côté
+     * client uniquement : la palette n'existe jamais dans le rendu serveur.
+     */
+    const [commandPaletteAutoFocus, setCommandPaletteAutoFocus] = useState(true);
+    useEffect(() => {
+      setCommandPaletteAutoFocus(shouldAutoFocusCommandPalette(readPointerCapabilities()));
+    }, []);
 
     /*
      * Restore focus to whatever was focused when the palette opened, once it
@@ -3797,18 +3861,84 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
-    const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
+
+    /*
+     * BUG-IDE-PANEL-RESOLUTION-001 — une seule résolution, explicite, pour tout
+     * l'IDE. `agent`/`chat` sont acceptés (le dock Agent est un panneau
+     * affichable), les alias historiques sont canonisés dans l'URL, et une clé
+     * inconnue n'est plus muette : elle est signalée et retirée de l'URL au
+     * lieu d'afficher un panneau que personne n'a demandé.
+     */
+    const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
+    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
+    const activeProjectPanel =
+      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
+        ? projectPanelResolution.panel
+        : '';
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
+        /*
+         * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — re-cliquer le panneau DÉJÀ
+         * ACTIF ne doit déclencher AUCUNE navigation. setSearchParams avec une
+         * valeur ?panel= inchangée est une navigation vers la même URL, que
+         * React Router traite comme un refresh (defaultShouldRevalidate est
+         * VRAI quand pathname+search sont identiques) : tous les loaders
+         * repartaient, initialIdePanels changeait d'identité, chaque panneau de
+         * service se rechargeait et la Webview repartait dans sa boucle de
+         * démarrage — le « re-clic recharge tout l'IDE » constaté en prod. La
+         * valeur est lue sur window.location (l'URL réellement affichée) pour
+         * ne pas dépendre de l'identité changeante de searchParams.
+         */
+        if (
+          typeof window !== 'undefined' &&
+          isRedundantPanelSearchParamUpdate(new URLSearchParams(window.location.search), panel)
+        ) {
+          return;
+        }
+
         setSearchParams((current) => withPanelSearchParam(current, panel));
       },
       [setSearchParams],
     );
 
-    const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
-      return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
-    }, [activeProjectPanel]);
+    /*
+     * Canonisation et traitement EXPLICITE de la clé d'URL.
+     *  - alias connu (`chat`, `deploy`, `web`…) → l'URL est réécrite vers la clé
+     *    canonique, pour que le lien partagé et l'état affiché coïncident ;
+     *  - clé inconnue → message visible + paramètre retiré, au lieu du repli
+     *    muet sur `deployments` qui affichait un panneau jamais demandé.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return;
+      }
+
+      if (projectPanelResolution.status === 'alias') {
+        setProjectPanelSearchParam(projectPanelResolution.panel);
+        return;
+      }
+
+      if (projectPanelResolution.status === 'unknown') {
+        // Un seul message par clé : `searchParams` change d'identité à chaque rendu.
+        if (warnedUnknownPanelRef.current !== projectPanelResolution.requested) {
+          warnedUnknownPanelRef.current = projectPanelResolution.requested;
+          toast.warn(t('chat.copy.unknownIdePanel_9d1c4b70', { value0: projectPanelResolution.requested }));
+        }
+
+        setProjectPanelSearchParam(undefined);
+      }
+    }, [projectIdeMode, projectPanelResolution, setProjectPanelSearchParam, t]);
+
+    /*
+     * Le panneau de service affiché sur la surface mobile « deploy ». Il ne se
+     * déduit plus par défaut : il ne change QUE lorsqu'une clé résolue désigne
+     * réellement un panneau de service. L'en-tête lit la même valeur, donc
+     * en-tête et contenu ne peuvent plus diverger (« Agent » au-dessus de
+     * Déploiements), quel que soit l'ordre de montage des onglets.
+     */
+    const activeMobileServicePanel = mobileServicePanel;
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -5467,7 +5597,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activePaneId, openProjectFilesPanel, openWorkspacePanel],
     );
 
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
       setCommandPaletteMode(mode);
       setCommandPaletteQuery('');
       setCommandPaletteIndex(0);
@@ -5486,23 +5616,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (normalizedToolId === 'share') {
-          closeMobileOverlays();
-
+          /*
+           * AV-UX point 6 — tapping "Partager" used to only fire a clipboard
+           * write after the sheet unmounted: no surface ever opened, and on
+           * iOS the write itself could be rejected once the gesture was gone,
+           * so the tap looked like a no-op. Copy the link as a best-effort
+           * side effect while the tap gesture is still alive, then OPEN the
+           * Collaborators panel — the surface that owns the project share
+           * link (the same one the desktop "Invite" button opens).
+           */
           const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
 
-          if (!navigator.clipboard?.writeText) {
-            toast.error(t('chat.copy.clipboardUnavailable_bec46a29'));
-
-            return;
+          if (navigator.clipboard?.writeText) {
+            void navigator.clipboard
+              .writeText(projectLink)
+              .then(() => toast.success(t('chat.copy.projectLinkCopied_d1bf8999')))
+              .catch((error) => console.error('Project link copy failed', error));
           }
 
-          void navigator.clipboard
-            .writeText(projectLink)
-            .then(() => toast.success(t('chat.copy.projectLinkCopied_d1bf8999')))
-            .catch((error) => {
-              console.error('Project link copy failed', error);
-              toast.error(t('baseChatAst.clipboard.copyFailed'));
-            });
+          openWorkspacePanel('collaborators', { replaceUrl: false });
+          setProjectPanelSearchParam('collaborators');
+          setMobileIdePanel('deploy', { activeTabId: 'collaborators' });
+          closeMobileOverlays();
 
           return;
         }
@@ -5597,12 +5732,59 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       };
 
+      /*
+       * SCR-006 — le clic sur le nom du projet doit ouvrir la recherche
+       * « Rechercher des outils et des fichiers », pas la visite guidée.
+       *
+       * La palette vit ici, le nom du projet vit dans la route de l'IDE : il
+       * faut donc un canal. `vibecore:keybinding-run` ne convenait pas — il est
+       * ÉMIS par cette coque pour être observé, jamais consommé, donc le
+       * déclencher n'ouvrirait rien. On suit le modèle éprouvé de
+       * `vibecore:open-project-ide-panel`.
+       *
+       * `Cmd+K`, lui, était déjà relié à la même palette par l'action
+       * `command.palette` — la moitié clavier de la demande fonctionnait déjà.
+       */
+      const handleOpenCommandPalette = (event: Event) => {
+        const mode = (event as CustomEvent<{ mode?: 'all' | 'tools' | 'files' }>).detail?.mode;
+
+        openCommandPalette(mode ?? 'all');
+      };
+
       window.addEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+      window.addEventListener('vibecore:open-command-palette', handleOpenCommandPalette);
 
       return () => {
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+        window.removeEventListener('vibecore:open-command-palette', handleOpenCommandPalette);
       };
-    }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
+    }, [activateMobileTool, openCommandPalette, openIdeTool, projectIdeMode, useMobileIde]);
+
+    /*
+     * RPL-IDE-001.8 — the app name lives in the topbar (`projects.$projectId.ide.tsx`)
+     * while Spotlight is rendered here, inside the workspace shell. They talk over
+     * the same window-event channel the topbar already uses to open tool panels,
+     * rather than threading a callback through the whole route tree.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      const handleOpenSpotlight = (event: Event) => {
+        const name = (event as CustomEvent<{ projectName?: string }>).detail?.projectName;
+
+        if (name) {
+          setSpotlightProjectName(name);
+        }
+
+        openCommandPalette('spotlight');
+      };
+
+      window.addEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+
+      return () => window.removeEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+    }, [openCommandPalette, projectIdeMode]);
 
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
@@ -5657,32 +5839,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      // Le dock Agent est un panneau affichable : `?panel=agent` doit l'ouvrir, pas être ignoré.
+      if (activeProjectPanel === IDE_AGENT_PANEL) {
+        if (useMobileIde) {
+          setMobileIdePanel('chat');
+        } else {
+          setProjectAgentPanelOpen(true);
+        }
+
+        return;
+      }
+
       if (isIdeWorkspacePanel(activeProjectPanel)) {
         if (useMobileIde) {
-          if (activeProjectPanel === 'terminal') {
-            setMobileIdePanel('terminal');
-          } else if (activeProjectPanel === 'preview') {
-            setMobileIdePanel('preview');
-          } else if (activeProjectPanel === 'files') {
-            setMobileIdePanel('files');
-          } else if (activeProjectPanel === 'search') {
-            setMobileIdePanel('search');
-          } else if (activeProjectPanel === 'editor') {
-            setMobileIdePanel('editor');
-          } else if (activeProjectPanel === 'locks') {
-            setMobileIdePanel('locks');
-          } else if (isIdeManagementPanel(activeProjectPanel)) {
-            setMobileIdePanel('deploy', {
-              activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
-            });
-          }
+          const target = ideMobileTarget(activeProjectPanel);
+          setMobileIdePanel(target.surface, { activeTabId: target.tabId });
 
           return;
         }
 
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
       }
-    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      openWorkspacePanel,
+      projectIdeMode,
+      projectStateReady,
+      setMobileIdePanel,
+      setProjectAgentPanelOpen,
+      useMobileIde,
+    ]);
 
     /*
      * Audit v3 (M): surface save failures. Previously the result was
@@ -5772,6 +5958,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setBottomTerminalView(view);
 
         if (useMobileIde) {
+          /*
+           * BUG-IDE-013 — sur mobile, « Problèmes » ne doit PAS atterrir sur la
+           * surface Terminal. Celle-ci est gelée (ref IMG_9149) et ignore
+           * `bottomTerminalView` : elle affiche toujours le Shell. C'est
+           * exactement ce qui faisait qu'un clic sur « Problèmes 1 0 »
+           * n'ouvrait jamais le moindre diagnostic. On ouvre donc le panneau
+           * dédié, sans toucher à la surface gelée.
+           */
+          if (view === 'problems') {
+            openWorkspacePanel('problems', { replaceUrl: false });
+            setProjectPanelSearchParam('problems');
+            setMobileIdePanel('deploy', { activeTabId: 'problems' });
+
+            return;
+          }
+
           setMobileIdePanel('terminal');
 
           return;
@@ -5779,7 +5981,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         setTerminalBottomOpen(true);
       },
-      [useMobileIde],
+      [openWorkspacePanel, setMobileIdePanel, setProjectPanelSearchParam, useMobileIde],
     );
 
     const reopenLastClosedTab = useCallback(() => {
@@ -5999,7 +6201,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useKeybindings({
-      enabled: projectIdeMode && !useMobileIde,
+      /*
+       * SCR-006 — `Cmd+K` doit ouvrir la recherche AUSSI sur les coques mobile
+       * et tablette. Le raccourci y était purement et simplement désactivé :
+       * mesuré live à 390 et 768, la palette n'était même pas dans le DOM et le
+       * focus restait sur `BODY`. Une tablette avec clavier est exactement le
+       * cas où l'utilisateur l'attend. Le contexte expose déjà `useMobileIde`,
+       * donc une liaison qui n'a pas de sens sur mobile peut s'en exclure
+       * elle-même ; les actions restantes y sont des no-ops inoffensifs.
+       */
+      enabled: projectIdeMode,
       bindings: projectKeybindings,
       getContext: useCallback(
         () => ({
@@ -6026,12 +6237,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           (x) => typeof x === 'object' && (x as any).type === 'progress',
         ) as ProgressAnnotation[];
         setProgressAnnotations(progressList);
+
+        // BUG-AGENT-003 : un échec d'orchestration doit dégrader la ligne de statut.
+        setAgentRunFailed(isAgentRunFailed(data));
+
+        // BUG-UX-AGENT-DONE-FALSE : un run partiel / à faible accord ne peut pas s'afficher « Terminé » tout court.
+        setAgentRunDegraded(isAgentRunDegraded(data));
       }
     }, [data]);
-    useEffect(() => {
-      console.log(transcript);
-    }, [transcript]);
-
     useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
@@ -6162,8 +6375,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .map((result) => result[0])
             .map((result) => result.transcript)
             .join('');
-
-          setTranscript(transcript);
 
           if (handleInputChange) {
             const syntheticEvent = {
@@ -6339,7 +6550,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
           setIsListening(false);
 
           // Clear the input by triggering handleInputChange with empty value
@@ -6954,12 +7164,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </p>
           </div>
         ) : null}
+        {/*
+         * `resize` pilote l'animation quand le CONTENU change de taille alors
+         * qu'on est collé en bas. En « smooth », `useStickToBottom` lance un
+         * ressort qui pousse `scrollTop` image par image vers la nouvelle fin.
+         * Pendant un stream la cible bouge à chaque jeton : le ressort la
+         * poursuit sans jamais l'atteindre, et le transcript n'arrête plus de
+         * glisser. Sur une fenêtre de lecture courte — un téléphone — c'est
+         * exactement le « ça saute » signalé.
+         *
+         * En « instant », la bibliothèque fait une seule affectation
+         * (`state.scrollTop = state.calculatedTargetScrollTop`) : le bas reste
+         * collé, sans animation qui court après lui.
+         *
+         * `initial` reste en « smooth » : c'est l'animation d'ARRIVÉE sur le
+         * fil, jouée une fois, jamais pendant le stream.
+         */}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
             'h-full flex flex-col modern-scrollbar': chatStarted,
             'bolt-project-agent-scroll': projectIdeMode,
           })}
-          resize="smooth"
+          resize="instant"
           initial="smooth"
         >
           <StickToBottom.Content
@@ -6979,10 +7205,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              */}
             {progressAnnotations && (
               <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+                {/*
+                 * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
+                 * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
+                 * injecte la santé réelle : erreurs dans Problèmes, orchestration
+                 * partielle / accord faible / rôles incomplets, ou carte
+                 * « Erreur d'aperçu » encore active. La ligne affiche alors
+                 * « Terminé avec des erreurs », jamais une coche verte.
+                 */}
                 <ProgressCompilation
                   data={progressAnnotations}
                   streaming={isStreaming}
-                  failed={Boolean(llmErrorAlert)}
+                  failed={Boolean(llmErrorAlert) || agentRunFailed}
+                  degraded={
+                    agentRunDegraded ||
+                    diagnosticErrorCount > 0 ||
+                    Boolean(actionAlert && actionAlert.source === 'preview')
+                  }
                 />
               </div>
             )}
@@ -7468,70 +7707,116 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [projectId, currentWorkspaceId],
     );
 
-    const swapPaneTabs = useCallback(
-      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
-        if (sourcePaneId === targetPaneId) {
-          setPaneTree((currentTree) =>
-            updateLeaf(currentTree, sourcePaneId, (leaf) => {
-              const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
-
-              const targetIndex = targetTabId
-                ? leaf.tabs.findIndex((tab) => tab.id === targetTabId)
-                : leaf.tabs.length - 1;
-
-              if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-                return leaf;
-              }
-
-              const tabs = [...leaf.tabs];
-              const [sourceTab] = tabs.splice(sourceIndex, 1);
-              const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-              tabs.splice(insertionIndex, 0, sourceTab);
-
-              return {
-                ...leaf,
-                tabs,
-                activeTabId: sourceTab.id,
-              };
-            }),
-          );
-          return;
-        }
-
-        const sourceLeaf = findLeaf(paneTree, sourcePaneId);
-        const targetLeaf = findLeaf(paneTree, targetPaneId);
+    /**
+     * RPL-IDE-001.4 — move a tab to a slot in a (possibly different) pane.
+     *
+     * `toIndex` is the insertion slot expressed against the destination pane's
+     * tab array **as it currently stands** ("insert before the tab at index i",
+     * `tabs.length` meaning append). That is exactly what the engine's
+     * `moveTab` expects for a cross-pane move; for a same-pane reorder the
+     * engine's `reorderTab` wants a *post-removal* index instead, so the slot is
+     * shifted down by one when the tab travels rightwards. Keeping the
+     * conversion here means every call site — tab strip, pane body, keyboard —
+     * speaks the same, simpler language.
+     *
+     * The previous implementation *swapped* the dragged tab with whatever tab
+     * sat under the pointer. That is not the Replit/Cursor gesture: dropping a
+     * tab on another pane must MOVE it there, leaving the source pane one tab
+     * lighter (and collapsing it when it empties). Both behaviours now come from
+     * the tested engine rather than being re-derived on the tree.
+     */
+    const moveProjectEditorTab = useCallback(
+      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, toIndex?: number) => {
+        const sourceLeaf = findLeaf(paneTree, sourcePaneId) ?? findFloatingLeaf(floatingPanes, sourcePaneId);
+        const targetLeaf = findLeaf(paneTree, targetPaneId) ?? findFloatingLeaf(floatingPanes, targetPaneId);
         const sourceTab = sourceLeaf?.tabs.find((tab) => tab.id === sourceTabId);
 
-        const targetTab =
-          targetLeaf?.tabs.find((tab) => tab.id === targetTabId) ??
-          targetLeaf?.tabs.find((tab) => tab.id === targetLeaf.activeTabId) ??
-          targetLeaf?.tabs[0];
-
-        if (!sourceLeaf || !targetLeaf || !sourceTab || !targetTab) {
+        if (!sourceLeaf || !targetLeaf || !sourceTab) {
           return;
         }
 
-        setPaneTree((currentTree) => {
-          const withTargetInSource = updateLeaf(currentTree, sourcePaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === sourceTab.id ? targetTab : tab)),
-            activeTabId: targetTab.id,
-          }));
+        if (sourcePaneId === targetPaneId) {
+          const fromIndex = sourceLeaf.tabs.findIndex((tab) => tab.id === sourceTabId);
 
-          return updateLeaf(withTargetInSource, targetPaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === targetTab.id ? sourceTab : tab)),
-            activeTabId: sourceTab.id,
-          }));
-        });
+          const postRemovalIndex = samePaneReorderIndex(
+            fromIndex,
+            toIndex ?? sourceLeaf.tabs.length,
+            sourceLeaf.tabs.length,
+          );
 
-        setActivePaneId(targetPaneId);
+          if (postRemovalIndex === null) {
+            return;
+          }
+
+          applyProjectEditorWindowOp((windowState) =>
+            engineReorderTab(windowState, { paneId: sourcePaneId, tabId: sourceTabId, toIndex: postRemovalIndex }),
+          );
+        } else {
+          applyProjectEditorWindowOp((windowState) =>
+            engineMoveTab(windowState, {
+              tabId: sourceTabId,
+              sourcePaneId,
+              targetPaneId,
+              toIndex: toIndex ?? targetLeaf.tabs.length,
+            }),
+          );
+        }
+
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
         setProjectPanelSearchParam(sourceTab.panel);
       },
-      [paneTree, setProjectPanelSearchParam],
+      [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
     );
+
+    /**
+     * RPL-IDE-001.6 — close a whole pane (Pane scope of the Options menu).
+     * `closePaneTabs(paneId, 'all')` empties the tab list but leaves the pane
+     * standing; the engine's `updatePane` returning null removes it AND
+     * collapses its parent split, which is the behaviour the menu item promises.
+     * Refuses on the last docked pane so the workspace never goes blank.
+     */
+    const closeProjectEditorPane = useCallback(
+      (targetPaneId: string) => {
+        const isFloating = floatingPanes.some((floating) => floating.pane.id === targetPaneId);
+
+        if (!isFloating && countLeaves(paneTree) < 2) {
+          return;
+        }
+
+        applyProjectEditorWindowOp((windowState) => engineUpdatePane(windowState, targetPaneId, () => null));
+      },
+      [applyProjectEditorWindowOp, floatingPanes, paneTree],
+    );
+
+    /**
+     * RPL-IDE-001.6 — every pane in this window, docked then floating, labelled
+     * by the tool it is currently showing so "Move tab to Webview" reads like the
+     * screen rather than like "Move tab to pane-1a2b".
+     */
+    const projectEditorPaneChoices = useMemo(() => {
+      const label = (pane: IdePaneLeaf, index: number) => {
+        const activeTab = pane.tabs.find((tab) => tab.id === pane.activeTabId) ?? pane.tabs[0];
+
+        return activeTab ? panelTitle(activeTab.panel, t) : t('baseChatAst.options.paneNumber', { index: index + 1 });
+      };
+
+      const docked = flattenPaneLeafIds(paneTree)
+        .map((id) => findLeaf(paneTree, id))
+        .filter((pane): pane is IdePaneLeaf => Boolean(pane));
+
+      return [...docked, ...floatingPanes.map((floating) => floating.pane)].map((pane, index) => ({
+        id: pane.id,
+        label: label(pane, index),
+      }));
+    }, [floatingPanes, paneTree, t]);
+
+    /** RPL-IDE-001.6 — Window scope: back to a single default pane. */
+    const resetProjectEditorLayout = useCallback(() => {
+      setPaneTree(cloneDefaultPaneTree());
+      setFloatingPanes([]);
+      setActivePaneId('pane-main');
+    }, []);
 
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
@@ -7689,6 +7974,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return <ProjectInteractiveTerminalPanel projectId={projectId} />;
         }
 
+        /*
+         * BUG-IDE-013 — « Problèmes » est alimenté par le store `diagnostics`
+         * côté client, pas par `/ide-panel/:panel`. Passer par la coque de
+         * service ferait un aller-retour qui 404 et afficherait une erreur à la
+         * place des diagnostics qu'on a justement sous la main.
+         */
+        if (panel === 'problems') {
+          return <ProjectProblemsPanel />;
+        }
+
         return (
           <ProjectIdeServicePanel
             key={`${projectId ?? 'project'}:${panel}`}
@@ -7727,8 +8022,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       (leaf: IdePaneLeaf) => {
         const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
 
-        const canAcceptPaneDrop = (event: React.DragEvent) =>
-          Array.from(event.dataTransfer.types).includes('application/x-vibecore-tab-id');
+        const canAcceptPaneDrop = (event: React.DragEvent) => isProjectEditorTabDrag(event.dataTransfer.types);
+
         const activatePaneDrop = (event: React.DragEvent) => {
           if (!canAcceptPaneDrop(event)) {
             return;
@@ -7758,13 +8053,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }
             }}
             onDrop={(event) => {
-              const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-              const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
+              const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+              const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
 
               if (sourcePaneId && sourceTabId && sourcePaneId !== leaf.id) {
                 event.preventDefault();
                 event.stopPropagation();
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, activeTab?.id);
+
+                // Dropping on the pane body (not on the strip) appends to the end.
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id);
               }
 
               setPaneDropTarget(null);
@@ -7785,7 +8082,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   ...tab,
                   label,
                   displayLabel: formatEditorTabLabel(label, tab.panel),
-                  icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+                  icon: panelIcon(tab.panel),
                   preview: tab.preview,
                   dirty:
                     tab.panel === 'editor' &&
@@ -7822,9 +8119,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onToggleFloating={() => togglePaneFloating(leaf.id)}
               onOpenNewWindow={(tabId) => openProjectEditorWindow(leaf.tabs.find((tab) => tab.id === tabId))}
               isFloating={floatingPanes.some((floating) => floating.pane.id === leaf.id)}
-              onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
+              onMoveTab={(sourcePaneId, sourceTabId, toIndex) =>
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id, toIndex)
               }
+              paneId={leaf.id}
+              onClosePane={() => closeProjectEditorPane(leaf.id)}
+              onResetLayout={resetProjectEditorLayout}
+              onMoveTabToPane={(targetPaneId) => {
+                const tabId = leaf.activeTabId ?? leaf.tabs[0]?.id;
+
+                if (tabId) {
+                  moveProjectEditorTab(leaf.id, tabId, targetPaneId);
+                }
+              }}
+              otherPanes={projectEditorPaneChoices.filter((pane) => pane.id !== leaf.id)}
               onDragEnd={clearPaneDropTarget}
               onTogglePin={(tabId) => togglePaneTabPinned(leaf.id, tabId)}
               recentFiles={recentProjectFiles}
@@ -7898,7 +8206,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openProjectEditorWindow,
         floatingPanes,
         scrollPositions,
-        swapPaneTabs,
+        moveProjectEditorTab,
+        closeProjectEditorPane,
+        resetProjectEditorLayout,
+        projectEditorPaneChoices,
         t,
         unsavedFiles,
       ],
@@ -7955,7 +8266,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'files',
         label: t('chat.copy.library_b8100f5b'),
-        icon: 'i-ph:files',
+        icon: panelIcon('files'),
         badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
           visibleProjectFilePaths.length > 0
@@ -7968,14 +8279,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'search',
         label: t('chat.copy.search_bce06414'),
-        icon: 'i-ph:magnifying-glass',
+        icon: panelIcon('search'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'git',
         label: t('chat.copy.git_58197788'),
-        icon: 'i-ph:git-branch',
+        icon: panelIcon('git'),
         badge: statusbarChangedFiles || undefined,
         badgeLabel:
           statusbarChangedFiles > 0 ? t('baseChatAst.files.changedCount', { count: statusbarChangedFiles }) : undefined,
@@ -7984,35 +8295,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'packages',
         label: t('chat.copy.packages_0a999012'),
-        icon: 'i-ph:cube',
+        icon: panelIcon('packages'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'database',
         label: t('chat.copy.database_61074f1c'),
-        icon: 'i-ph:database',
+        icon: panelIcon('database'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'secrets',
         label: t('chat.copy.secrets_1e3732ae'),
-        icon: 'i-ph:lock',
+        icon: panelIcon('secrets'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'deployments',
         label: t('chat.copy.deployments_8d458ed0'),
-        icon: 'i-ph:rocket-launch',
+        icon: panelIcon('deployments'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'monitoring',
         label: t('chat.copy.monitoring_a8143458'),
-        icon: 'i-ph:chart-line',
+        icon: panelIcon('monitoring'),
         badge: statusbarDiagnostics.errors || undefined,
         badgeLabel:
           statusbarDiagnostics.errors > 0
@@ -8023,7 +8334,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'settings',
         label: t('chat.copy.settings_c7f73bb5'),
-        icon: 'i-ph:gear',
+        icon: panelIcon('settings'),
         badge: undefined,
         tone: 'neutral',
       },
@@ -8031,9 +8342,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
-      const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
+      const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
+      const baseTooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
+
+      /*
+       * RPL-IDE-001.5 — dock shortcuts. Only tools with a genuinely registered
+       * keybinding advertise one (the catalog spec enforces that), so the dock
+       * never promises a key combination that does nothing.
+       */
+      const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[item.panel as keyof typeof PROJECT_EDITOR_TOOL_SHORTCUTS];
+      const shortcutLabel = shortcut ? formatKeybindingCombo(shortcut) : undefined;
+      const tooltip = shortcutLabel ? `${baseTooltip} · ${shortcutLabel}` : baseTooltip;
 
       return (
         <HeaderTip key={item.panel} label={tooltip} side="right">
@@ -8041,19 +8361,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             type="button"
             className="bolt-project-ide-rail-item"
             aria-current={active ? 'page' : undefined}
+            aria-keyshortcuts={shortcut}
             aria-label={formatRailItemLabel(item.label, badgeLabel)}
             title={tooltip}
             data-vc-tooltip={tooltip}
+            data-testid={`ide-dock-${item.panel}`}
             data-tone={item.tone}
             onClick={() => openIdeTool(item.panel)}
           >
             <span className={item.icon} aria-hidden />
             <span className="bolt-project-ide-rail-label">{item.label}</span>
+            {shortcutLabel ? (
+              <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+                {shortcutLabel}
+              </span>
+            ) : null}
             {item.badge ? (
               <span className="bolt-project-ide-rail-badge" aria-hidden>
                 {formatRailBadgeValue(item.badge, language)}
               </span>
             ) : null}
+          </button>
+        </HeaderTip>
+      );
+    };
+
+    /**
+     * RPL-IDE-001.5 — "All tools" at the foot of the dock. The searchable popup
+     * existed only behind the tab strip's "+", which meant the dock could reach
+     * nine tools and nothing else. Opening it in `tools` mode lists the full
+     * catalog and each result opens in a tab of the active pane.
+     */
+    const renderIdeRailAllToolsItem = () => {
+      const label = t('baseChatAst.tool.allTools');
+      const tooltip = `${label} · ${formatKeybindingCombo('cmd+t')}`;
+
+      return (
+        <HeaderTip label={tooltip} side="right">
+          <button
+            type="button"
+            className="bolt-project-ide-rail-item bolt-project-ide-rail-item-all-tools"
+            aria-label={label}
+            aria-haspopup="dialog"
+            aria-keyshortcuts="cmd+t"
+            title={tooltip}
+            data-vc-tooltip={tooltip}
+            data-testid="ide-dock-all-tools"
+            data-tone="neutral"
+            onClick={() => openCommandPalette('tools')}
+          >
+            <span className="i-ph:squares-four" aria-hidden />
+            <span className="bolt-project-ide-rail-label">{label}</span>
+            <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+              {formatKeybindingCombo('cmd+t')}
+            </span>
           </button>
         </HeaderTip>
       );
@@ -8127,6 +8488,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         >
           <aside className="bolt-project-ide-rail" aria-label={t('chat.copy.workspaceTools_7b36c62b')}>
             <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
+            <div className="bolt-project-ide-rail-footer">{renderIdeRailAllToolsItem()}</div>
           </aside>
         </ZoneErrorBoundary>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
@@ -8626,37 +8988,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             kind: 'file' as const,
             filePath,
           })),
-          ...[
-            ['files', formatKeybindingCombo('cmd+p')],
-            ['search', ''],
-            ['terminal', formatKeybindingCombo('cmd+`')],
-            ['preview', formatKeybindingCombo('cmd+enter')],
-            ['database', ''],
-            ['object-storage', ''],
-            ['env', ''],
-            ['secrets', ''],
-            ['git', ''],
-            ['packages', ''],
-            ['skills', ''],
-            ['integrations', ''],
-            ['workflows', ''],
-            ['deployments', ''],
-            ['security', ''],
-            ['monitoring', ''],
-            ['ports', ''],
-            ['extensions', ''],
-            ['snapshots', ''],
-            ['settings', formatKeybindingCombo('cmd+,')],
-          ].map(([panel, shortcut]) => ({
-            id: `tool:${panel}`,
-            section: t('baseChatAst.common.tools'),
-            title: panelTitle(panel, t),
-            description: t(IDE_TOOL_DESCRIPTIONS[panel as keyof typeof IDE_TOOL_DESCRIPTIONS]),
-            shortcut,
-            icon: panelIcon(panel),
-            kind: 'tool' as const,
-            panel: panel as IdeWorkspacePanel | IdeRightPanel,
-          })),
+
+          /*
+           * RPL-IDE-001.5 — driven by the shared catalog, so the palette lists
+           * EVERY Project Editor tool. The previous hand-written list stopped at
+           * 20 of 29: `studio`, `domains`, `locks`, `overview`, `logs`,
+           * `activity`, `collaborators`, `debugger` and `editor` were rendered
+           * as panels but could not be reached from here at all.
+           */
+          ...projectEditorToolList().map((tool) => {
+            const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
+
+            return {
+              id: `tool:${tool.id}`,
+              section: t('baseChatAst.common.tools'),
+              title: panelTitle(tool.id, t),
+              description: t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+              shortcut: shortcut ? formatKeybindingCombo(shortcut) : '',
+              icon: tool.icon,
+              kind: 'tool' as const,
+              panel: tool.id as IdeWorkspacePanel | IdeRightPanel,
+            };
+          }),
           ...[
             ['run', t('baseChatAst.command.runApp'), t('baseChatAst.command.runAppDescription'), ''],
             ['stop', t('baseChatAst.command.stopApp'), t('baseChatAst.command.stopAppDescription'), ''],
@@ -8679,7 +9032,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             title: tab.filePath?.replace(WORK_DIR, '') || panelTitle(tab.panel, t),
             description: t('chat.copy.focusOpenTab_9394aa42'),
             shortcut: '',
-            icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+            icon: panelIcon(tab.panel),
             kind: 'recent' as const,
             tabId: tab.id,
           })),
@@ -8710,37 +9063,74 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      if (entry.kind === 'file') {
-        openProjectFile(entry.filePath, { preview: false });
-      } else if (entry.kind === 'tool') {
-        openIdeTool(entry.panel);
-      } else if (entry.kind === 'recent') {
-        const leaf = findLeafContainingTab(paneTree, entry.tabId);
-        const tab = leaf?.tabs.find((item) => item.id === entry.tabId);
+      /*
+       * AV-UX point 7 — the palette entries only mutated desktop pane state /
+       * the URL search param; on mobile the URL round-trip is skipped when the
+       * param is unchanged, so `mobilePanel` never switched and the previous
+       * panel stayed on screen after the palette closed. Each activation is
+       * now explicitly mobile-aware, and the close runs in `finally` so a
+       * throw can never leave the full-screen palette sheet covering the IDE.
+       */
+      try {
+        if (entry.kind === 'file') {
+          openProjectFile(entry.filePath, { preview: false });
 
-        if (leaf && tab) {
-          selectPaneTab(leaf.id, tab.id, tab.panel);
+          if (useMobileIde) {
+            setMobileIdePanel('editor');
+            setProjectPanelSearchParam('editor');
+          }
+        } else if (entry.kind === 'tool') {
+          if (useMobileIde) {
+            activateMobileTool(entry.panel);
+          } else {
+            openIdeTool(entry.panel);
+          }
+        } else if (entry.kind === 'recent') {
+          const leaf = findLeafContainingTab(paneTree, entry.tabId);
+          const tab = leaf?.tabs.find((item) => item.id === entry.tabId);
+
+          if (leaf && tab) {
+            selectPaneTab(leaf.id, tab.id, tab.panel);
+
+            if (useMobileIde) {
+              activateMobileTool(tab.panel);
+            }
+          }
+        } else if (entry.kind === 'command') {
+          if (entry.command === 'reset-layout') {
+            setPaneTree(cloneDefaultPaneTree());
+            setActivePaneId('pane-main');
+          } else if (entry.command === 'deploy') {
+            if (useMobileIde) {
+              activateMobileTool('deployments');
+            } else {
+              openWorkspacePanel('deployments');
+            }
+          } else if (entry.command === 'run') {
+            if (useMobileIde) {
+              activateMobileTool('preview');
+            } else {
+              openWorkspacePanel('preview');
+            }
+
+            void workbenchStore.startPreviewServer();
+          } else if (entry.command === 'stop') {
+            void workbenchStore.stopPreviewServer();
+
+            if (useMobileIde) {
+              activateMobileTool('logs');
+            } else {
+              openWorkspacePanel('logs');
+            }
+          } else if (entry.command === 'theme') {
+            toggleTheme();
+          }
         }
-      } else if (entry.kind === 'command') {
-        if (entry.command === 'reset-layout') {
-          setPaneTree(cloneDefaultPaneTree());
-          setActivePaneId('pane-main');
-        } else if (entry.command === 'deploy') {
-          openWorkspacePanel('deployments');
-        } else if (entry.command === 'run') {
-          openWorkspacePanel('preview');
-          void workbenchStore.startPreviewServer();
-        } else if (entry.command === 'stop') {
-          void workbenchStore.stopPreviewServer();
-          openWorkspacePanel('logs');
-        } else if (entry.command === 'theme') {
-          toggleTheme();
-        }
+      } finally {
+        setCommandPaletteOpen(false);
+        setCommandPaletteQuery('');
+        setCommandPaletteIndex(0);
       }
-
-      setCommandPaletteOpen(false);
-      setCommandPaletteQuery('');
-      setCommandPaletteIndex(0);
     };
 
     const commandPaletteSections = useMemo(
@@ -8770,8 +9160,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeMobileOpenTabId === 'agent' ||
       activeMobileOpenTabId === 'assistant' ||
       activeMobileOpenTabId === 'actions';
+
+    /*
+     * L'en-tête dérive du panneau de service RÉSOLU, pas de `activeMobileOpenTabId`
+     * (état d'onglet monté plus tard) : c'est ce décalage qui produisait
+     * `?panel=studio` → Vue d'ensemble et `?panel=debugger` → Git à froid.
+     */
     const mobileServiceHeaderTab =
-      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+      useMobileIde && mobilePanel === 'deploy'
+        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+            id: activeMobileServicePanel,
+            name: panelTitle(activeMobileServicePanel, t),
+            icon: panelIcon(activeMobileServicePanel),
+          })
+        : undefined;
     const mobileMoreMenuItems = useMemo(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
@@ -8791,7 +9193,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const mobileBottomTabSlotCount = 4;
 
     const mobileBottomTabs = useMemo(
-      () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, mobileBottomTabSlotCount),
+      () =>
+        selectVisibleMobileBottomTabs(
+          mobileOpenTabs,
+          activeMobileOpenTabId,
+          mobileBottomTabSlotCount,
+          ECODE_MOBILE_DEFAULT_TABS,
+        ),
       [activeMobileOpenTabId, mobileBottomTabSlotCount, mobileOpenTabs],
     );
     const hiddenMobileBottomTabCount = useMemo(
@@ -8858,7 +9266,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
               </div>
 
-              <div className="bolt-mobile-ecode-header-title">
+              <button
+                type="button"
+                className="bolt-mobile-ecode-header-title"
+                aria-label={t('baseChatMobileHeader.search')}
+                data-testid="mobile-header-title-search"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }))
+                }
+              >
                 {mobileHeaderTab.icon === 'agent' ? (
                   <MobileReplitAgentIcon className="bolt-mobile-ecode-header-agent" />
                 ) : (
@@ -8868,7 +9284,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <strong>{mobileHeaderTab.name}</strong>
                   {isMobileAgentActive ? <small>{mobileAgentStatusLabel}</small> : null}
                 </span>
-              </div>
+              </button>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
                 <button
@@ -8933,11 +9349,31 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-project-command-palette"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.commandPalette_7b6b539e')}
+              data-mode={commandPaletteMode}
+              data-testid={commandPaletteMode === 'spotlight' ? 'project-spotlight' : 'project-command-palette'}
+              aria-label={
+                commandPaletteMode === 'spotlight'
+                  ? t('baseChatAst.spotlight.title')
+                  : t('chat.copy.commandPalette_7b6b539e')
+              }
             >
+              {/*
+                RPL-IDE-001.8 — Spotlight is project-scoped, so it names the
+                project it is searching. Without this header it is just the
+                command palette under another trigger.
+              */}
+              {commandPaletteMode === 'spotlight' ? (
+                <header className="bolt-project-spotlight-head" data-testid="project-spotlight-head">
+                  <span className="i-ph:magic-wand" aria-hidden />
+                  <span>
+                    <strong>{spotlightProjectName}</strong>
+                    <small>{t('baseChatAst.spotlight.subtitle')}</small>
+                  </span>
+                </header>
+              ) : null}
               <input
                 type="text"
-                autoFocus
+                autoFocus={commandPaletteAutoFocus}
                 autoComplete="off"
                 inputMode="search"
                 placeholder={t('chat.copy.searchToolsFilesAndCommands_c085ba2a')}
@@ -9094,7 +9530,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <LockManager />
                   </div>
                 </PanelBoundary>
-              ) : useMobileIde && mobilePanel === 'deploy' ? (
+              ) : null}
+              {useMobileIde && mobilePanel === 'deploy' ? (
                 <PanelBoundary title={t(IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'chat.copy.projectTools')}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
@@ -9107,37 +9544,63 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     />
                   </div>
                 </PanelBoundary>
-              ) : useMobileIde && mobilePanel === 'chat' ? null : (
-                <ClientOnly>
-                  {() => (
-                    <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                      <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
-                        <LazyWorkbench
-                          chatStarted={chatStarted || useMobileIde}
-                          isStreaming={isStreaming}
-                          setSelectedElement={setSelectedElement}
-                          mobilePanel={
-                            mobilePanel === 'chat' ? 'editor' : mobilePanel === 'deploy' ? 'editor' : mobilePanel
-                          }
-                          projectId={projectId}
-                          onMobilePanelChange={(panel) => {
-                            if (panel === 'editor') {
-                              setMobileIdePanel('editor');
-                              setProjectPanelSearchParam('editor');
-                            }
-                          }}
-                        />
-                      </Suspense>
-                    </PanelBoundary>
-                  )}
-                </ClientOnly>
-              )}
+              ) : null}
+              {/*
+               * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — le Workbench n'est plus
+               * démonté quand Agent/gestion/locks est actif : une fois ouvert il
+               * reste monté (keep-alive) et n'est que masqué via
+               * [data-active='false'], pour qu'un changement de panneau ne
+               * remonte jamais tout l'IDE ni ne relance la boucle de démarrage
+               * de la Preview (re-provisionnement plein écran sur pod froid).
+               */}
+              {shouldMountMobileWorkbench({
+                useMobileIde,
+                mobilePanel,
+                workbenchKeepAlive: mobileWorkbenchKeepAlive,
+              }) ? (
+                <div
+                  className="bolt-workbench-mobile-keepalive"
+                  data-testid="mobile-workbench-keepalive"
+                  data-active={!useMobileIde || mobileWorkbenchPanelActive ? 'true' : 'false'}
+                  aria-hidden={!useMobileIde || mobileWorkbenchPanelActive ? undefined : true}
+                >
+                  <ClientOnly>
+                    {() => (
+                      <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
+                        <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
+                          <LazyWorkbench
+                            chatStarted={chatStarted || useMobileIde}
+                            isStreaming={isStreaming}
+                            setSelectedElement={setSelectedElement}
+                            mobilePanel={resolveMobileWorkbenchPanel({
+                              mobilePanel,
+                              lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
+                            })}
+                            projectId={projectId}
+                            onMobilePanelChange={(panel) => {
+                              if (panel === 'editor') {
+                                setMobileIdePanel('editor');
+                                setProjectPanelSearchParam('editor');
+                              }
+                            }}
+                          />
+                        </Suspense>
+                      </PanelBoundary>
+                    )}
+                  </ClientOnly>
+                </div>
+              ) : null}
             </>
           )}
         </div>
-        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Bottom dock
-            (record/run · tab-switcher · Files · </> · preview · apps · +N · + · ⋮) is the reference;
-            exclude from responsive/fan-out/parity passes. */}
+        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Exclude from
+            responsive/fan-out/parity passes.
+
+            Composition du dock rouverte par Avi le 19/08, et par lui seul : la rangée
+            porte désormais TROIS onglets fixes — Webview · Agent · Déploiement — et
+            l'éditeur devient un panneau à la demande. L'onglet Terminal, lui, reste gelé.
+            Référence à jour :
+            record/run · tab-switcher · preview · agent · deployments · +N · + · ⋮ */}
         {showMobileChrome && (
           <nav
             className="bolt-mobile-replit-nav"
@@ -10227,7 +10690,26 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
   return method === 'GET' || method === 'HEAD';
 }
 
-function ProjectIdeServicePanel({
+/*
+ * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
+ * par le store `diagnostics`, côté client.
+ *
+ * L'aiguillage vit dans cette enveloppe SANS crochet, et non au point d'appel :
+ * le point d'appel mobile est dans le bloc GELÉ par Avi (`mobileHeaderTab` →
+ * `projectIdeMode`), scellé par empreinte dans `base-chat-ast.spec.ts`. Le
+ * modifier aurait fait dériver le sceau — exactement ce qu'il est là pour
+ * refuser. Le corps réel n'a pas bougé ; il est simplement appelé par
+ * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
+ */
+function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  if (props.panel === 'problems') {
+    return <ProjectProblemsPanel />;
+  }
+
+  return <ProjectIdeApiServicePanel {...props} />;
+}
+
+function ProjectIdeApiServicePanel({
   projectId,
   panel,
   displayTitle,
@@ -10240,8 +10722,7 @@ function ProjectIdeServicePanel({
   displayIcon?: string;
   initialPayload?: any;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
+  const { t } = useTranslation();
 
   /*
    * Seed from SSR payload first, else the in-memory cache from a previous visit
@@ -10254,13 +10735,10 @@ function ProjectIdeServicePanel({
   const [actionNotice, setActionNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
-  const [panelActionsOpen, setPanelActionsOpen] = useState(false);
 
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
   const [createdShareLink, setCreatedShareLink] = useState<string | undefined>();
-  const [refreshLabelNow, setRefreshLabelNow] = useState(() => new Date());
   const loadingPanelRef = useRef(false);
-  const panelActionsRef = useRef<HTMLDivElement | null>(null);
 
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
     initialPayload ? new Date().toISOString() : seededCache?.lastLoadedAt,
@@ -10450,45 +10928,6 @@ function ProjectIdeServicePanel({
   }, [loadPanel, refreshIntervalMs]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setRefreshLabelNow(new Date());
-    }, 15_000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!panelActionsOpen) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setPanelActionsOpen(false);
-      }
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-
-      if (target && panelActionsRef.current?.contains(target)) {
-        return;
-      }
-
-      setPanelActionsOpen(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('pointerdown', handlePointerDown, true);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('pointerdown', handlePointerDown, true);
-    };
-  }, [panelActionsOpen]);
-
-  useEffect(() => {
     if (panel !== 'collaborators' || !collaborationRealtime.snapshot) {
       return;
     }
@@ -10604,71 +11043,19 @@ function ProjectIdeServicePanel({
 
   const data = payload?.data ?? {};
   const project = payload?.project ?? {};
-  const updatedLabel = formatProjectPanelUpdatedLabel(lastLoadedAt, refreshLabelNow, language);
-
-  const updatedTitle = lastLoadedAt
-    ? t('baseChatAst.runtime.lastUpdated', {
-        date: formatBaseChatAstDateTime(language, lastLoadedAt) ?? t('baseChatAst.status.notAvailable'),
-      })
-    : t('baseChatAst.runtime.autoRefreshPending');
-
-  const refreshCadenceLabel = formatProjectPanelRefreshCadence(refreshIntervalMs, language);
 
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
-      <div className="bolt-project-ide-panel-header">
-        <span className={icon} aria-hidden />
-        <h2 className="m-0 min-w-0 truncate text-sm font-semibold">{title}</h2>
-        <div className="relative ml-auto flex min-w-0 items-center gap-2" ref={panelActionsRef}>
-          <span
-            className="hidden max-w-[190px] items-center gap-1.5 truncate rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary sm:inline-flex"
-            data-testid="ide-panel-updated-at"
-            title={updatedTitle}
-            aria-live="polite"
-          >
-            <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:clock'} aria-hidden />
-            <span className="truncate">{updatedLabel}</span>
-          </span>
-          <button
-            type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
-            aria-haspopup="menu"
-            aria-expanded={panelActionsOpen}
-            data-testid="ide-panel-actions"
-            onClick={() => setPanelActionsOpen((value) => !value)}
-            disabled={busy && !payload}
-          >
-            <span className="i-ph:dots-three-vertical-bold" aria-hidden />
-          </button>
-          {panelActionsOpen ? (
-            <div
-              className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
-              role="menu"
-              aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
-            >
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
-                role="menuitem"
-                onClick={() => {
-                  setPanelActionsOpen(false);
-                  void loadPanel();
-                }}
-                disabled={busy}
-              >
-                <span className="i-ph:arrow-clockwise" aria-hidden />
-                {t('chat.copy.refreshNow_29664b3f')}
-              </button>
-              <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
-                <span className="i-ph:clock" aria-hidden />
-                {t('chat.copy.autoRefreshEvery_f2835242')}
-                {refreshCadenceLabel}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      {/*
+       * AV-UX point 10 : la puce « Mis à jour … » et le menu ⋮ (« Actualiser
+       * maintenant » / cadence) sont retirés de TOUS les panneaux. Le
+       * rafraîchissement est AUTOMATIQUE (intervalle silencieux ci-dessus,
+       * 15 s ou 60 s selon le panneau, + rechargement après chaque action) :
+       * la rangée n'apportait qu'une méta-information redondante. En mobile,
+       * l'en-tête (icône + titre) est masqué par la feuille responsive — le
+       * titre est déjà dans l'en-tête mobile gelé.
+       */}
+      <IdePanelHeader icon={icon} title={title} />
       {/*
        * pb-20: the service panel and the bottom terminal are flex siblings. When a
        * tall panel (e.g. Settings) is open in a short viewport, its scroller is
@@ -10680,18 +11067,13 @@ function ProjectIdeServicePanel({
       <div className="min-h-0 flex-1 overflow-auto p-4 pb-20">
         {error ? (
           <div
-            className="mb-4 flex items-start gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-[var(--status-error-text)]"
+            className="mb-4 flex items-start gap-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
             role="alert"
           >
             <span className="flex-1">{error}</span>
-            <button
-              type="button"
-              className="rounded border border-red-500/40 px-2 py-0.5 text-[11px] hover:bg-red-500/20"
-              onClick={() => void loadPanel()}
-              disabled={busy}
-            >
+            <PanelButton type="button" variant="danger" size="sm" onClick={() => void loadPanel()} disabled={busy}>
               {t('chat.copy.retry_9f5cd8a2')}
-            </button>
+            </PanelButton>
           </div>
         ) : null}
         {!error && actionNotice ? (
@@ -10713,28 +11095,31 @@ function ProjectIdeServicePanel({
               {t('chat.copy.shareLinkCreatedCopiedToClipboard_ff151a13')}
             </span>
             <div className="flex items-center gap-2">
-              <input
+              <PanelInput
                 readOnly
+                size="sm"
                 value={createdShareLink}
                 onFocus={(event) => event.currentTarget.select()}
-                className="min-w-0 flex-1 select-all rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 font-mono text-[12px] text-bolt-elements-textPrimary"
+                className="flex-1 select-all font-mono text-bolt-elements-textPrimary"
                 aria-label={t('chat.copy.shareLinkUrl_4e30a187')}
               />
-              <button
+              <PanelButton
                 type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                variant="outline"
+                size="sm"
                 onClick={() => void navigator.clipboard?.writeText(createdShareLink).catch(() => undefined)}
               >
                 {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
+              </PanelButton>
+              <PanelButton
                 type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                variant="outline"
+                size="sm"
                 onClick={() => setCreatedShareLink(undefined)}
                 aria-label={t('chat.copy.dismissShareLink_275b18df')}
               >
                 {t('chat.copy.dismiss_70afe9ef')}
-              </button>
+              </PanelButton>
             </div>
           </div>
         ) : null}
@@ -10754,23 +11139,18 @@ function ProjectIdeServicePanel({
                 role="status"
               >
                 <span>{t('chat.copy.thisIsTakingLongerThanUsual_04718c01')}</span>
-                <button
-                  type="button"
-                  className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  onClick={() => void loadPanel()}
-                >
+                <PanelButton type="button" variant="outline" size="sm" onClick={() => void loadPanel()}>
                   {t('chat.copy.retry_9f5cd8a2')}
-                </button>
+                </PanelButton>
               </div>
             ) : null}
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
-          <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
-            <div className="mb-1 font-medium text-bolt-elements-textPrimary">
-              {t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
-            </div>
-            <div className="text-[12px]">{t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}</div>
-          </div>
+          <PanelEmptyState
+            icon={icon}
+            title={t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
+            description={t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}
+          />
         ) : (
           <PanelErrorBoundary
             panel={title}
@@ -11140,8 +11520,9 @@ function ProjectProblemsPanel() {
       return;
     }
 
+    // UNIF-06 : le titre vient d'IdePanelHeader et est un h2 (plus un h3 maison).
     const target =
-      panel.querySelector<HTMLElement>('.bolt-project-problem-open') ?? panel.querySelector<HTMLElement>('h3');
+      panel.querySelector<HTMLElement>('.bolt-project-problem-open') ?? panel.querySelector<HTMLElement>('h2');
     target?.focus({ preventScroll: true });
   }, []);
 
@@ -11158,11 +11539,13 @@ function ProjectProblemsPanel() {
       aria-label={t('chat.copy.problems_8e6b86dc')}
       aria-live="polite"
     >
-      <header className="bolt-project-problems-header">
-        <div>
-          <h3 tabIndex={-1}>{t('chat.copy.problems_8e6b86dc')}</h3>
-          <p>{t('baseChatAst.counts.problemsSummary', { errors, warnings })}</p>
-        </div>
+      {/*
+       * UNIF-06 (audit H1) : Problems adoptait une tête maison (h3 + résumé)
+       * différente de l'en-tête commun des panneaux. Il passe sur le même
+       * IdePanelHeader (icône + titre + slot droite) ; les compteurs restent le
+       * slot d'actions, le résumé textuel doublonnait les puces et disparaît.
+       */}
+      <IdePanelHeader icon={panelIcon('problems')} title={t('chat.copy.problems_8e6b86dc')} titleTabIndex={-1}>
         <div
           className="bolt-project-problems-counts"
           aria-label={t('baseChatAst.diagnostics.summary', {
@@ -11193,13 +11576,14 @@ function ProjectProblemsPanel() {
             </span>
           </span>
         </div>
-      </header>
+      </IdePanelHeader>
       {diagnostics.length === 0 ? (
-        <div className="bolt-project-problems-empty">
-          <span className="i-ph:check-circle" aria-hidden />
-          <h4>{t('chat.copy.noProblemsDetected_2b9a1d7d')}</h4>
-          <p>{t('chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad')}</p>
-        </div>
+        <PanelEmptyState
+          icon="i-ph:check-circle"
+          title={t('chat.copy.noProblemsDetected_2b9a1d7d')}
+          description={t('chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad')}
+          className="m-3 flex-1"
+        />
       ) : (
         <ul className="bolt-project-problems-list">
           {diagnostics.map((diagnostic) => {
@@ -12208,7 +12592,12 @@ function IdeTabBar({
   onToggleFloating,
   onOpenNewWindow,
   isFloating,
-  onSwapTab,
+  onMoveTab,
+  paneId,
+  onClosePane,
+  onResetLayout,
+  onMoveTabToPane,
+  otherPanes = [],
   onDragEnd,
   onTogglePin,
   recentFiles = [],
@@ -12241,7 +12630,28 @@ function IdeTabBar({
   onToggleFloating?: () => void;
   onOpenNewWindow?: (tabId?: string) => void;
   isFloating?: boolean;
-  onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
+
+  /**
+   * RPL-IDE-001.4 — move `sourceTabId` out of `sourcePaneId` into THIS pane at
+   * `toIndex`, the slot in this pane's current tab array ("insert before the tab
+   * at index i"; omit to append). Same-pane calls are a reorder.
+   */
+  onMoveTab?: (sourcePaneId: string, sourceTabId: string, toIndex?: number) => void;
+
+  /** Id of the pane owning this strip — the drag payload's destination. */
+  paneId?: string;
+
+  /** RPL-IDE-001.6 — Pane scope: close this pane entirely (its tabs go with it). */
+  onClosePane?: () => void;
+
+  /** RPL-IDE-001.6 — Window scope: restore the default single-pane layout. */
+  onResetLayout?: () => void;
+
+  /** RPL-IDE-001.6 — Tab scope: keyboard equivalent of dragging the tab to another pane. */
+  onMoveTabToPane?: (targetPaneId: string) => void;
+
+  /** Panes other than this one, as move destinations. */
+  otherPanes?: Array<{ id: string; label: string }>;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
@@ -12251,7 +12661,16 @@ function IdeTabBar({
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
+
+  /**
+   * RPL-IDE-001.4 — insertion slot under the pointer during a tab drag, drawn as
+   * a caret between two tabs so the drop position is visible before releasing
+   * (Replit/Cursor behaviour). `null` = no drag over this strip.
+   */
+  const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
@@ -12269,6 +12688,151 @@ function IdeTabBar({
     setToolQuery('');
     setOpen(true);
   }, []);
+
+  /*
+   * RPL-IDE-001.6 — the menu is portalled to <body> and positioned from the
+   * trigger's rect. It cannot stay in the normal flow: between the ⋮ button and
+   * the document there are NINE `overflow: hidden` ancestors, the innermost of
+   * them the 40 px-tall tab bar, so the menu was clipped to a single visible
+   * item. (Playwright treats a clipped element as visible — it has a non-empty
+   * box — which is why automated checks never caught it; only a screenshot did.)
+   */
+  const [actionsAnchor, setActionsAnchor] = useState<{ top: number; right: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!actionsOpen) {
+      setActionsAnchor(null);
+
+      return undefined;
+    }
+
+    const place = () => {
+      const rect = actionsButtonRef.current?.getBoundingClientRect();
+
+      if (rect) {
+        setActionsAnchor({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
+      }
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [actionsOpen]);
+
+  const closeOptionsMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
+    setActionsOpen(false);
+
+    if (options.restoreFocus) {
+      window.requestAnimationFrame(() => actionsButtonRef.current?.focus());
+    }
+  }, []);
+
+  /** Run a menu action, then close and hand focus back to the trigger. */
+  const runOptionsAction = useCallback(
+    (action: () => void) => {
+      action();
+      closeOptionsMenu({ restoreFocus: true });
+    },
+    [closeOptionsMenu],
+  );
+
+  /*
+   * RPL-IDE-001.6 — menu keyboard model. Roving focus over the live
+   * `[role="menuitem"]` list rather than a precomputed index, so the wrapping
+   * stays correct however many items the current pane/window state renders
+   * (Float vs Dock, per-pane Move entries, optional Reset layout).
+   */
+  const handleOptionsMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const items = Array.from(actionsMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+
+      if (!items.length) {
+        return;
+      }
+
+      const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+      const focusAt = (index: number) => {
+        event.preventDefault();
+        items[(index + items.length) % items.length]?.focus();
+      };
+
+      if (event.key === 'ArrowDown') {
+        focusAt(currentIndex + 1);
+      } else if (event.key === 'ArrowUp') {
+        focusAt(currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+      } else if (event.key === 'Home') {
+        focusAt(0);
+      } else if (event.key === 'End') {
+        focusAt(items.length - 1);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptionsMenu({ restoreFocus: true });
+      } else if (event.key === 'Tab') {
+        // Tabbing out of a menu closes it, as in every native menu.
+        closeOptionsMenu();
+      }
+    },
+    [closeOptionsMenu],
+  );
+
+  /* Focus the first item on open, and close on an outside pointer press. */
+  useEffect(() => {
+    if (!actionsOpen) {
+      return undefined;
+    }
+
+    window.requestAnimationFrame(() =>
+      actionsMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus(),
+    );
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && (actionsMenuRef.current?.contains(target) || actionsButtonRef.current?.contains(target))) {
+        return;
+      }
+
+      closeOptionsMenu();
+    };
+
+    /*
+     * Escape is handled on the window in the CAPTURE phase, not by the menu's
+     * own onKeyDown.
+     *
+     * Two things defeat the obvious approaches, both established by measuring
+     * the live IDE at 1440 rather than by reasoning: the menu is portalled to
+     * <body>, i.e. outside React's root container, so its React `onKeyDown`
+     * does not reliably receive the event; and the project-wide keybinding
+     * handler already owns Escape (`overlay.close`) and consumes it first, so a
+     * bubble-phase window listener never ran either — the menu stayed open with
+     * exactly one trigger and one menu node in the DOM.
+     *
+     * Capture runs before both, and closing the topmost menu is the correct
+     * precedence for Escape anyway.
+     */
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptionsMenu({ restoreFocus: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [actionsOpen, closeOptionsMenu]);
 
   useEffect(() => {
     if (!open) {
@@ -12303,224 +12867,27 @@ function IdeTabBar({
     };
   }, [closeToolMenu, open]);
 
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    [
-      'overview',
-      panelTitle('overview', t),
-      t(IDE_TOOL_DESCRIPTIONS.overview),
-      'i-ph:gauge',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'editor',
-      t('baseChatAst.common.code'),
-      t(IDE_TOOL_DESCRIPTIONS.editor),
-      'i-ph:code',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'files',
-      panelTitle('files', t),
-      t(IDE_TOOL_DESCRIPTIONS.files),
-      'i-ph:files',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'search',
-      panelTitle('search', t),
-      t(IDE_TOOL_DESCRIPTIONS.search),
-      'i-ph:magnifying-glass',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'locks',
-      panelTitle('locks', t),
-      t(IDE_TOOL_DESCRIPTIONS.locks),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'terminal',
-      SHELL_TERMINAL_LABEL,
-      t(IDE_TOOL_DESCRIPTIONS.terminal),
-      'i-ph:terminal-window',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'logs',
-      panelTitle('logs', t),
-      t(IDE_TOOL_DESCRIPTIONS.logs),
-      'i-ph:list-magnifying-glass',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'preview',
-      panelTitle('preview', t),
-      t(IDE_TOOL_DESCRIPTIONS.preview),
-      'i-ph:browser',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'database',
-      panelTitle('database', t),
-      t(IDE_TOOL_DESCRIPTIONS.database),
-      'i-ph:database',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'object-storage',
-      panelTitle('object-storage', t),
-      t(IDE_TOOL_DESCRIPTIONS['object-storage']),
-      'i-ph:package',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'env',
-      panelTitle('env', t),
-      t(IDE_TOOL_DESCRIPTIONS.env),
-      'i-ph:brackets-curly',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'secrets',
-      panelTitle('secrets', t),
-      t(IDE_TOOL_DESCRIPTIONS.secrets),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'git',
-      panelTitle('git', t),
-      t(IDE_TOOL_DESCRIPTIONS.git),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'packages',
-      panelTitle('packages', t),
-      t(IDE_TOOL_DESCRIPTIONS.packages),
-      'i-ph:cube',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'skills',
-      panelTitle('skills', t),
-      t(IDE_TOOL_DESCRIPTIONS.skills),
-      'i-ph:sparkle',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'integrations',
-      panelTitle('integrations', t),
-      t(IDE_TOOL_DESCRIPTIONS.integrations),
-      'i-ph:plugs-connected',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'workflows',
-      panelTitle('workflows', t),
-      t(IDE_TOOL_DESCRIPTIONS.workflows),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'debugger',
-      panelTitle('debugger', t),
-      t(IDE_TOOL_DESCRIPTIONS.debugger),
-      'i-ph:bug',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'deployments',
-      panelTitle('deployments', t),
-      t(IDE_TOOL_DESCRIPTIONS.deployments),
-      'i-ph:rocket-launch',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'security',
-      panelTitle('security', t),
-      t(IDE_TOOL_DESCRIPTIONS.security),
-      'i-ph:shield-check',
-      'var(--vc-ide-accent-error)',
-      t('baseChatAst.common.security'),
-    ],
-    [
-      'monitoring',
-      panelTitle('monitoring', t),
-      t(IDE_TOOL_DESCRIPTIONS.monitoring),
-      'i-ph:chart-line',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'ports',
-      panelTitle('ports', t),
-      t(IDE_TOOL_DESCRIPTIONS.ports),
-      'i-ph:plugs',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'extensions',
-      panelTitle('extensions', t),
-      t(IDE_TOOL_DESCRIPTIONS.extensions),
-      'i-ph:puzzle-piece',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'snapshots',
-      panelTitle('snapshots', t),
-      t(IDE_TOOL_DESCRIPTIONS.snapshots),
-      'i-ph:stack',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'activity',
-      panelTitle('activity', t),
-      t(IDE_TOOL_DESCRIPTIONS.activity),
-      'i-ph:activity',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'collaborators',
-      panelTitle('collaborators', t),
-      t(IDE_TOOL_DESCRIPTIONS.collaborators),
-      'i-ph:users',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'settings',
-      panelTitle('settings', t),
-      t(IDE_TOOL_DESCRIPTIONS.settings),
-      'i-ph:gear',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.configuration'),
-    ],
-  ];
+  /*
+   * RPL-IDE-001.5 — the All-tools list comes from the shared catalog, which is
+   * derived from the engine's `PROJECT_EDITOR_TOOLS`. It used to be 217 lines of
+   * hand-maintained tuples here that had drifted: `studio` (Agent Studio) and
+   * `domains` were rendered as real panels but appeared in no tool list, so they
+   * could not be opened from this popup at all.
+   */
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> =
+    projectEditorToolsByCategory().flatMap(([category, categoryTools]) =>
+      categoryTools.map(
+        (tool) =>
+          [
+            tool.id as IdeWorkspacePanel | IdeRightPanel,
+            toolDisplayTitle(tool.id, t),
+            t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+            tool.icon,
+            tool.accent,
+            t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
+          ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
+      ),
+    );
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
 
@@ -12632,11 +12999,12 @@ function IdeTabBar({
             </div>
           ))}
           {!filteredTools.length && (
-            <div className="bolt-project-tool-empty">
-              <span className="i-ph:sparkle" aria-hidden />
-              <strong>{t('chat.copy.noFeaturesFound_295ba03b')}</strong>
-              <small>{t('chat.copy.tryADifferentSearchTerm_0ba628a3')}</small>
-            </div>
+            <PanelEmptyState
+              icon="i-ph:sparkle"
+              title={t('chat.copy.noFeaturesFound_295ba03b')}
+              description={t('chat.copy.tryADifferentSearchTerm_0ba628a3')}
+              className="m-2"
+            />
           )}
         </div>
         <div className="bolt-project-tool-footer">
@@ -12655,29 +13023,66 @@ function IdeTabBar({
     </div>
   ) : null;
 
+  /*
+   * RPL-IDE-001.4 — `getData` is deliberately blocked during dragover by the
+   * HTML drag protocol (only `types` is readable), so the visual affordance is
+   * driven by the presence of our tab MIME type and the payload is read on drop.
+   */
+  /*
+   * RPL-IDE-001.6 — the trigger names the tab it acts on. "Tab actions" alone
+   * told a screen-reader user nothing about scope when several panes are open.
+   */
+  const optionsMenuActiveTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
+  const optionsMenuLabel = optionsMenuActiveTab
+    ? t('baseChatAst.options.menuForTab', { label: optionsMenuActiveTab.label })
+    : t('chat.copy.tabActions_b7a78b89');
+
+  const isTabDrag = (event: React.DragEvent) => Boolean(onMoveTab) && isProjectEditorTabDrag(event.dataTransfer.types);
+
+  const clearDropSlot = () => setDropSlot(null);
+
+  const dropTabAt = (event: React.DragEvent, toIndex?: number) => {
+    const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+    const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
+
+    setDropSlot(null);
+
+    if (!sourcePaneId || !sourceTabId || !onMoveTab) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onMoveTab(sourcePaneId, sourceTabId, toIndex);
+  };
+
   return (
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
           className="bolt-project-tabs"
           role="tablist"
+          data-pane-strip={paneId}
           onKeyDown={moveTabFocus}
           onDragOver={(event) => {
-            if (onSwapTab) {
-              event.preventDefault();
+            if (!isTabDrag(event)) {
+              return;
             }
-          }}
-          onDrop={(event) => {
-            const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-            const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-            if (sourcePaneId && sourceTabId) {
-              event.preventDefault();
-              onSwapTab?.(sourcePaneId, sourceTabId, activeTabId);
+            // Bare strip area (after the last tab) — append.
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            setDropSlot(tabs.length);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              clearDropSlot();
             }
           }}
+          onDrop={(event) => dropTabAt(event, tabs.length)}
         >
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <div
               key={tab.id}
               role="tab"
@@ -12686,6 +13091,8 @@ function IdeTabBar({
               data-panel={tab.panel}
               data-pinned={tab.pinned ? 'true' : undefined}
               data-dirty={tab.dirty ? 'true' : undefined}
+              data-drop-before={dropSlot === index ? 'true' : undefined}
+              data-drop-after={dropSlot === index + 1 && index === tabs.length - 1 ? 'true' : undefined}
               aria-label={
                 tab.pinned && tab.dirty
                   ? t('baseChatAst.tab.pinnedUnsaved', { label: tab.label })
@@ -12721,25 +13128,32 @@ function IdeTabBar({
                 }
 
                 event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('application/x-vibecore-pane-id', paneId);
-                event.dataTransfer.setData('application/x-vibecore-tab-id', tab.id);
+                event.dataTransfer.setData(TAB_DRAG_PANE_MIME, paneId);
+                event.dataTransfer.setData(TAB_DRAG_TAB_MIME, tab.id);
               }}
-              onDragEnd={onDragEnd}
+              onDragEnd={(event) => {
+                clearDropSlot();
+                onDragEnd?.();
+                void event;
+              }}
               onDragOver={(event) => {
-                if (onSwapTab) {
-                  event.preventDefault();
+                if (!isTabDrag(event)) {
+                  return;
                 }
-              }}
-              onDrop={(event) => {
-                const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-                const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-                if (sourcePaneId && sourceTabId) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSwapTab?.(sourcePaneId, sourceTabId, tab.id);
-                }
+                /*
+                 * Pointer past the tab's midpoint means "insert after me". This
+                 * is what makes the drop position deterministic instead of
+                 * "wherever the browser felt like it".
+                 */
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = 'move';
+                setDropSlot(dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()));
               }}
+              onDrop={(event) =>
+                dropTabAt(event, dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()))
+              }
             >
               <button
                 type="button"
@@ -12830,113 +13244,200 @@ function IdeTabBar({
             <span className="i-ph:plus" aria-hidden />
           </button>
         </div>
+        {/*
+          RPL-IDE-001.6 — Options (⋮) for the active tab. Previously a flat,
+          unlabelled list of buttons in a plain <div>: no menu semantics, no
+          keyboard navigation, no Escape, no outside-click, and no way to tell
+          which scope an action acted on. It is now a real `role="menu"` split
+          into the three scopes the Project Editor model has — Window, Pane and
+          Tab — with every item wired to a working action.
+        */}
         <div className="bolt-project-tool-popover">
           <button
+            ref={actionsButtonRef}
             type="button"
             className="bolt-project-tab-action"
-            aria-label={t('chat.copy.tabActions_b7a78b89')}
-            title={t('chat.copy.tabActions_b7a78b89')}
+            aria-label={optionsMenuLabel}
+            title={optionsMenuLabel}
+            aria-haspopup="menu"
             aria-expanded={actionsOpen}
+            data-testid="tab-options"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => {
               closeToolMenu();
               setActionsOpen((value) => !value);
             }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown' && !actionsOpen) {
+                event.preventDefault();
+                closeToolMenu();
+                setActionsOpen(true);
+              }
+            }}
           >
             <span className="i-ph:dots-three" aria-hidden />
           </button>
-          {actionsOpen && (
-            <div className="bolt-project-tab-actions-menu">
-              <button
-                type="button"
-                onClick={() => {
-                  onTogglePin?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
+          {actionsOpen &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                ref={actionsMenuRef}
+                className="bolt-project-tab-actions-menu"
+                role="menu"
+                aria-orientation="vertical"
+                aria-label={optionsMenuLabel}
+                data-testid="tab-options-menu"
+                style={
+                  actionsAnchor
+                    ? { top: `${actionsAnchor.top}px`, right: `${actionsAnchor.right}px` }
+                    : { visibility: 'hidden' }
+                }
+                onKeyDown={handleOptionsMenuKeyDown}
               >
-                <span className="i-ph:push-pin-simple" aria-hidden />
-                {tabs.find((tab) => tab.id === activeTabId)?.pinned
-                  ? t('chat.copy.unpinTab_279bad8b')
-                  : t('chat.copy.pinTab_3623fa20')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseOthers?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeOthers_445ef4ad')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseToRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeToRight_8b7725b0')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseAll?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeAll_98553cc8')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseSaved?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeSaved_40a993da')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveRight_59014f08')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveDown_7468f839')}
-              </button>
-              {onToggleFloating ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onToggleFloating();
-                    setActionsOpen(false);
-                  }}
-                >
-                  {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
-                </button>
-              ) : null}
-              {onOpenNewWindow ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenNewWindow(activeTabId ?? tabs[0]?.id);
-                    setActionsOpen(false);
-                  }}
-                >
-                  {t('chat.copy.openInNewWindow_a75732d8')}
-                </button>
-              ) : null}
-            </div>
-          )}
+                <div role="group" aria-label={t('baseChatAst.options.windowGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.windowGroup')}
+                  </p>
+                  {onOpenNewWindow ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-open-new-window"
+                      onClick={() => runOptionsAction(() => onOpenNewWindow(activeTabId ?? tabs[0]?.id))}
+                    >
+                      <span className="i-ph:arrow-square-out" aria-hidden />
+                      {t('chat.copy.openInNewWindow_a75732d8')}
+                    </button>
+                  ) : null}
+                  {onResetLayout ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-reset-layout"
+                      onClick={() => runOptionsAction(() => onResetLayout())}
+                    >
+                      <span className="i-ph:layout" aria-hidden />
+                      {t('baseChatAst.options.resetLayout')}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div role="group" aria-label={t('baseChatAst.options.paneGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.paneGroup')}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-split-right"
+                    onClick={() => runOptionsAction(() => onSplitActiveRight?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:columns" aria-hidden />
+                    {t('chat.copy.splitActiveRight_59014f08')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-split-down"
+                    onClick={() => runOptionsAction(() => onSplitActiveDown?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:rows" aria-hidden />
+                    {t('chat.copy.splitActiveDown_7468f839')}
+                  </button>
+                  {onToggleFloating ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-toggle-floating"
+                      onClick={() => runOptionsAction(() => onToggleFloating())}
+                    >
+                      <span className={isFloating ? 'i-ph:push-pin' : 'i-ph:frame-corners'} aria-hidden />
+                      {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                    </button>
+                  ) : null}
+                  {onClosePane ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-close-pane"
+                      onClick={() => runOptionsAction(() => onClosePane())}
+                    >
+                      <span className="i-ph:x-square" aria-hidden />
+                      {t('baseChatAst.options.closePane')}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div role="group" aria-label={t('baseChatAst.options.tabGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.tabGroup')}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-pin"
+                    onClick={() => runOptionsAction(() => onTogglePin?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:push-pin-simple" aria-hidden />
+                    {tabs.find((tab) => tab.id === activeTabId)?.pinned
+                      ? t('chat.copy.unpinTab_279bad8b')
+                      : t('chat.copy.pinTab_3623fa20')}
+                  </button>
+                  {/*
+                  RPL-IDE-001.4 + .6 — the keyboard route to the cross-pane move.
+                  Dragging a tab is a pointer-only gesture; without this, moving a
+                  tab between panes was unreachable without a mouse.
+                */}
+                  {onMoveTabToPane && otherPanes.length
+                    ? otherPanes.map((pane, index) => (
+                        <button
+                          key={pane.id}
+                          type="button"
+                          role="menuitem"
+                          data-testid={`tab-options-move-to-pane-${index}`}
+                          onClick={() => runOptionsAction(() => onMoveTabToPane(pane.id))}
+                        >
+                          <span className="i-ph:arrow-line-right" aria-hidden />
+                          {t('baseChatAst.options.moveTabToPane', { pane: pane.label })}
+                        </button>
+                      ))
+                    : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-others"
+                    onClick={() => runOptionsAction(() => onCloseOthers?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeOthers_445ef4ad')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-to-right"
+                    onClick={() => runOptionsAction(() => onCloseToRight?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeToRight_8b7725b0')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-saved"
+                    onClick={() => runOptionsAction(() => onCloseSaved?.())}
+                  >
+                    {t('chat.copy.closeSaved_40a993da')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-all"
+                    onClick={() => runOptionsAction(() => onCloseAll?.())}
+                  >
+                    {t('chat.copy.closeAll_98553cc8')}
+                  </button>
+                </div>
+              </div>,
+              document.body,
+            )}
         </div>
       </div>
       {toolMenu}
@@ -12955,15 +13456,16 @@ function ProjectWelcomeState({
 }) {
   const { t } = useTranslation();
 
+  // UNIF-05 : icônes des raccourcis d'accueil tirées du registre unique.
   const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
-    ['i-ph:files', t('baseChatAst.tool.openFiles'), formatKeybindingCombo('cmd+p'), 'files'],
+    [panelIcon('files'), t('baseChatAst.tool.openFiles'), formatKeybindingCombo('cmd+p'), 'files'],
     [
-      'i-ph:terminal-window',
+      panelIcon('terminal'),
       t('baseChatAst.tool.openTerminal', { terminal: SHELL_TERMINAL_LABEL }),
       formatKeybindingCombo('cmd+`'),
       'terminal',
     ],
-    ['i-ph:browser', t('baseChatAst.tool.viewPreview'), formatKeybindingCombo('cmd+enter'), 'preview'],
+    [panelIcon('preview'), t('baseChatAst.tool.viewPreview'), formatKeybindingCombo('cmd+enter'), 'preview'],
     ['i-ph:command', t('baseChatAst.tool.allCommands'), formatKeybindingCombo('cmd+k'), 'settings'],
   ];
 
@@ -13192,10 +13694,11 @@ function ProjectIdePanelContent({
             })}
           </div>
         ) : (
-          <div className="bolt-project-snapshots-empty">
-            <strong>{t('chat.copy.noCheckpointsYet_0cd8841d')}</strong>
-            <p>{t('chat.copy.createACheckpointBeforeMajorEdits_c50a54ac')}</p>
-          </div>
+          <PanelEmptyState
+            icon="i-ph:stack"
+            title={t('chat.copy.noCheckpointsYet_0cd8841d')}
+            description={t('chat.copy.createACheckpointBeforeMajorEdits_c50a54ac')}
+          />
         )}
       </section>
     );
@@ -13268,7 +13771,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noActivePresenceYet_5bb4c6e2')}</div>
+              <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noActivePresenceYet_5bb4c6e2')} />
             )}
           </div>
         </section>
@@ -13303,7 +13806,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noProjectCollaborators_3bcac170')}</div>
+              <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noProjectCollaborators_3bcac170')} />
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
@@ -13375,7 +13878,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noCommentsYet_207b24fc')}</div>
+              <PanelEmptyState icon="i-ph:chat-circle" title={t('chat.copy.noCommentsYet_207b24fc')} />
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
@@ -13631,10 +14134,11 @@ function ProjectDomainsPanel({
             ))}
           </div>
         ) : (
-          <div className="bolt-project-domain-empty">
-            <strong>{t('chat.copy.noCustomDomainsYet_d9c8b21d')}</strong>
-            <span>{t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}</span>
-          </div>
+          <PanelEmptyState
+            icon="i-ph:globe"
+            title={t('chat.copy.noCustomDomainsYet_d9c8b21d')}
+            description={t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}
+          />
         )}
       </div>
     </div>
@@ -13919,10 +14423,18 @@ function ProjectActivityPanel({
           <h3>{t('chat.copy.projectActivity_d2b7b50c')}</h3>
           <p>{t('chat.copy.backendActivityCollaborationChangesAndOperational_ad32cb87')}</p>
         </div>
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        {/* UNIF lot 4 — bouton nu stylé SCSS remplacé par le PanelButton partagé. */}
+        <PanelButton
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          onClick={() => void reload?.()}
+          disabled={busy}
+        >
           <span className="i-ph:arrows-clockwise" aria-hidden />
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshNow_29664b3f')}
-        </button>
+        </PanelButton>
       </header>
 
       <div className="bolt-project-activity-metrics" aria-label={t('chat.copy.activitySummary_70f4ec76')}>
@@ -14089,7 +14601,10 @@ function ProjectActivityPanel({
             );
           })
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf')}</div>
+          <PanelEmptyState
+            icon="i-ph:list-magnifying-glass"
+            title={t('chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf')}
+          />
         )}
       </div>
     </section>
@@ -15003,9 +15518,10 @@ function ProjectSettingsPanel({
                       </form>
                     ))
                   ) : (
-                    <div className="bolt-project-empty-panel">
-                      {t('chat.copy.noActiveSessionsReturnedByApi_93156dfd')}
-                    </div>
+                    <PanelEmptyState
+                      icon="i-ph:monitor"
+                      title={t('chat.copy.noActiveSessionsReturnedByApi_93156dfd')}
+                    />
                   )}
                 </div>
                 <form
@@ -15098,7 +15614,7 @@ function ProjectSettingsPanel({
                     })}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noBillingLimitsReturnedByApi_68d00609')}</div>
+                  <PanelEmptyState icon="i-ph:gauge" title={t('chat.copy.noBillingLimitsReturnedByApi_68d00609')} />
                 )}
                 <a href="/billing" target="_blank" rel="noreferrer">
                   {t('chat.copy.openBillingManagement_e4f3b4fc')}
@@ -15521,9 +16037,10 @@ function ProjectSettingsPanel({
                     ))}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">
-                    {t('chat.copy.noPersistentMemoriesStoredForThis_322165dc')}
-                  </div>
+                  <PanelEmptyState
+                    icon="i-ph:brain"
+                    title={t('chat.copy.noPersistentMemoriesStoredForThis_322165dc')}
+                  />
                 )}
               </section>
             </div>
@@ -16124,14 +16641,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   if (enabled === false) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
-        <div className="bolt-project-empty-panel grid gap-2 text-sm">
-          <strong className="text-bolt-elements-textPrimary">
-            {t('chat.copy.objectStorageIsNotAvailableYet_0f2325e6')}
-          </strong>
-          <span className="text-bolt-elements-textSecondary">
-            {t('chat.copy.cloudObjectStorageHasnTBeen_714efe71')}
-          </span>
-        </div>
+        <PanelEmptyState
+          icon="i-ph:hard-drives"
+          title={t('chat.copy.objectStorageIsNotAvailableYet_0f2325e6')}
+          description={t('chat.copy.cloudObjectStorageHasnTBeen_714efe71')}
+        />
       </div>
     );
   }
@@ -16156,14 +16670,9 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               {status}
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void enableStorage()}
-            disabled={enabling || busy}
-            className="w-fit rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <PanelButton type="button" onClick={() => void enableStorage()} disabled={enabling || busy} className="w-fit">
             {enabling ? t('chat.copy.enabling_5c258f09') : t('chat.copy.enableObjectStorage_3c4cc0c4')}
-          </button>
+          </PanelButton>
         </div>
       </div>
     );
@@ -16263,66 +16772,57 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             <span className="i-ph:package" aria-hidden />
             <strong>{t('chat.copy.projectBucket_b51aaf40')}</strong>
           </div>
-          <div className="bolt-project-tool-tabs">
-            {(
+          <PanelToolTabs
+            tabs={
               [
                 ['objects', t('baseChatAst.common.objects')],
                 ['settings', t('baseChatAst.common.settings')],
               ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={view === id ? 'page' : undefined}
-                onClick={() => setView(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            }
+            active={view}
+            onSelect={setView}
+          />
         </div>
 
         {view === 'settings' ? (
           <div className="grid gap-4 text-sm">
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.bucket_40dafe4c')}
-              </h4>
+              <PanelSectionTitle level="group">{t('chat.copy.bucket_40dafe4c')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textSecondary">
                 {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
               </p>
-              <button
+              <PanelButton
                 type="button"
-                className="w-fit rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                variant="outline"
+                size="sm"
+                className="w-fit"
                 onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
                 disabled={busy || working}
               >
                 {t('chat.copy.ensureBucketExists_5c9d55b8')}
-              </button>
+              </PanelButton>
             </section>
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.sharing_78779bad')}
-              </h4>
+              <PanelSectionTitle level="group">{t('chat.copy.sharing_78779bad')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.addingOrRemovingThisBucketFrom_63b69b72')}
               </p>
             </section>
-            <section className="grid gap-2 rounded-lg border border-red-500/30 bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.deleteBucket_0d2c8e99')}
-              </h4>
+            <section className="grid gap-2 rounded-lg border border-[var(--status-error-border)] bg-bolt-elements-background-depth-2 p-3">
+              <PanelSectionTitle level="group">{t('chat.copy.deleteBucket_0d2c8e99')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
               </p>
-              <button
+              <PanelButton
                 type="button"
-                className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-red-500/10 disabled:opacity-60"
+                variant="danger"
+                size="sm"
+                className="w-fit"
                 disabled={busy || working}
                 onClick={() => setConfirmDeleteBucket(true)}
               >
                 {t('chat.copy.deleteBucket_0d2c8e99')}
-              </button>
+              </PanelButton>
             </section>
             {status ? (
               <p className="text-xs text-bolt-elements-textSecondary" role="status">
@@ -16332,10 +16832,12 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           </div>
         ) : (
           <>
+            {/* UNIF lot 7 — toolbar storage sur les primitives (PanelInput/PanelButton sm). */}
             <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
               <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
                 {t('chat.copy.prefixFolder_db73cfed')}
-                <input
+                <PanelInput
+                  size="sm"
                   value={prefix}
                   onChange={(event) => setPrefix(event.target.value)}
                   placeholder={t('chat.copy.assets_79f5d556')}
@@ -16343,25 +16845,50 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                   spellCheck={false}
                 />
               </label>
-              <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
-                {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
-              </button>
-              <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFiles_41aca16f')}
-              </button>
-              <button type="button" onClick={() => folderInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFolder_e77a1496')}
-              </button>
-              <button type="button" onClick={() => setCreateFolderOpen(true)} disabled={busy || working}>
-                {t('chat.copy.createFolder_e59f63fa')}
-              </button>
-              <button
+              <PanelButton
                 type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void refresh(prefix)}
+                disabled={loading || working}
+              >
+                {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                size="sm"
+                onClick={() => uploadInputRef.current?.click()}
+                disabled={busy || working}
+              >
+                {t('chat.copy.uploadFiles_41aca16f')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => folderInputRef.current?.click()}
+                disabled={busy || working}
+              >
+                {t('chat.copy.uploadFolder_e77a1496')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateFolderOpen(true)}
+                disabled={busy || working}
+              >
+                {t('chat.copy.createFolder_e59f63fa')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
                 disabled={busy || working}
               >
                 {t('chat.copy.ensureBucket_59b7cad5')}
-              </button>
+              </PanelButton>
               <input
                 ref={uploadInputRef}
                 type="file"
@@ -16386,34 +16913,40 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
             {prefix ? (
               <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
+                {/* UNIF lot 7 — « Up » n'est plus un lien souligné ad hoc mais un PanelButton outline. */}
+                <PanelButton type="button" variant="outline" size="sm" onClick={() => setPrefix(parentPrefix)}>
+                  <span className="i-ph:arrow-elbow-left-up mr-1" aria-hidden />
                   {t('chat.copy.up_12493f7d')}
-                </button>
-                <span className="font-mono">{prefix}</span>
+                </PanelButton>
+                <span className="min-w-0 truncate font-mono">{prefix}</span>
               </div>
             ) : null}
 
-            <input
+            <PanelInput
+              size="sm"
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
               placeholder={t('chat.copy.searchThisFolder_3bbb9af2')}
               autoCapitalize="none"
               spellCheck={false}
               aria-label={t('chat.copy.searchObjects_e9aa6bcc')}
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              className="w-full text-bolt-elements-textPrimary"
             />
 
             {visibleFolders.length ? (
               <div className="flex flex-wrap gap-2">
                 {visibleFolders.map((folder) => (
                   <span key={folder} className="inline-flex items-center gap-1">
+                    {/* UNIF lot 4 — plus d'emoji brut : icône Phosphor, même gabarit que les badges. */}
                     <button
                       type="button"
                       onClick={() => setPrefix(folder)}
                       className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                     >
-                      📁 {folder.replace(prefix, '').replace(/\/$/, '')}
+                      <span className="i-ph:folder" aria-hidden />
+                      {folder.replace(prefix, '').replace(/\/$/, '')}
                     </button>
+                    {/* UNIF lot 7 — croix typographique remplacée par l'icône Phosphor standard. */}
                     <button
                       type="button"
                       onClick={() =>
@@ -16423,10 +16956,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                         )
                       }
                       aria-label={t('chat.copy.deleteFolderValue0_f97d9e9f', { value0: folder })}
-                      className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
+                      className="inline-flex items-center rounded p-0.5 text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-item-contentDanger disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={working}
                     >
-                      ×
+                      <span className="i-ph:x" aria-hidden />
                     </button>
                   </span>
                 ))}
@@ -16440,24 +16973,44 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                     key={object.key}
                     className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
                   >
-                    <div className="min-w-0">
-                      <strong className="block truncate text-bolt-elements-textPrimary">
-                        {object.key.replace(prefix, '')}
-                      </strong>
-                      <span className="text-bolt-elements-textSecondary">
-                        {formatObjectStorageSize(t, language, object.size)}
-                        {object.updated ? ` · ${formatBaseChatAstDateTime(language, object.updated) ?? ''}` : ''}
-                      </span>
+                    {/* UNIF lot 7 — ligne fichier : icône Phosphor + taille en Badge, actions en PanelButton. */}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="i-ph:file shrink-0 text-bolt-elements-textSecondary" aria-hidden />
+                      <div className="min-w-0">
+                        <strong className="block truncate text-bolt-elements-textPrimary">
+                          {object.key.replace(prefix, '')}
+                        </strong>
+                        <span className="flex flex-wrap items-center gap-1 text-bolt-elements-textSecondary">
+                          <Badge variant="subtle" size="sm">
+                            {formatObjectStorageSize(t, language, object.size)}
+                          </Badge>
+                          {object.updated ? (formatBaseChatAstDateTime(language, object.updated) ?? '') : ''}
+                        </span>
+                      </div>
                     </div>
                     <div className="bolt-project-object-actions flex shrink-0 items-center gap-2">
-                      <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
-                        {t('chat.copy.download_a479c9c3')}
-                      </button>
-                      <button type="button" onClick={() => setRenameKey(object.key)} disabled={working}>
-                        {t('chat.copy.move_76cdb950')}
-                      </button>
-                      <button
+                      <PanelButton
                         type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleDownload(object.key)}
+                        disabled={working}
+                      >
+                        {t('chat.copy.download_a479c9c3')}
+                      </PanelButton>
+                      <PanelButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRenameKey(object.key)}
+                        disabled={working}
+                      >
+                        {t('chat.copy.move_76cdb950')}
+                      </PanelButton>
+                      <PanelButton
+                        type="button"
+                        variant="danger"
+                        size="sm"
                         onClick={() =>
                           void runOperation(
                             { intent: 'delete-object', key: object.key },
@@ -16465,24 +17018,26 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                           )
                         }
                         disabled={working}
-                        className="text-bolt-elements-item-contentDanger"
                       >
                         {t('chat.copy.delete_f6fdbe48')}
-                      </button>
+                      </PanelButton>
                     </div>
                   </div>
                 ))}
               </div>
+            ) : loading ? (
+              <div className="bolt-project-empty-panel">{t('chat.copy.loadingObjects_9bcff057')}</div>
             ) : (
-              <div className="bolt-project-empty-panel">
-                {loading
-                  ? t('chat.copy.loadingObjects_9bcff057')
-                  : normalizedFilter
+              <PanelEmptyState
+                icon="i-ph:hard-drives"
+                title={
+                  normalizedFilter
                     ? t('chat.copy.noObjectsMatchYourSearch_15d8d7b9')
                     : prefix
                       ? t('chat.copy.noObjectsUnderThisPrefix_a8bfd956')
-                      : t('chat.copy.theBucketIsEmpty_18809c5d')}
-              </div>
+                      : t('chat.copy.theBucketIsEmpty_18809c5d')
+                }
+              />
             )}
 
             {status ? (
@@ -16755,9 +17310,7 @@ function ProjectSkillsPanel({
       {tab === 'project' ? (
         <section className="mt-3 grid gap-4">
           <div className="grid gap-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              {t('chat.copy.builtinSkills_e1514b4a')}
-            </h4>
+            <PanelSectionTitle level="group">{t('chat.copy.builtinSkills_e1514b4a')}</PanelSectionTitle>
             <p className="text-xs text-bolt-elements-textSecondary">
               {t('chat.copy.togglesAreStoredPerProjectOver_7e9883ea')}
             </p>
@@ -16793,7 +17346,7 @@ function ProjectSkillsPanel({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noBuiltinSkillsAreAvailable_22eb212a')}</div>
+              <PanelEmptyState icon="i-ph:sparkle" title={t('chat.copy.noBuiltinSkillsAreAvailable_22eb212a')} />
             )}
           </div>
 
@@ -16821,7 +17374,7 @@ function ProjectSkillsPanel({
       {tab === 'workspace' ? (
         <section className="mt-3 grid gap-4">
           {!hasWorkspace ? (
-            <div className="bolt-project-empty-panel">{t('chat.copy.thisProjectHasNoWorkspaceYet_c3f6040c')}</div>
+            <PanelEmptyState icon="i-ph:sparkle" title={t('chat.copy.thisProjectHasNoWorkspaceYet_c3f6040c')} />
           ) : (
             <InstalledSkillsList
               title={t('chat.copy.installedFromGithubWorkspace_f3607e99')}
@@ -16855,20 +17408,15 @@ function ProjectSkillsPanel({
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span>{t('chat.copy.installTo_358c06d6')}</span>
+            {/* UNIF-14 — bascule de scope d'installation sur le FilterChip commun (aria-pressed + accent action). */}
             {(['project', 'workspace'] as SkillInstallScope[]).map((scope) => (
-              <button
+              <FilterChip
                 key={scope}
-                type="button"
-                onClick={() => setCommunityScope(scope)}
+                label={scope === 'project' ? t('baseChatAst.common.project') : t('baseChatAst.common.workspace')}
+                active={communityScope === scope}
                 disabled={scope === 'workspace' && !hasWorkspace}
-                className={`rounded-md border px-2.5 py-1 font-medium capitalize transition-colors disabled:opacity-50 ${
-                  communityScope === scope
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
-                    : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
-                }`}
-              >
-                {scope === 'project' ? t('baseChatAst.common.project') : t('baseChatAst.common.workspace')}
-              </button>
+                onClick={() => setCommunityScope(scope)}
+              />
             ))}
           </div>
 
@@ -16909,26 +17457,31 @@ function ProjectSkillsPanel({
                       </span>
                     </button>
 
+                    {/* UNIF-14 — Install / Uninstall dupliquaient à la main les classes du
+                        PanelButton (danger / primary) ; ils passent au composant partagé. */}
                     {installed ? (
-                      <button
+                      <PanelButton
                         type="button"
+                        variant="danger"
+                        size="sm"
+                        className="shrink-0"
                         onClick={() => void uninstall(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
                       >
                         {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : t('chat.copy.uninstall_a735da1d')}
-                      </button>
+                      </PanelButton>
                     ) : (
-                      <button
+                      <PanelButton
                         type="button"
+                        size="sm"
+                        className="shrink-0"
                         onClick={() => void installFromCatalog(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `i:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {pending === `i:${entry.ownerRepo}`
                           ? t('chat.copy.installing_8d278823')
                           : t('chat.copy.install_fd6c3ebf')}
-                      </button>
+                      </PanelButton>
                     )}
                   </div>
 
@@ -16949,10 +17502,10 @@ function ProjectSkillsPanel({
               );
             })
           ) : (
-            <div className="bolt-project-empty-panel">
-              {t('chat.copy.noCommunitySkillsMatch_7bc0a3ba')}
-              {query}”.
-            </div>
+            <PanelEmptyState
+              icon="i-ph:sparkle"
+              title={t('chat.copy.noCommunitySkillsMatchQuery_4c1d9a2e', { value0: query })}
+            />
           )}
         </section>
       ) : null}
@@ -17018,11 +17571,12 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
   const { t } = useTranslation();
   const verdict = skill.revokedAt ? 'revoked' : (skill.auditVerdict ?? null);
 
-  const verdictStyle: Record<string, string> = {
-    approved: 'border-[var(--vc-ide-accent-success,#16a34a)]/50 text-[var(--vc-ide-accent-success,#16a34a)]',
-    quarantined: 'border-[var(--vc-ide-accent-warning,#d97706)]/50 text-[var(--vc-ide-accent-warning,#d97706)]',
-    rejected: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
-    revoked: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
+  /* UNIF lot 4 (audit point 4) — les tags skills passent par le Badge commun `ui/Badge`. */
+  const verdictVariant: Record<string, 'success' | 'warning' | 'danger'> = {
+    approved: 'success',
+    quarantined: 'warning',
+    rejected: 'danger',
+    revoked: 'danger',
   };
 
   const verdictIcon: Record<string, string> = {
@@ -17035,24 +17589,26 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
   return (
     <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
       {verdict ? (
-        <span
-          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium capitalize ${
-            verdictStyle[verdict] ?? 'border-bolt-elements-borderColor text-bolt-elements-textSecondary'
-          }`}
+        <Badge
+          size="sm"
+          variant={verdictVariant[verdict] ?? 'secondary'}
+          icon={verdictIcon[verdict] ?? 'i-ph:shield'}
+          className="font-medium capitalize"
           title={t('chat.copy.securityAuditVerdict_291c3bac')}
         >
-          <span className={verdictIcon[verdict] ?? 'i-ph:shield'} />
           {platformStateLabel(t, verdict)}
-        </span>
+        </Badge>
       ) : null}
       {skill.origin ? (
-        <span
-          className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize text-bolt-elements-textTertiary"
+        <Badge
+          size="sm"
+          variant="secondary"
+          icon="i-ph:git-fork"
+          className="capitalize"
           title={t('chat.copy.whereThisSkillCameFrom_1f68b118')}
         >
-          <span className="i-ph:git-fork" />
           {skill.origin}
-        </span>
+        </Badge>
       ) : null}
       {skill.auditFindings && skill.auditFindings.length ? (
         <span className="text-bolt-elements-textTertiary">
@@ -17107,7 +17663,7 @@ function InstalledSkillsList({
 
   return (
     <div className="grid gap-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">{title}</h4>
+      <PanelSectionTitle level="group">{title}</PanelSectionTitle>
       {skills.length ? (
         skills.map((skill) => {
           const rowKey = `${scope}:${skill.ownerRepo}`;
@@ -17293,7 +17849,7 @@ function InstalledSkillsList({
           );
         })
       ) : (
-        <div className="bolt-project-empty-panel">{emptyLabel}</div>
+        <PanelEmptyState icon="i-ph:sparkle" title={emptyLabel} />
       )}
     </div>
   );
@@ -17466,7 +18022,8 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <div className="bolt-project-panel-toolbar">
             <label>
               {t('chat.copy.filterInstalledPackages_40f3effe')}
-              <input
+              <PanelInput
+                size="sm"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t('chat.copy.searchNameVersionManifestScope_c42b6712')}
@@ -17488,11 +18045,14 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
               </a>
             ))}
             {!visibleDependencies.length && (
-              <div className="bolt-project-empty-panel">
-                {dependencies.length
-                  ? t('chat.copy.noInstalledPackageMatchesThisFilter_e346163e')
-                  : t('chat.copy.noDependenciesFoundInPackageJson_8f3d26bd')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:cube"
+                title={
+                  dependencies.length
+                    ? t('chat.copy.noInstalledPackageMatchesThisFilter_e346163e')
+                    : t('chat.copy.noDependenciesFoundInPackageJson_8f3d26bd')
+                }
+              />
             )}
           </div>
         </div>
@@ -17642,7 +18202,7 @@ function ProjectPortsPanel({
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noPortsDetectedYetStartYour_3bba07f1')}</div>
+          <PanelEmptyState icon="i-ph:plugs" title={t('chat.copy.noPortsDetectedYetStartYour_3bba07f1')} />
         )}
       </section>
     </div>
@@ -17678,9 +18238,9 @@ const CONSENSUS_OUTCOME_LABEL: Record<string, string> = {
 };
 
 const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
-  ACCEPTED: 'text-[var(--status-success-text)] border-green-500/40',
-  REJECTED: 'text-[var(--status-error-text)] border-red-500/40',
-  PARTIAL: 'text-amber-500 border-amber-500/40',
+  ACCEPTED: 'text-[var(--status-success-text)] border-[var(--status-success-border)]',
+  REJECTED: 'text-[var(--status-error-text)] border-[var(--status-error-border)]',
+  PARTIAL: 'text-[var(--status-warning-text)] border-[var(--status-warning-border)]',
   ABSTAINED: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
 };
 
@@ -17800,12 +18360,12 @@ function ConsensusLaneChips({ label, roles, tone }: { label: string; roles: stri
 const CONSENSUS_DECISION_CLASS: Record<string, string> = {
   accepted: 'text-[var(--status-success-text)]',
   rejected: 'text-[var(--status-error-text)]',
-  inconclusive: 'text-amber-500',
+  inconclusive: 'text-[var(--status-warning-text)]',
 };
 
 const CONSENSUS_SEVERITY_CLASS: Record<string, string> = {
-  high: 'text-[var(--status-error-text)] border-red-500/40',
-  medium: 'text-amber-500 border-amber-500/40',
+  high: 'text-[var(--status-error-text)] border-[var(--status-error-border)]',
+  medium: 'text-[var(--status-warning-text)] border-[var(--status-warning-border)]',
   low: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
 };
 
@@ -17819,11 +18379,11 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
   return (
     <>
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+        <PanelSectionTitle level="group">
           {t('chat.copy.vote_f3f11c36')}
           {detail.claimVotes.length}{' '}
           {detail.claimVotes.length === 1 ? t('chat.copy.claim_013872e3') : t('chat.copy.claims_d72041bc')}
-        </h4>
+        </PanelSectionTitle>
         {detail.claimVotes.length ? (
           <ul className="mt-1 space-y-2">
             {detail.claimVotes.map((vote, index) => (
@@ -17849,12 +18409,12 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                   <ConsensusLaneChips
                     label={t('chat.copy.for_f7880600')}
                     roles={vote.supporters}
-                    tone="text-[var(--status-success-text)] border-green-500/40"
+                    tone="text-[var(--status-success-text)] border-[var(--status-success-border)]"
                   />
                   <ConsensusLaneChips
                     label={t('chat.copy.against_2d19e3d7')}
                     roles={vote.dissenters}
-                    tone="text-[var(--status-error-text)] border-red-500/40"
+                    tone="text-[var(--status-error-text)] border-[var(--status-error-border)]"
                   />
                   <ConsensusLaneChips
                     label={t('chat.copy.abstain_bc39d849')}
@@ -17874,10 +18434,10 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
 
       {detail.conflicts.length ? (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+          <PanelSectionTitle level="group">
             {t('chat.copy.conflicts_19401428')}
             {detail.conflicts.length}
-          </h4>
+          </PanelSectionTitle>
           <ul className="mt-1 space-y-1">
             {detail.conflicts.map((conflict, index) => (
               <li key={`${conflict.type}-${index}`} className="flex flex-wrap items-center gap-2 text-xs">
@@ -17904,9 +18464,7 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
 
       {detail.consolidated && detail.consolidated.summary ? (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {t('chat.copy.consolidated_067fc063')}
-          </h4>
+          <PanelSectionTitle level="group">{t('chat.copy.consolidated_067fc063')}</PanelSectionTitle>
           <p className="mt-1 whitespace-pre-wrap text-xs text-bolt-elements-textPrimary">
             {detail.consolidated.summary}
           </p>
@@ -18110,9 +18668,9 @@ function ProjectAgentStudioPanel({
   return (
     <div className="bolt-project-monitoring-panel" aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}>
       <div className="bolt-project-panel-toolbar">
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
-        </button>
+        </PanelButton>
       </div>
 
       <div className="bolt-project-metric-grid">
@@ -18129,9 +18687,7 @@ function ProjectAgentStudioPanel({
         className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.pendingAiChanges_69a074a3')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.pendingAiChanges_69a074a3')}
-        </h3>
+        <PanelSectionTitle className="mb-2">{t('chat.copy.pendingAiChanges_69a074a3')}</PanelSectionTitle>
         {pendingProposals.length ? (
           <AgentPatchReviewQueue proposals={pendingProposals} />
         ) : (
@@ -18149,12 +18705,12 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.multiAgentConsensus_6ab6c619')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+        <PanelSectionTitle className="mb-2">
           {t('chat.copy.multiAgentConsensus_6ab6c619')}
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {consensusRecords.length}
           </span>
-        </h3>
+        </PanelSectionTitle>
         {consensusRecords.length ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
             {consensusRecords.map((record) => {
@@ -18220,12 +18776,12 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.conversationBranches_ab9b421a')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+        <PanelSectionTitle className="mb-2">
           {t('chat.copy.conversationBranches_ab9b421a')}
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {branchCount}
           </span>
-        </h3>
+        </PanelSectionTitle>
         {branchCount ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
             {tree.flatMap(function flatten(node, depth = 0): React.ReactNode[] {
@@ -18260,9 +18816,7 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.agentMemory_bcf5354f')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.agentMemory_bcf5354f')}
-        </h3>
+        <PanelSectionTitle className="mb-2">{t('chat.copy.agentMemory_bcf5354f')}</PanelSectionTitle>
         {memoryError ? (
           <p className="text-sm text-[var(--status-error-text)]">{memoryError}</p>
         ) : !memory ? (
@@ -18372,19 +18926,13 @@ function ProjectMonitoringPanel({
   return (
     <div className="bolt-project-monitoring-panel">
       <div className="bolt-project-panel-toolbar">
+        {/* UNIF lot 7 — le sélecteur de plage passe au FilterChip commun (aria-pressed + accent action). */}
         {(['15m', '1h', '24h'] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={windowSize === item ? 'selected' : ''}
-            onClick={() => setWindowSize(item)}
-          >
-            {item}
-          </button>
+          <FilterChip key={item} label={item} active={windowSize === item} onClick={() => setWindowSize(item)} />
         ))}
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshMetrics_d4cc03bc')}
-        </button>
+        </PanelButton>
       </div>
       <div className="bolt-project-metric-grid">
         {metrics.map(([label, value, detail]) => (
@@ -18627,16 +19175,15 @@ function ProjectMonitoringActivitySparkline({
             })}
           </small>
         </div>
+        {/* UNIF-14 — le zoom du graphe (fit/2x/4x) passe au FilterChip commun, comme la fenêtre 15m/1h/24h. */}
         <div className="bolt-project-monitoring-zoom" aria-label={t('chat.copy.activityChartZoom_3789999d')}>
           {(['fit', '2x', '4x'] as const).map((level) => (
-            <button
+            <FilterChip
               key={level}
-              type="button"
-              className={zoomLevel === level ? 'selected' : ''}
+              label={level === 'fit' ? t('chat.copy.fit_dab564d8') : level}
+              active={zoomLevel === level}
               onClick={() => setZoomLevel(level)}
-            >
-              {level === 'fit' ? t('chat.copy.fit_dab564d8') : level}
-            </button>
+            />
           ))}
         </div>
       </header>
@@ -18710,27 +19257,26 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
       <div className="bolt-project-panel-toolbar">
         <label>
           {t('chat.copy.searchTheMcpMarketplace_48179a04')}
-          <input
+          <PanelInput
+            size="sm"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('chat.copy.nameAuthorTagOrCapability_a6726d8f')}
           />
         </label>
+        {/* UNIF lot 7 — pilules de domaine sur le FilterChip commun (aria-pressed + accent action). */}
         <div
           className="bolt-project-extension-categories"
           role="group"
           aria-label={t('chat.copy.extensionDomains_abc98b01')}
         >
           {domains.map((item) => (
-            <button
+            <FilterChip
               key={item}
-              type="button"
-              aria-pressed={domain === item}
-              className={domain === item ? 'selected' : ''}
+              label={item === 'All' ? t('chat.copy.all_6a720856') : String(item).replace(/_/g, ' ').toLowerCase()}
+              active={domain === item}
               onClick={() => setDomain(item)}
-            >
-              {item === 'All' ? t('chat.copy.all_6a720856') : String(item).replace(/_/g, ' ').toLowerCase()}
-            </button>
+            />
           ))}
         </div>
       </div>
@@ -18778,7 +19324,10 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             ))}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noExtensionsInstalledYetInstallOne_d6597fc4')}</div>
+          <PanelEmptyState
+            icon="i-ph:puzzle-piece"
+            title={t('chat.copy.noExtensionsInstalledYetInstallOne_d6597fc4')}
+          />
         )}
         {legacyInstalled.length ? (
           <p className="bolt-project-extension-legacy-note">
@@ -18830,11 +19379,14 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">
-            {catalog.length
-              ? t('chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6')
-              : t('chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277')}
-          </div>
+          <PanelEmptyState
+            icon="i-ph:puzzle-piece"
+            title={
+              catalog.length
+                ? t('chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6')
+                : t('chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277')
+            }
+          />
         )}
       </section>
     </div>
@@ -18916,7 +19468,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
         {items.length ? (
           items.map((workflow) => <WorkflowItem key={workflow.id} workflow={workflow} />)
         ) : (
-          <div className="bolt-project-empty-panel">{empty}</div>
+          <PanelEmptyState icon="i-ph:git-branch" title={empty} />
         )}
       </section>
     );
@@ -19281,14 +19833,16 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     <input type="hidden" name="intent" value="delete-task" />
                     <input type="hidden" name="workflowId" value={workflow.id} />
                     <input type="hidden" name="taskId" value={task.id} />
-                    <button
-                      type="submit"
+                    {/* UNIF-14 — corbeille de tâche sur le PanelButton commun (danger sm, icône seule). */}
+                    <PanelButton
+                      variant="danger"
+                      size="sm"
                       disabled={busy}
                       aria-label={t('chat.copy.deleteTask_9ad9dc2d')}
                       title={t('chat.copy.deleteTask_9ad9dc2d')}
                     >
                       <span className="i-ph:trash" aria-hidden />
-                    </button>
+                    </PanelButton>
                   </ConfirmSubmitForm>
                   {/* Hidden form the drop handler submits to reorder this task to `index`. */}
                   <form onSubmit={onSubmit} data-reorder hidden>
@@ -19300,9 +19854,10 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 </article>
               ))}
               {!tasks.length && (
-                <div className="bolt-project-empty-panel">
-                  {t('chat.copy.noTasksConfiguredForThisWorkflow_e345761c')}
-                </div>
+                <PanelEmptyState
+                  icon="i-ph:list-checks"
+                  title={t('chat.copy.noTasksConfiguredForThisWorkflow_e345761c')}
+                />
               )}
             </div>
 
@@ -19359,10 +19914,11 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
             {workspace?.id ? ` (${workspace.id})` : ''}.
           </p>
         </div>
-        <button type="button" onClick={() => setCreateOpen((value) => !value)} data-testid="new-workflow-button">
+        {/* UNIF-14 — « New workflow » sur le PanelButton commun (CTA primary). */}
+        <PanelButton type="button" onClick={() => setCreateOpen((value) => !value)} data-testid="new-workflow-button">
           <span className="i-ph:plus" aria-hidden />
           {t('chat.copy.newWorkflow_c1418c2d')}
-        </button>
+        </PanelButton>
       </header>
 
       <div className="bolt-project-workflows-toolbar">
@@ -19467,9 +20023,7 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
     <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-            {t('chat.copy.addAuthentication_2855841d')}
-          </h3>
+          <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
             {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
             <code>users</code>
@@ -19576,19 +20130,20 @@ function ProjectIntegrationsPanel({
           <h3>{t('chat.copy.integrationHub_689b11c8')}</h3>
           <p>{t('chat.copy.connectProjectToolsWebhooksApiKeys_8c15c5e1')}</p>
         </div>
+        {/* UNIF-14 — les 3 raccourcis d'en-tête (API keys / Webhooks / Event streaming) sur le PanelButton commun. */}
         <div className="bolt-project-integrations-actions">
-          <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowApiKeyForm((value) => !value)}>
             <span className="i-ph:key" aria-hidden />
             {t('chat.copy.apiKeys_e18ffc8d')}
-          </button>
-          <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
+          </PanelButton>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowWebhookForm((value) => !value)}>
             <span className="i-ph:webhooks-logo" aria-hidden />
             {t('chat.copy.webhooks_fdfe2da7')}
-          </button>
-          <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
+          </PanelButton>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowStreamForm((value) => !value)}>
             <span className="i-ph:broadcast" aria-hidden />
             {t('chat.copy.eventStreaming_d053a572')}
-          </button>
+          </PanelButton>
         </div>
       </header>
 
@@ -19731,9 +20286,9 @@ function ProjectIntegrationsPanel({
                   ],
                 ]}
               />
-              <button type="button" onClick={() => setSelectedIntegrationId(null)}>
+              <PanelButton type="button" variant="outline" size="sm" onClick={() => setSelectedIntegrationId(null)}>
                 {t('chat.copy.closeConfiguration_0675f715')}
-              </button>
+              </PanelButton>
             </section>
           ) : null}
 
@@ -19753,13 +20308,16 @@ function ProjectIntegrationsPanel({
                   </div>
                   <footer>
                     <small>{integrationCategoryLabel(item.category)}</small>
-                    <button
+                    {/* UNIF-14 — Connect/Manage de carte sur le PanelButton commun (primary sm) ;
+                        c'était le dernier usage des tokens legacy button-primary du hub. */}
+                    <PanelButton
                       type="button"
+                      size="sm"
                       onClick={() => setSelectedIntegrationId(item.id)}
                       data-testid={`button-connect-${item.id}`}
                     >
                       {item.connected ? t('chat.copy.manage_bf58d17e') : t('chat.copy.connect_b65463cb')}
-                    </button>
+                    </PanelButton>
                   </footer>
                 </article>
               ))}
@@ -19788,9 +20346,14 @@ function ProjectIntegrationsPanel({
                       {t('chat.copy.sync_905f6309')}
                     </PanelButton>
                   </form>
-                  <button type="button" onClick={() => setSelectedIntegrationId(item.id)}>
+                  <PanelButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedIntegrationId(item.id)}
+                  >
                     {t('chat.copy.configure_792c81a4')}
-                  </button>
+                  </PanelButton>
                 </article>
               ))}
               {!connected.length && (
@@ -19813,9 +20376,10 @@ function ProjectIntegrationsPanel({
                   <strong>{t('chat.copy.webhooks_fdfe2da7')}</strong>
                   <small>{t('chat.copy.outgoingEndpointsPersistedInProjectBackend_e4b52238')}</small>
                 </div>
-                <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
+                {/* UNIF-14 — CTA de création sur le PanelButton commun (primary sm, comme « New variable »). */}
+                <PanelButton type="button" size="sm" onClick={() => setShowWebhookForm((value) => !value)}>
                   {t('chat.copy.createWebhook_0e738ec3')}
-                </button>
+                </PanelButton>
               </div>
               {showWebhookForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -19884,9 +20448,9 @@ function ProjectIntegrationsPanel({
                   <strong>{t('chat.copy.apiKeys_e18ffc8d')}</strong>
                   <small>{t('chat.copy.secretsAreStoredInTheBackend_e0a856a4')}</small>
                 </div>
-                <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
+                <PanelButton type="button" size="sm" onClick={() => setShowApiKeyForm((value) => !value)}>
                   {t('chat.copy.createApiKey_b68d55de')}
-                </button>
+                </PanelButton>
               </div>
               {showApiKeyForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -19955,9 +20519,9 @@ function ProjectIntegrationsPanel({
                 <strong>{t('chat.copy.eventStreaming_d053a572')}</strong>
                 <small>{t('chat.copy.streamsAreProjectScopedAndBacked_3cc6a996')}</small>
               </div>
-              <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
+              <PanelButton type="button" size="sm" onClick={() => setShowStreamForm((value) => !value)}>
                 {t('chat.copy.addStream_0c868a56')}
-              </button>
+              </PanelButton>
             </div>
             {showStreamForm && (
               <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -20121,31 +20685,32 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   return (
     <div className="bolt-project-managed-panel">
       <section>
-        <div className="bolt-project-env-scopes" role="tablist" aria-label={t('chat.copy.environmentScope_aa238040')}>
-          {ENV_VAR_SCOPES.map((scope) => (
-            <button
-              key={scope.key}
-              type="button"
-              role="tab"
-              aria-selected={activeScope === scope.key}
-              className={activeScope === scope.key ? 'selected' : undefined}
-              disabled={showDiff}
-              onClick={() => {
-                setActiveScope(scope.key);
-                setEditing((current) => (current ? { ...current, scope: scope.key } : current));
-              }}
-            >
-              {t(scope.label)}
-            </button>
-          ))}
-          <button
+        {/*
+         * UNIF-14 — les onglets de scope maison (boutons `.selected` + rôle tab
+         * ad hoc) passent au PanelToolTabs commun (aria-current, feuille
+         * `.bolt-project-tool-tabs` unique) ; ils restent gelés pendant la vue
+         * Diff, comme avant. Le « Diff scopes » devient un PanelButton outline.
+         */}
+        <div className="bolt-project-env-scopes">
+          <PanelToolTabs
+            tabs={ENV_VAR_SCOPES.map((scope) => [scope.key, t(scope.label)] as const)}
+            active={activeScope}
+            disabled={showDiff}
+            onSelect={(scopeKey) => {
+              setActiveScope(scopeKey);
+              setEditing((current) => (current ? { ...current, scope: scopeKey } : current));
+            }}
+          />
+          <PanelButton
             type="button"
-            className={showDiff ? 'bolt-project-env-diff-toggle selected' : 'bolt-project-env-diff-toggle'}
+            variant="outline"
+            size="sm"
+            className="bolt-project-env-diff-toggle"
             aria-pressed={showDiff}
             onClick={() => setShowDiff((current) => !current)}
           >
             {showDiff ? t('chat.copy.exitDiff_f97e0642') : t('chat.copy.diffScopes_053a2907')}
-          </button>
+          </PanelButton>
         </div>
 
         <div className="bolt-project-panel-toolbar">
@@ -20153,16 +20718,21 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
             {showDiff
               ? t('chat.copy.filterKeys_14e0ed60')
               : t('chat.copy.searchValue0Variables_01db9728', { value0: activeScopeLabel })}
-            <input
+            <PanelInput
+              size="sm"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('chat.copy.viteDatabaseApi_c73cb9ac')}
             />
           </label>
           {!showDiff && (
-            <button type="button" onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}>
+            <PanelButton
+              type="button"
+              size="sm"
+              onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}
+            >
               {t('chat.copy.newVariable_7adfa76b')}
-            </button>
+            </PanelButton>
           )}
         </div>
         {message && <div className="bolt-project-empty-panel">{message}</div>}
@@ -20170,9 +20740,16 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
         {showDiff ? (
           <div className="bolt-project-env-diff-wrap">
             <div className="bolt-project-env-diff-actions">
-              <button type="button" onClick={() => setRevealDiff((current) => !current)} aria-pressed={revealDiff}>
+              {/* UNIF-14 — « Reveal values » sur le PanelButton commun (outline sm). */}
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRevealDiff((current) => !current)}
+                aria-pressed={revealDiff}
+              >
                 {revealDiff ? t('chat.copy.maskValues_bc20ce51') : t('chat.copy.revealValues_3c8deb88')}
-              </button>
+              </PanelButton>
             </div>
             {diffRows.length ? (
               <table className="bolt-project-env-diff">
@@ -20214,11 +20791,14 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 </tbody>
               </table>
             ) : (
-              <div className="bolt-project-empty-panel">
-                {query
-                  ? t('chat.copy.noKeyMatchesThisFilter_ec9af2f3')
-                  : t('chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:brackets-curly"
+                title={
+                  query
+                    ? t('chat.copy.noKeyMatchesThisFilter_ec9af2f3')
+                    : t('chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3')
+                }
+              />
             )}
           </div>
         ) : (
@@ -20233,15 +20813,23 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                       ? (formatBaseChatAstDateTime(language, item.updatedAt) ?? item.updatedAt)
                       : t('chat.copy.storedInProjectMetadata_ac0072b9')}
                   </small>
-                  <button
+                  {/* UNIF-14 — Edit / Copy de ligne sur le PanelButton commun (outline sm). */}
+                  <PanelButton
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setEditing({ key: item.key, value: item.value ?? '', scope: activeScope })}
                   >
                     {t('chat.copy.edit_5301648d')}
-                  </button>
-                  <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
+                  </PanelButton>
+                  <PanelButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copyEnv(item.key, item.value)}
+                  >
                     {t('chat.copy.copy_af74f7c5')}
-                  </button>
+                  </PanelButton>
                   <ConfirmSubmitForm
                     onSubmit={onSubmit}
                     title={t('chat.copy.deleteValue0FromValue1_9746c6b2', {
@@ -20254,16 +20842,17 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                     <input name="intent" value="delete" type="hidden" />
                     <input name="key" value={item.key} type="hidden" />
                     <input name="scope" value={activeScope} type="hidden" />
-                    <PanelButton disabled={busy} variant="outline">
+                    <PanelButton disabled={busy} variant="outline" size="sm">
                       {t('chat.copy.delete_f6fdbe48')}
                     </PanelButton>
                   </ConfirmSubmitForm>
                 </div>
               ))
             ) : query ? (
-              <div className="bolt-project-empty-panel">
-                {t('chat.copy.noEnvironmentVariableMatchesThisSearch_71d294b1')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:brackets-curly"
+                title={t('chat.copy.noEnvironmentVariableMatchesThisSearch_71d294b1')}
+              />
             ) : (
               <EmptyState
                 variant="compact"
@@ -20707,10 +21296,11 @@ function ProjectSecurityPanel({
           <PanelButton disabled={busy || scanRunning}>
             {scanRunning ? t('chat.copy.scanning_bd5e8d69') : t('chat.copy.runFullScan_aedc848e')}
           </PanelButton>
+          {/* UNIF-14 — « Cancel scan » sur le PanelButton commun (variant danger). */}
           {scanRunning ? (
-            <button type="button" className="bolt-project-security-cancel" onClick={cancelScan}>
+            <PanelButton type="button" variant="danger" onClick={cancelScan}>
               {t('chat.copy.cancelScan_b37844ba')}
-            </button>
+            </PanelButton>
           ) : null}
         </form>
       </section>
@@ -20814,24 +21404,19 @@ function ProjectSecurityPanel({
         </aside>
 
         <main>
-          <div className="bolt-project-tool-tabs">
-            {[
-              ['active', t('baseChatAst.common.active')],
-              ['hidden', t('baseChatAst.common.hidden')],
-              ['compare', t('baseChatAst.common.compare')],
-              ['reports', t('baseChatAst.common.reports')],
-              ['settings', t('baseChatAst.common.settings')],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={activeTab === id ? 'page' : undefined}
-                onClick={() => setActiveTab(id as any)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <PanelToolTabs
+            tabs={
+              [
+                ['active', t('baseChatAst.common.active')],
+                ['hidden', t('baseChatAst.common.hidden')],
+                ['compare', t('baseChatAst.common.compare')],
+                ['reports', t('baseChatAst.common.reports')],
+                ['settings', t('baseChatAst.common.settings')],
+              ] as const
+            }
+            active={activeTab}
+            onSelect={setActiveTab}
+          />
 
           {activeTab === 'settings' ? (
             <form onSubmit={onSubmit} className="bolt-project-security-settings">
@@ -20898,16 +21483,17 @@ function ProjectSecurityPanel({
               <article>
                 <strong>{t('chat.copy.exportAuditPackage_913ca7d5')}</strong>
                 <p>{t('chat.copy.generateAReportFromTheCurrent_99a3cc7e')}</p>
+                {/* UNIF-14 — les 3 exports (SARIF / JSON / Print) sur le PanelButton commun. */}
                 <div>
-                  <button type="button" onClick={exportSarifReport}>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={exportSarifReport}>
                     {t('chat.copy.exportSarif_e4ff4ea2')}
-                  </button>
-                  <button type="button" onClick={exportJsonReport}>
+                  </PanelButton>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={exportJsonReport}>
                     {t('chat.copy.exportJson_bc399052')}
-                  </button>
-                  <button type="button" onClick={printReport}>
+                  </PanelButton>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={printReport}>
                     {t('chat.copy.printSavePdf_6b15347b')}
-                  </button>
+                  </PanelButton>
                 </div>
               </article>
               <PanelRows
@@ -21303,21 +21889,14 @@ function ProjectDebuggerPanel({
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                  {t('chat.copy.debugSessions_7f873835')}
-                </h3>
+                <PanelSectionTitle>{t('chat.copy.debugSessions_7f873835')}</PanelSectionTitle>
                 <p className="text-xs text-bolt-elements-textSecondary">
                   {t('chat.copy.launchesRunInTheRealWorkspace_307c6320')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                onClick={() => void reload?.()}
-                disabled={busy}
-              >
+              <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
                 {t('chat.copy.refreshRuntime_f5c4addc')}
-              </button>
+              </PanelButton>
             </div>
             <div className="grid gap-2">
               {sessions.length ? (
@@ -21380,9 +21959,7 @@ function ProjectDebuggerPanel({
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.breakpoints_21a8752f')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.breakpoints_21a8752f')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
                 {breakpoints.length ? (
                   breakpoints.map((breakpoint: any) => (
@@ -21428,9 +22005,7 @@ function ProjectDebuggerPanel({
             </section>
 
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.callStackAndVariables_6820d7cf')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.callStackAndVariables_6820d7cf')}</PanelSectionTitle>
               {activeSession?.status === 'paused' ? (
                 <div className="mt-3 grid gap-2">
                   <PanelRows rows={activeSession.callStack ?? []} empty={t('baseChatAst.debugger.noFrames')} />
@@ -21472,9 +22047,7 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="save-config" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.launchJsonConfig_018615eb')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.launchJsonConfig_018615eb')}</PanelSectionTitle>
             <PanelInput name="name" placeholder={t('chat.copy.nodeInspectorApp_25e2551a')} required />
             <PanelInput name="command" placeholder={t('chat.copy.npmRunDev_4eedebe9')} />
             <PanelInput name="program" placeholder={t('chat.copy.srcServerTs_bcc09dcb')} />
@@ -21492,9 +22065,7 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-breakpoint" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.conditionalBreakpoint_af2996c8')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.conditionalBreakpoint_af2996c8')}</PanelSectionTitle>
             <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} required />
             <PanelInput name="line" type="number" min="1" placeholder="42" required />
             <PanelInput name="condition" placeholder={t('chat.copy.userIdTargetid_cecbcb16')} />
@@ -21508,18 +22079,14 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-watch" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.watchExpressions_5a230a1a')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.watchExpressions_5a230a1a')}</PanelSectionTitle>
             <PanelInput name="expression" placeholder={codeExample('request.user')} required />
             <PanelButton disabled={busy}>{t('chat.copy.addWatch_11f0adc5')}</PanelButton>
           </form>
 
           {watches.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.watchList_daa6ded7')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.watchList_daa6ded7')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
                 {watches.map((watch: any) => (
                   <div key={watch.id} className="flex items-center justify-between gap-2 text-xs">
@@ -21539,9 +22106,7 @@ function ProjectDebuggerPanel({
 
           {logs.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.runtimeOutput_fb71b522')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.runtimeOutput_fb71b522')}</PanelSectionTitle>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
                 {logs.slice(-12).map((log: any, index: number) => (
                   <div key={`${log.timestamp}-${index}`}>{log.message}</div>
@@ -22288,7 +22853,7 @@ function ProjectSecretsPanel({
                     </span>
                     {existingSecretKeys.has(entry.key) ? (
                       <span
-                        className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
                         style={{
                           background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
                           borderLeft: '3px solid var(--vc-ide-accent-warning)',
@@ -22402,7 +22967,7 @@ function ProjectSecretsPanel({
             </div>
           ))
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noProjectSecrets_f3f1ca38')}</div>
+          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
         )}
       </div>
     </div>
@@ -22454,20 +23019,18 @@ function ProjectDeploymentsPanel({
 
   return (
     <div className="bolt-project-deploy-tool">
-      <div className="bolt-project-tool-tabs">
-        {(
+      <PanelToolTabs
+        tabs={
           [
             ['overview', t('baseChatAst.common.overview')],
             ['logs', t('baseChatAst.common.logs')],
             ['domains', t('baseChatAst.common.domains')],
             ['manage', t('baseChatAst.common.manage')],
           ] as const
-        ).map(([id, label]) => (
-          <button key={id} type="button" aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
-            {label}
-          </button>
-        ))}
-      </div>
+        }
+        active={tab}
+        onSelect={setTab}
+      />
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">
@@ -22626,7 +23189,7 @@ function ProjectDeploymentsPanel({
               </article>
             ))
           ) : (
-            <div className="bolt-project-empty-panel">{t('chat.copy.noDeploymentLogsYet_8f8bec37')}</div>
+            <PanelEmptyState icon="i-ph:file-text" title={t('chat.copy.noDeploymentLogsYet_8f8bec37')} />
           )}
         </section>
       ) : null}
@@ -22837,11 +23400,14 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
       ]);
 
   if (!normalized.length) {
-    return (
-      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary">
-        {empty ?? t('chat.copy.noRecords_2cd2e011')}
-      </div>
-    );
+    /*
+     * UNIF-IDE lot 1 : l'état vide passe par la carte canonique partagée
+     * (PanelEmptyState → ui/EmptyState) au lieu d'une carte ad hoc alignée à
+     * gauche — même rendu vide pour tous les panneaux qui listent via
+     * PanelRows (Activity, Collaborators, Security, Debugger, Monitoring,
+     * Settings, Integrations, …).
+     */
+    return <PanelEmptyState title={empty ?? t('chat.copy.noRecords_2cd2e011')} />;
   }
 
   return (
@@ -22853,32 +23419,6 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
         </div>
       ))}
     </div>
-  );
-}
-
-function PanelInput(props: any) {
-  return (
-    <input
-      {...props}
-      className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm outline-none focus:border-bolt-elements-focus"
-    />
-  );
-}
-
-function PanelButton({ children, variant, ...props }: any) {
-  return (
-    <button
-      {...props}
-      type="submit"
-      className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
-        variant === 'outline'
-          ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
-          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -22968,6 +23508,28 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
   );
 }
 
+/**
+ * RPL-IDE-001.5 — tool label as the All-tools popup shows it. Identical to
+ * `panelTitle` apart from two labels the popup has always used: the editor reads
+ * "Code" there, and the shell carries the deployment's configured terminal name.
+ */
+function toolDisplayTitle(tool: string, t: TFunction) {
+  /*
+   * T2 — pas d'exception pour `editor`. La palette doit nommer l'éditeur
+   * EXACTEMENT comme son onglet : `panelTitle('editor')` rend « Éditeur ».
+   * Un cas particulier renvoyant `baseChatAst.common.code` réintroduisait
+   * « Code » dans la palette seule, et donc deux noms pour un même panneau.
+   *
+   * Le cas `terminal` ci-dessous, lui, reste : SHELL_TERMINAL_LABEL est un
+   * libellé de marque gelé, utilisé partout ailleurs dans le fichier.
+   */
+  if (tool === 'terminal') {
+    return SHELL_TERMINAL_LABEL;
+  }
+
+  return panelTitle(tool, t);
+}
+
 function panelTitle(panel: string, t?: TFunction) {
   const titleKeys: Record<string, keyof ReturnType<typeof getBaseChatAstCopy>> = {
     studio: 'baseChatAst.common.agentStudio',
@@ -22989,6 +23551,7 @@ function panelTitle(panel: string, t?: TFunction) {
     search: 'baseChatAst.common.search',
     locks: 'baseChatAst.common.locks',
     overview: 'baseChatAst.common.overview',
+    problems: 'baseChatAst.common.problems',
     deployments: 'baseChatAst.common.deployments',
     security: 'baseChatAst.common.security',
     env: 'baseChatAst.common.environmentVariables',
@@ -23024,72 +23587,46 @@ function panelTitle(panel: string, t?: TFunction) {
   return ECODE_MOBILE_TAB_META_BASE[panel]?.name ?? panel;
 }
 
-function panelIcon(panel: string) {
-  const icons: Record<string, string> = {
-    studio: 'i-ph:robot',
-    editor: 'i-ph:code',
-    preview: 'i-ph:browser',
-    webview: 'i-ph:browser',
-    console: 'i-ph:terminal-window',
-    network: 'i-ph:activity',
-    database: 'i-ph:database',
-    'object-storage': 'i-ph:package',
-    packages: 'i-ph:cube',
-    monitoring: 'i-ph:chart-line',
-    extensions: 'i-ph:puzzle-piece',
-    integrations: 'i-ph:plugs-connected',
-    workflows: 'i-ph:git-branch',
-    debugger: 'i-ph:bug',
-    files: 'i-ph:files',
-    search: 'i-ph:magnifying-glass',
-    locks: 'i-ph:lock',
-    overview: 'i-ph:gauge',
-    deployments: 'i-ph:rocket-launch',
-    security: 'i-ph:shield-check',
-    env: 'i-ph:brackets-curly',
-    secrets: 'i-ph:lock',
-    git: 'i-ph:git-branch',
-    activity: 'i-ph:activity',
-    terminal: 'i-ph:terminal-window',
-    logs: 'i-ph:list-magnifying-glass',
-    collaborators: 'i-ph:users',
-    domains: 'i-ph:globe',
-    snapshots: 'i-ph:stack',
-    settings: 'i-ph:gear',
-  };
-
-  return icons[panel] ?? 'i-ph:squares-four';
-}
-
 /*
- * Threshold (in px) the user has to be away from the bottom of the conversation
- * before the "Go to last message" control fades in. Keeping it well above the
- * patch-review card height (~200px) prevents the button from flickering when
- * content streams in and the layout settles.
+ * UNIF-05 : `panelIcon` ne vit plus ici — le registre unique est
+ * `~/components/project-ide/panel-meta` (PANEL_ICONS), consommé par les
+ * onglets, le rail, la palette « + » et les tuiles mobile.
  */
-const SCROLL_TO_BOTTOM_THRESHOLD = 240;
 
 function ScrollToBottom() {
   const { t } = useTranslation();
-  const { isAtBottom, scrollToBottom, state } = useStickToBottomContext();
-  const shouldShowScrollControl = !isAtBottom && state.scrollDifference > SCROLL_TO_BOTTOM_THRESHOLD;
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
-  if (!shouldShowScrollControl) {
+  /*
+   * Apparaît dès qu'on n'est PLUS en bas — c'est tout.
+   *
+   * Il y avait ici un seuil supplémentaire de 240px, ajouté parce que le bouton
+   * scintillait quand une carte de revue (~200px) arrivait en cours de stream.
+   * Ce scintillement venait du défilement ANIMÉ : le ressort accusait un retard
+   * sur la fin du contenu, on repassait donc brièvement « pas en bas ». Le
+   * défilement étant désormais instantané (voir `resize` plus haut), la cause a
+   * disparu et le seuil n'a plus lieu d'être — il ne faisait que retarder le
+   * bouton de plus d'une demi-fenêtre sur un téléphone.
+   *
+   * `isAtBottom` porte déjà sa propre tolérance (`STICK_TO_BOTTOM_OFFSET_PX`,
+   * 70px) : deux ou trois lignes qui s'ajoutent ne le font pas basculer.
+   */
+  if (isAtBottom) {
     return null;
   }
 
   return (
-    <>
-      <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
-      <button
-        type="button"
-        aria-label={t('chat.copy.scrollToTheLatestMessage_705d9356')}
-        className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm shadow-sm"
-        onClick={() => scrollToBottom()}
-      >
-        {t('chat.copy.goToLastMessage_2d23b856')}
-        <span className="i-ph:arrow-down animate-bounce" />
-      </button>
-    </>
+    <button
+      type="button"
+      className="bolt-agent-scroll-to-bottom"
+      aria-label={t('chat.copy.scrollToTheLatestMessage_705d9356')}
+      title={t('chat.copy.goToLastMessage_2d23b856')}
+      onClick={() => scrollToBottom()}
+    >
+      <span className="i-ph:arrow-down" aria-hidden />
+      {/* Le libellé est VISIBLE, pas seulement lu par un lecteur d'écran : une
+          icône seule n'annonce pas ce qu'elle fait à qui ne la connaît pas. */}
+      <span className="bolt-agent-scroll-to-bottom__label">{t('chat.copy.scrollToLatest')}</span>
+    </button>
   );
 }

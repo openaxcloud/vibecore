@@ -242,16 +242,42 @@ export const Markdown = memo(
     const memoRehypePlugins = useMemo(() => rehypePlugins(html), [html]);
     const strippedChildren = useMemo(() => stripCodeFenceFromArtifact(children), [children]);
 
+    /*
+     * Markdown supprime les espaces de BORD d'un document — comportement normal
+     * pour un document entier, destructeur pour un FRAGMENT.
+     *
+     * Constaté : « I will add a `users` table » s'affichait « auserstable ».
+     * Rendu en trois segments — le texte, le code inline, la suite — chaque
+     * segment perd ses espaces de bord et la concaténation les colle. Le même
+     * effet apparaît pendant le streaming : un morceau qui se termine juste
+     * après un code inline perd son espace final jusqu'à l'arrivée du suivant,
+     * et le texte tressaute.
+     *
+     * On restitue donc ce que le rendu a retiré. Un contenu sans espace de bord
+     * — le cas d'un message complet — n'est pas touché : les deux fragments
+     * sont vides et rien n'est ajouté.
+     */
+    const [leadingSpace, trailingSpace] = useMemo(() => {
+      const lead = /^[^\S\n]+/.exec(strippedChildren)?.[0] ?? '';
+      const trail = strippedChildren.trim() === '' ? '' : (/[^\S\n]+$/.exec(strippedChildren)?.[0] ?? '');
+
+      return [lead, trail] as const;
+    }, [strippedChildren]);
+
     return (
-      <ReactMarkdown
-        allowedElements={allowedHTMLElements}
-        className={styles.MarkdownContent}
-        components={components}
-        remarkPlugins={memoRemarkPlugins}
-        rehypePlugins={memoRehypePlugins}
-      >
-        {strippedChildren}
-      </ReactMarkdown>
+      <>
+        {leadingSpace}
+        <ReactMarkdown
+          allowedElements={allowedHTMLElements}
+          className={styles.MarkdownContent}
+          components={components}
+          remarkPlugins={memoRemarkPlugins}
+          rehypePlugins={memoRehypePlugins}
+        >
+          {strippedChildren}
+        </ReactMarkdown>
+        {trailingSpace}
+      </>
     );
   },
 );

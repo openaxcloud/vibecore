@@ -33,11 +33,6 @@ export type AppBuilderCopy = Readonly<{
     secondaryCta: ActionCopy;
     microcopy: string;
   }>;
-  languageSwitch: Readonly<{
-    label: string;
-    english: string;
-    french: string;
-  }>;
   problem: Readonly<{
     eyebrow: string;
     title: string;
@@ -169,11 +164,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'Start with the process you already know. Project files, the running Preview, build output, and export controls stay visible as the application evolves.',
-    },
-    languageSwitch: {
-      label: 'Choose the App Builder page language',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'From scattered process to working app',
@@ -466,17 +456,17 @@ export const APP_BUILDER_COPY = {
   },
   fr: {
     seo: {
-      title: 'App Builder métier avec code source réel | E-Code',
+      title: 'Générateur d’applications métier à code source réel | E-Code',
       description:
-        'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des builds statiques pris en charge.',
+        'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des compilations statiques prises en charge.',
     },
     hero: {
-      eyebrow: 'App Builder pour les processus métier réels',
+      eyebrow: 'Générateur d’applications pour les processus métier réels',
       title: 'Transformez le fonctionnement de votre activité en une vraie application',
       subtitle:
-        'Décrivez les personnes qui l’utilisent, les informations qu’elles manipulent et les règles qui font avancer le travail. E-Code transforme ce contexte en écrans et routes dans un vrai code source modifiable. Inspectez chaque fichier, exécutez l’app dans l’aperçu, poursuivez avec l’Agent et exportez le projet vers l’hébergement adapté.',
+        'Décrivez les personnes qui l’utilisent, les informations qu’elles manipulent et les règles qui font avancer le travail. E-Code transforme ce contexte en écrans et routes dans un vrai code source modifiable. Inspectez chaque fichier, exécutez l’application dans l’aperçu, poursuivez avec l’Agent et exportez le projet vers l’hébergement adapté.',
       primaryCta: {
-        label: 'Décrivez votre app',
+        label: 'Décrivez votre application',
         ariaLabel: 'Décrire votre application métier avec E-Code',
       },
       secondaryCta: {
@@ -484,15 +474,10 @@ export const APP_BUILDER_COPY = {
         ariaLabel: 'Examiner la démonstration fonctionnelle de réservation et son périmètre d’implémentation',
       },
       microcopy:
-        'Commencez par le processus que vous connaissez déjà. Les fichiers du projet, l’aperçu actif, la sortie du build et les contrôles d’export restent visibles à mesure que l’application évolue.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page App Builder',
-      english: 'English',
-      french: 'Français',
+        'Commencez par le processus que vous connaissez déjà. Les fichiers du projet, l’aperçu actif, la sortie de compilation et les contrôles d’export restent visibles à mesure que l’application évolue.',
     },
     problem: {
-      eyebrow: 'Du processus dispersé à l’app fonctionnelle',
+      eyebrow: 'Du processus dispersé à l’application fonctionnelle',
       title: 'Votre processus dépasse les tableurs bien avant l’arrivée d’un logiciel sur mesure',
       intro:
         'Un processus commence dans un tableur, un formulaire ou une boîte mail parce que ces outils sont immédiatement disponibles. Quand les utilisateurs, les dossiers, les validations et les exceptions se multiplient, l’équipe ressaisit les mêmes données, perd le contexte entre les systèmes et attend un logiciel adapté au travail réel.',
@@ -519,11 +504,11 @@ export const APP_BUILDER_COPY = {
       intro:
         'La demande ci-dessous ressemble au message d’un propriétaire de salon. Les quatre éléments en détaillent le périmètre d’implémentation ; les captures montrent une démonstration fonctionnelle scénarisée pour cette page avec des données fictives, pas la trace d’une génération E-Code.',
       label: 'Exemple de prompt',
-      text: 'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.',
+      text: 'Crée une application de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.',
       outputs: [
         {
           title: 'Écrans de réservation',
-          body: 'Le parcours demandé couvre le choix d’une prestation, d’un créneau libre, la création du compte, la confirmation du rendez-vous et les prochaines visites sur des écrans responsive.',
+          body: 'Le parcours demandé couvre le choix d’une prestation, d’un créneau libre, la création du compte, la confirmation du rendez-vous et les prochaines visites sur des écrans adaptatifs.',
         },
         {
           title: 'Base de réservation',
@@ -535,7 +520,7 @@ export const APP_BUILDER_COPY = {
         },
         {
           title: 'Aperçu et déploiement',
-          body: 'E-Code exécute le projet généré dans l’aperçu pour vérifier chaque format d’écran. Les builds statiques pris en charge passent ensuite par une publication guidée vers une URL live ; les autres projets restent exportables vers leur propre hébergement.',
+          body: 'E-Code exécute le projet généré dans l’aperçu pour vérifier chaque format d’écran. Les compilations statiques prises en charge passent ensuite par une publication guidée vers une URL live ; les autres projets restent exportables vers leur propre hébergement.',
         },
       ],
       demoLabels: {
@@ -562,7 +547,7 @@ export const APP_BUILDER_COPY = {
           items: [
             'Périmètre d’implémentation défini',
             'Parcours de réservation démontré',
-            'Démo navigateur responsive capturée',
+            'Démo navigateur adaptatif capturée',
             'Flux de déploiement documenté',
           ],
         },
@@ -570,7 +555,7 @@ export const APP_BUILDER_COPY = {
     },
     proof: {
       eyebrow: 'Prompt → agent → aperçu',
-      title: 'Regardez l’app prendre forme dans E-Code',
+      title: 'Regardez l’application prendre forme dans E-Code',
       intro:
         'Voici un véritable espace de travail E-Code, capturé après l’exécution du prompt de réservation par l’agent. L’interface E-Code, les fichiers générés et l’aperçu actif sont réels. L’identité du salon et ses données sont fictives, et ce projet capturé utilise un adaptateur local en mémoire ; aucune base externe, aucun fournisseur d’authentification ni aucun service d’envoi d’emails n’y est connecté.',
       steps: [
@@ -583,7 +568,7 @@ export const APP_BUILDER_COPY = {
           body: 'Le panneau Agent conserve la demande initiale et son plan d’implémentation, tandis que la bibliothèque affiche les routes, pages, composants, styles et fichiers de configuration générés.',
         },
         {
-          title: 'Testez l’app dans l’aperçu',
+          title: 'Testez l’application dans l’aperçu',
           body: 'L’onglet Webview exécute le même projet à côté de la conversation. Vous parcourez le tableau de bord, l’agenda, la réservation et les comptes sans quitter l’espace de travail E-Code.',
         },
       ],
@@ -591,18 +576,18 @@ export const APP_BUILDER_COPY = {
         'Interface E-Code, fichiers générés et aperçu actif réels · données fictives · adaptateur local en mémoire · aucune base externe, authentification ni service d’envoi d’emails connecté',
       openFullSizeLabel: 'Ouvrir la capture IDE en taille réelle',
       preview: {
-        title: 'Le prompt, l’agent, les fichiers et l’app restent dans le même espace',
+        title: 'Le prompt, l’agent, les fichiers et l’application restent dans le même espace',
         body: 'Cette capture montre l’interface E-Code réelle, l’arborescence générée et le tableau de bord actif dans l’aperçu. Elle ne démontre ni logique serveur, ni base externe, ni fournisseur d’authentification, ni service d’envoi d’emails connecté.',
         alt: 'IDE E-Code affichant le prompt de réservation dans le panneau Agent, les fichiers générés du projet et l’application de réservation active dans l’onglet Webview d’aperçu.',
       },
       iteration: {
         title: 'Si l’aperçu révèle une erreur, demandez sa correction à l’agent',
-        body: 'Cette correction demande à l’agent d’examiner une erreur de routeur, de préserver toutes les pages et de revérifier le tableau de bord. La vérification indépendante de l’export confirme ensuite le passage du typecheck et du build de production ; la capture documente l’itération, pas une réussite parfaite dès le premier essai.',
+        body: 'Cette correction demande à l’agent d’examiner une erreur de routeur, de préserver toutes les pages et de revérifier le tableau de bord. La vérification indépendante de l’export confirme ensuite le passage de la vérification des types et de la compilation de production ; la capture documente l’itération, pas une réussite parfaite dès le premier essai.',
         alt: 'IDE E-Code affichant un prompt de suivi en français pour corriger une erreur de routeur, les fichiers mis à jour du projet et le tableau de bord de réservation actif dans l’onglet Webview d’aperçu.',
       },
     },
     visuals: {
-      galleryLabel: 'Démonstration fonctionnelle scénarisée de réservation pour cette page App Builder',
+      galleryLabel: 'Démonstration fonctionnelle scénarisée de réservation pour cette page Générateur d’applications',
       disclaimer: 'Démo fonctionnelle de page scénarisée · données fictives · pas une trace de génération',
       items: [
         {
@@ -631,11 +616,11 @@ export const APP_BUILDER_COPY = {
       eyebrow: 'Ce que vous obtenez',
       title: 'Une application fonctionnelle que vous possédez et faites évoluer',
       intro:
-        'Le projet reste inspectable depuis le premier fichier généré jusqu’à l’aperçu et l’export. Pour les builds statiques pris en charge, la publication guidée ajoute une version en ligne sans masquer le code ni la sortie du build.',
+        'Le projet reste inspectable depuis le premier fichier généré jusqu’à l’aperçu et l’export. Pour les compilations statiques prises en charge, la publication guidée ajoute une version en ligne sans masquer le code ni la sortie de compilation.',
       items: [
         {
           title: 'Code source réel',
-          body: 'Tout ce que l’agent génère — composants frontend, routes, validation, configuration et éventuels modules serveur — vit dans des fichiers lisibles que vous relisez, modifiez, versionnez et exportez.',
+          body: 'Tout ce que l’agent génère — composants d’interface, routes, validation, configuration et éventuels modules serveur — vit dans des fichiers lisibles que vous relisez, modifiez, versionnez et exportez.',
         },
         {
           title: 'Couche de données visible',
@@ -647,11 +632,11 @@ export const APP_BUILDER_COPY = {
         },
         {
           title: 'Publication statique guidée',
-          body: 'Pour les builds statiques pris en charge, faites avancer la sortie relue dans l’assistant E-Code, où la configuration, la publication, l’état et les journaux restent visibles.',
+          body: 'Pour les compilations statiques prises en charge, faites avancer la sortie relue dans l’assistant E-Code, où la configuration, la publication, l’état et les journaux restent visibles.',
         },
         {
-          title: 'URL live pour les builds statiques',
-          body: 'Une version statique prise en charge reçoit une adresse E-Code partageable. Les projets avec serveur restent exportables vers le runtime et le processus d’hébergement dont ils ont besoin.',
+          title: 'URL live pour les compilations statiques',
+          body: 'Une version statique prise en charge reçoit une adresse E-Code partageable. Les projets avec serveur restent exportables vers l’environnement d’exécution et le processus d’hébergement dont ils ont besoin.',
         },
         {
           title: 'Itération par la conversation',
@@ -663,7 +648,7 @@ export const APP_BUILDER_COPY = {
       eyebrow: 'Un projet applicatif inspectable',
       title: 'Chaque élément fonctionnel reste visible',
       intro:
-        'E-Code réunit les écrans, le code, les connexions de données, l’aperçu et la sortie du build dans un même projet afin de vérifier ce qui existe avant la mise en ligne.',
+        'E-Code réunit les écrans, le code, les connexions de données, l’aperçu et la sortie de compilation dans un même projet afin de vérifier ce qui existe avant la mise en ligne.',
       items: [
         {
           title: 'Écrans et routes reliés',
@@ -675,7 +660,7 @@ export const APP_BUILDER_COPY = {
         },
         {
           title: 'Secrets de projet protégés',
-          body: 'Conservez les identifiants de base et les valeurs d’exécution hors des prompts et du code source. E-Code chiffre les secrets enregistrés et les injecte dans le workspace lorsque l’application s’exécute.',
+          body: 'Conservez les identifiants de base et les valeurs d’exécution hors des prompts et du code source. E-Code chiffre les secrets enregistrés et les injecte dans l’espace de travail lorsque l’application s’exécute.',
         },
         {
           title: 'Import, versionnement et export',
@@ -717,14 +702,14 @@ export const APP_BUILDER_COPY = {
     },
     faq: {
       eyebrow: 'Réponses pratiques',
-      title: 'Ce qui se passe après la description de l’app',
+      title: 'Ce qui se passe après la description de l’application',
       intro:
         'Vous gardez la maîtrise du code, des connexions de données et des décisions de mise en ligne pendant toute la construction.',
       items: [
         {
           question: 'Faut-il savoir coder ?',
           answer:
-            'Aucune connaissance en code n’est nécessaire pour décrire le processus ou demander une évolution. E-Code écrit et met à jour les fichiers du projet. Le code, l’aperçu et la sortie du build restent visibles, et un développeur reprend ou étend le même projet lorsque vous souhaitez un contrôle technique plus poussé.',
+            'Aucune connaissance en code n’est nécessaire pour décrire le processus ou demander une évolution. E-Code écrit et met à jour les fichiers du projet. Le code, l’aperçu et la sortie de compilation restent visibles, et un développeur reprend ou étend le même projet lorsque vous souhaitez un contrôle technique plus poussé.',
         },
         {
           question: 'Puis-je exporter le code source ?',
@@ -734,7 +719,7 @@ export const APP_BUILDER_COPY = {
         {
           question: 'Où l’application est-elle hébergée ?',
           answer:
-            'Le projet s’exécute d’abord dans l’aperçu E-Code. L’assistant actuel publie les builds statiques pris en charge et renvoie une URL E-Code live. Pour une application avec serveur, exportez le code vers le runtime et le processus d’hébergement nécessaires.',
+            'Le projet s’exécute d’abord dans l’aperçu E-Code. L’assistant actuel publie les compilations statiques prises en charge et renvoie une URL E-Code live. Pour une application avec serveur, exportez le code vers l’environnement d’exécution et le processus d’hébergement nécessaires.',
         },
         {
           question: 'Puis-je connecter ma base de données existante ?',
@@ -744,12 +729,12 @@ export const APP_BUILDER_COPY = {
         {
           question: 'Puis-je reprendre une application existante ?',
           answer:
-            'Oui. Ouvrez un projet E-Code existant ou importez ses fichiers, puis expliquez l’écran, le processus ou l’intégration à ajouter ou modifier. L’agent travaille depuis la structure actuelle au lieu de remplacer l’application par un starter sans rapport.',
+            'Oui. Ouvrez un projet E-Code existant ou importez ses fichiers, puis expliquez l’écran, le processus ou l’intégration à ajouter ou modifier. L’agent travaille depuis la structure actuelle au lieu de remplacer l’application par un modèle de départ sans rapport.',
         },
         {
           question: 'Comment protéger les utilisateurs et les données ?',
           answer:
-            'Les identifiants de connexion vivent dans des secrets de projet chiffrés. L’authentification et l’application des rôles dans l’app générée restent du code à relire : décrivez les exigences, puis inspectez et testez chaque route et contrôle de données avant la production. Un prompt ne remplace pas une revue de sécurité.',
+            'Les identifiants de connexion vivent dans des secrets de projet chiffrés. L’authentification et l’application des rôles dans l’application générée restent du code à relire : décrivez les exigences, puis inspectez et testez chaque route et contrôle de données avant la production. Un prompt ne remplace pas une revue de sécurité.',
         },
       ],
     },
@@ -757,7 +742,7 @@ export const APP_BUILDER_COPY = {
       title: 'Décrivez l’application qui manque à votre activité',
       body: 'Expliquez le processus, les utilisateurs, les données et les règles avec vos propres mots. E-Code transforme ce contexte en écrans reliés, code fonctionnel et projet que vous inspectez, exécutez, exportez et améliorez en continu.',
       primaryCta: {
-        label: 'Décrivez votre app',
+        label: 'Décrivez votre application',
         ariaLabel: 'Commencer à décrire votre application métier',
       },
       secondaryCta: {
@@ -766,7 +751,7 @@ export const APP_BUILDER_COPY = {
       },
     },
     aria: {
-      pageLabel: 'App Builder E-Code pour les applications métier',
+      pageLabel: 'Générateur d’applications E-Code pour les applications métier',
       heroLabel: 'Présentation du créateur d’applications métier',
       problemLabel: 'Problèmes causés par des processus métier dispersés',
       promptLabel: 'Démonstration du prompt vers une application de réservation',
@@ -802,11 +787,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'Empieza por el proceso que ya conoces. Los archivos del proyecto, la Preview activa, el resultado del build y los controles de exportación permanecen visibles mientras evoluciona la aplicación.',
-    },
-    languageSwitch: {
-      label: 'Elegir el idioma de la página App Builder',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'Del proceso disperso a la aplicación funcional',
@@ -1119,11 +1099,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'ابدأ بسير العمل الذي تعرفه. تظل ملفات المشروع والمعاينة العاملة ونتيجة البناء وعناصر التصدير ظاهرة أمامك مع تطور التطبيق.',
-    },
-    languageSwitch: {
-      label: 'اختر لغة صفحة منشئ التطبيقات',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'من عملية متفرقة إلى تطبيق يعمل',

@@ -79,6 +79,20 @@ export const projectOverviewPanelEn = {
   'projectOverview.empty.activity': 'No project activity yet.',
   'projectOverview.stack.detectedFrom': '{name}, detected from {source}',
   'projectOverview.script.aria': 'Script {name}: {command}',
+  'projectOverview.section.resources': 'Workspace resources',
+  'projectOverview.resources.memory': 'Memory',
+  'projectOverview.resources.cpu': 'CPU',
+  'projectOverview.resources.storage': 'Storage',
+  'projectOverview.resources.unknown': 'Not reported',
+  'projectOverview.resources.noLimit': 'No limit set',
+  'projectOverview.resources.usedOfLimit': '{used} of {limit}',
+  'projectOverview.resources.cpuCores': '{cores} core limit',
+  'projectOverview.resources.cpuCoresPlural': '{cores} cores limit',
+  'projectOverview.resources.cpuPending': 'Measuring — a usage ratio needs two samples',
+  'projectOverview.resources.unavailable':
+    'The workspace is not reporting resource usage right now. Nothing is shown rather than a made-up zero.',
+  'projectOverview.resources.gaugeAria': '{label}: {value}. {detail}',
+  'projectOverview.resources.measuredAt': 'Measured {date}',
 } as const;
 
 export type ProjectOverviewPanelKey = keyof typeof projectOverviewPanelEn;
@@ -163,6 +177,20 @@ export const projectOverviewPanelFr: ProjectOverviewPanelCopy = {
   'projectOverview.empty.activity': 'Aucune activité du projet pour le moment.',
   'projectOverview.stack.detectedFrom': '{name}, détecté depuis {source}',
   'projectOverview.script.aria': 'Script {name} : {command}',
+  'projectOverview.section.resources': 'Ressources de l’espace de travail',
+  'projectOverview.resources.memory': 'Mémoire',
+  'projectOverview.resources.cpu': 'Processeur',
+  'projectOverview.resources.storage': 'Stockage',
+  'projectOverview.resources.unknown': 'Non communiqué',
+  'projectOverview.resources.noLimit': 'Aucune limite posée',
+  'projectOverview.resources.usedOfLimit': '{used} sur {limit}',
+  'projectOverview.resources.cpuCores': 'Limite de {cores} cœur',
+  'projectOverview.resources.cpuCoresPlural': 'Limite de {cores} cœurs',
+  'projectOverview.resources.cpuPending': 'Mesure en cours — un taux d’usage demande deux relevés',
+  'projectOverview.resources.unavailable':
+    'L’espace de travail ne communique pas sa consommation pour le moment. Rien n’est affiché plutôt qu’un zéro inventé.',
+  'projectOverview.resources.gaugeAria': '{label} : {value}. {detail}',
+  'projectOverview.resources.measuredAt': 'Relevé {date}',
 };
 
 type ProjectOverviewInterpolationValue = string | number | bigint;

@@ -2,6 +2,12 @@ global:
   environment: staging
   imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore
   imageTag: latest
+  # Immutable digest (sha256:<64 hex>) applied to every service that has no
+  # per-service `imageDigest`. When set it WINS over imageTag, so the kubelet
+  # resolves content instead of a movable pointer. Empty by default so a
+  # from-scratch install and `helm template` still work from tags; production
+  # deploys always supply digests (see .github/workflows/deploy-main.yml).
+  imageDigest: ''
   appDomain: staging.example.com
   previewDomain: preview.staging.example.com
   # Optional additional public hosts. Leave empty when not needed (staging).
@@ -113,6 +119,13 @@ platformEnv:
     # reviving the silent URL-copy row this replaced. Required by
     # values.schema.json so an upgrade can never drop it unnoticed.
     serverDeployRollbackFromDigest: '1'
+    # P104 / SEC-8: two-phase activation interlock for deployment password
+    # protection. '0' (the chart default, fail-closed) = the api refuses to
+    # ACTIVATE protection (503); '1' = activation open. Enforcement of an
+    # already-protected deployment is never gated by this. Only
+    # .github/workflows/deploy-main.yml flips it to '1', and only after the last
+    # pre-cutover pod is gone and its last `max-age=60` response has expired.
+    deploymentAccessActivationEnabled: '0'
   email:
     httpEndpoint: ''
     from: ''
@@ -249,6 +262,11 @@ services:
     # server.ts binds SCREENSHOTTER_PORT ?? PORT ?? 3030.
     port: 3030
     replicas: 1
+    # Cap the HPA (templates/hpa.yaml would otherwise default to 5): render
+    # concurrency is held via SCREENSHOTTER_MAX_CONCURRENCY in the pod, not by
+    # fanning out Chromium replicas. Chart-default (not values-prod-only) so the
+    # cap also applies under CD's `helm upgrade --reuse-values`.
+    maxReplicas: 2
     path: ''
     readOnlyRootFilesystem: false
     # Chromium is memory-hungry; give /tmp headroom for its shm/profile writes.

@@ -107,6 +107,32 @@ describe('AssistantMessage i18n', () => {
     expect(screen.queryByRole('group', { name: 'Message actions' })).toBeNull();
   });
 
+  /*
+   * AGENT-MSG-001 — le déclencheur de contexte n'était qu'une icône « i » posée
+   * seule sur sa ligne : son intitulé n'existait que pour les lecteurs d'écran,
+   * c'est-à-dire pour ceux qui n'ont justement pas besoin de deviner. Le libellé
+   * est désormais RENDU, pas seulement annoncé.
+   */
+  it('affiche un libellé visible sur le déclencheur de contexte, pas seulement un aria-label', () => {
+    render(
+      <I18nextProvider i18n={createI18nInstance('fr')}>
+        <AssistantMessage
+          content="Contenu"
+          messageId="message-contexte"
+          parts={undefined}
+          addToolResult={() => undefined}
+          annotations={
+            [{ type: 'agentMemory', memories: [{ id: 'm1', content: 'note', kind: 'preference' }] }] as never
+          }
+        />
+      </I18nextProvider>,
+    );
+
+    const declencheur = screen.getByRole('button', { name: 'Afficher le contexte du message de l’agent' });
+
+    expect(declencheur.textContent).toContain('Contexte');
+  });
+
   it('uses a safe French clipboard error instead of exposing technical details', async () => {
     render(
       <I18nextProvider i18n={createI18nInstance('fr')}>

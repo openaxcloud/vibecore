@@ -5,6 +5,13 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from './login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -445,6 +452,7 @@ export class PrismaApiStore implements ApiStore {
           userId: input.userId,
           tokenHash: hashToken(input.token),
           expiresAt: input.expiresAt,
+          lastActiveAt: new Date(),
           ipAddress: input.ipAddress,
           userAgent: input.userAgent,
           impersonatedBy: input.impersonatedBy,
@@ -460,7 +468,38 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
+    /*
+     * Idle timeout: a session unused past the inactivity window is rejected here
+     * (in addition to the absolute expiresAt), bounding a stolen token's life to
+     * the idle period. lastActiveAt is null on rows predating the column → fall
+     * back to createdAt so those still age out. requireAuth refreshes lastActiveAt.
+     */
+    const lastActiveMs = (session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return mapSession(session);
+  }
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    /*
+     * Refresh lastActiveAt at most once per throttle window: the WHERE only
+     * matches when the stored value is stale (or null), so a burst of requests in
+     * the same window is a single no-op update, not a write per request.
+     */
+    const now = new Date(nowMs);
+    const staleBefore = new Date(nowMs - throttleMs);
+
+    await this.prisma.session.updateMany({
+      where: {
+        id: sessionId,
+        revokedAt: null,
+        OR: [{ lastActiveAt: null }, { lastActiveAt: { lt: staleBefore } }],
+      },
+      data: { lastActiveAt: now },
+    });
   }
 
   async listSessions(userId: string) {
@@ -626,6 +665,51 @@ export class PrismaApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return this.prisma.mfaRecoveryCode.count({ where: { userId, usedAt: null } });
+  }
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    const row = await this.prisma.accountLockout.findUnique({ where: { userId } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      failedCount: row.failedCount,
+      firstFailedAtMs: row.firstFailedAt ? row.firstFailedAt.getTime() : null,
+      lockedUntilMs: row.lockedUntil ? row.lockedUntil.getTime() : null,
+    };
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    /*
+     * Serialize per-user so two concurrent failed logins can't both read the same
+     * count and clobber each other (lost update). The advisory lock makes the
+     * read-compute-write atomic across pods, so N concurrent failures increment to
+     * exactly N — the property the concurrency test proves against real Postgres.
+     */
+    return this.withSerializedMutation(`login-lockout:${userId}`, async () => {
+      const current = (await this.getLoginLockout(userId)) ?? CLEARED_LOCKOUT;
+      const next = nextStateOnFailure(current, nowMs, config);
+      const data = {
+        failedCount: next.failedCount,
+        firstFailedAt: next.firstFailedAtMs === null ? null : new Date(next.firstFailedAtMs),
+        lockedUntil: next.lockedUntilMs === null ? null : new Date(next.lockedUntilMs),
+      };
+
+      await this.prisma.accountLockout.upsert({
+        where: { userId },
+        create: { userId, ...data },
+        update: data,
+      });
+
+      return next;
+    });
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    // deleteMany (not delete) so clearing an account that never failed is a no-op.
+    await this.prisma.accountLockout.deleteMany({ where: { userId } });
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
@@ -1171,6 +1255,84 @@ export class PrismaApiStore implements ApiStore {
   async getProjectSecret(projectId: string, key: string) {
     const secret = await this.prisma.projectSecret.findUnique({ where: { projectId_key: { projectId, key } } });
     return secret ? mapSecret(secret) : undefined;
+  }
+
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = await this.prisma.projectCheckpoint.create({
+      data: { projectId: input.projectId, createdByUserId: input.createdByUserId ?? null, state: 'PREPARING' },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+    },
+  ) {
+    await this.prisma.projectCheckpoint.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+        ...(patch.barrierExpiresAt !== undefined
+          ? { barrierExpiresAt: patch.barrierExpiresAt === null ? null : new Date(patch.barrierExpiresAt) }
+          : {}),
+      },
+    });
+  }
+
+  async getActiveCheckpointBarrier(projectId: string) {
+    /*
+     * Indexed on (projectId, barrierExpiresAt). `gt: now` means an expired lease
+     * reads as thawed without needing a sweeper — the deadline itself IS the
+     * guaranteed thaw if the orchestrating replica dies holding the barrier.
+     */
+    const row = await this.prisma.projectCheckpoint.findFirst({
+      where: { projectId, barrierExpiresAt: { gt: new Date() } },
+      orderBy: { barrierExpiresAt: 'desc' },
+    });
+
+    if (!row?.barrierExpiresAt || !row.logicalBarrierId) {
+      return undefined;
+    }
+
+    return {
+      checkpointId: row.id,
+      barrierId: row.logicalBarrierId,
+      expiresAt: row.barrierExpiresAt.toISOString(),
+    };
+  }
+
+  async getProjectCheckpoint(id: string) {
+    const row = await this.prisma.projectCheckpoint.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      state: row.state,
+      logicalBarrierId: row.logicalBarrierId ?? undefined,
+      consistencyLevel: row.consistencyLevel ?? undefined,
+      manifest: row.manifest as unknown,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
   }
 
   async createRemixJob(input: {
@@ -2654,6 +2816,111 @@ export class PrismaApiStore implements ApiStore {
     return row ? mapDatabaseInstance(row) : undefined;
   }
 
+  async createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    /*
+     * Aucun try/catch ici : une violation d'unicité sur `activeLock` DOIT
+     * remonter pour que l'appelant la traduise en refus (MIGRATION_LOCK_HELD).
+     * L'avaler ici transformerait un verrou tenu en migration silencieusement
+     * ignorée — et deux migrations concurrentes finiraient par se croiser.
+     */
+    const row = await this.prisma.dBMigrationExecution.create({
+      data: {
+        projectId: input.projectId,
+        organizationId: input.organizationId,
+        environment: input.environment,
+        idempotencyKey: input.idempotencyKey,
+        activeLock: input.activeLock,
+        state: input.state,
+        statementsSha256: input.statementsSha256,
+        statementCount: input.statementCount,
+        backwardCompatible: input.backwardCompatible,
+        forwardCompatible: input.forwardCompatible,
+        deploymentId: input.deploymentId ?? null,
+        createdByUserId: input.createdByUserId ?? null,
+      },
+    });
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateMigrationExecution(
+    id: string,
+    patch: {
+      state?: string;
+      activeLock?: string | null;
+      backupId?: string;
+      backupVerifiedAt?: string;
+      backupVerificationMethod?: string;
+      appliedStatements?: number;
+      error?: string;
+      completedAt?: string;
+    },
+  ) {
+    await this.prisma.dBMigrationExecution.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        // `null` libère le verrou ; `undefined` le laisse intact.
+        ...(patch.activeLock !== undefined ? { activeLock: patch.activeLock } : {}),
+        ...(patch.backupId !== undefined ? { backupId: patch.backupId } : {}),
+        ...(patch.backupVerifiedAt !== undefined ? { backupVerifiedAt: new Date(patch.backupVerifiedAt) } : {}),
+        ...(patch.backupVerificationMethod !== undefined
+          ? { backupVerificationMethod: patch.backupVerificationMethod }
+          : {}),
+        ...(patch.appliedStatements !== undefined ? { appliedStatements: patch.appliedStatements } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.completedAt !== undefined ? { completedAt: new Date(patch.completedAt) } : {}),
+      },
+    });
+  }
+
+  async getMigrationExecutionByIdempotencyKey(projectId: string, idempotencyKey: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+
+    return row ? { id: row.id, state: row.state, appliedStatements: row.appliedStatements } : undefined;
+  }
+
+  async getMigrationExecution(id: string) {
+    const row = await this.prisma.dBMigrationExecution.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      environment: row.environment,
+      state: row.state,
+      idempotencyKey: row.idempotencyKey,
+      backupId: row.backupId ?? undefined,
+      backupVerifiedAt: row.backupVerifiedAt?.toISOString(),
+      backupVerificationMethod: row.backupVerificationMethod ?? undefined,
+      statementCount: row.statementCount,
+      appliedStatements: row.appliedStatements,
+      backwardCompatible: row.backwardCompatible,
+      forwardCompatible: row.forwardCompatible,
+      error: row.error ?? undefined,
+      startedAt: row.startedAt.toISOString(),
+      completedAt: row.completedAt?.toISOString(),
+    };
+  }
+
   async listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]> {
     const rows = await this.prisma.databaseSnapshot.findMany({
       where: { databaseInstanceId },
@@ -2864,6 +3131,9 @@ export class PrismaApiStore implements ApiStore {
         status: true,
         createdAt: true,
         environmentName: true,
+        // P104: the access config lives in metadata.access; the static-serve
+        // gate reads it from here. Dropping it fails OPEN (see store.ts).
+        metadata: true,
         /*
          * L'org et son abonnement sont nécessaires ICI : l'extinction à 30 jours
          * d'une publication Starter se décide dans le chemin de SERVICE, pas
@@ -2902,6 +3172,7 @@ export class PrismaApiStore implements ApiStore {
       environmentName: deployment.environmentName ?? undefined,
       organizationId: deployment.project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.plan?.key : undefined,
+      metadata: (deployment.metadata ?? undefined) as Record<string, unknown> | undefined,
     };
   }
 
@@ -5997,6 +6268,7 @@ function mapSession(session: any): SessionRecord {
     userAgent: session.userAgent ?? undefined,
     revokedAt: toIso(session.revokedAt),
     lastReauthAt: toIso(session.lastReauthAt),
+    lastActiveAt: toIso(session.lastActiveAt),
     impersonatedBy: session.impersonatedBy ?? undefined,
   };
 }

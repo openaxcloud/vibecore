@@ -3,6 +3,7 @@ import { resolveMarketingLanguage } from './marketing';
 export const assistantMessageEn = {
   'assistantMessage.agent': 'Agent',
   'assistantMessage.context.show': 'Show agent message context',
+  'assistantMessage.context.label': 'Context',
   'assistantMessage.context.memoryTitle': 'Agent memory',
   'assistantMessage.context.memoriesUsed_one': '{{count}} persistent memory used for this response',
   'assistantMessage.context.memoriesUsed_other': '{{count}} persistent memories used for this response',
@@ -111,6 +112,7 @@ export type AssistantMessageCopy = Readonly<Record<AssistantMessageKey, string>>
 export const assistantMessageFr: AssistantMessageCopy = {
   'assistantMessage.agent': 'Agent',
   'assistantMessage.context.show': 'Afficher le contexte du message de l’agent',
+  'assistantMessage.context.label': 'Contexte',
   'assistantMessage.context.memoryTitle': 'Mémoire de l’agent',
   'assistantMessage.context.memoriesUsed_one': '{{count}} souvenir persistant utilisé pour cette réponse',
   'assistantMessage.context.memoriesUsed_other': '{{count}} souvenirs persistants utilisés pour cette réponse',
@@ -137,9 +139,9 @@ export const assistantMessageFr: AssistantMessageCopy = {
   'assistantMessage.context.memoryUsed': 'Mémoire utilisée : {{count}}',
   'assistantMessage.defaultLaneResponsibility': 'Le rôle spécialiste transmet sa progression en direct.',
   'assistantMessage.mode.turbo': 'Turbo',
-  'assistantMessage.mode.lite': 'Lite',
-  'assistantMessage.mode.economy': 'Economy',
-  'assistantMessage.mode.power': 'Power',
+  'assistantMessage.mode.lite': 'Léger',
+  'assistantMessage.mode.economy': 'Économique',
+  'assistantMessage.mode.power': 'Puissance',
   'assistantMessage.mode.escalated': 'Effort élevé : escalade activée',
   'assistantMessage.mode.noEscalation': 'Effort élevé : +0 crédit pour cette tâche (aucune escalade nécessaire)',
   'assistantMessage.mode.tooltip': 'Mode Agent utilisé pour cette réponse',

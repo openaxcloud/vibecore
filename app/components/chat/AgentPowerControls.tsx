@@ -1,4 +1,3 @@
-import { Check, ChevronDown, Gauge, Lock, SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -94,6 +93,7 @@ export function AgentPowerControls({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const hintId = useId();
 
   const modeAvailable = (mode: AgentBuildTier): boolean => {
     if (!availability?.modes) {
@@ -196,8 +196,10 @@ export function AgentPowerControls({
       <div
         role="radiogroup"
         aria-label={copy['chatControls.power.groupAria']}
+        aria-describedby={hintId}
+        title={value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
         data-testid="agent-mode-segmented"
-        className="inline-grid max-w-full grid-cols-3 items-stretch rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
+        className="inline-grid max-w-full grid-cols-3 items-stretch rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
       >
         {buildTiers.map((tier) => {
           const active = value.buildTier === tier.id;
@@ -221,14 +223,14 @@ export function AgentPowerControls({
               }
               data-testid={`agent-mode-${tier.id}`}
               className={classNames(
-                'min-h-10 min-w-0 whitespace-normal break-words rounded-xl px-2 py-1 text-xs font-medium leading-tight transition-colors sm:px-3',
+                'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
               style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
             >
               {tier.label}
-              {!available ? <Lock className="ml-1 inline h-3 w-3" aria-hidden /> : null}
+              {!available ? <span className="i-ph:lock ml-1 inline-block align-middle text-xs" aria-hidden /> : null}
             </button>
           );
         })}
@@ -244,7 +246,7 @@ export function AgentPowerControls({
         title={copy['chatControls.power.advancedTitle']}
         data-testid="agent-mode-advanced"
         className={classNames(
-          'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
+          'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
           'disabled:cursor-not-allowed disabled:opacity-50',
           advancedOpen || activeSwitches > 0
             ? 'border-transparent text-white'
@@ -252,23 +254,23 @@ export function AgentPowerControls({
         )}
         style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
       >
-        <SlidersHorizontal className="h-3.5 w-3.5" />
+        <span className="i-ph:sliders-horizontal text-sm" aria-hidden />
         <span>{copy['chatControls.power.advanced']}</span>
         {activeSwitches > 0 ? (
           <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
         ) : null}
-        <ChevronDown className="h-3 w-3" />
+        <span className="i-ph:caret-down text-xs" aria-hidden />
       </button>
 
       <span
-        className="inline-flex items-center gap-1 self-center rounded-full bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs font-semibold text-bolt-elements-textPrimary"
+        className="inline-flex h-8 items-center gap-1 self-center rounded-lg bg-bolt-elements-background-depth-2 px-2.5 text-xs font-semibold text-bolt-elements-textPrimary"
         title={copy['chatControls.power.estimatedTitle']}
       >
-        <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
+        <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
         {formatChatControlsCost(estimatedCents, language)}
       </span>
 
-      <p className="w-full text-[11px] leading-snug text-bolt-elements-textSecondary" data-testid="agent-mode-hint">
+      <p className="sr-only" data-testid="agent-mode-hint" id={hintId}>
         {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
       </p>
 
@@ -309,9 +311,10 @@ export function AgentPowerControls({
             >
               <span className="flex flex-col">
                 <span className="flex items-center gap-2 font-medium">
-                  <Zap
-                    className="h-3.5 w-3.5"
+                  <span
+                    className="i-ph:lightning text-sm"
                     style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                    aria-hidden
                   />
                   {copy['chatControls.power.highEffort']}
                 </span>
@@ -337,7 +340,9 @@ export function AgentPowerControls({
                       : undefined
                   }
                 >
-                  {value.highEffort && value.buildTier !== 'lite' ? <Check className="h-3 w-3 text-white" /> : null}
+                  {value.highEffort && value.buildTier !== 'lite' ? (
+                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                  ) : null}
                 </span>
               )}
             </button>
@@ -367,9 +372,10 @@ export function AgentPowerControls({
             >
               <span className="flex flex-col">
                 <span className="flex items-center gap-2 font-medium">
-                  <Gauge
-                    className="h-3.5 w-3.5"
+                  <span
+                    className="i-ph:gauge text-sm"
                     style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                    aria-hidden
                   />
                   {copy['chatControls.power.turbo']}
                 </span>
@@ -395,7 +401,9 @@ export function AgentPowerControls({
                       : undefined
                   }
                 >
-                  {value.turboMode && value.buildTier === 'power' ? <Check className="h-3 w-3 text-white" /> : null}
+                  {value.turboMode && value.buildTier === 'power' ? (
+                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                  ) : null}
                 </span>
               )}
             </button>
@@ -408,7 +416,7 @@ export function AgentPowerControls({
               className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
               style={{ background: 'var(--ecode-accent)' }}
             >
-              <Zap className="h-3 w-3" />
+              <span className="i-ph:lightning text-xs" aria-hidden />
               {copy['chatControls.power.upgrade']}
             </button>
           ) : null}
@@ -416,7 +424,7 @@ export function AgentPowerControls({
           <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
             <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
             <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
-              <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
+              <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
               {formatChatControlsCost(estimatedCents, language)}
             </span>
           </div>

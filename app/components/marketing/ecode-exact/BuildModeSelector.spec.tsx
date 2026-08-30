@@ -82,3 +82,66 @@ describe('BuildModeSelector dismissal', () => {
     expect(screen.queryByText('How would you like to continue?')).toBeNull();
   });
 });
+
+describe('BuildModeSelector — sortie et hiérarchie visuelle', () => {
+  /*
+   * TACTILE-002 — en 390 le bouton « Fermer » valait 309x44 : une LIGNE ENTIÈRE
+   * de la modale, 87 % de sa largeur, dépensée pour la sortie. Le test fige la
+   * forme corrigée (croix ancrée, pas de `w-full`) plutôt qu'une largeur en
+   * pixels, que jsdom ne calcule pas.
+   */
+  it('ferme par une croix ancrée, jamais par un bouton pleine largeur', () => {
+    const { onOpenChange } = renderSelector();
+
+    const close = screen.getByRole('button', { name: /close|fermer/i });
+
+    expect(close.className).not.toMatch(/\bw-full\b/);
+    expect(close.className).toMatch(/\bshrink-0\b/);
+
+    // La cible tactile reste au-dessus du plancher de 44px.
+    expect(close.className).toMatch(/\bh-11\b/);
+    expect(close.className).toMatch(/\bw-11\b/);
+
+    fireEvent.click(close);
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+  });
+
+  it('garde un nom accessible sur la croix, qui n’a plus de texte visible', () => {
+    renderSelector();
+
+    const close = screen.getByRole('button', { name: /close|fermer/i });
+
+    expect(close.getAttribute('aria-label')).toBeTruthy();
+  });
+
+  /*
+   * COULEUR-001 — chaque option portait sa propre teinte décorative (orange /
+   * emeraude) qui n'encodait ni état, ni gravité, ni catégorie : cinq couleurs
+   * saturées mesurées pour deux choix. Seule l'option RECOMMANDÉE porte
+   * désormais l'accent ; l'autre est neutre.
+   */
+  it('ne peint plus les options avec des teintes décoratives arbitraires', () => {
+    renderSelector();
+
+    const dialog = screen.getByTestId('build-mode-selector-dialog');
+
+    expect(dialog.innerHTML).not.toMatch(/emerald-/);
+    expect(dialog.innerHTML).not.toMatch(/orange-(?:50|100|200|400|500|600|800)/);
+  });
+
+  it('réserve l’accent de marque à l’option recommandée', () => {
+    renderSelector();
+
+    const recommended = screen.getByTestId('build-option-full-app');
+    const alternative = screen.getByTestId('build-option-design-first');
+
+    /*
+     * L'anneau de FOCUS garde l'accent sur les deux cartes — c'est une
+     * affordance d'accessibilité, pas une décoration. Ce qui doit différer est
+     * la BORDURE au repos.
+     */
+    expect(recommended.className).toMatch(/border-\[var\(--ecode-accent\)\]/);
+    expect(alternative.className).not.toMatch(/border-\[var\(--ecode-accent\)\]/);
+    expect(alternative.className).toMatch(/\bborder-border\b/);
+  });
+});

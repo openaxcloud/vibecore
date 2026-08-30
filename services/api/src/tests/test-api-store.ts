@@ -2,6 +2,13 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import {
+  CLEARED_LOCKOUT,
+  nextStateOnFailure,
+  type LoginLockoutState,
+  type LoginThrottleConfig,
+} from '../login-throttle.js';
+import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import type {
   EnvVarScope,
@@ -359,6 +366,7 @@ export class TestApiStore implements ApiStore {
       tokenHash: hashToken(input.token),
       expiresAt: input.expiresAt.toISOString(),
       createdAt: now(),
+      lastActiveAt: now() as string | undefined,
       ipAddress: input.ipAddress,
       userAgent: input.userAgent,
       impersonatedBy: input.impersonatedBy,
@@ -375,7 +383,34 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
+    const lastActiveMs = new Date(session.lastActiveAt ?? session.createdAt).getTime();
+
+    if (isSessionIdleExpired(lastActiveMs, Date.now(), sessionIdleTimeoutMs())) {
+      return undefined;
+    }
+
     return session;
+  }
+
+  /** Test hook: force touchSession to throw (fail-open-on-write proof). */
+  touchSessionShouldThrow = false;
+
+  async touchSession(sessionId: string, nowMs: number, throttleMs = 60_000): Promise<void> {
+    if (this.touchSessionShouldThrow) {
+      throw new Error('simulated touchSession failure');
+    }
+
+    for (const session of this.sessions.values()) {
+      if (session.id !== sessionId || session.revokedAt) {
+        continue;
+      }
+
+      const lastActiveMs = session.lastActiveAt ? new Date(session.lastActiveAt).getTime() : 0;
+
+      if (nowMs - lastActiveMs >= throttleMs) {
+        session.lastActiveAt = new Date(nowMs).toISOString();
+      }
+    }
   }
 
   async listSessions(userId: string) {
@@ -499,6 +534,33 @@ export class TestApiStore implements ApiStore {
 
   async countUnusedRecoveryCodes(userId: string) {
     return [...this.recoveryCodes.values()].filter((item) => item.userId === userId && !item.usedAt).length;
+  }
+
+  private loginLockouts = new Map<string, LoginLockoutState>();
+  /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
+  loginLockoutShouldThrow = false;
+
+  async getLoginLockout(userId: string): Promise<LoginLockoutState | undefined> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    return this.loginLockouts.get(userId);
+  }
+
+  async recordFailedLogin(userId: string, nowMs: number, config: LoginThrottleConfig): Promise<LoginLockoutState> {
+    if (this.loginLockoutShouldThrow) {
+      throw new Error('simulated lockout store outage');
+    }
+
+    const next = nextStateOnFailure(this.loginLockouts.get(userId) ?? CLEARED_LOCKOUT, nowMs, config);
+    this.loginLockouts.set(userId, next);
+
+    return next;
+  }
+
+  async clearLoginLockout(userId: string): Promise<void> {
+    this.loginLockouts.delete(userId);
   }
 
   async createOrganization(input: { name: string; slug: string; ownerUserId: string }) {
@@ -1766,6 +1828,77 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
+  migrationExecutions = new Map<string, any>();
+
+  /*
+   * Reproduit les DEUX index uniques réels (`activeLock` et
+   * `(projectId, idempotencyKey)`) en levant une erreur portant le code Prisma
+   * `P2002`. Sans ça, le double en mémoire accepterait deux migrations
+   * concurrentes et les tests vaudraient pour une fiction plus permissive que
+   * la production — c'est précisément l'invariant I-MIG-2 qu'ils doivent prouver.
+   */
+  async createMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    activeLock: string;
+    state: string;
+    statementsSha256: string;
+    statementCount: number;
+    backwardCompatible: string;
+    forwardCompatible: string;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    for (const row of this.migrationExecutions.values()) {
+      if (row.activeLock != null && row.activeLock === input.activeLock) {
+        throw Object.assign(new Error('Unique constraint failed on the fields: (`activeLock`)'), { code: 'P2002' });
+      }
+
+      if (row.projectId === input.projectId && row.idempotencyKey === input.idempotencyKey) {
+        throw Object.assign(new Error('Unique constraint failed on the fields: (`idempotencyKey`)'), { code: 'P2002' });
+      }
+    }
+
+    const row = {
+      ...input,
+      id: id('dbmig'),
+      appliedStatements: 0,
+      startedAt: now(),
+      error: undefined,
+      backupId: undefined,
+      backupVerifiedAt: undefined,
+      backupVerificationMethod: undefined,
+      completedAt: undefined,
+    };
+    this.migrationExecutions.set(row.id, row);
+
+    return { id: row.id, state: row.state };
+  }
+
+  async updateMigrationExecution(idv: string, patch: Record<string, unknown>) {
+    const row = this.migrationExecutions.get(idv);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
+  }
+
+  async getMigrationExecutionByIdempotencyKey(projectId: string, idempotencyKey: string) {
+    for (const row of this.migrationExecutions.values()) {
+      if (row.projectId === projectId && row.idempotencyKey === idempotencyKey) {
+        return { id: row.id, state: row.state, appliedStatements: row.appliedStatements };
+      }
+    }
+
+    return undefined;
+  }
+
+  async getMigrationExecution(idv: string) {
+    return this.migrationExecutions.get(idv);
+  }
+
   async listDatabaseSnapshots(databaseInstanceId: string) {
     return [...this.databaseSnapshots.values()]
       .filter((snapshot) => snapshot.databaseInstanceId === databaseInstanceId)
@@ -1980,6 +2113,8 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+      // P104: see store.ts — omitting this fails OPEN on the static-serve gate.
+      metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
   }
 
@@ -2001,7 +2136,22 @@ export class TestApiStore implements ApiStore {
   }
 
   async listDeployments(projectId: string) {
-    return [...this.deployments.values()].filter((deployment) => deployment.projectId === projectId);
+    /*
+     * NEWEST FIRST, like the real store (`prisma-store.ts` orders
+     * `createdAt: 'desc'`). This double used to return raw Map insertion order,
+     * i.e. OLDEST first — so any code taking `[0]` as "the current release"
+     * behaved one way in production and the opposite way under test. SEC-13
+     * (inheriting a deployment's access config on re-publish) is exactly such
+     * code, and the divergence made a wrong implementation look correct.
+     *
+     * Reverse first, then sort by createdAt descending: the sort is stable, so
+     * deployments created within the same millisecond — routine in tests — keep
+     * newest-inserted first instead of resolving to the oldest.
+     */
+    return [...this.deployments.values()]
+      .filter((deployment) => deployment.projectId === projectId)
+      .reverse()
+      .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''));
   }
 
   async listStaleDeployments(cutoffIso: string) {
@@ -2113,6 +2263,56 @@ export class TestApiStore implements ApiStore {
   async getActiveAgentRoutingCard(): Promise<{ version: number; data: unknown } | undefined> {
     const active = this.agentRoutingCards.filter((card) => card.active).sort((a, b) => b.version - a.version)[0];
     return active ? { version: active.version, data: active.data } : undefined;
+  }
+
+  projectCheckpoints = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      state: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      barrierExpiresAt?: string | null;
+      createdAt: string;
+    }
+  >();
+
+  async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
+    const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
+    this.projectCheckpoints.set(row.id, row);
+    return { id: row.id, state: row.state };
+  }
+
+  async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
+    const row = this.projectCheckpoints.get(idv);
+    if (row) Object.assign(row, patch);
+  }
+
+  /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
+  async getActiveCheckpointBarrier(projectId: string) {
+    const rows = [...this.projectCheckpoints.values()]
+      .filter(
+        (r) =>
+          r.projectId === projectId &&
+          r.barrierExpiresAt != null &&
+          new Date(r.barrierExpiresAt).getTime() > Date.now() &&
+          r.logicalBarrierId,
+      )
+      .sort((a, b) => new Date(b.barrierExpiresAt!).getTime() - new Date(a.barrierExpiresAt!).getTime());
+
+    const row = rows[0];
+
+    return row
+      ? { checkpointId: row.id, barrierId: row.logicalBarrierId!, expiresAt: row.barrierExpiresAt! }
+      : undefined;
+  }
+
+  async getProjectCheckpoint(idv: string) {
+    return this.projectCheckpoints.get(idv);
   }
 
   remixJobs = new Map<

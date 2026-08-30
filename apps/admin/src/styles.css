@@ -12,7 +12,25 @@
      4.16:1 on #0a0f1c, under the 4.5:1 of WCAG AA for body text. */
   --vc-ide-text-muted: #949ca6;
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
+  /*
+   * CHARTE-IDE-001 — la console d'administration portait sa PROPRE copie de ce
+   * jeton, restée bleue quand le reste du produit est passé à l'orange de
+   * marque. C'est une deuxième source de vérité pour un jeton qui n'en admet
+   * qu'une : sans cette ligne, l'admin serait la dernière surface bleue.
+   *
+   * L'admin force `color-scheme: dark` même sous `prefers-color-scheme: light`
+   * (voir le bloc plus bas) : une seule valeur suffit, celle du thème sombre.
+   * Mesuré : #f97316 sur #0a0f1c = 7,06:1 ; en texte sur sa propre pastille à
+   * 18 % = 5,41:1 (le bleu qu'il remplace y était à 5,00:1).
+   */
+  --vc-ide-accent-action: #f97316;
+  /*
+   * Couleur du LIBELLÉ posé sur un aplat d'accent. Le blanc n'y passe pas —
+   * 2,80:1 sur l'orange — mais il ne passait DÉJÀ PAS sur le bleu : 3,00:1,
+   * sous les 4,5 exigés. Le défaut préexistait, il est corrigé ici plutôt que
+   * reconduit. #0a0f1c sur #f97316 = 6,82:1.
+   */
+  --vc-ide-text-on-accent: #0a0f1c;
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
@@ -697,7 +715,7 @@ select:focus-visible {
 .action {
   background: var(--accent);
   border-color: var(--accent-strong);
-  color: #ffffff;
+  color: var(--vc-ide-text-on-accent);
 }
 
 .danger {

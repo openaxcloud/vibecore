@@ -24,7 +24,7 @@ export default function SettingsRoute() {
   return (
     <div className="min-h-screen bg-bolt-elements-background-depth-1">
       <ClientOnly>
-        {() => <ControlPanel open initialTab={null} onClose={() => closeSettingsOverlay(navigate)} />}
+        {() => <ControlPanel open asPage initialTab={null} onClose={() => closeSettingsOverlay(navigate)} />}
       </ClientOnly>
     </div>
   );

@@ -101,6 +101,24 @@ model User {
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
+  loginLockout                AccountLockout?
+}
+
+/*
+ * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
+ * the per-IP login rate limit). One row per user; the failed-login counter is
+ * incremented atomically in a row-locked transaction so concurrent attempts can't
+ * race it. See login-throttle.ts for the pure state machine.
+ */
+model AccountLockout {
+  userId        String    @id
+  failedCount   Int       @default(0)
+  firstFailedAt DateTime?
+  lockedUntil   DateTime?
+  updatedAt     DateTime  @updatedAt
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lockedUntil])
 }
 
 model Account {
@@ -124,6 +142,10 @@ model Session {
   rotatedAt      DateTime?
   revokedAt      DateTime?
   lastReauthAt   DateTime?
+  // Last authenticated activity on this session; drives the idle/inactivity
+  // timeout (see session-idle.ts). Null on rows created before this column —
+  // treated as the session's createdAt for the idle check.
+  lastActiveAt   DateTime?
   // When set, this session is an admin impersonating another user; value = the
   // impersonating admin's user id (for audit / UI banner / traceability). P8.
   impersonatedBy String?
@@ -2388,6 +2410,37 @@ model AgentCallLog {
   @@index([projectId, createdAt])
 }
 
+/// Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
+/// + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
+/// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
+/// AgentCheckpoint (facturation par requête agent).
+model ProjectCheckpoint {
+  id               String    @id @default(cuid())
+  projectId        String
+  state            String    @default("PREPARING")
+  logicalBarrierId String?
+  /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
+  /// would require quiescing the in-pod writers (dev server, terminal, agent),
+  /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
+  consistencyLevel String?
+  /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
+  manifest         Json?
+  error            String?
+  expiresAt        DateTime?
+  createdByUserId  String?
+  /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
+  /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
+  /// in-process barrier is invisible to the other replicas and freezes nothing.
+  /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
+  /// process holding the checkpoint dies mid-flight.
+  barrierExpiresAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([projectId, createdAt])
+  @@index([projectId, barrierExpiresAt])
+}
+
 /// A secure project remix (fork) run. Tracks the normative state machine
 /// (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
 /// STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED) so the
@@ -2749,4 +2802,61 @@ model WorkspacePostMortem {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, capturedAt])
+}
+
+/// Exécution d'une migration de schéma sur la base d'un projet, au moment du
+/// Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
+/// données : cette table porte le verrou, la preuve de backup et la machine à
+/// états, en base et non en mémoire de processus — l'API tourne en 2..6 replicas
+/// (values-prod.yaml), donc un verrou in-process ne verrouille rien.
+model DBMigrationExecution {
+  id             String @id @default(cuid())
+  projectId      String
+  organizationId String
+  /// development | production — le verrou est par ENVIRONNEMENT (I-MIG-2).
+  environment    String
+
+  /// PLANNED → LOCK_ACQUIRED → BACKUP_VERIFIED → APPLYING → VALIDATING → COMMITTED
+  /// échec → FAILED_SAFE | FORWARD_FIX_REQUIRED | MANUAL_RECOVERY
+  state          String @default("PLANNED")
+
+  /// Rejouer la même clé ne ré-applique JAMAIS la migration : la ligne existante
+  /// est renvoyée telle quelle (unique avec projectId).
+  idempotencyKey String
+
+  /// LE VERROU (I-MIG-2). Vaut `<projectId>:<environment>` tant que l'exécution
+  /// est active, puis repasse à NULL en état terminal. Un index UNIQUE porte
+  /// dessus : Postgres considérant les NULL comme distincts, autant de lignes
+  /// terminées qu'on veut coexistent, mais une SEULE active par (projet, env).
+  /// C'est le SGBD qui refuse la 2e migration concurrente, pas une vérification
+  /// applicative sujette aux courses entre replicas.
+  activeLock     String?
+
+  /// Preuve de backup (I-MIG-1). `backupVerifiedAt` n'est renseigné qu'après
+  /// observation de l'ABOUTISSEMENT du backup, jamais à la soumission du CR.
+  backupId                 String?
+  backupVerifiedAt         DateTime?
+  /// COMMENT la vérification a été faite — un booléen seul laisserait croire à
+  /// une preuve qui n'a pas eu lieu.
+  backupVerificationMethod String?
+
+  /// Compatibilité DÉCLARÉE, jamais supposée (I-MIG-3) : true | false | UNKNOWN.
+  backwardCompatible String @default("UNKNOWN")
+  forwardCompatible  String @default("UNKNOWN")
+
+  /// Empreinte des instructions planifiées + nombre réellement appliqué.
+  statementsSha256  String?
+  statementCount    Int     @default(0)
+  appliedStatements Int     @default(0)
+
+  deploymentId    String?
+  createdByUserId String?
+  error           String?
+  startedAt       DateTime  @default(now())
+  completedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([projectId, idempotencyKey])
+  @@unique([activeLock])
+  @@index([projectId, environment, state])
 }

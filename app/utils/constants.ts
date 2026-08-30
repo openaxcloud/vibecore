@@ -7,7 +7,7 @@ export const WORK_DIR = `/home/${WORK_DIR_NAME}`;
 export const MODIFICATIONS_TAG_NAME = 'bolt_file_modifications';
 export const MODEL_REGEX = /^\[Model: (.*?)\]\n\n/;
 export const PROVIDER_REGEX = /\[Provider: (.*?)\]\n\n/;
-export const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
+export const DEFAULT_MODEL = 'claude-opus-5';
 
 /**
  * The sentinel model value that opts a request into complexity-based routing

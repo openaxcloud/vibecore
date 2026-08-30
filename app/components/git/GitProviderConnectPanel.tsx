@@ -238,13 +238,13 @@ export function GitProviderConnectPanel({
     <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <strong className="block break-words text-amber-700 dark:text-amber-200">{copy['gitProvider.title']}</strong>
-          <p className="mt-1 max-w-2xl break-words text-amber-700/85 dark:text-amber-100/85">
+          <strong className="block break-words text-amber-800 dark:text-amber-200">{copy['gitProvider.title']}</strong>
+          <p className="mt-1 max-w-2xl break-words text-amber-800 dark:text-amber-100">
             {copy['gitProvider.description']}
           </p>
         </div>
         {gitRepositoryUrl ? (
-          <span className="max-w-full truncate rounded-md border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-200">
+          <span className="max-w-full truncate rounded-md border border-amber-500/30 px-3 py-1.5 text-xs font-medium text-amber-800 dark:text-amber-200">
             {gitRepositoryUrl}
           </span>
         ) : null}
@@ -553,7 +553,7 @@ function GitHubRepoPicker({
                       {repo.full_name}
                     </span>
                     {repo.private ? (
-                      <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+                      <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[11px] text-bolt-elements-textTertiary">
                         {copy['gitProvider.repositories.private']}
                       </span>
                     ) : null}

@@ -195,7 +195,7 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
   function Component() {
     const { language } = useLoaderData<typeof loader>();
 
-    return <SolutionSalesPage copy={copy[language]} language={language} />;
+    return <SolutionSalesPage copy={copy[language]} language={language} solutionSlug={config.slug} />;
   }
 
   return { loader, meta, headers, links, handle: { serverRenderedMarketing: true }, Component };

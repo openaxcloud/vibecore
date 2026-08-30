@@ -496,15 +496,56 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  --vc-action-primary: var(--vc-ide-accent-action);
-  --vc-action-primary-hover: #007fe0;
-  --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  /*
+   * SOURCE UNIQUE de l'action primaire : l'orange de marque.
+   *
+   * Avant, ces deux jetons se définissaient L'UN PAR L'AUTRE, et le sens de la
+   * dérivation s'inversait selon la coque : `:root` posait
+   * `--vc-ide-accent-action: #0099ff` puis en dérivait le primaire (donc BLEU),
+   * tandis que `.vc-user-area-shell` posait `--vc-action-primary: #f97316` puis
+   * en dérivait l'accent (donc ORANGE). La même action primaire sortait bleue
+   * ou orange selon la règle qui l'emportait — d'où des boutons bleus
+   * apparaissant au hasard dans le produit.
+   *
+   * Le sens est désormais fixe et unique : `--vc-action-primary` porte la
+   * valeur, `--vc-ide-accent-action` en dérive, jamais l'inverse.
+   * `deploy-color-tokens.spec.ts` refuse toute réintroduction d'un cycle.
+   *
+   * Contraste vérifié : texte #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y
+   * passerait PAS (2,80:1) — c'est pourquoi le premier plan est sombre ici et
+   * blanc en thème clair, où le ton renforcé #c2410c prend le relais.
+   */
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  // CTA plein porteur de texte blanc. Dans l'IDE il reste sur l'accent action ;
+  // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
+  // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
+  --vc-cta-accent: var(--vc-ide-accent-action);
+  --vc-action-primary-strong: #c2410c;
+  // SCR-007 : survol du bouton primaire porteur de texte blanc. Il remplace
+  // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
+  // repasserait donc SOUS AA au survol.
+  --vc-action-primary-strong-hover: #a33c00;
+  // Survol : orange assombri. #111827 dessus = 4,98:1 (AA).
+  --vc-action-primary-hover: #ea580c;
+  // #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y passerait pas : 2,80:1.
+  --vc-action-primary-foreground: #111827;
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+
+  /*
+   * En sombre les canoniques passent déjà AA sur leur propre teinte
+   * (6,04 / 6,10 / 4,82 / 5,27) : la variante y vaut le canonique, pour que
+   * `--status-*-text` résolve dans les deux thèmes sans exception.
+   */
+  --vc-ide-accent-success-on-tint: var(--vc-ide-accent-success);
+  --vc-ide-accent-warning-on-tint: var(--vc-ide-accent-warning);
+  --vc-ide-accent-error-on-tint: var(--vc-ide-accent-error);
+  --vc-ide-accent-action-on-tint: var(--vc-ide-accent-action);
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
@@ -576,12 +617,20 @@ html:has(.vc-app-shell-grid) body {
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
   // Mirrors @vibecore/ecode-theme tokens.css (which the web app does not import).
   --ecode-accent-text: #ff8a3d;
+  --ecode-accent-text-hover: #ffa066;
   --ecode-focus-ring: rgba(255, 122, 43, 0.4);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #4ade80;
-  --status-warning-text: #fbbf24;
-  --status-error-text: #f87171;
-  --status-info-text: #60a5fa;
+  /*
+   * UNIF lot 4 (audit K1) — UNE seule famille de statuts. Les tokens
+   * `--status-*` ne portent plus de valeurs propres : ce sont des ALIAS de la
+   * famille canonique `--vc-ide-accent-(success|warning|error)` (info → accent
+   * action). Le rouge d'erreur / l'orange d'alerte ont ainsi la même valeur
+   * partout, clair comme sombre.
+   */
+  --status-success-text: var(--vc-ide-accent-success-on-tint);
+  --status-warning-text: var(--vc-ide-accent-warning-on-tint);
+  --status-error-text: var(--vc-ide-accent-error-on-tint);
+  --status-info-text: var(--vc-ide-accent-action-on-tint);
 
   /* Tinted status backgrounds (badges, alert banners) derived from the text tokens. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 14%, transparent);
@@ -786,6 +835,62 @@ html:has(.vc-app-shell-grid) body {
  * stay fixed is sized in px inside its own `max-width:1024px` queries and is
  * unaffected.
  */
+/*
+ * IOS-ZOOM-001 — Safari iOS zoome sur tout champ dont la police RENDUE est
+ * inférieure à 16px, et ne dézoome jamais tout seul. Avi le constate sur la
+ * zone de saisie de l'agent : l'écran saute dès qu'il touche le champ.
+ *
+ * LA CAUSE EST CELLE QU'ON CONNAÎT. `--vc-type-interface-size` redéfinit la base
+ * rem à 14px sous 1024px. Un champ écrit `text-base` (1rem) rend donc 14px —
+ * sous le seuil. Les pages d'authentification y échappent parce qu'elles posent
+ * une taille explicite ; le reste du produit, non.
+ *
+ * CE QU'ON NE FAIT PAS : `maximum-scale=1` ou `user-scalable=no` dans la balise
+ * viewport. C'est la solution de facilité, elle empêche l'utilisateur de zoomer
+ * VOLONTAIREMENT — un vrai défaut d'accessibilité — et elle ne corrige pas la
+ * cause.
+ *
+ * On impose donc 16px EN PIXELS, seule unité que la base rem ne peut pas
+ * déformer, exactement comme pour les planchers tactiles.
+ *
+ * Portée limitée à <=1024px, là où vivent les appareils iOS : au-delà, Safari ne
+ * zoome pas au focus, et gonfler les champs y romprait la densité assumée du
+ * desktop sans rien corriger.
+ *
+ * Les types NON TEXTUELS sont exclus : une case à cocher ou un curseur n'a pas
+ * de texte à zoomer, et leur imposer une taille de police déforme leur boîte.
+ */
+@media (max-width: 1024px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select {
+    /*
+     * 16px EN PIXELS, et `!important` ASSUMÉ.
+     *
+     * Sans lui, la règle ne servait à rien là où le défaut se produit. Deux
+     * déclarations postérieures la battaient :
+     *
+     *   .bolt-project-rename-input        font-size: 12px !important
+     *   .bolt-project-chatbox textarea    font-size: 13px !important
+     *
+     * La seconde est EXACTEMENT le champ que signale Avi — la zone de saisie de
+     * l'agent. Le correctif d'origine ne corrigeait donc pas le cas qui l'avait
+     * motivé : il n'agissait que sur les champs que personne n'avait déjà
+     * forcés.
+     *
+     * `!important` est ici un PLANCHER D'ACCESSIBILITÉ, pas un style : sous
+     * 1024px, tout champ en dessous de 16px fait zoomer Safari iOS sans jamais
+     * dézoomer. Aucune intention de mise en page ne justifie ce comportement, et
+     * le plancher ne s'applique qu'en dessous de ce seuil — la densité du
+     * desktop n'est pas touchée.
+     *
+     * Même raisonnement que le plancher de lisibilité `.vc-cta-accent-fill`,
+     * qui assume déjà `!important` pour une garantie et non pour un style.
+     */
+    font-size: 16px !important;
+  }
+}
+
 @media (max-width: 1024px) {
   :root {
     --vc-type-interface-size: 14px;
@@ -824,15 +929,40 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
-  --vc-ide-accent-action: #006fd6;
-  --vc-action-primary: var(--vc-ide-accent-action);
-  --vc-action-primary-hover: #0059ab;
+  // Thème clair : le ton renforcé de la marque. Blanc dessus = 5,18:1 (AA) ;
+  // #f97316 y serait trop clair pour porter du blanc.
+  --vc-action-primary: #c2410c;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  --vc-action-primary-strong: #c2410c;
+  --vc-action-primary-strong-hover: #a33c00;
+  // Survol clair : le ton renforcé assombri. Blanc dessus = 7,31:1 (AA).
+  --vc-action-primary-hover: #9a3412;
+  // Blanc sur #c2410c = 5,18:1 (AA).
   --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
   --vc-ide-accent-warning: #a16207;
+
+  /*
+   * Variantes « sur teinte » : même famille que les canoniques ci-dessus, mais
+   * assombries pour rester lisibles quand le texte est posé sur sa propre
+   * couleur à 14-16 %. Ratios obtenus : 5,61 / 5,44 / 5,37 / 5,67 sur la teinte,
+   * 6,61 / 6,40 / 6,47 / 6,70 sur le panneau nu.
+   */
+  --vc-ide-accent-success-on-tint: #0d6b39;
+  --vc-ide-accent-warning-on-tint: #9a4708;
+  --vc-ide-accent-error-on-tint: #b91c1c;
+  /*
+   * #9a3412, pas #c2410c : sur sa propre teinte claire — 14% d'orange sur blanc,
+   * soit rgb(254,235,222) — le ton renforcé ne rend que 4,48:1 et passe donc
+   * SOUS le seuil AA. #9a3412 rend 6,32:1. Le #1d4ed8 qui figurait ici venait de
+   * l'époque où l'action primaire était bleue ; il n'a plus de sens sur une
+   * teinte orange.
+   */
+  --vc-ide-accent-action-on-tint: #9a3412;
   --vc-ide-accent: var(--vc-ide-accent-action);
   --vc-ide-accent-primary: var(--vc-ide-accent-action);
   --vc-ide-accent-green: var(--vc-ide-accent-success);
@@ -890,12 +1020,29 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
   --ecode-accent-text: #c74e00;
+  --ecode-accent-text-hover: #a33c00;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #178a4c;
-  --status-warning-text: #b45309;
-  --status-error-text: #dc2626;
-  --status-info-text: #2563eb;
+  /*
+   * UNIF lot 4 (audit K1) — alias de la famille canonique `--vc-ide-accent-*`,
+   * via la variante `-on-tint`.
+   *
+   * Pourquoi une variante plutôt que le canonique directement : chaque
+   * `--status-*-bg` est dérivé de son texte à 14-16 %, donc la couleur se pose
+   * sur SA PROPRE teinte — la surface la plus défavorable. Mesuré en clair, les
+   * quatre canoniques y tombaient sous AA (succès 4,32, avertissement 4,27,
+   * erreur 4,07, information 4,24 pour 4,5 requis).
+   *
+   * Assombrir les canoniques eux-mêmes aurait corrigé ces quatre jauges au prix
+   * de toute l'interface : `--vc-ide-accent-action` porte 656 usages (boutons
+   * primaires, liens, anneau de focus). La variante ne touche que le texte de
+   * statut, et l'unification est préservée — ce sont toujours des alias, jamais
+   * des littéraux.
+   */
+  --status-success-text: var(--vc-ide-accent-success-on-tint);
+  --status-warning-text: var(--vc-ide-accent-warning-on-tint);
+  --status-error-text: var(--vc-ide-accent-error-on-tint);
+  --status-info-text: var(--vc-ide-accent-action-on-tint);
 
   /* Tinted status backgrounds (badges, alert banners) — lighter on light theme. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 10%, transparent);
@@ -1066,8 +1213,10 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
@@ -1696,8 +1845,16 @@ body
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  /*
+   * Le déclencheur porte désormais un libellé visible : il n'est plus un carré
+   * d'icône de 28px mais une puce. Les DEUX planchers sont conservés — sans le
+   * plancher de largeur, un contexte où l'icône ne rend pas sa taille (fixture
+   * de test, police d'icônes non chargée) le faisait retomber à 18px.
+   */
+  gap: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -1709,7 +1866,14 @@ body
     color 120ms ease-out;
 }
 
-.bolt-message-context-trigger span {
+.bolt-message-context-trigger-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Ne vise que l'icône : le libellé voisin garde sa propre taille. */
+.bolt-message-context-trigger span[class*='i-ph'] {
   font-size: 15px;
   line-height: 1;
 }
@@ -3823,9 +3987,26 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #c0c5ca;
   --vc-ide-text-muted: #979ea6;
   --vc-action-primary: #f97316;
+
+  /*
+   * SCR-007 — l'orange de marque ne porte pas de texte blanc à un contraste
+   * suffisant. Mesuré en production sur la bascule de langue active :
+   * blanc sur `#f97316` = 2,80:1, très en dessous des 4,5 exigés (`#F26207`,
+   * la marque, plafonne à 3,22). Il faut descendre à `#c2410c` pour passer —
+   * 5,18:1.
+   *
+   * Ce ton ne remplace donc PAS l'orange : il ne sert QUE là où l'orange est un
+   * REMPLISSAGE sous du texte blanc. Partout ailleurs — bordures, icônes,
+   * accents, anneaux de focus — la marque reste `--vc-action-primary`, comme
+   * demandé.
+   */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: #111827;
   --vc-ide-accent-action: var(--vc-action-primary);
+  // SCR-007 : les CTA pleins à texte blanc du user area utilisent le ton
+  // renforcé (5,16:1) — l'orange de marque reste pour bordures/icônes/anneaux.
+  --vc-cta-accent: var(--vc-action-primary-strong);
   --vc-ide-accent-primary: var(--vc-action-primary);
   --vc-ide-accent: var(--vc-action-primary);
   --vc-ide-text-on-accent: var(--vc-action-primary-foreground);
@@ -3855,6 +4036,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #3f4449;
   --vc-ide-text-muted: #626970;
   --vc-action-primary: #c2410c;
+
+  /* Déjà assez sombre en clair : le ton fort s'aligne sur l'accent courant. */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
@@ -4158,16 +4342,27 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
 }
 
+/*
+ * SCR-007 : fond = ton renforcé (#c2410c), avant-plan = BLANC EN DUR.
+ *
+ * L'avant-plan ne peut PAS venir de `--vc-action-primary-foreground` : dans
+ * `.vc-user-area-shell` ce jeton vaut `#111827` (presque noir), parce qu'il est
+ * appairé à la marque VIVE (`#f97316`). Sur le ton renforcé, qui est sombre, ce
+ * même avant-plan sombre donne 3,43:1 — mesuré live le 20/08 en thème sombre,
+ * et pire encore au survol (3,00:1). Le ton renforcé est sombre dans TOUS les
+ * thèmes, donc son seul avant-plan correct est le blanc : 5,16:1.
+ */
 .vc-sidebar-cta {
-  background: var(--vc-action-primary);
-  color: var(--vc-action-primary-foreground);
+  background: var(--vc-action-primary-strong);
+  color: #ffffff;
   box-shadow:
     0 1px 0 0 rgb(0 0 0 / 0.04),
     0 1px 2px 0 rgb(0 0 0 / 0.06);
 }
 
+/* Éclaircir au survol RÉDUIT le contraste avec le texte blanc : on assombrit. */
 .vc-sidebar-cta:hover {
-  filter: brightness(1.08);
+  filter: brightness(0.92);
 }
 
 .vc-sidebar-cta:active {
@@ -4400,6 +4595,20 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
 }
 
+/*
+ * TACTILE-001 — cible tactile minimale du socle compact.
+ *
+ * Décision d'Avi : « pour tablet ce doit être comme mobile ». La coque compacte
+ * s'applique sous 1200px, donc à 390 ET 768 : un seul jeton gouverne les deux.
+ *
+ * Mesuré avant correctif, sur 4 panneaux × {390, 768} : les 4 boutons d'en-tête
+ * à 36×36, le déclencheur de recherche à 202×20 (390) / 580×20 (768), et 21
+ * contrôles de contenu de panneau uniformément à 42px — 2px sous la cible.
+ */
+:root {
+  --vc-touch-min: 44px;
+}
+
 .bolt-mobile-ecode-header {
   display: none;
 }
@@ -4425,8 +4634,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-ecode-header button {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: var(--vc-touch-min);
+  height: var(--vc-touch-min);
   align-items: center;
   justify-content: center;
   border: 0;
@@ -4463,6 +4672,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-ecode-header-title {
   display: flex;
   min-width: 0;
+  /* Déclencheur de recherche : sans plancher il tombait à 20px de haut. */
+  min-height: var(--vc-touch-min);
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
@@ -4487,6 +4698,41 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 0 0 20px;
   color: var(--vc-ide-text-muted);
   font-size: 20px;
+}
+
+/*
+ * SCR-006 — la zone d'identité de l'en-tête mobile devient le déclencheur de la
+ * recherche. Elle passe donc de `<div>` à `<button>`, et hérite d'un coup des
+ * règles génériques `.bolt-mobile-ecode-header button` : `36×36 px`, couleur
+ * atténuée, et surtout `> span { width: 20px }` qui écraserait le libellé.
+ *
+ * L'en-tête est GELÉ (ref IMG_9149) : le rendu doit rester au pixel près celui
+ * du `<div>`. Ces règles, de spécificité supérieure (0,2,1 contre 0,1,1),
+ * rendent exactement les valeurs d'origine — mesurées avant/après en
+ * production, la géométrie de l'en-tête est inchangée.
+ */
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title {
+  display: flex;
+  width: auto;
+  height: auto;
+  flex: 1 1 auto;
+  justify-content: center;
+  border-radius: 0;
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+  text-align: center;
+}
+
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title > span:last-child {
+  width: auto;
+  height: auto;
+  font-size: inherit;
+}
+
+/* La pression ne doit pas mettre tout l'en-tête à l'échelle : seule la teinte change. */
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title:active {
+  background: transparent;
+  transform: none;
 }
 
 .bolt-mobile-ecode-header-agent {
@@ -4925,11 +5171,19 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
 
   /*
-   * `text-tertiary` rendait la croix quasi illisible sur le fond clair de la
-   * tuile — demandée « nette » : on passe au ton secondaire, lisible sans
-   * concurrencer le titre de la tuile.
+   * SCR-003 — « croix BIEN VISIBLES ».
+   *
+   * Deux passes ont déjà eu lieu : `text-tertiary` → `text-secondary`. Mesurée,
+   * la croix est pourtant AU-DESSUS de AA (9,0 à 11,1:1 selon le jeu de thème) :
+   * le défaut n'est donc PAS un défaut de contraste, c'est un défaut de
+   * PRÉSENCE — une glyphe fine de 16 px sur une pastille à peine détachée du
+   * fond de la tuile se lit comme un artefact, pas comme un bouton.
+   *
+   * On agit donc sur ce qui la fait exister à l'œil, pas sur le ratio : ton
+   * primaire, pastille pleinement opaque, et une bordure qui la détache de la
+   * tuile.
    */
-  color: var(--vc-ide-text-secondary);
+  color: var(--vc-ide-text-primary);
   touch-action: manipulation;
 }
 
@@ -4943,9 +5197,10 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border-radius: 999px;
 
-  /* Pastille plus opaque : la croix doit rester nette au-dessus de l'icône. */
-  background: color-mix(in srgb, var(--vc-ide-bg-app) 86%, transparent);
-  font-size: 16px;
+  /* Pastille pleine et bordée : c'est elle qui fait lire la croix comme un bouton. */
+  border: 1px solid var(--mobile-nav-border);
+  background: var(--vc-ide-bg-app);
+  font-size: 18px;
   font-weight: 700;
   transition:
     background 150ms ease,
@@ -4980,39 +5235,69 @@ body :where(.lucide, svg[data-lucide]) {
     max(16px, env(safe-area-inset-right, 0px));
 }
 
+/*
+ * SCR-003 — « toutes les tuiles de MÊME TAILLE ».
+ *
+ * La rangée du bas n'était pas faite des mêmes tuiles que la grille : une bande
+ * flex scrollable de boutons `70×58 px`, quand la grille pose des tuiles de
+ * `102 px` sur deux colonnes. D'où l'inégalité visible sur la capture d'Avi —
+ * ce n'était pas un écart de marge mais deux composants différents.
+ *
+ * La rangée reprend donc la MÊME grille et la MÊME hauteur que les tuiles du
+ * haut. Le défilement horizontal disparaît avec elle : sur deux colonnes, les
+ * quatre accès rapides tiennent sur deux lignes sans rien masquer.
+ */
 .bolt-mobile-tab-switcher-quick {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
-  scrollbar-width: none;
-}
-
-.bolt-mobile-tab-switcher-quick::-webkit-scrollbar {
-  display: none;
 }
 
 .bolt-mobile-tab-switcher-quick button {
   display: flex;
-  min-width: 70px;
-  min-height: 58px;
+
+  /* Exactement les cotes de `.bolt-mobile-tab-switcher-card` : même hauteur figée,
+     même rayon, même bordure, même fond — sinon l'œil voit deux familles. */
+  height: 102px;
+  min-height: 102px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 14px;
+  text-align: center;
   touch-action: manipulation;
 }
 
+.bolt-mobile-tab-switcher-quick button {
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.bolt-mobile-tab-switcher-quick button:active {
+  transform: scale(0.95);
+}
+
+/* AV-UX point 3 — same icon box as `.bolt-mobile-tab-switcher-card-icon`
+   (40×40, radius 10, 20px glyph) so the quick tiles read as the SAME family
+   as Déploiements/Agent/Webview, down to the glyph size. */
 .bolt-mobile-tab-switcher-quick button > span:first-child {
-  width: 20px;
-  height: 20px;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
   font-size: 20px;
 }
 
@@ -5706,6 +5991,28 @@ body :where(.lucide, svg[data-lucide]) {
   padding-top: 12px;
 }
 
+/*
+ * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
+ * `display: contents` : le conteneur ne crée AUCUNE boîte, la mise en page du
+ * workbench (motion.div à largeur animée + enfant `fixed`) reste identique au
+ * rendu sans wrapper, sur mobile comme sur desktop. Quand un panneau
+ * non-workbench (Agent, gestion, locks) est actif, le workbench reste monté —
+ * terminal connecté, webview vivante, état de l'éditeur conservé — mais il est
+ * masqué par `visibility` (héritée à travers display: contents) et ne capte
+ * plus aucun événement. Le démonter, comme avant, forçait un remontage complet
+ * à chaque retour : Suspense plein écran + relance de la boucle de démarrage de
+ * la Preview (re-provisionnement du pod froid, overlay « Webview startup » sur
+ * toute la zone) — le « ouvrir un panneau recharge tout l'IDE » d'Avi.
+ */
+.bolt-workbench-mobile-keepalive {
+  display: contents;
+}
+
+.bolt-workbench-mobile-keepalive[data-active='false'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .bolt-workbench-mobile-action {
   display: inline-flex;
   min-height: 32px;
@@ -6092,7 +6399,6 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 0 0 auto;
   gap: 6px;
 }
-
 
 .bolt-project-action-group {
   position: relative;
@@ -6850,6 +7156,91 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-transcript {
   min-width: 0;
+}
+
+/*
+ * Bouton flottant « aller au dernier message ».
+ *
+ * `sticky` plutôt que `fixed` : il doit rester dans le conteneur défilant du
+ * transcript, sinon il flotterait aussi au-dessus des autres panneaux de l'IDE.
+ * Posé en fin de contenu, il se colle au bas de la fenêtre de lecture.
+ *
+ * `margin-left: auto` avec une largeur fixe l'aligne à droite sans exiger un
+ * conteneur en `flex` — le transcript est une colonne, un `align-self` y aurait
+ * étiré le bouton.
+ */
+/*
+ * AGENT-SCROLL-001 — la pastille « Aller au plus récent ».
+ *
+ * Demande d'Avi, capture Replit à l'appui. L'existant était une icône SEULE de
+ * 40x40 collée à DROITE de la colonne. Trois écarts avec la référence :
+ *   1. pas de libellé — une flèche seule n'annonce pas ce qu'elle fait ;
+ *   2. alignée à droite (`margin-left: auto`) au lieu d'être CENTRÉE ;
+ *   3. 40px de haut, sous le plancher tactile de 44.
+ *
+ * Le comportement d'apparition, lui, était déjà juste : la pastille ne se rend
+ * pas quand on est en bas (`isAtBottom` dans `ScrollToBottom`), et le retour
+ * automatique en bas cesse dès que l'utilisateur remonte volontairement —
+ * `useStickToBottom` porte cet état sous le nom `escapedFromLock`.
+ *
+ * `position: sticky` et non `fixed` : la pastille flotte au-dessus du fil sans
+ * le pousser, tout en restant dans la colonne de conversation — elle suit donc
+ * la largeur du panneau, y compris quand l'IDE est en deux volets.
+ */
+.bolt-agent-scroll-to-bottom {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: inline-flex;
+  /*
+   * `auto` des DEUX côtés : c'est ce qui centre. L'ancien `margin-left: auto`
+   * seul poussait la pastille contre le bord droit.
+   */
+  margin-inline: auto;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /*
+   * 44px EN PIXELS, jamais en rem : `--vc-type-interface-size` redéfinit la base
+   * rem à 12px/14px, et tout plancher exprimé en rem y serait dégonflé — c'est
+   * la cause unique corrigée par TACTILE-003.
+   */
+  min-height: var(--vc-touch-min, 44px);
+  padding-inline: 14px;
+  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-radius: 999px;
+  /*
+   * Légèrement TRANSLUCIDE : la pastille se superpose au fil qui défile
+   * derrière, et un aplat opaque donnerait l'impression d'un trou dans la
+   * conversation. Le flou d'arrière-plan garde le libellé lisible par-dessus du
+   * texte.
+   */
+  background: color-mix(in srgb, var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2)) 88%, transparent);
+  backdrop-filter: blur(8px);
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  /* Corps réduit et ombre douce : discrète, jamais un appel à l'action. */
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+}
+
+.bolt-agent-scroll-to-bottom:where(:hover, :focus-visible) {
+  background: var(--vc-ide-bg-hover, var(--bolt-elements-background-depth-3));
+}
+
+.bolt-agent-scroll-to-bottom [class*='i-ph:'] {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+
+.bolt-agent-scroll-to-bottom__label {
+  /* Pas d'aplat de couleur vive : le libellé prend la couleur du texte. */
+  color: inherit;
 }
 
 .bolt-project-agent-panel textarea {
@@ -7751,7 +8142,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox {
-  min-height: 80px;
+  /*
+   * Composer compact (demande d'Avi) : le plancher passe de 80 à 56px. La zone
+   * de saisie doit être discrète au repos et grandir avec le texte, pas
+   * réserver un tiers du panneau Agent pour un champ vide.
+   */
+  min-height: 56px;
   border-color: var(--vc-ide-border-visible) !important;
   border-radius: 12px !important;
   background: var(--vc-ide-bg-card) !important;
@@ -7760,8 +8156,16 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox textarea {
-  min-height: 76px;
-  padding: 8px 56px 50px 8px !important;
+  /*
+   * Le rembourrage bas de 50px réservait la place d'une barre d'outils
+   * SUPERPOSÉE. Dans le composer de l'IDE elle est un FRÈRE rendu en dessous
+   * (`.bolt-chatbox-input-shell > .bolt-chatbox-toolbar`) : ces 50px n'étaient
+   * plus qu'un vide mort entre le texte et les icônes, et ils gonflaient la
+   * hauteur au repos calculée par l'auto-agrandissement (scrollHeight).
+   * Le rembourrage droit reste : il dégage le bouton d'envoi, en absolu.
+   */
+  min-height: 44px;
+  padding: 8px 56px 8px 8px !important;
   color: var(--vc-ide-text-primary);
   font-size: 13px !important;
 }
@@ -8003,6 +8407,24 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-chatbox-plan-toggle:disabled {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+/* UNIF-04 (audit C5) : même état désactivé que le toggle Plan pour le
+   déclencheur de mode — un seul comportement de contrôle composeur. */
+.bolt-chatbox-mode-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/*
+ * UNIF-04 (audit C4) : le feedback de glisser-déposer est porté par la COQUE du
+ * composeur. La bordure garde sa largeur de 1px (le « 2px » visuel vient du
+ * liseré interne en box-shadow) → aucun saut de mise en page, plus de double
+ * bordure textarea + coque.
+ */
+.bolt-chatbox-input-shell[data-dragover='true'] {
+  border-color: var(--bolt-elements-focus);
+  box-shadow: inset 0 0 0 1px var(--bolt-elements-focus);
 }
 
 @container (max-width: 300px) {
@@ -8517,7 +8939,14 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1;
 }
 
-.bolt-project-ide-rail-label {
+/*
+ * RPL-IDE-001.5 — the dock is a 48 px icon column, so the label and the shortcut
+ * hint stay available to assistive tech (and to `aria-keyshortcuts`) while the
+ * visible affordance is the tooltip, as in Replit. Rendering "⌘P" inside the
+ * column would blow the rail's width apart at every viewport.
+ */
+.bolt-project-ide-rail-label,
+.bolt-project-ide-rail-shortcut {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -8525,6 +8954,26 @@ body :where(.lucide, svg[data-lucide]) {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   clip-path: inset(50%);
+}
+
+/*
+ * RPL-IDE-001.5 — "All tools" is pinned to the foot of the dock and separated
+ * from the shortcuts above it, so the nine docked tools can scroll independently
+ * without ever pushing it out of reach on a short viewport.
+ */
+.bolt-project-ide-rail-footer {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  margin-top: auto;
+  gap: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-ide-rail-item-all-tools[aria-expanded='true'],
+.bolt-project-ide-rail-item-all-tools:hover {
+  color: var(--vc-ide-text-primary);
 }
 
 .bolt-project-ide-rail-item:hover,
@@ -9009,6 +9458,33 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 84px;
   max-width: clamp(180px, 18vw, 240px);
   scroll-snap-align: start;
+}
+
+/*
+ * RPL-IDE-001.4 — insertion caret shown while a tab is dragged over the strip,
+ * so the drop slot is visible before release. Uses the IDE accent token, which
+ * is already defined per theme, so the caret reads in light and dark alike.
+ */
+.bolt-project-tab[data-drop-before='true']::before,
+.bolt-project-tab[data-drop-after='true']::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--vc-ide-accent-action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 28%, transparent);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.bolt-project-tab[data-drop-before='true']::before {
+  left: -1px;
+}
+
+.bolt-project-tab[data-drop-after='true']::after {
+  right: -1px;
 }
 
 .bolt-project-tab-main {
@@ -9505,32 +9981,6 @@ body :where(.lucide, svg[data-lucide]) {
   transform: translateX(2px);
 }
 
-.bolt-project-tool-empty {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  padding: 34px 12px;
-  color: var(--vc-ide-text-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-.bolt-project-tool-empty > span {
-  color: var(--vc-ide-text-muted);
-  font-size: 28px;
-  opacity: 0.35;
-}
-
-.bolt-project-tool-empty strong {
-  color: var(--vc-ide-text-secondary);
-  font-size: 13px;
-}
-
-.bolt-project-tool-empty small {
-  color: var(--vc-ide-text-muted);
-  font-size: 11px;
-}
-
 .bolt-project-welcome {
   display: flex;
   height: 100%;
@@ -9818,8 +10268,25 @@ body :where(.lucide, svg[data-lucide]) {
  * retombe sur le défaut qu'on corrige.
  */
 @media (max-width: 1023px) {
+  /*
+   * SCR-001 — « le bouton "ouvrir dans un navigateur" doit être sur la MÊME
+   * LIGNE que la barre d'URL ».
+   *
+   * `flex-wrap: nowrap` était déjà là et le spec le vérifiait… mais la barre est
+   * en `display: grid` : la propriété était donc INERTE, et la grille posait
+   * chaque enfant sur sa propre rangée. Mesuré en production à 390 px : adresse
+   * à y=102, bouton à y=161, barre de 116 px de haut — deux lignes, exactement
+   * ce que la capture d'Avi montre.
+   *
+   * On impose donc le mode de disposition, au lieu de régler une propriété qui
+   * n'a pas cours : une ligne flex, l'adresse absorbe la largeur, le bouton
+   * garde la sienne.
+   */
   .bolt-project-webview-toolbar {
+    display: flex;
     flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
   }
 
   .bolt-project-webview-toolbar .bolt-preview-toolbar-tools > *:not(.bolt-preview-open-external) {
@@ -9843,6 +10310,10 @@ body :where(.lucide, svg[data-lucide]) {
   /* L'adresse prend toute la place restante et ne pousse jamais le bouton dehors. */
   .bolt-project-webview-toolbar .bolt-preview-addressbar {
     min-width: 0;
+
+    /* Absorbe la largeur restante ; `0 0 auto` la figeait à 100 % et poussait le
+       bouton sur la rangée suivante. */
+    width: auto;
     flex: 1 1 auto;
   }
 
@@ -9869,7 +10340,6 @@ body :where(.lucide, svg[data-lucide]) {
     white-space: nowrap;
   }
 }
-
 
 .bolt-project-webview-toolbar .flex.items-center {
   gap: 2px;
@@ -12093,28 +12563,11 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
+/* UNIF-14 — le zoom fit/2x/4x est un FilterChip commun ; seul le conteneur reste. */
 .bolt-project-monitoring-zoom {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-
-.bolt-project-monitoring-zoom button {
-  min-height: 28px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 7px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-secondary);
-  padding: 0 9px;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.bolt-project-monitoring-zoom button.selected {
-  border-color: var(--vc-ide-accent-action);
-  background: color-mix(in srgb, var(--vc-ide-accent-action) 13%, var(--vc-ide-bg-card));
-  color: var(--vc-ide-text-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
 }
 
 .bolt-project-monitoring-routine-note {
@@ -12175,24 +12628,17 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1.5;
 }
 
-.bolt-project-activity-hero button,
+/*
+ * UNIF lot 4 — le bouton du héros Activity est devenu un `PanelButton`
+ * (project-ide/PanelPrimitives) : plus de style SCSS sur `button` nu ici,
+ * sinon le sélecteur élément écraserait les classes utilitaires du composant.
+ */
 .bolt-project-activity-filters input,
 .bolt-project-activity-filters select {
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 7px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
-}
-
-.bolt-project-activity-hero button {
-  display: inline-flex;
-  min-height: 34px;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .bolt-project-activity-metrics {
@@ -12260,8 +12706,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-activity-filters input:focus,
 .bolt-project-activity-filters select:focus,
-.bolt-project-activity-event-main:focus-visible,
-.bolt-project-activity-hero button:focus-visible {
+.bolt-project-activity-event-main:focus-visible {
   border-color: var(--vc-ide-accent-action);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 25%, transparent);
 }
@@ -12701,20 +13146,17 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-wrap: anywhere;
 }
 
-.bolt-project-panel-toolbar input {
-  box-sizing: border-box;
-  width: 100%;
-  height: 32px;
-  min-width: 0;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-primary);
-  padding: 0 10px;
-}
-
-.bolt-project-panel-toolbar button,
-.bolt-project-object-grid button,
+/*
+ * UNIF lot 7 — les styles « nus » `.bolt-project-panel-toolbar input/button`
+ * sont supprimés : toutes les toolbars de BaseChat rendent désormais des
+ * PanelInput / PanelButton / FilterChip (primitives partagées), qui portent
+ * leur propre gabarit. Seuls le conteneur flex et le label restent stylés ici.
+ */
+/*
+ * UNIF-14 — `.bolt-project-object-grid` purgé : plus aucun usage JSX depuis le
+ * passage d'Object Storage aux primitives (lot 7) ; ses ~17 sélecteurs SCSS
+ * étaient orphelins.
+ */
 .bolt-project-package-list button {
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
@@ -12722,22 +13164,6 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-panel-toolbar button {
-  flex: 0 1 auto;
-  min-height: 32px;
-  max-width: 100%;
-  padding: 0 10px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.bolt-project-panel-toolbar button.selected,
-.bolt-project-object-grid button.selected {
-  border-color: var(--vc-ide-accent-action);
-  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
-}
-
-.bolt-project-object-grid,
 .bolt-project-package-list,
 .bolt-project-extension-catalog,
 .bolt-project-env-list,
@@ -12747,11 +13173,6 @@ body :where(.lucide, svg[data-lucide]) {
   margin-bottom: 12px;
 }
 
-.bolt-project-object-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-}
-
-.bolt-project-object-grid button,
 .bolt-project-package-list button {
   display: grid;
   min-width: 0;
@@ -12760,13 +13181,10 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: left;
 }
 
-.bolt-project-object-grid button:hover,
-.bolt-project-package-list button:hover,
-.bolt-project-panel-toolbar button:hover:not(:disabled) {
+.bolt-project-package-list button:hover {
   background: var(--vc-ide-bg-hover);
 }
 
-.bolt-project-object-grid strong,
 .bolt-project-package-list strong,
 .bolt-project-metric-grid strong {
   min-width: 0;
@@ -12776,7 +13194,6 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 13px;
 }
 
-.bolt-project-object-grid span,
 .bolt-project-package-list span,
 .bolt-project-metric-grid span,
 .bolt-project-metric-grid small {
@@ -12785,18 +13202,6 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-wrap: anywhere;
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
-}
-
-.bolt-project-object-grid em {
-  width: fit-content;
-  max-width: 100%;
-  border-radius: 999px;
-  background: var(--vc-ide-bg-hover);
-  color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  font-style: normal;
-  overflow-wrap: anywhere;
-  padding: 3px 7px;
 }
 
 .bolt-project-package-list button.pending {
@@ -12886,21 +13291,12 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 }
 
-.bolt-project-extension-categories button {
-  min-height: 32px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 999px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-  padding: 0 10px;
-}
-
-.bolt-project-extension-categories button.selected {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 35%);
-  background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
-  color: var(--vc-ide-text-primary);
-}
+/*
+ * UNIF lot 7 — les pilules de domaine du panneau Extensions sont rendues par
+ * le FilterChip commun (`ui/FilterChip`, aria-pressed + accent action) ; les
+ * styles bouton ad hoc (pilule 999px + `.selected` teinté) sont retirés. Le
+ * conteneur garde son flux (wrap desktop, scroll horizontal mobile).
+ */
 
 .bolt-project-installed-extensions,
 .bolt-project-extensions-panel section {
@@ -13399,8 +13795,7 @@ body :where(.lucide, svg[data-lucide]) {
    * exactement ce qu'il faut : il reste en ligne tant qu'il y a la place, et
    * ne passe à la ligne que lorsqu'il n'y en a plus.
    */
-  .bolt-project-service-panel
-    :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
+  .bolt-project-service-panel :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch !important;
@@ -13439,7 +13834,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-object-grid,
       .bolt-project-extension-catalog,
       .bolt-project-security-scope,
       .bolt-project-security-comparison-grid,
@@ -13451,9 +13845,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-object-grid strong,
-      .bolt-project-object-grid span,
-      .bolt-project-object-grid em,
       .bolt-project-package-list strong,
       .bolt-project-package-list span,
       .bolt-project-package-list small,
@@ -13535,51 +13926,31 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-env-row button {
-  min-height: 28px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 5px;
-  color: var(--vc-ide-text-primary);
-  padding: 0 8px;
-}
-
+/* UNIF-14 — Edit / Copy / Delete de ligne sont des PanelButton (outline sm). */
 .bolt-project-env-row form {
   margin: 0;
 }
 
-/* F11 — per-scope env vars: scope tabs, diff view and the scope selector. */
+/*
+ * F11 / UNIF-14 — per-scope env vars. Les onglets de scope sont désormais un
+ * PanelToolTabs partagé (feuille `.bolt-project-tool-tabs` unique) et le
+ * « Diff scopes » un PanelButton : seule la mise en page de la rangée
+ * (onglets + bascule Diff) vit encore ici.
+ */
 .bolt-project-env-scopes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
-.bolt-project-env-scopes button {
-  min-height: 32px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-primary);
-  padding: 0 12px;
-  font-size: 12px;
-}
-
-.bolt-project-env-scopes button:hover:not(:disabled) {
-  background: var(--vc-ide-bg-hover);
-}
-
-.bolt-project-env-scopes button:disabled {
-  opacity: 0.5;
-}
-
-.bolt-project-env-scopes button.selected {
-  border-color: var(--vc-ide-accent-action);
-  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
-  color: var(--vc-ide-accent-action);
+.bolt-project-env-scopes .bolt-project-tool-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .bolt-project-env-scopes .bolt-project-env-diff-toggle {
+  flex: 0 0 auto;
   margin-inline-start: auto;
 }
 
@@ -13606,24 +13977,11 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-x: auto;
 }
 
+/* UNIF-14 — « Reveal values » est un PanelButton ; seul le conteneur reste stylé. */
 .bolt-project-env-diff-actions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
-}
-
-.bolt-project-env-diff-actions button {
-  min-height: 30px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-accent-action);
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.bolt-project-env-diff-actions button:hover {
-  background: var(--vc-ide-bg-hover);
 }
 
 .bolt-project-env-diff {
@@ -13774,6 +14132,12 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: inset 0 -2px 0 var(--vc-ide-accent-orange);
 }
 
+/* UNIF-14 — onglets gelés (Env pendant la vue « Diff scopes »). */
+.bolt-project-tool-tabs button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .bolt-project-sql-editor,
 .bolt-project-inline-form,
 .bolt-project-security-settings {
@@ -13822,20 +14186,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
 }
 
-.bolt-project-security-cancel {
-  min-height: 36px;
-  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 42%);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
-  color: var(--vc-ide-text-primary);
-  font-size: 12px;
-  font-weight: 750;
-  padding: 0 10px;
-}
-
-.bolt-project-security-cancel:hover {
-  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 82%);
-}
+/* UNIF-14 — « Cancel scan » est un PanelButton danger ; le style maison est supprimé. */
 
 .bolt-project-security-progress {
   display: grid;
@@ -14028,18 +14379,7 @@ body :where(.lucide, svg[data-lucide]) {
   margin-top: 12px;
 }
 
-.bolt-project-security-reports button {
-  min-height: 34px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 7px;
-  color: var(--vc-ide-text-primary);
-  font-size: 12px;
-  padding: 0 10px;
-}
-
-.bolt-project-security-reports button:hover {
-  background: var(--vc-ide-bg-hover);
-}
+/* UNIF-14 — les exports SARIF/JSON/Print sont des PanelButton (outline sm). */
 
 .bolt-project-security-comparison-grid {
   display: grid;
@@ -14962,10 +15302,14 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 6px;
 }
 
+/*
+ * RPL-IDE-001.6 — portalled to <body>, so `fixed` with a JS-computed anchor.
+ * In the normal flow the menu was clipped by the 40 px tab bar (and eight more
+ * `overflow: hidden` ancestors above it) down to a single visible item.
+ */
 .bolt-project-tab-actions-menu {
-  position: absolute;
-  right: 0;
-  top: 32px;
+  position: fixed;
+  z-index: 200;
 }
 
 .bolt-project-tab-actions-menu button {
@@ -14989,6 +15333,48 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-tab-actions-menu button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+/*
+ * RPL-IDE-001.6 — Window / Pane / Tab scopes. The menu now has real groups, so
+ * they need to lay out like the flat button list used to, and the whole menu
+ * needs to cap its height: with several panes open the Tab group grows a "Move
+ * tab to …" entry per destination, which on a 812 px-tall phone would otherwise
+ * run off the bottom of the screen with no way to reach the last item.
+ */
+.bolt-project-tab-actions-menu {
+  max-height: min(70vh, 460px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.bolt-project-tab-actions-menu [role='group'] {
+  display: grid;
+  gap: 2px;
+}
+
+.bolt-project-tab-actions-menu [role='group'] + [role='group'] {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid var(--vc-ide-border-subtle);
+}
+
+.bolt-project-tab-actions-group-label {
+  margin: 0;
+  padding: 4px 8px 2px;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Keyboard navigation must be visible, not just functional. */
+.bolt-project-tab-actions-menu button:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: -2px;
 }
 
 .bolt-project-bottom-terminal {
@@ -15164,29 +15550,9 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-problems-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-panel);
-  padding: 14px 16px;
-}
-
-.bolt-project-problems-header h3 {
-  margin: 0;
-  color: var(--vc-ide-text-primary);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.bolt-project-problems-header p {
-  margin: 4px 0 0;
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-}
-
+/* UNIF-06 : la tête maison de Problems (`.bolt-project-problems-header`,
+   h3 + résumé, padding 14/16) a été remplacée par l'en-tête commun
+   `.bolt-project-ide-panel-header` (IdePanelHeader). */
 .bolt-project-problems-counts {
   display: inline-flex;
   align-items: center;
@@ -15235,36 +15601,6 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
   color: var(--vc-ide-text-muted);
   box-shadow: inset 0 0 0 1px var(--vc-ide-border-subtle);
-}
-
-.bolt-project-problems-empty {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 32px;
-  text-align: center;
-}
-
-.bolt-project-problems-empty [class*='i-ph:'] {
-  color: var(--vc-ide-accent-success);
-  font-size: 28px;
-}
-
-.bolt-project-problems-empty h4 {
-  margin: 0;
-  color: var(--vc-ide-text-primary);
-  font-size: 14px;
-}
-
-.bolt-project-problems-empty p {
-  max-width: 420px;
-  margin: 0;
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .bolt-project-problems-list {
@@ -16296,6 +16632,40 @@ button.bolt-project-statusbar-pill:focus-visible,
 
   .bolt-project-statusbar {
     min-height: 44px;
+  }
+
+  /*
+   * BUG-MOB-CLOSE-X-001 — la croix de fermeture d'onglet était DÉFINITIVEMENT
+   * invisible sur un pointeur sans survol (iPhone, iPad, écran tactile).
+   *
+   * Mesuré en réel (thème clair, 6 croix dans le DOM) : la règle de base pose
+   * `opacity: 0` sur `.bolt-project-tab-close` / `-pin` et ne la relève QUE via
+   * `.bolt-project-tab:hover` — un état qui n'existe jamais au doigt. Le bloc
+   * tactile ci-dessus ne réglait que la taille de cible (44 px) : une cible de
+   * 44 px totalement transparente. Ici on la découple du survol.
+   *
+   * Deux pièges volontairement traités :
+   * - la couleur est forcée ailleurs en `--vc-ide-text-muted !important`
+   *   (règle de lisibilité de `.bolt-project-ide-shell`), donc la couleur
+   *   lisible doit l'être aussi — via TOKEN, jamais un blanc en dur, pour
+   *   rester correcte en clair ET en sombre ;
+   * - seuls les VRAIS boutons sont révélés. Un onglet non fermable rend un
+   *   `<span class="bolt-project-tab-close">×</span>` qui ne sert que de
+   *   gabarit d'espacement : le rendre visible afficherait une croix morte.
+   *   `.bolt-project-tab[data-pinned='true']` garde son `display: none`.
+   */
+  button.bolt-project-tab-close,
+  .bolt-project-tab-pin {
+    opacity: 1 !important;
+    color: var(--vc-ide-text-primary) !important;
+  }
+
+  /*
+   * La pastille « enregistrer » garde son accent (c'est un signal d'état, pas
+   * une action neutre) : seule son opacité est découplée du survol.
+   */
+  .bolt-project-tab-save {
+    opacity: 1 !important;
   }
 }
 
@@ -18160,12 +18530,15 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: 12px;
 }
 
-.bolt-project-workflows-head > button,
+/*
+ * UNIF-14 — « New workflow » et « Add task » sont des PanelButton ; il ne
+ * reste ici que le lien externe de la toolbar et le bouton-titre (disclosure)
+ * de carte, qui n'est pas un CTA.
+ */
 .bolt-project-workflows-toolbar a,
-.bolt-project-workflow-card header button,
-.bolt-project-workflow-add-task button {
+.bolt-project-workflow-card header > button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: var(--vc-touch-min);
   align-items: center;
   justify-content: center;
   gap: 7px;
@@ -18395,21 +18768,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   min-width: 0;
 }
 
-.bolt-project-workflow-task-delete button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--vc-ide-border);
-  border-radius: 6px;
-  background: transparent;
-  padding: 6px;
-  color: var(--vc-ide-text-muted);
-  cursor: pointer;
-}
-
-.bolt-project-workflow-task-delete button:hover {
-  color: var(--vc-danger, #f85149);
-}
+/* UNIF-14 — la corbeille de tâche est un PanelButton danger sm ; le style maison est supprimé. */
 
 .bolt-project-workflow-add-task {
   flex-wrap: wrap;
@@ -18651,11 +19010,12 @@ button.bolt-project-statusbar-pill:focus-visible,
   gap: 8px;
 }
 
-.bolt-project-integrations-actions button,
-.bolt-project-integrations-tabs button,
-.bolt-project-integrations-section-head button,
-.bolt-project-integration-config > button,
-.bolt-project-integrations-list article > button {
+/*
+ * UNIF-14 — les actions d'en-tête, les CTA de section, « Configure » et
+ * « Close configuration » sont des PanelButton ; seuls les onglets
+ * Browse/Connected/Webhooks/API keys gardent leur habillage ad hoc ici.
+ */
+.bolt-project-integrations-tabs button {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
@@ -18670,11 +19030,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-integrations-tabs button[aria-current='page'],
-.bolt-project-integrations-actions button:hover,
-.bolt-project-integrations-tabs button:hover,
-.bolt-project-integrations-section-head button:hover,
-.bolt-project-integration-config > button:hover,
-.bolt-project-integrations-list article > button:hover {
+.bolt-project-integrations-tabs button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
 }
@@ -18876,13 +19232,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   padding-top: 10px;
 }
 
-.bolt-project-integrations-grid article footer button {
-  min-height: 32px;
-  border-radius: 6px;
-  background: var(--bolt-elements-button-primary-background);
-  color: var(--bolt-elements-button-primary-text);
-  padding: 0 10px;
-}
+/* UNIF-14 — Connect/Manage de carte est un PanelButton primary (exit les tokens legacy button-primary). */
 
 .bolt-project-integrations-grid em {
   flex: 0 0 auto;
@@ -19292,7 +19642,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none !important;
   }
 
-
   .bolt-mobile-ecode-header {
     position: fixed;
     top: 0;
@@ -19319,6 +19668,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 20px !important;
     height: 20px !important;
     font-size: 20px !important;
+  }
+
+  /*
+   * AV-UX point 2 — the blanket `button > span { width: 20px !important }`
+   * above also squashed the title LABEL (`> span:last-child`) of the header
+   * button, truncating "Agent"/"Shell"/"Déploiements" to ~1 character
+   * ("A 1.", "S…", "D…"). The label must keep its natural width; only the
+   * 20px icon boxes are fixed-size. Matches the frozen reference (IMG_9149:
+   * full "Shell (Terminal)" label).
+   */
+  .bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title > span:last-child {
+    width: auto !important;
+    height: auto !important;
+    font-size: 13px !important;
   }
 
   .bolt-project-ide-shell > main {
@@ -19385,6 +19748,35 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     -webkit-tap-highlight-color: transparent;
   }
 
+  /*
+   * TACTILE-001 — les contrôles du composer Agent.
+   *
+   * Ils sont volontairement DENSES sur desktop (le composer doit laisser la
+   * place à la conversation), mais au doigt ils tombaient à 25-32px : puces de
+   * mode 52×25, « Avancé » 116×28, « Planifier » 73×30, et les icônes pièce
+   * jointe / micro / plus à 30×30. Sous 1200px ils reprennent la cible pleine.
+   */
+  /*
+   * `:is()` et non `:where()` : `:where()` n'apporte AUCUNE spécificité, la
+   * règle faisait donc jeu égal avec les utilitaires (`min-h-7`) qui, déclarés
+   * plus loin, l'emportaient. Constaté en mesurant : « Avancé » passait à 44px
+   * (sa taille venait de `height`), les puces de mode restaient à 25px.
+   */
+  .bolt-responsive-ide-mobile
+    :is(
+      [data-testid='agent-mode-segmented'] button,
+      [data-testid='agent-mode-advanced'],
+      .bolt-chatbox-plan-toggle,
+      .bolt-chatbox-mode-trigger,
+      .bolt-chatbox-toolbar button,
+      .bolt-chatbox-toolbar-primary button,
+      .bolt-chatbox-toolbar-secondary button,
+      [data-vc-composer-toolbar] button
+    ) {
+    min-width: var(--vc-touch-min);
+    min-height: var(--vc-touch-min);
+  }
+
   /* Bare inline action buttons that escape the .bolt-project-* sizing rules:
      Security "Export audit package" (SARIF/JSON/Print) and the object-storage
      per-object actions (Download/Move/Delete). Wrap them and give a 40px target. */
@@ -19405,7 +19797,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      and used ~79x across panels not covered by the enumerated rules: checkpoints,
      deploy wizard, git SSH, etc.). min-height only raises, never shrinks. */
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service button {
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
   }
 
   /* A long deployment URL (no spaces) in the deploy-card header could push past the
@@ -19488,6 +19880,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     flex-wrap: wrap;
     gap: 8px;
     padding-inline: var(--vc-mobile-panel-gutter);
+  }
+
+  /*
+   * AV-UX point 10 — en mobile, la rangée icône+titre du panneau service
+   * (ex-« Déploiements | Mis à jour … | ⋮ ») doublonne l'en-tête mobile gelé
+   * qui affiche déjà le nom du panneau. La rangée disparaît ; les panneaux
+   * qui portent des actions dans leur en-tête (Problems, Search, Locks) ont
+   * d'autres classes racine et ne sont pas concernés.
+   */
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel
+    > .bolt-project-ide-panel-header {
+    display: none;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ide-panel-header > * {
@@ -19620,12 +20026,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   /*
-   * When the agent is the active mobile surface the fixed header grows by the
-   * context bar ("Working on this workspace" / "Ready for the next change").
-   * Reserve that height so it never overlaps the transcript or workbench panels.
+   * AV-UX point 9 — the agent context bar ("Prêt pour la prochaine
+   * modification" + a truncated "Prompt" button) duplicated information the
+   * header already shows (the agent status renders as the <small> under the
+   * header title) and its button only re-focused the composer — which a tap
+   * on the composer does anyway. Avi asked for the row to go: it is hidden
+   * here (its JSX lives in the owner-frozen mobile header block sealed by
+   * base-chat-ast.spec.ts, so the markup itself must not be edited) and its
+   * 52px reserve is returned to the transcript.
    */
+  .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar {
+    display: none !important;
+  }
+
   .bolt-responsive-ide-mobile[data-mobile-agent-context='true'] {
-    --vc-mobile-agent-context-height: 52px;
+    --vc-mobile-agent-context-height: 0px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel {
@@ -19856,7 +20271,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: auto;
     max-width: 240px;
     min-width: max-content;
-    min-height: 40px;
+    min-height: var(--vc-touch-min);
     flex: 0 0 auto;
     justify-content: flex-start;
     padding-inline: 12px;
@@ -20003,7 +20418,26 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-height: 44px;
     flex: 0 0 auto;
     align-content: center;
-    grid-template-columns: minmax(0, 1fr);
+
+    /*
+     * SCR-001 — « le bouton "ouvrir dans un navigateur" sur la MÊME LIGNE que
+     * la barre d'URL ».
+     *
+     * `minmax(0, 1fr)` = UNE seule colonne : la grille empilait donc l'adresse
+     * et le bouton sur deux rangées. Mesuré en production à 390 px après un
+     * premier correctif : adresse y=102, bouton y=161, barre de 116 px.
+     *
+     * Ce premier correctif posait `display: flex` dans un bloc de spécificité
+     * PLUS FAIBLE — sans effet face au `display: grid !important` ci-dessus,
+     * pendant que le test, qui ne lisait que le texte de ce premier bloc,
+     * restait vert. Deuxième fois que le même piège se referme ici : une règle
+     * présente n'est pas une règle qui s'applique.
+     *
+     * On corrige donc LÀ où la disposition est réellement décidée : deux
+     * colonnes, l'adresse absorbe la largeur, le bouton garde la sienne.
+     */
+    grid-auto-flow: column;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px;
     justify-items: stretch;
     overflow: hidden;
@@ -20531,7 +20965,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card-footer button {
     width: 100%;
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
     justify-content: center;
   }
 
@@ -20571,7 +21005,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile-service
     :where(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
     max-width: 100%;
     font-size: 16px !important;
   }
@@ -20631,16 +21065,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 7px;
   }
 
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-object-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile-service
     :where(
-      .bolt-project-object-grid strong,
-      .bolt-project-object-grid span,
-      .bolt-project-object-grid em,
       .bolt-project-package-list strong,
       .bolt-project-package-list span,
       .bolt-project-package-list small,
@@ -21287,8 +21714,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     margin-left: 0;
   }
 
+  /* AV-UX point 9 — the rendered class is .bolt-chatbox-plan-toggle
+     (ChatBox.tsx); the old .bolt-chatbox-plan-button selectors matched
+     nothing, so the Plan button never got its 44px mobile touch target. */
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-button,
-  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-toggle {
     min-height: 44px;
     border-radius: 10px;
   }
@@ -21299,9 +21729,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     flex-basis: 44px;
   }
 
-  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-toggle {
     height: 44px;
     min-width: 76px;
+  }
+
+  /*
+   * AV-UX point 8 — the tools/mode sheets below use `position: fixed` to
+   * escape the composer's scroll clipping, but `.bolt-chatbox-toolbar` is a
+   * size container (`container-type: inline-size` implies layout
+   * containment), which makes the TOOLBAR the containing block for its fixed
+   * descendants. `left: 50% / bottom: 88px` then resolved against the ~44px
+   * toolbar box, not the viewport: the "⋯" menu floated unanchored over the
+   * transcript. On mobile the containment is dropped so the sheets anchor to
+   * the real viewport; the container-query tweaks it powered are reproduced
+   * just below (at 390px the toolbar sat in the ≤380px container band).
+   */
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar {
+    container-type: normal;
+    gap: 6px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-mode-trigger {
+    min-width: 0;
+    gap: 4px;
+    padding: 0 8px;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
@@ -21320,7 +21772,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     border-color: var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
     border-radius: var(--vc-mobile-sheet-radius);
-    background: var(--mobile-nav-bg-elevated);
+
+    /* Opaque panel background: the translucent nav mix let the transcript
+       bleed through the menu (part of the point-8 "mal affiché"). */
+    background: var(--vc-ide-bg-panel);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
@@ -21346,6 +21801,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     max-height: min(64dvh, 520px);
     overflow-y: auto;
     overscroll-behavior: contain;
+    background: var(--vc-ide-bg-panel);
     transform: translateX(-50%) !important;
   }
 
@@ -21364,9 +21820,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 4px;
   }
 
-  /* Agent context-bar "Prompt" shortcut to a 40px tap target. */
+  /*
+   * Raccourci « Prompt » de la barre de contexte de l'agent : cible tactile de
+   * 40 px de haut, ET largeur figée sur son contenu.
+   *
+   * Mesuré en production le 19/08 à 390 px : le bouton faisait 36 px de large
+   * pour un libellé qui en demande 49, et le texte sortait de sa bordure
+   * arrondie. La cause n'est pas un `overflow` : c'est `white-space: normal`,
+   * qui autorise le navigateur à réduire le bouton sous la largeur du mot, si
+   * bien que la piste `auto` de la grille le comprimait au profit de la colonne
+   * `minmax(0, 1fr)` voisine. `nowrap` + `min-width: max-content` rendent cette
+   * compression impossible ; la colonne du milieu, elle, tronque déjà
+   * proprement en ellipse.
+   */
   .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar button {
     min-height: 40px;
+    min-width: max-content;
+    white-space: nowrap;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {
@@ -21401,7 +21871,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overscroll-behavior: contain;
     border-color: var(--mobile-nav-border);
     border-radius: var(--vc-mobile-sheet-radius);
-    background: var(--mobile-nav-bg-elevated);
+    background: var(--vc-ide-bg-panel);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
@@ -21436,7 +21906,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     z-index: 12018;
     width: min(calc(100vw - 20px), var(--vc-mobile-sheet-max-width)) !important;
     max-width: var(--vc-mobile-sheet-max-width);
-    max-height: none;
+
+    /*
+     * BUG-MOB-PALETTE-KEYBOARD-001 — borner la feuille au viewport VISUEL, pas
+     * au viewport de mise en page. `--vc-mobile-visual-viewport-height` est
+     * déjà mesurée par la coque via `visualViewport` et déjà utilisée par les
+     * autres feuilles mobiles ; la palette était la seule à l'ignorer, avec
+     * `max-height: none` + un ancrage haut/bas. Résultat sur un téléphone dès
+     * que le clavier logiciel monte : la moitié basse de la liste reste « à
+     * l'écran » pour la mise en page mais se retrouve physiquement sous le
+     * clavier, donc intouchable. Le `bottom` reste en place pour le cas sans
+     * clavier ; ce plafond ne fait que rendre la feuille plus courte quand le
+     * viewport visuel rétrécit.
+     */
+    max-height: calc(
+      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) - 20px -
+        env(safe-area-inset-top, 0px)
+    );
     overflow-y: auto;
     overscroll-behavior: contain;
     border-radius: var(--vc-mobile-sheet-radius);
@@ -21816,6 +22302,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-link: var(--vc-auth-accent);
   --vc-auth-focus: var(--vc-auth-accent);
   --vc-action-primary: var(--vc-auth-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-auth-action-foreground);
   --vc-auth-success: var(--vc-ide-accent-success);
@@ -21827,6 +22314,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 :root[data-theme='light'] .vc-auth-page {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-auth-bg: #f5f6f7;
   --vc-auth-card: rgb(255 255 255 / 0.9);
   /*
@@ -21960,6 +22449,84 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   color: var(--vc-auth-text);
 }
 
+/*
+ * TACTILE-003 — le plancher tactile des pages d'authentification.
+ *
+ * MESURÉ SUR LA PRODUCTION, /login en 390 : 12 contrôles sous 44px, dont le
+ * bouton « Se connecter » lui-même à 42px de haut.
+ *
+ * La cause n'est pas que quelqu'un a écrit des tailles trop petites. Le balisage
+ * demande DÉJÀ les bonnes : `h-12` sur les champs et la soumission, `min-h-11`
+ * sur les liens et les actions secondaires. Ce sont les valeurs correctes — en
+ * rem.
+ *
+ * Or `--vc-type-interface-size` REDÉFINIT la base rem : 12px en desktop, 14px
+ * sous 1024px (voir index.scss:748 et :818). Comme `rem` est relatif à la
+ * RACINE, chaque utilitaire Tailwind exprimé en rem est silencieusement dégonflé :
+ *
+ *              écrit        desktop (12px)   mobile (14px)   attendu
+ *   h-12       3rem         36px             42px            48px
+ *   min-h-11   2.75rem      33px             38,5px          44px
+ *
+ * C'est la même cause que les commandes de la coque commune mesurées à 36x36 et
+ * que le « jeton 42px » du contenu de panneau : ni l'un ni l'autre n'est un
+ * jeton, ce sont `h-12` dégonflé à deux bases rem différentes.
+ *
+ * Ce bloc NE TOUCHE PAS la base rem. La remonter à 16px gonflerait de 33 % tout
+ * l'espacement et toute la typographie du produit — c'est la décision de densité
+ * assumée par l'équipe, pas un défaut (voir le commentaire à index.scss:806).
+ * On exprime donc le plancher tactile en PIXELS, seule unité que la base rem ne
+ * peut pas déformer, exactement comme `--vc-touch-min` le fait pour l'IDE.
+ *
+ * NON INCLUS, ET C'EST VOLONTAIRE : les liens en ligne dans une phrase
+ * (« Inscrivez-vous gratuitement », « Conditions d'utilisation »,
+ * « Politique de confidentialité »). WCAG 2.2 (2.5.8) les exempte explicitement,
+ * et les agrandir casserait le paragraphe qui les porte.
+ */
+.vc-auth-input,
+.vc-auth-submit,
+.vc-auth-secondary-action,
+.vc-auth-back-link,
+.vc-auth-input-action {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+.vc-auth-input-action {
+  min-width: var(--vc-touch-min, 44px);
+}
+
+/*
+ * Un contrôle AUTONOME porte déjà `inline-flex min-h-11` dans le balisage —
+ * l'auteur visait bien 44px. C'est ce marqueur STRUCTUREL qui le distingue d'un
+ * lien en ligne dans une phrase, lequel n'a pas `inline-flex` et reste exempté
+ * au titre de WCAG 2.2 (2.5.8).
+ *
+ * `.vc-auth-inline-link` est inclus malgré son nom, et c'est délibéré : sur
+ * `/register`, « + Ajouter un nom d'organisation » porte cette classe alors que
+ * c'est un `<button>`, enfant direct du `<form>`, sans aucun frère textuel, large
+ * de 286px et seul sur sa ligne. Mesuré à 39px en 768. Le nom de la classe dit
+ * « inline » ; la STRUCTURE dit « bouton autonome ». On suit la structure.
+ *
+ * Mesuré avant : « Mot de passe oublié ? » 39px, « + Ajouter un nom
+ * d'organisation » 39px.
+ */
+.vc-auth-link.inline-flex,
+.vc-auth-inline-link.inline-flex {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+/*
+ * La case à cocher garde sa taille VISUELLE de 14px : l'agrandir la rendrait
+ * disgracieuse et inhabituelle. Sa vraie cible tactile est l'ÉTIQUETTE qui
+ * l'enveloppe — vérifié dans le rendu : `<label>` enveloppant, 185x39, déjà
+ * porteuse de `min-h-11`. C'est donc elle, et elle seule, qu'il faut ramener au
+ * plancher ; toucher l'`<input>` lui-même serait inutile (un `::after` ne rend
+ * pas sur un élément remplacé) autant que nuisible.
+ */
+.vc-auth-checkbox-label {
+  min-height: var(--vc-touch-min, 44px);
+}
+
 .vc-auth-input::placeholder {
   color: var(--vc-auth-muted);
 }
@@ -22053,6 +22620,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-public-card-hover-border: rgba(251, 146, 60, 0.46);
   --vc-public-card-hover-shadow: rgba(249, 115, 22, 0.22);
   --vc-action-primary: var(--vc-public-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-public-button-text);
   --bolt-elements-button-primary-background: var(--vc-action-primary);
@@ -22338,8 +22906,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .ecode-nav-menu:focus-within .ecode-nav-menu-chevron {
   transform: rotate(90deg);
 }
-
 :root[data-theme='light'] .vc-public-shell {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-public-bg: #f7f8f9;
   --vc-public-panel: #ffffff;
   --vc-public-card: #f0f1f2;
@@ -22379,6 +22948,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 [data-ecode-static-shell] {
   --vc-action-primary: var(--ecode-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: var(--ecode-accent-hover);
   --vc-action-primary-foreground: var(--ecode-accent-contrast);
   --bolt-elements-button-primary-background: var(--vc-action-primary);
@@ -26351,7 +26921,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: inline-flex !important;
     width: 152px;
     min-width: 152px;
-    height: 38px;
+    height: var(--vc-touch-min);
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
@@ -26420,12 +26990,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     transform: none !important;
   }
 
+  /*
+   * TACTILE-001 — la barre d'outils du composer doit contenir des cibles de
+   * 44px : sa hauteur fixe de 36px les écrasait. `height` devient un plancher.
+   */
   .bolt-project-chatbox .bolt-chatbox-toolbar {
-    height: 36px;
-    min-height: 36px;
+    min-height: var(--vc-touch-min);
     align-items: center;
     gap: 6px;
-    overflow: hidden;
     padding: 0 4px;
   }
 
@@ -26436,18 +27008,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 6px;
   }
 
+  /*
+   * Ces boutons étaient explicitement rétrécis à 30px `!important` DANS la
+   * portée compacte — c'est-à-dire au doigt, là où la cible doit être la plus
+   * généreuse. Pièce jointe, micro et « plus » mesuraient 30×30 à 390px.
+   */
   .bolt-project-chatbox .bolt-chatbox-toolbar-button {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px !important;
-    min-height: 30px !important;
-    flex-basis: 30px;
+    width: var(--vc-touch-min) !important;
+    min-width: var(--vc-touch-min) !important;
+    height: var(--vc-touch-min) !important;
+    min-height: var(--vc-touch-min) !important;
+    flex-basis: var(--vc-touch-min);
     border-radius: 8px;
   }
 
-  .bolt-project-chatbox .bolt-chatbox-plan-button {
-    height: 30px;
-    min-height: 30px;
+  .bolt-project-chatbox .bolt-chatbox-plan-toggle {
+    min-height: var(--vc-touch-min);
     min-width: 72px;
     border-radius: 8px;
   }
@@ -26551,4 +27127,268 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 
 .vc-no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * RPL-IDE-001.7 — Resources panel (RAM / CPU / Storage) beside the app name.
+ *
+ * Every colour is an existing IDE token, so the panel follows the theme in both
+ * light and dark without a second set of rules. The trigger degrades by width:
+ * label + value on desktop, value only on tablet, icon only on mobile — the
+ * topbar has a fixed height and cannot afford to wrap.
+ */
+.vc-resources {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+}
+
+.vc-resources-trigger {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
+}
+
+.vc-resources-trigger:hover,
+.vc-resources-trigger:focus-visible,
+.vc-resources-trigger[aria-expanded='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-border-visible), transparent 20%);
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-resources-trigger-icon {
+  flex: 0 0 auto;
+  font-size: 14px;
+}
+
+.vc-resources-trigger-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.vc-resources-trigger-value {
+  flex: 0 0 auto;
+  color: var(--vc-ide-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Portalled to <body> and positioned from the trigger's rect: the topbar slot
+ * this panel anchors to is 32 px tall with `overflow: hidden`, so an in-flow
+ * absolute panel was clipped to nothing (proved live at 1440 — 280x94 popover
+ * inside a 32 px clipping ancestor). `fixed` + a body portal escapes the nine
+ * `overflow: hidden` ancestors between the trigger and the document.
+ */
+.vc-resources-popover {
+  position: fixed;
+  z-index: 200;
+  display: grid;
+  width: min(280px, calc(100vw - 24px));
+  gap: 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: var(--vc-ui-radius-popover);
+  background: var(--vc-ide-bg-card);
+  box-shadow: var(--vc-ui-shadow-xl);
+  padding: 12px;
+}
+
+.vc-resources-popover-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vc-ide-text-primary);
+  font-size: 12px;
+}
+
+.vc-resources-refresh {
+  display: inline-flex;
+  height: 24px;
+  width: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--vc-ide-text-muted);
+}
+
+.vc-resources-refresh:hover,
+.vc-resources-refresh:focus-visible {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-resources-state {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+.vc-resources-list {
+  display: grid;
+  margin: 0;
+  gap: 10px;
+}
+
+.vc-resources-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+}
+
+.vc-resources-row dt {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vc-resources-row dd {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.vc-resources-bar {
+  grid-column: 1 / -1;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--vc-ide-bg-hover);
+}
+
+.vc-resources-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--vc-ide-accent-action);
+  transition: width 240ms ease;
+}
+
+.vc-resources-row[data-tone='warning'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-warning);
+}
+
+.vc-resources-row[data-tone='critical'] .vc-resources-bar > span {
+  background: var(--vc-ide-accent-error);
+}
+
+.vc-resources-captured {
+  margin: 0;
+  color: var(--vc-ide-text-muted);
+  font-size: 10px;
+}
+
+/* Tablet: drop the word, keep the number — it is the actionable part. */
+@media (max-width: 1024px) {
+  .vc-resources-trigger-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+}
+
+/* Mobile: icon only, and the popover anchors to the viewport edge, not the button. */
+@media (max-width: 767px) {
+  .vc-resources-trigger-value {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+  }
+
+  .vc-resources-trigger {
+    padding: 3px 6px;
+  }
+
+  .vc-resources-popover {
+    width: min(280px, calc(100vw - 16px));
+  }
+}
+
+/*
+ * RPL-IDE-001.8 — Spotlight. The surface is the command palette (same engine,
+ * same keyboard model); what makes it Spotlight is the project header and the
+ * fact that the app name opens it. Styling stays on IDE tokens so the header
+ * follows the theme with the rest of the palette.
+ */
+.bolt-project-spotlight-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  padding: 12px 14px;
+}
+
+.bolt-project-spotlight-head > [class*='i-ph:'] {
+  flex: 0 0 auto;
+  color: var(--vc-ide-accent-action);
+  font-size: 18px;
+}
+
+.bolt-project-spotlight-head > span {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.bolt-project-spotlight-head strong {
+  overflow: hidden;
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.bolt-project-spotlight-head small {
+  color: var(--vc-ide-text-muted);
+  font-size: 11px;
+}
+
+/* The app name is a real target: it must look and focus like one. */
+.bolt-project-spotlight-trigger {
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.bolt-project-spotlight-trigger:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.bolt-project-spotlight-trigger:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+}
+
+/* Mobile: the header must not eat the list on a short viewport. */
+@media (max-width: 767px) {
+  .bolt-project-spotlight-head {
+    padding: 10px 12px;
+  }
+
+  .bolt-project-spotlight-head small {
+    display: none;
+  }
 }

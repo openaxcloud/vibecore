@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
 import {
@@ -215,6 +216,9 @@ export function LockManager() {
 
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
+      {/* UNIF-06 (audit H1) : Locks n'avait AUCUNE tête de panneau — il adopte
+          l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
+      <IdePanelHeader icon="i-ph:lock" title={copy['lockManager.panel.title']} />
       {/* Controls */}
       <div className="flex min-w-0 flex-col gap-2 border-b border-bolt-elements-borderColor px-2 py-2 sm:flex-row sm:items-center">
         {/* Search Input */}
@@ -223,14 +227,16 @@ export function LockManager() {
             className="i-ph:magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-bolt-elements-textTertiary"
             aria-hidden
           />
-          <input
+          {/* UNIF lot 5 : chrome partagé PanelInput (bordure/fond/focus communs) ; les
+              `!` gardent la hauteur tactile 44px (spec a11y) et la place de l'icône
+              face au h-9/px-2 du gabarit md. */}
+          <PanelInput
             type="text"
             placeholder={copy['lockManager.search.placeholder']}
             aria-label={copy['lockManager.search.ariaLabel']}
-            className="h-11 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-2 pl-7 pr-2 text-xs text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+            className="!h-11 w-full !pl-7 pr-2 !text-xs"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ minWidth: 0 }}
           />
         </div>
         {/* Filter Select */}
@@ -264,24 +270,27 @@ export function LockManager() {
           />
           <span>{copy['lockManager.selectAll.label']}</span>
         </div>
+        {/* UNIF lot 5 : « Unlock selected » = PanelButton outline partagé (action
+            secondaire) ; min-h-11 conserve la cible tactile 44px (spec a11y). */}
         {selectedItems.size > 0 && (
-          <button
+          <PanelButton
             type="button"
-            className="ml-auto flex min-h-11 min-w-0 items-center gap-1 whitespace-normal rounded bg-bolt-elements-button-secondary-background px-3 py-2 text-center text-xs text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover"
+            variant="outline"
+            className="!h-auto ml-auto min-h-11 min-w-0 whitespace-normal py-2 text-xs"
             onClick={handleUnlockSelected}
             title={copy['lockManager.unlockSelected.title']}
           >
             {copy['lockManager.unlockSelected']}
-          </button>
+          </PanelButton>
         )}
       </div>
 
       {/* List of locked items */}
       <div className="flex-1 overflow-auto modern-scrollbar px-1 py-1">
+        {/* UNIF lot 4 (audit E1) — état vide canonique partagé. */}
         {filteredAndSortedItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-bolt-elements-textTertiary">
-            <span className="i-ph:lock-open-duotone text-lg opacity-50" aria-hidden />
-            <span>{copy['lockManager.empty']}</span>
+          <div className="flex h-full items-center justify-center px-2">
+            <PanelEmptyState icon="i-ph:lock-open" title={copy['lockManager.empty']} className="w-full" />
           </div>
         ) : (
           <ul className="space-y-1">

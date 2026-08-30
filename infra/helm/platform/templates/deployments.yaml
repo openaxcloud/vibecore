@@ -1,6 +1,8 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $imageTag := default $.Values.global.imageTag $svc.imageTag }}
+{{- $imageDigest := default $.Values.global.imageDigest $svc.imageDigest }}
+{{- $imageArgs := dict "registry" $.Values.global.imageRegistry "image" $svc.image "digest" $imageDigest "tag" $imageTag }}
 {{- /*
 Mount the shared PVC only on the API. Project storage + static-deployment
 artifacts are written by the API; worker and workspace-manager don't read
@@ -43,6 +45,18 @@ spec:
     metadata:
       annotations:
         checksum/platform-env: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- /*
+        Provenance stamped next to the image it describes.
+
+        A digest-pinned Deployment carries no tag, so once a service is pinned there is
+        nothing left in the cluster that says WHICH COMMIT produced the image now
+        running. The release manifest requires that commit for every service, including
+        the ones a given run did not rebuild — so it has to be readable back from the
+        same authoritative place as the image itself.
+        */}}
+        {{- with (default "" $svc.imageSourceSha) }}
+        vibecore.dev/image-source-sha: {{ . | quote }}
+        {{- end }}
       labels:
         app.kubernetes.io/name: {{ kebabcase $name }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
@@ -75,11 +89,10 @@ spec:
           type: RuntimeDefault
       containers:
         - name: {{ kebabcase $name }}
-          image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $imageTag }}"
-          # `latest` is mutable in our registry, so always pull to pick up new SHAs.
-          # For pinned (immutable) tags, IfNotPresent would be cheaper, but the
-          # current flow rolls all services on the `latest` tag.
-          imagePullPolicy: {{ if eq ($imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+          # Digest-pinned in production (services.<svc>.imageDigest), tag-based
+          # everywhere else. See "vibecore-platform.imageRef" for why.
+          image: "{{ include "vibecore-platform.imageRef" $imageArgs }}"
+          imagePullPolicy: {{ include "vibecore-platform.imagePullPolicy" $imageArgs }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}
@@ -88,6 +101,16 @@ spec:
           # requests don't hit a socket that's already closing (the "upstream
           # prematurely closed connection" 502 seen during CD cutovers). `node`
           # is present in every service image (the worker liveness uses it too).
+          #
+          # NOTE for P104 / SEC-8: this window is about CONNECTIONS, not about
+          # cache freshness, and lengthening it would not help there. A pod that
+          # is draining still answers, and a pre-cutover pod's answer carries
+          # `Cache-Control: max-age=60` — reusable for a further 60s after the pod
+          # is gone. That is why the deploy workflow does not reason about this
+          # value at all: its barrier (scripts/deploy-cache-window.mjs) waits for
+          # the pod OBJECT to disappear — which happens only after the full preStop
+          # + grace period, whatever they are set to — and only then starts the
+          # 60s+margin clock. Changing this number stays safe by construction.
           lifecycle:
             preStop:
               exec:
@@ -103,6 +126,13 @@ spec:
             # ignore it) so both sides always agree on the value.
             - secretRef:
                 name: {{ include "vibecore-platform.fullname" $ }}-ai-gateway-auth
+            # Chart-managed shared secret for api -> screenshotter auth (P11 auto
+            # thumbnails, templates/screenshotter-auth-secret.yaml). Same model:
+            # generated on first install, preserved via lookup, mounted on every
+            # pod (the api sends it as a Bearer on POST /capture, the screenshotter
+            # verifies it; other services ignore it) so both sides always agree.
+            - secretRef:
+                name: {{ include "vibecore-platform.fullname" $ }}-screenshotter-auth
             # Non-secret platform-wide URLs (OAuth endpoints, in-cluster api
             # base URL, admin allowlist). Defined in templates/configmap.yaml.
             - configMapRef:

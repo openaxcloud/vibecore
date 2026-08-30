@@ -10,6 +10,7 @@ import {
   type BucketLike,
   type FileLike,
   type StorageLike,
+  isMissingBucketError,
 } from './object-storage.js';
 
 /* ---------------------------- in-memory fake GCS ---------------------------- */
@@ -331,5 +332,49 @@ describe('GcsObjectStorage', () => {
     const result = await svc.deleteBucket('missing');
 
     expect(result.deleted).toBe(false);
+  });
+});
+
+describe('seau pas encore créé — BUCKET_NOT_PROVISIONED', () => {
+  /*
+   * Le seau d'un projet est créé À LA DEMANDE. Une lecture arrivant avant tombait
+   * sur un « The specified bucket does not exist » brut du client GCS : sans type,
+   * il traversait `sendObjectStorageError` et Fastify répondait 500 avec un corps
+   * VIDE.
+   *
+   * Reproduit en production le 2026-08-30 sur un projet créé la minute d'avant :
+   * `GET /projects/<id>/thumbnail` → 500, 0 octet. Le log de l'API disait
+   * exactement « request failed with server error: The specified bucket does not
+   * exist ».
+   */
+  const gcsMissingBucket = () => Object.assign(new Error('The specified bucket does not exist.'), { code: 404 });
+
+  it('reconnaît l’erreur « le seau n’existe pas » du client GCS', () => {
+    expect(isMissingBucketError(gcsMissingBucket())).toBe(true);
+  });
+
+  it('ne confond pas un OBJET absent avec un SEAU absent', () => {
+    /*
+     * Les deux portent 404 ; seul le message les sépare, et les deux situations
+     * n'appellent pas la même réponse.
+     */
+    expect(isMissingBucketError(Object.assign(new Error('No such object: foo/bar'), { code: 404 }))).toBe(false);
+  });
+
+  it('ignore une panne de stockage réelle, qui doit rester une erreur', () => {
+    expect(isMissingBucketError(Object.assign(new Error('Internal error'), { code: 500 }))).toBe(false);
+    expect(isMissingBucketError(new Error('The specified bucket does not exist.'))).toBe(false);
+  });
+
+  it('résiste à une entrée qui n’est pas une erreur', () => {
+    for (const value of [null, undefined, 'boom', 42]) {
+      expect(isMissingBucketError(value)).toBe(false);
+    }
+  });
+
+  it('lit le message sans dépendre de la casse', () => {
+    expect(isMissingBucketError(Object.assign(new Error('The Specified Bucket Does Not Exist.'), { code: 404 }))).toBe(
+      true,
+    );
   });
 });

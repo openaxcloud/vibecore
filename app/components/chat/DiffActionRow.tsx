@@ -95,7 +95,7 @@ export const DiffActionRow = memo(({ filePath, diffApply, onOpenFile }: DiffActi
       {failed ? (
         <span
           className={classNames(
-            'shrink-0 inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[10px] font-medium leading-4',
+            'shrink-0 inline-flex items-center gap-1 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
             'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-icon-error',
           )}
           role="status"

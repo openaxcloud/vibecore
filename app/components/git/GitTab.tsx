@@ -1125,7 +1125,7 @@ export function GitTab({ projectId }: GitTabProps) {
             role="alert"
             data-testid="git-merge-conflict-banner"
           >
-            <div className="flex items-center gap-2 font-semibold text-amber-600 dark:text-amber-400">
+            <div className="flex items-center gap-2 font-semibold text-amber-800 dark:text-amber-400">
               <span className="i-ph:warning-circle text-base" aria-hidden />
               {t('idePanels.git.conflictBannerTitle')}
             </div>
@@ -1241,10 +1241,18 @@ export function GitTab({ projectId }: GitTabProps) {
          */}
         {!hasRemote && project?.id ? (
           <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
-            <div className="mb-2 flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
-              <span className="i-ph:plugs text-bolt-elements-textTertiary" aria-hidden />
-              {t('idePanels.git.noRemote')}
-            </div>
+            {/*
+             * BUG-I18N-008 — la même phrase s'affichait DEUX FOIS d'affilée.
+             *
+             * Cette ligne rendait `idePanels.git.noRemote` (« Aucun dépôt distant
+             * connecté ») juste au-dessus de `GitProviderConnectPanel`, dont le
+             * titre `gitProvider.title` porte EXACTEMENT le même texte. Deux
+             * chaînes de catalogues différents, même phrase, l'une sous l'autre.
+             *
+             * C'est le titre du panneau qui reste : il vit dans l'encadré ambre,
+             * porte sa description et précède directement les actions. La ligne
+             * extérieure n'apportait qu'une répétition.
+             */}
             {/*
              * Connect a Git provider (GitHub/GitLab/Bitbucket OAuth or a custom
              * remote) directly in the pane — Replit-style — instead of bouncing to

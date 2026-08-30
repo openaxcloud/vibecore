@@ -73,11 +73,24 @@ jobs:
 
       # Match the production E2E workflow's real local dependencies instead of
       # mocking registration, persistence, mail delivery, or cache behavior.
+      # `--wait` bloque jusqu'à ce que les trois services soient déclarés SAINS
+      # par leurs propres healthchecks (`pg_isready` pour postgres), et pas
+      # seulement démarrés. Sans lui, l'attente ci-dessous ne testait que
+      # l'OUVERTURE DU PORT — or postgres ouvre son port avant d'accepter des
+      # requêtes, et répond `FATAL: the database system is starting up`. La
+      # migration partait alors dans le vide et rendait la CI rouge au hasard.
       - name: Start local dependencies
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
-          docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+          # Une seconde tentative sur la pile de DÉPENDANCES, pour la même raison
+          # que l'API : contention du runner, jamais un test retenté.
+          if ! docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit; then
+            echo '::warning::Les dépendances ne sont pas devenues saines ; on repart proprement pour une seconde et dernière tentative.'
+            docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis mailpit || true
+            docker compose --env-file .env -f docker-compose.dev.yml down -v || true
+            docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          fi
           wait_for_tcp() {
             local host="$1"
             local port="$2"
@@ -102,21 +115,67 @@ jobs:
 
       - name: Prepare database
         run: |
+          trap 'echo "::group::Container state"; docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres; echo "::endgroup::"' ERR
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
       - name: Start API
         run: |
-          pnpm --filter @vibecore/api dev > /tmp/vibecore-i18n-api-${{ matrix.project }}.log 2>&1 &
-          echo $! > /tmp/vibecore-i18n-api-${{ matrix.project }}.pid
-          for _ in {1..180}; do
-            if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001/health > /dev/null; then
+          # Le démarrage de la pile locale est la seule partie non déterministe
+          # de ce job : postgres, redis et l'API se disputent un runner partagé,
+          # et le même commit passe sur un viewport et échoue sur un autre. Une
+          # SECONDE tentative est donc légitime — elle porte sur l'INFRASTRUCTURE,
+          # jamais sur un test : l'audit lui-même n'est pas retenté.
+          start_api() {
+            pnpm --filter @vibecore/api dev > /tmp/vibecore-i18n-api-${{ matrix.project }}.log 2>&1 &
+            echo $! > /tmp/vibecore-i18n-api-${{ matrix.project }}.pid
+          }
+
+          wait_healthy() {
+            local pid="$1"
+            for _ in {1..180}; do
+              # La SANTÉ, pas l'ouverture du port : l'API accepte les connexions
+              # avant d'être prête à servir, et /health ne répond qu'ensuite.
+              if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3001/health > /dev/null; then
+                return 0
+              fi
+
+              # Un processus mort ne guérira pas : inutile d'attendre le reste.
+              if ! kill -0 "$pid" 2>/dev/null; then
+                return 1
+              fi
+
+              sleep 1
+            done
+            return 1
+          }
+
+          for attempt in 1 2; do
+            start_api
+            api_pid=$(cat /tmp/vibecore-i18n-api-${{ matrix.project }}.pid)
+
+            if wait_healthy "$api_pid"; then
+              echo "API prête (tentative $attempt)"
               exit 0
             fi
 
-            sleep 1
+            echo "::group::Tentative $attempt — log de l'API"
+            cat /tmp/vibecore-i18n-api-${{ matrix.project }}.log || echo '(aucun log produit)'
+            echo '::endgroup::'
+
+            if [ "$attempt" = "1" ]; then
+              echo "::warning::L'API n'a pas répondu sur /health ; seconde et dernière tentative."
+              kill "$api_pid" 2>/dev/null || true
+              wait "$api_pid" 2>/dev/null || true
+              : > /tmp/vibecore-i18n-api-${{ matrix.project }}.log
+            fi
           done
-          echo 'Timed out waiting for the API health endpoint' >&2
+
+          echo '::group::État des conteneurs'
+          docker compose --env-file .env -f docker-compose.dev.yml ps || true
+          docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis || true
+          echo '::endgroup::'
+          echo '::error::L API n a pas servi /health apres 2 tentatives — voir les logs ci-dessus.'
           exit 1
 
       - name: Build web app
@@ -133,6 +192,9 @@ jobs:
 
             sleep 1
           done
+          echo '::group::Web app log (cause of the failure above)'
+          cat /tmp/vibecore-i18n-web-${{ matrix.project }}.log || echo '(no web log was produced)'
+          echo '::endgroup::'
           echo 'Timed out waiting for the production web app' >&2
           exit 1
 

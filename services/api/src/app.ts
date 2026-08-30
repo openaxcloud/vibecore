@@ -12,6 +12,16 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import {
+  consumeRateLimit,
+  createFastifyRateLimitStore,
+  LocalRateLimitBackend,
+  parseStoreFailurePolicy,
+  RateLimitStoreUnavailableError,
+  RedisRateLimitBackend,
+  SharedRateLimitBackend,
+  type RateLimitBackend,
+} from './shared-rate-limit.js';
 import websocket from '@fastify/websocket';
 import {
   createOpaqueToken,
@@ -85,6 +95,7 @@ import {
 } from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -107,6 +118,14 @@ import JSZip from 'jszip';
 import { MongoClient } from 'mongodb';
 import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
+
+import { createPostgresMigrationApplier } from './db-migration-applier.js';
+import {
+  hashStatements,
+  runPublishMigration,
+  type DeclaredMigration,
+  type SqlApplier,
+} from './db-migration-execution.js';
 import WebSocket from 'ws';
 import { SignedXml } from 'xml-crypto';
 import { z, type ZodSchema } from 'zod';
@@ -169,7 +188,7 @@ import {
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
-import { slugifyRouteSegment } from './slugify.js';
+import { slugify, slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -188,6 +207,7 @@ import {
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
+  type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
 import {
@@ -204,6 +224,23 @@ import {
   type ImportState,
 } from './import-pipeline.js';
 import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import {
+  CHECKPOINT_ORDER,
+  assertCheckpointTransition,
+  checkpointManifestVisible,
+  projectCheckpointAdmissible,
+  quiesceAdmissible,
+  type CheckpointComponentSnapshot,
+  type CheckpointState,
+} from './lifecycle-state-machines.js';
+import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
+import {
+  declareCheckpointConsistency,
+  declareDatabaseConsistency,
+  declareFilesConsistency,
+  type BarrierScope,
+  type ConsistencyDeclaration,
+} from './checkpoint-consistency.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -310,9 +347,10 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
-  ObjectStorageError,
-  type ObjectStorage,
+  BUCKET_NOT_PROVISIONED,
   isObjectStorageEnabled,
+  type ObjectStorage,
+  ObjectStorageError,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
@@ -352,6 +390,16 @@ import {
 } from './rate-card-service.js';
 import { publicMachineSizeError } from './rate-card-public.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+import {
+  ACCESS_GATE_CSP,
+  ACCESS_TOKEN_TTL_MS,
+  accessConfigFromMetadata,
+  accessCookieName,
+  accessGateHtml,
+  computeAccessToken,
+  deriveDeploymentAccessSecret,
+  isAccessTokenValid,
+} from './deployment-access.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -483,6 +531,23 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Provisionneur de bases projet. Par défaut résolu depuis l'environnement
+   * (`resolveDefaultDatabaseProvisioner`) ; injectable pour piloter les phases de
+   * backup dans les tests — sans quoi la garde « pas d'apply sans backup vérifié »
+   * ne serait prouvable qu'en théorie.
+   */
+  databaseProvisioner?: DatabaseProvisioner;
+
+  /**
+   * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
+   * PostgreSQL transactionnel ; injectable pour que les tests CI (sans serveur
+   * Postgres) puissent prouver la MACHINE — verrou, backup, refus — sans dépendre
+   * du réseau. Le comportement transactionnel réel est prouvé séparément contre
+   * un vrai PostgreSQL.
+   */
+  migrationApplier?: SqlApplier;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -1983,6 +2048,39 @@ function chatShareTokenSecret() {
   return secret;
 }
 
+/*
+ * SEC-6: the HMAC key(s) for deployment password-unlock cookies. A DEDICATED,
+ * rotatable key — never the generic share/JWT/cookie secret used directly:
+ *  - explicit DEPLOYMENT_ACCESS_TOKEN_SECRET (+ _OLD for zero-downtime rotation)
+ *    wins when set (mint with the primary, still accept _OLD);
+ *  - otherwise derive a domain-separated key from a base platform secret, so the
+ *    deployment-access key is DISTINCT material from every other use of that base
+ *    (a deployment cookie can't forge a share/session token, or vice-versa).
+ * Verification accepts every returned secret (rotation); minting uses the first.
+ */
+function deploymentAccessTokenSecrets(): string[] {
+  const explicit = [
+    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET,
+    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET_OLD,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+
+  if (explicit.length > 0) {
+    return explicit;
+  }
+
+  const base = process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
+
+  if (base) {
+    return [deriveDeploymentAccessSecret(base)];
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('No deployment-access HMAC secret (DEPLOYMENT_ACCESS_TOKEN_SECRET or a base secret) configured');
+  }
+
+  return [deriveDeploymentAccessSecret('dev')];
+}
+
 function signChatShareToken(raw: string) {
   const signature = createHmac('sha256', chatShareTokenSecret()).update(raw).digest('base64url');
 
@@ -2815,6 +2913,33 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
   });
 }
 
+/**
+ * Migrations DÉCLARÉES par le projet : `migrations/*.sql`, triées par nom
+ * (ordre lexicographique = ordre d'application, convention usuelle des
+ * horodatages en préfixe). Les fichiers vides sont ignorés : appliquer une
+ * chaîne vide créerait une entrée de registre sans effet réel.
+ */
+async function collectDeclaredMigrations(
+  projectStorage: ProjectStorage,
+  projectId: string,
+  workspaceId?: string,
+): Promise<DeclaredMigration[]> {
+  const files = await projectStorage.listFiles(projectId, workspaceId).catch(() => []);
+
+  return files
+    .filter((file) => /^migrations\/[^/]+\.sql$/i.test(file.path) && file.content.trim().length > 0)
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((file) => ({ name: file.path.replace(/^migrations\//i, ''), sql: file.content }));
+}
+
+/**
+ * Applicateur partagé. `sha256` est injecté plutôt qu'importé dans le module
+ * d'application pour garder celui-ci sans dépendance au reste de l'API.
+ */
+const postgresMigrationApplier = createPostgresMigrationApplier({
+  sha256: (value: string) => createHash('sha256').update(value).digest('hex'),
+});
+
 async function requireDatabaseConnection(store: ApiStore, projectId: string, key: string) {
   const connections = await listDatabaseConnections(store, projectId);
   const connection = connections.find((item) => item.key === key);
@@ -3209,6 +3334,15 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
     platformAdmin: user.platformAdmin,
   };
   request.currentSession = session;
+
+  /*
+   * Idle-timeout heartbeat: refresh this session's lastActiveAt (throttled to one
+   * write per minute). Fire-and-forget and swallow errors — a failed heartbeat
+   * must never break the request, and NOT bumping lastActiveAt only means a
+   * genuinely-idle session correctly ages out (fail-open on the write, fail-closed
+   * on the enforcement, which lives in findSessionByToken).
+   */
+  void store.touchSession(session.id, Date.now()).catch(() => undefined);
 
   /*
    * Match on the parsed pathname with exact/segment checks. `request.url`
@@ -8310,9 +8444,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
-  const projectStorage = options.projectStorage ?? new LocalProjectStorage();
+  /**
+   * `rawProjectStorage` = accès direct, réservé à l'orchestrateur de checkpoint :
+   * lui seul doit pouvoir écrire l'arbre pendant que SA propre barrière tient
+   * (restauration). Tout le reste du processus passe par `projectStorage`, qui
+   * refuse les mutations d'arbre sous barrière — garde posée au point
+   * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
+   */
+  const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+  const projectStorage = withCheckpointBarrier(rawProjectStorage, (projectId) =>
+    store.getActiveCheckpointBarrier(projectId),
+  );
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
+  /**
+   * The access config currently in force for a site (project + environment).
+   *
+   * Every path that creates a SUCCESSOR deployment must carry this forward, or it
+   * silently unprotects the site: `metadata.access` has exactly one writer (the
+   * /access route), so any new row built from a fresh literal is PUBLIC by
+   * construction while the owner still believes a password is set. That defect
+   * was found on three separate paths — publish (SEC-13), rollback (SEC-12) and
+   * redeploy (SEC-14) — which is why the rule lives here once instead of being
+   * re-derived at each call site.
+   *
+   * "Current" = newest release of the same project+environment, i.e. the owner's
+   * last expressed intent. If they un-protected the site there is nothing to
+   * inherit and the successor stays public — intent still wins, in both
+   * directions.
+   *
+   * STATIC only: it is the only provider whose serve path enforces the gate, and
+   * SEC-11 refuses to set protection anywhere else, so there is never anything to
+   * inherit for the others.
+   *
+   * Sorted explicitly rather than trusting the store: prisma-store lists
+   * `createdAt: 'desc'` while the in-memory test double returns insertion order,
+   * so `[0]` would mean "newest" in production and "oldest" under test.
+   */
+  const currentSiteAccessConfig = async (
+    deploymentStore: ApiStore,
+    projectId: string,
+    provider: string | undefined,
+    environment: string | undefined,
+  ): Promise<unknown> => {
+    if (provider !== 'static') {
+      return undefined;
+    }
+
+    const releases = (await deploymentStore.listDeployments(projectId).catch(() => []))
+      .filter((d) => d.provider === 'static' && d.environment === environment)
+      .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''));
+
+    return (releases.at(0)?.metadata as Record<string, unknown> | undefined)?.access;
+  };
+
+
 
   /*
    * When a caller injects its own staticBuildRunner (unit/integration tests), it
@@ -8571,9 +8757,134 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
   });
+  /*
+   * Client Redis DÉDIÉ au rate limiting.
+   *
+   * On borne les commandes par `commandTimeout` au lieu de couper la file
+   * hors-ligne.
+   *
+   * `lazyConnect: true` + `enableOfflineQueue: false` était un piège : la toute
+   * première commande partait avant que la connexion soit établie et échouait
+   * systématiquement (« Stream isn't writeable »). Couplée au fail-closed, la
+   * combinaison faisait répondre 503 à CHAQUE démarrage de pod, le temps que
+   * Redis se connecte — donc à chaque rollout, pas seulement pendant une panne.
+   *
+   * Avec une file bornée : au démarrage à froid les commandes attendent la
+   * connexion (pas de 503 fantôme) ; pendant une vraie coupure elles échouent au
+   * bout du timeout et le fail-closed prend le relais.
+   *
+   * Le timeout NE DOIT PAS être trop serré. Couplé au fail-closed, il transforme
+   * « Redis est lent » en « l'API refuse le trafic » : à 250 ms, une rafale de
+   * charge concurrente suffisait à faire expirer des commandes pourtant saines et
+   * à renvoyer des 503 en série. 1 s laisse passer les à-coups normaux tout en
+   * bornant l'attente pendant une vraie panne.
+   */
+  const rateLimitStoreFailurePolicy = parseStoreFailurePolicy(process.env.RATE_LIMIT_STORE_FAILURE_POLICY);
+
+  /*
+   * Espace de noms des clés de rate limiting.
+   *
+   * En PRODUCTION il est STABLE et commun à tous les pods — c'est précisément ce
+   * qui rend le compteur partagé (le but de ce lot).
+   *
+   * SOUS TEST il est UNIQUE PAR INSTANCE d'app. Les suites construisent des
+   * dizaines d'apps dans un même processus, toutes vues depuis 127.0.0.1 : avec
+   * un espace commun elles se partagent un seul compartiment et s'épuisent
+   * mutuellement (309 tests tombés en 429 la première fois). Avant ce lot, le
+   * cache LOCAL du plugin les isolait par accident ; on restaure explicitement
+   * cette isolation au lieu de la perdre — sans toucher au comportement de prod.
+   *
+   * Le chemin partagé reste couvert par shared-rate-limit.spec.ts et par la
+   * preuve live à 2 instances.
+   */
+  const isTestRuntime = Boolean(process.env.VITEST) || process.env.NODE_ENV === 'test';
+  const rateLimitKeyPrefix =
+    process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
+
+  /*
+   * SOUS TEST, on n'utilise PAS le store partagé (sauf RATE_LIMIT_FORCE_SHARED=1).
+   *
+   * Raison : le fail-closed rend l'API sensible à la LATENCE du store, pas
+   * seulement à sa panne. 1445 tests d'intégration martelant un seul Redis en
+   * parallèle font expirer des commandes pourtant saines, et chaque expiration
+   * devient un 503 — des dizaines de tests sans aucun rapport avec le rate
+   * limiting tombaient pour cette seule raison. Les faire dépendre de la latence
+   * Redis n'apporte rien à ce qu'ils vérifient.
+   *
+   * Le chemin partagé n'est pas pour autant non testé : il l'est directement par
+   * shared-rate-limit.spec.ts et par la preuve live à 2 instances contre un vrai
+   * Redis. `RATE_LIMIT_FORCE_SHARED=1` permet de l'exercer ici aussi.
+   *
+   * ⚠️ Conséquence de production à connaître : avec le fail-closed, une latence
+   * Redis durablement supérieure à `commandTimeout` refuse du trafic. C'est le
+   * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
+   * exploitation.
+   */
+  const useSharedRateLimitStore =
+    Boolean(process.env.REDIS_URL) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+
+  const sharedRateLimitRedis = useSharedRateLimitStore
+    ? new Redis(process.env.REDIS_URL as string, {
+        connectionName: 'vibecore-rate-limit',
+        commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
+        maxRetriesPerRequest: 1,
+      })
+    : undefined;
+
+  /*
+   * ioredis émet une 'error' au niveau processus sur toute faute de connexion ;
+   * sans écouteur, ça devient une 'error' non gérée qui TUE le pod. On loggue et
+   * on avale : le limiteur dégrade, il ne fait pas tomber l'API.
+   */
+  sharedRateLimitRedis?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'rate-limit-redis', error: String(error) }),
+    ),
+  );
+
+  const globalRateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'api-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : undefined;
+
   await app.register(rateLimit, {
     max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
+    /*
+     * Store PARTAGÉ. Sans lui, @fastify/rate-limit compte dans un cache local au
+     * processus : avec 2 replicas (HPA → 6), tout plafond valait jusqu'à 6× la
+     * valeur annoncée, y compris ceux qui protègent login/register du brute
+     * force. Le limiteur s'affaiblissait à mesure que la plateforme scalait.
+     *
+     * On passe par NOTRE store plutôt que par l'option `redis` du plugin : les
+     * deux limiteurs (global et admin) partagent ainsi la même politique de
+     * panne et la même erreur typée, au lieu de deux comportements distincts.
+     */
+    ...(globalRateLimitBackend ? { store: createFastifyRateLimitStore(globalRateLimitBackend) } : {}),
+    /*
+     * FAIL-CLOSED. `skipOnError: true` (le défaut de la lib) laisse passer TOUTE
+     * requête quand le store est injoignable : la protection brute force
+     * s'évapore exactement quand un attaquant a intérêt à faire tomber Redis.
+     * À false, un store KO renvoie 429 plutôt que d'ouvrir la vanne.
+     *
+     * Le coût est réel et assumé : une panne Redis dégrade la disponibilité des
+     * routes limitées. Un opérateur qui préfère l'inverse le déclare via
+     * RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local (compteur par pod, jamais
+     * illimité) — jamais par accident.
+     */
+    skipOnError: rateLimitStoreFailurePolicy === 'degrade-local',
     keyGenerator(request) {
       const authorization = request.headers.authorization;
 
@@ -8592,9 +8903,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const credentialKey =
         typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : 'anonymous';
+          : undefined;
 
-      return `${request.ip}:${credentialKey}`;
+      /*
+       * ISOLATION PAR PORTEUR DE CREDENTIAL.
+       *
+       * Clé authentifiée = le credential SEUL, sans l'IP. En incluant l'IP, le
+       * budget d'un même jeton se dupliquait à chaque adresse source : un
+       * attaquant authentifié disposant de plusieurs IP (proxies, cloud, IPv6
+       * /64) se fabriquait autant de compartiments neufs et sortait de sa propre
+       * limite. Le budget suit désormais le porteur, où qu'il se connecte.
+       *
+       * Corollaire d'isolation : deux tenants ne partagent jamais un compartiment
+       * (jetons distincts ⇒ clés distinctes), donc l'abus de l'un ne consomme pas
+       * le quota de l'autre — y compris derrière une IP de sortie commune.
+       *
+       * Anonyme = par IP : c'est le seul signal non falsifiable avant auth.
+       */
+      return credentialKey ? `${rateLimitKeyPrefix}:cred:${credentialKey}` : `${rateLimitKeyPrefix}:ip:${request.ip}`;
     },
   });
 
@@ -8747,6 +9073,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * FAIL-CLOSED lisible. Le store de rate limiting est injoignable : on refuse,
+     * mais avec un 503 + retry-after plutôt qu'un 500 anonyme. Ce n'est pas un
+     * bug applicatif mais un mode dégradé connu — l'appelant sait qu'il peut
+     * réessayer, et l'astreinte le distingue d'une panne de code.
+     */
+    if (error instanceof RateLimitStoreUnavailableError) {
+      return reply.code(503).header('retry-after', '5').send({
+        error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
+        code: error.code,
+        retryable: true,
+      });
+    }
+
+    /*
+     * Refus au point d'étranglement du stockage : la barrière peut être levée
+     * loin du handler (helper, écriture depuis un GET). Sans cette branche, un
+     * gel légitime remonterait en 500 au lieu du 423 contractuel.
+     */
+    if (error instanceof CheckpointBarrierError) {
+      return reply.code(423).send({ error: error.message, code: error.code, barrierId: error.barrierId });
+    }
+
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
 
     if (statusCode >= 500) {
@@ -8803,6 +9152,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Security: every requested path is resolved via path.resolve and must
    * stay strictly inside the snapshot directory; anything that would
    * escape (../, absolute paths, symlinks pointing outside) returns 403.
+   * P104: the password gate. A visitor POSTs the deployment password here; on a
+   * match we set the deterministic access cookie (proof-of-password) that the
+   * serve route checks. Public (no session) — a deployment is visited by anyone
+   * with the password. Wrong/absent password ⇒ 401, never a cookie.
+   */
+  app.post('/static-deployments/:deploymentId/__access', async (request, reply) => {
+    const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
+
+    if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
+      return reply.code(400).send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
+    }
+
+    const body = (request.body ?? {}) as { password?: unknown };
+    const password = typeof body.password === 'string' ? body.password : '';
+
+    const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
+
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
+      return reply.code(404).send({ error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'), code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+    }
+
+    // Every response on this credential-checking route is per-request: never cache.
+    reply.header('cache-control', 'private, no-store, max-age=0');
+
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+
+    // SEC-1: a gated deployment with a missing/corrupt hash is LOCKED — it cannot
+    // be unlocked (there is no valid password to match), and must never open.
+    if (access.mode === 'locked') {
+      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
+    }
+
+    // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
+    if (access.mode !== 'password' || !access.passwordHash) {
+      return reply.code(200).send({ ok: true, gated: false });
+    }
+
+    if (!password || !verifyPassword(password, access.passwordHash)) {
+      return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_INCORRECT', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+    }
+
+    // SEC-5/6: an EXPIRING token (server-verified) signed with the DEDICATED key.
+    const expiresAtMs = Date.now() + ACCESS_TOKEN_TTL_MS;
+    const token = computeAccessToken(deploymentAccessTokenSecrets()[0], deploymentId, access.passwordHash, expiresAtMs);
+
+    reply.setCookie(accessCookieName(deploymentId), token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: Math.floor(ACCESS_TOKEN_TTL_MS / 1000),
+    });
+
+    return reply.code(200).send({ ok: true, gated: true });
+  });
+
+  /*
    * SPA routes (anything that does not resolve to a real file) fall back
    * to index.html so client-side routers work.
    */
@@ -8906,6 +9312,60 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * retirée — republier crée une nouvelle publication. Sans ce gate, le
      * produit annonçait une extinction qui n'avait jamais lieu.
      */
+    const access = accessConfigFromMetadata(ownerStatus.metadata);
+    const gated = access.mode !== 'public';
+
+    /*
+     * SEC-2/3: a gated deployment's bytes must NEVER be cached by a shared
+     * proxy/CDN and re-served to another visitor. Apply no-store to EVERY response
+     * for a gated deployment — the gate page, the 401/404/403 errors, and the
+     * authorized 200 (see the success path below, which no longer sets `public`).
+     * `Vary: Cookie` additionally keys any cache on the unlock cookie.
+     */
+    if (gated) {
+      reply.header('cache-control', 'private, no-store, max-age=0, must-revalidate');
+      reply.header('vary', 'Cookie');
+      reply.header('pragma', 'no-cache');
+    }
+
+    // SEC-1: a locked deployment (password mode, hash gone) serves nothing.
+    if (access.mode === 'locked') {
+      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
+    }
+
+    if (access.mode === 'password' && access.passwordHash) {
+      const provided = request.cookies?.[accessCookieName(deploymentId)];
+
+      // SEC-5/6: verify the cookie's signature (dedicated, rotatable key) AND its
+      // server-embedded expiry — a forged or EXPIRED token is refused here.
+      if (!isAccessTokenValid(deploymentAccessTokenSecrets(), deploymentId, access.passwordHash, provided)) {
+        if ((request.headers.accept ?? '').includes('text/html')) {
+          return reply
+            .code(401)
+            .header('content-security-policy', ACCESS_GATE_CSP)
+            .type('text/html; charset=utf-8')
+            .send(accessGateHtml());
+        }
+
+        return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
+      }
+    }
+
+    /*
+     * REBASE MERGE (P104 × published-deployment expiry).
+     *
+     * `main` grew an expiry check here while P104 was reverted out of the tree, so
+     * the two landed on the same lines. Both are kept, and the ORDER is a security
+     * decision, not an accident: the access gate above runs FIRST, so an anonymous
+     * visitor without the password gets 401 and learns nothing — not even whether
+     * the deployment exists and expired. Putting the 410 first would answer
+     * "expired" to anyone who asks, which is a (small) disclosure about a
+     * password-protected resource.
+     *
+     * Public deployments are unaffected: the gate is a no-op for them, so they
+     * still get the honest 410 exactly as `main` intends. A gated deployment
+     * returns 410 only to a visitor who has already proven the password.
+     */
     if (
       publishedDeploymentExpired({
         planKey: ownerStatus.planKey,
@@ -8995,8 +9455,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Stream the (realpath-validated) artifact instead of buffering the whole
      * file into memory — this is a public, unauthenticated route serving
      * attacker-controlled build output, so a full read amplifies memory use.
+     *
+     * SEC-2/3: only a PUBLIC deployment may be cached by shared proxies. A gated
+     * one already carries `private, no-store` + `Vary: Cookie` (set above) and
+     * must NOT be downgraded to `public` here — that was the cache-poisoning hole
+     * (an authorized fetch cached and replayed to anonymous visitors).
      */
-    reply.header('cache-control', 'public, max-age=60, must-revalidate');
+    if (!gated) {
+      /*
+       * `no-cache` et NON `max-age=60`.
+       *
+       * Transition la plus dangereuse : un déploiement PUBLIC est mis en cache
+       * par un intermédiaire, PUIS son propriétaire active la protection par mot
+       * de passe. Le `no-store` posé ensuite ne purge pas ce qui est DÉJÀ stocké
+       * — l'origine ne contrôle pas les caches tiers. Avec `max-age=60`, l'entrée
+       * publique restait servable SANS revalidation pendant une minute : un
+       * visiteur anonyme récupérait le contenu désormais protégé.
+       *
+       * `no-cache` autorise le STOCKAGE mais impose une revalidation auprès de
+       * l'origine AVANT chaque réutilisation. La requête de revalidation traverse
+       * donc le gate ci-dessus, qui répond 401/503 — la fenêtre tombe à zéro.
+       * Le bénéfice de cache est conservé pour le contenu inchangé (304 côté
+       * intermédiaire), au prix d'un aller-retour de validation.
+       */
+      reply.header('cache-control', 'public, no-cache, must-revalidate');
+
+      /*
+       * `Vary: Cookie` même en public : la clé de cache dépend ainsi du cookie
+       * dès l'origine, si bien qu'une entrée publique et une réponse post-gating
+       * ne peuvent jamais se confondre dans un cache partagé.
+       */
+      reply.header('vary', 'Cookie');
+    }
     reply.header('x-vibecore-static-deployment', deploymentId);
 
     /*
@@ -9031,7 +9521,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.headers['x-forwarded-host'] as string | undefined,
     );
 
-    if (dedicatedOrigin && !onDedicatedHost) {
+    /*
+     * P104: a password-protected deployment is served + gated ENTIRELY on the API
+     * origin. Redirecting to the dedicated `s-<id>` origin would split the gate
+     * (the access cookie is host-scoped, and the /__access POST is not reachable
+     * through the dedicated origin's proxy), so the visitor could never unlock it.
+     * The dedicated origin exists to give PUBLIC storage-using SPAs a same-origin
+     * sandbox; a gated app trades that for a working password flow (its localStorage
+     * stays opaque on the API origin — an accepted limitation behind a password).
+     */
+    if (dedicatedOrigin && !onDedicatedHost && access.mode === 'public') {
       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
 
       return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
@@ -9312,7 +9811,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const organization = await store.createOrganization({
         name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
+        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
 
@@ -9372,9 +9871,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const body = parse(loginSchema, request.body);
       const user = await store.findUserByEmail(body.email);
+      const throttleConfig = loginThrottleConfigFromEnv();
+
+      /*
+       * Per-account brute-force lock (defence-in-depth over the per-IP rate limit
+       * — a distributed botnet stays under the IP cap yet still hammers one
+       * account). Checked BEFORE the password so a locked account short-circuits
+       * with the GENERIC invalid-credentials 401 — identical body to a wrong
+       * password, so the lock can't be used to enumerate which emails exist. A
+       * store error is swallowed (fail-open): the lock is ADDITIVE, and the
+       * credential check below still runs, so degrading it never grants access
+       * without the correct password.
+       */
+      if (user) {
+        const lockout = await store.getLoginLockout(user.id).catch(() => undefined);
+
+        if (lockout && isLockedNow(lockout, Date.now())) {
+          metrics.increment('auth_failures_total', { reason: 'account_locked' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+      }
 
       if (!user || !verifyPassword(body.password, user.passwordHash)) {
         metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
+
+        // Count the failure toward the per-account lock (real accounts only).
+        // Best-effort — a lock-store hiccup must never turn a 401 into a 500.
+        if (user) {
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+        }
+
         return reply
           .code(401)
           .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
@@ -9396,6 +9924,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (!totpValid && !recoveryValid) {
           metrics.increment('auth_failures_total', { reason: 'invalid_mfa' });
+          // A wrong MFA code is also a failed auth attempt — count it toward the lock.
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+
           return reply
             .code(401)
             .send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'AUTH_INVALID_MFA_CODE' });
@@ -9430,6 +9961,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           code: 'SSO_ENFORCED',
         });
       }
+
+      // Full credential (+ MFA + SSO) success ⇒ reset the per-account failure counter.
+      await store.clearLoginLockout(user.id).catch(() => undefined);
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
@@ -10152,22 +10686,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  /*
+   * Limiteur admin PARTAGÉ entre replicas.
+   *
+   * C'était une `Map` de processus : avec 2 replicas (HPA → 6), le plafond
+   * annoncé de 30 mutations admin/minute en valait jusqu'à 180 — et l'attaquant
+   * n'avait rien à faire, le load balancer répartissait ses requêtes tout seul.
+   * Le compteur vit désormais dans Redis (incrément + TTL atomiques). Sans
+   * REDIS_URL (dev, tests), on garde le compteur local : même sémantique,
+   * portée réduite à un pod, et c'est dit.
+   */
+  const adminRateLocalFallback = new LocalRateLimitBackend();
+  const adminRateLimitBackend: RateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        fallback: adminRateLocalFallback,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'admin-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : adminRateLocalFallback;
 
   /*
-   * Periodically evict expired buckets. Without this, the map grows without
-   * bound: a caller varying source IP or path component creates a key that is
-   * only ever overwritten when that exact key recurs, so one-off keys live
-   * forever (memory leak / DoS amplifier).
+   * Purge des fenêtres expirées du compteur local. Sans elle, la Map croît sans
+   * borne : une clé vue une seule fois n'est jamais réécrite et vit pour
+   * toujours (fuite mémoire, amplificateur de DoS).
    */
   setInterval(() => {
-    const t = Date.now();
-
-    for (const [k, v] of adminRateBuckets) {
-      if (v.resetAt <= t) {
-        adminRateBuckets.delete(k);
-      }
-    }
+    adminRateLocalFallback.prune();
   }, 60_000).unref();
 
   const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
@@ -10182,19 +10736,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * attacker bypass the limit by varying the path param (e.g. suspend a
        * different :userId each request), since each target got its own bucket.
        */
-      const key = `${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
-      const now = Date.now();
-      const bucket = adminRateBuckets.get(key);
+      const key = `${rateLimitKeyPrefix}:adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
+      let decision;
 
-      if (!bucket || bucket.resetAt <= now) {
-        adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
-      } else if (bucket.count >= adminRateLimit) {
+      try {
+        decision = await consumeRateLimit({
+          backend: adminRateLimitBackend,
+          key,
+          limit: adminRateLimit,
+          windowMs: adminRateWindowMs,
+        });
+      } catch (error) {
+        /*
+         * FAIL-CLOSED : store partagé injoignable ⇒ on REFUSE la mutation admin.
+         * 503 (et non 429) : ce n'est pas l'appelant qui a trop consommé, c'est
+         * la plateforme qui ne peut plus compter. Laisser passer ici ouvrirait
+         * les routes admin au moment le plus défavorable.
+         */
+        if (error instanceof RateLimitStoreUnavailableError) {
+          request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
+
+          return reply.code(503).header('retry-after', '5').send({
+            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
+            code: 'RATE_LIMIT_STORE_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        throw error;
+      }
+
+      if (!decision.allowed) {
         return reply
           .code(429)
-          .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
+          .header('retry-after', decision.retryAfterSeconds)
           .send({ error: appPublicEnglish('ADMIN_RATE_LIMITED'), code: 'ADMIN_RATE_LIMITED' });
-      } else {
-        bucket.count += 1;
       }
     }
   });
@@ -13836,7 +14412,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return await agentRequest<T>(authorized.workspaceId, path, init);
     } catch (error) {
-      if ((error as { code?: string } | undefined)?.code !== 'WORKSPACE_AGENT_REQUEST_FAILED') {
+      /*
+       * Deux codes, une seule situation : le pod n'est pas joignable.
+       *
+       *   WORKSPACE_AGENT_REQUEST_FAILED  le pod ne répond pas
+       *   WORKSPACE_NOT_STARTED           son nom DNS ne résout pas encore
+       *
+       * Le second a été ajouté pour que l'IDE affiche « démarrage » au lieu d'une
+       * erreur serveur pendant la fenêtre de propagation kube-dns. Mais il n'a pas
+       * été ajouté ICI : `agentMutateEnsuring` ne relançait le provisionnement que
+       * sur le premier code, et relançait l'erreur pour le second.
+       *
+       * Conséquence mesurée en production le 2026-08-30, sur un projet créé la
+       * minute d'avant : `PUT /files/write` répondait 425 en UNE seconde, sans
+       * qu'aucune demande n'atteigne le workspace-manager. Le pod n'ayant jamais
+       * existé, son nom DNS ne résolvait pas — donc `WORKSPACE_NOT_STARTED` —
+       * donc aucun provisionnement. Vingt-cinq minutes plus tard, toujours aucune
+       * ligne `Workspace` en base : le chemin d'écriture ne se réparait jamais
+       * tout seul, il se contentait de dire « pas encore » indéfiniment.
+       *
+       * Le budget de `ensureWorkspaceReachable` est inchangé : un démarrage
+       * réellement lent renvoie toujours 425 une fois le délai écoulé. On tente
+       * simplement le provisionnement avant de le dire.
+       */
+      const failureCode = (error as { code?: string } | undefined)?.code;
+
+      if (failureCode !== 'WORKSPACE_AGENT_REQUEST_FAILED' && failureCode !== 'WORKSPACE_NOT_STARTED') {
         throw error;
       }
 
@@ -16390,6 +16991,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
+      return reply;
+    }
     await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
     await audit(request, store, {
       organizationId: authorized.organizationId,
@@ -16707,6 +17313,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(204).send();
+  });
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources
+   * panel. Read inside the workspace container (cgroup + statfs) rather than
+   * from metrics-server: it is the accounting the kernel actually enforces, it
+   * is the only place the PVC's real usage exists, and it does not depend on an
+   * optional cluster add-on.
+   *
+   * Deliberately NOT falling back to local runtime figures the way `/ports`
+   * does: a number from the API pod's own cgroup would describe the platform,
+   * not the user's workspace, and would be indistinguishable from a real
+   * reading. When the agent cannot answer, the panel says so.
+   */
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request, reply) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    try {
+      return await agentRequest<{
+        capturedAt: string;
+        memory: { usedBytes: number; limitBytes: number | null; source: string } | null;
+        cpu: { usedPercent: number; limitCores: number | null; sampleMs: number; source: string } | null;
+        storage: { usedBytes: number; totalBytes: number; path: string } | null;
+      }>(authorized.workspaceId, '/resources');
+    } catch (error) {
+      request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
+
+      /*
+       * Localised through the shared public-copy catalogue like every other
+       * user-facing API error: the i18n source guard treats a hardcoded string
+       * here as new debt, and rightly so — this message reaches the IDE.
+       */
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
+      return reply.code(503).send({
+        error: message,
+        message,
+        code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
+      });
+    }
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -18584,7 +19230,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       organization = await store.createOrganization({
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         ownerUserId: request.currentUser!.id,
       });
     } catch (error) {
@@ -19717,7 +20363,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'blank',
       });
@@ -19826,7 +20472,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'template',
         templateName: body.templateName,
@@ -19896,7 +20542,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'ai',
       });
     });
@@ -20280,7 +20926,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return store.createProject({
           organizationId: orgId,
           name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
+          slug: slugify(name) + '-' + importJobId.slice(-6),
           sourceType,
         });
       });
@@ -20438,7 +21084,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'github',
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -20499,7 +21145,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: provider,
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -20548,7 +21194,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'zip',
       });
     });
@@ -21910,13 +22556,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revision: projectFilesRevision(files) };
   });
-  app.post('/projects/:projectId/files/import/zip', async (request) => {
+  app.post('/projects/:projectId/files/import/zip', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (await rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
@@ -23586,6 +24237,483 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+  /*
+   * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
+   * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
+   * à timeout avec DÉGEL GARANTI (finally), snapshots par composant sous la
+   * MÊME barrière logique, manifeste visible seulement une fois tout vérifié.
+   * Un snapshot de pod seul n'est JAMAIS un checkpoint projet.
+   */
+  /*
+   * La barrière est PERSISTÉE (ProjectCheckpoint.barrierExpiresAt), pas gardée en
+   * mémoire de processus. L'API tourne en 2 replicas (HPA → 6) en prod
+   * (values-prod.yaml) : une Map in-process n'est vue que par le pod qui la pose,
+   * donc les écritures routées vers un autre replica passaient à travers la
+   * « barrière ». Le bail en base est commun à tous les replicas ; son expiration
+   * EST le dégel garanti si le processus porteur meurt en vol.
+   */
+  const activeCheckpointBarrier = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+
+  /** 423 pendant la barrière : les écritures API attendent le dégel. */
+  const rejectIfCheckpointBarrier = async (reply: FastifyReply, projectId: string) => {
+    const b = await activeCheckpointBarrier(projectId);
+
+    if (b) {
+      reply.status(423).send({
+        // `reply.request` : ce helper ne reçoit que la réponse, mais Fastify
+        // expose la requête associée — la locale reste donc celle de l'appelant.
+        error: appPublicCopy('CHECKPOINT_PROJECT_QUIESCED', transactionalLocaleForRequest(reply.request)),
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        barrierId: b.barrierId,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const CHECKPOINT_QUIESCE_TIMEOUT_MS = 30_000;
+  const CHECKPOINT_TTL_DAYS = 30;
+
+  const runProjectCheckpoint = async (params: {
+    request: FastifyRequest;
+    projectId: string;
+    includePod?: boolean;
+  }): Promise<{ ok: true; checkpointId: string; manifest: unknown } | { ok: false; code: string; error: string }> => {
+    const { request, projectId } = params;
+    const ckpt = await store.createProjectCheckpoint({ projectId, createdByUserId: request.currentUser?.id });
+
+    let state: CheckpointState = 'PREPARING';
+    const advance = async (to: CheckpointState, patch: Record<string, unknown> = {}) => {
+      assertCheckpointTransition(state, to);
+      state = to;
+      await store.updateProjectCheckpoint(ckpt.id, { state: to, ...patch });
+    };
+
+    // Quiesce admissible AVANT tout gel : timeout fini + dégel garanti.
+    if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_QUIESCE_TIMEOUT_MS, thawGuaranteed: true })) {
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: 'quiesce inadmissible' });
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' });
+      return { ok: false, code: 'CHECKPOINT_QUIESCE_INADMISSIBLE', error: 'quiesce without finite timeout + guaranteed thaw' };
+    }
+
+    const barrierId = `bar_${randomUUID()}`;
+
+    try {
+      await advance('QUIESCING');
+      /*
+       * BARRIÈRE RÉELLE, PERSISTÉE : les endpoints d'écriture fichiers renvoient
+       * 423 tant que le bail tient, sur TOUS les replicas API (il est lu en base,
+       * pas en mémoire). L'expiration du bail = dégel garanti même si ce
+       * processus meurt en vol.
+       */
+      await store.updateProjectCheckpoint(ckpt.id, {
+        logicalBarrierId: barrierId,
+        barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+      });
+      await advance('BARRIER_ESTABLISHED', { logicalBarrierId: barrierId });
+
+      const startedAt = new Date().toISOString();
+      const components: CheckpointComponentSnapshot[] = [];
+      /*
+       * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
+       * `inPodWritersReachable` est vrai dès qu'un workspace existe : on ne peut
+       * pas prouver qu'un dev server / terminal / agent est muet, donc on suppose
+       * qu'il écrit — c'est l'hypothèse qui sous-revendique, jamais l'inverse.
+       */
+      const workspacesForProject = await store.listWorkspaces(projectId).catch(() => []);
+      const barrierScope: BarrierScope = {
+        apiWritesFrozenAllReplicas: true, // bail persisté, lu par tous les replicas
+        inPodWritersReachable: workspacesForProject.length > 0,
+        dbClientWritesReachable: true,
+      };
+      const componentConsistency: Array<{ componentKind: string; consistency: ConsistencyDeclaration }> = [];
+      /** Composants tentés mais NON prouvés — consignés, jamais comptés comme couverture. */
+      const bestEffortComponents: Array<Record<string, unknown>> = [];
+
+      // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
+      await advance('VOLUME_SNAPSHOTTING');
+      // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
+      const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
+      const archive = await rawProjectStorage.createSnapshot({ projectId, label: `checkpoint ${barrierId}`, files });
+      const filesHash = createHash('sha256')
+        .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const fileSnapshot = await store.createSnapshot({
+        projectId,
+        kind: 'manual',
+        manifest: { checkpoint: true, files: files.map((f) => f.path), logicalBarrierId: barrierId, contentHash: filesHash },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser?.id,
+      });
+      const filesConsistency = declareFilesConsistency(barrierScope);
+      componentConsistency.push({ componentKind: 'FILES', consistency: filesConsistency });
+      components.push({
+        componentKind: 'FILES',
+        snapshotId: fileSnapshot.id,
+        logicalBarrierId: barrierId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        consistencyLevel: filesConsistency.level,
+        consistencyBasis: filesConsistency.basis,
+        unfrozenWriters: filesConsistency.unfrozenWriters,
+        encryptionKeyVersion: 'storage-default',
+        restoreCompatibility: 'project-files-v1',
+        verified: false,
+      });
+
+      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      await advance('DB_SNAPSHOTTING');
+      const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
+      const databaseProvisioned = Boolean(dbInstance);
+      let databaseDependencyDeclared = false;
+
+      /*
+       * Le backup CNPG est soumis quand le flag est actif, mais il n'est JAMAIS
+       * compté comme composant vérifié du checkpoint : `takeSnapshot` rend la main
+       * dès que le CR `Backup` est accepté (database-provisioner.ts) — il n'attend
+       * ni la fin du backup ni sa restaurabilité. Le compter « verified » ferait
+       * croire à une couverture base prouvée. Il est donc consigné en
+       * `bestEffortComponents` avec son état exact, et la base est déclarée en
+       * dépendance ouverte dans les deux cas.
+       */
+      if (databaseProvisioned && isDatabaseRollbackEnabled()) {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+        const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
+        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        const dbConsistency = declareDatabaseConsistency(barrierScope);
+        bestEffortComponents.push({
+          componentKind: 'DATABASE',
+          snapshotId: dbSnapId,
+          logicalBarrierId: barrierId,
+          backupRequestAccepted: applied.applied,
+          /*
+           * Ni le CR terminé ni un restore rejoué : on ne sait pas si ce backup est
+           * restaurable, donc on l'écrit au lieu de le taire.
+           */
+          completionAwaited: false,
+          restoreProven: false,
+          consistencyLevelIfRestorable: dbConsistency.level,
+          consistencyBasis: dbConsistency.basis,
+          restoreCompatibility: 'cnpg-pitr-v1',
+        });
+        databaseDependencyDeclared = true;
+      } else if (databaseProvisioned) {
+        // Base réelle mais infra de snapshot DORMANTE (DB_ROLLBACK_ENABLED off).
+        databaseDependencyDeclared = true;
+      }
+
+      if (params.includePod) {
+        await advance('POD_SNAPSHOTTING');
+        // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
+      }
+
+      await advance('VERIFYING');
+      // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
+      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      const rereadHash = createHash('sha256')
+        .update(reread.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+
+      for (const c of components) {
+        if (c.componentKind === 'FILES') {
+          // Seule vérification réellement faite : relecture de l'archive + re-hash.
+          c.verified = rereadHash === filesHash;
+          c.verificationMethod = 'archive-reread-sha256-match';
+        }
+      }
+
+      const admissible = projectCheckpointAdmissible(components, {
+        databaseProvisioned,
+        databaseDependencyDeclared,
+      });
+
+      if (!admissible.admissible) {
+        throw Object.assign(new Error(admissible.reason ?? 'checkpoint inadmissible'), {
+          code: 'CHECKPOINT_INADMISSIBLE',
+        });
+      }
+
+      const visibility = checkpointManifestVisible(components, barrierId);
+
+      if (!visibility.visible) {
+        throw Object.assign(new Error(visibility.reason ?? 'manifest not visible'), {
+          code: 'CHECKPOINT_UNVERIFIED',
+        });
+      }
+
+      /*
+       * Niveau DÉRIVÉ du composant le plus faible, jamais du plus fort, et
+       * accompagné de sa justification + des niveaux explicitement non
+       * revendiqués. C'est la réponse directe au refus P0-V3-09.
+       */
+      const consistency = declareCheckpointConsistency(componentConsistency);
+
+      const manifest = {
+        logicalBarrierId: barrierId,
+        consistencyLevel: consistency.level,
+        consistencyBasis: consistency.basis,
+        /*
+         * Les composants sont snapshottés en SÉQUENCE : partager un
+         * `logicalBarrierId` ordonne les étapes, ça ne crée pas un instant
+         * atomique commun. Dit tel quel plutôt que sous-entendu.
+         */
+        crossComponentAtomic: consistency.crossComponentAtomic,
+        notClaimed: consistency.notClaimed,
+        barrierScope: {
+          apiWritesFrozenAllReplicas: barrierScope.apiWritesFrozenAllReplicas,
+          inPodWritersReachable: barrierScope.inPodWritersReachable,
+          dbClientWritesReachable: barrierScope.dbClientWritesReachable,
+        },
+        components,
+        bestEffortComponents,
+        contentHashes: { files: filesHash },
+        restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
+        dependenciesDeclared: databaseDependencyDeclared
+          ? [
+              isDatabaseRollbackEnabled()
+                ? 'DATABASE : backup CNPG soumis mais NI attendu NI rejoué — couverture base non prouvée, checkpoint restaurable sur les FICHIERS seulement'
+                : 'DATABASE : base provisionnée mais snapshot CNPG dormant (DB_ROLLBACK_ENABLED off) — checkpoint fichiers-seuls, dit tel quel',
+            ]
+          : [],
+        expiresAt: new Date(Date.now() + CHECKPOINT_TTL_DAYS * 86_400_000).toISOString(),
+      };
+
+      await advance('COMMITTED', {
+        consistencyLevel: manifest.consistencyLevel,
+        manifest,
+        expiresAt: manifest.expiresAt,
+      });
+
+      await audit(request, store, {
+        action: 'project.checkpoint',
+        resourceType: 'project',
+        resourceId: projectId,
+        metadata: { checkpointId: ckpt.id, logicalBarrierId: barrierId, consistencyLevel: manifest.consistencyLevel },
+      });
+
+      return { ok: true, checkpointId: ckpt.id, manifest };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: message }).catch(() => undefined);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' }).catch(() => undefined);
+      return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
+    } finally {
+      // DÉGEL GARANTI — chemin succès ET échec (I-CKP quiesce). Le bail est
+      // relâché en base pour que tous les replicas dégèlent, pas juste celui-ci.
+      await store.updateProjectCheckpoint(ckpt.id, { barrierExpiresAt: null }).catch(() => undefined);
+    }
+  };
+
+  app.post('/projects/:projectId/checkpoints', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const result = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!result.ok) {
+      return reply.status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500).send({ error: result.error, code: result.code });
+    }
+
+    const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+    return reply.code(201).send({ checkpoint: ckpt });
+  });
+
+  app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id) {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    return { checkpoint: ckpt };
+  });
+
+  /*
+   * Restore VÉRIFIÉ : rejoue le composant FILES dans un projet JETABLE tout
+   * neuf et compare le hash de contenu au manifeste — le restore n'écrase
+   * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+    const restoredHash = createHash('sha256')
+      .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+      .digest('hex');
+    const matches = restoredHash === manifest.contentHashes.files;
+
+    // Restore effectif dans un projet jetable (preuve de restaurabilité).
+    const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.duplicateProject({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        name: `${project.name} (restore-verify)`,
+        slug: `restore-verify-${Date.now().toString(36)}`,
+      });
+    });
+    await projectStorage.writeFiles(target.id, files);
+
+    await audit(request, store, {
+      action: 'project.checkpoint.restore_verify',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
+    });
+
+    return { restoreVerified: matches, restoredHash, expectedHash: manifest.contentHashes.files, targetProjectId: target.id };
+  });
+
+  /*
+   * RESTORE RÉEL (P0-V3-09) — remet le PROJET LUI-MÊME dans l'état du checkpoint.
+   *
+   * `restore-verify` ci-dessus prouve seulement qu'une archive est relisible dans
+   * un projet jetable ; il ne prouve pas qu'on sait *ramener* un projet cassé.
+   * Ce chemin-ci écrase le projet source, donc il est encadré :
+   *   1. un checkpoint de SÛRETÉ est pris d'abord — sans point de retour on ne
+   *      détruit rien (si sa prise échoue, le restore est refusé) ;
+   *   2. la barrière est réarmée pendant la restauration, sinon une écriture
+   *      concurrente atterrit au milieu de l'arbre en cours de réécriture ;
+   *   3. l'état APRÈS restauration est relu depuis le stockage et re-hashé : la
+   *      réussite est prouvée par le contenu réel, pas par l'absence d'erreur ;
+   *   4. un hash divergent renvoie 409 et le dit — jamais un succès silencieux.
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+      dependenciesDeclared?: string[];
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+
+    // (1) Point de retour AVANT toute écriture destructive.
+    const safety = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!safety.ok) {
+      return reply.status(409).send({
+        error: appPublicCopy('CHECKPOINT_RESTORE_NO_FALLBACK', transactionalLocaleForRequest(request), {
+          reason: String(safety.error ?? ''),
+        }),
+        code: 'CHECKPOINT_SAFETY_FAILED',
+      });
+    }
+
+    // (2) Barrière réarmée sur la ligne du checkpoint de sûreté, le temps du restore.
+    await store.updateProjectCheckpoint(safety.checkpointId, {
+      barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+    });
+
+    try {
+      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files });
+
+      // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
+      const afterRestore = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
+      const restoredHash = createHash('sha256')
+        .update(afterRestore.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const matches = restoredHash === manifest.contentHashes.files;
+
+      await audit(request, store, {
+        action: 'project.checkpoint.restore',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: {
+          checkpointId: ckpt.id,
+          safetyCheckpointId: safety.checkpointId,
+          hashMatches: matches,
+          restoredHash,
+        },
+      });
+
+      if (!matches) {
+        // (4) Divergence dite, pas avalée : le point de retour reste exploitable.
+        return reply.status(409).send({
+          error: appPublicCopy('CHECKPOINT_RESTORE_HASH_MISMATCH', transactionalLocaleForRequest(request)),
+          code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
+          expectedHash: manifest.contentHashes.files,
+          restoredHash,
+          safetyCheckpointId: safety.checkpointId,
+        });
+      }
+
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser?.id,
+        action: 'project.checkpoint.restore',
+        metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
+      });
+
+      return {
+        restored: true,
+        checkpointId: ckpt.id,
+        /** Point de retour pour annuler CE restore. */
+        safetyCheckpointId: safety.checkpointId,
+        restoredHash,
+        expectedHash: manifest.contentHashes.files,
+        fileCount: afterRestore.length,
+        /*
+         * Le restore ne couvre QUE les fichiers : la base n'est pas rejouée ici.
+         * Repris du manifeste pour que l'appelant ne déduise pas une couverture
+         * qu'il n'a pas.
+         */
+        dependenciesDeclared: manifest.dependenciesDeclared ?? [],
+      };
+    } finally {
+      // Dégel garanti, succès comme échec.
+      await store.updateProjectCheckpoint(safety.checkpointId, { barrierExpiresAt: null }).catch(() => undefined);
+    }
+  });
 
   const remixSchema = z.object({
     name: z.string().min(1),
@@ -23787,7 +24915,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: sourceProject.id,
           organizationId: targetOrganizationId,
           name: params.name,
-          slug: params.slug ?? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          slug: params.slug ?? slugify(params.name),
         });
       });
 
@@ -24483,7 +25611,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.duplicateProject({
         projectId: project.id,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
       });
     });
 
@@ -24584,12 +25712,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ workspace });
   });
+  /*
+   * Le statut rendu doit décrire le CLUSTER, pas une ligne qui a cessé d'y
+   * correspondre.
+   *
+   * Mesuré en production le 2026-08-30 : 125 espaces de travail se déclaraient
+   * `RUNNING` en base alors qu'UN SEUL pod tournait dans le namespace
+   * `workspaces`. Un seul enregistrement avait été mis à jour dans les 24
+   * dernières heures. L'IDE lisait ce statut, affichait « en cours d'exécution »,
+   * et chaque opération sur un fichier répondait 425 : le produit mentait à son
+   * utilisateur, puis lui donnait tort.
+   *
+   * La dérive vient de ce que le statut n'est écrit QUE sur des transitions
+   * volontaires. Un pod qui disparaît autrement — éviction, réduction de nœuds,
+   * reclamation d'inactivité côté cluster — ne repasse par aucune de ces
+   * écritures, et la ligne reste indéfiniment sur sa dernière valeur.
+   *
+   * On ne fait pas confiance à la ligne : on SONDE. Et la correction est
+   * persistée, pour que la prochaine lecture — et les tableaux de bord qui
+   * comptent les espaces actifs — parte d'une base juste.
+   */
+  const RUNNING_PROBE_GRACE_MS = 30_000;
+
+  const reconcileWorkspaceStatus = async <T extends { id: string; status: string; updatedAt?: Date | string }>(
+    workspace: T,
+  ): Promise<T> => {
+    if (workspace.status !== 'RUNNING') {
+      /*
+       * PENDING et STARTING ne sont PAS sondés : ne pas être joignable est leur
+       * état normal, et les rétrograder transformerait un démarrage en panne.
+       * STOPPED et FAILED ne prétendent rien : il n'y a rien à corriger.
+       */
+      return workspace;
+    }
+
+    /*
+     * Une écriture toute fraîche a la priorité sur la sonde : un pod qui vient
+     * d'être marqué RUNNING peut n'avoir pas encore de route réseau, et le
+     * rétrograder ici annulerait un démarrage réussi une seconde plus tôt.
+     */
+    const updatedAt = workspace.updatedAt ? new Date(workspace.updatedAt).getTime() : 0;
+
+    if (updatedAt && Date.now() - updatedAt < RUNNING_PROBE_GRACE_MS) {
+      return workspace;
+    }
+
+    let reachable: boolean;
+
+    try {
+      reachable = await probeAgentHealth(workspace.id);
+    } catch {
+      /*
+       * Une sonde qui échoue pour une raison qui ne la regarde pas ne doit pas
+       * décider du statut. Dans le doute, on rend ce qui est stocké : mentir dans
+       * l'autre sens serait tout aussi faux.
+       */
+      return workspace;
+    }
+
+    if (reachable) {
+      return workspace;
+    }
+
+    /*
+     * STOPPED et non FAILED : un pod reclamé n'est pas une panne. C'est aussi
+     * l'état depuis lequel le chemin d'écriture sait relancer un provisionnement
+     * (voir `agentMutateEnsuring`), donc l'utilisateur retrouve son espace en
+     * travaillant, sans geste explicite.
+     */
+    await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+
+    return { ...workspace, status: 'STOPPED' };
+  };
+
   app.get('/workspaces/:workspaceId', async (request) => ({
-    workspace: await requireWorkspace(
-      request,
-      store,
-      parse(workspaceParams, request.params).workspaceId,
-      'workspaces:read',
+    workspace: await reconcileWorkspaceStatus(
+      await requireWorkspace(request, store, parse(workspaceParams, request.params).workspaceId, 'workspaces:read'),
     ),
   }));
 
@@ -31766,7 +32964,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      /*
+       * `BUCKET_NOT_PROVISIONED` rejoint 404 et non 422 : un projet qui n'a rien
+       * stocké n'est pas une requête invalide, c'est un projet vide.
+       */
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
+            ? 404
+            : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -32013,8 +33220,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
        * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
+      /*
+       * Le budget porte sur l'OPÉRATION ENTIÈRE, pas sur chaque appel.
+       *
+       * Les deux appels sont séquentiels : appliquer le même délai à chacun
+       * autorisait 10 s au pire, alors que le commentaire ci-dessus promet
+       * qu'une vignette ne retient jamais une requête. Sur un tableau de bord
+       * qui en demande six, ces secondes s'additionnent et repoussent
+       * l'affichage bien au-delà de ce qu'un utilisateur accepte d'attendre.
+       * Le second appel n'a donc droit qu'au reliquat du premier.
+       */
+      const lookupStartedAt = Date.now();
+
+      /*
+       * Le seau du projet est créé à la demande : un projet qui n'a encore rien
+       * stocké n'en a pas. Cette absence se lit comme « pas de vignette », la
+       * même situation que « pas d'objet » quelques lignes plus bas — surtout pas
+       * comme une panne.
+       */
       const { objects } = await withStorageDeadline(
-        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }).catch((error: unknown) => {
+          if (error instanceof ObjectStorageError && error.code === BUCKET_NOT_PROVISIONED) {
+            return { objects: [], folders: [] };
+          }
+
+          throw error;
+        }),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
       );
 
@@ -32022,11 +33253,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
+      /*
+       * Au moins 1 ms : un reliquat nul ou négatif ferait échouer l'appel avant
+       * même de le tenter, transformant une lenteur en absence de vignette
+       * alors que le lien était peut-être immédiat.
+       */
+      const remainingMs = Math.max(1, THUMBNAIL_LOOKUP_DEADLINE_MS - (Date.now() - lookupStartedAt));
+
       return reply.send(
-        await withStorageDeadline(
-          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
-          THUMBNAIL_LOOKUP_DEADLINE_MS,
-        ),
+        await withStorageDeadline(storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }), remainingMs),
       );
     } catch (error) {
       /*
@@ -33197,6 +34432,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ensureQuota and exceed the limit. The in-flight check inside still filters
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
+    /*
+     * SEC-13: inherit the site's CURRENT access config so publishing a new
+     * version cannot silently unprotect it. See currentSiteAccessConfig.
+     */
+    const inheritedAccess = await currentSiteAccessConfig(store, project.id, body.provider, body.environment);
+
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -33227,6 +34468,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             githubIntegration: body.githubIntegration,
             envVars: sanitizeDeploymentEnvVars(body.envVars),
             injectedSecrets: body.injectSecrets,
+            /*
+             * SEC-13: publishing a new version must not silently unprotect the
+             * site. This metadata is a fresh literal and `metadata.access` has
+             * exactly one writer (the /access route), so without this every
+             * re-publish of a password-protected site produced a PUBLIC
+             * deployment while the owner still believed a password was set.
+             *
+             * The product promise is "this app is password-protected", not "this
+             * build id is" — so protection travels with the site. Inherited from
+             * the CURRENT release of the same project+environment, which is the
+             * owner's last expressed intent: if they un-protected it, there is
+             * nothing to inherit and the new release stays public.
+             */
+            ...(inheritedAccess === undefined ? {} : { access: inheritedAccess }),
           },
           startedAt: new Date().toISOString(),
         }),
@@ -34021,6 +35276,130 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply;
   });
+  /*
+   * P104: set a deployment's access mode. Owner-only. `password` protects the
+   * deployment behind the /__access gate (hash stored, never the plaintext);
+   * `public` clears it. Rotating or clearing the password invalidates every
+   * previously-issued access cookie for free (the cookie is bound to the hash).
+   */
+  app.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {
+    const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
+    const body = parse(
+      z.object({
+        mode: z.enum(['public', 'password']),
+        password: z.string().min(4).max(200).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    if (body.mode === 'password' && !body.password) {
+      return reply.code(400).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
+    }
+
+    const project = await requireProject(request, store, projectId, 'projects:write');
+    const deployment = await store.getDeployment(project.id, deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    /*
+     * SEC-8 — two-phase activation interlock (deploy-time, NOT a product toggle).
+     *
+     * An api build from BEFORE the P104 cutover answered a public static
+     * deployment with `Cache-Control: public, max-age=60`: a shared cache may
+     * reuse that entry, with no revalidation, for 60s after it was emitted. The
+     * origin cannot purge it. So switching a deployment to `password` inside that
+     * window does NOT protect it — an anonymous visitor keeps getting the cached
+     * public copy until it ages out. Post-cutover we emit `no-cache,
+     * must-revalidate`, so every reuse revalidates through the gate and the
+     * window is closed for good — but only once the last pre-cutover pod is gone
+     * AND its final response has expired.
+     *
+     * DEPLOYMENT_ACCESS_ACTIVATION_ENABLED is that interlock, driven by
+     * .github/workflows/deploy-main.yml: phase 1 rolls the new code with the flag
+     * at '0', the workflow waits for every pre-cutover pod to disappear plus the
+     * full legacy max-age (+ margin), and only then does phase 2 set '1'.
+     *
+     * Deliberately fail-closed on ANY value other than '1' (absent, '', '0',
+     * typo): a lost env var must postpone activation, never silently permit an
+     * activation that the cache can defeat.
+     *
+     * Scope is exactly ONE direction of exactly ONE route:
+     *   - ENFORCEMENT is untouched — an already-protected deployment stays gated
+     *     even at '0' (proven in deployment-password.spec.ts).
+     *   - mode=public (un-protecting) stays allowed at '0': it only ever
+     *     de-escalates, and trapping an owner behind a deploy flag would be worse.
+     *
+     * Placed AFTER requireProject + the 404 so the deploy state is only ever
+     * disclosed to someone already authorized on this deployment, and still
+     * BEFORE any mutation.
+     */
+    if (body.mode === 'password' && process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED !== '1') {
+      return reply.code(503).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_ACTIVATION_DISABLED', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED',
+      });
+    }
+
+    /*
+     * SEC-11: never CLAIM protection on a provider where it is not ENFORCED.
+     *
+     * The gate lives exclusively on the `/static-deployments/:id/*` route. A
+     * `server` deployment is served from its own host (`d-<id>.<previewDomain>`)
+     * and vercel/netlify/pages/run/docker from the provider's own domain — none of
+     * those paths ever read `metadata.access`. Accepting `mode=password` there
+     * used to store a hash and answer 200, so the product showed the deployment
+     * as protected while its URL stayed world-open.
+     *
+     * That is strictly worse than refusing: a visible padlock stops the owner
+     * looking for the real problem. Refuse loudly instead, BEFORE any mutation,
+     * so no half-applied state can exist either. Implementing per-provider
+     * enforcement is a separate piece of work; until it lands, this is the honest
+     * answer. `mode=public` is deliberately NOT restricted — de-escalation must
+     * work everywhere.
+     */
+    if (body.mode === 'password' && deployment.provider !== 'static') {
+      return reply.code(409).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER',
+      });
+    }
+
+    const metadata = { ...(deployment.metadata as Record<string, unknown>) };
+
+    if (body.mode === 'password') {
+      metadata.access = { mode: 'password', passwordHash: hashPassword(body.password!) };
+    } else {
+      delete metadata.access;
+    }
+
+    /*
+     * Re-derive the public URL: a gated deployment must advertise the API-origin
+     * URL (where the gate works), a public one the dedicated origin. Only for
+     * static — other providers' URLs are unaffected by access mode.
+     */
+    const nextUrl =
+      deployment.provider === 'static'
+        ? buildDeploymentUrl(project, { ...deployment, metadata })
+        : deployment.url;
+
+    const updated = await store.updateDeployment(project.id, deployment.id, {
+      metadata,
+      ...(nextUrl && nextUrl !== deployment.url ? { url: nextUrl } : {}),
+    });
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'deployment.access.set',
+      resourceType: 'deployment',
+      resourceId: deployment.id,
+      metadata: { mode: body.mode },
+    });
+
+    return { deployment: updated, accessMode: body.mode };
+  });
+
   app.post('/projects/:projectId/deployments/:deploymentId/cancel', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
@@ -34099,6 +35478,100 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : appPublicEnglish('DEPLOYMENT_READY_REQUIRED_TO_PUBLISH'),
         code: check.code,
       });
+    }
+
+    /*
+     * La migration s'exécute AVANT la section critique ci-dessous, et non après :
+     * `withSerializedMutation` crée le déploiement, donc y entrer signifie que le
+     * publish est acté. Migrer ensuite reviendrait à publier d'abord et muter le
+     * schéma « au mieux » — exactement ce que cette garantie interdit. Un échec
+     * ici sort en 409 sans jamais toucher au déploiement : la production continue
+     * de servir la version précédente.
+     */
+    /*
+     * ---- Migration de schéma AVANT de publier (P0-V3-11, CTR-DATABASE) ----
+     *
+     * Placée ici À DESSEIN : avant la section critique `withSerializedMutation`,
+     * qui crée le déploiement. Si la migration échoue,
+     * le publish est REFUSÉ et la production continue de servir la version
+     * précédente. Publier d'abord puis migrer « au mieux » exposerait l'inverse :
+     * une application neuve pointée sur un schéma à moitié muté.
+     *
+     * Le lot de migrations est déclaré par le projet dans `migrations/*.sql`
+     * (ordre lexicographique). Sans fichier, il n'y a rien à faire et le publish
+     * suit son cours — un projet sans migration n'est pas pénalisé.
+     */
+    const declaredMigrations = await collectDeclaredMigrations(projectStorage, project.id, source.workspaceId);
+
+    if (declaredMigrations.length > 0) {
+      const prodConnection = await listDatabaseConnections(store, project.id).then((connections) =>
+        connections.find((item) => item.key === 'PROD_DATABASE_URL'),
+      );
+
+      if (!prodConnection) {
+        /*
+         * Des migrations sont déclarées mais aucune base production n'est
+         * joignable : refuser plutôt que publier une application dont le schéma
+         * n'a pas été préparé.
+         */
+        return reply.code(409).send({
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE_MESSAGE', transactionalLocaleForRequest(request)),
+          code: 'MIGRATION_TARGET_UNAVAILABLE',
+        });
+      }
+
+      const migrationOutcome = await runPublishMigration({
+        store,
+        provisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        projectId: project.id,
+        organizationId: project.organizationId,
+        environment: 'production',
+        /*
+         * Clé d'idempotence liée au déploiement ET au contenu : republier le même
+         * déploiement rejoue la même clé et ne ré-applique rien ; un lot modifié
+         * produit une clé différente et une nouvelle exécution.
+         */
+        idempotencyKey: `publish:${source.id}:${hashStatements(declaredMigrations).slice(0, 16)}`,
+        migrations: declaredMigrations,
+        connectionString: prodConnection.value,
+        engine: prodConnection.kind,
+        deploymentId: source.id,
+        createdByUserId: request.currentUser?.id,
+        applySql: options.migrationApplier ?? postgresMigrationApplier,
+      });
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'database.migration.publish',
+        resourceType: 'projectDatabase',
+        resourceId: project.id,
+        metadata: {
+          ok: migrationOutcome.ok,
+          code: migrationOutcome.ok ? 'COMMITTED' : migrationOutcome.code,
+          executionId: migrationOutcome.ok ? migrationOutcome.executionId : migrationOutcome.executionId,
+        },
+      });
+
+      if (!migrationOutcome.ok) {
+        /*
+         * 409 : le publish n'a pas eu lieu ; l'état de la base est décrit par le
+         * code. Le message rendu vient du CATALOGUE, indexé sur ce code stable :
+         * `migrationOutcome.error` est un motif technique rédigé en français
+         * pour l'audit et les journaux, et le renvoyer tel quel servait ce
+         * français à tout le monde, y compris à un utilisateur anglophone. Le
+         * détail technique reste disponible dans `detail`, et l'entrée d'audit
+         * juste au-dessus le conserve intégralement.
+         */
+        const migrationCopyKey = `${migrationOutcome.code}_MESSAGE` as AppPublicCopyKey;
+
+        return reply.code(409).send({
+          error: appPublicCopy(migrationCopyKey, transactionalLocaleForRequest(request)),
+          detail: migrationOutcome.error,
+          code: migrationOutcome.code,
+          executionId: migrationOutcome.executionId,
+          state: migrationOutcome.state,
+        });
+      }
     }
 
     /*
@@ -34357,6 +35830,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * create) both pass the org quota / per-project in-flight check via TOCTOU and
      * clobber the shared build CWD / double-consume quota.
      */
+    /*
+     * SEC-14: the site's current access config, read before the serialized
+     * mutation (a plain read must not lengthen the org-wide deploy lock).
+     */
+    const redeployInheritedAccess = await currentSiteAccessConfig(
+      store,
+      project.id,
+      source.provider,
+      source.environment,
+    );
+
     const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -34382,7 +35866,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
-          metadata: { ...source.metadata, redeployedFromId: source.id },
+          /*
+           * SEC-14: the spread carries the SOURCE build's access config, which is
+           * the wrong source of truth. Redeploying a build that predates the
+           * password, while the site IS protected, produced a public release —
+           * the same silent de-protection as SEC-12/SEC-13, by a third door.
+           *
+           * The site's CURRENT config wins in both directions: it protects when
+           * the owner has a password set, and it does NOT resurrect protection
+           * they removed after the source build was made. Assigned after the
+           * spread so it overrides, and deleted (not left stale) when the site is
+           * currently public.
+           */
+          metadata: (() => {
+            const carried = { ...source.metadata, redeployedFromId: source.id } as Record<string, unknown>;
+
+            if (redeployInheritedAccess === undefined) {
+              delete carried.access;
+            } else {
+              carried.access = redeployInheritedAccess;
+            }
+
+            return carried;
+          })(),
           startedAt: new Date().toISOString(),
           logs: [
             {
@@ -34709,6 +36215,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw error;
       }
 
+      /*
+       * SEC-12: a rollback must NEVER silently unprotect the site.
+       *
+       * This metadata is built from a fresh literal, and `metadata.access` has
+       * exactly one writer (the /access route). So without this, the rollback
+       * deployment is created with no access config — i.e. PUBLIC — even when the
+       * release it replaces was password-protected. The serve gate reads the
+       * access config of the deployment actually being served, so the content
+       * went world-open while the owner still believed a password was set.
+       *
+       * Carry the CURRENT deployment's access config forward: it is the owner's
+       * latest expressed intent. If they had un-protected the site, there is
+       * nothing to carry and the rollback stays public — intent still wins. The
+       * hash travels as-is, so the existing password keeps working; the cookie is
+       * bound to the hash, so previously-issued cookies keep working too.
+       */
+      const currentAccess = (
+        (await store.getDeployment(project.id, current.deploymentId).catch(() => undefined))?.metadata as
+          | Record<string, unknown>
+          | undefined
+      )?.access;
+
       const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
         await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -34724,6 +36252,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             restoredFromDeploymentId: previous.deploymentId,
             supersededVersion: current.version,
             manifestArtifactDigest: previous.artifactDigest,
+            ...(currentAccess === undefined ? {} : { access: currentAccess }),
           },
         });
       });

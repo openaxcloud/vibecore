@@ -21,6 +21,19 @@ export interface PreviewLoadRetryState {
   /* The runtime port watcher's readiness signal (undefined when unknown). */
   ready?: boolean;
 
+  /*
+   * The server-side "this port actually answers HTTP AND a live process holds
+   * it" probe (`WorkspacePort.serving`). `ready` aggregates two EXTRA vetoes on
+   * top of it — the manager status (which notoriously lags at PENDING/STARTING
+   * on reopen) and the persisted client beacon (which reflects the PREVIOUS
+   * page's render). Both can hold `ready` at false long after the dev server is
+   * genuinely serving 200s — which left the boot overlay stuck on "Starting dev
+   * server" while the preview URL rendered the app in a plain tab
+   * (BUG-UX-PREVIEW-OVERLAY-LAG, live 24/08). When the server says
+   * serving === true, a frame load IS the app.
+   */
+  serving?: boolean;
+
   /* Whether an iframe `error` event (not `load`) triggered this evaluation. */
   erroredLoad: boolean;
 }
@@ -59,6 +72,22 @@ export function decidePreviewLoadOutcome(state: PreviewLoadRetryState): PreviewL
   }
 
   /*
+   * The port answers HTTP and a live process holds it (server-side probe): the
+   * body the iframe just loaded is the real app, not the proxy's 502 holding
+   * page. Trust the load even while the aggregate `ready` is still vetoed by a
+   * lagging manager status / stale client beacon — otherwise every genuine
+   * render is discarded and the overlay stays on "Starting dev server" over a
+   * serving app.
+   */
+  if (state.serving === true) {
+    return {
+      treatAsRendered: true,
+      scheduleReload: false,
+      nextAttempt: 0,
+    };
+  }
+
+  /*
    * A successful load while the runtime explicitly reports the port as
    * not-ready is the classic "port bound, still compiling → 502 body" race.
    * Do not dismiss the overlay; schedule another reload until the port is ready
@@ -77,6 +106,47 @@ export function decidePreviewLoadOutcome(state: PreviewLoadRetryState): PreviewL
     scheduleReload: false,
     nextAttempt: 0,
   };
+}
+
+/*
+ * BUG-UX-PREVIEW-OVERLAY-LAG — whether the "WEBVIEW STARTUP / Starting dev
+ * server" overlay must stay over the iframe.
+ *
+ * The old inline condition held the overlay while `activePreview.ready ===
+ * false` EVEN AFTER the frame had genuinely loaded the app. `ready` aggregates
+ * the manager status (lags at PENDING/STARTING on reopen) and the persisted
+ * client beacon (reflects the previous page), so it can sit at false for a long
+ * time while the port serves 200s — measured live 24/08: the preview URL
+ * rendered the app in a plain tab while the embedded overlay still said
+ * "Starting". The overlay must reflect the PORT's real state: once the server
+ * says the port is serving (`serving === true`) and the frame has loaded the
+ * current URL, there is nothing left to wait for.
+ */
+export function shouldHoldPreviewLoadingOverlay(input: {
+  hasActivePreview: boolean;
+  hasIframeUrl: boolean;
+  ready?: boolean;
+  serving?: boolean;
+  frameLoaded: boolean;
+  loadedUrlMatches: boolean;
+}): boolean {
+  if (!input.hasActivePreview || !input.hasIframeUrl) {
+    return false;
+  }
+
+  // Nothing rendered yet for the current URL — the overlay is all there is.
+  if (!input.frameLoaded || !input.loadedUrlMatches) {
+    return true;
+  }
+
+  /*
+   * Frame loaded. Only keep covering it when the runtime BOTH reports the port
+   * not-ready AND does not report it serving — i.e. the load really was the 502
+   * holding page. A serving port (HTTP answers + live process) means the loaded
+   * body is the app; ready's extra manager/beacon vetoes must not keep a
+   * finished render hidden behind "Starting dev server".
+   */
+  return input.ready === false && input.serving !== true;
 }
 
 /*
@@ -167,4 +237,56 @@ export function shouldAutoRunPreview(input: {
  */
 export function shouldReloadPreviewOnReadyEdge(input: { readyEdgeReload: boolean; frameRendered: boolean }): boolean {
   return input.readyEdgeReload && !input.frameRendered;
+}
+
+/*
+ * BUG-A (live 23/08) — "Refresh preview" did not actually reload the iframe.
+ *
+ * The old inline handler tried `iframe.contentWindow.location.reload()` and only
+ * fell back to a forced navigation (about:blank bounce) when that call THREW
+ * (cross-origin frame). But two silent no-op cases never throw:
+ *
+ *   - the frame is parked on `about:blank` (a previous bounce that never
+ *     completed, or a remount that lost its src): about:blank inherits the
+ *     parent origin, so `reload()` "succeeds"… and reloads a blank page. The
+ *     Webview stays white forever, which is exactly what was observed live —
+ *     the dev server was serving on 5173, a standalone tab rendered the app,
+ *     yet Refresh did nothing until the src was reset by hand.
+ *   - `contentWindow` is null: the optional chain skips the call entirely.
+ *
+ * This helper makes the decision testable: it returns `same-origin-reload` only
+ * when a REAL page (same-origin, not about:blank) was genuinely reloaded.
+ * Otherwise it parks the frame on about:blank and returns `force-navigation`;
+ * the caller MUST then re-assign the target src after a short delay (a bare
+ * re-assignment of the same src is ignored by the browser, and an immediate one
+ * can be coalesced with the about:blank navigation).
+ */
+export type PreviewFrameReloadAction = 'same-origin-reload' | 'force-navigation';
+
+export interface PreviewFrameLike {
+  contentWindow: { location: { href: string; reload(): void } } | null;
+  src: string;
+}
+
+export function beginPreviewFrameReload(frame: PreviewFrameLike): PreviewFrameReloadAction {
+  const frameWindow = frame.contentWindow;
+
+  if (frameWindow) {
+    try {
+      // Reading href throws on a cross-origin frame → forced navigation below.
+      const href = frameWindow.location.href;
+
+      if (href && href !== 'about:blank') {
+        frameWindow.location.reload();
+
+        return 'same-origin-reload';
+      }
+    } catch {
+      // Cross-origin (or a chrome-error page): fall through to the forced bounce.
+    }
+  }
+
+  frame.src = 'about:blank';
+
+  return 'force-navigation';
 }
