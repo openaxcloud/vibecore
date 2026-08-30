@@ -75,6 +75,69 @@ describe('release manifest — build', () => {
     expect(() => buildManifest(input([svc({ sourceSha: null })]))).toThrow(/sourceSha must be a full 40-hex/);
   });
 
+  // Le service `admin` n'est PAS construit par le chemin continu : son image est
+  // reprise telle quelle. La porte exigeait quand même un sourceSha, ce qui
+  // bloquait TOUT déploiement — pas seulement le sien — pour une provenance que ce
+  // pipeline n'a jamais été conçu à lui donner.
+  describe('image reprise telle quelle (non reconstruite par ce run)', () => {
+    const carried = () => svc({ service: 'admin', rebuilt: false, cloudBuildId: null, sourceSha: null });
+
+    it('émet le manifeste au lieu de refuser — rien de nouveau n’est expédié pour elle', () => {
+      const m = buildManifest(input([svc(), carried()]));
+
+      expect(m.services.map((x) => x.service)).toEqual(['api', 'admin']);
+    });
+
+    it('écrit le trou au lieu de le combler : provenanceKnown, provenanceGaps, fullyTraceable', () => {
+      const m = buildManifest(input([svc(), carried()]));
+      const admin = m.services.find((x) => x.service === 'admin');
+
+      expect(admin.provenanceKnown).toBe(false);
+      expect(admin.sourceSha).toBeNull();
+      expect(m.provenanceGaps).toEqual(['admin']);
+      expect(m.fullyTraceable).toBe(false);
+    });
+
+    it('n’invente jamais le commit courant à la place de la provenance manquante', () => {
+      const m = buildManifest(input([svc(), carried()]));
+
+      expect(m.services.find((x) => x.service === 'admin').sourceSha).not.toBe(SHA);
+    });
+
+    it('reste un manifeste complet quand toutes les images sont attribuables', () => {
+      const m = buildManifest(input([svc()]));
+
+      expect(m.provenanceGaps).toEqual([]);
+      expect(m.fullyTraceable).toBe(true);
+      expect(m.services[0].provenanceKnown).toBe(true);
+    });
+
+    it('continue de REFUSER une image reconstruite sans provenance', () => {
+      // La tolérance ne vaut que pour une image reprise. Une image que ce run vient
+      // de produire est nouvelle : sans commit, le manifeste mentirait.
+      expect(() => buildManifest(input([svc({ rebuilt: true, sourceSha: null })]))).toThrow(
+        /sourceSha must be a full 40-hex/,
+      );
+    });
+
+    it('exige toujours signature et SBOM sur une image reprise', () => {
+      // La tolérance porte UNIQUEMENT sur le commit d'origine. Une image reprise
+      // reste scannée et vérifiée comme les autres.
+      expect(() => buildManifest(input([svc(), { ...carried(), sbom: null }]))).toThrow(
+        /an SBOM with a sha256 is required/,
+      );
+      expect(() => buildManifest(input([svc(), { ...carried(), signature: { verified: false } }]))).toThrow(
+        /image signature not verified/,
+      );
+    });
+
+    it('exige toujours un digest sur une image reprise', () => {
+      expect(() => buildManifest(input([svc(), { ...carried(), digest: 'latest' }]))).toThrow(
+        /digest must be sha256:/,
+      );
+    });
+  });
+
   it('refuses an entry with no SBOM, or an SBOM without a sha256', () => {
     expect(() => buildManifest(input([svc({ sbom: null })]))).toThrow(/an SBOM with a sha256 is required/);
     expect(() => buildManifest(input([svc({ sbom: { format: 'cyclonedx-json' } })]))).toThrow(/SBOM with a sha256/);

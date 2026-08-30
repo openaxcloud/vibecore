@@ -77,13 +77,28 @@ export function buildManifest(input) {
     if (s.rebuilt && s.sourceSha && s.sourceSha !== input.targetSha) {
       problems.push(`${where}: built from '${s.sourceSha}' but the release targets '${input.targetSha}'`);
     }
-    // A manifest entry is a claim about what shipped. Every field below was optional
-    // and therefore routinely absent, which made the manifest unfalsifiable:
-    //   * sourceSha null  — "built from some commit, we don't record which"
-    //   * sbom  null      — the supply-chain record the manifest advertises, missing
-    // Both are now required. A release that cannot say where an image came from, or
-    // what is inside it, is not a release that should be provable on paper.
-    if (!SHA_RE.test(String(s.sourceSha ?? ''))) {
+    // A manifest entry is a claim about what shipped. `sourceSha` and `sbom` were
+    // once optional and therefore routinely absent, which made the manifest
+    // unfalsifiable: "built from some commit, we don't record which".
+    //
+    // Une image RECONSTRUITE par ce run doit toujours nommer son commit : elle est
+    // nouvelle, et une nouveauté sans provenance est exactement ce que la porte
+    // existe pour arrêter.
+    //
+    // Une image REPRISE telle quelle — `admin`, que ce chemin continu ne construit
+    // pas — est un cas différent. Son digest est identique à ce qui tourne déjà :
+    // refuser d'émettre le manifeste n'empêche RIEN d'expédier, cela bloque
+    // seulement tout déploiement des autres services. Et la remédiation que la
+    // porte proposait, « reconstruire ce service », est impossible par ce chemin.
+    //
+    // Le principe tient quand même, parce que le manifeste ÉCRIT le trou au lieu de
+    // le combler : `provenanceKnown: false` sur l'entrée, le service listé dans
+    // `provenanceGaps`, et `fullyTraceable: false` au sommet. Un lecteur du
+    // manifeste voit donc exactement ce qui n'est pas attribuable, au lieu de lire
+    // un document qui prétend l'être en entier.
+    const hasSourceSha = SHA_RE.test(String(s.sourceSha ?? ''));
+
+    if (!hasSourceSha && s.rebuilt) {
       problems.push(`${where}: sourceSha must be a full 40-hex commit sha (got '${s.sourceSha}')`);
     }
     if (!s.sbom || !s.sbom.format || !/^[0-9a-f]{64}$/.test(String(s.sbom.sha256 ?? ''))) {
@@ -112,6 +127,9 @@ export function buildManifest(input) {
       // build the image now running — carried forward, never silently restamped
       // with the current commit.
       sourceSha: s.sourceSha ?? (s.rebuilt ? input.targetSha : null),
+      // Dit explicitement si l'entrée sait d'où vient son image. Toujours vrai pour
+      // une image reconstruite (le cas contraire est refusé plus haut).
+      provenanceKnown: hasSourceSha || Boolean(s.rebuilt),
       tag: s.tag ?? null,
       digest: s.digest,
       rebuilt: Boolean(s.rebuilt),
@@ -161,6 +179,11 @@ export function buildManifest(input) {
     workflowRunUrl: input.workflowRunUrl ?? null,
     gateVerdictSha256: input.gateVerdictSha256 ?? null,
     generatedAt: input.generatedAt ?? new Date().toISOString(),
+    // Le manifeste dit lui-même s'il est un document complet. Sans ces deux champs,
+    // un lecteur devrait parcourir chaque entrée pour découvrir qu'une image n'est
+    // pas attribuable — c'est-à-dire qu'il ne le découvrirait jamais.
+    provenanceGaps: services.filter((s) => !s.provenanceKnown).map((s) => s.service),
+    fullyTraceable: services.every((s) => s.provenanceKnown),
     services,
   };
 }
@@ -234,16 +257,28 @@ function renderManifestSummary(manifest) {
   const rows = manifest.services.map((s) => {
     const build = s.rebuilt ? s.cloudBuildId : '(not rebuilt)';
     const sbom = s.sbom?.sha256 ? `${s.sbom.format} ${s.sbom.sha256.slice(0, 12)}…` : 'none';
-    return `| ${s.service} | \`${(s.sourceSha ?? '?').slice(0, 10)}\` | ${build} | \`${s.digest.slice(0, 26)}…\` | ${
+    // Une provenance inconnue s'écrit en toutes lettres, jamais en `?` discret : la
+    // ligne doit sauter aux yeux dans le résumé du run.
+    const source = s.provenanceKnown ? `\`${String(s.sourceSha).slice(0, 10)}\`` : '⚠️ inconnue (image reprise)';
+    return `| ${s.service} | ${source} | ${build} | \`${s.digest.slice(0, 26)}…\` | ${
       s.signature.verified ? '✅' : '❌'
     } | ${sbom} |`;
   });
+  const gaps =
+    manifest.provenanceGaps?.length > 0
+      ? [
+          '',
+          `⚠️ **${manifest.provenanceGaps.length} image(s) sans provenance attribuable** : ${manifest.provenanceGaps.join(', ')}.`,
+          "Leur digest est repris à l'identique de ce qui tourne déjà — rien de nouveau n'est expédié pour elles.",
+        ]
+      : [];
   return [
     `### Release manifest — \`${manifest.targetSha}\``,
     '',
     '| service | source SHA | Cloud Build id | image digest | signature | SBOM |',
     '| --- | --- | --- | --- | --- | --- |',
     ...rows,
+    ...gaps,
   ].join('\n');
 }
 
