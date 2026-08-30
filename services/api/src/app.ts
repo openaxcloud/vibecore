@@ -33115,6 +33115,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
        * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
+      /*
+       * Le budget porte sur l'OPÉRATION ENTIÈRE, pas sur chaque appel.
+       *
+       * Les deux appels sont séquentiels : appliquer le même délai à chacun
+       * autorisait 10 s au pire, alors que le commentaire ci-dessus promet
+       * qu'une vignette ne retient jamais une requête. Sur un tableau de bord
+       * qui en demande six, ces secondes s'additionnent et repoussent
+       * l'affichage bien au-delà de ce qu'un utilisateur accepte d'attendre.
+       * Le second appel n'a donc droit qu'au reliquat du premier.
+       */
+      const lookupStartedAt = Date.now();
+
       const { objects } = await withStorageDeadline(
         storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
@@ -33124,11 +33136,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
+      /*
+       * Au moins 1 ms : un reliquat nul ou négatif ferait échouer l'appel avant
+       * même de le tenter, transformant une lenteur en absence de vignette
+       * alors que le lien était peut-être immédiat.
+       */
+      const remainingMs = Math.max(1, THUMBNAIL_LOOKUP_DEADLINE_MS - (Date.now() - lookupStartedAt));
+
       return reply.send(
-        await withStorageDeadline(
-          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
-          THUMBNAIL_LOOKUP_DEADLINE_MS,
-        ),
+        await withStorageDeadline(storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }), remainingMs),
       );
     } catch (error) {
       /*

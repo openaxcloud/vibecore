@@ -1467,6 +1467,15 @@
       "justification": "Provisioner-internal identifiers and operator diagnostics (Kubernetes CR names, manager call failures, a resource key). They reach logs and audit, never a screen; the API converts provisioner failures into stable codes before answering.",
       "owner": "i18n",
       "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "screenshotter-internal-refusal-message",
+      "path": "services/screenshotter/src/app.ts",
+      "rule": "*",
+      "textPattern": "^target page returned an error status$",
+      "justification": "Internal service-to-service refusal message. The screenshotter is never reached by a browser: only the API calls it, and the API converts the 422 into its own catalogued copy before anything reaches a screen. The stable code TARGET_PAGE_ERROR is what callers branch on; the text exists for logs and on-call.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
     }
   ]
 }
