@@ -14412,7 +14412,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return await agentRequest<T>(authorized.workspaceId, path, init);
     } catch (error) {
-      if ((error as { code?: string } | undefined)?.code !== 'WORKSPACE_AGENT_REQUEST_FAILED') {
+      /*
+       * Deux codes, une seule situation : le pod n'est pas joignable.
+       *
+       *   WORKSPACE_AGENT_REQUEST_FAILED  le pod ne répond pas
+       *   WORKSPACE_NOT_STARTED           son nom DNS ne résout pas encore
+       *
+       * Le second a été ajouté pour que l'IDE affiche « démarrage » au lieu d'une
+       * erreur serveur pendant la fenêtre de propagation kube-dns. Mais il n'a pas
+       * été ajouté ICI : `agentMutateEnsuring` ne relançait le provisionnement que
+       * sur le premier code, et relançait l'erreur pour le second.
+       *
+       * Conséquence mesurée en production le 2026-08-30, sur un projet créé la
+       * minute d'avant : `PUT /files/write` répondait 425 en UNE seconde, sans
+       * qu'aucune demande n'atteigne le workspace-manager. Le pod n'ayant jamais
+       * existé, son nom DNS ne résolvait pas — donc `WORKSPACE_NOT_STARTED` —
+       * donc aucun provisionnement. Vingt-cinq minutes plus tard, toujours aucune
+       * ligne `Workspace` en base : le chemin d'écriture ne se réparait jamais
+       * tout seul, il se contentait de dire « pas encore » indéfiniment.
+       *
+       * Le budget de `ensureWorkspaceReachable` est inchangé : un démarrage
+       * réellement lent renvoie toujours 425 une fois le délai écoulé. On tente
+       * simplement le provisionnement avant de le dire.
+       */
+      const failureCode = (error as { code?: string } | undefined)?.code;
+
+      if (failureCode !== 'WORKSPACE_AGENT_REQUEST_FAILED' && failureCode !== 'WORKSPACE_NOT_STARTED') {
         throw error;
       }
 
