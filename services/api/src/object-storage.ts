@@ -89,6 +89,44 @@ export class ObjectStorageError extends Error {
   }
 }
 
+/*
+ * Le seau d'un projet est créé À LA DEMANDE, pas à la création du projet. Toute
+ * LECTURE arrivant avant cette création tombe donc sur un « The specified bucket
+ * does not exist » brut du client GCS — une erreur sans type, que
+ * `sendObjectStorageError` ne reconnaissait pas et relançait : Fastify répondait
+ * alors 500 avec un corps VIDE.
+ *
+ * Constaté en production le 2026-08-30 sur un projet créé la minute d'avant :
+ * `GET /projects/<id>/thumbnail` → 500, 0 octet. C'est aussi ce que décrit
+ * BUG-QA-THUMBNAIL-500-001 (« 3 vignettes sur 6 renvoient 500 avec un corps
+ * vide ») : les trois projets concernés étaient ceux qui n'avaient pas encore de
+ * seau.
+ *
+ * On lui donne un TYPE plutôt que de le laisser remonter nu. L'absence de seau
+ * n'est pas une panne : c'est « ce projet n'a encore rien stocké ». Les appelants
+ * peuvent alors répondre comme pour un objet absent, au lieu d'un 500 muet.
+ */
+export const BUCKET_NOT_PROVISIONED = 'BUCKET_NOT_PROVISIONED';
+
+/**
+ * Reconnaît l'erreur « le seau n'existe pas » du client GCS.
+ *
+ * Le code 404 seul ne suffit pas : un OBJET absent le porte aussi, et les deux
+ * situations n'appellent pas la même réponse. Le message est donc vérifié en
+ * plus, et la comparaison est faite sur une forme normalisée pour ne pas dépendre
+ * de la casse.
+ */
+export function isMissingBucketError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const code = (error as { code?: unknown }).code;
+  const message = String((error as { message?: unknown }).message ?? '').toLowerCase();
+
+  return (code === 404 || code === '404') && message.includes('bucket does not exist');
+}
+
 export interface StoredObject {
   key: string;
   size: number;
@@ -257,12 +295,27 @@ export class GcsObjectStorage implements ObjectStorage {
   async listObjects(projectId: string, opts: { prefix?: string; delimiter?: string } = {}) {
     const bucket = this._storage.bucket(projectBucketName(projectId));
 
-    const [files, , apiResponse] = await bucket.getFiles({
-      prefix: opts.prefix || undefined,
-      delimiter: opts.delimiter || undefined,
-      autoPaginate: false,
-      maxResults: 1000,
-    });
+    let files: Awaited<ReturnType<typeof bucket.getFiles>>[0];
+    let apiResponse: Awaited<ReturnType<typeof bucket.getFiles>>[2];
+
+    try {
+      [files, , apiResponse] = await bucket.getFiles({
+        prefix: opts.prefix || undefined,
+        delimiter: opts.delimiter || undefined,
+        autoPaginate: false,
+        maxResults: 1000,
+      });
+    } catch (error) {
+      /*
+       * Seau pas encore créé : on le DIT, au lieu de laisser une erreur GCS nue
+       * remonter jusqu'à un 500 sans corps. Voir `isMissingBucketError`.
+       */
+      if (isMissingBucketError(error)) {
+        throw new ObjectStorageError('This project has no object storage bucket yet', BUCKET_NOT_PROVISIONED);
+      }
+
+      throw error;
+    }
 
     const objects: StoredObject[] = files
       // when a delimiter is set, the prefix "directory placeholder" can echo back — skip it
@@ -318,10 +371,7 @@ export class GcsObjectStorage implements ObjectStorage {
     const contentType = input.contentType || 'application/octet-stream';
     const body = Buffer.from(input.body);
 
-    await this._storage
-      .bucket(projectBucketName(projectId))
-      .file(key)
-      .save(body, { contentType, resumable: false });
+    await this._storage.bucket(projectBucketName(projectId)).file(key).save(body, { contentType, resumable: false });
 
     return { key, size: body.byteLength };
   }

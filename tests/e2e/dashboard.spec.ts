@@ -436,7 +436,8 @@ test('authenticated user area applies the global platform design system', async 
     card: '#1a2030',
     hover: '#2b3245',
     text: '#f5f9fc',
-    action: '#0099ff',
+    // CHARTE-IDE-001 — l'action primaire porte desormais l'orange de marque.
+    action: '#f97316',
     radiusButton: '4px',
     bodyBackground: 'rgb(10, 15, 28)',
     bodyColor: 'rgb(245, 249, 252)',
@@ -965,7 +966,9 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       aiStart: '#7b61ff',
       aiEnd: '#ff6b9d',
       success: '#3fb950',
-      action: '#0099ff',
+      // CHARTE-IDE-001 — l'action et la marque convergent vers l'orange ; la
+      // regle d'origine « orange = marque, bleu = action » est renversee.
+      action: '#f97316',
       orange: '#f26207',
       error: '#f85149',
       warning: '#d29922',
@@ -1081,7 +1084,8 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#eef2f7',
         hover: '#e2e8f0',
         text: '#111827',
-        action: '#006fd6',
+        // CHARTE-IDE-001 — clair : orange assombri, blanc dessus a 5,18:1.
+        action: '#c2410c',
       },
       root: { background: 'rgb(246, 248, 251)', color: 'rgb(17, 24, 39)' },
       panel: 'rgb(255, 255, 255)',
@@ -1106,7 +1110,8 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
         card: '#1a2030',
         hover: '#2b3245',
         text: '#f5f9fc',
-        action: '#0099ff',
+        // CHARTE-IDE-001 — sombre : orange vif, texte fonce dessus a 6,21:1.
+        action: '#f97316',
       },
       root: { background: 'rgb(10, 15, 28)', color: 'rgb(245, 249, 252)' },
       panel: 'rgb(14, 21, 37)',

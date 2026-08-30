@@ -54,12 +54,24 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
     const normalizedStatus = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw remainingApiErrorResponse(
-      request,
-      normalizedStatus === 401 || normalizedStatus === 403 ? 'PROJECT_FILE_AUTH_REQUIRED' : 'PROJECT_FILE_READ_FAILED',
-      normalizedStatus,
-      { extra: { ok: false } },
-    );
+    /*
+     * 425 « Too Early » n'est pas un échec de lecture : c'est le runtime qui dit
+     * que l'espace de travail n'a pas fini de démarrer. Le fichier existe, il est
+     * listé dans l'arbre, et il s'ouvrira tout seul dans quelques secondes.
+     *
+     * Le message générique disait « Impossible de lire le fichier du projet » —
+     * il accusait le FICHIER pour un état transitoire de l'ESPACE DE TRAVAIL.
+     * Mesuré en production sur un projet neuf : chaque fichier de l'arbre
+     * répondait ainsi tant que le workspace démarrait.
+     */
+    const code =
+      normalizedStatus === 401 || normalizedStatus === 403
+        ? 'PROJECT_FILE_AUTH_REQUIRED'
+        : normalizedStatus === 425
+          ? 'PROJECT_FILE_WORKSPACE_STARTING'
+          : 'PROJECT_FILE_READ_FAILED';
+
+    throw remainingApiErrorResponse(request, code, normalizedStatus, { extra: { ok: false } });
   }
 
   let bytes: Uint8Array;

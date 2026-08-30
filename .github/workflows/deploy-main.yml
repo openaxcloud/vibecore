@@ -111,6 +111,9 @@ on:
 # granted on build-and-deploy alone.
 permissions:
   contents: read
+  # Lire les runs de ce workflow pour retrouver le dernier déploiement RÉUSSI,
+  # qui sert de base au calcul des tiers à reconstruire.
+  actions: read
 
 # Never run two production rollouts at once, and never cancel an in-flight one
 # (cancelling mid-`helm upgrade --atomic` or mid-build leaves things half-applied).
@@ -460,6 +463,10 @@ jobs:
         env:
           BEFORE_SHA: ${{ github.event.before }}
           FORCE_TIERS: ${{ inputs.force_tiers }}
+          # Sert à retrouver le dernier déploiement RÉUSSI, seule base fiable
+          # pour savoir quels tiers reconstruire.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           RUNTIME=true; WEB=true; WSAGENT=true
@@ -482,12 +489,40 @@ jobs:
             exit 0
           fi
 
+          # La base de comparaison doit être CE QUI EST DÉPLOYÉ, pas le push
+          # précédent.
+          #
+          # Défaut mesuré le 2026-08-30. Douze PR mergées coup sur coup ; chaque
+          # nouveau push remplace le déploiement précédent, si bien que seul le
+          # dernier run survit — et il comparait au push d'avant, donc au diff
+          # d'UNE seule PR.
+          #
+          # Résultat : runtime=false alors que trois PR de services/api venaient
+          # de lander. Le tier n'a pas été construit, l'image API a été reprise
+          # telle quelle, et du code mergé n'est jamais arrivé en production —
+          # sans qu'aucune porte ne s'en aperçoive, puisque le déploiement, lui,
+          # a réussi.
+          #
+          # On interroge donc le dernier déploiement RÉUSSI de ce workflow : la
+          # seule base qui décrive ce qui tourne vraiment.
           BASE=""
-          if printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-            BASE="${BEFORE_SHA}"            # push event: diff against the pushed-from SHA
-          elif git rev-parse --verify -q HEAD~1 >/dev/null 2>&1; then
-            BASE="$(git rev-parse HEAD~1)"  # dispatch / shallow fallback: diff the last commit
+          LAST_DEPLOYED="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || echo "")"
+
+          if printf '%s' "${LAST_DEPLOYED}" | grep -Eq '^[0-9a-f]{40}$' \
+            && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
+            && git merge-base --is-ancestor "${LAST_DEPLOYED}" HEAD 2>/dev/null; then
+            BASE="${LAST_DEPLOYED}"
+            echo "Base = dernier deploiement reussi (${BASE})"
+          elif printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            BASE="${BEFORE_SHA}"
+            echo "::warning::dernier deploiement reussi introuvable — repli sur le push precedent (${BASE}) ; des tiers peuvent etre manques"
           fi
+          # Plus de repli sur HEAD~1 : « le dernier commit » est precisement la
+          # fenetre trop etroite qui a cause le defaut. Sans base fiable on
+          # construit TOUT (voir le `else` plus bas) : un build de trop coute des
+          # minutes, un tier manque coute une regression invisible en production.
 
           if [ -n "${BASE}" ]; then
             CHANGED="$(git diff --name-only "${BASE}" HEAD || true)"
@@ -779,11 +814,31 @@ jobs:
                   SOURCE_SHA="$(git rev-parse "${CANDIDATE}" 2>/dev/null || echo "")"
                 fi
                 if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
-                  echo "::error::${key}: cannot establish which commit produced ${CM_IMAGE}"
-                  echo "Fix: re-run this deploy with the workspace-agent tier rebuilt."
-                  exit 1
+                  # AMORÇAGE, même raisonnement que pour `admin` plus bas.
+                  #
+                  # L'ironie du cas : ce bloc existe pour que l'agent de workspace
+                  # cesse de tourner sur un TAG MUTABLE. Il a réussi — la référence
+                  # du configmap est désormais `...@sha256:...`. Et c'est cette
+                  # réussite qui rend la provenance introuvable : le tag `sha-<sha>`
+                  # dont on déduisait le commit n'existe plus dans la référence.
+                  #
+                  # Refuser ici ne protège de rien. Ce run ne reconstruit PAS l'agent
+                  # (`rebuilt=false`) : son digest est repris à l'identique de ce qui
+                  # tourne déjà dans les workspaces. Et la remédiation proposée par ce
+                  # message — « relancer avec le tier reconstruit » — ne dépend pas de
+                  # l'opérateur : le tier n'est reconstruit que si le commit touche
+                  # ses fichiers.
+                  #
+                  # Le principe tient parce que le manifeste ÉCRIT le trou :
+                  # `provenanceKnown: false`, le service listé dans `provenanceGaps`,
+                  # et `fullyTraceable: false` au sommet du document.
+                  echo "::warning::${key}: provenance inconnue — image reprise telle quelle, sourceSha enregistré à null"
+                  echo "${key}: ${CM_IMAGE} est épinglée par digest ; le tag sha-<sha> dont on déduisait le commit n'y figure plus."
+                  echo "Elle retrouvera une provenance au prochain build de ce tier, qui la référencera par son tag."
+                  SOURCE_SHA=""
+                else
+                  echo "${key}: source commit ${SOURCE_SHA}"
                 fi
-                echo "${key}: source commit ${SOURCE_SHA}"
               else
 
               # What is this service RUNNING right now? Read it from the live Deployment,
@@ -830,13 +885,40 @@ jobs:
                 SOURCE_SHA="$(git rev-parse "${TAG}" 2>/dev/null || echo "")"
               fi
               if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
-                echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
-                echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
-                echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                if [ "${rebuilt}" = "true" ]; then
+                  # Une image que CE run vient de produire doit être traçable. Sans
+                  # provenance ici, le manifeste mentirait sur ce qu'on expédie.
+                  echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
+                  echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
+                  echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                  explain_current
+                  exit 1
+                fi
+
+                # AMORÇAGE. Ce service n'est PAS reconstruit par ce run : son digest est
+                # repris tel quel, à l'identique de ce qui tourne déjà. Refuser ici
+                # n'ajoute aucune sûreté — rien de nouveau n'est expédié pour lui — et
+                # bloque en revanche TOUT déploiement.
+                #
+                # Le cas est structurel, pas accidentel : `admin` n'est pas construit
+                # par ce chemin continu (voir l'en-tête du workflow), son image a été
+                # épinglée par digest avant l'existence de l'annotation, et la
+                # remédiation que ce message proposait — « rebuild the tier that owns
+                # it » — est donc impossible ici. La porte réclamait une provenance que
+                # ce pipeline n'a jamais été conçu pour lui donner.
+                #
+                # Le principe est tenu : « le manifeste ne doit pas revendiquer une
+                # provenance qu'il n'a pas ». On l'enregistre INCONNUE (sourceSha null)
+                # plutôt que de l'inventer, et on le dit fort. Un service reconstruit,
+                # lui, échoue toujours.
+                echo "::warning::${key}: provenance inconnue — image reprise telle quelle, sourceSha enregistré à null"
+                echo "${key}: ${DEP_IMAGE} ne porte ni annotation vibecore.dev/image-source-sha ni tag 10-hex résolvable."
+                echo "Pour lui donner une provenance : reconstruire ce service par le chemin qui le produit."
                 explain_current
-                exit 1
+                SOURCE_SHA=""
+              else
+                echo "${key}: source commit ${SOURCE_SHA}"
               fi
-              echo "${key}: source commit ${SOURCE_SHA}"
               fi
             fi
 

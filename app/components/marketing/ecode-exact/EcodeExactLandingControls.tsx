@@ -1,4 +1,4 @@
-import { CheckCircle2, ChevronRight, Clock, Cpu, Hammer, Layers, Paintbrush, Sparkles, Zap } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, Cpu, Hammer, Layers, Paintbrush, Sparkles, X, Zap } from 'lucide-react';
 import type { ElementType } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -515,15 +515,35 @@ interface BuildModeSelectorProps {
   projectName?: string;
 }
 
+/*
+ * COULEUR-001 — chaque option portait sa propre couleur décorative (orange pour
+ * « commencer par le design », emeraude pour « créer l'application complète »).
+ * Ces teintes n'encodaient RIEN : ni un état, ni une gravité, ni une catégorie.
+ * Résultat mesuré sur la modale en 390 sombre : cinq couleurs saturées
+ * distinctes (#f26207, #fdb022, #34d399, #dc6803, #065f46) pour deux choix.
+ *
+ * La seule chose qui différencie réellement les deux options est que l'une est
+ * RECOMMANDÉE. C'est donc elle, et elle seule, qui porte l'accent de marque ;
+ * l'autre prend le neutre. La modale se lit alors d'un coup d'œil : une
+ * recommandation mise en avant, une alternative.
+ */
 const BUILD_OPTION_VISUALS: Record<
   ExactBuildOptionId,
-  { icon: typeof Paintbrush; color: 'orange' | 'emerald'; durationMinutes: number }
+  { icon: typeof Paintbrush; emphasis: 'recommended' | 'alternative'; durationMinutes: number }
 > = {
-  'design-first': { icon: Paintbrush, color: 'orange', durationMinutes: 3 },
-  'full-app': { icon: Hammer, color: 'emerald', durationMinutes: 10 },
+  'design-first': { icon: Paintbrush, emphasis: 'alternative', durationMinutes: 3 },
+  'full-app': { icon: Hammer, emphasis: 'recommended', durationMinutes: 10 },
 };
 
-function AnimatedDot({ color, delay, isActive }: { color: string; delay: number; isActive: boolean }) {
+function AnimatedDot({
+  emphasis,
+  delay,
+  isActive,
+}: {
+  emphasis: BuildOptionEmphasis;
+  delay: number;
+  isActive: boolean;
+}) {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -537,9 +557,10 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
     return undefined;
   }, [isActive, delay]);
 
-  const dotColors: Record<string, string> = {
-    orange: 'bg-orange-500',
-    emerald: 'bg-emerald-500',
+  // COULEUR-001 — la puce suit la hiérarchie de la carte, pas une teinte propre.
+  const dotColors: Record<BuildOptionEmphasis, string> = {
+    recommended: 'bg-[var(--ecode-accent)]',
+    alternative: 'bg-muted-foreground',
   };
 
   return (
@@ -547,30 +568,37 @@ function AnimatedDot({ color, delay, isActive }: { color: string; delay: number;
       aria-hidden="true"
       className={cn(
         'inline-block w-1.5 h-1.5 rounded-full transition-all duration-300',
-        visible ? dotColors[color] || 'bg-primary' : 'bg-muted-foreground/30',
+        visible ? dotColors[emphasis] : 'bg-muted-foreground/30',
         visible && 'animate-pulse',
       )}
     />
   );
 }
 
-function getColorClasses(color: string, type: 'bg' | 'border' | 'fg' | 'icon') {
-  const colors: Record<string, Record<string, string>> = {
-    orange: {
-      bg: 'bg-orange-50 dark:bg-muted',
-      border: 'border-orange-200 dark:border-orange-800 hover:border-orange-400 dark:hover:border-orange-600',
-      fg: 'text-orange-600 dark:text-orange-400',
-      icon: 'bg-orange-100 dark:bg-muted/70',
+type BuildOptionEmphasis = 'recommended' | 'alternative';
+
+/*
+ * COULEUR-001 — deux traitements, pas deux teintes arbitraires. L'option
+ * recommandée porte l'accent de marque (bordure, pastille, icône) ; l'autre
+ * reste neutre et ne se distingue que par l'interaction (survol, focus).
+ */
+function getEmphasisClasses(emphasis: BuildOptionEmphasis, type: 'bg' | 'border' | 'fg' | 'icon') {
+  const styles: Record<BuildOptionEmphasis, Record<string, string>> = {
+    recommended: {
+      bg: 'bg-[color-mix(in_srgb,var(--ecode-accent)_8%,transparent)]',
+      border: 'border-[var(--ecode-accent)] hover:border-[var(--ecode-accent)]',
+      fg: 'text-[var(--vc-action-primary)]',
+      icon: 'bg-[color-mix(in_srgb,var(--ecode-accent)_14%,transparent)]',
     },
-    emerald: {
-      bg: 'bg-emerald-50 dark:bg-muted',
-      border: 'border-emerald-200 dark:border-emerald-800 hover:border-emerald-400 dark:hover:border-emerald-600',
-      fg: 'text-emerald-600 dark:text-emerald-400',
-      icon: 'bg-emerald-100 dark:bg-muted/70',
+    alternative: {
+      bg: 'bg-muted/60',
+      border: 'border-border hover:border-[var(--vc-action-primary)]',
+      fg: 'text-muted-foreground',
+      icon: 'bg-muted',
     },
   };
 
-  return colors[color]?.[type] || '';
+  return styles[emphasis]?.[type] ?? '';
 }
 
 export function BuildModeSelector({
@@ -624,6 +652,19 @@ export function BuildModeSelector({
     return null;
   }
 
+  /*
+   * TACTILE-002 — `w-full sm:w-auto` sous un parent `flex-col sm:flex-row`
+   * donnait, en 390, un bouton « Fermer » de 309x44 occupant une LIGNE ENTIÈRE
+   * sous le titre. Mesuré : 87 % de la largeur de la modale dépensée pour la
+   * sortie, au moment le plus décisif du parcours, et les deux choix repoussés
+   * d'autant vers le bas.
+   *
+   * Il redevient ce qu'un bouton de fermeture doit être : une croix ancrée en
+   * haut à droite, à toutes les largeurs. Le libellé reste porté par
+   * `aria-label`, donc rien n'est perdu au lecteur d'écran ni aux tests qui
+   * cherchent par nom accessible. 44px de côté : la cible tactile est conservée.
+   */
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
@@ -655,12 +696,12 @@ export function BuildModeSelector({
             <Button
               type="button"
               variant="ghost"
-              size="sm"
-              className="w-full whitespace-normal sm:w-auto"
+              size="icon"
+              className="h-11 w-11 shrink-0 self-end sm:self-start"
               onClick={() => onOpenChange(false)}
               aria-label={copy.buildMode.close}
             >
-              {copy.buildMode.close}
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
 
@@ -696,8 +737,8 @@ export function BuildModeSelector({
                     'relative min-w-0 rounded-xl border-2 p-4 text-left transition-all duration-200',
                     'hover:shadow-lg md:hover:scale-[1.02]',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2',
-                    getColorClasses(option.color, 'border'),
-                    isHovered && getColorClasses(option.color, 'bg'),
+                    getEmphasisClasses(option.emphasis, 'border'),
+                    isHovered && getEmphasisClasses(option.emphasis, 'bg'),
                   )}
                   data-testid={`build-option-${option.id}`}
                 >
@@ -705,8 +746,8 @@ export function BuildModeSelector({
                     <Badge
                       className={cn(
                         'max-w-full whitespace-normal border-0 px-2 text-right text-[11px] leading-snug',
-                        getColorClasses(option.color, 'fg'),
-                        getColorClasses(option.color, 'icon'),
+                        getEmphasisClasses(option.emphasis, 'fg'),
+                        getEmphasisClasses(option.emphasis, 'icon'),
                       )}
                     >
                       {option.badge}
@@ -717,10 +758,10 @@ export function BuildModeSelector({
                     <div
                       className={cn(
                         'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
-                        getColorClasses(option.color, 'icon'),
+                        getEmphasisClasses(option.emphasis, 'icon'),
                       )}
                     >
-                      <Icon className={cn('h-5 w-5', getColorClasses(option.color, 'fg'))} aria-hidden="true" />
+                      <Icon className={cn('h-5 w-5', getEmphasisClasses(option.emphasis, 'fg'))} aria-hidden="true" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <h3 className="break-words text-[13px] font-semibold leading-snug">{option.title}</h3>
@@ -740,7 +781,7 @@ export function BuildModeSelector({
                             className="flex min-w-0 items-start gap-2 text-[11px] leading-relaxed text-muted-foreground"
                           >
                             <AnimatedDot
-                              color={option.color}
+                              emphasis={option.emphasis}
                               delay={index * 150}
                               isActive={activeAnimations[option.id] || isHovered}
                             />

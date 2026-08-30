@@ -496,8 +496,27 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  --vc-action-primary: var(--vc-ide-accent-action);
+  /*
+   * SOURCE UNIQUE de l'action primaire : l'orange de marque.
+   *
+   * Avant, ces deux jetons se définissaient L'UN PAR L'AUTRE, et le sens de la
+   * dérivation s'inversait selon la coque : `:root` posait
+   * `--vc-ide-accent-action: #0099ff` puis en dérivait le primaire (donc BLEU),
+   * tandis que `.vc-user-area-shell` posait `--vc-action-primary: #f97316` puis
+   * en dérivait l'accent (donc ORANGE). La même action primaire sortait bleue
+   * ou orange selon la règle qui l'emportait — d'où des boutons bleus
+   * apparaissant au hasard dans le produit.
+   *
+   * Le sens est désormais fixe et unique : `--vc-action-primary` porte la
+   * valeur, `--vc-ide-accent-action` en dérive, jamais l'inverse.
+   * `deploy-color-tokens.spec.ts` refuse toute réintroduction d'un cycle.
+   *
+   * Contraste vérifié : texte #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y
+   * passerait PAS (2,80:1) — c'est pourquoi le premier plan est sombre ici et
+   * blanc en thème clair, où le ton renforcé #c2410c prend le relais.
+   */
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
   // CTA plein porteur de texte blanc. Dans l'IDE il reste sur l'accent action ;
   // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
   // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
@@ -507,9 +526,12 @@ html:has(.vc-app-shell-grid) body {
   // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
   // repasserait donc SOUS AA au survol.
   --vc-action-primary-strong-hover: #a33c00;
-  --vc-action-primary-hover: #007fe0;
-  --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  // Survol : orange assombri. #111827 dessus = 4,98:1 (AA).
+  --vc-action-primary-hover: #ea580c;
+  // #111827 sur #f97316 = 6,33:1 (AA). Le blanc n'y passerait pas : 2,80:1.
+  --vc-action-primary-foreground: #111827;
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
@@ -851,13 +873,18 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
-  --vc-ide-accent-action: #006fd6;
-  --vc-action-primary: var(--vc-ide-accent-action);
+  // Thème clair : le ton renforcé de la marque. Blanc dessus = 5,18:1 (AA) ;
+  // #f97316 y serait trop clair pour porter du blanc.
+  --vc-action-primary: #c2410c;
+  --vc-ide-accent-action: var(--vc-action-primary);
   --vc-action-primary-strong: #c2410c;
   --vc-action-primary-strong-hover: #a33c00;
-  --vc-action-primary-hover: #0059ab;
+  // Survol clair : le ton renforcé assombri. Blanc dessus = 7,31:1 (AA).
+  --vc-action-primary-hover: #9a3412;
+  // Blanc sur #c2410c = 5,18:1 (AA).
   --vc-action-primary-foreground: #ffffff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
@@ -872,7 +899,14 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success-on-tint: #0d6b39;
   --vc-ide-accent-warning-on-tint: #9a4708;
   --vc-ide-accent-error-on-tint: #b91c1c;
-  --vc-ide-accent-action-on-tint: #1d4ed8;
+  /*
+   * #9a3412, pas #c2410c : sur sa propre teinte claire — 14% d'orange sur blanc,
+   * soit rgb(254,235,222) — le ton renforcé ne rend que 4,48:1 et passe donc
+   * SOUS le seuil AA. #9a3412 rend 6,32:1. Le #1d4ed8 qui figurait ici venait de
+   * l'époque où l'action primaire était bleue ; il n'a plus de sens sur une
+   * teinte orange.
+   */
+  --vc-ide-accent-action-on-tint: #9a3412;
   --vc-ide-accent: var(--vc-ide-accent-action);
   --vc-ide-accent-primary: var(--vc-ide-accent-action);
   --vc-ide-accent-green: var(--vc-ide-accent-success);
@@ -1122,8 +1156,10 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
-  // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
+  --vc-action-primary: #f97316;
+  --vc-ide-accent-action: var(--vc-action-primary);
+  // E29 shared app/IDE focus ring. Suit l'accent d'action — désormais l'orange
+  // de marque, plus le bleu d'origine ; le marketing garde --ecode-focus-ring.
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
@@ -1752,8 +1788,16 @@ body
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  /*
+   * Le déclencheur porte désormais un libellé visible : il n'est plus un carré
+   * d'icône de 28px mais une puce. Les DEUX planchers sont conservés — sans le
+   * plancher de largeur, un contexte où l'icône ne rend pas sa taille (fixture
+   * de test, police d'icônes non chargée) le faisait retomber à 18px.
+   */
+  gap: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -1765,7 +1809,14 @@ body
     color 120ms ease-out;
 }
 
-.bolt-message-context-trigger span {
+.bolt-message-context-trigger-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Ne vise que l'icône : le libellé voisin garde sa propre taille. */
+.bolt-message-context-trigger span[class*='i-ph'] {
   font-size: 15px;
   line-height: 1;
 }
@@ -7061,20 +7112,60 @@ body :where(.lucide, svg[data-lucide]) {
  * conteneur en `flex` — le transcript est une colonne, un `align-self` y aurait
  * étiré le bouton.
  */
+/*
+ * AGENT-SCROLL-001 — la pastille « Aller au plus récent ».
+ *
+ * Demande d'Avi, capture Replit à l'appui. L'existant était une icône SEULE de
+ * 40x40 collée à DROITE de la colonne. Trois écarts avec la référence :
+ *   1. pas de libellé — une flèche seule n'annonce pas ce qu'elle fait ;
+ *   2. alignée à droite (`margin-left: auto`) au lieu d'être CENTRÉE ;
+ *   3. 40px de haut, sous le plancher tactile de 44.
+ *
+ * Le comportement d'apparition, lui, était déjà juste : la pastille ne se rend
+ * pas quand on est en bas (`isAtBottom` dans `ScrollToBottom`), et le retour
+ * automatique en bas cesse dès que l'utilisateur remonte volontairement —
+ * `useStickToBottom` porte cet état sous le nom `escapedFromLock`.
+ *
+ * `position: sticky` et non `fixed` : la pastille flotte au-dessus du fil sans
+ * le pousser, tout en restant dans la colonne de conversation — elle suit donc
+ * la largeur du panneau, y compris quand l'IDE est en deux volets.
+ */
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
   z-index: 20;
   display: inline-flex;
-  width: 40px;
-  height: 40px;
-  margin-left: auto;
+  /*
+   * `auto` des DEUX côtés : c'est ce qui centre. L'ancien `margin-left: auto`
+   * seul poussait la pastille contre le bord droit.
+   */
+  margin-inline: auto;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  /*
+   * 44px EN PIXELS, jamais en rem : `--vc-type-interface-size` redéfinit la base
+   * rem à 12px/14px, et tout plancher exprimé en rem y serait dégonflé — c'est
+   * la cause unique corrigée par TACTILE-003.
+   */
+  min-height: var(--vc-touch-min, 44px);
+  padding-inline: 14px;
   border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
   border-radius: 999px;
-  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2));
+  /*
+   * Légèrement TRANSLUCIDE : la pastille se superpose au fil qui défile
+   * derrière, et un aplat opaque donnerait l'impression d'un trou dans la
+   * conversation. Le flou d'arrière-plan garde le libellé lisible par-dessus du
+   * texte.
+   */
+  background: color-mix(in srgb, var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2)) 88%, transparent);
+  backdrop-filter: blur(8px);
   color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  /* Corps réduit et ombre douce : discrète, jamais un appel à l'action. */
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
   cursor: pointer;
 }
@@ -7084,9 +7175,15 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-agent-scroll-to-bottom [class*='i-ph:'] {
-  width: 18px;
-  height: 18px;
-  font-size: 18px;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+
+.bolt-agent-scroll-to-bottom__label {
+  /* Pas d'aplat de couleur vive : le libellé prend la couleur du texte. */
+  color: inherit;
 }
 
 .bolt-project-agent-panel textarea {
@@ -7988,7 +8085,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox {
-  min-height: 80px;
+  /*
+   * Composer compact (demande d'Avi) : le plancher passe de 80 à 56px. La zone
+   * de saisie doit être discrète au repos et grandir avec le texte, pas
+   * réserver un tiers du panneau Agent pour un champ vide.
+   */
+  min-height: 56px;
   border-color: var(--vc-ide-border-visible) !important;
   border-radius: 12px !important;
   background: var(--vc-ide-bg-card) !important;
@@ -7997,8 +8099,16 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox textarea {
-  min-height: 76px;
-  padding: 8px 56px 50px 8px !important;
+  /*
+   * Le rembourrage bas de 50px réservait la place d'une barre d'outils
+   * SUPERPOSÉE. Dans le composer de l'IDE elle est un FRÈRE rendu en dessous
+   * (`.bolt-chatbox-input-shell > .bolt-chatbox-toolbar`) : ces 50px n'étaient
+   * plus qu'un vide mort entre le texte et les icônes, et ils gonflaient la
+   * hauteur au repos calculée par l'auto-agrandissement (scrollHeight).
+   * Le rembourrage droit reste : il dégage le bouton d'envoi, en absolu.
+   */
+  min-height: 44px;
+  padding: 8px 56px 8px 8px !important;
   color: var(--vc-ide-text-primary);
   font-size: 13px !important;
 }
@@ -22280,6 +22390,84 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   border-color: var(--vc-auth-border);
   background: var(--vc-auth-field);
   color: var(--vc-auth-text);
+}
+
+/*
+ * TACTILE-003 — le plancher tactile des pages d'authentification.
+ *
+ * MESURÉ SUR LA PRODUCTION, /login en 390 : 12 contrôles sous 44px, dont le
+ * bouton « Se connecter » lui-même à 42px de haut.
+ *
+ * La cause n'est pas que quelqu'un a écrit des tailles trop petites. Le balisage
+ * demande DÉJÀ les bonnes : `h-12` sur les champs et la soumission, `min-h-11`
+ * sur les liens et les actions secondaires. Ce sont les valeurs correctes — en
+ * rem.
+ *
+ * Or `--vc-type-interface-size` REDÉFINIT la base rem : 12px en desktop, 14px
+ * sous 1024px (voir index.scss:748 et :818). Comme `rem` est relatif à la
+ * RACINE, chaque utilitaire Tailwind exprimé en rem est silencieusement dégonflé :
+ *
+ *              écrit        desktop (12px)   mobile (14px)   attendu
+ *   h-12       3rem         36px             42px            48px
+ *   min-h-11   2.75rem      33px             38,5px          44px
+ *
+ * C'est la même cause que les commandes de la coque commune mesurées à 36x36 et
+ * que le « jeton 42px » du contenu de panneau : ni l'un ni l'autre n'est un
+ * jeton, ce sont `h-12` dégonflé à deux bases rem différentes.
+ *
+ * Ce bloc NE TOUCHE PAS la base rem. La remonter à 16px gonflerait de 33 % tout
+ * l'espacement et toute la typographie du produit — c'est la décision de densité
+ * assumée par l'équipe, pas un défaut (voir le commentaire à index.scss:806).
+ * On exprime donc le plancher tactile en PIXELS, seule unité que la base rem ne
+ * peut pas déformer, exactement comme `--vc-touch-min` le fait pour l'IDE.
+ *
+ * NON INCLUS, ET C'EST VOLONTAIRE : les liens en ligne dans une phrase
+ * (« Inscrivez-vous gratuitement », « Conditions d'utilisation »,
+ * « Politique de confidentialité »). WCAG 2.2 (2.5.8) les exempte explicitement,
+ * et les agrandir casserait le paragraphe qui les porte.
+ */
+.vc-auth-input,
+.vc-auth-submit,
+.vc-auth-secondary-action,
+.vc-auth-back-link,
+.vc-auth-input-action {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+.vc-auth-input-action {
+  min-width: var(--vc-touch-min, 44px);
+}
+
+/*
+ * Un contrôle AUTONOME porte déjà `inline-flex min-h-11` dans le balisage —
+ * l'auteur visait bien 44px. C'est ce marqueur STRUCTUREL qui le distingue d'un
+ * lien en ligne dans une phrase, lequel n'a pas `inline-flex` et reste exempté
+ * au titre de WCAG 2.2 (2.5.8).
+ *
+ * `.vc-auth-inline-link` est inclus malgré son nom, et c'est délibéré : sur
+ * `/register`, « + Ajouter un nom d'organisation » porte cette classe alors que
+ * c'est un `<button>`, enfant direct du `<form>`, sans aucun frère textuel, large
+ * de 286px et seul sur sa ligne. Mesuré à 39px en 768. Le nom de la classe dit
+ * « inline » ; la STRUCTURE dit « bouton autonome ». On suit la structure.
+ *
+ * Mesuré avant : « Mot de passe oublié ? » 39px, « + Ajouter un nom
+ * d'organisation » 39px.
+ */
+.vc-auth-link.inline-flex,
+.vc-auth-inline-link.inline-flex {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+/*
+ * La case à cocher garde sa taille VISUELLE de 14px : l'agrandir la rendrait
+ * disgracieuse et inhabituelle. Sa vraie cible tactile est l'ÉTIQUETTE qui
+ * l'enveloppe — vérifié dans le rendu : `<label>` enveloppant, 185x39, déjà
+ * porteuse de `min-h-11`. C'est donc elle, et elle seule, qu'il faut ramener au
+ * plancher ; toucher l'`<input>` lui-même serait inutile (un `::after` ne rend
+ * pas sur un élément remplacé) autant que nuisible.
+ */
+.vc-auth-checkbox-label {
+  min-height: var(--vc-touch-min, 44px);
 }
 
 .vc-auth-input::placeholder {

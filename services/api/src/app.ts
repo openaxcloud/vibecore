@@ -347,9 +347,10 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
-  ObjectStorageError,
-  type ObjectStorage,
+  BUCKET_NOT_PROVISIONED,
   isObjectStorageEnabled,
+  type ObjectStorage,
+  ObjectStorageError,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
@@ -14411,7 +14412,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return await agentRequest<T>(authorized.workspaceId, path, init);
     } catch (error) {
-      if ((error as { code?: string } | undefined)?.code !== 'WORKSPACE_AGENT_REQUEST_FAILED') {
+      /*
+       * Deux codes, une seule situation : le pod n'est pas joignable.
+       *
+       *   WORKSPACE_AGENT_REQUEST_FAILED  le pod ne répond pas
+       *   WORKSPACE_NOT_STARTED           son nom DNS ne résout pas encore
+       *
+       * Le second a été ajouté pour que l'IDE affiche « démarrage » au lieu d'une
+       * erreur serveur pendant la fenêtre de propagation kube-dns. Mais il n'a pas
+       * été ajouté ICI : `agentMutateEnsuring` ne relançait le provisionnement que
+       * sur le premier code, et relançait l'erreur pour le second.
+       *
+       * Conséquence mesurée en production le 2026-08-30, sur un projet créé la
+       * minute d'avant : `PUT /files/write` répondait 425 en UNE seconde, sans
+       * qu'aucune demande n'atteigne le workspace-manager. Le pod n'ayant jamais
+       * existé, son nom DNS ne résolvait pas — donc `WORKSPACE_NOT_STARTED` —
+       * donc aucun provisionnement. Vingt-cinq minutes plus tard, toujours aucune
+       * ligne `Workspace` en base : le chemin d'écriture ne se réparait jamais
+       * tout seul, il se contentait de dire « pas encore » indéfiniment.
+       *
+       * Le budget de `ensureWorkspaceReachable` est inchangé : un démarrage
+       * réellement lent renvoie toujours 425 une fois le délai écoulé. On tente
+       * simplement le provisionnement avant de le dire.
+       */
+      const failureCode = (error as { code?: string } | undefined)?.code;
+
+      if (failureCode !== 'WORKSPACE_AGENT_REQUEST_FAILED' && failureCode !== 'WORKSPACE_NOT_STARTED') {
         throw error;
       }
 
@@ -25686,12 +25712,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ workspace });
   });
+  /*
+   * Le statut rendu doit décrire le CLUSTER, pas une ligne qui a cessé d'y
+   * correspondre.
+   *
+   * Mesuré en production le 2026-08-30 : 125 espaces de travail se déclaraient
+   * `RUNNING` en base alors qu'UN SEUL pod tournait dans le namespace
+   * `workspaces`. Un seul enregistrement avait été mis à jour dans les 24
+   * dernières heures. L'IDE lisait ce statut, affichait « en cours d'exécution »,
+   * et chaque opération sur un fichier répondait 425 : le produit mentait à son
+   * utilisateur, puis lui donnait tort.
+   *
+   * La dérive vient de ce que le statut n'est écrit QUE sur des transitions
+   * volontaires. Un pod qui disparaît autrement — éviction, réduction de nœuds,
+   * reclamation d'inactivité côté cluster — ne repasse par aucune de ces
+   * écritures, et la ligne reste indéfiniment sur sa dernière valeur.
+   *
+   * On ne fait pas confiance à la ligne : on SONDE. Et la correction est
+   * persistée, pour que la prochaine lecture — et les tableaux de bord qui
+   * comptent les espaces actifs — parte d'une base juste.
+   */
+  const RUNNING_PROBE_GRACE_MS = 30_000;
+
+  const reconcileWorkspaceStatus = async <T extends { id: string; status: string; updatedAt?: Date | string }>(
+    workspace: T,
+  ): Promise<T> => {
+    if (workspace.status !== 'RUNNING') {
+      /*
+       * PENDING et STARTING ne sont PAS sondés : ne pas être joignable est leur
+       * état normal, et les rétrograder transformerait un démarrage en panne.
+       * STOPPED et FAILED ne prétendent rien : il n'y a rien à corriger.
+       */
+      return workspace;
+    }
+
+    /*
+     * Une écriture toute fraîche a la priorité sur la sonde : un pod qui vient
+     * d'être marqué RUNNING peut n'avoir pas encore de route réseau, et le
+     * rétrograder ici annulerait un démarrage réussi une seconde plus tôt.
+     */
+    const updatedAt = workspace.updatedAt ? new Date(workspace.updatedAt).getTime() : 0;
+
+    if (updatedAt && Date.now() - updatedAt < RUNNING_PROBE_GRACE_MS) {
+      return workspace;
+    }
+
+    let reachable: boolean;
+
+    try {
+      reachable = await probeAgentHealth(workspace.id);
+    } catch {
+      /*
+       * Une sonde qui échoue pour une raison qui ne la regarde pas ne doit pas
+       * décider du statut. Dans le doute, on rend ce qui est stocké : mentir dans
+       * l'autre sens serait tout aussi faux.
+       */
+      return workspace;
+    }
+
+    if (reachable) {
+      return workspace;
+    }
+
+    /*
+     * STOPPED et non FAILED : un pod reclamé n'est pas une panne. C'est aussi
+     * l'état depuis lequel le chemin d'écriture sait relancer un provisionnement
+     * (voir `agentMutateEnsuring`), donc l'utilisateur retrouve son espace en
+     * travaillant, sans geste explicite.
+     */
+    await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+
+    return { ...workspace, status: 'STOPPED' };
+  };
+
   app.get('/workspaces/:workspaceId', async (request) => ({
-    workspace: await requireWorkspace(
-      request,
-      store,
-      parse(workspaceParams, request.params).workspaceId,
-      'workspaces:read',
+    workspace: await reconcileWorkspaceStatus(
+      await requireWorkspace(request, store, parse(workspaceParams, request.params).workspaceId, 'workspaces:read'),
     ),
   }));
 
@@ -32868,7 +32964,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      /*
+       * `BUCKET_NOT_PROVISIONED` rejoint 404 et non 422 : un projet qui n'a rien
+       * stocké n'est pas une requête invalide, c'est un projet vide.
+       */
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
+            ? 404
+            : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -33115,8 +33220,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
        * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
+      /*
+       * Le budget porte sur l'OPÉRATION ENTIÈRE, pas sur chaque appel.
+       *
+       * Les deux appels sont séquentiels : appliquer le même délai à chacun
+       * autorisait 10 s au pire, alors que le commentaire ci-dessus promet
+       * qu'une vignette ne retient jamais une requête. Sur un tableau de bord
+       * qui en demande six, ces secondes s'additionnent et repoussent
+       * l'affichage bien au-delà de ce qu'un utilisateur accepte d'attendre.
+       * Le second appel n'a donc droit qu'au reliquat du premier.
+       */
+      const lookupStartedAt = Date.now();
+
+      /*
+       * Le seau du projet est créé à la demande : un projet qui n'a encore rien
+       * stocké n'en a pas. Cette absence se lit comme « pas de vignette », la
+       * même situation que « pas d'objet » quelques lignes plus bas — surtout pas
+       * comme une panne.
+       */
       const { objects } = await withStorageDeadline(
-        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }).catch((error: unknown) => {
+          if (error instanceof ObjectStorageError && error.code === BUCKET_NOT_PROVISIONED) {
+            return { objects: [], folders: [] };
+          }
+
+          throw error;
+        }),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
       );
 
@@ -33124,11 +33253,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
+      /*
+       * Au moins 1 ms : un reliquat nul ou négatif ferait échouer l'appel avant
+       * même de le tenter, transformant une lenteur en absence de vignette
+       * alors que le lien était peut-être immédiat.
+       */
+      const remainingMs = Math.max(1, THUMBNAIL_LOOKUP_DEADLINE_MS - (Date.now() - lookupStartedAt));
+
       return reply.send(
-        await withStorageDeadline(
-          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
-          THUMBNAIL_LOOKUP_DEADLINE_MS,
-        ),
+        await withStorageDeadline(storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }), remainingMs),
       );
     } catch (error) {
       /*

@@ -93,6 +93,7 @@ export function AgentPowerControls({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
+  const hintId = useId();
 
   const modeAvailable = (mode: AgentBuildTier): boolean => {
     if (!availability?.modes) {
@@ -195,6 +196,8 @@ export function AgentPowerControls({
       <div
         role="radiogroup"
         aria-label={copy['chatControls.power.groupAria']}
+        aria-describedby={hintId}
+        title={value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
         data-testid="agent-mode-segmented"
         className="inline-grid max-w-full grid-cols-3 items-stretch rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
       >
@@ -220,7 +223,7 @@ export function AgentPowerControls({
               }
               data-testid={`agent-mode-${tier.id}`}
               className={classNames(
-                'min-h-7 min-w-0 whitespace-normal break-words rounded-md px-2 py-0.5 text-xs font-medium leading-tight transition-colors sm:px-3',
+                'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
@@ -267,7 +270,7 @@ export function AgentPowerControls({
         {formatChatControlsCost(estimatedCents, language)}
       </span>
 
-      <p className="w-full text-[11px] leading-snug text-bolt-elements-textSecondary" data-testid="agent-mode-hint">
+      <p className="sr-only" data-testid="agent-mode-hint" id={hintId}>
         {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
       </p>
 
