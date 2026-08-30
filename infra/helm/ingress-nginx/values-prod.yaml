@@ -1,0 +1,73 @@
+# ingress-nginx (chart ingress-nginx/ingress-nginx, PINNED 4.15.1) — release `ingress-nginx`, ns `ingress-nginx`.
+#
+# Ce fichier est la source de vérité des values de PROD. Il a été créé le 2026-08-13
+# en reprenant à l'identique les values user-supplied de la release existante
+# (`helm get values ingress-nginx`), puis en y ajoutant la haute disponibilité.
+#
+# Applique avec (le --version est OBLIGATOIRE : sans lui Helm prendrait la dernière
+# version du repo et embarquerait un bump de l'ingress controller de toute la prod) :
+#
+#   helm upgrade ingress-nginx ingress-nginx/ingress-nginx \
+#     --version 4.15.1 -n ingress-nginx \
+#     -f infra/helm/ingress-nginx/values-prod.yaml \
+#     --kube-context connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+#
+# Rollback : helm -n ingress-nginx rollback ingress-nginx <REV>
+controller:
+  service:
+    # SEC-RATE-001 — préserver l'IP SOURCE du client.
+    #
+    # MESURÉ EN PRODUCTION le 2026-08-30, prouvé à deux niveaux :
+    #
+    #   * nginx lui-même journalise ses clients comme 10.10.15.212…217 — les IP
+    #     des NŒUDS GKE, pour la totalité des requêtes ;
+    #   * la table AuditLog de l'API enregistre ces mêmes IP de nœuds, et
+    #     seulement 6 hits pour une vraie IP publique — celle d'un client dont le
+    #     paquet a atterri par chance sur un nœud hébergeant déjà nginx, donc
+    #     sans SNAT.
+    #
+    # Avec `externalTrafficPolicy: Cluster`, kube-proxy fait du SNAT dès que le
+    # paquet doit franchir un nœud : l'adresse du client est REMPLACÉE par celle
+    # du nœud AVANT d'atteindre nginx. Aucun en-tête ne peut la récupérer —
+    # l'information est détruite en amont. Indexer le compteur sur
+    # `X-Forwarded-For` ne corrigerait donc rien.
+    #
+    # CONSÉQUENCE MESURÉE : 60 tentatives de connexion depuis un seul client en
+    # 21 s, 56 traitées pour un plafond de 10. Le compteur Redis était indexé sur
+    # six IP de nœuds au lieu d'une IP d'appelant. Double défaut : les quotas ne
+    # protègent rien, et deux clients derrière le même nœud partagent un
+    # compartiment — un abuseur peut faire refuser la connexion à des
+    # utilisateurs légitimes.
+    #
+    # POURQUOI `Local` NE DÉGRADE PAS LA RÉPARTITION ICI. Le LB ne routera plus
+    # que vers les nœuds portant un pod nginx : il y en a 2, sur 2 nœuds
+    # distincts garantis par l'anti-affinité `required` plus bas. Les 4 autres
+    # ne faisaient que relayer et SNATer — on supprime un saut inutile, pas un
+    # backend. Les sondes de santé GCP retirent d'elles-mêmes les nœuds sans pod.
+    externalTrafficPolicy: Local
+    annotations:
+      cloud.google.com/load-balancer-type: External
+
+    # IP statique du LB de prod. Le DNS de e-code.ai / app.e-code.ai / api.e-code.ai
+    # pointe DESSUS en direct (pas de CDN devant) : la perdre coupe tout le trafic.
+    loadBalancerIP: 34.1.6.93
+
+  # HA (2026-08-13) : le controller tournait en replica UNIQUE devant 100 % du trafic
+  # prod — la perte de ce pod (ou de son nœud) coupait tout. Deux replicas répartis sur
+  # deux nœuds distincts, plus le PodDisruptionBudget que le chart crée automatiquement
+  # dès que replicaCount > 1 (minAvailable: 1), pour qu'un drain de nœud ne puisse
+  # jamais emporter les deux.
+  replicaCount: 2
+
+  # `required` et non `preferred` : avec 3 nœuds `system-std` éligibles (zones a/b/c),
+  # la contrainte est satisfiable sans risque de Pending, et « preferred » aurait pu
+  # replacer les deux replicas sur le même nœud — ce qui ne protège de rien.
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: ingress-nginx
+              app.kubernetes.io/instance: ingress-nginx
+              app.kubernetes.io/component: controller
