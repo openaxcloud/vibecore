@@ -325,8 +325,16 @@ export const AssistantMessage = memo(
                     type="button"
                     className="bolt-message-context-trigger"
                     aria-label={copy['assistantMessage.context.show']}
+                    title={copy['assistantMessage.context.show']}
                   >
                     <span className="i-ph:info" aria-hidden />
+                    {/*
+                     * Le déclencheur n'était qu'une icône « i » posée seule sur
+                     * sa ligne : rien n'indiquait ce qu'elle ouvrait. Le libellé
+                     * devient visible — l'aria-label seul ne sert que ceux qui
+                     * n'ont justement pas besoin de deviner.
+                     */}
+                    <span className="bolt-message-context-trigger-label">{copy['assistantMessage.context.label']}</span>
                   </button>
                 }
               >

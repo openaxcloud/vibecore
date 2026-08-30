@@ -1788,8 +1788,16 @@ body
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  /*
+   * Le déclencheur porte désormais un libellé visible : il n'est plus un carré
+   * d'icône de 28px mais une puce. Les DEUX planchers sont conservés — sans le
+   * plancher de largeur, un contexte où l'icône ne rend pas sa taille (fixture
+   * de test, police d'icônes non chargée) le faisait retomber à 18px.
+   */
+  gap: 6px;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
@@ -1801,7 +1809,14 @@ body
     color 120ms ease-out;
 }
 
-.bolt-message-context-trigger span {
+.bolt-message-context-trigger-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+/* Ne vise que l'icône : le libellé voisin garde sa propre taille. */
+.bolt-message-context-trigger span[class*='i-ph'] {
   font-size: 15px;
   line-height: 1;
 }
