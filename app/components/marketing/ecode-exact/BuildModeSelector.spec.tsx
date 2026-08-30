@@ -97,6 +97,7 @@ describe('BuildModeSelector — sortie et hiérarchie visuelle', () => {
 
     expect(close.className).not.toMatch(/\bw-full\b/);
     expect(close.className).toMatch(/\bshrink-0\b/);
+
     // La cible tactile reste au-dessus du plancher de 44px.
     expect(close.className).toMatch(/\bh-11\b/);
     expect(close.className).toMatch(/\bw-11\b/);
@@ -134,9 +135,11 @@ describe('BuildModeSelector — sortie et hiérarchie visuelle', () => {
     const recommended = screen.getByTestId('build-option-full-app');
     const alternative = screen.getByTestId('build-option-design-first');
 
-    // L'anneau de FOCUS garde l'accent sur les deux cartes — c'est une
-    // affordance d'accessibilité, pas une décoration. Ce qui doit différer est
-    // la BORDURE au repos.
+    /*
+     * L'anneau de FOCUS garde l'accent sur les deux cartes — c'est une
+     * affordance d'accessibilité, pas une décoration. Ce qui doit différer est
+     * la BORDURE au repos.
+     */
     expect(recommended.className).toMatch(/border-\[var\(--ecode-accent\)\]/);
     expect(alternative.className).not.toMatch(/border-\[var\(--ecode-accent\)\]/);
     expect(alternative.className).toMatch(/\bborder-border\b/);
