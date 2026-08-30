@@ -13746,7 +13746,6 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-package-content,
       .bolt-project-security-grid,
       .bolt-project-integrations-layout,
-      .bolt-project-integrations-grid,
       .bolt-project-workflow-create,
       .bolt-project-workflow-form,
       .bolt-project-workflow-task-form,
@@ -13819,16 +13818,53 @@ body :where(.lucide, svg[data-lucide]) {
     justify-content: center;
   }
 
-  .bolt-project-service-panel
-    :where(
-      .bolt-project-package-list a,
-      .bolt-project-env-row,
-      .bolt-project-secret-row,
-      .bolt-project-vulnerability-card,
-      .bolt-project-collaboration-row
-    ) {
+  .bolt-project-service-panel :where(.bolt-project-package-list a, .bolt-project-vulnerability-card) {
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch;
+  }
+
+  /*
+   * DENSITE-003 — Variables d'environnement / Secrets / Collaboration.
+   * Ces lignes declarent deja leurs propres planchers
+   * (`minmax(120px, …)` x3 + trois boutons `auto`), soit ~560px de largeur
+   * reellement necessaire. Les ecraser sur UNE colonne des 760px empilait cle,
+   * valeur, date et trois boutons pleine largeur dans le panneau lateral de
+   * ~735px — alors que la ligne y tenait. Le repli n'intervient donc plus qu'a
+   * 560px, la ou les planchers ne tiennent effectivement plus.
+   */
+  @container (max-width: 560px) {
+    .bolt-project-service-panel
+      :where(.bolt-project-env-row, .bolt-project-secret-row, .bolt-project-collaboration-row) {
+      grid-template-columns: minmax(0, 1fr) !important;
+      align-items: stretch;
+    }
+  }
+
+  /*
+   * DENSITE-001 — ces grilles ne portent que des paires « étiquette + valeur ».
+   * Les écraser sur UNE colonne dès 760px de panneau produisait, sur un écran
+   * de 1280 (panneau 621px), quatre cartes de 569×82 empilées : 328px de haut
+   * pour quatre valeurs qui tiennent sur une ligne.
+   *
+   * On laisse la grille se réduire d'elle-même : `auto-fit` avec un plancher de
+   * 150px donne 3 colonnes à 621px, 2 vers 400px, et 1 seule quand la place
+   * manque vraiment. Le repli à une colonne est traité plus bas, sous 340px.
+   */
+  /*
+   * Sous 340px de panneau, une seule colonne : deux colonnes de 150px ne
+   * tiennent plus avec les gouttières et le rembourrage.
+   */
+  @container (max-width: 340px) {
+    .bolt-project-service-panel
+      :where(
+        .bolt-project-extension-catalog,
+        .bolt-project-security-scope,
+        .bolt-project-security-comparison-grid,
+        .bolt-project-metric-grid,
+        .bolt-project-package-stat-grid
+      ) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
   }
 
   .bolt-project-service-panel
@@ -13839,7 +13875,18 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-metric-grid,
       .bolt-project-package-stat-grid
     ) {
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)) !important;
+  }
+
+  /*
+   * DENSITE-002 — les cartes d'integration portent un titre, une description et
+   * un statut : leur plancher est plus large que celui des paires
+   * « etiquette + valeur », mais l'ecrasement brutal sur UNE colonne des 760px
+   * de panneau reste le meme defaut. Trois colonnes tiennent dans le panneau
+   * lateral de ~735px ; en dessous la grille se reduit d'elle-meme.
+   */
+  .bolt-project-service-panel .bolt-project-integrations-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)) !important;
   }
 
   .bolt-project-service-panel
@@ -14896,10 +14943,17 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+/*
+ * DENSITE-004 — le resume Deploiements porte 7 paires « etiquette + valeur »
+ * (Latest status / Environment / Framework, puis Type / Resources / Usage /
+ * Database), dont plusieurs valent « — ». Fige a 3 colonnes, le second bloc de
+ * quatre laissait une carte orpheline sur une troisieme ligne. `auto-fit` donne
+ * 2 a 4 colonnes selon la largeur reellement disponible.
+ */
 .bolt-project-deploy-summary {
   display: grid;
   gap: 8px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr));
   margin-bottom: 12px;
 }
 
