@@ -830,13 +830,40 @@ jobs:
                 SOURCE_SHA="$(git rev-parse "${TAG}" 2>/dev/null || echo "")"
               fi
               if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
-                echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
-                echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
-                echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                if [ "${rebuilt}" = "true" ]; then
+                  # Une image que CE run vient de produire doit être traçable. Sans
+                  # provenance ici, le manifeste mentirait sur ce qu'on expédie.
+                  echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
+                  echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
+                  echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                  explain_current
+                  exit 1
+                fi
+
+                # AMORÇAGE. Ce service n'est PAS reconstruit par ce run : son digest est
+                # repris tel quel, à l'identique de ce qui tourne déjà. Refuser ici
+                # n'ajoute aucune sûreté — rien de nouveau n'est expédié pour lui — et
+                # bloque en revanche TOUT déploiement.
+                #
+                # Le cas est structurel, pas accidentel : `admin` n'est pas construit
+                # par ce chemin continu (voir l'en-tête du workflow), son image a été
+                # épinglée par digest avant l'existence de l'annotation, et la
+                # remédiation que ce message proposait — « rebuild the tier that owns
+                # it » — est donc impossible ici. La porte réclamait une provenance que
+                # ce pipeline n'a jamais été conçu pour lui donner.
+                #
+                # Le principe est tenu : « le manifeste ne doit pas revendiquer une
+                # provenance qu'il n'a pas ». On l'enregistre INCONNUE (sourceSha null)
+                # plutôt que de l'inventer, et on le dit fort. Un service reconstruit,
+                # lui, échoue toujours.
+                echo "::warning::${key}: provenance inconnue — image reprise telle quelle, sourceSha enregistré à null"
+                echo "${key}: ${DEP_IMAGE} ne porte ni annotation vibecore.dev/image-source-sha ni tag 10-hex résolvable."
+                echo "Pour lui donner une provenance : reconstruire ce service par le chemin qui le produit."
                 explain_current
-                exit 1
+                SOURCE_SHA=""
+              else
+                echo "${key}: source commit ${SOURCE_SHA}"
               fi
-              echo "${key}: source commit ${SOURCE_SHA}"
               fi
             fi
 
