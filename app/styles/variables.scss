@@ -30,11 +30,22 @@
 
   --bolt-elements-item-contentDefault: theme('colors.alpha.gray.50');
   --bolt-elements-item-contentActive: theme('colors.gray.950');
-  --bolt-elements-item-contentAccent: theme('colors.accent.700');
+  /*
+   * CHARTE-IDE-001 — ces deux jetons peignaient l'anneau de focus, les
+   * indicateurs de chargement, les barres de progression et l'icone de
+   * l'element selectionne. Ils pointaient sur l'echelle `accent`, qui est
+   * BLEUE (#0099FF) : c'est la source du bleu residuel que la charte n'avait
+   * pas rattrape, la charte ne touchant que --vc-ide-accent-action.
+   *
+   * Le ton clair prend l'orange ASSOMBRI et non l'orange d'aplat : sur la
+   * surface claire la plus defavorable (bg-depth-3, #E5E5E5) #c2410c tombe a
+   * 4,11:1, sous AA. #9a3412 y est a 5,80:1.
+   */
+  --bolt-elements-item-contentAccent: #9a3412;
   --bolt-elements-item-contentDanger: theme('colors.red.500');
   --bolt-elements-item-backgroundDefault: rgba(0, 0, 0, 0);
   --bolt-elements-item-backgroundActive: theme('colors.alpha.gray.5');
-  --bolt-elements-item-backgroundAccent: theme('colors.alpha.accent.10');
+  --bolt-elements-item-backgroundAccent: color-mix(in srgb, #f97316 10%, transparent);
   --bolt-elements-item-backgroundDanger: theme('colors.alpha.red.10');
 
   --bolt-elements-loader-background: theme('colors.alpha.gray.10');
@@ -145,11 +156,13 @@
 
   --bolt-elements-item-contentDefault: theme('colors.alpha.white.50');
   --bolt-elements-item-contentActive: theme('colors.white');
-  --bolt-elements-item-contentAccent: theme('colors.accent.500');
+  // CHARTE-IDE-001 — cf. bloc clair. En sombre l'orange vif tient sur les trois
+  // profondeurs de panneau : 7,06 / 6,40 / 5,40:1.
+  --bolt-elements-item-contentAccent: #f97316;
   --bolt-elements-item-contentDanger: theme('colors.red.500');
   --bolt-elements-item-backgroundDefault: rgba(255, 255, 255, 0);
   --bolt-elements-item-backgroundActive: theme('colors.alpha.white.10');
-  --bolt-elements-item-backgroundAccent: theme('colors.alpha.accent.10');
+  --bolt-elements-item-backgroundAccent: color-mix(in srgb, #f97316 10%, transparent);
   --bolt-elements-item-backgroundDanger: theme('colors.alpha.red.10');
 
   --bolt-elements-loader-background: theme('colors.alpha.gray.10');
