@@ -22250,6 +22250,74 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   color: var(--vc-auth-text);
 }
 
+/*
+ * TACTILE-003 — le plancher tactile des pages d'authentification.
+ *
+ * MESURÉ SUR LA PRODUCTION, /login en 390 : 12 contrôles sous 44px, dont le
+ * bouton « Se connecter » lui-même à 42px de haut.
+ *
+ * La cause n'est pas que quelqu'un a écrit des tailles trop petites. Le balisage
+ * demande DÉJÀ les bonnes : `h-12` sur les champs et la soumission, `min-h-11`
+ * sur les liens et les actions secondaires. Ce sont les valeurs correctes — en
+ * rem.
+ *
+ * Or `--vc-type-interface-size` REDÉFINIT la base rem : 12px en desktop, 14px
+ * sous 1024px (voir index.scss:748 et :818). Comme `rem` est relatif à la
+ * RACINE, chaque utilitaire Tailwind exprimé en rem est silencieusement dégonflé :
+ *
+ *              écrit        desktop (12px)   mobile (14px)   attendu
+ *   h-12       3rem         36px             42px            48px
+ *   min-h-11   2.75rem      33px             38,5px          44px
+ *
+ * C'est la même cause que les commandes de la coque commune mesurées à 36x36 et
+ * que le « jeton 42px » du contenu de panneau : ni l'un ni l'autre n'est un
+ * jeton, ce sont `h-12` dégonflé à deux bases rem différentes.
+ *
+ * Ce bloc NE TOUCHE PAS la base rem. La remonter à 16px gonflerait de 33 % tout
+ * l'espacement et toute la typographie du produit — c'est la décision de densité
+ * assumée par l'équipe, pas un défaut (voir le commentaire à index.scss:806).
+ * On exprime donc le plancher tactile en PIXELS, seule unité que la base rem ne
+ * peut pas déformer, exactement comme `--vc-touch-min` le fait pour l'IDE.
+ *
+ * NON INCLUS, ET C'EST VOLONTAIRE : les liens en ligne dans une phrase
+ * (« Inscrivez-vous gratuitement », « Conditions d'utilisation »,
+ * « Politique de confidentialité »). WCAG 2.2 (2.5.8) les exempte explicitement,
+ * et les agrandir casserait le paragraphe qui les porte.
+ */
+.vc-auth-input,
+.vc-auth-submit,
+.vc-auth-secondary-action,
+.vc-auth-back-link,
+.vc-auth-input-action {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+.vc-auth-input-action {
+  min-width: var(--vc-touch-min, 44px);
+}
+
+/*
+ * Un lien AUTONOME porte déjà `inline-flex min-h-11` dans le balisage — l'auteur
+ * visait bien 44px. C'est ce marqueur qui le distingue d'un lien en ligne dans
+ * une phrase, lequel n'a pas `inline-flex` et reste donc exempté.
+ * Mesuré avant : « Mot de passe oublié ? » à 39px.
+ */
+.vc-auth-link.inline-flex {
+  min-height: var(--vc-touch-min, 44px);
+}
+
+/*
+ * La case à cocher garde sa taille VISUELLE de 14px : l'agrandir la rendrait
+ * disgracieuse et inhabituelle. Sa vraie cible tactile est l'ÉTIQUETTE qui
+ * l'enveloppe — vérifié dans le rendu : `<label>` enveloppant, 185x39, déjà
+ * porteuse de `min-h-11`. C'est donc elle, et elle seule, qu'il faut ramener au
+ * plancher ; toucher l'`<input>` lui-même serait inutile (un `::after` ne rend
+ * pas sur un élément remplacé) autant que nuisible.
+ */
+.vc-auth-checkbox-label {
+  min-height: var(--vc-touch-min, 44px);
+}
+
 .vc-auth-input::placeholder {
   color: var(--vc-auth-muted);
 }
