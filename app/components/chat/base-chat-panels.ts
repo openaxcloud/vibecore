@@ -53,13 +53,17 @@ const SNAPSHOT_RESTORE_FAILURES: Readonly<Record<string, SnapshotRestoreFailure>
  * Human-readable copy for a failed snapshot restore, keyed on the backend error
  * code when present and falling back to the HTTP status. Used to toast the real
  * reason instead of silently proceeding to wipe chat memory and reload.
+ *
+ * `payload` est typé `unknown` et non par une forme précise : l'appelant passe
+ * le résultat de `response.json()`, qui EST `unknown` — c'est un corps réseau,
+ * il peut contenir n'importe quoi. Annoncer une forme obligeait l'appelant à
+ * mentir sur ce qu'il tient (TS2345, jusqu'ici masqué par `@ts-nocheck` dans
+ * `BaseChat.tsx`). Le narrowing se fait donc ici, où l'on sait quoi chercher ;
+ * le comportement ne change pas, la fonction était déjà défensive.
  */
-export function describeSnapshotRestoreFailure(
-  httpStatus: number,
-  payload: { error?: { code?: string; message?: string } | string } | undefined,
-  language?: string | null,
-): string {
-  const code = typeof payload?.error === 'object' ? payload?.error?.code : undefined;
+export function describeSnapshotRestoreFailure(httpStatus: number, payload: unknown, language?: string | null): string {
+  const error = payload && typeof payload === 'object' ? (payload as { error?: unknown }).error : undefined;
+  const code = error && typeof error === 'object' ? (error as { code?: string }).code : undefined;
 
   if (code && SNAPSHOT_RESTORE_FAILURES[code]) {
     return formatSnapshotRestoreFailure(SNAPSHOT_RESTORE_FAILURES[code], language);
