@@ -7096,20 +7096,60 @@ body :where(.lucide, svg[data-lucide]) {
  * conteneur en `flex` — le transcript est une colonne, un `align-self` y aurait
  * étiré le bouton.
  */
+/*
+ * AGENT-SCROLL-001 — la pastille « Aller au plus récent ».
+ *
+ * Demande d'Avi, capture Replit à l'appui. L'existant était une icône SEULE de
+ * 40x40 collée à DROITE de la colonne. Trois écarts avec la référence :
+ *   1. pas de libellé — une flèche seule n'annonce pas ce qu'elle fait ;
+ *   2. alignée à droite (`margin-left: auto`) au lieu d'être CENTRÉE ;
+ *   3. 40px de haut, sous le plancher tactile de 44.
+ *
+ * Le comportement d'apparition, lui, était déjà juste : la pastille ne se rend
+ * pas quand on est en bas (`isAtBottom` dans `ScrollToBottom`), et le retour
+ * automatique en bas cesse dès que l'utilisateur remonte volontairement —
+ * `useStickToBottom` porte cet état sous le nom `escapedFromLock`.
+ *
+ * `position: sticky` et non `fixed` : la pastille flotte au-dessus du fil sans
+ * le pousser, tout en restant dans la colonne de conversation — elle suit donc
+ * la largeur du panneau, y compris quand l'IDE est en deux volets.
+ */
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
   z-index: 20;
   display: inline-flex;
-  width: 40px;
-  height: 40px;
-  margin-left: auto;
+  /*
+   * `auto` des DEUX côtés : c'est ce qui centre. L'ancien `margin-left: auto`
+   * seul poussait la pastille contre le bord droit.
+   */
+  margin-inline: auto;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  /*
+   * 44px EN PIXELS, jamais en rem : `--vc-type-interface-size` redéfinit la base
+   * rem à 12px/14px, et tout plancher exprimé en rem y serait dégonflé — c'est
+   * la cause unique corrigée par TACTILE-003.
+   */
+  min-height: var(--vc-touch-min, 44px);
+  padding-inline: 14px;
   border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
   border-radius: 999px;
-  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2));
+  /*
+   * Légèrement TRANSLUCIDE : la pastille se superpose au fil qui défile
+   * derrière, et un aplat opaque donnerait l'impression d'un trou dans la
+   * conversation. Le flou d'arrière-plan garde le libellé lisible par-dessus du
+   * texte.
+   */
+  background: color-mix(in srgb, var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2)) 88%, transparent);
+  backdrop-filter: blur(8px);
   color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  /* Corps réduit et ombre douce : discrète, jamais un appel à l'action. */
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
   box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
   cursor: pointer;
 }
@@ -7119,9 +7159,15 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-agent-scroll-to-bottom [class*='i-ph:'] {
-  width: 18px;
-  height: 18px;
-  font-size: 18px;
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+  flex: 0 0 auto;
+}
+
+.bolt-agent-scroll-to-bottom__label {
+  /* Pas d'aplat de couleur vive : le libellé prend la couleur du texte. */
+  color: inherit;
 }
 
 .bolt-project-agent-panel textarea {

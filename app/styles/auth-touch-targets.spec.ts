@@ -22,15 +22,22 @@ import { describe, expect, it } from 'vitest';
 
 const INDEX = readFileSync(join(__dirname, 'index.scss'), 'utf8');
 
-/** Le bloc TACTILE-003, isolé du reste de la feuille. */
+/**
+ * Le bloc du plancher tactile, isolé du reste de la feuille.
+ *
+ * ANCRÉ SUR DU CODE, PAS SUR UNE PROSE. La version précédente cherchait la
+ * chaîne « TACTILE-003 », qui n'existe que dans un commentaire — et un autre
+ * commentaire, ailleurs dans la feuille, s'est mis à la citer pour expliquer que
+ * la même cause s'y appliquait. Le test s'est alors mis à découper la mauvaise
+ * région et à tomber pour une raison qui n'avait rien à voir.
+ *
+ * La règle générale : un test qui lit du code source retire les commentaires, et
+ * ne s'ancre jamais sur eux. Ici le repère est le sélecteur lui-même.
+ */
 function touchBlock(): string {
-  const start = INDEX.indexOf('TACTILE-003');
-  expect(start).toBeGreaterThan(-1);
+  const start = INDEX.indexOf('.vc-auth-input,\n.vc-auth-submit,');
+  expect(start, 'le bloc du plancher tactile est introuvable').toBeGreaterThan(-1);
 
-  /*
-   * Fenêtre fixe : le bloc contient ses propres commentaires explicatifs, donc
-   * s'arrêter au prochain `/*` le tronquerait au milieu de lui-même.
-   */
   return INDEX.slice(start, start + 4000);
 }
 
