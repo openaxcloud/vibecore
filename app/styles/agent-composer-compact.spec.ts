@@ -58,7 +58,13 @@ describe('COMPOSER-001 — deux lignes au repos, pas trois blocs', () => {
     const floor = Number(reserved.match(/clamp\((\d+)px/)?.[1]);
 
     expect(floor).toBeGreaterThan(0);
-    expect(floor).toBeLessThanOrEqual(140);
+    /*
+     * Le repli sert AUSSI de rembourrage au bas du fil : trop court, la queue du
+     * transcript glisse sous la zone de saisie (`ui-details` l'a attrapé à
+     * 132px). Le seuil du test borne donc la RÉDUCTION sans exiger l'impossible.
+     */
+    expect(floor).toBeLessThanOrEqual(180);
+    expect(floor).toBeLessThan(236);
 
     // La hauteur MESURÉE reste prioritaire : le repli ne sert qu'au premier rendu.
     expect(reserved).toMatch(/--vc-agent-composer-measured-height/);
