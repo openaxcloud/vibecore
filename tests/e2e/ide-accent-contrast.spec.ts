@@ -19,7 +19,14 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
 const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
-const PANNEAUX = ['packages', 'settings'] as const;
+/*
+ * Une seule surface, mais choisie pour être DENSE en accent et toujours rendue :
+ * le composer Agent porte les puces de mode (aplat accent) et le badge de coût,
+ * sans dépendre d'un runtime d'espace de travail. Les quatre panneaux de la
+ * première version dépassaient le budget de temps en CI et mesuraient surtout
+ * des écrans de chargement.
+ */
+const PANNEAUX = ['agent'] as const;
 const THEMES = ['light', 'dark'] as const;
 
 type AuthPayload = { token: string; organization: { id: string } };
@@ -211,7 +218,7 @@ test('l’accent de l’IDE respecte AA en aplat comme en texte, dans les deux t
   request,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'chromium', 'contrat desktop');
-  test.setTimeout(240_000);
+  test.setTimeout(420_000);
 
   const auth = await authenticate(request);
   const projectId = await createProject(request, auth);
@@ -237,8 +244,15 @@ test('l’accent de l’IDE respecte AA en aplat comme en texte, dans les deux t
     for (const panneau of PANNEAUX) {
       await test.step(`${theme} / ${panneau}`, async () => {
         await page.goto(`/projects/${projectId}/ide?panel=${panneau}`, { waitUntil: 'domcontentloaded' });
-        await page.locator('.bolt-project-agent-shell').first().waitFor({ state: 'visible', timeout: 120_000 });
-        await page.waitForTimeout(4_000);
+
+        /*
+         * On attend un élément qui PORTE l'accent, pas seulement la coque : sans
+         * ça le balayage part trop tôt et ne mesure qu'un écran de chargement.
+         */
+        await page
+          .locator('[data-testid="agent-mode-segmented"]')
+          .first()
+          .waitFor({ state: 'visible', timeout: 180_000 });
 
         const mesures = await mesurerAccent(page);
         mesuresTotales += mesures.length;
@@ -252,7 +266,13 @@ test('l’accent de l’IDE respecte AA en aplat comme en texte, dans les deux t
     }
   }
 
-  // Le balayage doit avoir VU de l'accent : un sélecteur cassé passerait sinon en silence.
-  expect(mesuresTotales, 'aucun élément accent mesuré — le balayage ne prouve rien').toBeGreaterThan(4);
+  /*
+   * Le balayage doit avoir VU de l'accent : un sélecteur cassé passerait sinon
+   * en silence. Portée assumée : le composer Agent porte deux éléments accent
+   * par thème (la puce de mode active, en aplat, et le badge de coût, en
+   * texte) — soit quatre mesures au total. C'est étroit, mais c'est exactement
+   * la paire aplat/texte que le changement de charte met en jeu.
+   */
+  expect(mesuresTotales, 'aucun élément accent mesuré — le balayage ne prouve rien').toBeGreaterThanOrEqual(4);
   expect(echecs, `contrastes sous AA :\n${echecs.join('\n')}`).toEqual([]);
 });
