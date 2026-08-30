@@ -13649,6 +13649,33 @@ body :where(.lucide, svg[data-lucide]) {
     align-items: stretch;
   }
 
+  /*
+   * DENSITE-001 — ces grilles ne portent que des paires « étiquette + valeur ».
+   * Les écraser sur UNE colonne dès 760px de panneau produisait, sur un écran
+   * de 1280 (panneau 621px), quatre cartes de 569×82 empilées : 328px de haut
+   * pour quatre valeurs qui tiennent sur une ligne.
+   *
+   * On laisse la grille se réduire d'elle-même : `auto-fit` avec un plancher de
+   * 150px donne 3 colonnes à 621px, 2 vers 400px, et 1 seule quand la place
+   * manque vraiment. Le repli à une colonne est traité plus bas, sous 340px.
+   */
+  /*
+   * Sous 340px de panneau, une seule colonne : deux colonnes de 150px ne
+   * tiennent plus avec les gouttières et le rembourrage.
+   */
+  @container (max-width: 340px) {
+    .bolt-project-service-panel
+      :where(
+        .bolt-project-extension-catalog,
+        .bolt-project-security-scope,
+        .bolt-project-security-comparison-grid,
+        .bolt-project-metric-grid,
+        .bolt-project-package-stat-grid
+      ) {
+      grid-template-columns: minmax(0, 1fr) !important;
+    }
+  }
+
   .bolt-project-service-panel
     :where(
       .bolt-project-extension-catalog,
@@ -13657,7 +13684,7 @@ body :where(.lucide, svg[data-lucide]) {
       .bolt-project-metric-grid,
       .bolt-project-package-stat-grid
     ) {
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(150px, 100%), 1fr)) !important;
   }
 
   .bolt-project-service-panel
