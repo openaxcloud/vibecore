@@ -38,6 +38,27 @@ describe('IOS-ZOOM-001 — les champs ne descendent pas sous le seuil de Safari'
     expect(size).not.toMatch(/rem/);
   });
 
+  it('l’emporte sur les champs qu’une autre règle a déjà forcés', () => {
+    /*
+     * Sans `!important`, le plancher ne servait à rien là où le défaut se
+     * produit : `.bolt-project-chatbox textarea` — la zone de saisie de l'agent,
+     * le champ signalé — est déclarée `font-size: 13px !important` plus bas dans
+     * la feuille, et `.bolt-project-rename-input` à 12px.
+     *
+     * Le correctif d'origine n'agissait donc que sur les champs que personne
+     * n'avait forcés, c'est-à-dire pas sur celui qui motivait le correctif.
+     */
+    expect(zoomRule()).toMatch(/font-size:\s*16px\s*!important/);
+  });
+
+  it('les champs concurrents existent bien — sinon ce garde-fou ne garde rien', () => {
+    /*
+     * Si ces déclarations disparaissaient, le cas ci-dessus deviendrait vide de
+     * sens sans qu'on s'en aperçoive. On vérifie donc qu'il a toujours un objet.
+     */
+    expect(CODE).toMatch(/\.bolt-project-chatbox textarea\s*\{[^}]*font-size:\s*\d+px\s*!important/s);
+  });
+
   it('couvre les trois familles de champ texte', () => {
     const rule = zoomRule();
 

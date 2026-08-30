@@ -864,8 +864,30 @@ html:has(.vc-app-shell-grid) body {
   input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
   textarea,
   select {
-    /* 16px, en pixels. Voir IOS-ZOOM-001 : en rem, la base le dégonflerait. */
-    font-size: 16px;
+    /*
+     * 16px EN PIXELS, et `!important` ASSUMÉ.
+     *
+     * Sans lui, la règle ne servait à rien là où le défaut se produit. Deux
+     * déclarations postérieures la battaient :
+     *
+     *   .bolt-project-rename-input        font-size: 12px !important
+     *   .bolt-project-chatbox textarea    font-size: 13px !important
+     *
+     * La seconde est EXACTEMENT le champ que signale Avi — la zone de saisie de
+     * l'agent. Le correctif d'origine ne corrigeait donc pas le cas qui l'avait
+     * motivé : il n'agissait que sur les champs que personne n'avait déjà
+     * forcés.
+     *
+     * `!important` est ici un PLANCHER D'ACCESSIBILITÉ, pas un style : sous
+     * 1024px, tout champ en dessous de 16px fait zoomer Safari iOS sans jamais
+     * dézoomer. Aucune intention de mise en page ne justifie ce comportement, et
+     * le plancher ne s'applique qu'en dessous de ce seuil — la densité du
+     * desktop n'est pas touchée.
+     *
+     * Même raisonnement que le plancher de lisibilité `.vc-cta-accent-fill`,
+     * qui assume déjà `!important` pour une garantie et non pour un style.
+     */
+    font-size: 16px !important;
   }
 }
 
