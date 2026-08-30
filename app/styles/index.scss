@@ -835,6 +835,62 @@ html:has(.vc-app-shell-grid) body {
  * stay fixed is sized in px inside its own `max-width:1024px` queries and is
  * unaffected.
  */
+/*
+ * IOS-ZOOM-001 — Safari iOS zoome sur tout champ dont la police RENDUE est
+ * inférieure à 16px, et ne dézoome jamais tout seul. Avi le constate sur la
+ * zone de saisie de l'agent : l'écran saute dès qu'il touche le champ.
+ *
+ * LA CAUSE EST CELLE QU'ON CONNAÎT. `--vc-type-interface-size` redéfinit la base
+ * rem à 14px sous 1024px. Un champ écrit `text-base` (1rem) rend donc 14px —
+ * sous le seuil. Les pages d'authentification y échappent parce qu'elles posent
+ * une taille explicite ; le reste du produit, non.
+ *
+ * CE QU'ON NE FAIT PAS : `maximum-scale=1` ou `user-scalable=no` dans la balise
+ * viewport. C'est la solution de facilité, elle empêche l'utilisateur de zoomer
+ * VOLONTAIREMENT — un vrai défaut d'accessibilité — et elle ne corrige pas la
+ * cause.
+ *
+ * On impose donc 16px EN PIXELS, seule unité que la base rem ne peut pas
+ * déformer, exactement comme pour les planchers tactiles.
+ *
+ * Portée limitée à <=1024px, là où vivent les appareils iOS : au-delà, Safari ne
+ * zoome pas au focus, et gonfler les champs y romprait la densité assumée du
+ * desktop sans rien corriger.
+ *
+ * Les types NON TEXTUELS sont exclus : une case à cocher ou un curseur n'a pas
+ * de texte à zoomer, et leur imposer une taille de police déforme leur boîte.
+ */
+@media (max-width: 1024px) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select {
+    /*
+     * 16px EN PIXELS, et `!important` ASSUMÉ.
+     *
+     * Sans lui, la règle ne servait à rien là où le défaut se produit. Deux
+     * déclarations postérieures la battaient :
+     *
+     *   .bolt-project-rename-input        font-size: 12px !important
+     *   .bolt-project-chatbox textarea    font-size: 13px !important
+     *
+     * La seconde est EXACTEMENT le champ que signale Avi — la zone de saisie de
+     * l'agent. Le correctif d'origine ne corrigeait donc pas le cas qui l'avait
+     * motivé : il n'agissait que sur les champs que personne n'avait déjà
+     * forcés.
+     *
+     * `!important` est ici un PLANCHER D'ACCESSIBILITÉ, pas un style : sous
+     * 1024px, tout champ en dessous de 16px fait zoomer Safari iOS sans jamais
+     * dézoomer. Aucune intention de mise en page ne justifie ce comportement, et
+     * le plancher ne s'applique qu'en dessous de ce seuil — la densité du
+     * desktop n'est pas touchée.
+     *
+     * Même raisonnement que le plancher de lisibilité `.vc-cta-accent-fill`,
+     * qui assume déjà `!important` pour une garantie et non pour un style.
+     */
+    font-size: 16px !important;
+  }
+}
+
 @media (max-width: 1024px) {
   :root {
     --vc-type-interface-size: 14px;
@@ -4538,6 +4594,20 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
 }
 
+/*
+ * TACTILE-001 — cible tactile minimale du socle compact.
+ *
+ * Décision d'Avi : « pour tablet ce doit être comme mobile ». La coque compacte
+ * s'applique sous 1200px, donc à 390 ET 768 : un seul jeton gouverne les deux.
+ *
+ * Mesuré avant correctif, sur 4 panneaux × {390, 768} : les 4 boutons d'en-tête
+ * à 36×36, le déclencheur de recherche à 202×20 (390) / 580×20 (768), et 21
+ * contrôles de contenu de panneau uniformément à 42px — 2px sous la cible.
+ */
+:root {
+  --vc-touch-min: 44px;
+}
+
 .bolt-mobile-ecode-header {
   display: none;
 }
@@ -4563,8 +4633,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-ecode-header button {
   display: inline-flex;
-  width: 36px;
-  height: 36px;
+  width: var(--vc-touch-min);
+  height: var(--vc-touch-min);
   align-items: center;
   justify-content: center;
   border: 0;
@@ -4601,6 +4671,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-ecode-header-title {
   display: flex;
   min-width: 0;
+  /* Déclencheur de recherche : sans plancher il tombait à 20px de haut. */
+  min-height: var(--vc-touch-min);
   flex: 1 1 auto;
   align-items: center;
   justify-content: center;
@@ -18519,7 +18591,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-workflows-toolbar a,
 .bolt-project-workflow-card header > button {
   display: inline-flex;
-  min-height: 40px;
+  min-height: var(--vc-touch-min);
   align-items: center;
   justify-content: center;
   gap: 7px;
@@ -19729,6 +19801,35 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     -webkit-tap-highlight-color: transparent;
   }
 
+  /*
+   * TACTILE-001 — les contrôles du composer Agent.
+   *
+   * Ils sont volontairement DENSES sur desktop (le composer doit laisser la
+   * place à la conversation), mais au doigt ils tombaient à 25-32px : puces de
+   * mode 52×25, « Avancé » 116×28, « Planifier » 73×30, et les icônes pièce
+   * jointe / micro / plus à 30×30. Sous 1200px ils reprennent la cible pleine.
+   */
+  /*
+   * `:is()` et non `:where()` : `:where()` n'apporte AUCUNE spécificité, la
+   * règle faisait donc jeu égal avec les utilitaires (`min-h-7`) qui, déclarés
+   * plus loin, l'emportaient. Constaté en mesurant : « Avancé » passait à 44px
+   * (sa taille venait de `height`), les puces de mode restaient à 25px.
+   */
+  .bolt-responsive-ide-mobile
+    :is(
+      [data-testid='agent-mode-segmented'] button,
+      [data-testid='agent-mode-advanced'],
+      .bolt-chatbox-plan-toggle,
+      .bolt-chatbox-mode-trigger,
+      .bolt-chatbox-toolbar button,
+      .bolt-chatbox-toolbar-primary button,
+      .bolt-chatbox-toolbar-secondary button,
+      [data-vc-composer-toolbar] button
+    ) {
+    min-width: var(--vc-touch-min);
+    min-height: var(--vc-touch-min);
+  }
+
   /* Bare inline action buttons that escape the .bolt-project-* sizing rules:
      Security "Export audit package" (SARIF/JSON/Print) and the object-storage
      per-object actions (Download/Move/Delete). Wrap them and give a 40px target. */
@@ -19749,7 +19850,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      and used ~79x across panels not covered by the enumerated rules: checkpoints,
      deploy wizard, git SSH, etc.). min-height only raises, never shrinks. */
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service button {
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
   }
 
   /* A long deployment URL (no spaces) in the deploy-card header could push past the
@@ -20223,7 +20324,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: auto;
     max-width: 240px;
     min-width: max-content;
-    min-height: 40px;
+    min-height: var(--vc-touch-min);
     flex: 0 0 auto;
     justify-content: flex-start;
     padding-inline: 12px;
@@ -20917,7 +21018,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-card-footer button {
     width: 100%;
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
     justify-content: center;
   }
 
@@ -20957,7 +21058,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile-service
     :where(input:not([type='checkbox']):not([type='radio']):not([type='hidden']), select, textarea) {
-    min-height: 42px;
+    min-height: var(--vc-touch-min);
     max-width: 100%;
     font-size: 16px !important;
   }
@@ -26873,7 +26974,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: inline-flex !important;
     width: 152px;
     min-width: 152px;
-    height: 38px;
+    height: var(--vc-touch-min);
     align-items: center;
     justify-content: flex-start;
     gap: 8px;
@@ -26942,12 +27043,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     transform: none !important;
   }
 
+  /*
+   * TACTILE-001 — la barre d'outils du composer doit contenir des cibles de
+   * 44px : sa hauteur fixe de 36px les écrasait. `height` devient un plancher.
+   */
   .bolt-project-chatbox .bolt-chatbox-toolbar {
-    height: 36px;
-    min-height: 36px;
+    min-height: var(--vc-touch-min);
     align-items: center;
     gap: 6px;
-    overflow: hidden;
     padding: 0 4px;
   }
 
@@ -26958,18 +27061,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 6px;
   }
 
+  /*
+   * Ces boutons étaient explicitement rétrécis à 30px `!important` DANS la
+   * portée compacte — c'est-à-dire au doigt, là où la cible doit être la plus
+   * généreuse. Pièce jointe, micro et « plus » mesuraient 30×30 à 390px.
+   */
   .bolt-project-chatbox .bolt-chatbox-toolbar-button {
-    width: 30px !important;
-    min-width: 30px !important;
-    height: 30px !important;
-    min-height: 30px !important;
-    flex-basis: 30px;
+    width: var(--vc-touch-min) !important;
+    min-width: var(--vc-touch-min) !important;
+    height: var(--vc-touch-min) !important;
+    min-height: var(--vc-touch-min) !important;
+    flex-basis: var(--vc-touch-min);
     border-radius: 8px;
   }
 
   .bolt-project-chatbox .bolt-chatbox-plan-toggle {
-    height: 30px;
-    min-height: 30px;
+    min-height: var(--vc-touch-min);
     min-width: 72px;
     border-radius: 8px;
   }
