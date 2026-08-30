@@ -779,11 +779,31 @@ jobs:
                   SOURCE_SHA="$(git rev-parse "${CANDIDATE}" 2>/dev/null || echo "")"
                 fi
                 if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
-                  echo "::error::${key}: cannot establish which commit produced ${CM_IMAGE}"
-                  echo "Fix: re-run this deploy with the workspace-agent tier rebuilt."
-                  exit 1
+                  # AMORÇAGE, même raisonnement que pour `admin` plus bas.
+                  #
+                  # L'ironie du cas : ce bloc existe pour que l'agent de workspace
+                  # cesse de tourner sur un TAG MUTABLE. Il a réussi — la référence
+                  # du configmap est désormais `...@sha256:...`. Et c'est cette
+                  # réussite qui rend la provenance introuvable : le tag `sha-<sha>`
+                  # dont on déduisait le commit n'existe plus dans la référence.
+                  #
+                  # Refuser ici ne protège de rien. Ce run ne reconstruit PAS l'agent
+                  # (`rebuilt=false`) : son digest est repris à l'identique de ce qui
+                  # tourne déjà dans les workspaces. Et la remédiation proposée par ce
+                  # message — « relancer avec le tier reconstruit » — ne dépend pas de
+                  # l'opérateur : le tier n'est reconstruit que si le commit touche
+                  # ses fichiers.
+                  #
+                  # Le principe tient parce que le manifeste ÉCRIT le trou :
+                  # `provenanceKnown: false`, le service listé dans `provenanceGaps`,
+                  # et `fullyTraceable: false` au sommet du document.
+                  echo "::warning::${key}: provenance inconnue — image reprise telle quelle, sourceSha enregistré à null"
+                  echo "${key}: ${CM_IMAGE} est épinglée par digest ; le tag sha-<sha> dont on déduisait le commit n'y figure plus."
+                  echo "Elle retrouvera une provenance au prochain build de ce tier, qui la référencera par son tag."
+                  SOURCE_SHA=""
+                else
+                  echo "${key}: source commit ${SOURCE_SHA}"
                 fi
-                echo "${key}: source commit ${SOURCE_SHA}"
               else
 
               # What is this service RUNNING right now? Read it from the live Deployment,
