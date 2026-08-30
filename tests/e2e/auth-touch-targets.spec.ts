@@ -46,7 +46,10 @@ type Measured = { selecteur: string; libelle: string; largeur: number; hauteur: 
 async function measure(page: import('@playwright/test').Page): Promise<Measured[]> {
   return page.evaluate((selector) => {
     const identify = (el: Element) => {
-      const classes = (el.className || '').toString().split(/\s+/).filter((c) => c.startsWith('vc-auth-'));
+      const classes = (el.className || '')
+        .toString()
+        .split(/\s+/)
+        .filter((c) => c.startsWith('vc-auth-'));
       return classes[0] ?? el.tagName.toLowerCase();
     };
 
@@ -63,12 +66,7 @@ async function measure(page: import('@playwright/test').Page): Promise<Measured[
 
         return {
           selecteur: identify(el),
-          libelle: (
-            el.textContent ||
-            el.getAttribute('aria-label') ||
-            el.getAttribute('placeholder') ||
-            ''
-          )
+          libelle: (el.textContent || el.getAttribute('aria-label') || el.getAttribute('placeholder') || '')
             .trim()
             .slice(0, 32),
           largeur: Math.round(box.width * 100) / 100,
@@ -92,8 +90,10 @@ for (const viewport of VIEWPORTS) {
 
         const controls = await measure(page);
 
-        // Une page d'authentification sans aucun contrôle mesurable signifie que
-        // le test s'est trompé de page : mieux vaut échouer que passer à vide.
+        /*
+         * Une page d'authentification sans aucun contrôle mesurable signifie que
+         * le test s'est trompé de page : mieux vaut échouer que passer à vide.
+         */
         expect(controls.length, `aucun contrôle trouvé sur ${route}`).toBeGreaterThan(0);
 
         for (const control of controls) {
@@ -106,9 +106,7 @@ for (const viewport of VIEWPORTS) {
 
       expect(
         tooSmall,
-        tooSmall
-          .map((c) => `${c.route} — ${c.selecteur} « ${c.libelle} » : ${c.hauteur}px`)
-          .join('\n'),
+        tooSmall.map((c) => `${c.route} — ${c.selecteur} « ${c.libelle} » : ${c.hauteur}px`).join('\n'),
       ).toEqual([]);
     });
   }

@@ -27,8 +27,10 @@ function touchBlock(): string {
   const start = INDEX.indexOf('TACTILE-003');
   expect(start).toBeGreaterThan(-1);
 
-  // Fenêtre fixe : le bloc contient ses propres commentaires explicatifs, donc
-  // s'arrêter au prochain `/*` le tronquerait au milieu de lui-même.
+  /*
+   * Fenêtre fixe : le bloc contient ses propres commentaires explicatifs, donc
+   * s'arrêter au prochain `/*` le tronquerait au milieu de lui-même.
+   */
   return INDEX.slice(start, start + 4000);
 }
 
@@ -66,9 +68,11 @@ describe('TACTILE-003 — le plancher tactile des pages d’authentification', (
   it('n’élargit pas les liens en ligne dans une phrase, que WCAG 2.2 exempte', () => {
     const block = touchBlock();
 
-    // `.vc-auth-link` NU (sans `.inline-flex`) toucherait « Inscrivez-vous
-    // gratuitement » et « Conditions d'utilisation », qui vivent au milieu d'un
-    // paragraphe : les grandir casserait la ligne de texte.
+    /*
+     * `.vc-auth-link` NU (sans `.inline-flex`) toucherait « Inscrivez-vous
+     * gratuitement » et « Conditions d'utilisation », qui vivent au milieu d'un
+     * paragraphe : les grandir casserait la ligne de texte.
+     */
     expect(block).not.toMatch(/^\s*\.vc-auth-link\s*[,{]/m);
     expect(block).not.toMatch(/\.vc-auth-inline-link/);
   });
@@ -77,6 +81,7 @@ describe('TACTILE-003 — le plancher tactile des pages d’authentification', (
     const block = touchBlock();
 
     expect(block).not.toMatch(/--vc-type-interface-size\s*:/);
+
     // La base reste celle que l'équipe a choisie, à son emplacement d'origine.
     expect(INDEX).toMatch(/--vc-type-interface-size:\s*12px/);
     expect(INDEX).toMatch(/--vc-type-interface-size:\s*14px/);
@@ -85,8 +90,10 @@ describe('TACTILE-003 — le plancher tactile des pages d’authentification', (
   it('retombe sur 44px là où --vc-touch-min n’est pas défini', () => {
     const block = touchBlock();
 
-    // La coque IDE définit `--vc-touch-min`; les pages d'authentification n'en
-    // dépendent pas. Sans repli, le plancher disparaîtrait hors de l'IDE.
+    /*
+     * La coque IDE définit `--vc-touch-min`; les pages d'authentification n'en
+     * dépendent pas. Sans repli, le plancher disparaîtrait hors de l'IDE.
+     */
     for (const floor of block.match(/min-(?:height|width)\s*:\s*([^;]+);/g) ?? []) {
       expect(floor).toMatch(/var\(--vc-touch-min,\s*44px\)/);
     }
