@@ -1754,9 +1754,12 @@ body
   justify-content: center;
   /*
    * Le déclencheur porte désormais un libellé visible : il n'est plus un carré
-   * d'icône de 28px mais une puce, avec un plancher de hauteur conservé.
+   * d'icône de 28px mais une puce. Les DEUX planchers sont conservés — sans le
+   * plancher de largeur, un contexte où l'icône ne rend pas sa taille (fixture
+   * de test, police d'icônes non chargée) le faisait retomber à 18px.
    */
   gap: 6px;
+  min-width: 28px;
   min-height: 28px;
   padding: 0 8px;
   border: 1px solid transparent;
