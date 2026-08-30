@@ -101,7 +101,22 @@ test('la mesure détecte réellement un champ trop petit', async ({ page }) => {
 
   expect((await measureFields(page)).every((c) => c.police >= IOS_MIN_FONT_PX)).toBe(true);
 
-  await page.addStyleTag({ content: `input { font-size: 0.875rem !important; }` });
+  /*
+   * On force la petite taille par un style EN LIGNE marqué `!important`.
+   *
+   * Une feuille injectée ne suffit plus : le plancher est déclaré
+   * `input:not([type='checkbox'])… { font-size: 16px !important }`, une règle
+   * PLUS SPÉCIFIQUE qu'un simple `input`. À `!important` égal, la spécificité
+   * tranche — et le plancher gagne, ce qui est exactement le but.
+   *
+   * Ce premier jet de contre-test échouait donc en PROUVANT que le correctif
+   * marche. Un style en ligne `!important` est le seul niveau qui batte une
+   * règle de feuille : la mesure doit le voir tomber sous le seuil.
+   */
+  await page.evaluate(() => {
+    const field = document.querySelector('input:not([type=checkbox]):not([type=radio])');
+    (field as HTMLElement | null)?.style.setProperty('font-size', '12px', 'important');
+  });
 
   expect((await measureFields(page)).some((c) => c.police < IOS_MIN_FONT_PX)).toBe(true);
 });
