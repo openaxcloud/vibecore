@@ -23587,6 +23587,9 @@ function ScrollToBottom() {
       onClick={() => scrollToBottom()}
     >
       <span className="i-ph:arrow-down" aria-hidden />
+      {/* Le libellé est VISIBLE, pas seulement lu par un lecteur d'écran : une
+          icône seule n'annonce pas ce qu'elle fait à qui ne la connaît pas. */}
+      <span className="bolt-agent-scroll-to-bottom__label">{t('chat.copy.scrollToLatest')}</span>
     </button>
   );
 }
