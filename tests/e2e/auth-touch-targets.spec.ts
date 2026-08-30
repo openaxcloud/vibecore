@@ -21,7 +21,7 @@ const VIEWPORTS = [
   { label: 'desktop 1280', width: 1280, height: 800 },
 ] as const;
 
-const ROUTES = ['/login', '/signup', '/forgot-password'] as const;
+const ROUTES = ['/login', '/signup', '/register', '/forgot-password'] as const;
 
 /**
  * Contrôles AUTONOMES soumis au plancher.
@@ -38,6 +38,7 @@ const SELECTOR = [
   '.vc-auth-back-link',
   '.vc-auth-input-action',
   '.vc-auth-link.inline-flex',
+  '.vc-auth-inline-link.inline-flex',
   '.vc-auth-checkbox-label',
 ].join(', ');
 

@@ -22348,12 +22348,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 /*
- * Un lien AUTONOME porte déjà `inline-flex min-h-11` dans le balisage — l'auteur
- * visait bien 44px. C'est ce marqueur qui le distingue d'un lien en ligne dans
- * une phrase, lequel n'a pas `inline-flex` et reste donc exempté.
- * Mesuré avant : « Mot de passe oublié ? » à 39px.
+ * Un contrôle AUTONOME porte déjà `inline-flex min-h-11` dans le balisage —
+ * l'auteur visait bien 44px. C'est ce marqueur STRUCTUREL qui le distingue d'un
+ * lien en ligne dans une phrase, lequel n'a pas `inline-flex` et reste exempté
+ * au titre de WCAG 2.2 (2.5.8).
+ *
+ * `.vc-auth-inline-link` est inclus malgré son nom, et c'est délibéré : sur
+ * `/register`, « + Ajouter un nom d'organisation » porte cette classe alors que
+ * c'est un `<button>`, enfant direct du `<form>`, sans aucun frère textuel, large
+ * de 286px et seul sur sa ligne. Mesuré à 39px en 768. Le nom de la classe dit
+ * « inline » ; la STRUCTURE dit « bouton autonome ». On suit la structure.
+ *
+ * Mesuré avant : « Mot de passe oublié ? » 39px, « + Ajouter un nom
+ * d'organisation » 39px.
  */
-.vc-auth-link.inline-flex {
+.vc-auth-link.inline-flex,
+.vc-auth-inline-link.inline-flex {
   min-height: var(--vc-touch-min, 44px);
 }
 
