@@ -20,8 +20,10 @@ function zoomRule(): string {
   const marker = CODE.indexOf("input:not([type='checkbox'])");
   expect(marker, 'la règle anti-zoom est introuvable').toBeGreaterThan(-1);
 
-  // Fenêtre fermée sur l'accolade de la règle : au-delà, on déborderait sur le
-  // bloc `@media` suivant, dont le contenu n'a rien à voir.
+  /*
+   * Fenêtre fermée sur l'accolade de la règle : au-delà, on déborderait sur le
+   * bloc `@media` suivant, dont le contenu n'a rien à voir.
+   */
   const end = CODE.indexOf('}', CODE.indexOf('{', marker));
 
   return CODE.slice(marker, end + 1);
@@ -69,9 +71,11 @@ describe('IOS-ZOOM-001 — les champs ne descendent pas sous le seuil de Safari'
         continue;
       }
 
-      // COMMENTAIRES RETIRÉS. Sans cela, la prose qui explique ce qu'on refuse
-      // de faire — et qui cite donc `user-scalable=no` — ferait tomber le cas.
-      // Piège rencontré ici même, sur mon propre commentaire.
+      /*
+       * COMMENTAIRES RETIRÉS. Sans cela, la prose qui explique ce qu'on refuse
+       * de faire — et qui cite donc `user-scalable=no` — ferait tomber le cas.
+       * Piège rencontré ici même, sur mon propre commentaire.
+       */
       const sansCommentaires = content.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
       expect(sansCommentaires).not.toMatch(/user-scalable\s*=\s*(no|0)/);
