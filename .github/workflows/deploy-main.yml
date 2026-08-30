@@ -111,6 +111,9 @@ on:
 # granted on build-and-deploy alone.
 permissions:
   contents: read
+  # Lire les runs de ce workflow pour retrouver le dernier déploiement RÉUSSI,
+  # qui sert de base au calcul des tiers à reconstruire.
+  actions: read
 
 # Never run two production rollouts at once, and never cancel an in-flight one
 # (cancelling mid-`helm upgrade --atomic` or mid-build leaves things half-applied).
@@ -460,6 +463,10 @@ jobs:
         env:
           BEFORE_SHA: ${{ github.event.before }}
           FORCE_TIERS: ${{ inputs.force_tiers }}
+          # Sert à retrouver le dernier déploiement RÉUSSI, seule base fiable
+          # pour savoir quels tiers reconstruire.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
           RUNTIME=true; WEB=true; WSAGENT=true
@@ -482,12 +489,40 @@ jobs:
             exit 0
           fi
 
+          # La base de comparaison doit être CE QUI EST DÉPLOYÉ, pas le push
+          # précédent.
+          #
+          # Défaut mesuré le 2026-08-30. Douze PR mergées coup sur coup ; chaque
+          # nouveau push remplace le déploiement précédent, si bien que seul le
+          # dernier run survit — et il comparait au push d'avant, donc au diff
+          # d'UNE seule PR.
+          #
+          # Résultat : runtime=false alors que trois PR de services/api venaient
+          # de lander. Le tier n'a pas été construit, l'image API a été reprise
+          # telle quelle, et du code mergé n'est jamais arrivé en production —
+          # sans qu'aucune porte ne s'en aperçoive, puisque le déploiement, lui,
+          # a réussi.
+          #
+          # On interroge donc le dernier déploiement RÉUSSI de ce workflow : la
+          # seule base qui décrive ce qui tourne vraiment.
           BASE=""
-          if printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-            BASE="${BEFORE_SHA}"            # push event: diff against the pushed-from SHA
-          elif git rev-parse --verify -q HEAD~1 >/dev/null 2>&1; then
-            BASE="$(git rev-parse HEAD~1)"  # dispatch / shallow fallback: diff the last commit
+          LAST_DEPLOYED="$(gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy-main.yml/runs?branch=main&status=success&per_page=1" \
+            --jq '.workflow_runs[0].head_sha // empty' 2>/dev/null || echo "")"
+
+          if printf '%s' "${LAST_DEPLOYED}" | grep -Eq '^[0-9a-f]{40}$' \
+            && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
+            && git merge-base --is-ancestor "${LAST_DEPLOYED}" HEAD 2>/dev/null; then
+            BASE="${LAST_DEPLOYED}"
+            echo "Base = dernier deploiement reussi (${BASE})"
+          elif printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+            BASE="${BEFORE_SHA}"
+            echo "::warning::dernier deploiement reussi introuvable — repli sur le push precedent (${BASE}) ; des tiers peuvent etre manques"
           fi
+          # Plus de repli sur HEAD~1 : « le dernier commit » est precisement la
+          # fenetre trop etroite qui a cause le defaut. Sans base fiable on
+          # construit TOUT (voir le `else` plus bas) : un build de trop coute des
+          # minutes, un tier manque coute une regression invisible en production.
 
           if [ -n "${BASE}" ]; then
             CHANGED="$(git diff --name-only "${BASE}" HEAD || true)"
