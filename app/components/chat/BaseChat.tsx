@@ -1,5 +1,17 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
 // @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
+/*
+ * DETTE MESURÉE le 2026-08-30, directive retirée le temps de la mesure : 16
+ * erreurs. Les quatre `TS2304` qu'elle masquait — le panneau Intégrations qui ne
+ * s'affichait pas du tout — sont CORRIGÉES, avec deux autres plantages.
+ *
+ * Il reste 12 erreurs de typage, plus aucune de type « nom introuvable ». Elles
+ * ne sont pas oubliées : `BaseChat.ts-nocheck-debt.spec.ts` fige le compte et
+ * échoue s'il remonte.
+ *
+ * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
+ * silencieusement.
+ */
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -4251,7 +4263,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           color: 'var(--vc-ide-accent-error)',
           text: t('chat.copy.varStatusErrorText_f1e5857c'),
         } as const)
-      : workspaceLoading || runtimeWorkspaceStatus === 'STARTING' || runtimeWorkspaceStatus === 'PENDING'
+      : /*
+         * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
+         * chaîne. Les deux comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient
+         * donc TOUJOURS fausses (TS2367, que le `@ts-nocheck` en tête de fichier
+         * empêchait de voir).
+         *
+         * Conséquence réelle : pendant tout le démarrage à froid, la barre de statut
+         * annonçait « Connected » au lieu de « Reconnecting ». Le produit affirmait
+         * une connexion qui n'existait pas encore.
+         *
+         * On lit le champ `status` et on compare en minuscules, comme le fait déjà
+         * `workspaceUiState` : le domaine de valeurs mélange les casses selon la
+         * source.
+         */
+        workspaceLoading ||
+          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
         ? ({
             state: 'reconnecting',
             label: t('chat.copy.reconnecting_9d80f91f'),
@@ -18416,7 +18443,7 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                 <span className="text-bolt-elements-textPrimary">{conflict.description}</span>
                 {conflict.involvedRoles.length ? (
                   <span className="text-bolt-elements-textSecondary">
-                    ({conflict.involvedRoles.map(consensusLaneLabel).join(', ')})
+                    ({conflict.involvedRoles.map((roleId: string) => consensusLaneLabel(t, roleId)).join(', ')})
                   </span>
                 ) : null}
               </li>
@@ -20040,7 +20067,20 @@ function ProjectIntegrationsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  /*
+   * BUG-IDE-006 — `language` alimente `formatBaseChatAstNumber` quatre fois plus
+   * bas dans ce composant, sans jamais avoir été déclaré : la migration i18n a
+   * ajouté l'argument aux appels sans ajouter la variable.
+   *
+   * Le `@ts-nocheck` en tête de fichier masquait les quatre TS2304, et le panneau
+   * Intégrations jetait `ReferenceError: language is not defined` AU RENDU —
+   * c'est-à-dire qu'il ne s'affichait pas du tout.
+   *
+   * `ProjectMonitoringPanel` a déjà reçu ce correctif ; celui-ci était resté.
+   */
+  const language = resolvedBaseChatLanguage(i18n);
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
