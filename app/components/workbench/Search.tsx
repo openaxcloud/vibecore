@@ -475,7 +475,7 @@ export function Search() {
               type="button"
               onClick={saveAllAndRetry}
               disabled={isReplacing}
-              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-[var(--vc-ide-text-on-accent)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('workbenchSearch.pending.saveRetry')}
             </button>

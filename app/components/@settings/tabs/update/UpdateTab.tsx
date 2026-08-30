@@ -219,7 +219,7 @@ export default function UpdateTab() {
             onClick={checkUpdates}
             disabled={checking}
             aria-busy={checking}
-            className="min-h-11 whitespace-normal rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-center text-sm font-medium text-white disabled:opacity-60"
+            className="min-h-11 whitespace-normal rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-center text-sm font-medium text-[var(--vc-ide-text-on-accent)] disabled:opacity-60"
           >
             {checking ? copy['updateTab.action.checking'] : copy['updateTab.action.check']}
           </button>

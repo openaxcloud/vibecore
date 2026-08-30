@@ -47,7 +47,21 @@ describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
      * action dans l'IDE (inchangé) et le ton renforcé AA dans la coque user
      * area (blanc sur l'orange de marque = 2,80:1).
      */
-    expect(emptyStateSource).toContain("'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white");
+    /*
+     * CHARTE-IDE-001 — le texte du CTA plein n'est plus codé en blanc : sur
+     * l'aplat orange VIF du thème sombre, le blanc tombe à 2,80:1. Il passe par
+     * `--vc-ide-text-on-accent`, qui vaut #ffffff en clair et #1a1a1a en sombre.
+     */
+    expect(emptyStateSource).toContain(
+      'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-ide-text-on-accent)]',
+    );
+
+    /*
+     * La classe sémantique porte le plancher d'accessibilité : une règle de
+     * contexte plus spécifique repeignait sinon le libellé (mesuré 2,65:1 sur
+     * l'aplat orange du thème sombre).
+     */
+    expect(emptyStateSource).toContain('vc-cta-accent-fill');
     expect(panelPrimitivesSource).toContain('IDE_PRIMARY_ACCENT_CLASSES');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.

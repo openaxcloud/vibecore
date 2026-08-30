@@ -6136,7 +6136,7 @@ function AuditLogsPanel({ payload, section }: { payload: Record<string, JsonValu
             ))}
           </div>
           <a
-            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-[var(--vc-ide-text-on-accent)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             href={`/admin/${section}?${exportParams.toString()}`}
             download
             data-testid={`audit-export-csv-${section}`}

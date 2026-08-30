@@ -710,10 +710,10 @@ function DeployActionButton({
       className={classNames(
         'inline-flex h-[32px] items-center gap-1.5 rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
         primary
-          ? 'font-semibold text-white hover:opacity-90'
+          ? 'font-semibold hover:opacity-90'
           : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
       )}
-      style={primary ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+      style={primary ? { background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' } : undefined}
     >
       {children}
     </button>

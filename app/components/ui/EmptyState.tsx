@@ -74,7 +74,7 @@ interface EmptyStateProps {
  * plus qu'un alias legacy hors panneaux IDE.
  */
 export const IDE_PRIMARY_ACCENT_CLASSES =
-  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+  'vc-cta-accent-fill bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-[var(--vc-ide-text-on-accent)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
 
 const PRIMARY_CTA_CLASSES = classNames(
   'inline-flex items-center justify-center rounded-md font-medium',

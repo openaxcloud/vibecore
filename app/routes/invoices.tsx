@@ -170,7 +170,7 @@ export default function InvoicesPage() {
                       href={invoice.hostedInvoiceUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
+                      className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-sm font-medium text-[var(--vc-ide-text-on-accent)] transition-opacity hover:opacity-90"
                     >
                       {t('invoices.retryPayment')}
                     </a>

@@ -17200,7 +17200,7 @@ function ProjectSkillsPanel({
   const tabButtonClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
       active
-        ? 'bg-[var(--vc-ide-accent-action)] text-white'
+        ? 'bg-[var(--vc-ide-accent-action)] text-[var(--vc-ide-text-on-accent)]'
         : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
     }`;
 

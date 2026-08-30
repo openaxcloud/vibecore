@@ -222,9 +222,13 @@ export function AgentPowerControls({
               className={classNames(
                 'min-h-7 min-w-0 whitespace-normal break-words rounded-md px-2 py-0.5 text-xs font-medium leading-tight transition-colors sm:px-3',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                active ? '' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
-              style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+              style={
+                active
+                  ? { background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' }
+                  : undefined
+              }
             >
               {tier.label}
               {!available ? <span className="i-ph:lock ml-1 inline-block align-middle text-xs" aria-hidden /> : null}
@@ -246,10 +250,14 @@ export function AgentPowerControls({
           'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
           'disabled:cursor-not-allowed disabled:opacity-50',
           advancedOpen || activeSwitches > 0
-            ? 'border-transparent text-white'
+            ? 'border-transparent'
             : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
         )}
-        style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+        style={
+          advancedOpen || activeSwitches > 0
+            ? { background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' }
+            : undefined
+        }
       >
         <span className="i-ph:sliders-horizontal text-sm" aria-hidden />
         <span>{copy['chatControls.power.advanced']}</span>
@@ -333,12 +341,12 @@ export function AgentPowerControls({
                   )}
                   style={
                     value.highEffort && value.buildTier !== 'lite'
-                      ? { background: 'var(--vc-ide-accent-action)' }
+                      ? { background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' }
                       : undefined
                   }
                 >
                   {value.highEffort && value.buildTier !== 'lite' ? (
-                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                    <span className="i-ph:check-bold text-xs text-[var(--vc-ide-text-on-accent)]" aria-hidden />
                   ) : null}
                 </span>
               )}
@@ -394,24 +402,29 @@ export function AgentPowerControls({
                   )}
                   style={
                     value.turboMode && value.buildTier === 'power'
-                      ? { background: 'var(--vc-ide-accent-action)' }
+                      ? { background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' }
                       : undefined
                   }
                 >
                   {value.turboMode && value.buildTier === 'power' ? (
-                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                    <span className="i-ph:check-bold text-xs text-[var(--vc-ide-text-on-accent)]" aria-hidden />
                   ) : null}
                 </span>
               )}
             </button>
           </div>
 
+          {/*
+           * CHARTE-IDE-001 — ce CTA peignait du texte blanc sur l'orange de marque
+           * #f26207 : 3,22:1, sous le seuil AA. Il passe sur la paire de l'IDE
+           * (aplat + texte sur aplat), conforme dans les deux thèmes.
+           */}
           {!highEffortAvailable || (!turboAvailable && value.buildTier === 'power') ? (
             <button
               type="button"
               onClick={() => onUpgrade?.()}
-              className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
-              style={{ background: 'var(--ecode-accent)' }}
+              className="mt-2 flex w-full items-center justify-center gap-1 rounded-lg px-2 py-1.5 text-[11px] font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'var(--vc-ide-accent-action)', color: 'var(--vc-ide-text-on-accent)' }}
             >
               <span className="i-ph:lightning text-xs" aria-hidden />
               {copy['chatControls.power.upgrade']}

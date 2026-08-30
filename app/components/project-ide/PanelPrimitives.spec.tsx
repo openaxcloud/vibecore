@@ -59,14 +59,18 @@ describe('<PanelButton />', () => {
     const className = screen.getByRole('button', { name: 'Create' }).className;
 
     /*
-     * Style tranché : fond plein + texte blanc (= CTA EmptyState). Depuis
-     * l'audit user area, le fond passe par `--vc-cta-accent`, qui VAUT
-     * `--vc-ide-accent-action` partout (défaut global) et bascule sur le ton
-     * renforcé AA dans la seule coque user area — la couleur rendue dans l'IDE
-     * est donc inchangée, c'est l'indirection qui est nouvelle.
+     * Style tranché : fond plein + texte porté par le token de sur-accent
+     * (= CTA EmptyState). Depuis l'audit user area, le fond passe par
+     * `--vc-cta-accent`, qui VAUT `--vc-ide-accent-action` partout (défaut
+     * global) et bascule sur le ton renforcé AA dans la seule coque user area.
+     *
+     * CHARTE-IDE-001 : le texte n'est plus codé en blanc. L'accent de l'IDE est
+     * désormais l'orange de marque, et sur son aplat VIF du thème sombre
+     * (#f97316) le blanc tombe à 2,80:1. `--vc-ide-text-on-accent` vaut #ffffff
+     * en clair (5,18:1 sur #c2410c) et #1a1a1a en sombre (6,21:1).
      */
     expect(className).toContain('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]');
-    expect(className).toContain('text-white');
+    expect(className).toContain('text-[var(--vc-ide-text-on-accent)]');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.
     expect(className).not.toContain('button-primary-background');

@@ -129,7 +129,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 const BLUE_CTA =
-  'inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-[var(--vc-ide-text-on-accent)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function OrganizationSwitcherPage() {
   const { i18n } = useTranslation();

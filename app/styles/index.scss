@@ -496,7 +496,21 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
+  /*
+   * CHARTE-IDE-001 — l'accent d'action de l'IDE suit enfin la marque E-Code.
+   * Il était bleu (#0099ff / #006fd6) alors que toute la surface publique et
+   * l'authentification utilisent l'orange (--vc-public-accent, --vc-auth-accent).
+   *
+   * L'orange de marque #f26207 ne peut PAS servir tel quel : en aplat avec du
+   * texte blanc il plafonne à 3,22:1, et comme texte sur blanc à 3,22:1 — sous
+   * le seuil AA de 4,5:1. On reprend donc la convention déjà appliquée par
+   * --vc-auth-accent / --vc-public-accent : orange FONCÉ en clair, orange VIF en
+   * sombre, avec une couleur de texte dédiée pour les aplats.
+   *   clair  : aplat #c2410c + texte blanc     → 5,18:1 ✓
+   *   sombre : aplat #f97316 + texte #1a1a1a   → 6,21:1 ✓
+   *            #f97316 en texte sur #0e1525    → 6,50:1 ✓
+   */
+  --vc-ide-accent-action: #c2410c;
   --vc-action-primary: var(--vc-ide-accent-action);
   // CTA plein porteur de texte blanc. Dans l'IDE il reste sur l'accent action ;
   // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
@@ -851,7 +865,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground: #36373b;
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
-  --vc-ide-accent-action: #006fd6;
+  --vc-ide-accent-action: #c2410c;
   --vc-action-primary: var(--vc-ide-accent-action);
   --vc-action-primary-strong: #c2410c;
   --vc-action-primary-strong-hover: #a33c00;
@@ -1118,11 +1132,16 @@ html:has(.vc-app-shell-grid) body {
    */
   --vc-ide-text-muted: #7d8590;
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
-  --vc-ide-text-on-accent: #ffffff;
+  /*
+   * Sur l'aplat orange VIF du thème sombre (#f97316), le texte blanc tombe à
+   * 2,80:1. Le texte foncé y est à 6,21:1. Le thème clair garde le blanc :
+   * sur #c2410c il est à 5,18:1.
+   */
+  --vc-ide-text-on-accent: #1a1a1a;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
   --vc-file-tree-foreground-hover: var(--vc-ide-text-primary);
   --vc-ide-accent-success: #3fb950;
-  --vc-ide-accent-action: #0099ff;
+  --vc-ide-accent-action: #f97316;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
@@ -6758,7 +6777,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 28px;
   border-radius: 7px;
   background: var(--vc-ide-accent-action);
-  color: white !important;
+  color: var(--vc-ide-text-on-accent) !important;
   padding: 0 9px;
   font-size: 11px !important;
   font-weight: 750;
@@ -8004,7 +8023,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   border-radius: 8px;
   background: var(--vc-ide-accent-action, #1488fc);
-  color: #fff;
+  color: var(--vc-ide-text-on-accent);
   box-shadow: 0 8px 24px rgb(0 0 0 / 0.28);
   padding: 4px;
 }
@@ -8668,7 +8687,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid var(--vc-ide-bg-panel);
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-text-on-accent);
   font-size: 9px;
   font-weight: 700;
   line-height: 12px;
@@ -9179,7 +9198,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-mode--segmented button[aria-pressed='true'] {
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-text-on-accent);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.06);
 }
 
@@ -15841,7 +15860,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-rollback-dialog footer button:last-child {
   border-color: transparent;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-text-on-accent);
 }
 
 .bolt-project-rollback-dialog footer button:disabled {
@@ -16706,7 +16725,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-guided-tour-card footer div button:last-child {
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-text-on-accent);
 }
 
 .bolt-project-guided-tour-card button:disabled {
@@ -17013,6 +17032,19 @@ button.bolt-project-statusbar-pill:focus-visible,
     .bolt-project-right-tab[aria-current='page'] .bolt-project-tab-main span
   ) {
   color: var(--vc-ide-text-primary) !important;
+}
+
+/*
+ * CHARTE-IDE-001 — plancher d'accessibilité des CTA pleins.
+ *
+ * Un bouton peint avec l'accent porte TOUJOURS la couleur de texte prévue pour
+ * cet aplat. Sans ce plancher, une règle plus spécifique du contexte (par ex.
+ * `.bolt-project-settings-hub .bolt-project-settings-card button`) repeignait le
+ * libellé en texte primaire : mesuré à 2,65:1 sur l'orange vif du thème sombre.
+ * `!important` est assumé ici : c'est une garantie de lisibilité, pas un style.
+ */
+.vc-cta-accent-fill {
+  color: var(--vc-ide-text-on-accent) !important;
 }
 
 .bolt-project-ide-shell :where(strong, h1, h2, h3, h4, h5, h6, .bolt-project-agent-title) {
@@ -25069,7 +25101,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   padding: 12px 24px;
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-text-on-accent);
   font-size: 13px;
   font-weight: 600;
   border: 0;
