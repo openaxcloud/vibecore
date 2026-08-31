@@ -40607,6 +40607,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       errorCode: string,
       errorMessage: string,
       additionalLogs: StaticBuildLog[] = [],
+      mutateDeployment: (patch: Parameters<ApiStore['updateDeployment']>[2]) => Promise<DeploymentRecord> = (patch) =>
+        store.updateDeployment(project.id, queued.id, patch),
     ): Promise<DeploymentRecord> => {
       if (!reservedVmRedeploy) {
         throw reservedVmInternalError('unreachable');
@@ -40649,7 +40651,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         errorMessage,
       });
 
-      return store.updateDeployment(project.id, queued.id, {
+      return mutateDeployment({
         status: 'READY',
         logs: [
           ...queued.logs,
@@ -40753,6 +40755,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * apart from an orphaned one.
            */
           const liveLog: StaticBuildLog[] = [];
+          const updateFencedDeployment = (deploymentId: string, patch: Parameters<ApiStore['updateDeployment']>[2]) =>
+            store.updateDeployment(project.id, deploymentId, patch, releaseGuard.fence);
 
           let livePhase = 'queued';
           let flushScheduled = false;
@@ -40778,7 +40782,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   .getDeployment(project.id, queued.id)
                   .then((current) =>
                     current
-                      ? store.updateDeployment(project.id, queued.id, {
+                      ? updateFencedDeployment(queued.id, {
                           status: 'READY',
                           metadata: { ...(current.metadata as Record<string, unknown>), phase: livePhase },
                         })
@@ -40788,13 +40792,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 return;
               }
 
-              void store
-                .updateDeployment(project.id, queued.id, {
-                  status: 'BUILDING',
-                  logs: liveLog.slice(),
-                  metadata: { ...(queued.metadata as Record<string, unknown>), phase: livePhase },
-                })
-                .catch(() => undefined);
+              void updateFencedDeployment(queued.id, {
+                status: 'BUILDING',
+                logs: liveLog.slice(),
+                metadata: { ...(queued.metadata as Record<string, unknown>), phase: livePhase },
+              }).catch(() => undefined);
             }, 1000);
           };
           const buildProgress = {
@@ -41525,6 +41527,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 imagePromotionErrorCode ?? 'RESERVED_VM_PREPARATION_FAILED',
                 serverError,
                 liveLog,
+                (patch) => updateFencedDeployment(queued.id, patch),
               );
             }
 
@@ -41614,7 +41617,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                     if (!isReservedVmRedeploy) {
                       await releaseGuard.assert();
-                      await store.updateDeployment(project.id, queued.id, {
+                      await updateFencedDeployment(queued.id, {
                         status: 'BUILDING',
                         metadata: {
                           ...(queued.metadata as Record<string, unknown>),
@@ -41840,7 +41843,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                         errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_ROLLED_BACK',
                         errorMessage: serverError,
                       });
-                      return store.updateDeployment(project.id, queued.id, {
+                      return updateFencedDeployment(queued.id, {
                         status: 'READY',
                         logs: [
                           ...queued.logs,
@@ -42081,7 +42084,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 }
 
                 const rowBeforeReady = reservedVmCommittedDeployment ?? queued;
-                let readyRow = await store.updateDeployment(project.id, queued.id, {
+                let readyRow = await updateFencedDeployment(queued.id, {
                   /*
                    * Every server runtime crosses BUILDING→READY in a store transaction
                    * holding the release fence. Promoted images append their manifest in
@@ -42198,7 +42201,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
 
                     const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
-                    readyRow = await store.updateDeployment(project.id, queued.id, {
+                    readyRow = await updateFencedDeployment(queued.id, {
                       status: 'FAILED',
                       metadata: {
                         ...(readyRow.metadata as Record<string, unknown>),
@@ -42466,7 +42469,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             hookStatus: hookResult?.status,
             staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
           };
-          let ready = await store.updateDeployment(project.id, queued.id, {
+          let ready = await updateFencedDeployment(queued.id, {
             status: persistedStatus,
             url: resolvedUrl,
             previewUrl:
@@ -42486,7 +42489,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 { err: error, deploymentId: ready.id },
                 'static READY + release manifest transaction failed',
               );
-              ready = await store.updateDeployment(project.id, ready.id, {
+              ready = await updateFencedDeployment(ready.id, {
                 status: 'FAILED',
                 url: '',
                 previewUrl: '',
@@ -47209,7 +47212,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         async (releaseGuard) => {
           await releaseGuard.assert();
-          const staged = await store.updateDeployment(project.id, redeploy.id, {
+          const updateRedeploy = (patch: Parameters<ApiStore['updateDeployment']>[2]) =>
+            store.updateDeployment(project.id, redeploy.id, patch, releaseGuard.fence);
+          const staged = await updateRedeploy({
             status: persistedRedeployStatus,
             url: resolvedUrl,
             previewUrl:
