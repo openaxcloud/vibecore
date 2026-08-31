@@ -303,7 +303,7 @@ export function ConfirmationDialog({
               className={classNames(
                 '!h-auto min-h-9 !whitespace-normal break-words py-2 text-center leading-tight',
                 variant === 'destructive'
-                  ? 'bg-red-500 text-white hover:bg-red-600'
+                  ? 'bg-red-600 text-white hover:bg-red-700'
                   : 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent hover:bg-bolt-elements-button-primary-backgroundHover',
               )}
             >

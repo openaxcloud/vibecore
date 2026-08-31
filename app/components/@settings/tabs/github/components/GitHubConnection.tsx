@@ -217,7 +217,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                     type="button"
                     className={classNames(
                       'min-h-11 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 whitespace-normal',
-                      'bg-red-500 text-white',
+                      'bg-red-600 text-white',
                       'hover:bg-red-600',
                     )}
                   >

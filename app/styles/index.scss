@@ -6059,7 +6059,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-workbench-mobile-run-action {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 52%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 6%);
   transition:
     background 150ms ease,
     border-color 150ms ease,
@@ -6355,22 +6355,32 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 6%);
 }
 
 .bolt-project-notification-item[data-kind='success'] .bolt-project-notification-icon {
-  background: color-mix(in srgb, #3fb950, transparent 86%);
-  color: #2f9e44;
+  /*
+   * Littéraux remplacés par les jetons : ces deux icônes peignaient
+   * #2f9e44 en dur, donc identiquement dans les deux thèmes, et tombaient à
+   * 3,04:1 et 3,18:1 en clair sur leur propre teinte.
+   */
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-project-notification-item[data-kind='warning'] .bolt-project-notification-icon {
-  background: color-mix(in srgb, #d29922, transparent 84%);
-  color: #b7791f;
+  /*
+   * Littéraux remplacés par les jetons : ces deux icônes peignaient
+   * #b7791f en dur, donc identiquement dans les deux thèmes, et tombaient à
+   * 3,04:1 et 3,18:1 en clair sur leur propre teinte.
+   */
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 84%);
+  color: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-on-accent-tint) 12%);
 }
 
 .bolt-project-notification-item[data-kind='error'] .bolt-project-notification-icon {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 14%);
 }
 
 .bolt-project-notification-detail {
@@ -7460,7 +7470,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-primary), transparent 62%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
-  color: var(--vc-ide-accent-primary);
+  color: color-mix(in srgb, var(--vc-ide-accent-primary), var(--vc-ide-on-accent-tint) 6%);
   font-size: 15px;
 }
 
@@ -7549,7 +7559,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-agent-tool-call-status[data-status='complete'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-agent-tool-call-copy strong {
@@ -7683,7 +7693,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 6%);
   font-size: 10px !important;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -7957,7 +7967,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 52%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
-  color: var(--vc-ide-accent-success) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 6%) !important;
   font-size: 10px !important;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -8043,7 +8053,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 55%);
   border-radius: 6px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 91%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 8%);
   font-size: 11px;
   padding: 6px 8px;
 }
@@ -9323,7 +9333,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 34%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 12%);
   font-size: 12px;
   font-weight: 700;
   padding: 0 10px;
@@ -10002,7 +10012,7 @@ body :where(.lucide, svg[data-lucide]) {
   margin-left: auto;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 85%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
   font-size: 10px;
   font-style: normal;
   padding: 2px 6px;
@@ -10616,7 +10626,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-editor-header-save-button {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
-  color: var(--vc-ide-accent-action) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 4%) !important;
   font-weight: 700;
 }
 
@@ -11389,7 +11399,13 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-panel) 84%);
-  color: var(--vc-ide-accent-action);
+
+  /*
+   * Dernière forme du motif : la teinte est écrite avec le fond de panneau au
+   * lieu de `transparent`, ce qui revient au même à l'écran mais échappe au
+   * remplacement mécanique. 4,10:1 en clair.
+   */
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
   box-shadow: var(--vc-ui-shadow-md);
   cursor: pointer;
   font-size: 11px;
@@ -11584,7 +11600,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 76%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 8%);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -11987,9 +12003,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-splash-steps div[data-state='active'] span {
-  border-color: var(--vc-ide-accent-action);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-preview-splash-steps div[data-state='complete'] {
@@ -11997,9 +12013,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-splash-steps div[data-state='complete'] span {
-  border-color: var(--vc-ide-accent-success);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-preview-splash-footer {
@@ -12092,7 +12108,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 42%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 6%);
   font-size: 20px;
 }
 
@@ -12207,7 +12223,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 42%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 6%);
   font-size: 20px;
 }
 
@@ -12300,9 +12316,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-loading-steps li[data-state='active'] span {
-  border-color: var(--vc-ide-accent-action);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-preview-loading-steps li[data-state='complete'] {
@@ -12310,9 +12326,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-loading-steps li[data-state='complete'] span {
-  border-color: var(--vc-ide-accent-success);
+  border-color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-preview-loading-card pre {
@@ -13419,7 +13435,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-extension-card[data-enabled='true'] .bolt-project-extension-card-footer em {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-project-extension-legacy-note {
@@ -14521,7 +14537,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-vulnerability-card span[data-severity='critical'],
 .bolt-project-vulnerability-card span[data-severity='high'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 14%);
 }
 
 .bolt-project-vulnerability-card strong {
@@ -14651,7 +14667,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 65%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 90%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 6%);
   font-size: 11px;
   padding: 3px 8px;
 }
@@ -14889,7 +14905,7 @@ body :where(.lucide, svg[data-lucide]) {
   place-items: center;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
   font-size: 12px;
 }
 
@@ -15067,7 +15083,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 22px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 86%);
-  color: var(--vc-ide-accent-warning);
+  color: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-on-accent-tint) 10%);
   font-size: 11px;
   font-style: normal;
   line-height: 22px;
@@ -15076,13 +15092,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-deploy-card em[data-status='READY'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-project-deploy-card em[data-status='FAILED'],
 .bolt-project-deploy-card em[data-status='CANCELED'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 12%);
 }
 
 .bolt-project-deploy-card pre {
@@ -15569,13 +15585,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-bottom-terminal-problem-badge[data-severity='error'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 56%);
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 88%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-project-bottom-terminal-problem-badge[data-severity='warning'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 52%);
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 88%);
-  color: var(--vc-ide-accent-warning);
+  color: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-project-bottom-terminal-status,
@@ -15685,12 +15701,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-problems-count-error {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 14%);
 }
 
 .bolt-project-problems-count-warning {
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
-  color: var(--vc-ide-accent-warning);
+  color: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-on-accent-tint) 12%);
 }
 
 .bolt-project-problems-count[data-empty='true'] {
@@ -16600,7 +16616,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-statusbar-count {
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 8%);
 }
 
 .bolt-project-statusbar-error-count {
@@ -17106,7 +17122,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-ide-shell .bolt-project-editor-save-button:not(:disabled) {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
-  color: var(--vc-ide-accent-action) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 4%) !important;
 }
 
 .bolt-project-ide-shell .bolt-project-editor-save-button:hover:not(:disabled) {
@@ -17432,7 +17448,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
       padding: 0 12px;
-      color: var(--vc-ide-accent-success);
+      color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 6%);
       font-size: 11px;
       font-weight: 700;
       white-space: nowrap;
@@ -17829,7 +17845,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 90%);
       padding: 3px 8px;
-      color: var(--vc-ide-accent-success);
+      color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 6%);
       font-size: 10px;
       font-style: normal;
       font-weight: 800;
@@ -17880,7 +17896,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%);
       padding: 3px 8px;
-      color: var(--vc-ide-accent-action);
+      color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 4%);
       font-size: 10px;
       font-style: normal;
       font-weight: 800;
@@ -17897,7 +17913,7 @@ button.bolt-project-statusbar-pill:focus-visible,
     border-radius: 8px;
     background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
     padding: 10px;
-    color: var(--vc-ide-accent-error);
+    color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 8%);
     font-size: 12px;
   }
 
@@ -19225,19 +19241,19 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-integrations-connected-list i[data-status='active'],
 .bolt-project-integrations-grid em[data-status='active'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: color-mix(in srgb, var(--vc-ide-accent-success), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-project-integrations-connected-list i[data-status='error'],
 .bolt-project-integrations-grid em[data-status='error'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 14%);
 }
 
 .bolt-project-integrations-connected-list i[data-status='syncing'],
 .bolt-project-integrations-grid em[data-status='syncing'] {
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 10%);
 }
 
 .bolt-project-integrations-main {

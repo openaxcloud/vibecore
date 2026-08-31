@@ -1393,7 +1393,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   type="button"
                   data-testid="git-discard-confirm-button"
                   disabled={busy}
-                  className="rounded-md bg-red-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-60"
+                  className="rounded-md bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
                   onClick={() => {
                     const target = discardConfirm;
 

@@ -399,7 +399,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       href={createdRepoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-lg bg-orange-500 text-white hover:bg-orange-600 text-sm inline-flex items-center gap-2"
+                      className="px-4 py-2 rounded-lg bg-orange-700 text-white hover:bg-orange-800 text-sm inline-flex items-center gap-2"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -486,7 +486,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     </motion.button>
                     <motion.button
                       onClick={() => setShowAuthDialog(true)}
-                      className="px-4 py-2 rounded-lg bg-orange-500 text-white text-sm hover:bg-orange-600 inline-flex items-center gap-2"
+                      className="px-4 py-2 rounded-lg bg-orange-700 text-white text-sm hover:bg-orange-800 inline-flex items-center gap-2"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
@@ -596,7 +596,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         <div className="i-ph:user w-5 h-5" />
                       )}
                     </div>
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center text-white">
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-orange-700 flex items-center justify-center text-white">
                       <div className="i-ph:gitlab-logo w-3 h-3" />
                     </div>
                   </div>
@@ -760,7 +760,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       type="submit"
                       disabled={isLoading}
                       className={classNames(
-                        'flex-1 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm inline-flex items-center justify-center gap-2',
+                        'flex-1 px-4 py-2 bg-orange-700 text-white rounded-lg hover:bg-orange-800 text-sm inline-flex items-center justify-center gap-2',
                         isLoading ? 'opacity-50 cursor-not-allowed' : '',
                       )}
                       whileHover={!isLoading ? { scale: 1.02 } : {}}

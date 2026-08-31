@@ -23,7 +23,7 @@ const buttonVariants = cva(
          */
         primary:
           'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:bg-[var(--vc-action-primary-hover)]',
-        destructive: 'bg-red-500 text-white hover:bg-red-600',
+        destructive: 'bg-red-600 text-white hover:bg-red-700',
         outline:
           'border border-bolt-elements-borderColor bg-transparent hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary text-bolt-elements-textPrimary dark:border-bolt-elements-borderColorActive',
         secondary:

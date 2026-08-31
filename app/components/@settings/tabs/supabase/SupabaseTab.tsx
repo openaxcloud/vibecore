@@ -923,7 +923,7 @@ export default function SupabaseTab() {
                     onClick={handleDisconnect}
                     className={classNames(
                       'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                      'bg-red-500 text-white',
+                      'bg-red-600 text-white',
                       'hover:bg-red-600',
                     )}
                   >

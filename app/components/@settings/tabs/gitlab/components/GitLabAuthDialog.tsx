@@ -362,7 +362,7 @@ export function GitLabAuthDialog({ isOpen, onClose }: GitLabAuthDialogProps) {
                     aria-busy={isConnecting}
                     className={classNames(
                       'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-center text-sm whitespace-normal sm:w-auto',
-                      'bg-orange-500 text-white hover:bg-orange-600',
+                      'bg-orange-700 text-white hover:bg-orange-800',
                       'disabled:cursor-not-allowed disabled:opacity-50',
                     )}
                   >
