@@ -60,6 +60,7 @@ export async function reconcileDatabaseProvisioning(input: {
 
   if (!input.provisioner.active) {
     const failed = await input.store.failDatabaseProvisioning(input.instance.id, {
+      expectedGeneration: input.instance.provisioningGeneration,
       errorCode: DATABASE_PROVISION_FAILURE.providerUnavailable,
       failedAt: new Date(nowMs).toISOString(),
     });
@@ -98,6 +99,7 @@ export async function reconcileDatabaseProvisioning(input: {
     const active = await input.store.completeDatabaseProvisioning(input.instance.id, {
       projectId: input.instance.projectId,
       expectedOrganizationId: input.instance.organizationId,
+      expectedGeneration: input.instance.provisioningGeneration,
       key: input.instance.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
       valueEncrypted: input.encryptConnectionUri(uri),
     });
@@ -109,6 +111,7 @@ export async function reconcileDatabaseProvisioning(input: {
 
   if (databaseProvisionExpired(input.instance, nowMs)) {
     const failed = await input.store.failDatabaseProvisioning(input.instance.id, {
+      expectedGeneration: input.instance.provisioningGeneration,
       errorCode: DATABASE_PROVISION_FAILURE.timedOut,
       failedAt: new Date(nowMs).toISOString(),
       ...(input.instance.provisioningDeadlineAt ? { deadlineBefore: new Date(nowMs).toISOString() } : {}),

@@ -3241,6 +3241,10 @@ model DatabaseInstance {
   // Durable provisioning lifecycle. A request is never allowed to remain
   // PROVISIONING past this deadline; FAILED keeps a stable, non-secret reason
   // and can be atomically claimed for a retry.
+  // Monotonic attempt fence. Generation 1 is the initial provisioning claim;
+  // every FAILED -> PROVISIONING retry advances it exactly once so a late
+  // worker can never complete or fail a newer attempt.
+  provisioningGeneration Int                    @default(1)
   provisioningDeadlineAt DateTime?
   lastErrorCode          String?
   lastErrorAt            DateTime?

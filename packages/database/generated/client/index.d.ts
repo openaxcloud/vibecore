@@ -175316,12 +175316,14 @@ export namespace Prisma {
     sizeBytes: number | null
     retentionDays: number | null
     physicalRetentionDays: number | null
+    provisioningGeneration: number | null
   }
 
   export type DatabaseInstanceSumAggregateOutputType = {
     sizeBytes: bigint | null
     retentionDays: number | null
     physicalRetentionDays: number | null
+    provisioningGeneration: number | null
   }
 
   export type DatabaseInstanceMinAggregateOutputType = {
@@ -175346,6 +175348,7 @@ export namespace Prisma {
     physicalDatabaseCrUid: string | null
     physicalRetentionDays: number | null
     physicalAuthorityAt: Date | null
+    provisioningGeneration: number | null
     provisioningDeadlineAt: Date | null
     lastErrorCode: string | null
     lastErrorAt: Date | null
@@ -175375,6 +175378,7 @@ export namespace Prisma {
     physicalDatabaseCrUid: string | null
     physicalRetentionDays: number | null
     physicalAuthorityAt: Date | null
+    provisioningGeneration: number | null
     provisioningDeadlineAt: Date | null
     lastErrorCode: string | null
     lastErrorAt: Date | null
@@ -175404,6 +175408,7 @@ export namespace Prisma {
     physicalDatabaseCrUid: number
     physicalRetentionDays: number
     physicalAuthorityAt: number
+    provisioningGeneration: number
     provisioningDeadlineAt: number
     lastErrorCode: number
     lastErrorAt: number
@@ -175417,12 +175422,14 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     physicalRetentionDays?: true
+    provisioningGeneration?: true
   }
 
   export type DatabaseInstanceSumAggregateInputType = {
     sizeBytes?: true
     retentionDays?: true
     physicalRetentionDays?: true
+    provisioningGeneration?: true
   }
 
   export type DatabaseInstanceMinAggregateInputType = {
@@ -175447,6 +175454,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: true
     physicalRetentionDays?: true
     physicalAuthorityAt?: true
+    provisioningGeneration?: true
     provisioningDeadlineAt?: true
     lastErrorCode?: true
     lastErrorAt?: true
@@ -175476,6 +175484,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: true
     physicalRetentionDays?: true
     physicalAuthorityAt?: true
+    provisioningGeneration?: true
     provisioningDeadlineAt?: true
     lastErrorCode?: true
     lastErrorAt?: true
@@ -175505,6 +175514,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: true
     physicalRetentionDays?: true
     physicalAuthorityAt?: true
+    provisioningGeneration?: true
     provisioningDeadlineAt?: true
     lastErrorCode?: true
     lastErrorAt?: true
@@ -175621,6 +175631,7 @@ export namespace Prisma {
     physicalDatabaseCrUid: string | null
     physicalRetentionDays: number | null
     physicalAuthorityAt: Date | null
+    provisioningGeneration: number
     provisioningDeadlineAt: Date | null
     lastErrorCode: string | null
     lastErrorAt: Date | null
@@ -175669,6 +175680,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: boolean
     physicalRetentionDays?: boolean
     physicalAuthorityAt?: boolean
+    provisioningGeneration?: boolean
     provisioningDeadlineAt?: boolean
     lastErrorCode?: boolean
     lastErrorAt?: boolean
@@ -175703,6 +175715,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: boolean
     physicalRetentionDays?: boolean
     physicalAuthorityAt?: boolean
+    provisioningGeneration?: boolean
     provisioningDeadlineAt?: boolean
     lastErrorCode?: boolean
     lastErrorAt?: boolean
@@ -175733,6 +175746,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: boolean
     physicalRetentionDays?: boolean
     physicalAuthorityAt?: boolean
+    provisioningGeneration?: boolean
     provisioningDeadlineAt?: boolean
     lastErrorCode?: boolean
     lastErrorAt?: boolean
@@ -175763,6 +175777,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: boolean
     physicalRetentionDays?: boolean
     physicalAuthorityAt?: boolean
+    provisioningGeneration?: boolean
     provisioningDeadlineAt?: boolean
     lastErrorCode?: boolean
     lastErrorAt?: boolean
@@ -175770,7 +175785,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "physicalTier" | "physicalClusterName" | "physicalDatabaseCrName" | "physicalDatabaseName" | "physicalRoleName" | "physicalBackupBucket" | "physicalBackupPrefix" | "physicalClusterUid" | "physicalDatabaseCrUid" | "physicalRetentionDays" | "physicalAuthorityAt" | "provisioningDeadlineAt" | "lastErrorCode" | "lastErrorAt" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
+  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "physicalTier" | "physicalClusterName" | "physicalDatabaseCrName" | "physicalDatabaseName" | "physicalRoleName" | "physicalBackupBucket" | "physicalBackupPrefix" | "physicalClusterUid" | "physicalDatabaseCrUid" | "physicalRetentionDays" | "physicalAuthorityAt" | "provisioningGeneration" | "provisioningDeadlineAt" | "lastErrorCode" | "lastErrorAt" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
   export type DatabaseInstanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
@@ -175815,6 +175830,7 @@ export namespace Prisma {
       physicalDatabaseCrUid: string | null
       physicalRetentionDays: number | null
       physicalAuthorityAt: Date | null
+      provisioningGeneration: number
       provisioningDeadlineAt: Date | null
       lastErrorCode: string | null
       lastErrorAt: Date | null
@@ -176268,6 +176284,7 @@ export namespace Prisma {
     readonly physicalDatabaseCrUid: FieldRef<"DatabaseInstance", 'String'>
     readonly physicalRetentionDays: FieldRef<"DatabaseInstance", 'Int'>
     readonly physicalAuthorityAt: FieldRef<"DatabaseInstance", 'DateTime'>
+    readonly provisioningGeneration: FieldRef<"DatabaseInstance", 'Int'>
     readonly provisioningDeadlineAt: FieldRef<"DatabaseInstance", 'DateTime'>
     readonly lastErrorCode: FieldRef<"DatabaseInstance", 'String'>
     readonly lastErrorAt: FieldRef<"DatabaseInstance", 'DateTime'>
@@ -222353,6 +222370,7 @@ export namespace Prisma {
     physicalDatabaseCrUid: 'physicalDatabaseCrUid',
     physicalRetentionDays: 'physicalRetentionDays',
     physicalAuthorityAt: 'physicalAuthorityAt',
+    provisioningGeneration: 'provisioningGeneration',
     provisioningDeadlineAt: 'provisioningDeadlineAt',
     lastErrorCode: 'lastErrorCode',
     lastErrorAt: 'lastErrorAt',
@@ -235516,6 +235534,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: StringNullableFilter<"DatabaseInstance"> | string | null
     physicalRetentionDays?: IntNullableFilter<"DatabaseInstance"> | number | null
     physicalAuthorityAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    provisioningGeneration?: IntFilter<"DatabaseInstance"> | number
     provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
     lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
@@ -235549,6 +235568,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: SortOrderInput | SortOrder
     physicalRetentionDays?: SortOrderInput | SortOrder
     physicalAuthorityAt?: SortOrderInput | SortOrder
+    provisioningGeneration?: SortOrder
     provisioningDeadlineAt?: SortOrderInput | SortOrder
     lastErrorCode?: SortOrderInput | SortOrder
     lastErrorAt?: SortOrderInput | SortOrder
@@ -235586,6 +235606,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: StringNullableFilter<"DatabaseInstance"> | string | null
     physicalRetentionDays?: IntNullableFilter<"DatabaseInstance"> | number | null
     physicalAuthorityAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    provisioningGeneration?: IntFilter<"DatabaseInstance"> | number
     provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
     lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
@@ -235619,6 +235640,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: SortOrderInput | SortOrder
     physicalRetentionDays?: SortOrderInput | SortOrder
     physicalAuthorityAt?: SortOrderInput | SortOrder
+    provisioningGeneration?: SortOrder
     provisioningDeadlineAt?: SortOrderInput | SortOrder
     lastErrorCode?: SortOrderInput | SortOrder
     lastErrorAt?: SortOrderInput | SortOrder
@@ -235656,6 +235678,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
     physicalRetentionDays?: IntNullableWithAggregatesFilter<"DatabaseInstance"> | number | null
     physicalAuthorityAt?: DateTimeNullableWithAggregatesFilter<"DatabaseInstance"> | Date | string | null
+    provisioningGeneration?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     provisioningDeadlineAt?: DateTimeNullableWithAggregatesFilter<"DatabaseInstance"> | Date | string | null
     lastErrorCode?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
     lastErrorAt?: DateTimeNullableWithAggregatesFilter<"DatabaseInstance"> | Date | string | null
@@ -252188,6 +252211,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -252221,6 +252245,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -252252,6 +252277,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -252285,6 +252311,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -252317,6 +252344,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -252345,6 +252373,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -252374,6 +252403,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -264797,6 +264827,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: SortOrder
     physicalRetentionDays?: SortOrder
     physicalAuthorityAt?: SortOrder
+    provisioningGeneration?: SortOrder
     provisioningDeadlineAt?: SortOrder
     lastErrorCode?: SortOrder
     lastErrorAt?: SortOrder
@@ -264808,6 +264839,7 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     physicalRetentionDays?: SortOrder
+    provisioningGeneration?: SortOrder
   }
 
   export type DatabaseInstanceMaxOrderByAggregateInput = {
@@ -264832,6 +264864,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: SortOrder
     physicalRetentionDays?: SortOrder
     physicalAuthorityAt?: SortOrder
+    provisioningGeneration?: SortOrder
     provisioningDeadlineAt?: SortOrder
     lastErrorCode?: SortOrder
     lastErrorAt?: SortOrder
@@ -264861,6 +264894,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: SortOrder
     physicalRetentionDays?: SortOrder
     physicalAuthorityAt?: SortOrder
+    provisioningGeneration?: SortOrder
     provisioningDeadlineAt?: SortOrder
     lastErrorCode?: SortOrder
     lastErrorAt?: SortOrder
@@ -264872,6 +264906,7 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     physicalRetentionDays?: SortOrder
+    provisioningGeneration?: SortOrder
   }
 
   export type EnumDatabaseInstanceStatusWithAggregatesFilter<$PrismaModel = never> = {
@@ -289551,6 +289586,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -289582,6 +289618,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -291103,6 +291140,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: StringNullableFilter<"DatabaseInstance"> | string | null
     physicalRetentionDays?: IntNullableFilter<"DatabaseInstance"> | number | null
     physicalAuthorityAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    provisioningGeneration?: IntFilter<"DatabaseInstance"> | number
     provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
     lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
@@ -324618,6 +324656,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -324650,6 +324689,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -324696,6 +324736,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -324728,6 +324769,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -324758,6 +324800,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -324790,6 +324833,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -324836,6 +324880,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -324868,6 +324913,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -326033,6 +326079,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -326065,6 +326112,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -326283,6 +326331,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -326315,6 +326364,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -339371,6 +339421,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: string | null
     physicalRetentionDays?: number | null
     physicalAuthorityAt?: Date | string | null
+    provisioningGeneration?: number
     provisioningDeadlineAt?: Date | string | null
     lastErrorCode?: string | null
     lastErrorAt?: Date | string | null
@@ -340772,6 +340823,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -340803,6 +340855,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -340834,6 +340887,7 @@ export namespace Prisma {
     physicalDatabaseCrUid?: NullableStringFieldUpdateOperationsInput | string | null
     physicalRetentionDays?: NullableIntFieldUpdateOperationsInput | number | null
     physicalAuthorityAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    provisioningGeneration?: IntFieldUpdateOperationsInput | number
     provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
     lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null

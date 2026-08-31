@@ -606,6 +606,7 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await expect(
         store.completeDatabaseProvisioning(provisioning.instance.id, {
           ...scope,
+          expectedGeneration: provisioning.instance.provisioningGeneration,
           key: 'DATABASE_URL',
           valueEncrypted: 'cipher-provisioned',
         }),
@@ -635,6 +636,7 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await expect(
         store.completeDatabaseProvisioning(provisioning.instance.id, {
           ...scope,
+          expectedGeneration: provisioning.instance.provisioningGeneration,
           key: 'DATABASE_URL',
           valueEncrypted: 'cipher-provisioned',
         }),

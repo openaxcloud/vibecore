@@ -22,6 +22,7 @@ function instance(overrides: Partial<DatabaseInstanceRecord> = {}): DatabaseInst
     sizeBytes: 0,
     retentionDays: 7,
     pitrEnabled: true,
+    provisioningGeneration: 1,
     physicalAuthority: {
       tier: 'isolated',
       clusterName: 'db-project-1',
@@ -176,6 +177,7 @@ describe('managed database provisioning lifecycle', () => {
       await store.completeDatabaseProvisioning(pending.id, {
         projectId: pending.projectId,
         expectedOrganizationId: pending.organizationId,
+        expectedGeneration: pending.provisioningGeneration,
         key: 'DATABASE_URL',
         valueEncrypted: 'winner',
       });
@@ -193,6 +195,53 @@ describe('managed database provisioning lifecycle', () => {
 
     expect(result.transition).toBe('none');
     expect((await store.getDatabaseInstanceByProject(pending.projectId))?.status).toBe('ACTIVE');
+  });
+
+  it('does not let a late readiness probe from generation 1 activate generation 2', async () => {
+    const { store, pending } = await pendingFixture({
+      provisioningDeadlineAt: '2026-08-26T10:10:00.000Z',
+    });
+    const provider = provisioner();
+    (provider.getConnectionUri as ReturnType<typeof vi.fn>).mockImplementation(async () => {
+      await store.failDatabaseProvisioning(pending.id, {
+        expectedGeneration: pending.provisioningGeneration,
+        errorCode: DATABASE_PROVISION_FAILURE.timedOut,
+        failedAt: '2026-08-26T10:01:00.000Z',
+      });
+      const retry = await store.acquireDatabaseProvisioning({
+        projectId: pending.projectId,
+        expectedOrganizationId: pending.organizationId,
+        organizationId: pending.organizationId,
+        retentionDays: pending.retentionDays,
+        environment: pending.environment,
+        provisioningDeadlineAt: '2026-08-26T10:20:00.000Z',
+        physicalAuthority: {
+          tier: 'isolated',
+          clusterName: `db-${pending.projectId}`,
+          backupBucket: 'database-backups',
+          backupPrefix: `db/${pending.projectId}/`,
+          retentionDays: pending.retentionDays,
+        },
+      });
+      expect(retry.instance.provisioningGeneration).toBe(2);
+
+      return 'postgresql://attempt-a:stale@pooler/project';
+    });
+
+    const result = await reconcileDatabaseProvisioning({
+      store,
+      provisioner: provider,
+      instance: pending,
+      nowMs: Date.parse('2026-08-26T10:01:00.000Z'),
+      encryptConnectionUri: (value) => `encrypted:${value}`,
+    });
+
+    expect(result.transition).toBe('none');
+    expect(await store.getDatabaseInstanceByProject(pending.projectId)).toMatchObject({
+      status: 'PROVISIONING',
+      provisioningGeneration: 2,
+    });
+    expect(await store.getProjectSecret(pending.projectId, 'DATABASE_URL')).toBeUndefined();
   });
 
   it('grants exactly one retry claim for a FAILED singleton', async () => {
@@ -223,8 +272,13 @@ describe('managed database provisioning lifecycle', () => {
     ]);
 
     expect([first, second].filter((result) => result.acquired)).toHaveLength(1);
+    expect(first.instance.provisioningGeneration).toBe(2);
+    expect(second.instance.provisioningGeneration).toBe(2);
     expect(Array.from(store.databaseInstances.values())).toHaveLength(1);
-    expect((await store.getDatabaseInstanceByProject(failed.projectId))?.status).toBe('PROVISIONING');
+    expect(await store.getDatabaseInstanceByProject(failed.projectId)).toMatchObject({
+      status: 'PROVISIONING',
+      provisioningGeneration: 2,
+    });
   });
 
   it('accepts only the exact active release fence for a provisioning claim inside publish', async () => {

@@ -302,7 +302,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
 
       // a distinct production instance now exists; the development one does not
       const prod = await store.getDatabaseInstanceByProject(project.id, 'production');
-      expect(prod?.environment).toBe('production');
+      expect(prod).toMatchObject({ environment: 'production', provisioningGeneration: 1 });
       expect(await store.getDatabaseInstanceByProject(project.id, 'development')).toBeUndefined();
       expect(provisionInstance).toHaveBeenCalledOnce();
       expect(provisionInstance).toHaveBeenCalledWith(

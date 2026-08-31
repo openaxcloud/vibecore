@@ -564,6 +564,8 @@ export interface DatabaseInstanceRecord {
   retentionDays: number;
   pitrEnabled: boolean;
   physicalAuthority?: DatabasePhysicalAuthority & { capturedAt: string };
+  /** Monotonic authority for the exact external provisioning attempt. */
+  provisioningGeneration: number;
   provisioningDeadlineAt?: string;
   lastErrorCode?: string;
   lastErrorAt?: string;
@@ -3089,6 +3091,7 @@ export interface ApiStore {
     expectedVersion: number;
     requestHash: string;
     databaseInstanceId: string;
+    expectedGeneration: number;
     projectId: string;
     valueEncrypted: string;
   }): Promise<RemixJobRecord | undefined>;
@@ -3914,13 +3917,14 @@ export interface ApiStore {
     connection: {
       projectId: string;
       expectedOrganizationId: string;
+      expectedGeneration: number;
       key: string;
       valueEncrypted: string;
     },
   ): Promise<DatabaseInstanceRecord | undefined>;
   failDatabaseProvisioning(
     id: string,
-    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+    input: { expectedGeneration: number; errorCode: string; failedAt: string; deadlineBefore?: string },
   ): Promise<DatabaseInstanceRecord | undefined>;
   updateDatabaseInstance(
     id: string,

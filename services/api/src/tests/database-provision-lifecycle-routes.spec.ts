@@ -93,7 +93,7 @@ describe('managed database provisioning routes', () => {
     expect(response.statusCode).toBe(202);
     expect(response.json()).toMatchObject({ created: true, retried: false, tier: 'isolated' });
     const instance = await store.getDatabaseInstanceByProject(project.id);
-    expect(instance).toMatchObject({ status: 'PROVISIONING' });
+    expect(instance).toMatchObject({ status: 'PROVISIONING', provisioningGeneration: 1 });
     expect(instance?.lastErrorCode).toBeUndefined();
     expect(Date.parse(instance!.provisioningDeadlineAt!)).toBeGreaterThan(Date.now());
     const calls = vi.mocked(fetch).mock.calls;
@@ -122,7 +122,7 @@ describe('managed database provisioning routes', () => {
       instance: { status: 'FAILED', lastErrorCode: 'DATABASE_PROVISION_KICKOFF_FAILED' },
     });
     const failedInstance = await store.getDatabaseInstanceByProject(project.id);
-    expect(failedInstance?.status).toBe('FAILED');
+    expect(failedInstance).toMatchObject({ status: 'FAILED', provisioningGeneration: 1 });
 
     managerResponse(200);
     const retried = await app.inject({
@@ -133,7 +133,10 @@ describe('managed database provisioning routes', () => {
 
     expect(retried.statusCode).toBe(202);
     expect(retried.json()).toMatchObject({ created: false, retried: true });
-    expect((await store.getDatabaseInstanceByProject(project.id))?.status).toBe('PROVISIONING');
+    expect(await store.getDatabaseInstanceByProject(project.id)).toMatchObject({
+      status: 'PROVISIONING',
+      provisioningGeneration: 2,
+    });
     expect(store.databaseInstances.size).toBe(1);
     await app.close();
   });
@@ -151,6 +154,7 @@ describe('managed database provisioning routes', () => {
       sizeBytes: 0,
       retentionDays: 28,
       pitrEnabled: true,
+      provisioningGeneration: 1,
       provisioningDeadlineAt: new Date(Date.now() - 1_000).toISOString(),
       createdAt: new Date(Date.now() - 60_000).toISOString(),
       updatedAt: new Date(Date.now() - 60_000).toISOString(),

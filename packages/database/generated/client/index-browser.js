@@ -1912,6 +1912,7 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   physicalDatabaseCrUid: 'physicalDatabaseCrUid',
   physicalRetentionDays: 'physicalRetentionDays',
   physicalAuthorityAt: 'physicalAuthorityAt',
+  provisioningGeneration: 'provisioningGeneration',
   provisioningDeadlineAt: 'provisioningDeadlineAt',
   lastErrorCode: 'lastErrorCode',
   lastErrorAt: 'lastErrorAt',

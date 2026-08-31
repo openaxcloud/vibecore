@@ -923,6 +923,7 @@ export async function executePhysicalRemix(
           expectedVersion: current.version,
           requestHash: input.requestHash,
           databaseInstanceId: current.targetDatabaseInstanceId,
+          expectedGeneration: targetDatabase.provisioningGeneration,
           projectId: current.targetProjectId,
           valueEncrypted: encryptJson({ value: progress.connectionUri }),
         });
