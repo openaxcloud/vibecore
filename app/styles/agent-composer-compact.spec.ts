@@ -58,12 +58,18 @@ describe('COMPOSER-001 — deux lignes au repos, pas trois blocs', () => {
     const floor = Number(reserved.match(/clamp\((\d+)px/)?.[1]);
 
     expect(floor).toBeGreaterThan(0);
+
     /*
      * Le repli sert AUSSI de rembourrage au bas du fil : trop court, la queue du
-     * transcript glisse sous la zone de saisie (`ui-details` l'a attrapé à
-     * 132px). Le seuil du test borne donc la RÉDUCTION sans exiger l'impossible.
+     * transcript glisse sous la zone de saisie. `ui-details` l'a attrapé deux
+     * fois — à 132px, puis à 168px. La borne basse n'est donc PAS un chiffre
+     * choisi : c'est la hauteur du chrome permanent, mesurée dans le montage
+     * E2E — barre de navigation basse 72px + boîte de saisie 112px = 184px.
+     * En dessous, faire défiler jusqu'au dernier message le cache.
+     *
+     * La borne haute reste la réduction visée : 236px était l'ancien plancher.
      */
-    expect(floor).toBeLessThanOrEqual(180);
+    expect(floor).toBeGreaterThanOrEqual(184);
     expect(floor).toBeLessThan(236);
 
     // La hauteur MESURÉE reste prioritaire : le repli ne sert qu'au premier rendu.
