@@ -37,21 +37,29 @@ function provisioner(completed = true): DatabaseProvisioner {
 class MemoryApplier implements SqlApplier {
   readonly ledger = new Map<string, string>();
   applyCalls = 0;
-  beforeCommitHook?: () => void;
+  beforeCommitHook?: () => void | Promise<void>;
+  inspectHook?: () => void | Promise<void>;
 
   async apply(input: Parameters<SqlApplier['apply']>[0]) {
     this.applyCalls += 1;
+    const pending = new Map(input.migrations.map((migration) => [migration.name, migration.sha256]));
 
-    for (const migration of input.migrations) {
-      this.ledger.set(migration.name, migration.sha256);
+    try {
+      await this.beforeCommitHook?.();
+      await input.beforeCommit();
+    } catch (error) {
+      throw new MigrationRolledBackError(error);
     }
-    this.beforeCommitHook?.();
-    await input.beforeCommit();
+
+    for (const [name, digest] of pending) {
+      this.ledger.set(name, digest);
+    }
 
     return { applied: input.migrations.map(({ name }) => name) };
   }
 
   async inspect(input: Parameters<SqlApplier['inspect']>[0]): Promise<MigrationTargetInspection> {
+    await this.inspectHook?.();
     const matching = input.plan.filter(({ name, sha256: digest }) => this.ledger.get(name) === digest);
 
     const mismatch = input.plan.some(({ name, sha256: digest }) => {
@@ -104,6 +112,7 @@ function input(store = new TestApiStore(), applier = new MemoryApplier()) {
     deploymentId: 'deployment-1',
     backwardCompatible: true,
     forwardCompatible: false,
+    assertReleaseAuthority: async () => undefined,
     ttlMs: 5_000,
     renewIntervalMs: 1_000,
     backupPollIntervalMs: 0,
@@ -191,6 +200,122 @@ describe('fenced publish migration', () => {
     const result = await runPublishMigration(run);
     expect(result).toMatchObject({ ok: false, code: 'MIGRATION_LEASE_LOST' });
     expect([...run.store.migrationExecutions.values()][0]!.state).not.toBe('COMMITTED');
+    expect(run.applier.ledger.size).toBe(0);
+  });
+
+  it('rolls back every target write when release authority is lost immediately before COMMIT', async () => {
+    const run = input();
+    let releaseAuthorityHeld = true;
+    run.assertReleaseAuthority = async () => {
+      if (!releaseAuthorityHeld) {
+        throw Object.assign(new Error('Project release barrier was lost.'), {
+          code: 'PROJECT_RELEASE_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+    };
+    run.applier.beforeCommitHook = () => {
+      releaseAuthorityHeld = false;
+    };
+
+    await expect(runPublishMigration(run)).rejects.toMatchObject({
+      code: 'PROJECT_RELEASE_BARRIER_LOST',
+      statusCode: 409,
+    });
+
+    expect(run.applier.ledger.size).toBe(0);
+    expect([...run.store.migrationExecutions.values()][0]).toMatchObject({
+      state: 'FAILED_SAFE',
+      activeLock: undefined,
+      errorCode: 'RELEASE_AUTHORITY_LOST_BEFORE_COMMIT',
+    });
+  });
+
+  it('stops after snapshot submission when release authority is lost during backup', async () => {
+    const run = input();
+    let releaseAuthorityHeld = true;
+    run.assertReleaseAuthority = async () => {
+      if (!releaseAuthorityHeld) {
+        throw Object.assign(new Error('Project release barrier was lost.'), {
+          code: 'PROJECT_RELEASE_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+    };
+    run.provisioner.takeSnapshot = async () => {
+      releaseAuthorityHeld = false;
+      return { applied: true };
+    };
+
+    await expect(runPublishMigration(run)).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+    expect(run.applier.applyCalls).toBe(0);
+    expect(run.applier.ledger.size).toBe(0);
+    expect([...run.store.migrationExecutions.values()][0]!.state).toBe('LOCK_ACQUIRED');
+  });
+
+  it('revalidates release authority on both sides of every backup sleep', async () => {
+    const run = input();
+    let releaseAuthorityHeld = true;
+    run.assertReleaseAuthority = async () => {
+      if (!releaseAuthorityHeld) {
+        throw Object.assign(new Error('Project release barrier was lost.'), {
+          code: 'PROJECT_RELEASE_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+    };
+    run.provisioner.backupStatus = async () => ({ found: true, completed: false, phase: 'running' });
+    run.backupTimeoutMs = 2;
+    run.backupPollIntervalMs = 1;
+    run.sleep = async () => {
+      releaseAuthorityHeld = false;
+    };
+
+    await expect(runPublishMigration(run)).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+    expect(run.applier.applyCalls).toBe(0);
+  });
+
+  it('does not finalize recovery when release authority is lost across target inspection', async () => {
+    const run = input();
+    const acquired = await run.store.acquireDatabaseMigrationExecution({
+      projectId: run.projectId,
+      organizationId: run.organizationId,
+      environment: run.environment,
+      idempotencyKey: run.idempotencyKey,
+      requestHash: run.requestHash,
+      ownerToken: 'expired-owner',
+      ttlMs: 1,
+      plan: migrations.map(({ name, sha256: digest }) => ({ name, sha256: digest })),
+      statementsSha256: hashStatements(migrations),
+      backwardCompatible: true,
+      forwardCompatible: false,
+      deploymentId: run.deploymentId,
+    });
+    run.store.migrationExecutions.set(acquired.execution.id, {
+      ...acquired.execution,
+      state: 'APPLYING',
+      leaseExpiresAt: new Date(Date.now() - 1).toISOString(),
+    });
+    for (const migration of migrations) {
+      run.applier.ledger.set(migration.name, migration.sha256);
+    }
+
+    let releaseAuthorityHeld = true;
+    run.assertReleaseAuthority = async () => {
+      if (!releaseAuthorityHeld) {
+        throw Object.assign(new Error('Project release barrier was lost.'), {
+          code: 'PROJECT_RELEASE_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+    };
+    run.applier.inspectHook = () => {
+      releaseAuthorityHeld = false;
+    };
+
+    await expect(runPublishMigration(run)).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+    expect([...run.store.migrationExecutions.values()][0]!.state).not.toBe('COMMITTED');
+    expect(run.applier.applyCalls).toBe(0);
   });
 
   it('reconciles a lost COMMIT acknowledgement from the exact target ledger', async () => {

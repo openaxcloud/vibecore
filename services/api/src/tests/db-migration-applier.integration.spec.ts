@@ -73,6 +73,34 @@ describe.skipIf(!databaseUrl)('fenced target migration on real PostgreSQL', () =
     });
   });
 
+  it('keeps both schema and ledger empty when release authority is lost immediately before COMMIT', async () => {
+    const migration = declared('020_release_fence.sql', 'CREATE TABLE v311_orders (id bigint PRIMARY KEY)');
+
+    await expect(
+      applier.apply({
+        connectionString: databaseUrl!,
+        lockKey: 'v311:production',
+        migrations: [migration],
+        beforeCommit: async () => {
+          throw Object.assign(new Error('Project release barrier was lost.'), {
+            code: 'PROJECT_RELEASE_BARRIER_LOST',
+            statusCode: 409,
+          });
+        },
+      }),
+    ).rejects.toMatchObject({
+      code: 'MIGRATION_ROLLED_BACK',
+      cause: expect.objectContaining({ code: 'PROJECT_RELEASE_BARRIER_LOST' }),
+    });
+
+    await withClient(async (client) => {
+      expect((await client.query("SELECT to_regclass('v311_orders') AS value")).rows[0].value).toBeNull();
+      expect(
+        (await client.query('SELECT to_regclass($1) AS value', [MIGRATION_LEDGER_TABLE])).rows[0].value,
+      ).toBeNull();
+    });
+  });
+
   it('refuses a reused migration name whose SQL hash changed', async () => {
     const original = declared('001_customers.sql', 'CREATE TABLE v311_customers (id bigint PRIMARY KEY)');
     await applier.apply({

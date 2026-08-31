@@ -45854,6 +45854,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             createdByUserId: request.currentUser?.id,
             backwardCompatible: migrationPlan.backwardCompatible,
             forwardCompatible: migrationPlan.forwardCompatible,
+            assertReleaseAuthority: releaseGuard.assert,
           });
           await audit(request, store, {
             organizationId: project.organizationId,

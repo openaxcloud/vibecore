@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildApiApp } from '../app.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
-import { exactMigrationLedgerDigest } from '../db-migration-applier.js';
+import { exactMigrationLedgerDigest, MigrationRolledBackError } from '../db-migration-applier.js';
 import { sha256, type MigrationTargetInspection, type SqlApplier } from '../db-migration-execution.js';
 import type { EmailProvider } from '../email.js';
 import {
@@ -118,13 +118,21 @@ class MemoryStorage implements ProjectStorage {
 class MemoryApplier implements SqlApplier {
   readonly ledger = new Map<string, string>();
   calls = 0;
+  beforeCommitHook?: () => void | Promise<void>;
   async apply(input: Parameters<SqlApplier['apply']>[0]) {
     this.calls += 1;
+    const pending = new Map(input.migrations.map((migration) => [migration.name, migration.sha256]));
 
-    for (const migration of input.migrations) {
-      this.ledger.set(migration.name, migration.sha256);
+    try {
+      await this.beforeCommitHook?.();
+      await input.beforeCommit();
+    } catch (error) {
+      throw new MigrationRolledBackError(error);
     }
-    await input.beforeCommit();
+
+    for (const [name, digest] of pending) {
+      this.ledger.set(name, digest);
+    }
 
     return { applied: input.migrations.map(({ name }) => name) };
   }
@@ -254,6 +262,29 @@ describe('schema migration before publish route', () => {
       backupVerificationMethod: 'cnpg-backup-status-completed',
       appliedStatements: 2,
     });
+  });
+
+  it('rolls back SQL and refuses publish when the release barrier is lost immediately before COMMIT', async () => {
+    const run = await setup();
+    run.migrationApplier.beforeCommitHook = () => {
+      const barrier = [...run.store.projectCheckpoints.values()].find((row) => row.state === 'RELEASE_BARRIER');
+      if (!barrier) throw new Error('Expected the active publish release barrier');
+      barrier.barrierExpiresAt = new Date(Date.now() - 1_000).toISOString();
+    };
+
+    const response = await publish(run.app, run.project.id, run.deployment.id);
+
+    expect(response.statusCode, response.body).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+    expect(run.migrationApplier.ledger.size).toBe(0);
+    expect([...run.store.migrationExecutions.values()][0]).toMatchObject({
+      state: 'FAILED_SAFE',
+      activeLock: undefined,
+      errorCode: 'RELEASE_AUTHORITY_LOST_BEFORE_COMMIT',
+    });
+    expect(
+      (await run.store.listDeployments(run.project.id)).filter(({ environment }) => environment === 'production'),
+    ).toHaveLength(0);
   });
 
   it('authorizes deployment creation only with the exact active release fence', async () => {
