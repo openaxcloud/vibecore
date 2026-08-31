@@ -1,6 +1,58 @@
 # Instructions projet
 
+## Règles de méthode — à lire avant de corriger quoi que ce soit
+
+Ces huit règles viennent d'erreurs réelles commises le 2026-08-31, chacune
+chiffrée dans `docs/audit/FAUX_NEGATIFS_DE_MESURE.md`. Elles ont coûté un revert
+inutile, un correctif branché au mauvais endroit et plusieurs heures de fausse
+piste.
+
+1. **Mesurer le chemin réel avant de corriger. Jamais le déduire d'une lecture de
+   code.** J'ai branché la persistance sur `PUT /files/write` parce que
+   `files.ts:881` l'appelle — sans vérifier que `Ctrl+S` y aboutit. Il n'y
+   aboutit pas dans le cas normal. Tracer la requête, du navigateur jusqu'à la
+   fonction serveur, avant d'écrire une ligne.
+
+2. **Relancer le même commit avant d'accuser un changement.** Trois tests E2E ont
+   échoué sur mon commit et pas sur les précédents ; j'ai reverté. La relance du
+   MÊME commit, sans rien changer, est passée au vert. Le coût d'une relance est
+   dérisoire devant celui d'un revert.
+
+3. **Distinguer « rien trouvé » de « rien exécuté ».** `grep | wc -l` rend `0`
+   quand le fichier n'existe pas, quand le motif est faux, et quand il n'y a
+   vraiment rien. Toute commande de comptage doit afficher combien d'éléments
+   elle a examinés, et refuser de conclure si ce nombre est nul ou inattendu.
+
+4. **Vérifier qu'une mesure a porté sur quelque chose.** Une sonde doit échouer
+   bruyamment quand elle n'a pas pu mesurer, jamais rendre « 0 défaut ». Un champ
+   d'erreur qu'il faut penser à lire n'est pas une protection. Avant de lire un
+   résultat : la page a-t-elle chargé ? la frappe est-elle arrivée ? le corps
+   est-il tronqué ? le thème mesuré est-il celui qu'on croit ?
+
+5. **Ancrer les tests sur du code, jamais sur des commentaires.** Six tests écrits
+   dans la journée ont été cassés par leur propre prose, qui citait le motif
+   interdit. Retirer les commentaires avant de scanner, et viser la déclaration.
+
+6. **Contre-épreuve dans les deux sens.** Un test qui ne tombe pas quand on
+   annule le correctif ne garde rien. Annuler chaque moitié séparément et
+   vérifier que le bon cas tombe.
+
+7. **Cibler la règle, pas la première occurrence d'un motif.** Un `sed` sur la
+   première des neuf occurrences ne prouve rien. Délimiter par accolades, compter
+   les occurrences avant de remplacer, et asserter que le compte vaut 1.
+
+8. **Vérifier qu'une PR existante ne porte pas déjà le correctif.** Six PR finies
+   dormaient parmi les ouvertes. Et avant de rejouer une vieille branche :
+   remesurer, car le défaut peut avoir été corrigé autrement entre-temps — 51 des
+   63 fichiers d'une PR de deux semaines l'étaient déjà.
+
+**Corollaire sur les garde-fous.** Un garde-fou qui protège la mauvaise chose est
+pire que pas de garde-fou, parce qu'il rassure. Vérifier qu'un test porte sur la
+famille RÉELLEMENT utilisée à l'écran, et préférer une énumération dérivée du
+produit à une liste écrite à la main.
+
 ## Règles
+
 
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
