@@ -18,6 +18,7 @@ import {
 import type { EmailProvider } from '../email.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the endpoint spec service-local.
 import { canonicalizeProjectManifest, projectManifestDigest } from '../project-manifest.js';
+import type { ProjectPhysicalMutationScope } from '../store.js';
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -32,6 +33,18 @@ import { TestApiStore } from './test-api-store.js';
 
 class QuietEmailProvider implements EmailProvider {
   async send() {}
+}
+
+class PhysicalReleaseFenceObservingStore extends TestApiStore {
+  readonly physicalReleaseScopes: ProjectPhysicalMutationScope[] = [];
+
+  override async assertProjectStorageMutable(
+    ...args: Parameters<TestApiStore['assertProjectStorageMutable']>
+  ): Promise<void> {
+    const [scope] = args;
+    if (scope.releaseFence) this.physicalReleaseScopes.push(scope);
+    await super.assertProjectStorageMutable(...args);
+  }
 }
 
 const RELEASE_PLAN_ENTITLEMENTS = {
@@ -158,7 +171,8 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
   }
 
   it('restores the previous version bytes into a new READY deployment', async () => {
-    const { app, store, auth, projectId } = await setup();
+    const store = new PhysicalReleaseFenceObservingStore();
+    const { app, auth, projectId } = await setup(store);
     const v1 = await publishStatic(store, projectId, 1, 'VERSION ONE');
     await publishStatic(store, projectId, 2, 'VERSION TWO');
     store.deployments.delete(v1.deployment.id);
@@ -206,6 +220,19 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(releases[0].version).toBe(3);
     expect(releases[0].deploymentId).toBe(body.deployment.id);
     expect(releases[0].artifactRef).toBe(v1.artifactRef);
+    expect(store.physicalReleaseScopes.length).toBeGreaterThanOrEqual(4);
+    expect(store.physicalReleaseScopes).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          projectId,
+          expectedOrganizationId: auth.organization.id,
+          releaseFence: expect.objectContaining({
+            expectedOrganizationId: auth.organization.id,
+            expectedManifestDigest: v1.projectManifestDigest,
+          }),
+        }),
+      ]),
+    );
 
     const gc = await garbageCollectStaticArtifacts((artifactRef) => store.isReleaseArtifactRetained(artifactRef));
     expect(gc.removed).toEqual([]);

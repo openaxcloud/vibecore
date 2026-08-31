@@ -525,6 +525,8 @@ export interface ProjectPhysicalMutationScope {
   expectedOrganizationId: string;
   workspaceId?: string;
   partialTargetAuthority?: ProjectPartialTargetAuthority;
+  /** Exact database-backed authority when the physical effect runs inside a release barrier. */
+  releaseFence?: ProjectReleaseFence;
   /** Internal adapter stamp; callers must not infer or forward a client value. */
   physicalAccessOperation?: ProjectPhysicalAccessOperation;
 }

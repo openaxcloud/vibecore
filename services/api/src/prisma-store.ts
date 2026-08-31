@@ -6532,6 +6532,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ): Promise<void> {
+    const releaseFence = scope.releaseFence ?? options.releaseFence;
     await this.accountPurge.assertProjectStorageMutable(
       tx,
       scope.projectId,
@@ -6590,8 +6591,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     if (options.checkpointBarrierAuthority) {
       await assertOwnedProjectCheckpointBarrier(tx, scope.projectId, options.checkpointBarrierAuthority);
-    } else if (options.releaseFence) {
-      await requireProjectReleaseFence(tx, scope.projectId, options.releaseFence);
+    } else if (releaseFence) {
+      await requireProjectReleaseFence(tx, scope.projectId, releaseFence);
     } else if (!options.allowActiveCheckpoint) {
       await assertNoActiveProjectReleaseBarrier(tx, scope.projectId);
     }

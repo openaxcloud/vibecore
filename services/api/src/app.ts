@@ -47790,17 +47790,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               fencingToken: operation.fencingToken,
             });
             await leaseManager.guard();
-            await store.withProjectPhysicalMutation(
-              { projectId: project.id, expectedOrganizationId: project.organizationId },
-              () =>
-                restoreStaticArtifactInto(previous.artifactRef, previous.artifactDigest, rollback.id, async () => {
-                  await releaseGuard.assert();
-                  await leaseManager.guard();
-                  await store.assertProjectStorageMutable({
-                    projectId: project.id,
-                    expectedOrganizationId: project.organizationId,
-                  });
-                }),
+            const physicalReleaseScope = {
+              projectId: project.id,
+              expectedOrganizationId: project.organizationId,
+              releaseFence: releaseGuard.fence,
+            } satisfies ProjectPhysicalMutationScope;
+            await store.withProjectPhysicalMutation(physicalReleaseScope, () =>
+              restoreStaticArtifactInto(previous.artifactRef, previous.artifactDigest, rollback.id, async () => {
+                await releaseGuard.assert();
+                await leaseManager.guard();
+                await store.assertProjectStorageMutable(physicalReleaseScope);
+              }),
             );
             await leaseManager.guard();
 
@@ -47821,10 +47821,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await writeStaticDeploymentRoutingAlias(previous.deploymentId, rollback.id, async () => {
               await releaseGuard.assert();
               await leaseManager.guard();
-              await store.assertProjectStorageMutable({
-                projectId: project.id,
-                expectedOrganizationId: project.organizationId,
-              });
+              await store.assertProjectStorageMutable(physicalReleaseScope);
             });
 
             const url = buildDeploymentUrl(project, rollback);
