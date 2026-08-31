@@ -169,3 +169,37 @@ sur un fond dont la couleur varie** — dégradé orange du panneau d'authentifi
 dégradé vert du bouton Run, aplat d'accent qui s'inverse avec le thème. Une
 vérification jeton-contre-jeton passe à côté, parce que le fond réel n'est jamais la
 valeur d'un jeton : c'est un dégradé, un mélange alpha, ou l'autre thème.
+
+---
+
+## Deux règles de méthode, tirées des erreurs de la passe du 31/08
+
+### 1. Un garde-fou qui protège la mauvaise famille est pire que rien
+
+`BUG-THEME-008` **avait** un garde-fou. Un test de parité vérifiait que les jetons
+`--status-*` tenaient AA sur leur fond teinté, et il passait. Mais les pastilles
+réellement affichées utilisent une **autre famille** (`--vc-ide-accent-error` /
+`-warning` / `-action`), que rien ne gardait : 3,76 / 3,88 / 4,21:1 en clair. Le test
+rassurait sur une chose que personne ne regardait.
+
+**La parade n'est pas d'allonger la liste** — la famille suivante y échapperait pareil.
+C'est d'**énumérer depuis la feuille compilée** : `tint-contrast-sweep.spec.ts` mesure
+TOUTE règle qui pose une couleur de texte sur un fond dérivé de la même couleur, quelle
+que soit la famille, y compris celles qui n'existent pas encore. Écrit après coup, il a
+trouvé **43 endroits** là où la liste manuelle en couvrait 3.
+
+### 2. Une sonde doit échouer bruyamment, jamais rendre « 0 défaut »
+
+Trois faux négatifs silencieux dans la même journée, tous de la même forme — l'outil
+n'avait pas pu mesurer et rendait un résultat rassurant :
+
+| Sonde | Ce qui n'allait pas | Ce qu'elle rendait |
+|---|---|---|
+| balayage de l'IDE | `networkidle` ne se produit jamais (websocket, sondes, HMR) | **« 0 défaut »** sur une page jamais chargée |
+| résolution de thème | la feuille compilée écrit `[data-theme=light]` **sans guillemets** | le thème SOMBRE mesuré deux fois, vert et faux |
+| lecture d'une capture | le blanc sur orange se lit comme du texte sombre à l'œil | « avant et après sont identiques », alors que rien n'était appliqué |
+
+**Un champ d'erreur qu'il faut penser à lire n'est pas une protection.** Chaque sonde
+porte désormais un test de couverture qui échoue si elle n'a rien mesuré, et un test qui
+vérifie qu'elle distingue bien les deux thèmes. Contre-vérifiés : rendre le fond clair
+identique au sombre fait tomber le second.

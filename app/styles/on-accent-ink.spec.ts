@@ -83,6 +83,31 @@ describe('ON-ACCENT-001 — pas de blanc en dur sur un aplat d’accent', () => 
     expect(fautifs, fautifs.join('\n')).toEqual([]);
   });
 
+  it('aucun aplat Tailwind trop clair ne porte du texte blanc', () => {
+    /*
+     * BUG-THEME-014 — famille voisine mais DISTINCTE : ces aplats viennent de la
+     * palette Tailwind et sont INVARIANTS au thème, donc le jeton qui bascule ne
+     * les corrige pas. Le blanc y donnait 3,76:1 sur `red-500` (#ef4444) et
+     * 2,80:1 sur `orange-500` (#f97316). Les nuances retenues sont les premières
+     * qui passent : `red-600` (4,83) et `orange-700` (5,18).
+     */
+    const fautifs: string[] = [];
+
+    for (const chemin of fichiers(RACINE)) {
+      for (const [index, ligne] of readFileSync(chemin, 'utf8').split('\n').entries()) {
+        if (!/\btext-white\b/.test(ligne)) {
+          continue;
+        }
+
+        if (/\bbg-(?:red|orange)-500\b/.test(ligne) || /\bbg-orange-600\b/.test(ligne)) {
+          fautifs.push(`${chemin.replace(RACINE, 'app')}:${index + 1}`);
+        }
+      }
+    }
+
+    expect(fautifs, fautifs.join('\n')).toEqual([]);
+  });
+
   it('les jetons d’encre existent et s’inversent entre les deux thèmes', () => {
     const scss = readFileSync(join(__dirname, 'index.scss'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
     const blocs = [...scss.matchAll(/([^{}]+)\{([^{}]*)\}/g)];
