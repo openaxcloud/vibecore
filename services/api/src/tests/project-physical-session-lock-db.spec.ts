@@ -701,4 +701,79 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await store.disconnect();
     }
   });
+
+  it('serializes the canonical production workspace under the exact release fence', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const seeded = await seedProject(prisma, 'production-workspace-release-fence');
+    let release: (() => Promise<boolean>) | undefined;
+
+    try {
+      const barrier = await acquireTestProjectReleaseFence(store, {
+        projectId: seeded.project.id,
+        organizationId: seeded.source.id,
+      });
+      release = barrier.release;
+      const input = {
+        projectId: seeded.project.id,
+        expectedOrganizationId: seeded.source.id,
+        releaseFence: barrier.releaseFence,
+        name: 'Production',
+        runtimeMode: 'docker',
+        initialStatus: 'STOPPED' as const,
+      };
+
+      await expect(
+        store.createWorkspace({
+          projectId: seeded.project.id,
+          expectedOrganizationId: seeded.source.id,
+          name: 'Unsafe production',
+          runtimeMode: 'docker',
+          environment: 'production',
+        }),
+      ).rejects.toMatchObject({ code: 'PRODUCTION_WORKSPACE_RELEASE_FENCE_REQUIRED', statusCode: 409 });
+
+      const [first, replay] = await Promise.all([
+        store.ensureProductionWorkspace(input),
+        store.ensureProductionWorkspace(input),
+      ]);
+      expect(replay.id).toBe(first.id);
+      await expect(
+        prisma.workspace.count({ where: { projectId: seeded.project.id, environment: 'production' } }),
+      ).resolves.toBe(1);
+
+      await expect(
+        store.ensureProductionWorkspace({
+          ...input,
+          releaseFence: { ...barrier.releaseFence, ownerToken: 'forged-production-workspace-owner' },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+
+      await expect(barrier.release()).resolves.toBe(true);
+      release = undefined;
+      await expect(store.ensureProductionWorkspace(input)).rejects.toMatchObject({
+        code: 'PROJECT_RELEASE_BARRIER_LOST',
+        statusCode: 409,
+      });
+
+      await expect(
+        prisma.workspace.create({
+          data: {
+            projectId: seeded.project.id,
+            name: 'Duplicate production',
+            runtimeMode: 'docker',
+            environment: 'production',
+            status: 'STOPPED',
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'P2002' });
+    } finally {
+      await release?.().catch(() => false);
+      await cleanupProject(prisma, {
+        projectIds: [seeded.project.id],
+        organizationIds: [seeded.source.id, seeded.target.id],
+      });
+      await store.disconnect();
+    }
+  });
 });

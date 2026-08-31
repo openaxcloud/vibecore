@@ -14002,6 +14002,12 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         projectId: input.projectId,
         expectedOrganizationId: input.expectedOrganizationId,
       });
+      if (input.environment === 'production') {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PRODUCTION_WORKSPACE_RELEASE_FENCE_REQUIRED',
+          statusCode: 409,
+        });
+      }
       const { initialStatus, expectedOrganizationId: _expectedOrganizationId, ...data } = input;
 
       const created = await tx.workspace.create({
@@ -14017,6 +14023,50 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
 
     return mapWorkspace(updated);
+  }
+
+  async ensureProductionWorkspace(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    releaseFence: ProjectReleaseFence;
+    name: string;
+    runtimeMode: string;
+    initialStatus?: WorkspaceRecord['status'];
+  }) {
+    const workspace = await this.prisma.$transaction(async (tx) => {
+      await this.lockExpectedProjectTenantMutation(
+        tx,
+        {
+          projectId: input.projectId,
+          expectedOrganizationId: input.expectedOrganizationId,
+          releaseFence: input.releaseFence,
+        },
+        { releaseFence: input.releaseFence },
+      );
+
+      const existing = await tx.workspace.findFirst({
+        where: { projectId: input.projectId, environment: 'production' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+      if (existing) return existing;
+
+      const created = await tx.workspace.create({
+        data: {
+          projectId: input.projectId,
+          name: input.name,
+          runtimeMode: input.runtimeMode,
+          environment: 'production',
+          status: input.initialStatus ?? 'STOPPED',
+        },
+      });
+
+      return tx.workspace.update({
+        where: { id: created.id },
+        data: { gitPath: workspaceRelativeGitPath(created.id) },
+      });
+    });
+
+    return mapWorkspace(workspace);
   }
 
   async latchProjectWorkspaceStart(input: {

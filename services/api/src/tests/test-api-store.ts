@@ -5845,6 +5845,12 @@ export class TestApiStore implements ApiStore {
     initialStatus?: WorkspaceRecord['status'];
   }) {
     this.assertProjectTenantMutation(input.projectId, input.expectedOrganizationId);
+    if (input.environment === 'production') {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PRODUCTION_WORKSPACE_RELEASE_FENCE_REQUIRED',
+        statusCode: 409,
+      });
+    }
     const workspaceId = input.id ?? id('workspace');
 
     const workspace: WorkspaceRecord = {
@@ -5860,6 +5866,44 @@ export class TestApiStore implements ApiStore {
     this.workspaces.set(workspace.id, workspace);
 
     return workspace;
+  }
+
+  async ensureProductionWorkspace(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    releaseFence: ProjectReleaseFence;
+    name: string;
+    runtimeMode: string;
+    initialStatus?: WorkspaceRecord['status'];
+  }) {
+    return this.withProjectTenantMutation(
+      {
+        projectId: input.projectId,
+        expectedOrganizationId: input.expectedOrganizationId,
+        releaseFence: input.releaseFence,
+      },
+      async () => {
+        const existing = [...this.workspaces.values()]
+          .filter((workspace) => workspace.projectId === input.projectId && workspace.environment === 'production')
+          .sort((left, right) => left.createdAt.localeCompare(right.createdAt) || left.id.localeCompare(right.id))[0];
+        if (existing) return existing;
+
+        const workspaceId = id('workspace');
+        const workspace: WorkspaceRecord = {
+          id: workspaceId,
+          projectId: input.projectId,
+          name: input.name,
+          runtimeMode: input.runtimeMode,
+          status: input.initialStatus ?? 'STOPPED',
+          gitPath: `.vibecore-workspaces/${workspaceId}`,
+          environment: 'production',
+          createdAt: now(),
+        };
+        this.workspaces.set(workspace.id, workspace);
+        return workspace;
+      },
+      { releaseFence: input.releaseFence },
+    );
   }
 
   async latchProjectWorkspaceStart(input: {

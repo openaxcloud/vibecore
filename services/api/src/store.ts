@@ -3707,6 +3707,21 @@ export interface ApiStore {
     initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
   /**
+   * Return the single canonical production checkout, creating it atomically
+   * under the exact release fence when the project has never been published.
+   * The transaction must serialize with every other project/workspace mutation
+   * so a stale publisher can neither create a duplicate nor select a checkout
+   * after losing its release authority.
+   */
+  ensureProductionWorkspace(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    releaseFence: ProjectReleaseFence;
+    name: string;
+    runtimeMode: string;
+    initialStatus?: WorkspaceRecord['status'];
+  }): Promise<WorkspaceRecord>;
+  /**
    * Persist the runtime-start fence before any workspace-manager side effect.
    * Implementations must revalidate the exact tenant in the project mutation
    * order; transfer treats STARTING/RUNNING workspaces as non-transferable.
