@@ -1248,7 +1248,9 @@ model Workspace {
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
-  // is the single workspace with environment='production'.
+  // is the single workspace with environment='production'. PostgreSQL enforces
+  // that last invariant with the partial unique index
+  // `Workspace_one_production_per_project_key` (Prisma cannot model it).
   environment      String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace

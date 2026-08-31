@@ -322,8 +322,13 @@ a `PROD_DATABASE_URL` project secret so dev + prod connections coexist in the ID
 Publish also creates an **editable production workspace checkout**
 (`Workspace.environment='production'`, migration `0051`): a separate git working
 tree seeded — and refreshed on each publish — with the published source files via
-`projectStorage.listFiles → writeFiles` (best-effort, non-fatal; reused, never
-duplicated). 10 tests.
+`projectStorage.listFiles → writeFiles` (best-effort and non-fatal). Migration
+`0115` enforces one canonical production workspace per project with a partial
+unique index; any historical duplicate is retained under a `production-legacy:*`
+environment instead of being deleted. Creation, source reads, every target write,
+and the final sync boundary all revalidate the exact release fence, so a stale
+publisher cannot duplicate or overwrite the production checkout after another
+release takes ownership.
 
 ---
 

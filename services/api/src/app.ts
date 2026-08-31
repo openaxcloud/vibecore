@@ -46570,33 +46570,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          */
         try {
           const workspaces = await store.listWorkspaces(project.id);
+          const devTemplate = workspaces.find(
+            (workspace) => (workspace.environment ?? 'development') === 'development',
+          );
+          const prodWorkspace = await store.ensureProductionWorkspace({
+            projectId: project.id,
+            expectedOrganizationId: project.organizationId,
+            releaseFence: releaseGuard.fence,
+            name: 'Production',
+            runtimeMode: devTemplate?.runtimeMode ?? 'docker',
 
-          let prodWorkspace = workspaces.find((workspace) => workspace.environment === 'production');
-
-          if (!prodWorkspace) {
-            const devTemplate = workspaces.find(
-              (workspace) => (workspace.environment ?? 'development') === 'development',
-            );
-            prodWorkspace = await store.createWorkspace({
-              projectId: project.id,
-              expectedOrganizationId: project.organizationId,
-              name: 'Production',
-              runtimeMode: devTemplate?.runtimeMode ?? 'docker',
-              environment: 'production',
-
-              // A source checkout is not a running workspace and must not consume a slot.
-              initialStatus: 'STOPPED',
-            });
-          }
+            // A source checkout is not a running workspace and must not consume a slot.
+            initialStatus: 'STOPPED',
+          });
 
           const publishedFiles = await projectStorage.listFiles(project.id, {
             expectedOrganizationId: project.organizationId,
             workspaceId: source.workspaceId,
+            releaseFence: releaseGuard.fence,
           });
-          await projectStorage.writeFiles(project.id, publishedFiles, {
-            expectedOrganizationId: project.organizationId,
-            workspaceId: prodWorkspace.id,
-          });
+          await releaseGuard.assert();
+          await projectStorage.writeFiles(
+            project.id,
+            publishedFiles,
+            {
+              expectedOrganizationId: project.organizationId,
+              workspaceId: prodWorkspace.id,
+              releaseFence: releaseGuard.fence,
+            },
+            releaseGuard.assert,
+          );
+          await releaseGuard.assert();
         } catch (error) {
           request.log?.warn?.({ err: error }, 'prod workspace checkout on publish failed (non-fatal)');
         }
