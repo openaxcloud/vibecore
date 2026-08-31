@@ -1,104 +1,126 @@
-# DESIGN CAPTURES — bibliothèque avant/après
+# DESIGN CAPTURES
 
-Bibliothèque de captures **clair et sombre** de chaque page et de chaque panneau.
-Elle sert à voir, sans relire une ligne de code, à quoi ressemble l'écran
-aujourd'hui et à quoi il ressemblait avant le correctif.
+Captures et mesures prises **sur la production** (`app.e-code.ai`), pas sur un montage.
+Chaque entrée dit ce qui a été mesuré, avec quoi, et ce que la mesure ne prouve PAS.
 
-## Règle de tenue
+---
 
-- **Une entrée par point de design ou de bug**, pas une par capture.
-- Chaque entrée porte **au moins un avant et un après**, dans les **deux thèmes**
-  quand le point touche la couleur, et aux **trois formats** (390 / 768 / web)
-  quand il touche la mise en page.
-- **Quand un point est corrigé, l'image « après » REMPLACE l'ancienne** — on ne
-  laisse pas deux « après » se contredire. L'image « avant » reste : c'est la
-  preuve que le défaut existait.
-- Les fichiers vivent sous `docs/audit/captures/<sujet>/`, avec un `README.md`
-  par sujet qui dit ce qu'on regarde et quelle mesure a été prise.
-- Une entrée n'est **complète** que si l'après a été capturé **en réel** (pas un
-  rendu de test), sur la surface la plus défavorable du thème concerné.
+## Zone de saisie du panneau Agent — état au 2026-08-31
 
-## Nommage
+**Méthode.** Compte QA jetable créé via `POST https://api.e-code.ai/auth/register`, projet
+vide, cookie `vc_session` posé dans un contexte Playwright, `app.e-code.ai/projects/<id>/ide`
+en réel. Trois formats × deux thèmes. Compte et organisation **supprimés après coup**, avec
+vérification (`reste_user=0 reste_org=0`).
 
-```
-docs/audit/captures/<sujet>/<sujet>-avant-<variante>.png
-docs/audit/captures/<sujet>/<sujet>-apres-<variante>.png
-```
+**Mesuré : `.bolt-project-chatbox` AU REPOS, sur un projet vide, sans message.**
 
-`<variante>` = `light` / `dark` pour la couleur, `390` / `768` / `web` pour la
-mise en page. Un point qui touche les deux porte les deux axes : `apres-390-dark`.
+| Format | Hauteur du composer | Part de l'écran | Capture |
+|---|---:|---:|---|
+| mobile 390×844 | **225 px** | 27 % | [sombre](docs/design/captures/composer-prod-mobile-390-sombre.png) · [clair](docs/design/captures/composer-prod-mobile-390-clair.png) |
+| tablette 768×1024 | **174 px** | 17 % | [sombre](docs/design/captures/composer-prod-tablette-768-sombre.png) · [clair](docs/design/captures/composer-prod-tablette-768-clair.png) |
+| bureau 1440×900 | **247 px** | 27 % | [sombre](docs/design/captures/composer-prod-bureau-1440-sombre.png) · [clair](docs/design/captures/composer-prod-bureau-1440-clair.png) |
 
-## Index
+**Décomposition des 225 px en mobile** (mesurée nœud par nœud) :
 
-| Sujet | Ce qu'on regarde | Avant | Après | Livré par |
-|---|---|:---:|:---:|---|
-| [`accent-charte`](docs/audit/captures/accent-charte/) | L'accent d'action de l'IDE était **bleu** (`#0099ff`) alors que la marque est orange. Aplats et libellés remesurés. | light + dark | light + dark | #255 (non mergée) |
-| [`cibles-tactiles`](docs/audit/captures/cibles-tactiles/) | Commandes de la coque commune à **36×36 px** — sous le plancher tactile de 44 px — à 390 et 768. | 390 + 768 | 390 + 768 | #257 (non mergée) |
+| Bloc | Hauteur | Ce que c'est |
+|---|---:|---|
+| bande de sélecteurs | **109 px** | `Lite / Economy / Power` + `Advanced` + `~$0.33` (50 px), puis le bouton `Plan` (44 px) — les deux **passent à la ligne** à 390 px |
+| coque de saisie | **95 px** | le champ lui-même 48 px, la rangée de commandes 45 px |
+| marges | ~21 px | |
 
-## Points mesurés le 30/08 — chiffres établis, captures à faire
+Autrement dit : **48 % du composer est occupé par des contrôles empilés AU-DESSUS du champ**,
+et le champ de frappe ne fait que 48 px. C'est le défaut signalé par Avi.
 
-Ces points ont été **mesurés en réel sur la production** et corrigés. Les mesures
-sont ci-dessous ; les images restent à prendre une fois les correctifs déployés,
-pour que l'« après » montre l'état servi et non une prévisualisation locale.
+Sur bureau 1440 le même empilement donne 101 px de sélecteurs pour 122 px de coque.
 
-| Sujet | Mesure AVANT | Attendu APRÈS | Livré par |
-|---|---|---|---|
-| **Accent d'action** — source unique | `--vc-action-primary` et `--vc-ide-accent-action` se définissaient l'un par l'autre ; le sens s'inversait selon la coque, d'où des boutons bleus au hasard | une seule source, orange de marque | #254 ✅ |
-| **Bleu résiduel** | `item-contentAccent` (294 usages) et `item-backgroundAccent` (61) encore sur l'échelle `accent` = `#0099FF` — anneau de focus, chargements, barres de progression, icône de l'élément sélectionné | orange ; clair `#9a3412` (5,80:1 sur `#E5E5E5`), sombre `#f97316` (7,06 / 6,40 / 5,40:1) | #271 ✅ |
-| **Console d'administration** | dernière surface bleue : `apps/admin` redéclarait `--vc-ide-accent-action: #0099ff` ; blanc sur l'aplat à **3,00:1** | orange `#f97316` (7,06:1) ; libellé `#0a0a0a` (6,82:1) | #254 ✅ |
-| **Cibles tactiles — auth** | `/login` en 390 : **12 contrôles sous 44 px**, dont « Se connecter » à **42** | plancher 44 px en pixels, hors liens en ligne (WCAG 2.2 · 2.5.8) | #264 ✅ |
-| **Cible mal nommée** | `/register` en 768 : « + Ajouter un nom d'organisation » **286×39**, exclu à tort par son nom de classe | inclus sur critère **structurel** (`inline-flex`) | #272 ✅ |
-| **Modale de création** | 390 : « Fermer » **309×44** sur une ligne entière (87 % de la largeur) ; **5 couleurs saturées** pour 2 choix | croix ancrée ; l'accent réservé à l'option recommandée | #263 ✅ |
+### Ce que ces chiffres ne disent PAS
 
-### La cause commune des cibles tactiles
+La PR #278 (`feat/agent-composer-compact`) déplace ces sélecteurs **dans** la rangée de
+commandes, sous le champ. **Elle n'est pas déployée** : les 225 px ci-dessus sont donc l'état
+AVANT, mesuré sur `main`.
 
-`--vc-type-interface-size` **redéfinit la base rem** : `12px` en desktop, `14px`
-sous 1024 px. Tout utilitaire Tailwind exprimé en rem est donc dégonflé :
+Deux tentatives de préfigurer l'APRÈS, toutes deux insuffisantes, dites comme telles :
 
-| classe | écrit | desktop | mobile | attendu |
-|---|---|---:|---:|---:|
-| `h-12` | `3rem` | **36 px** | **42 px** | 48 |
-| `min-h-11` | `2.75rem` | **33 px** | **38,5 px** | 44 |
+1. **Injection du seul CSS de la branche** (`flex-wrap: nowrap` sur la bande) : 225 → 174 px
+   en mobile. Mais la capture montre que le bouton `Plan` sort du champ visible, poussé dans un
+   défilement horizontal sans affordance. **Régression fonctionnelle — écartée.**
+2. **Simulation de la structure de la branche** (déplacement des nœuds dans la rangée de
+   commandes + CSS de la branche) : 174 → 115 px en tablette (**−34 %**), mais seulement
+   225 → 216 px en mobile (**−4 %**) et 247 → 242 px sur bureau (**−2 %**), parce que la rangée
+   de commandes se remet alors à passer à la ligne sur trois niveaux. Ce DOM reconstruit à la
+   main **n'est pas** celui de la branche : la mesure est une approximation, pas une preuve.
 
-Les **36×36** de la coque commune et le « **jeton 42 px** » ne sont pas deux
-problèmes ni deux jetons : c'est `h-12` dégonflé à deux bases rem différentes.
-La base **n'est pas touchée** — c'est la densité assumée de l'équipe
-(`index.scss` : « never re-scale this base »). Les planchers tactiles sont donc
-exprimés en **pixels**, seule unité que la base ne peut pas déformer.
+**Conclusion honnête : le gain de #278 est prouvé en tablette et NON prouvé en mobile ni sur
+bureau.** Il faut la déployer puis reprendre cette mesure à l'identique avant de dire que le
+défaut signalé par Avi est corrigé.
 
-## Relevés propres du 30/08 (aucun défaut trouvé)
+### Ce qui est prouvé par ailleurs
 
-Sonde à composition alpha correcte, avec un drapeau **`FIABLE`** — au moins 10
-éléments mesurés **et** viewport > 0. Sans lui, un balayage à viewport nul
-rendrait « 0 défaut » sur une page jamais regardée : le piège a été rencontré
-pour de vrai sur `/enterprise`.
+Le montage E2E `ui-details` **épingle la boîte de saisie à `min-height: 112px`** : il valide la
+contrainte de mise en page (le composer reste au-dessus de la barre de navigation, la réserve
+de défilement couvre le chrome permanent) mais il **ne peut pas** montrer le composer rétrécir.
+Ne pas lui faire dire ça.
 
-| Surface | Format | Thème | Éléments mesurés | Verdict |
-|---|---|---|---:|---|
-| `/` | 1440 | clair | 91 | propre |
-| `/pricing` | 390 | clair | — | propre ; le tableau de comparaison (760 px) défile bien dans son conteneur |
-| `/pricing` | 768 | sombre | — | propre |
-| `/pricing` | 1440 | sombre | 221 (80 cibles) | propre |
-| `/enterprise` | 1440 | clair | 95 | propre |
-| `/login` | 390 | clair | — | propre au contraste ; 12 cibles sous 44 px → #264 |
-| `/register` | 768 | clair | 16 | propre au contraste ; 12 cibles sous 44 px → #264 + #272 |
+Ce que ce montage prouve, lui, après le correctif de la réserve :
 
-## Manque encore
+| Format | Réserve avant | Réserve après |
+|---|---:|---:|
+| mobile 390 | 303,84 px | **219,44 px** |
+| tablette 768 | 360 px | **240 px** |
+| 320×568 et 568×320 | 236 px | **184 px** (plancher = barre 72 + boîte 112, mesurés) |
 
-Les surfaces ci-dessous n'ont **aucune capture** à ce jour. Elles sont listées
-pour que le trou soit visible, pas pour laisser croire qu'elles sont vérifiées.
+---
 
-| Surface | Thèmes | Formats |
-|---|---|---|
-| Tableau de bord (`/dashboard`) | clair + sombre | 390 / 768 / web |
-| Éditeur de projet — panneau Fichiers | clair + sombre | 390 / 768 / web |
-| Éditeur de projet — panneau Agent | clair + sombre | 390 / 768 / web |
-| Éditeur de projet — Terminal et Ports | clair + sombre | 390 / 768 / web |
-| Aperçu (Webview) | clair + sombre | 390 / 768 / web |
-| Base de données | clair + sombre | 390 / 768 / web |
-| Git | clair + sombre | 390 / 768 / web |
-| Déploiements et domaines | clair + sombre | 390 / 768 / web |
-| Journaux d'audit | clair + sombre | 390 / 768 / web |
-| Facturation et `/upgrade` | clair + sombre | 390 / 768 / web |
-| Réglages (tous les onglets) | clair + sombre | 390 / 768 / web |
-| Pages marketing publiques | clair + sombre | 390 / 768 / web |
+## Contraste de l'IDE et des pages publiques — balayage du 2026-08-31
+
+**Méthode.** Balayage par **pixels rendus**, pas par arbre DOM : ce dépôt peint des
+surfaces avec des calques FRÈRES en position absolue, donc remonter les ancêtres ment.
+L'outil neutralise le texte, prend une capture, échantillonne le fond réel derrière
+chaque boîte, puis rétablit le texte. Session QA jetable pour les routes authentifiées,
+supprimée après coup (`reste_user=0 reste_org=0`).
+
+### Faux négatif à connaître
+
+`waitUntil: 'networkidle'` **ne se produit jamais** dans l'IDE (websocket du terminal,
+sondes de statut, HMR). Le balayage rendait alors **« 0 défaut »** sur une page qui
+n'avait jamais chargé — et le rapport ne le disait qu'en regardant le champ `error` de
+chaque entrée. Toujours vérifier qu'une mesure a mesuré quelque chose avant de la lire.
+Sur `?panel=git` en thème sombre, il faut ~20 s : à 12 s le bouton « Commit changes »
+n'est pas encore rendu.
+
+### Marketing et authentification
+
+| Route | asymétrique | dans les 2 thèmes |
+|---|---:|---:|
+| `/` et `/pricing` — 390 / 768 / 1440 | **0** | **0** |
+| `/login` et `/register` | 17 | 22 |
+
+Les défauts de `/login` et `/register` sont corrigés (voir `BUG-THEME-011` et `-012`).
+
+### IDE authentifié — bureau 1440, les deux thèmes
+
+| Élément | avant | après |
+|---|---:|---:|
+| bouton **Run** (dégradé vert) | **2,48** au point le plus clair | **4,77** |
+| **Stop** (aplat rouge, sombre) | **3,35** | **5,29** |
+| **Economy / Next / Go to Manage** (aplat orange, sombre) | **2,80** | **6,33** |
+| **Publish** (pastille claire) | **3,16** | **5,37** |
+| pastille d'erreurs (clair) | **3,76** | **5,35** |
+| pastille d'avertissements (clair) | **3,88** | **5,08** |
+| pastille des journaux (clair) | **4,21** | ~5 |
+| accroche du tour guidé (clair) | **4,43** | ~5 |
+
+Les colonnes « après » du CSS sont **remesurées sur la production** avec la feuille
+candidate injectée — « Run », « Publish », « Stop », « Next » et la pastille d'erreurs
+disparaissent des échecs. Les valeurs portées par des composants (`text-white` remplacé
+par un jeton) ne sont pas injectables : elles sont garanties par `on-accent-ink.spec.ts`
+et par les valeurs de jetons relevées sur la page (`#c2410c` / `#dc2626` en clair,
+`#f97316` / `#f85149` en sombre).
+
+### Le motif à chercher ailleurs
+
+Les trois plus grosses prises de la journée ont la même forme : **du texte clair posé
+sur un fond dont la couleur varie** — dégradé orange du panneau d'authentification,
+dégradé vert du bouton Run, aplat d'accent qui s'inverse avec le thème. Une
+vérification jeton-contre-jeton passe à côté, parce que le fond réel n'est jamais la
+valeur d'un jeton : c'est un dégradé, un mélange alpha, ou l'autre thème.
