@@ -535,6 +535,26 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
+  /*
+   * ENCRE SUR APLAT D'ACCENT — elle CHANGE avec le thème, et c'est pour ça que
+   * `color: white` en dur était faux.
+   *
+   * Mesuré en production le 2026-08-31 dans l'IDE (pixels rendus, session
+   * authentifiée, les 2 thèmes) : « Economy », « Next », « Go to Manage »
+   * donnaient **2,80:1** et « Stop » **3,35:1** en thème sombre. Huit règles
+   * posaient du blanc sur un aplat d'accent.
+   *
+   * La raison est simple une fois mesurée : les aplats s'inversent avec le
+   * thème. En CLAIR ils sont foncés (#c2410c, #dc2626) et le blanc y donne 5,18
+   * et 4,83 — correct. En SOMBRE ils sont vifs (#f97316, #f85149) et le blanc
+   * s'effondre à 2,80 et 3,35, tandis que l'encre foncée y donne 6,33 et 5,29.
+   *
+   * Un jeton par aplat, qui bascule avec le thème, plutôt que huit `white` en
+   * dur qu'il faudrait penser à retourner.
+   */
+  --vc-ide-on-accent-action: #111827;
+  --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-tint: #ffffff;
   --vc-ide-accent-warning: #d29922;
 
   /*
@@ -944,6 +964,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
+  --vc-ide-on-accent-action: #ffffff;
+  --vc-ide-on-accent-error: #ffffff;
+  --vc-ide-on-accent-tint: #000000;
   --vc-ide-accent-warning: #a16207;
 
   /*
@@ -1220,6 +1243,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-focus-ring: color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
+  --vc-ide-on-accent-action: #111827;
+  --vc-ide-on-accent-error: #111827;
+  --vc-ide-on-accent-tint: #ffffff;
   --vc-ide-accent-warning: #d29922;
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
@@ -6053,7 +6079,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-workbench-mobile-run-action[data-run-state='stopping'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 24%);
   background: var(--vc-ide-accent-error);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-workbench-mobile-run-action.is-error,
@@ -6882,7 +6908,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 28px;
   border-radius: 7px;
   background: var(--vc-ide-accent-action);
-  color: white !important;
+  color: var(--vc-ide-on-accent-action) !important;
   padding: 0 9px;
   font-size: 11px !important;
   font-weight: 750;
@@ -6976,7 +7002,17 @@ body :where(.lucide, svg[data-lucide]) {
   border: 0;
   min-height: 30px;
   border-radius: 8px;
-  background: linear-gradient(180deg, hsl(142deg 72% 43%), hsl(142deg 72% 34%));
+  /*
+   * Assombri de 43/34 % à 30/24 % le 2026-08-31. Le blanc posé dessus donnait
+   * **2,48:1** sur la borne claire du dégradé et 3,87 sur la sombre — mesuré en
+   * production dans l'IDE, dans les DEUX thèmes. C'est le motif que les mesures
+   * classiques ratent : le contraste dépend de l'ENDROIT du dégradé, donc une
+   * vérification sur une seule couleur passe sans rien voir.
+   *
+   * À 30/24 % le pire point donne 4,77:1 et le meilleur 6,80:1. Le bouton reste
+   * le vert d'action, en plus soutenu.
+   */
+  background: linear-gradient(180deg, hsl(142deg 72% 30%), hsl(142deg 72% 24%));
   color: white !important;
   padding: 0 18px;
   font-size: 13px;
@@ -6987,7 +7023,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-run-button:hover {
-  background: linear-gradient(180deg, hsl(142deg 72% 47%), hsl(142deg 72% 36%)) !important;
+  background: linear-gradient(180deg, hsl(142deg 72% 34%), hsl(142deg 72% 27%)) !important;
   transform: translateY(-1px);
 }
 
@@ -7003,14 +7039,20 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: 30px;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), white 18%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 91%);
-  color: color-mix(in srgb, var(--vc-ide-accent-action), white 22%) !important;
+
+  /*
+   * ÉCLAIRCIR le texte sur une pastille CLAIRE le rendait illisible : mesuré
+   * **3,16:1** en thème clair sur la prod. Le mélange doit suivre le thème —
+   * assombrir sur la pastille claire (5,37:1), éclaircir sur la sombre.
+   */
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 22%) !important;
   padding: 0 12px;
 }
 
 .bolt-project-publish-button:hover {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%) !important;
-  color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%) !important;
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 34%) !important;
   transform: translateY(-1px);
 }
 
@@ -8851,7 +8893,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid var(--vc-ide-bg-panel);
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
   font-size: 9px;
   font-weight: 700;
   line-height: 12px;
@@ -9045,7 +9087,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-ide-rail-item[data-tone='danger'] .bolt-project-ide-rail-badge {
   background: var(--vc-ide-accent-error);
-  color: white;
+  color: var(--vc-ide-on-accent-error);
 }
 
 .bolt-project-ide-rail-more-trigger {
@@ -9362,7 +9404,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-mode--segmented button[aria-pressed='true'] {
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.06);
 }
 
@@ -16078,7 +16120,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-rollback-dialog footer button:last-child {
   border-color: transparent;
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-rollback-dialog footer button:disabled {
@@ -16563,12 +16605,20 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-statusbar-error-count {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+
+  /*
+   * Le texte prenait la MÊME couleur que sa propre pastille : sur un fond
+   * teinté à 16 % l'accent brut ne donne que **3,76:1** en thème clair (mesuré
+   * en production). On l'écarte du fond du côté du thème —
+   * `--vc-ide-on-accent-tint` vaut noir en clair et blanc en sombre, donc un
+   * seul mélange marche des deux côtés. Clair : 5,35:1.
+   */
+  color: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-on-accent-tint) 20%);
 }
 
 .bolt-project-statusbar-warning-count {
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
-  color: var(--vc-ide-accent-warning);
+  color: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-on-accent-tint) 16%);
 }
 
 .bolt-project-statusbar-error-count[data-empty='true'],
@@ -16850,7 +16900,9 @@ button.bolt-project-statusbar-pill:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  color: var(--vc-ide-accent-action);
+
+  /* 4,43:1 sur le gris de la carte en thème clair, mesuré en production. */
+  color: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-on-accent-tint) 14%);
   font-size: 10px !important;
   font-weight: 850;
   letter-spacing: 0.14em;
@@ -16943,7 +16995,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-guided-tour-card footer div button:last-child {
   background: var(--vc-ide-accent-action);
-  color: white;
+  color: var(--vc-ide-on-accent-action);
 }
 
 .bolt-project-guided-tour-card button:disabled {
@@ -25413,7 +25465,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   padding: 12px 24px;
   border-radius: 999px;
   background: var(--vc-ide-accent-action);
-  color: #ffffff;
+  color: var(--vc-ide-on-accent-action);
   font-size: 13px;
   font-weight: 600;
   border: 0;

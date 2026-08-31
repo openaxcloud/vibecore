@@ -225,7 +225,9 @@ export function AgentPowerControls({
               className={classNames(
                 'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
                 'disabled:cursor-not-allowed disabled:opacity-50',
-                active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+                active
+                  ? 'text-[var(--vc-ide-on-accent-action)]'
+                  : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
               style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
             >
