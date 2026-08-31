@@ -6,6 +6,7 @@ import type { PromotionResult } from '../artifact-promotion.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
 import { buildPublishedDeploymentInput, canPublishDeployment } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
+import { registryMutationIntentHash } from '../registry-mutation.js';
 import type { ServerImagePromotionInput } from '../server-image-promotion.js';
 import type { DeploymentRecord } from '../store.js';
 import { DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS } from './deterministic-release-fixture.js';
@@ -18,6 +19,38 @@ class TestEmailProvider implements EmailProvider {
 
 function testPromotionRepositories(input: ServerImagePromotionInput): readonly string[] {
   return [input.source.repo, `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`];
+}
+
+function committedPromotion(input: ServerImagePromotionInput, promotionId: string): PromotionResult {
+  const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`;
+  return {
+    ok: true,
+    target: { repo: targetRepo, digest: input.source.digest },
+    promotedAttestations: ['signature', 'sbom', 'provenance'],
+    reused: false,
+    manifest: {
+      promotionId,
+      sourceRepo: input.source.repo,
+      sourceDigest: input.source.digest,
+      targetRepo,
+      targetTenant: input.organizationId,
+      retentionTag: `active-promo-${'a'.repeat(32)}`,
+      attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
+        type,
+        digest: `sha256:${String(index + 1).repeat(64)}`,
+        subjectDigest: input.source.digest,
+        relinked: true,
+      })),
+      binaryAuthorizationResult: 'PASSED',
+      binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
+      binaryAuthorizationPolicyEtag: 'policy-etag-0001',
+      binaryAuthorizationEvaluatedImage: `${targetRepo}@${input.source.digest}`,
+      binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
+      state: 'PROMOTION_COMMITTED',
+      preparedAt: '2026-08-26T00:00:00.000Z',
+      committedAt: '2026-08-26T00:00:01.000Z',
+    },
+  };
 }
 
 const READY_PREVIEW = {
@@ -298,37 +331,9 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     const digest = `sha256:${'a'.repeat(64)}`;
 
     try {
-      const promote = vi.fn(async (input: { organizationId: string; projectId: string }): Promise<PromotionResult> => {
+      const promote = vi.fn(async (input: ServerImagePromotionInput): Promise<PromotionResult> => {
         events.push('promote');
-        const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`;
-        return {
-          ok: true as const,
-          target: { repo: targetRepo, digest },
-          promotedAttestations: ['signature', 'sbom', 'provenance'],
-          reused: false,
-          manifest: {
-            promotionId: 'promo-publish-route',
-            sourceRepo: `europe-west9-docker.pkg.dev/build-project/build-repo/p-${input.projectId.toLowerCase()}`,
-            sourceDigest: digest,
-            targetRepo,
-            targetTenant: input.organizationId,
-            retentionTag: `active-promo-${'a'.repeat(32)}`,
-            attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
-              type,
-              digest: `sha256:${String(index + 1).repeat(64)}`,
-              subjectDigest: digest,
-              relinked: true,
-            })),
-            binaryAuthorizationResult: 'PASSED' as const,
-            binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
-            binaryAuthorizationPolicyEtag: 'policy-etag-0001',
-            binaryAuthorizationEvaluatedImage: `${targetRepo}@${digest}`,
-            binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
-            state: 'PROMOTION_COMMITTED' as const,
-            preparedAt: '2026-08-26T00:00:00.000Z',
-            committedAt: '2026-08-26T00:00:01.000Z',
-          },
-        };
+        return committedPromotion(input, 'promo-publish-route');
       });
       const { app, store, token, project, projectManifestDigest } = await setup({
         serverImagePromotionRuntime: { packageRepositories: testPromotionRepositories, promote },
@@ -386,6 +391,126 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
     } finally {
       globalThis.fetch = realFetch;
 
+      if (originalManagerUrl === undefined) {
+        delete process.env.WORKSPACE_MANAGER_URL;
+      } else {
+        process.env.WORKSPACE_MANAGER_URL = originalManagerUrl;
+      }
+    }
+  });
+
+  it('replays a verified server promotion after a post-promotion crash under a new release barrier', async () => {
+    const originalManagerUrl = process.env.WORKSPACE_MANAGER_URL;
+    const realFetch = globalThis.fetch;
+    process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.test';
+    const digest = `sha256:${'b'.repeat(64)}`;
+    let promotionFinished = false;
+
+    try {
+      const promote = vi.fn(async (input: ServerImagePromotionInput): Promise<PromotionResult> => {
+        promotionFinished = true;
+        return committedPromotion(input, 'promo-publish-retry');
+      });
+      const { app, store, token, project, projectManifestDigest } = await setup({
+        serverImagePromotionRuntime: { packageRepositories: testPromotionRepositories, promote },
+      });
+      globalThis.fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
+        if (String(url).includes('/server-deployments/start')) {
+          const body = JSON.parse(String(init?.body)) as { host: string };
+          return new Response(JSON.stringify({ ready: true, readyReplicas: 1, url: `https://${body.host}` }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+      }) as unknown as typeof fetch;
+
+      const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
+      const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${project.id.toLowerCase()}`;
+      await seedServerImagePackageAuthority(store, project, sourceRepo, targetRepo, digest);
+      const source = await store.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        provider: 'server',
+        environment: 'preview',
+        status: 'READY',
+        machineSize: 'shared-0.5',
+        url: 'https://preview-server.example/',
+        metadata: {
+          planEntitlements: DETERMINISTIC_RELEASE_PLAN_ENTITLEMENTS,
+          projectManifestDigest,
+          serverDeploy: { image: { sourceImageRef: sourceRepo, imageRef: sourceRepo, imageDigest: digest } },
+        },
+      });
+
+      const acquiredBarrierIds: string[] = [];
+      const acquiredBarrierOwners: string[] = [];
+      const acquireReleaseBarrier = store.acquireProjectReleaseBarrier.bind(store);
+      vi.spyOn(store, 'acquireProjectReleaseBarrier').mockImplementation(async (input) => {
+        const lease = await acquireReleaseBarrier(input);
+        if (lease) {
+          acquiredBarrierIds.push(lease.checkpointId);
+          acquiredBarrierOwners.push(lease.ownerToken);
+        }
+        return lease;
+      });
+
+      const getDeploymentAccessPolicy = store.getDeploymentAccessPolicy.bind(store);
+      let crashAfterPromotion = true;
+      vi.spyOn(store, 'getDeploymentAccessPolicy').mockImplementation(async (deploymentId) => {
+        if (promotionFinished && crashAfterPromotion) {
+          crashAfterPromotion = false;
+          throw Object.assign(new Error('injected crash after verified promotion'), {
+            code: 'INJECTED_POST_PROMOTION_CRASH',
+            statusCode: 500,
+          });
+        }
+        return getDeploymentAccessPolicy(deploymentId);
+      });
+
+      const first = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/deployments/${source.id}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(first.statusCode).toBe(500);
+      expect(promote).toHaveBeenCalledOnce();
+      expect(store.registryMutationOperations.size).toBe(1);
+
+      const promotionIntentHash = registryMutationIntentHash({
+        schemaVersion: 'deployment-publish-image-promotion-v1',
+        sourceDeploymentId: source.id,
+        projectManifestDigest,
+        source: { repo: sourceRepo, digest },
+        targetRepository: targetRepo,
+      });
+      const operationId = `registry-mutation:publish:${source.id}:${promotionIntentHash.slice('sha256:'.length)}`;
+      expect([...store.registryMutationOperations.entries()]).toEqual([
+        [
+          operationId,
+          expect.objectContaining({
+            state: 'VERIFIED',
+            intent: expect.objectContaining({ operationId, intentHash: promotionIntentHash }),
+          }),
+        ],
+      ]);
+
+      const retried = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/deployments/${source.id}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(retried.statusCode).toBe(201);
+      expect(promote).toHaveBeenCalledOnce();
+      expect(store.registryMutationOperations.size).toBe(1);
+      expect(acquiredBarrierIds).toHaveLength(2);
+      expect(acquiredBarrierIds[1]).not.toBe(acquiredBarrierIds[0]);
+      expect(acquiredBarrierOwners[1]).not.toBe(acquiredBarrierOwners[0]);
+      await app.close();
+    } finally {
+      globalThis.fetch = realFetch;
       if (originalManagerUrl === undefined) {
         delete process.env.WORKSPACE_MANAGER_URL;
       } else {
