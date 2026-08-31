@@ -814,8 +814,8 @@ export class TestApiStore implements ApiStore {
 
   async withProjectPhysicalMutation<T>(scope: ProjectPhysicalMutationScope, effect: () => Promise<T>): Promise<T> {
     return this.withProjectPhysicalBarriers([scope.projectId], async () => {
-      await this.assertProjectStorageMutable(scope);
-      await this.assertProjectStorageMutable(scope);
+      await this.assertProjectStorageMutable(scope, { allowActiveCheckpoint: true });
+      await this.assertProjectStorageMutable(scope, { allowActiveCheckpoint: true });
       return effect();
     });
   }
@@ -864,11 +864,13 @@ export class TestApiStore implements ApiStore {
       async () => {
         for (const tenantScope of orderedScopes) {
           await this.assertProjectStorageMutable(tenantScope, {
+            allowActiveCheckpoint: true,
             allowDeletedProject: allowDeletedProjectIds.has(tenantScope.projectId),
           });
         }
         for (const tenantScope of orderedScopes) {
           await this.assertProjectStorageMutable(tenantScope, {
+            allowActiveCheckpoint: true,
             allowDeletedProject: allowDeletedProjectIds.has(tenantScope.projectId),
           });
         }
@@ -2655,8 +2657,11 @@ export class TestApiStore implements ApiStore {
   async assertProjectStorageMutable(
     scope: ProjectPhysicalMutationScope,
     options: {
+      allowActiveCheckpoint?: boolean;
       allowDeletedProject?: boolean;
       allowPermanentDeletion?: boolean;
+      checkpointBarrierAuthority?: ProjectCheckpointLease;
+      releaseFence?: ProjectReleaseFence;
       accountPurgeDeletionAuthority?: AccountPurgeProjectDeletionAuthority;
     } = {},
   ) {
@@ -2680,6 +2685,36 @@ export class TestApiStore implements ApiStore {
     }
 
     this.assertExpectedProjectTenant(scope, options);
+
+    if (options.checkpointBarrierAuthority) {
+      const row = this.projectCheckpoints.get(options.checkpointBarrierAuthority.checkpointId);
+      if (
+        !row ||
+        row.projectId !== scope.projectId ||
+        row.barrierProjectId !== scope.projectId ||
+        row.logicalBarrierId !== options.checkpointBarrierAuthority.barrierId ||
+        row.barrierOwnerToken !== options.checkpointBarrierAuthority.ownerToken ||
+        row.barrierFence !== options.checkpointBarrierAuthority.fence ||
+        !row.barrierExpiresAt ||
+        new Date(row.barrierExpiresAt).getTime() <= Date.now()
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+          code: 'CHECKPOINT_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+      return;
+    }
+
+    const releaseFence = scope.releaseFence ?? options.releaseFence;
+    if (releaseFence) {
+      await this.assertProjectReleaseBarrier({ projectId: scope.projectId, ...releaseFence });
+    } else if (!options.allowActiveCheckpoint && (await this.getActiveCheckpointBarrier(scope.projectId))) {
+      throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        statusCode: 423,
+      });
+    }
   }
 
   async hasPurgeReceipt(userId: string) {

@@ -651,4 +651,54 @@ runDbTests('project physical barrier — session advisory lease', () => {
       await store.disconnect();
     }
   });
+
+  it('accepts only the exact release fence for a physical storage guard', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const seeded = await seedProject(prisma, 'physical-release-fence');
+    const scope = { projectId: seeded.project.id, expectedOrganizationId: seeded.source.id };
+    let release: (() => Promise<boolean>) | undefined;
+    let physicalEffects = 0;
+
+    try {
+      const barrier = await acquireTestProjectReleaseFence(store, {
+        projectId: seeded.project.id,
+        organizationId: seeded.source.id,
+      });
+      release = barrier.release;
+
+      await expect(store.assertProjectStorageMutable(scope)).rejects.toMatchObject({
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        statusCode: 423,
+      });
+
+      await expect(
+        store.withProjectPhysicalMutation(
+          {
+            ...scope,
+            releaseFence: { ...barrier.releaseFence, ownerToken: 'forged-physical-release-owner' },
+          },
+          async () => {
+            physicalEffects += 1;
+          },
+        ),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST', statusCode: 409 });
+      expect(physicalEffects).toBe(0);
+
+      await expect(
+        store.withProjectPhysicalMutation({ ...scope, releaseFence: barrier.releaseFence }, async () => {
+          await store.assertProjectStorageMutable({ ...scope, releaseFence: barrier.releaseFence });
+          physicalEffects += 1;
+        }),
+      ).resolves.toBeUndefined();
+      expect(physicalEffects).toBe(1);
+    } finally {
+      await release?.().catch(() => false);
+      await cleanupProject(prisma, {
+        projectIds: [seeded.project.id],
+        organizationIds: [seeded.source.id, seeded.target.id],
+      });
+      await store.disconnect();
+    }
+  });
 });
