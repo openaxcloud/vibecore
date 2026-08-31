@@ -1093,51 +1093,12 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
           };
         })();
 
-  /*
-   * BUG-CREATE-010 — le manifeste `files` est le SEUL nœud que le spread
-   * superficiel laissait écraser, et c'est celui qui décide de la survie du
-   * travail de l'utilisateur.
-   *
-   * Le client renvoie à chaque sauvegarde la copie du manifeste qu'il a chargée
-   * À L'OUVERTURE. Mesuré en production le 31/08 : après un `Ctrl+S` dont la
-   * frappe était vérifiée dans l'éditeur, la charge portait
-   * `files.entries[README.md].content` = le contenu D'ORIGINE. Ce spread
-   * remplaçait donc le manifeste du serveur par une photo périmée, et à la
-   * réouverture depuis un autre appareil `planReseedDeletions` faisait converger
-   * le pod vers cette photo — le travail disparaissait.
-   *
-   * `chat`, `ui` et `collaboration` étaient déjà protégés, avec un commentaire
-   * qui décrit exactement ce risque pour `collaboration` : « a shallow spread
-   * would let one user's save replace the entire node ». `files` avait le même
-   * problème et pas la même garde.
-   *
-   * Règle : le manifeste le plus RÉCENT gagne. Un client qui renvoie une photo
-   * plus ancienne — ou sans horodatage — ne peut plus effacer une version plus
-   * neuve.
-   */
-  const existingFiles = ideStateRecord(existing.files);
-  const incomingFiles = ideStateRecord(incoming.files);
-
-  const dateDe = (bloc: Record<string, unknown>) => {
-    const brut = bloc.updatedAt;
-
-    return typeof brut === 'string' ? Date.parse(brut) : Number.NaN;
-  };
-
-  const dateExistante = dateDe(existingFiles);
-  const dateEntrante = dateDe(incomingFiles);
-
-  const gardeExistant =
-    incoming.files === undefined ||
-    (Number.isFinite(dateExistante) && (!Number.isFinite(dateEntrante) || dateEntrante < dateExistante));
-
   return {
     ...existing,
     ...incoming,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
     collaboration: mergedCollaboration,
-    ...(gardeExistant && existing.files !== undefined ? { files: existing.files } : {}),
   };
 }
 
