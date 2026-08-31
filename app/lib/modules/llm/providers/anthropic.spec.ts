@@ -75,7 +75,7 @@ describe('createAnthropicCachingFetch', () => {
      * L'intention de ce test est le CACHE : sans `system`, aucun point de rupture
      * ne doit être posé. Il comparait l'octet près, ce qui le rendait aussi
      * sensible à toute autre écriture du corps — il est tombé quand
-     * BUG-AGENT-007 a ajouté `thinking: disabled`, qui n'a rien à voir avec le
+     * BUG-AGENT-008 a ajouté `thinking: disabled`, qui n'a rien à voir avec le
      * cache. Il vérifie maintenant ce qu'il voulait vérifier.
      */
     const base = vi.fn(async () => new Response('ok'));
@@ -195,7 +195,7 @@ describe('buildAnthropicModelLabel', () => {
 });
 
 /**
- * BUG-AGENT-007 — ces cas vérifient ce que les sept tests de
+ * BUG-AGENT-008 — ces cas vérifient ce que les sept tests de
  * `anthropic-thinking.spec.ts` ne vérifiaient PAS : que la désactivation de la
  * réflexion part réellement SUR LE FIL.
  *
@@ -204,7 +204,7 @@ describe('buildAnthropicModelLabel', () => {
  * jamais quitté le processus. Un test qui inspecte l'objet d'options passe au
  * vert sans rien garantir ; seul un test qui lit le CORPS ENVOYÉ le fait.
  */
-describe('BUG-AGENT-007 — la réflexion est désactivée sur le fil', () => {
+describe('BUG-AGENT-008 — la réflexion est désactivée sur le fil', () => {
   const corpsEnvoyes: string[] = [];
 
   const baseFetch = (async (_input: unknown, init?: { body?: unknown }) => {

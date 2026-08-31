@@ -215,7 +215,7 @@ function markMessageCacheBreakpoint(message: Record<string, unknown>): boolean {
 export function createAnthropicCachingFetch(baseFetch: typeof fetch): typeof fetch {
   return async (input: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
     /*
-     * BUG-AGENT-007 — la désactivation de la réflexion étendue est posée ICI,
+     * BUG-AGENT-008 — la désactivation de la réflexion étendue est posée ICI,
      * dans le corps de la requête, et non via `providerOptions`.
      *
      * `@ai-sdk/anthropic@0.0.39` ne lit JAMAIS `providerOptions` (`grep -c` rend

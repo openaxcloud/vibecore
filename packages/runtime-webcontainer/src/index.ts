@@ -292,7 +292,15 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     return { content: toBase64(bytes), encoding: 'base64' };
   }
 
-  async writeFile(path: string, content: string, encoding?: 'utf8' | 'base64'): Promise<void> {
+  /**
+   * Le troisième paramètre du contrat est une union : un encodage (usage local,
+   * gardé par un test sur les binaires) ou des options. La forme objet ne porte
+   * aujourd'hui que le marqueur `streaming` de BUG-CREATE-010, sans effet ici —
+   * cet adaptateur écrit dans un système de fichiers local, il n'y a pas
+   * d'archive distante à rendre durable.
+   */
+  async writeFile(path: string, content: string, options?: 'utf8' | 'base64' | { streaming?: boolean }): Promise<void> {
+    const encoding = typeof options === 'string' ? options : undefined;
     const webcontainer = await this.#getWebContainer();
     const runtimePath = this.#toRuntimePath(path);
     await this.#ensureParentDirectory(webcontainer, runtimePath);

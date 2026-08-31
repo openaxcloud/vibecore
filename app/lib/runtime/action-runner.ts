@@ -1088,7 +1088,7 @@ export class ActionRunner {
     }
 
     try {
-      await this.#runtime.writeFile(relativePath, payload);
+      await this.#runtime.writeFile(relativePath, payload, { streaming: isStreaming });
       logger.debug(`File written ${relativePath}`);
 
       // Après succès seulement : un échec doit laisser le chemin réécrivable.
