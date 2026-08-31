@@ -4,71 +4,158 @@ on:
   workflow_dispatch:
     inputs:
       image_tag:
-        description: Image tag to deploy
+        description: Immutable build tag to deploy (exactly sha-<7 lowercase hex>)
         required: true
-        default: latest
-  # Gate on the image build instead of racing it. Previously this ran on push to
-  # `stable` at the same time as docker.yml ("Production Docker"), so it deployed
-  # the sha-<short> tag before the image existed → guaranteed ImagePullBackOff
-  # until the build caught up. workflow_run fires only AFTER the build completes.
+  # Gate on the image build instead of racing it. workflow_run fires only after
+  # Production Docker completes and always loads this graph from the default branch.
   workflow_run:
-    workflows: ["Production Docker"]
+    workflows: ['Production Docker']
     types: [completed]
     branches: [stable]
 
+# No workflow-wide OIDC permission: the graph guard runs in a credential-free job.
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: deploy-staging
   cancel-in-progress: false
 
 jobs:
-  deploy-staging:
-    name: Deploy staging and smoke test
-    # Only deploy when the image build actually succeeded (or on manual dispatch).
+  validate-workflow:
+    name: Validate trusted staging workflow graph
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      # workflow_dispatch can be launched from a side branch. Refuse that graph
+      # before a job with an environment or an OIDC permission can start.
+      - name: Assert this workflow graph is main's, not a side branch's
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          set -euo pipefail
+          EXPECTED="${GITHUB_REPOSITORY}/.github/workflows/deploy-staging.yml@refs/heads/main"
+          echo "workflow_ref = ${WORKFLOW_REF}"
+          echo "expected     = ${EXPECTED}"
+          if [ "${WORKFLOW_REF}" != "${EXPECTED}" ]; then
+            echo "::error::staging deploys must execute main's trusted workflow graph; dispatch from refs/heads/main."
+            exit 1
+          fi
+          if ! printf '%s' "${WORKFLOW_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "::error::github.workflow_sha is not an exact 40-hex commit"
+            exit 1
+          fi
+
+  deploy-staging:
+    name: Deploy staging and smoke test
+    needs: [validate-workflow]
+    runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write
     environment:
       name: staging
       url: https://${{ vars.STAGING_APP_DOMAIN }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          # On workflow_run, check out the exact commit that was built so the
-          # resolved sha-<short> tag matches the published image.
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+          # Never execute chart or validation code from the dispatch branch or
+          # workflow_run head. Pin the exact commit that supplied the trusted graph.
+          ref: ${{ github.workflow_sha }}
 
-      - name: Resolve image tag
-        id: tag
-        run: |
-          set -euo pipefail
-          # docker.yml publishes images tagged `sha-<7char>` (docker
-          # metadata-action `type=sha,format=short`). On a push to `stable`
-          # we must reference that exact tag, NOT the full 40-char github.sha,
-          # which was never published and causes ImagePullBackOff.
-          if [ -n "${IMAGE_TAG_INPUT}" ]; then
-            RESOLVED="${IMAGE_TAG_INPUT}"
-          elif [ -n "${BUILT_SHA}" ]; then
-            # workflow_run: use the exact commit docker.yml built and published.
-            RESOLVED="sha-$(echo "${BUILT_SHA}" | cut -c1-7)"
-          else
-            RESOLVED="sha-$(git rev-parse --short=7 HEAD)"
-          fi
-          echo "image_tag=${RESOLVED}" >> "$GITHUB_OUTPUT"
-          echo "Deploying image tag: ${RESOLVED}"
+      # Resolve and validate every value that can influence the registry/cluster
+      # target before the first WIF exchange. All GitHub expressions enter via env;
+      # none are expanded into shell source.
+      - name: Resolve and validate staging deployment parameters
+        id: parameters
         env:
+          EVENT_NAME: ${{ github.event_name }}
           IMAGE_TAG_INPUT: ${{ inputs.image_tag }}
           BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
+          TARGET_CLUSTER: ${{ vars.STAGING_APP_CLUSTER }}
+          GCP_REGION_INPUT: ${{ vars.GCP_REGION }}
+          GCP_PROJECT_INPUT: ${{ vars.GCP_PROJECT_ID }}
+          GAR_REPOSITORY_INPUT: ${{ vars.GAR_REPOSITORY }}
+          APP_DOMAIN_INPUT: ${{ vars.STAGING_APP_DOMAIN }}
+          PREVIEW_DOMAIN_INPUT: ${{ vars.STAGING_PREVIEW_DOMAIN }}
+          PROD_CLUSTER: vibecore-prod-app
+          PROD_APP_DOMAIN: e-code.ai
+          PROD_PREVIEW_DOMAIN: preview.e-code.ai
+        run: |
+          set -euo pipefail
 
-      - uses: actions/setup-node@v4
+          require_match() {
+            local name="$1"
+            local value="$2"
+            local pattern="$3"
+            if [ -z "${value}" ] || ! printf '%s' "${value}" | grep -Eq "${pattern}"; then
+              echo "::error::${name} is missing or malformed"
+              exit 1
+            fi
+          }
+
+          case "${EVENT_NAME}" in
+            workflow_dispatch)
+              RESOLVED_TAG="${IMAGE_TAG_INPUT}"
+              ;;
+            workflow_run)
+              require_match "workflow_run.head_sha" "${BUILT_SHA}" '^[0-9a-f]{40}$'
+              RESOLVED_TAG="sha-${BUILT_SHA:0:7}"
+              ;;
+            *)
+              echo "::error::unsupported staging event '${EVENT_NAME}'"
+              exit 1
+              ;;
+          esac
+
+          # Production Docker publishes exactly this content-address-derived tag.
+          # Reject latest, arbitrary tags, option-like strings, whitespace and shell
+          # metacharacters before the value can reach Helm.
+          require_match "image tag" "${RESOLVED_TAG}" '^sha-[0-9a-f]{7}$'
+          require_match "staging cluster" "${TARGET_CLUSTER}" '^[a-z]([a-z0-9-]{0,38}[a-z0-9])?$'
+          require_match "GCP region" "${GCP_REGION_INPUT}" '^[a-z]+-[a-z]+[0-9]$'
+          require_match "GCP project" "${GCP_PROJECT_INPUT}" '^[a-z][a-z0-9-]{4,28}[a-z0-9]$'
+          require_match "Artifact Registry repository" "${GAR_REPOSITORY_INPUT}" '^[a-z][a-z0-9-]{0,62}$'
+
+          DOMAIN_PATTERN='^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]([a-z0-9-]{0,61}[a-z0-9])?$'
+          require_match "staging app domain" "${APP_DOMAIN_INPUT}" "${DOMAIN_PATTERN}"
+          require_match "staging preview domain" "${PREVIEW_DOMAIN_INPUT}" "${DOMAIN_PATTERN}"
+
+          if [ "${TARGET_CLUSTER}" = "${PROD_CLUSTER}" ]; then
+            echo "::error::STAGING_APP_CLUSTER is the production cluster '${PROD_CLUSTER}'."
+            exit 1
+          fi
+          if [ "${APP_DOMAIN_INPUT}" = "${PROD_APP_DOMAIN}" ] || [ "${PREVIEW_DOMAIN_INPUT}" = "${PROD_PREVIEW_DOMAIN}" ]; then
+            echo "::error::staging domains must not equal the production app or preview domain."
+            exit 1
+          fi
+          if [ "${APP_DOMAIN_INPUT}" = "${PREVIEW_DOMAIN_INPUT}" ]; then
+            echo "::error::staging app and preview domains must be distinct."
+            exit 1
+          fi
+
+          {
+            echo "image_tag=${RESOLVED_TAG}"
+            echo "target_cluster=${TARGET_CLUSTER}"
+            echo "gcp_region=${GCP_REGION_INPUT}"
+            echo "gcp_project=${GCP_PROJECT_INPUT}"
+            echo "gar_repository=${GAR_REPOSITORY_INPUT}"
+            echo "app_domain=${APP_DOMAIN_INPUT}"
+            echo "preview_domain=${PREVIEW_DOMAIN_INPUT}"
+          } >> "$GITHUB_OUTPUT"
+          echo "validated staging target: ${TARGET_CLUSTER}, ${APP_DOMAIN_INPUT}, ${RESOLVED_TAG}"
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
         with:
           version: 9.14.4
           run_install: false
@@ -76,28 +163,118 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - uses: google-github-actions/auth@v2
+      # This is intentionally the first credential exchange in the workflow, after
+      # graph, tag, cluster, project, region and domain validation all succeeded.
+      - name: Authenticate to Google Cloud (Workload Identity Federation)
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_DEPLOY_SERVICE_ACCOUNT }}
 
-      - uses: google-github-actions/get-gke-credentials@v2
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         with:
-          cluster_name: ${{ vars.STAGING_APP_CLUSTER }}
-          location: ${{ vars.GCP_REGION }}
-          project_id: ${{ vars.GCP_PROJECT_ID }}
+          project_id: ${{ steps.parameters.outputs.gcp_project }}
+
+      # A sha-derived tag is still a mutable registry pointer. Resolve every image
+      # once, require exactly one valid digest and pass only those digests to Helm.
+      - name: Resolve staging image tags to unique GAR digests
+        id: image_digests
+        env:
+          IMAGE_TAG: ${{ steps.parameters.outputs.image_tag }}
+          GCP_REGION: ${{ steps.parameters.outputs.gcp_region }}
+          GCP_PROJECT: ${{ steps.parameters.outputs.gcp_project }}
+          GAR_REPOSITORY: ${{ steps.parameters.outputs.gar_repository }}
+        run: |
+          set -euo pipefail
+          IMAGE_REGISTRY="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT}/${GAR_REPOSITORY}"
+          SERVICES="web:web admin:admin api:api worker:worker aiGateway:ai-gateway workspaceManager:workspace-manager previewProxy:preview-proxy workspaceAgent:workspace-agent"
+          echo '[]' > /tmp/staging-image-digests.json
+
+          for entry in ${SERVICES}; do
+            IFS=: read -r key image <<< "${entry}"
+            ref="${IMAGE_REGISTRY}/${image}:${IMAGE_TAG}"
+            if ! raw="$(gcloud artifacts docker images describe "${ref}" \
+              --project="${GCP_PROJECT}" \
+              --format='value(image_summary.digest)')"; then
+              echo "::error::${key}: GAR tag does not exist or cannot be described: ${ref}"
+              exit 1
+            fi
+
+            mapfile -t digests < <(printf '%s\n' "${raw}" | sed '/^[[:space:]]*$/d')
+            if [ "${#digests[@]}" -ne 1 ]; then
+              echo "::error::${key}: expected exactly one digest for ${ref}, got ${#digests[@]}"
+              exit 1
+            fi
+            digest="${digests[0]}"
+            if ! printf '%s' "${digest}" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+              echo "::error::${key}: GAR returned a malformed digest for ${ref}"
+              exit 1
+            fi
+
+            jq --arg key "${key}" --arg image "${image}" --arg digest "${digest}" \
+              '. + [{key: $key, image: $image, digest: $digest}]' \
+              /tmp/staging-image-digests.json > /tmp/staging-image-digests.next
+            mv /tmp/staging-image-digests.next /tmp/staging-image-digests.json
+            echo "${key}: ${digest}"
+          done
+
+          {
+            echo "image_registry=${IMAGE_REGISTRY}"
+            echo "digests=$(jq -c . /tmp/staging-image-digests.json)"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: google-github-actions/get-gke-credentials@64bc7249bbcf78056bb92f14d3cedc2da193946c # v2
+        with:
+          cluster_name: ${{ steps.parameters.outputs.target_cluster }}
+          location: ${{ steps.parameters.outputs.gcp_region }}
+          project_id: ${{ steps.parameters.outputs.gcp_project }}
 
       - name: Deploy platform chart
+        env:
+          IMAGE_TAG: ${{ steps.parameters.outputs.image_tag }}
+          IMAGE_REGISTRY: ${{ steps.image_digests.outputs.image_registry }}
+          IMAGE_DIGESTS_JSON: ${{ steps.image_digests.outputs.digests }}
+          APP_DOMAIN: ${{ steps.parameters.outputs.app_domain }}
+          PREVIEW_DOMAIN: ${{ steps.parameters.outputs.preview_domain }}
         run: |
+          set -euo pipefail
+          if ! printf '%s' "${IMAGE_DIGESTS_JSON}" | jq -e '
+            type == "array" and
+            length == 8 and
+            ([.[].key] | unique | length == 8) and
+            all(.[];
+              (.key | test("^(web|admin|api|worker|aiGateway|workspaceManager|previewProxy|workspaceAgent)$")) and
+              (.digest | test("^sha256:[0-9a-f]{64}$"))
+            )
+          ' >/dev/null; then
+            echo "::error::resolved staging digest set is incomplete or malformed"
+            exit 1
+          fi
+
+          SETS=(
+            --set-string "global.environment=staging"
+            --set-string "global.imageRegistry=${IMAGE_REGISTRY}"
+            --set-string "global.imageTag=${IMAGE_TAG}"
+            --set-string "global.appDomain=${APP_DOMAIN}"
+            --set-string "global.previewDomain=${PREVIEW_DOMAIN}"
+          )
+          while read -r key image digest; do
+            if [ "${key}" = "workspaceAgent" ]; then
+              SETS+=( --set-string "platformEnv.runtime.workspaceAgentImage=${IMAGE_REGISTRY}/${image}@${digest}" )
+            else
+              SETS+=( --set-string "services.${key}.imageDigest=${digest}" )
+            fi
+          done < <(printf '%s' "${IMAGE_DIGESTS_JSON}" | jq -r '.[] | "\(.key) \(.image) \(.digest)"')
+
           helm upgrade --install vibecore infra/helm/platform \
             --namespace vibecore \
             --create-namespace \
-            --set global.environment=staging \
-            --set global.imageTag="${{ steps.tag.outputs.image_tag }}" \
-            --set global.appDomain="${{ vars.STAGING_APP_DOMAIN }}" \
-            --set global.previewDomain="${{ vars.STAGING_PREVIEW_DOMAIN }}"
+            --atomic \
+            --timeout 10m \
+            "${SETS[@]}"
 
       - name: Smoke tests
         env:
-          SYNTHETIC_BASE_URL: https://${{ vars.STAGING_APP_DOMAIN }}
+          SYNTHETIC_BASE_URL: https://${{ steps.parameters.outputs.app_domain }}
         run: pnpm synthetic:health

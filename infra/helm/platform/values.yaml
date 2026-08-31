@@ -2,6 +2,9 @@ global:
   environment: staging
   imageRegistry: us-central1-docker.pkg.dev/PROJECT/vibecore
   imageTag: latest
+  # Production overrides each service with a signed sha256 digest. Empty keeps
+  # staging/local installs on their configured tags.
+  imageDigest: ''
   appDomain: staging.example.com
   previewDomain: preview.staging.example.com
   # Optional additional public hosts. Leave empty when not needed (staging).

@@ -1,0 +1,107 @@
+# Answer "would this commit be allowed to deploy?" without deploying anything.
+#
+# Same policy file, same engine, same job shape as the gate inside
+# deploy-main.yml — but with no build, no rollout, and no cloud credentials at all
+# (note the permissions block: there is no `id-token`, so this workflow physically
+# cannot reach GCP even if someone edited it to try).
+#
+# Use it to check a commit before merging, to confirm a refusal is genuine rather
+# than a gate bug, or to demonstrate the gate's behaviour on historical commits.
+#
+#   gh workflow run release-gate-dryrun.yml -R openaxcloud/vibecore \
+#     -f sha=<full 40-hex commit>
+#
+# `expect` turns the run into an assertion: with expect=refuse the job is GREEN when
+# the gate refuses, which is what makes this usable as evidence that a known-red
+# commit is actually blocked.
+
+name: Release gate (dry run)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: Full 40-hex commit sha to evaluate
+        required: true
+      expect:
+        description: What the gate should say — "pass", "refuse", or "report" (just print)
+        required: false
+        default: report
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  dry-run:
+    name: Evaluate required checks for a commit (no deploy)
+    # Belt as well as braces: this workflow is dispatch-only, but the job also reads
+    # `inputs.sha`, which is empty under any other event. Without the guard, adding a
+    # second trigger later would silently run the job with no sha.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Self-test the gate engine
+        run: node scripts/release-gate/verify-required-checks.mjs --self-test
+
+      - name: Evaluate
+        id: gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ inputs.sha }}
+          EXPECT: ${{ inputs.expect }}
+        run: |
+          set -uo pipefail
+          # `|| rc=$?` is load-bearing, not style. GitHub invokes every `run` block as
+          # `bash -e`, and `set -uo pipefail` does NOT clear that -e — so without the
+          # `||` the step dies the instant the gate refuses, the assertion below never
+          # runs, and `expect: refuse` could never be satisfied. Found by a live run:
+          # the gate correctly printed VERDICT: REFUSE and the job still went red.
+          # --no-wait: a dry run reports the CURRENT state of a commit's checks. It
+          # must not sit for 90 minutes waiting for a pipeline that may never run —
+          # that is the deploy path's job, not this one's.
+          rc=0
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait --json verdict.json || rc=$?
+          echo "gate exit code: ${rc}"
+
+          # The gate has exactly two verdicts — 0 = PASS, 2 = REFUSE. Any other code
+          # means it could not evaluate at all (malformed sha, GitHub API failure), and
+          # that must NEVER read as a verdict:
+          #   * report mode used to swallow every code, so a dispatch with a bad sha
+          #     produced a GREEN job while the gate had errored — a green-on-error, the
+          #     exact class of defect this whole lot exists to remove.
+          #   * refuse mode used to accept any non-zero code, so a transport error
+          #     counted as "correctly refused".
+          if [ "${rc}" -ne 0 ] && [ "${rc}" -ne 2 ]; then
+            echo "::error::the gate could not evaluate ${SHA} (exit ${rc}) — this is an error, not a verdict"
+            exit 1
+          fi
+
+          case "${EXPECT}" in
+            pass)
+              if [ "${rc}" -ne 0 ]; then
+                echo "::error::expected the gate to PASS ${SHA}, but it refused"
+                exit 1
+              fi
+              echo "asserted: gate PASSES ${SHA}" ;;
+            refuse)
+              if [ "${rc}" -ne 2 ]; then
+                echo "::error::expected the gate to REFUSE ${SHA}, but it passed"
+                exit 1
+              fi
+              echo "asserted: gate REFUSES ${SHA}" ;;
+            *)
+              echo "report-only mode: gate says $([ "${rc}" -eq 0 ] && echo PASS || echo REFUSE)" ;;
+          esac
+
+      - name: Upload verdict
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: gate-verdict-${{ inputs.sha }}
+          path: verdict.json
+          if-no-files-found: warn

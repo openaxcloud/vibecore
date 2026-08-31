@@ -5,6 +5,34 @@
   "type": "object",
   "required": ["platformEnv"],
   "properties": {
+    "global": {
+      "type": "object",
+      "properties": {
+        "imageDigest": {
+          "type": "string",
+          "pattern": "^(|sha256:[0-9a-f]{64})$",
+          "description": "Optional immutable global image digest. Production normally supplies a per-service digest; malformed values fail before rollout."
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "imageDigest": {
+            "type": "string",
+            "pattern": "^(|sha256:[0-9a-f]{64})$",
+            "description": "Per-service immutable digest from the verified release manifest."
+          },
+          "imageSourceSha": {
+            "type": "string",
+            "pattern": "^(|[0-9a-f]{40})$",
+            "description": "Exact source commit persisted beside the digest for carried-forward provenance."
+          }
+        }
+      }
+    },
     "platformEnv": {
       "type": "object",
       "required": ["runtime"],

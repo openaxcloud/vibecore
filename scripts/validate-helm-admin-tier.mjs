@@ -5,8 +5,9 @@ import { execFileSync } from 'node:child_process';
 const CHART = 'infra/helm/platform';
 const RELEASE = 'vibecore';
 const FULLNAME = 'vibecore-vibecore-platform';
-const BASELINE_TAG = 'baseline0000';
-const ADMIN_TAG = 'admin000000';
+const BASELINE_DIGEST = `sha256:${'a'.repeat(64)}`;
+const ADMIN_DIGEST = `sha256:${'b'.repeat(64)}`;
+const ADMIN_SOURCE_SHA = 'c'.repeat(40);
 
 let failures = 0;
 
@@ -40,9 +41,11 @@ const manifest = execFileSync(
     RELEASE,
     CHART,
     '--set-string',
-    `global.imageTag=${BASELINE_TAG}`,
+    `global.imageDigest=${BASELINE_DIGEST}`,
     '--set-string',
-    `services.admin.imageTag=${ADMIN_TAG}`,
+    `services.admin.imageDigest=${ADMIN_DIGEST}`,
+    '--set-string',
+    `services.admin.imageSourceSha=${ADMIN_SOURCE_SHA}`,
   ],
   { encoding: 'utf8' },
 );
@@ -53,9 +56,14 @@ const adminService = resource(manifest, 'Service', `${FULLNAME}-admin`) ?? '';
 
 check('admin Deployment renders', Boolean(adminDeployment));
 check(
-  'admin Deployment alone receives the rebuilt immutable tag',
-  adminDeployment.includes(`/admin:${ADMIN_TAG}`) && webDeployment.includes(`/web:${BASELINE_TAG}`),
+  'admin Deployment alone receives its rebuilt immutable digest',
+  adminDeployment.includes(`/admin@${ADMIN_DIGEST}`) && webDeployment.includes(`/web@${BASELINE_DIGEST}`),
   `admin image=${adminDeployment.match(/^\s*image: (.*)$/mu)?.[1] ?? 'missing'}, web image=${webDeployment.match(/^\s*image: (.*)$/mu)?.[1] ?? 'missing'}`,
+);
+check(
+  'admin Deployment persists the source commit beside its digest',
+  adminDeployment.includes(`vibecore.dev/image-source-sha: "${ADMIN_SOURCE_SHA}"`) &&
+    !webDeployment.includes('vibecore.dev/image-source-sha:'),
 );
 check(
   'admin Deployment has distinct /health readiness and liveness probes',

@@ -29,13 +29,14 @@ const FULLNAME = 'vibecore-vibecore-platform';
 const SECRET_NAME = `${FULLNAME}-screenshotter-auth`;
 const SCREENSHOTTER_URL = `http://${FULLNAME}-screenshotter.vibecore.svc.cluster.local:3030`;
 const PREVIEW_PROXY_URL = `http://${FULLNAME}-preview-proxy.vibecore.svc.cluster.local:3020`;
+const SCREENSHOTTER_DIGEST = `sha256:${'d'.repeat(64)}`;
 
 // Must stay in lock-step with the SETS block in deploy-main.yml.
 const DEPLOY_MAIN_SETS = [
   '--set',
   'services.screenshotter.enabled=true',
-  '--set',
-  'services.screenshotter.imageTag=testsha0000',
+  '--set-string',
+  `services.screenshotter.imageDigest=${SCREENSHOTTER_DIGEST}`,
   '--set-string',
   `platformEnv.screenshotterUrl=${SCREENSHOTTER_URL}`,
   '--set-string',
@@ -116,8 +117,8 @@ check(
 const viaSets = helmTemplate(DEPLOY_MAIN_SETS);
 
 check(
-  'deploy-main --set combination renders the Deployment pinned to the pushed tag',
-  viaSets.includes(`name: ${FULLNAME}-screenshotter\n`) && viaSets.includes('screenshotter:testsha0000'),
+  'deploy-main --set combination renders the Deployment pinned to the verified digest',
+  viaSets.includes(`name: ${FULLNAME}-screenshotter\n`) && viaSets.includes(`screenshotter@${SCREENSHOTTER_DIGEST}`),
 );
 check(
   'deploy-main --set combination renders the configmap URL',

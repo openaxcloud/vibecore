@@ -8,7 +8,9 @@ const requiredWorkflows = [
   '.github/workflows/docker.yml',
   '.github/workflows/terraform.yml',
   '.github/workflows/deploy-staging.yml',
-  '.github/workflows/deploy-prod.yml',
+  '.github/workflows/deploy-main.yml',
+  '.github/workflows/deploy-break-glass.yml',
+  '.github/workflows/release-gate-dryrun.yml',
   '.github/workflows/staging-runtime-validation.yml',
   '.github/workflows/desktop-release.yml',
   '.github/workflows/mobile-release.yml',
@@ -62,39 +64,49 @@ for (const file of workflowFiles) {
   }
 }
 
-const prodWorkflow = fs.readFileSync('.github/workflows/deploy-prod.yml', 'utf8');
-if (!prodWorkflow.includes('environment:') || !prodWorkflow.includes('production')) {
-  throw new Error('deploy-prod.yml must use the production GitHub Environment for manual approval gates.');
+// RELEASE INTEGRITY: there must be exactly ONE way to deploy production, and it must
+// go through the exact-SHA gate.
+//
+// `deploy-prod.yml` used to be a second, ungated path: a free-form `image_tag` input,
+// `helm upgrade --install` WITHOUT `--reuse-values`, and `--set global.imageTag=<tag>`.
+// Running it would not merely bypass the gate — it would drop every per-service
+// `imageDigest` the gated path had pinned and put the whole platform back on a single
+// mutable tag. It also used a different concurrency group, so it could race a gated
+// rollout. It has been removed; the sanctioned manual path is `deploy-main.yml`'s
+// `target_sha` dispatch, which is bound to a commit already on main and passes the
+// same gate as a push.
+if (fs.existsSync('.github/workflows/deploy-prod.yml')) {
+  throw new Error(
+    'deploy-prod.yml is back. Production must have exactly one deploy path (deploy-main.yml, gated). ' +
+      'A second path that sets global.imageTag would unpin every digest the gate established.',
+  );
 }
-if (!prodWorkflow.includes('helm rollback')) {
-  throw new Error('deploy-prod.yml must print rollback instructions.');
+
+const gatedProd = fs.readFileSync('.github/workflows/deploy-main.yml', 'utf8');
+if (!gatedProd.includes('environment:') || !gatedProd.includes('production')) {
+  throw new Error('deploy-main.yml must use the production GitHub Environment.');
 }
-for (const expected of [
-  'actions/setup-node@v4',
-  'pnpm/action-setup@v4',
-  'pnpm install --frozen-lockfile',
-  'staging_runtime_run_id',
-  'Verify staging runtime validation gate',
-  'Validate production configuration',
-  'pnpm run production:validate',
-  'Staging Runtime Validation',
-  'conclusion !== \'success\'',
-  'maxAgeHours = 72',
-]) {
-  if (!prodWorkflow.includes(expected)) {
-    throw new Error(`deploy-prod.yml missing production staging-runtime gate: ${expected}`);
+if (!gatedProd.includes('helm rollback')) {
+  throw new Error('deploy-main.yml must print rollback instructions.');
+}
+for (const expected of ['release-gate', 'verify-required-checks.mjs', 'imageDigest', 'verify-imageids']) {
+  if (!gatedProd.includes(expected)) {
+    throw new Error(`deploy-main.yml missing release-gate wiring: ${expected}`);
   }
 }
 
 const stagingWorkflow = fs.readFileSync('.github/workflows/deploy-staging.yml', 'utf8');
-for (const expected of ['actions/setup-node@v4', 'pnpm/action-setup@v4', 'pnpm install --frozen-lockfile']) {
+for (const expected of ['actions/setup-node@', 'pnpm/action-setup@', 'pnpm install --frozen-lockfile']) {
   if (!stagingWorkflow.includes(expected)) {
     throw new Error(`deploy-staging.yml missing dependency setup: ${expected}`);
   }
 }
 
 for (const [file, requiredPermissions] of [
-  ['.github/workflows/deploy-prod.yml', ['contents: read', 'actions: read', 'id-token: write']],
+  // deploy-main.yml deliberately does NOT grant id-token at the workflow level — the
+  // release gate must be able to refuse before any WIF-exchangeable credential exists.
+  // Its build job grants it per-job; that is asserted by validate-deploy-gate-wired.mjs.
+  ['.github/workflows/deploy-main.yml', ['contents: read', 'actions: read']],
   ['.github/workflows/deploy-staging.yml', ['contents: read', 'id-token: write']],
   ['.github/workflows/staging-runtime-validation.yml', ['contents: read', 'id-token: write']],
 ]) {
@@ -112,7 +124,16 @@ for (const [file, requiredPermissions] of [
 }
 
 const dockerWorkflow = fs.readFileSync('.github/workflows/docker.yml', 'utf8');
-for (const image of ['web', 'admin', 'api', 'worker', 'ai-gateway', 'workspace-manager', 'workspace-agent', 'preview-proxy']) {
+for (const image of [
+  'web',
+  'admin',
+  'api',
+  'worker',
+  'ai-gateway',
+  'workspace-manager',
+  'workspace-agent',
+  'preview-proxy',
+]) {
   if (!dockerWorkflow.includes(`image: ${image}`)) {
     throw new Error(`docker.yml does not build image ${image}`);
   }
@@ -154,4 +175,12 @@ for (const expected of [
   }
 }
 
-console.log(JSON.stringify({ ok: true, workflows: requiredWorkflows.length, parsedWorkflows: workflowFiles.length, loadTests: requiredLoadTests.length, mobileAssets: requiredMobileAssets.length }));
+console.log(
+  JSON.stringify({
+    ok: true,
+    workflows: requiredWorkflows.length,
+    parsedWorkflows: workflowFiles.length,
+    loadTests: requiredLoadTests.length,
+    mobileAssets: requiredMobileAssets.length,
+  }),
+);

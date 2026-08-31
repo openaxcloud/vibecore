@@ -35,7 +35,15 @@ const indexOfStep = (name) => steps.findIndex((s) => s.name === name);
 const CUTOVER_STEP = 'Detect password-activation cutover (SEC-8)';
 const BARRIER_STEP = 'Drain barrier — outlast the legacy public max-age (SEC-8)';
 const PHASE2_STEP = 'Phase 2 — arm password activation (SEC-8)';
-const UPGRADE_STEP = 'Helm upgrade (affected image tags)';
+/*
+ * Le nom de l'étape a changé avec le déploiement par digest : les services ne
+ * sont plus épinglés par tag mais par le digest du manifeste validé. Le garde
+ * SUIT le renommage — aucune assertion n'est retirée, elles portent toutes sur
+ * la même étape. Résolu ici plutôt que par un nom laxiste : une expression
+ * régulière permissive laisserait passer une future étape d'upgrade qui ne
+ * serait pas celle-ci.
+ */
+const UPGRADE_STEP = 'Helm upgrade (all services pinned by digest)';
 const VERIFY_STEP = 'Verify the activation interlock state (SEC-8)';
 
 /**
@@ -61,10 +69,7 @@ function runCutoverStep({ liveFlag, codeHasInterlock, shaMismatch = false, inter
     const src = join(dir, 'services/api/src');
     mkdirSync(join(src, 'tests'), { recursive: true });
     mkdirSync(join(dir, 'scripts'), { recursive: true });
-    copyFileSync(
-      join(REPO_ROOT, 'scripts/verify-prod-interlock.mjs'),
-      join(dir, 'scripts/verify-prod-interlock.mjs'),
-    );
+    copyFileSync(join(REPO_ROOT, 'scripts/verify-prod-interlock.mjs'), join(dir, 'scripts/verify-prod-interlock.mjs'));
 
     const FILLERS = 60;
 
@@ -113,10 +118,7 @@ function runCutoverStep({ liveFlag, codeHasInterlock, shaMismatch = false, inter
     const bin = join(dir, 'bin');
     mkdirSync(bin);
     const kubectl = join(bin, 'kubectl');
-    writeFileSync(
-      kubectl,
-      liveFlag === null ? '#!/bin/sh\nexit 1\n' : `#!/bin/sh\nprintf '%s' '${liveFlag}'\n`,
-    );
+    writeFileSync(kubectl, liveFlag === null ? '#!/bin/sh\nexit 1\n' : `#!/bin/sh\nprintf '%s' '${liveFlag}'\n`);
     chmodSync(kubectl, 0o755);
 
     const outputFile = join(dir, 'github_output');
@@ -264,13 +266,17 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
   });
 
   it('passes the phase-1 value into the first helm upgrade explicitly', () => {
-    expect(stepByName(UPGRADE_STEP).run).toContain(
-      'platformEnv.runtime.deploymentAccessActivationEnabled=${{ steps.cutover.outputs.phase1_flag }}',
-    );
+    const upgrade = stepByName(UPGRADE_STEP);
+
+    expect(upgrade.env.PHASE1_FLAG).toBe('${{ steps.cutover.outputs.phase1_flag }}');
+    expect(upgrade.run).toContain('platformEnv.runtime.deploymentAccessActivationEnabled=${PHASE1_FLAG}');
+    expect(upgrade.run).not.toContain('steps.cutover.outputs.phase1_flag');
   });
 
   it('arms the flag ONLY in phase 2, and nowhere else in the job', () => {
-    const arming = steps.filter((s) => typeof s.run === 'string' && s.run.includes('deploymentAccessActivationEnabled=1'));
+    const arming = steps.filter(
+      (s) => typeof s.run === 'string' && s.run.includes('deploymentAccessActivationEnabled=1'),
+    );
 
     expect(arming.map((s) => s.name)).toEqual([PHASE2_STEP]);
   });
@@ -279,8 +285,10 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
     const verify = stepByName(VERIFY_STEP);
 
     expect(verify.if).toBeUndefined();
+    expect(verify.env.WANT).toBe('${{ steps.cutover.outputs.final_flag }}');
     expect(verify.run).toContain('DEPLOYMENT_ACCESS_ACTIVATION_ENABLED');
-    expect(verify.run).toContain('steps.cutover.outputs.final_flag');
+    expect(verify.run).toContain('${WANT}');
+    expect(verify.run).not.toContain('steps.cutover.outputs.final_flag');
   });
 
   it('SEC-10: refuses to arm unless the running api image is the certified commit', () => {
@@ -351,13 +359,17 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
     expect(Number(barrier.env.SAFETY_MARGIN_SECONDS)).toBeGreaterThan(0);
     expect(Number(barrier.env.LEGACY_MAX_AGE_SECONDS) + Number(barrier.env.SAFETY_MARGIN_SECONDS)).toBeGreaterThan(60);
     // The barrier must be able to give up (and stay fail-closed) inside the job.
-    expect(Number(barrier.env.MAX_WAIT_SECONDS)).toBeLessThan(workflow.jobs['build-and-deploy']['timeout-minutes'] * 60);
+    expect(Number(barrier.env.MAX_WAIT_SECONDS)).toBeLessThan(
+      workflow.jobs['build-and-deploy']['timeout-minutes'] * 60,
+    );
   });
 
   it('blocks the deploy on the chart render test for the interlock', () => {
     const render = stepByName('Helm render test — password-activation interlock (blocking)');
 
     expect(render.run).toContain('scripts/validate-helm-access-activation-flag.mjs');
-    expect(indexOfStep('Helm render test — password-activation interlock (blocking)')).toBeLessThan(indexOfStep(UPGRADE_STEP));
+    expect(indexOfStep('Helm render test — password-activation interlock (blocking)')).toBeLessThan(
+      indexOfStep(UPGRADE_STEP),
+    );
   });
 });

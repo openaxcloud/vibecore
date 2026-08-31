@@ -1,6 +1,8 @@
 {{- range $name, $svc := .Values.services }}
 {{- if $svc.enabled }}
 {{- $imageTag := default $.Values.global.imageTag $svc.imageTag }}
+{{- $imageDigest := default $.Values.global.imageDigest $svc.imageDigest }}
+{{- $imageArgs := dict "registry" $.Values.global.imageRegistry "image" $svc.image "digest" $imageDigest "tag" $imageTag }}
 {{- /*
 Mount the shared PVC only on the API. Project storage + static-deployment
 artifacts are written by the API; worker and workspace-manager don't read
@@ -43,6 +45,12 @@ spec:
     metadata:
       annotations:
         checksum/platform-env: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- with (default "" $svc.imageSourceSha) }}
+        # A digest carries no source tag. Persist the exact source commit next
+        # to the pod template so a later carried-forward release can recover
+        # provenance from the same object that authoritatively holds the image.
+        vibecore.dev/image-source-sha: {{ . | quote }}
+        {{- end }}
       labels:
         app.kubernetes.io/name: {{ kebabcase $name }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
@@ -75,11 +83,8 @@ spec:
           type: RuntimeDefault
       containers:
         - name: {{ kebabcase $name }}
-          image: "{{ $.Values.global.imageRegistry }}/{{ $svc.image }}:{{ $imageTag }}"
-          # `latest` is mutable in our registry, so always pull to pick up new SHAs.
-          # For pinned (immutable) tags, IfNotPresent would be cheaper, but the
-          # current flow rolls all services on the `latest` tag.
-          imagePullPolicy: {{ if eq ($imageTag | toString) "latest" }}Always{{ else }}IfNotPresent{{ end }}
+          image: "{{ include "vibecore-platform.imageRef" $imageArgs }}"
+          imagePullPolicy: {{ include "vibecore-platform.imagePullPolicy" $imageArgs }}
           ports:
             - name: http
               containerPort: {{ $svc.port }}

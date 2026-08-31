@@ -25,6 +25,9 @@ function requirePattern(problems, file, text, pattern, message) {
 export function validateAdminDeployTierSources(sources) {
   const problems = [];
   const { workflow, cloudbuild, detector, helmValues, helmDeployments, makefile } = sources;
+  const rolloutStart = workflow.indexOf('- name: Verify rollout');
+  const rolloutEnd = rolloutStart < 0 ? -1 : workflow.indexOf('\n      - name:', rolloutStart + 10);
+  const rolloutStep = rolloutStart < 0 ? '' : workflow.slice(rolloutStart, rolloutEnd < 0 ? undefined : rolloutEnd);
 
   requirePattern(
     problems,
@@ -72,20 +75,27 @@ export function validateAdminDeployTierSources(sources) {
     problems,
     FILES.workflow,
     workflow,
-    /IMAGES="\$\{IMAGES\} \$\{REG\}\/admin:\$\{SHORT_SHA\}"/u,
-    'blocking Trivy gate does not include the rebuilt admin image',
+    /SERVICES="[^"]*admin:admin:admin:true:true[^"]*"/u,
+    'admin is not included in the digest/provenance matrix as a rebuilt and rolled chart service',
   );
   requirePattern(
     problems,
     FILES.workflow,
     workflow,
-    /--set "services\.admin\.imageTag=\$\{SHORT_SHA\}"/u,
-    'atomic Helm upgrade does not pin the admin service tag',
+    /admin\) BUILD_ID="\$\{ADMIN_BUILD_ID\}"/u,
+    'admin release-manifest entry is not bound to the exact Cloud Build id',
   );
   requirePattern(
     problems,
     FILES.workflow,
     workflow,
+    /services\.\$\{service\}\.imageDigest=\$\{digest\}/u,
+    'atomic Helm upgrade does not pin chart services by verified digest',
+  );
+  requirePattern(
+    problems,
+    FILES.workflow,
+    rolloutStep,
     /for svc in web admin api workspace-manager preview-proxy ai-gateway worker/u,
     'admin Deployment is absent from rollout verification',
   );
@@ -93,8 +103,8 @@ export function validateAdminDeployTierSources(sources) {
     problems,
     FILES.workflow,
     workflow,
-    /LIVE_ADMIN=.*spec\.template\.spec\.containers\[0\]\.image/u,
-    'live admin Deployment tag is not checked after rollout',
+    /release-manifest\.mjs verify-imageids/u,
+    'running admin imageID is not verified against the release manifest',
   );
 
   requirePattern(
@@ -182,12 +192,12 @@ function runSelfTest(sources) {
   const mutations = [
     ['remove admin source detection', 'detector', "path.startsWith('apps/admin/')", 'false'],
     ['remove admin build submission', 'workflow', '--config=infra/cloudbuild/single-admin.yaml', '--config=missing'],
-    ['remove blocking admin scan', 'workflow', '${REG}/admin:${SHORT_SHA}', '${REG}/missing:${SHORT_SHA}'],
+    ['remove admin from the digest matrix', 'workflow', 'admin:admin:admin:true:true', 'admin:admin:none:true:false'],
     [
-      'remove Helm admin tag',
+      'remove Helm digest pinning',
       'workflow',
-      'services.admin.imageTag=${SHORT_SHA}',
-      'services.missing.imageTag=${SHORT_SHA}',
+      'services.${service}.imageDigest=${digest}',
+      'services.${service}.imageTag=${tag}',
     ],
     ['remove admin rollout', 'workflow', 'for svc in web admin api', 'for svc in web api'],
     [
@@ -241,7 +251,7 @@ function main() {
     return 1;
   }
 
-  console.log('OK: admin detection, build, scan, signature, Helm pin and rollout verification are wired');
+  console.log('OK: admin detection, build, digest provenance, signature, Helm pin and rollout verification are wired');
   return 0;
 }
 
