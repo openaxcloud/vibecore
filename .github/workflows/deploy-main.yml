@@ -720,6 +720,20 @@ jobs:
       # pinned rather than "pinned for the parts we happened to touch".
       - name: Resolve immutable image digests for every service
         run: |
+          # Every failure below is fail-closed and, on the FIRST digest-based upgrade,
+          # is also the most likely thing to stop the cutover. So each one prints what
+          # the release actually stores for this service: without it the operator gets
+          # "cannot pin this service" and has to go dig the values out of the cluster
+          # by hand, during a deploy, to learn something the job already knew.
+          explain_current() {
+            echo "::group::what ${key} is actually running"
+            kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${image}" \
+              -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' 2>&1 || true
+            echo "Fix: re-run once with this tier rebuilt, or pin it explicitly with"
+            echo "  helm upgrade ... --set-string services.${key}.imageDigest=sha256:<64 hex>"
+            echo "::endgroup::"
+          }
+
           set -euo pipefail
           REG="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}"
           echo "REG=${REG}" >> "$GITHUB_ENV"
@@ -922,19 +936,6 @@ jobs:
               fi
             fi
 
-            # Every failure below is fail-closed and, on the FIRST digest-based upgrade,
-            # is also the most likely thing to stop the cutover. So each one prints what
-            # the release actually stores for this service: without it the operator gets
-            # "cannot pin this service" and has to go dig the values out of the cluster
-            # by hand, during a deploy, to learn something the job already knew.
-            explain_current() {
-              echo "::group::what ${key} is actually running"
-              kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${image}" \
-                -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image' 2>&1 || true
-              echo "Fix: re-run once with this tier rebuilt, or pin it explicitly with"
-              echo "  helm upgrade ... --set-string services.${key}.imageDigest=sha256:<64 hex>"
-              echo "::endgroup::"
-            }
 
             if [ -n "${PINNED:-}" ]; then
               DIGEST="${PINNED}"
