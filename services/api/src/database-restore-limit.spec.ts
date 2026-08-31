@@ -15,6 +15,7 @@ describe('managed database restore inventory bound', () => {
       sizeBytes: 0,
       retentionDays: 7,
       pitrEnabled: true,
+      provisioningGeneration: 1,
       physicalAuthority: {
         tier: 'isolated',
         clusterName: 'db-project-1',

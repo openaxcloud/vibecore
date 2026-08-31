@@ -600,6 +600,7 @@ runDbTests('tenant transfer + release — PostgreSQL lock/fence interleavings', 
         storeB.completeDatabaseProvisioning(provisioningId, {
           projectId: project.id,
           expectedOrganizationId: organizations.source.id,
+          expectedGeneration: 1,
           key: 'PROD_DATABASE_URL',
           valueEncrypted: 'encrypted:release-race-production',
         }),

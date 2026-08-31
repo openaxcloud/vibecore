@@ -39378,6 +39378,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.warn?.({ err: error, databaseInstanceId: acquisition.instance.id }, 'db provision kickoff failed');
 
       const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
+        expectedGeneration: acquisition.instance.provisioningGeneration,
         errorCode: DATABASE_PROVISION_FAILURE.kickoffFailed,
         failedAt: new Date().toISOString(),
       });
@@ -39394,6 +39395,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const reason = outcome.reason ?? DATABASE_PROVISION_FAILURE.rejected;
 
       const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
+        expectedGeneration: acquisition.instance.provisioningGeneration,
         errorCode: reason,
         failedAt: new Date().toISOString(),
       });
@@ -46490,7 +46492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * GET /projects/:id/database?environment=production.
          */
         if (isDatabaseRollbackEnabled()) {
-          let acquiredProdInstanceId: string | undefined;
+          let acquiredProdAttempt: { id: string; generation: number } | undefined;
 
           try {
             const existingProd = await store.getDatabaseInstanceByProject(project.id, 'production');
@@ -46520,7 +46522,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 });
 
                 if (acquisition.acquired) {
-                  acquiredProdInstanceId = acquisition.instance.id;
+                  acquiredProdAttempt = {
+                    id: acquisition.instance.id,
+                    generation: acquisition.instance.provisioningGeneration,
+                  };
 
                   const outcome = await provisioner.provisionInstance({
                     projectId: project.id,
@@ -46533,6 +46538,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                   if (!outcome.applied) {
                     await store.failDatabaseProvisioning(acquisition.instance.id, {
+                      expectedGeneration: acquisition.instance.provisioningGeneration,
                       errorCode: outcome.reason ?? DATABASE_PROVISION_FAILURE.rejected,
                       failedAt: new Date().toISOString(),
                     });
@@ -46541,9 +46547,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               }
             }
           } catch (error) {
-            if (acquiredProdInstanceId) {
+            if (acquiredProdAttempt) {
               await store
-                .failDatabaseProvisioning(acquiredProdInstanceId, {
+                .failDatabaseProvisioning(acquiredProdAttempt.id, {
+                  expectedGeneration: acquiredProdAttempt.generation,
                   errorCode: DATABASE_PROVISION_FAILURE.kickoffFailed,
                   failedAt: new Date().toISOString(),
                 })

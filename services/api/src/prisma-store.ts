@@ -2620,6 +2620,7 @@ function mapDatabaseInstance(row: {
   physicalDatabaseCrUid: string | null;
   physicalRetentionDays: number | null;
   physicalAuthorityAt: Date | null;
+  provisioningGeneration: number;
   provisioningDeadlineAt: Date | null;
   lastErrorCode: string | null;
   lastErrorAt: Date | null;
@@ -2654,6 +2655,7 @@ function mapDatabaseInstance(row: {
           },
         }
       : {}),
+    provisioningGeneration: row.provisioningGeneration,
     provisioningDeadlineAt: toIso(row.provisioningDeadlineAt),
     lastErrorCode: row.lastErrorCode ?? undefined,
     lastErrorAt: toIso(row.lastErrorAt),
@@ -10178,6 +10180,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         where: { id: existing.id, status: 'FAILED' },
         data: {
           status: 'PROVISIONING',
+          provisioningGeneration: { increment: 1 },
           provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
           lastErrorCode: null,
           lastErrorAt: null,
@@ -10195,6 +10198,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     expectedVersion: number;
     requestHash: string;
     databaseInstanceId: string;
+    expectedGeneration: number;
     projectId: string;
     valueEncrypted: string;
   }) {
@@ -10253,6 +10257,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           projectId: input.projectId,
           organizationId: input.organizationId,
           status: 'PROVISIONING',
+          provisioningGeneration: input.expectedGeneration,
         },
         data: {
           status: 'ACTIVE',
@@ -14774,6 +14779,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         where: { id: existing.id, status: 'FAILED' },
         data: {
           status: 'PROVISIONING',
+          provisioningGeneration: { increment: 1 },
           provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
           lastErrorCode: null,
           lastErrorAt: null,
@@ -14789,6 +14795,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     connection: {
       projectId: string;
       expectedOrganizationId: string;
+      expectedGeneration: number;
       key: string;
       valueEncrypted: string;
     },
@@ -14801,6 +14808,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           projectId: connection.projectId,
           organizationId: connection.expectedOrganizationId,
           status: 'PROVISIONING',
+          provisioningGeneration: connection.expectedGeneration,
         },
         data: {
           status: 'ACTIVE',
@@ -14836,12 +14844,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
   async failDatabaseProvisioning(
     id: string,
-    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+    input: { expectedGeneration: number; errorCode: string; failedAt: string; deadlineBefore?: string },
   ): Promise<DatabaseInstanceRecord | undefined> {
     const updated = await this.prisma.databaseInstance.updateMany({
       where: {
         id,
         status: 'PROVISIONING',
+        provisioningGeneration: input.expectedGeneration,
         ...(input.deadlineBefore ? { provisioningDeadlineAt: { not: null, lte: new Date(input.deadlineBefore) } } : {}),
       },
       data: {

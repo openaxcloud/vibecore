@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { PgTenantSqlExecutor } from '../database-provisioner.js';
 import { PrismaApiStore } from '../prisma-store.js';
+import { eraseIsolatedDatabaseInstanceFixture } from './project-database-erasure-db-test-support.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -89,12 +90,11 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
   it('grants exactly one retry claim across two independent Prisma clients', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
-    let organizationId: string | undefined;
+    let fixture: { organizationId: string; projectId: string; databaseInstanceId: string } | undefined;
 
     try {
       const { organization, project } = await seedProject(prismaA);
-      organizationId = organization.id;
-      await prismaA.databaseInstance.create({
+      const databaseInstance = await prismaA.databaseInstance.create({
         data: {
           projectId: project.id,
           organizationId: organization.id,
@@ -112,6 +112,11 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
           lastErrorAt: new Date(),
         },
       });
+      fixture = {
+        organizationId: organization.id,
+        projectId: project.id,
+        databaseInstanceId: databaseInstance.id,
+      };
       const retry = {
         projectId: project.id,
         expectedOrganizationId: organization.id,
@@ -136,47 +141,170 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
       expect([first, second].filter((result) => result.acquired)).toHaveLength(1);
       expect(first.instance.status).toBe('PROVISIONING');
       expect(second.instance.status).toBe('PROVISIONING');
+      expect(first.instance.provisioningGeneration).toBe(2);
+      expect(second.instance.provisioningGeneration).toBe(2);
       expect(await prismaA.databaseInstance.count({ where: { projectId: project.id } })).toBe(1);
       expect(await prismaA.databaseInstance.findFirst({ where: { projectId: project.id } })).toMatchObject({
         status: 'PROVISIONING',
+        provisioningGeneration: 2,
         lastErrorCode: null,
         lastErrorAt: null,
       });
     } finally {
-      if (organizationId) {
-        await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      try {
+        if (fixture) {
+          await eraseIsolatedDatabaseInstanceFixture(prismaA, fixture);
+          await prismaA.organization.delete({ where: { id: fixture.organizationId } });
+        }
+      } finally {
+        await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
       }
+    }
+  });
 
-      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+  it('rejects late generation-1 failure and completion after generation 2 is claimed', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    let fixture: { organizationId: string; projectId: string; databaseInstanceId: string } | undefined;
+
+    try {
+      const { organization, project } = await seedProject(prisma);
+      const physicalAuthority = {
+        tier: 'isolated' as const,
+        clusterName: `db-${project.id}`.toLowerCase().slice(0, 53),
+        backupBucket: 'vibecore-test-db-backups',
+        backupPrefix: `db/${project.id}/development/`,
+        retentionDays: 28,
+      };
+      const claim = {
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        organizationId: organization.id,
+        retentionDays: 28,
+        environment: 'development' as const,
+        provisioningDeadlineAt: new Date(Date.now() + 600_000).toISOString(),
+        physicalAuthority,
+      };
+
+      const attemptA = await store.acquireDatabaseProvisioning(claim);
+      fixture = {
+        organizationId: organization.id,
+        projectId: project.id,
+        databaseInstanceId: attemptA.instance.id,
+      };
+      expect(attemptA).toMatchObject({
+        acquired: true,
+        created: true,
+        instance: { status: 'PROVISIONING', provisioningGeneration: 1 },
+      });
+
+      await expect(
+        store.failDatabaseProvisioning(attemptA.instance.id, {
+          expectedGeneration: attemptA.instance.provisioningGeneration,
+          errorCode: 'DATABASE_PROVISION_TIMED_OUT',
+          failedAt: new Date().toISOString(),
+        }),
+      ).resolves.toMatchObject({ status: 'FAILED', provisioningGeneration: 1 });
+
+      const attemptB = await store.acquireDatabaseProvisioning({
+        ...claim,
+        provisioningDeadlineAt: new Date(Date.now() + 1_200_000).toISOString(),
+      });
+      expect(attemptB).toMatchObject({
+        acquired: true,
+        created: false,
+        instance: { status: 'PROVISIONING', provisioningGeneration: 2 },
+      });
+
+      await expect(
+        store.failDatabaseProvisioning(attemptA.instance.id, {
+          expectedGeneration: attemptA.instance.provisioningGeneration,
+          errorCode: 'LATE_ATTEMPT_A_FAILURE',
+          failedAt: new Date().toISOString(),
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        store.completeDatabaseProvisioning(attemptA.instance.id, {
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          expectedGeneration: attemptA.instance.provisioningGeneration,
+          key: 'DATABASE_URL',
+          valueEncrypted: 'encrypted:late-attempt-a-uri',
+        }),
+      ).resolves.toBeUndefined();
+
+      expect(
+        await prisma.projectSecret.findUnique({
+          where: { projectId_key: { projectId: project.id, key: 'DATABASE_URL' } },
+        }),
+      ).toBeNull();
+      expect(await prisma.databaseInstance.findUniqueOrThrow({ where: { id: attemptB.instance.id } })).toMatchObject({
+        status: 'PROVISIONING',
+        provisioningGeneration: 2,
+        lastErrorCode: null,
+      });
+
+      await expect(
+        store.completeDatabaseProvisioning(attemptB.instance.id, {
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          expectedGeneration: attemptB.instance.provisioningGeneration,
+          key: 'DATABASE_URL',
+          valueEncrypted: 'encrypted:attempt-b-uri',
+        }),
+      ).resolves.toMatchObject({ status: 'ACTIVE', provisioningGeneration: 2 });
+      expect(
+        await prisma.projectSecret.findUnique({
+          where: { projectId_key: { projectId: project.id, key: 'DATABASE_URL' } },
+        }),
+      ).toMatchObject({ valueEncrypted: 'encrypted:attempt-b-uri' });
+    } finally {
+      try {
+        if (fixture) {
+          await eraseIsolatedDatabaseInstanceFixture(prisma, fixture);
+          await prisma.organization.delete({ where: { id: fixture.organizationId } });
+        }
+      } finally {
+        await prisma.$disconnect();
+      }
     }
   });
 
   it('commits ACTIVE + the encrypted application URI once and refuses a stale completion', async () => {
     const prisma = createDatabaseClient();
-    let organizationId: string | undefined;
+    let fixture: { organizationId: string; projectId: string; databaseInstanceId: string } | undefined;
 
     try {
       const { organization, project } = await seedProject(prisma);
-      organizationId = organization.id;
       const row = await prisma.databaseInstance.create({
         data: {
           projectId: project.id,
           organizationId: organization.id,
           status: 'PROVISIONING',
+          retentionDays: 7,
+          physicalTier: 'ISOLATED',
+          physicalClusterName: `db-${project.id}`.toLowerCase().slice(0, 53),
+          physicalBackupBucket: 'vibecore-test-db-backups',
+          physicalBackupPrefix: `db/${project.id}/development/`,
+          physicalRetentionDays: 7,
+          physicalAuthorityAt: new Date(),
           provisioningDeadlineAt: new Date(Date.now() + 600_000),
         },
       });
+      fixture = { organizationId: organization.id, projectId: project.id, databaseInstanceId: row.id };
       const store = new PrismaApiStore(prisma);
 
       const completed = await store.completeDatabaseProvisioning(row.id, {
         projectId: project.id,
         expectedOrganizationId: organization.id,
+        expectedGeneration: row.provisioningGeneration,
         key: 'DATABASE_URL',
         valueEncrypted: 'encrypted:first-uri',
       });
       const stale = await store.completeDatabaseProvisioning(row.id, {
         projectId: project.id,
         expectedOrganizationId: organization.id,
+        expectedGeneration: row.provisioningGeneration,
         key: 'DATABASE_URL',
         valueEncrypted: 'encrypted:stale-uri',
       });
@@ -193,11 +321,14 @@ runDbTests('managed database provisioning lifecycle — durable Postgres CAS', (
         }),
       ).toMatchObject({ valueEncrypted: 'encrypted:first-uri' });
     } finally {
-      if (organizationId) {
-        await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      try {
+        if (fixture) {
+          await eraseIsolatedDatabaseInstanceFixture(prisma, fixture);
+          await prisma.organization.delete({ where: { id: fixture.organizationId } });
+        }
+      } finally {
+        await prisma.$disconnect();
       }
-
-      await prisma.$disconnect();
     }
   });
 });

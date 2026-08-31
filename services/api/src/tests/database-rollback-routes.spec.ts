@@ -84,6 +84,7 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
       sizeBytes: 1024,
       retentionDays: 7,
       pitrEnabled: false,
+      provisioningGeneration: 1,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
@@ -120,6 +121,7 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
       sizeBytes: 1024,
       retentionDays: 0,
       pitrEnabled: false,
+      provisioningGeneration: 1,
       physicalAuthority: isolatedAuthority(project.id),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -220,6 +222,7 @@ function seedInstance(store: TestApiStore, project: { id: string; organizationId
     sizeBytes: 4096,
     retentionDays: 28,
     pitrEnabled: true,
+    provisioningGeneration: 1,
     physicalAuthority: isolatedAuthority(project.id),
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

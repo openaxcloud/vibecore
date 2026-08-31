@@ -6440,6 +6440,7 @@ export class TestApiStore implements ApiStore {
         sizeBytes: 0,
         retentionDays: input.retentionDays,
         pitrEnabled: input.retentionDays > 0,
+        provisioningGeneration: 1,
         provisioningDeadlineAt: input.provisioningDeadlineAt,
         createdAt: now(),
         updatedAt: now(),
@@ -6491,6 +6492,7 @@ export class TestApiStore implements ApiStore {
             retentionDays: input.retentionDays,
             pitrEnabled: input.retentionDays > 0,
             physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
+            provisioningGeneration: 1,
             provisioningDeadlineAt: input.provisioningDeadlineAt,
             createdAt: now(),
             updatedAt: now(),
@@ -6520,6 +6522,7 @@ export class TestApiStore implements ApiStore {
         const instance: DatabaseInstanceRecord = {
           ...existing,
           status: 'PROVISIONING',
+          provisioningGeneration: existing.provisioningGeneration + 1,
           provisioningDeadlineAt: input.provisioningDeadlineAt,
           lastErrorCode: undefined,
           lastErrorAt: undefined,
@@ -6538,6 +6541,7 @@ export class TestApiStore implements ApiStore {
     connection: {
       projectId: string;
       expectedOrganizationId: string;
+      expectedGeneration: number;
       key: string;
       valueEncrypted: string;
     },
@@ -6550,7 +6554,8 @@ export class TestApiStore implements ApiStore {
         !instance ||
         instance.projectId !== connection.projectId ||
         instance.organizationId !== connection.expectedOrganizationId ||
-        instance.status !== 'PROVISIONING'
+        instance.status !== 'PROVISIONING' ||
+        instance.provisioningGeneration !== connection.expectedGeneration
       ) {
         return undefined;
       }
@@ -6581,13 +6586,14 @@ export class TestApiStore implements ApiStore {
 
   async failDatabaseProvisioning(
     instanceId: string,
-    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+    input: { expectedGeneration: number; errorCode: string; failedAt: string; deadlineBefore?: string },
   ) {
     const instance = this.databaseInstances.get(instanceId);
 
     if (
       !instance ||
       instance.status !== 'PROVISIONING' ||
+      instance.provisioningGeneration !== input.expectedGeneration ||
       (input.deadlineBefore &&
         (!instance.provisioningDeadlineAt || instance.provisioningDeadlineAt > input.deadlineBefore))
     ) {
@@ -10751,6 +10757,7 @@ export class TestApiStore implements ApiStore {
         retentionDays: input.retentionDays,
         pitrEnabled: input.retentionDays > 0,
         physicalAuthority: { ...input.physicalAuthority, capturedAt: now() },
+        provisioningGeneration: 1,
         provisioningDeadlineAt: input.provisioningDeadlineAt,
         createdAt: now(),
         updatedAt: now(),
@@ -10784,6 +10791,7 @@ export class TestApiStore implements ApiStore {
     const instance: DatabaseInstanceRecord = {
       ...existing,
       status: 'PROVISIONING',
+      provisioningGeneration: existing.provisioningGeneration + 1,
       provisioningDeadlineAt: input.provisioningDeadlineAt,
       lastErrorCode: undefined,
       lastErrorAt: undefined,
@@ -10800,6 +10808,7 @@ export class TestApiStore implements ApiStore {
     expectedVersion: number;
     requestHash: string;
     databaseInstanceId: string;
+    expectedGeneration: number;
     projectId: string;
     valueEncrypted: string;
   }) {
@@ -10828,7 +10837,8 @@ export class TestApiStore implements ApiStore {
       !instance ||
       instance.projectId !== input.projectId ||
       instance.organizationId !== input.organizationId ||
-      instance.status !== 'PROVISIONING'
+      instance.status !== 'PROVISIONING' ||
+      instance.provisioningGeneration !== input.expectedGeneration
     ) {
       return undefined;
     }
