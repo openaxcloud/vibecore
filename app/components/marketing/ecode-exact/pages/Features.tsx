@@ -176,7 +176,7 @@ export default function Features() {
                 />
               </div>
               <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-muted-foreground px-1">
-                <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--ecode-accent-text)] flex-shrink-0 mt-0.5" />
                 <span>{copy.showcase.workspaceCaption}</span>
               </figcaption>
             </figure>
@@ -186,7 +186,7 @@ export default function Features() {
               <div className="absolute -inset-2 bg-gradient-to-l from-[#F26207]/15 to-[#F99D25]/15 blur-2xl rounded-2xl pointer-events-none" />
               <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
                 <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-                  <Rocket className="h-3.5 w-3.5 text-[#F26207]" />
+                  <Rocket className="h-3.5 w-3.5 text-[var(--ecode-accent-text)]" />
                   <span className="text-[11px] sm:text-[13px] text-muted-foreground font-medium truncate">
                     {copy.showcase.deploymentsTitle}
                   </span>
@@ -202,7 +202,7 @@ export default function Features() {
                 />
               </div>
               <figcaption className="mt-3 flex items-start gap-2 text-[11px] sm:text-[13px] text-muted-foreground px-1">
-                <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                <Rocket className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--ecode-accent-text)] flex-shrink-0 mt-0.5" />
                 <span>{copy.showcase.deploymentsCaption}</span>
               </figcaption>
             </figure>
@@ -249,7 +249,7 @@ export default function Features() {
                           data-testid={`card-feature-${feature.id}`}
                         >
                           <CardHeader className="p-4 sm:p-6">
-                            <div className="flex items-center justify-center p-2 sm:p-3 bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30 rounded-lg w-fit mb-3 sm:mb-4">
+                            <div className="flex items-center justify-center p-2 sm:p-3 bg-bolt-elements-background-depth-3 text-[var(--ecode-accent-text)] ring-1 ring-[#F26207]/30 rounded-lg w-fit mb-3 sm:mb-4">
                               {feature.icon}
                             </div>
                             <CardTitle className="mkt-h3">{feature.title}</CardTitle>
@@ -259,7 +259,7 @@ export default function Features() {
                             <ul className="space-y-1.5 sm:space-y-2">
                               {feature.details.map((detail) => (
                                 <li key={detail} className="flex items-start gap-2 text-[11px] sm:text-[13px]">
-                                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                                  <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-[var(--ecode-accent-text)] flex-shrink-0 mt-0.5" />
                                   <span>{detail}</span>
                                 </li>
                               ))}
@@ -294,7 +294,7 @@ export default function Features() {
                   return (
                     <div key={point.id} className="flex items-start gap-3">
                       <div className="p-2 bg-bolt-elements-background-depth-3 ring-1 ring-[#F26207]/30 rounded">
-                        <Icon className="h-5 w-5 text-[#F26207]" />
+                        <Icon className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                       </div>
                       <div>
                         <h3 className="mkt-h3 font-semibold" data-testid={`text-feature-overview-${point.id}`}>
