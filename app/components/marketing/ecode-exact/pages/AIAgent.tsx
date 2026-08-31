@@ -190,7 +190,7 @@ export default function AiAgent() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
-                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      <Sparkles className="h-3 w-3 text-[var(--ecode-accent-text)]" />
                       {PRODUCT_HOST}
                     </span>
                   </div>
@@ -276,7 +276,7 @@ export default function AiAgent() {
                   className="block w-full h-auto"
                   loading="lazy"
                 />
-                <div className="space-y-2 px-6 py-6 mkt-small text-muted-foreground md:flex md:items-center md:justify-between md:gap-6">
+                <div className="space-y-2 px-6 py-6 mkt-small text-white/75 md:flex md:items-center md:justify-between md:gap-6">
                   <p className="md:max-w-2xl">{copy.capture.body}</p>
                   <Button size="sm" variant="secondary" className="mt-4 md:mt-0" asChild>
                     <a href="#agent-demo">{copy.capture.action}</a>
@@ -309,7 +309,7 @@ export default function AiAgent() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
-                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      <Sparkles className="h-3 w-3 text-[var(--ecode-accent-text)]" />
                       {selectedShot.label}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function AiAgent() {
                             alt={`${reel.title} — ${reel.description}`}
                             loading="lazy"
                           />
-                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
                             <Sparkles className="h-3 w-3" /> {reel.label}
                           </span>
                         </div>
