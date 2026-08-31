@@ -2916,7 +2916,7 @@ function UserActionReasonDialog({
               disabled={busy || reason.trim().length === 0}
               onClick={() => onConfirm(reason.trim())}
               data-testid="user-action-confirm"
-              className={`inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`inline-flex h-8 items-center justify-center rounded-md px-3 text-xs font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 ${
                 destructive ? 'bg-[var(--status-error-text)]' : 'bg-[var(--vc-ide-accent-action)]'
               }`}
             >
@@ -6136,7 +6136,7 @@ function AuditLogsPanel({ payload, section }: { payload: Record<string, JsonValu
             ))}
           </div>
           <a
-            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="inline-flex h-8 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             href={`/admin/${section}?${exportParams.toString()}`}
             download
             data-testid={`audit-export-csv-${section}`}
