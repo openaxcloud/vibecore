@@ -46,6 +46,21 @@ piste.
    remesurer, car le défaut peut avoir été corrigé autrement entre-temps — 51 des
    63 fichiers d'une PR de deux semaines l'étaient déjà.
 
+9. **Avant tout changement d'état en base, vérifier ce que cet état déclenche.**
+   Un état n'est jamais neutre s'il arme un mécanisme automatique. J'ai failli
+   remettre 196 espaces de travail à `STOPPED` pour libérer un quota : le
+   ramasse-miettes supprime un espace `STOPPED` après 24 h, **PVC compris**. Le
+   correctif destiné à débloquer les utilisateurs leur aurait effacé leur disque.
+   Chercher qui LIT cet état — balayeur, cron, machine à états — avant de
+   l'écrire.
+
+10. **Vérifier l'existence de ce qu'on croit protéger.** Dans la foulée, j'ai
+    écrit un avertissement — « réveiller le ramasse-miettes supprimerait 196
+    disques » — sans vérifier que ces disques existaient. Ils n'existaient plus :
+    zéro PVC correspondant dans le cluster. L'avertissement était faux, et il
+    inversait la décision. Un raisonnement sur l'existence d'une chose ne vaut
+    rien tant qu'on ne l'a pas listée.
+
 **Corollaire sur les garde-fous.** Un garde-fou qui protège la mauvaise chose est
 pire que pas de garde-fou, parce qu'il rassure. Vérifier qu'un test porte sur la
 famille RÉELLEMENT utilisée à l'écran, et préférer une énumération dérivée du
