@@ -72,7 +72,11 @@ describe('MANIFEST-DURABILITY-001 — l’archive du projet suit-elle les écrit
   });
 
   it('DÉFAUT CONSTATÉ : le plan de reseed supprime ce que l’archive ignore', () => {
-    const reseed = readFileSync(join(__dirname, '..', '..', '..', 'app', 'lib', 'runtime', 'workspace-reseed.ts'), 'utf8');
+    const reseed = readFileSync(
+      join(__dirname, '..', '..', '..', 'app', 'lib', 'runtime', 'workspace-reseed.ts'),
+      'utf8',
+    );
+
     const plan = reseed.slice(reseed.indexOf('export function planReseedDeletions'));
 
     /* La ligne exacte qui provoque la perte : absent de l'archive → supprimé. */
