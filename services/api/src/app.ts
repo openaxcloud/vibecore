@@ -1093,12 +1093,48 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
           };
         })();
 
+  /*
+   * BUG-CREATE-010 — le manifeste `files` est le seul nœud que le spread
+   * superficiel laissait écraser, et c'est celui qui décide de la survie du
+   * travail de l'utilisateur.
+   *
+   * Le client fait `{ ...existing }` sur l'état que le SERVEUR lui a rendu, puis
+   * renvoie le tout. Il retransmet donc des clés que son propre type ne déclare
+   * même pas : mesuré en production le 31/08, le type client déclare
+   * `chat, ui, updatedAt` et la charge envoyée contient `ui, chat, files,
+   * updatedAt`. Le `files` renvoyé est la photo prise à l'OUVERTURE ; le spread
+   * nu la laissait remplacer le manifeste, et à la réouverture depuis un autre
+   * appareil `planReseedDeletions` faisait converger le pod vers cette photo.
+   *
+   * On ne peut PAS refuser `files` du client : des chemins légitimes le posent
+   * par cette route — récupération d'un échafaudage depuis le stockage persisté,
+   * indexation des manifestes de paquets. Trois tests d'API le vérifient, et un
+   * refus catégorique les fait tomber (essayé, mesuré, écarté).
+   *
+   * La règle est donc temporelle et non structurelle : le manifeste le plus
+   * RÉCENT gagne. Une photo plus ancienne — ou sans horodatage face à un
+   * horodatage existant — ne peut plus effacer une version plus neuve.
+   */
+  const existingFiles = ideStateRecord(existing.files);
+  const incomingFiles = ideStateRecord(incoming.files);
+  const horodatage = (bloc: Record<string, unknown>) => {
+    const brut = bloc.updatedAt;
+
+    return typeof brut === 'string' ? Date.parse(brut) : Number.NaN;
+  };
+  const dateExistante = horodatage(existingFiles);
+  const dateEntrante = horodatage(incomingFiles);
+  const gardeExistant =
+    incoming.files === undefined ||
+    (Number.isFinite(dateExistante) && (!Number.isFinite(dateEntrante) || dateEntrante < dateExistante));
+
   return {
     ...existing,
     ...incoming,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
     collaboration: mergedCollaboration,
+    ...(gardeExistant && existing.files !== undefined ? { files: existing.files } : {}),
   };
 }
 
