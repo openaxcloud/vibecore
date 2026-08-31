@@ -182,6 +182,51 @@ class LeaseLostError extends Error {
   readonly code = 'MIGRATION_LEASE_LOST';
 }
 
+/**
+ * Preserve the public release-barrier error contract while tagging failures
+ * that originate from the caller's release authority. The tag is required so
+ * a lost release fence is never mistaken for a target-database failure and
+ * reconciled into COMMITTED by this worker.
+ */
+class ReleaseAuthorityAssertionError extends Error {
+  readonly code: string | undefined;
+  readonly statusCode: number | undefined;
+
+  constructor(cause: unknown) {
+    const candidate = cause as { message?: unknown; code?: unknown; statusCode?: unknown } | undefined;
+    super(typeof candidate?.message === 'string' ? candidate.message : 'Project release authority is unavailable.', {
+      cause,
+    });
+    this.name = 'ReleaseAuthorityAssertionError';
+    this.code = typeof candidate?.code === 'string' ? candidate.code : undefined;
+    this.statusCode = typeof candidate?.statusCode === 'number' ? candidate.statusCode : undefined;
+  }
+}
+
+async function assertReleaseAuthority(assertAuthority: () => Promise<void>): Promise<void> {
+  try {
+    await assertAuthority();
+  } catch (error) {
+    if (error instanceof ReleaseAuthorityAssertionError) {
+      throw error;
+    }
+
+    throw new ReleaseAuthorityAssertionError(error);
+  }
+}
+
+function releaseAuthorityFailure(error: unknown): ReleaseAuthorityAssertionError | undefined {
+  if (error instanceof ReleaseAuthorityAssertionError) {
+    return error;
+  }
+
+  if (error instanceof MigrationRolledBackError) {
+    return releaseAuthorityFailure(error.cause);
+  }
+
+  return undefined;
+}
+
 class LeaseSession {
   #execution: DatabaseMigrationExecutionRecord;
   #lost = false;
@@ -305,6 +350,51 @@ class LeaseSession {
   }
 }
 
+/**
+ * A schema mutation is authorized by two independent, mandatory capabilities:
+ * the migration singleton lease and the enclosing project release barrier.
+ * Sandwiching the migration check between release assertions makes the last
+ * observation before an external effect the release authority, while retaining
+ * every existing migration-lease validation and CAS transition.
+ */
+class MigrationAuthoritySession {
+  constructor(
+    readonly lease: LeaseSession,
+    private readonly _assertReleaseAuthority: () => Promise<void>,
+  ) {}
+
+  get execution(): DatabaseMigrationExecutionRecord {
+    return this.lease.execution;
+  }
+
+  async assertRelease(): Promise<void> {
+    await assertReleaseAuthority(this._assertReleaseAuthority);
+  }
+
+  async guard(): Promise<void> {
+    await this.assertRelease();
+    await this.lease.guard();
+    await this.assertRelease();
+  }
+
+  async renew(): Promise<void> {
+    await this.assertRelease();
+    await this.lease.renew();
+    await this.assertRelease();
+  }
+
+  async transition(
+    nextState: DatabaseMigrationState,
+    patch: Omit<
+      Parameters<DatabaseMigrationStore['transitionDatabaseMigrationExecution']>[0],
+      'id' | 'ownerToken' | 'version' | 'expectedState' | 'nextState' | 'ttlMs'
+    > = {},
+  ): Promise<void> {
+    await this.guard();
+    await this.lease.transition(nextState, patch);
+  }
+}
+
 const DEFAULT_TTL_MS = 60_000;
 const DEFAULT_RENEW_INTERVAL_MS = 10_000;
 const DEFAULT_BACKUP_TIMEOUT_MS = 10 * 60_000;
@@ -318,7 +408,7 @@ async function waitForVerifiedBackup(input: {
   physicalAuthority: DatabasePhysicalAuthority;
   timeoutMs: number;
   pollIntervalMs: number;
-  lease: LeaseSession;
+  authority: MigrationAuthoritySession;
   sleep: (ms: number) => Promise<void>;
 }): Promise<boolean> {
   /*
@@ -328,7 +418,8 @@ async function waitForVerifiedBackup(input: {
   const attempts = Math.max(1, Math.ceil(input.timeoutMs / Math.max(1, input.pollIntervalMs)));
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    await input.lease.renew();
+    await input.authority.renew();
+    await input.authority.guard();
 
     const status = input.provisioner.backupStatus
       ? await input.provisioner
@@ -343,7 +434,7 @@ async function waitForVerifiedBackup(input: {
             completed: false,
           }))
       : { found: false, completed: false, phase: undefined };
-    await input.lease.guard();
+    await input.authority.guard();
 
     if (status.completed) {
       return true;
@@ -354,7 +445,9 @@ async function waitForVerifiedBackup(input: {
     }
 
     if (attempt + 1 < attempts) {
+      await input.authority.guard();
       await input.sleep(input.pollIntervalMs);
+      await input.authority.guard();
     }
   }
 
@@ -362,24 +455,26 @@ async function waitForVerifiedBackup(input: {
 }
 
 async function finalizeRecoveredExecution(input: {
-  lease: LeaseSession;
+  authority: MigrationAuthoritySession;
   applier: SqlApplier;
   connectionString: string;
 }): Promise<'COMMITTED' | 'EMPTY' | 'MANUAL_RECOVERY'> {
-  const execution = input.lease.execution;
+  await input.authority.guard();
+  const execution = input.authority.execution;
 
   const inspection = await input.applier.inspect({
     connectionString: input.connectionString,
     lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
     plan: execution.plan,
   });
-  await input.lease.guard();
+  await input.authority.guard();
 
   if (inspection.status === 'COMPLETE') {
-    await input.lease.transition('COMMITTED', {
+    await input.authority.transition('COMMITTED', {
       release: true,
       appliedStatements: inspection.applied.length,
     });
+    await input.authority.assertRelease();
     return 'COMMITTED';
   }
 
@@ -387,7 +482,7 @@ async function finalizeRecoveredExecution(input: {
     return 'EMPTY';
   }
 
-  await input.lease.transition('MANUAL_RECOVERY', {
+  await input.authority.transition('MANUAL_RECOVERY', {
     retainLock: true,
     errorCode: `TARGET_${inspection.status}`,
   });
@@ -412,6 +507,8 @@ export interface RunPublishMigrationInput {
   createdByUserId?: string;
   backwardCompatible: boolean;
   forwardCompatible: boolean;
+  /** Revalidate the exact enclosing ProjectReleaseBarrier capability. */
+  assertReleaseAuthority: () => Promise<void>;
   ttlMs?: number;
   renewIntervalMs?: number;
   backupTimeoutMs?: number;
@@ -433,6 +530,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
   const renewIntervalMs = input.renewIntervalMs ?? DEFAULT_RENEW_INTERVAL_MS;
   const plan = input.migrations.map(({ name, sha256: digest }) => ({ name, sha256: digest }));
 
+  await assertReleaseAuthority(input.assertReleaseAuthority);
   const acquire = await input.store.acquireDatabaseMigrationExecution({
     projectId: input.projectId,
     organizationId: input.organizationId,
@@ -448,6 +546,7 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     deploymentId: input.deploymentId,
     createdByUserId: input.createdByUserId,
   });
+  await assertReleaseAuthority(input.assertReleaseAuthority);
 
   if (acquire.kind === 'REPLAYED') {
     return {
@@ -500,17 +599,20 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
   }
 
   const lease = new LeaseSession(input.store, acquire.execution, ownerToken, ttlMs, renewIntervalMs);
+  const authority = new MigrationAuthoritySession(lease, input.assertReleaseAuthority);
 
   try {
+    await authority.guard();
+
     if (acquire.kind === 'RECOVERY') {
       const recovered = await finalizeRecoveredExecution({
-        lease,
+        authority,
         applier: input.applier,
         connectionString: input.connectionString,
       });
 
       if (recovered === 'COMMITTED') {
-        const recoveredExecution = lease.execution;
+        const recoveredExecution = authority.execution;
 
         if (recoveredExecution.requestHash === input.requestHash) {
           return {
@@ -529,22 +631,22 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
         return {
           ok: false,
           code: 'MIGRATION_MANUAL_RECOVERY',
-          executionId: lease.execution.id,
+          executionId: authority.execution.id,
           state: 'MANUAL_RECOVERY',
           retryable: false,
         };
       }
 
-      if (lease.execution.requestHash !== input.requestHash) {
-        await lease.transition('FAILED_SAFE', { release: true, errorCode: 'ABANDONED_EMPTY' });
+      if (authority.execution.requestHash !== input.requestHash) {
+        await authority.transition('FAILED_SAFE', { release: true, errorCode: 'ABANDONED_EMPTY' });
         return { ok: false, code: 'MIGRATION_LOCK_HELD', retryable: true };
       }
 
-      await lease.transition('LOCK_ACQUIRED');
+      await authority.transition('LOCK_ACQUIRED');
     }
 
-    const snapshotId = `migration-${lease.execution.id}-a${lease.execution.attempt}`;
-    await lease.guard();
+    const snapshotId = `migration-${authority.execution.id}-a${authority.execution.attempt}`;
+    await authority.guard();
 
     const submitted = await input.provisioner.takeSnapshot({
       projectId: input.projectId,
@@ -553,14 +655,14 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       snapshotId,
       physicalAuthority: input.physicalAuthority,
     });
-    await lease.guard();
+    await authority.guard();
 
     if (!submitted.applied) {
-      await lease.transition('FAILED_SAFE', { release: true, errorCode: 'BACKUP_SUBMIT_REFUSED' });
+      await authority.transition('FAILED_SAFE', { release: true, errorCode: 'BACKUP_SUBMIT_REFUSED' });
       return {
         ok: false,
         code: 'MIGRATION_BACKUP_UNVERIFIED',
-        executionId: lease.execution.id,
+        executionId: authority.execution.id,
         state: 'FAILED_SAFE',
         retryable: false,
       };
@@ -574,26 +676,27 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       physicalAuthority: input.physicalAuthority,
       timeoutMs: input.backupTimeoutMs ?? DEFAULT_BACKUP_TIMEOUT_MS,
       pollIntervalMs: input.backupPollIntervalMs ?? DEFAULT_BACKUP_POLL_MS,
-      lease,
+      authority,
       sleep: input.sleep ?? ((ms) => new Promise<void>((resolve) => setTimeout(resolve, ms))),
     });
 
     if (!backupVerified) {
-      await lease.transition('FAILED_SAFE', { release: true, errorCode: 'BACKUP_NOT_COMPLETED' });
+      await authority.transition('FAILED_SAFE', { release: true, errorCode: 'BACKUP_NOT_COMPLETED' });
       return {
         ok: false,
         code: 'MIGRATION_BACKUP_UNVERIFIED',
-        executionId: lease.execution.id,
+        executionId: authority.execution.id,
         state: 'FAILED_SAFE',
         retryable: false,
       };
     }
 
-    await lease.transition('BACKUP_VERIFIED', {
+    await authority.transition('BACKUP_VERIFIED', {
       backupId: snapshotId,
       backupVerificationMethod: 'cnpg-backup-status-completed',
     });
-    await lease.transition('APPLYING');
+    await authority.transition('APPLYING');
+    await authority.guard();
     lease.startHeartbeat();
 
     let applied: string[];
@@ -603,48 +706,68 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
         connectionString: input.connectionString,
         lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
         migrations: input.migrations,
-        beforeCommit: () => lease.guard(),
+        beforeCommit: () => authority.guard(),
       });
       applied = result.applied;
     } finally {
       await lease.stopHeartbeat();
     }
 
-    await lease.guard();
-    await lease.transition('VALIDATING', { appliedStatements: applied.length });
+    await authority.guard();
+    await authority.transition('VALIDATING', { appliedStatements: applied.length });
 
+    await authority.guard();
     const inspection = await input.applier.inspect({
       connectionString: input.connectionString,
       lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
       plan,
     });
-    await lease.guard();
+    await authority.guard();
 
     if (inspection.status !== 'COMPLETE') {
-      await lease.transition('MANUAL_RECOVERY', {
+      await authority.transition('MANUAL_RECOVERY', {
         retainLock: true,
         errorCode: `POST_COMMIT_${inspection.status}`,
       });
       return {
         ok: false,
         code: 'MIGRATION_MANUAL_RECOVERY',
-        executionId: lease.execution.id,
+        executionId: authority.execution.id,
         state: 'MANUAL_RECOVERY',
         retryable: false,
       };
     }
 
-    await lease.transition('COMMITTED', { release: true, appliedStatements: applied.length });
+    await authority.guard();
+    await authority.transition('COMMITTED', { release: true, appliedStatements: applied.length });
+    await authority.assertRelease();
 
     return {
       ok: true,
-      executionId: lease.execution.id,
+      executionId: authority.execution.id,
       state: 'COMMITTED',
       replayed: false,
       appliedStatements: applied.length,
     };
   } catch (error) {
     await lease.stopHeartbeat().catch(() => undefined);
+
+    const lostReleaseAuthority = releaseAuthorityFailure(error);
+
+    if (lostReleaseAuthority) {
+      /*
+       * A beforeCommit refusal is a confirmed target rollback. Releasing the
+       * migration singleton is safe and uses only its still-exact lease; all
+       * other release-authority losses retain their active state for recovery.
+       */
+      if (error instanceof MigrationRolledBackError) {
+        await lease
+          .transition('FAILED_SAFE', { release: true, errorCode: 'RELEASE_AUTHORITY_LOST_BEFORE_COMMIT' })
+          .catch(() => undefined);
+      }
+
+      throw lostReleaseAuthority;
+    }
 
     if (
       error instanceof LeaseLostError ||
@@ -660,9 +783,12 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     }
 
     if (error instanceof MigrationRolledBackError) {
-      await lease
-        .transition('FAILED_SAFE', { release: true, errorCode: 'TARGET_TRANSACTION_ROLLED_BACK' })
-        .catch(() => undefined);
+      try {
+        await authority.transition('FAILED_SAFE', { release: true, errorCode: 'TARGET_TRANSACTION_ROLLED_BACK' });
+      } catch (transitionError) {
+        const transitionReleaseFailure = releaseAuthorityFailure(transitionError);
+        if (transitionReleaseFailure) throw transitionReleaseFailure;
+      }
       return {
         ok: false,
         code: 'MIGRATION_FAILED_SAFE',
@@ -672,13 +798,34 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       };
     }
 
-    const inspected = await input.applier
-      .inspect({
-        connectionString: input.connectionString,
-        lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
-        plan,
-      })
-      .catch((): MigrationTargetInspection => ({ status: 'UNAVAILABLE', applied: [] }));
+    let inspected: MigrationTargetInspection;
+
+    try {
+      await authority.guard();
+      inspected = await input.applier
+        .inspect({
+          connectionString: input.connectionString,
+          lockKey: MIGRATION_LEDGER_SERIALIZATION_LOCK_KEY,
+          plan,
+        })
+        .catch((): MigrationTargetInspection => ({ status: 'UNAVAILABLE', applied: [] }));
+      await authority.guard();
+    } catch (recoveryError) {
+      const recoveryReleaseFailure = releaseAuthorityFailure(recoveryError);
+      if (recoveryReleaseFailure) throw recoveryReleaseFailure;
+
+      if (recoveryError instanceof LeaseLostError) {
+        return {
+          ok: false,
+          code: 'MIGRATION_LEASE_LOST',
+          executionId: lease.execution.id,
+          state: lease.execution.state,
+          retryable: true,
+        };
+      }
+
+      inspected = { status: 'UNAVAILABLE', applied: [] };
+    }
 
     /*
      * COMMIT acknowledgement can be lost after PostgreSQL has durably committed.
@@ -688,12 +835,16 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
      */
     if (inspected.status === 'COMPLETE') {
       try {
-        await lease.guard();
-        await lease.transition('COMMITTED', {
+        await authority.guard();
+        await authority.transition('COMMITTED', {
           release: true,
           appliedStatements: inspected.applied.length,
         });
-      } catch {
+        await authority.assertRelease();
+      } catch (transitionError) {
+        const transitionReleaseFailure = releaseAuthorityFailure(transitionError);
+        if (transitionReleaseFailure) throw transitionReleaseFailure;
+
         return {
           ok: false,
           code: 'MIGRATION_LEASE_LOST',
@@ -712,9 +863,12 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
     }
 
     if (inspected.status === 'EMPTY') {
-      await lease
-        .transition('FAILED_SAFE', { release: true, errorCode: 'TARGET_TRANSACTION_ROLLED_BACK' })
-        .catch(() => undefined);
+      try {
+        await authority.transition('FAILED_SAFE', { release: true, errorCode: 'TARGET_TRANSACTION_ROLLED_BACK' });
+      } catch (transitionError) {
+        const transitionReleaseFailure = releaseAuthorityFailure(transitionError);
+        if (transitionReleaseFailure) throw transitionReleaseFailure;
+      }
       return {
         ok: false,
         code: 'MIGRATION_FAILED_SAFE',
@@ -724,9 +878,15 @@ export async function runPublishMigration(input: RunPublishMigrationInput): Prom
       };
     }
 
-    await lease
-      .transition('MANUAL_RECOVERY', { retainLock: true, errorCode: `TARGET_${inspected.status}` })
-      .catch(() => undefined);
+    try {
+      await authority.transition('MANUAL_RECOVERY', {
+        retainLock: true,
+        errorCode: `TARGET_${inspected.status}`,
+      });
+    } catch (transitionError) {
+      const transitionReleaseFailure = releaseAuthorityFailure(transitionError);
+      if (transitionReleaseFailure) throw transitionReleaseFailure;
+    }
 
     return {
       ok: false,
