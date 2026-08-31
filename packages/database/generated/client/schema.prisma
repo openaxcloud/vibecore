@@ -1248,7 +1248,9 @@ model Workspace {
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
-  // is the single workspace with environment='production'.
+  // is the single workspace with environment='production'. PostgreSQL enforces
+  // that last invariant with the partial unique index
+  // `Workspace_one_production_per_project_key` (Prisma cannot model it).
   environment      String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
@@ -1734,30 +1736,41 @@ model RegistryMutationRecovery {
 // for every rollback side effect. A replica may steal an orphan only after the
 // lease expires; the old fence can no longer mutate or publish afterwards.
 model RollbackIdempotencyRequest {
-  id                      String    @id @default(cuid())
-  projectId               String
-  actorUserId             String?
-  idempotencyKey          String
-  requestFingerprint      String
-  environment             String
-  status                  String    @default("IN_PROGRESS")
-  phase                   String    @default("CLAIMED")
-  leaseOwner              String?
-  leaseExpiresAt          DateTime?
-  fencingToken            Int       @default(1)
-  effectFencingToken      Int?
-  deploymentId            String?   @unique
-  expectedHeadVersion     Int?
-  previousManifestId      String?
-  projectManifestDigest   String?
-  responseStatus          Int?
-  responseContentLanguage String?
-  responseBody            Json?
-  completedAt             DateTime?
-  createdAt               DateTime  @default(now())
-  updatedAt               DateTime  @updatedAt
-  project                 Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  actor                   User?     @relation("RollbackOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  id                       String    @id @default(cuid())
+  projectId                String
+  actorUserId              String?
+  idempotencyKey           String
+  requestFingerprint       String
+  environment              String
+  operationKind            String    @default("RELEASE_HISTORY")
+  status                   String    @default("IN_PROGRESS")
+  phase                    String    @default("CLAIMED")
+  leaseOwner               String?
+  leaseExpiresAt           DateTime?
+  fencingToken             Int       @default(1)
+  effectFencingToken       Int?
+  deploymentId             String?   @unique
+  sourceDeploymentId       String?
+  expectedHeadVersion      Int?
+  previousManifestId       String?
+  projectManifestDigest    String?
+  provider                 String?
+  providerDeploymentId     String?
+  providerTarget           String?
+  providerEffectState      String?
+  providerResponseStatus   Int?
+  providerResponseEvidence Json?
+  providerRecoveryEvidence Json?
+  providerEffectStartedAt  DateTime?
+  providerEffectResolvedAt DateTime?
+  responseStatus           Int?
+  responseContentLanguage  String?
+  responseBody             Json?
+  completedAt              DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+  project                  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor                    User?     @relation("RollbackOperationActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@unique([projectId, idempotencyKey])
   @@index([actorUserId, status])

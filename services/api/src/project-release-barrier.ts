@@ -8,6 +8,7 @@ const DEFAULT_RELEASE_BARRIER_HEARTBEAT_MS = 15_000;
 export interface ProjectReleaseGuard {
   readonly lease: ProjectReleaseBarrierLease;
   readonly fence: ProjectReleaseFence;
+  readonly signal: AbortSignal;
 
   /** Revalidate the DB-clock lease, Project organization, and manifest digest. */
   assert(): Promise<void>;
@@ -56,6 +57,7 @@ export async function withProjectReleaseBarrier<T>(
 
   let lost: unknown;
   let renewing = false;
+  const authorityAbort = new AbortController();
 
   const fence: ProjectReleaseFence = {
     checkpointId: lease.checkpointId,
@@ -66,6 +68,7 @@ export async function withProjectReleaseBarrier<T>(
   };
   const assert = async () => {
     if (lost) {
+      if (!authorityAbort.signal.aborted) authorityAbort.abort(lost);
       throw lost;
     }
 
@@ -80,6 +83,7 @@ export async function withProjectReleaseBarrier<T>(
       });
     } catch (error) {
       lost = error;
+      if (!authorityAbort.signal.aborted) authorityAbort.abort(error);
       throw error;
     }
   };
@@ -103,10 +107,12 @@ export async function withProjectReleaseBarrier<T>(
             code: 'PROJECT_RELEASE_BARRIER_LOST',
             statusCode: 409,
           });
+          if (!authorityAbort.signal.aborted) authorityAbort.abort(lost);
         }
       })
       .catch((error: unknown) => {
         lost = error;
+        if (!authorityAbort.signal.aborted) authorityAbort.abort(error);
       })
       .finally(() => {
         renewing = false;
@@ -117,12 +123,13 @@ export async function withProjectReleaseBarrier<T>(
   try {
     await assert();
 
-    const result = await effect({ lease, fence, assert });
+    const result = await effect({ lease, fence, signal: authorityAbort.signal, assert });
     await assert();
 
     return result;
   } finally {
     clearInterval(heartbeat);
+    if (!authorityAbort.signal.aborted) authorityAbort.abort(new Error('PROJECT_RELEASE_BARRIER_CLOSED'));
     await store
       .releaseProjectReleaseBarrier({
         checkpointId: lease.checkpointId,

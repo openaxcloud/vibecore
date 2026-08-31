@@ -343,8 +343,14 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
     tx.rollbackIdempotencyRequest.findFirst({
       where: {
         status: 'IN_PROGRESS',
-        phase: 'EFFECT_STARTED',
-        OR: actorOrSoleOrganization(input.userId, soleOrganizationIds),
+        OR: [
+          /* Every in-progress rollback is durable project mutation authority.
+           * Refuse the account purge before its first physical effect even when
+           * the rollback has not reached EFFECT_STARTED yet; the purge locks
+           * then prevent a new operation from appearing behind this preflight. */
+          { actorUserId: input.userId },
+          ...(soleOrganizationIds.length > 0 ? [{ project: { organizationId: { in: soleOrganizationIds } } }] : []),
+        ],
       },
       select: { id: true },
     }),
@@ -636,14 +642,19 @@ export async function fencePurgedUserStateMachines(
     });
   }
   if (rollbackOperations.length > rollbackOperationsToFence.length) {
-    await tx.rollbackIdempotencyRequest.updateMany({
-      where: {
-        id: {
-          in: rollbackOperations.filter(({ status }) => status !== 'IN_PROGRESS').map(({ id }) => id),
-        },
-      },
-      data: { actorUserId: null },
-    });
+    const completedRollbackIds = rollbackOperations
+      .filter(({ status }) => status !== 'IN_PROGRESS')
+      .map(({ id }) => id);
+    /* Preserve every receipt column, including updatedAt. Prisma's @updatedAt
+     * write would make this look like a receipt mutation to the database
+     * immutability trigger; this exact SQL performs only the purge-authorized
+     * actor redaction guarded by migration 0114. */
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE "RollbackIdempotencyRequest"
+      SET "actorUserId" = NULL
+      WHERE "id" IN (${Prisma.join(completedRollbackIds)})
+        AND "status" = 'COMPLETED'
+    `);
   }
 
   const partialProjectIds = [...new Set([...importTargetIds, ...remixTargetIds])].sort();

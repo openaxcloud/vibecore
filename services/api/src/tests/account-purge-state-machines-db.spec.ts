@@ -210,6 +210,62 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
     }
   });
 
+  it('refuses account-purge storage effects while any actor rollback remains in progress', async () => {
+    const prisma = createDatabaseClient();
+    let seeded: Awaited<ReturnType<typeof seedSharedAccount>> | undefined;
+
+    try {
+      seeded = await seedSharedAccount(prisma, true);
+      const store = new PrismaApiStore(prisma);
+      const rollback = await store.acquireRollbackOperation({
+        projectId: seeded.project.id,
+        actorUserId: seeded.subject.id,
+        idempotencyKey: `purge-rollback-guard-${suffix()}`,
+        requestFingerprint: 'f'.repeat(64),
+        environment: 'production',
+        ownerToken: `rollback-owner-${suffix()}`,
+        leaseDurationMs: 60_000,
+      });
+      expect(rollback.kind).toBe('ACQUIRED');
+      const storageEffects = vi.fn();
+      const eraseStorage = async () => {
+        storageEffects();
+        return { classes: [], verified: true };
+      };
+
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).rejects.toMatchObject({
+        code: 'ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE',
+        statusCode: 409,
+      });
+      expect(storageEffects).not.toHaveBeenCalled();
+      await expect(prisma.project.findUnique({ where: { id: seeded.project.id } })).resolves.not.toBeNull();
+      await expect(
+        prisma.rollbackIdempotencyRequest.findUnique({ where: { id: rollback.record.id } }),
+      ).resolves.toMatchObject({ status: 'IN_PROGRESS', phase: 'CLAIMED' });
+
+      await store.completeRollbackOperation({
+        operationId: rollback.record.id,
+        ownerToken: rollback.record.leaseOwner!,
+        fencingToken: rollback.record.fencingToken,
+        responseStatus: 409,
+        responseContentLanguage: 'en',
+        responseBody: { code: 'ROLLBACK_CANCELED_BEFORE_EFFECT' },
+      });
+      await expect(store.purgeUserAccount({ userId: seeded.subject.id }, { eraseStorage })).resolves.toMatchObject({
+        outcome: 'purged',
+      });
+      expect(storageEffects).toHaveBeenCalledTimes(1);
+    } finally {
+      if (seeded) {
+        await cleanup(prisma, {
+          userIds: [seeded.subject.id, seeded.other.id],
+          organizationId: seeded.organization.id,
+        }).catch(() => undefined);
+      }
+      await prisma.$disconnect();
+    }
+  });
+
   it('fences acquired work during a purge latch, releases the hold, and rejects every post-proof replay', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
@@ -253,16 +309,6 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
         idempotencyKey: `purge-remix-${suffix()}`,
         requestHash: 'e'.repeat(64),
       });
-      const rollback = await storeB.acquireRollbackOperation({
-        projectId: seeded.project.id,
-        actorUserId: seeded.subject.id,
-        idempotencyKey: `purge-rollback-${suffix()}`,
-        requestFingerprint: 'f'.repeat(64),
-        environment: 'production',
-        ownerToken: `rollback-owner-${suffix()}`,
-        leaseDurationMs: 60_000,
-      });
-      expect(rollback.kind).toBe('ACQUIRED');
       const terminalCheckpoint = await prismaA.projectCheckpoint.create({
         data: {
           projectId: seeded.project.id,
@@ -301,23 +347,13 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
           leaseDurationMs: 60_000,
         }),
       ).rejects.toMatchObject({ code: 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE' });
-      await expect(
-        storeB.renewRollbackOperationLease({
-          operationId: rollback.record.id,
-          ownerToken: rollback.record.leaseOwner!,
-          fencingToken: rollback.record.fencingToken,
-          leaseDurationMs: 60_000,
-        }),
-      ).rejects.toMatchObject({ code: 'USER_TOPOLOGY_FROZEN_FOR_ACCOUNT_PURGE' });
-
       release.resolve();
       await expect(purge).resolves.toMatchObject({ outcome: 'purged' });
 
-      const [importRow, hold, remixRow, rollbackRow] = await Promise.all([
+      const [importRow, hold, remixRow] = await Promise.all([
         prismaA.importJob.findUniqueOrThrow({ where: { id: createdImport.job.id } }),
         prismaA.ledgerReservation.findFirstOrThrow({ where: { importJobId: createdImport.job.id } }),
         prismaA.remixJob.findUniqueOrThrow({ where: { id: remix.job.id } }),
-        prismaA.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: rollback.record.id } }),
       ]);
       expect(importRow).toMatchObject({
         actorUserId: null,
@@ -333,12 +369,6 @@ runDbTests('account purge state machines — PostgreSQL lock/proof fencing', () 
         state: 'FAILED',
         errorCode: 'ACCOUNT_PURGE_COMPLETED',
         operationToken: null,
-      });
-      expect(rollbackRow).toMatchObject({
-        actorUserId: null,
-        status: 'COMPLETED',
-        responseStatus: 410,
-        leaseOwner: null,
       });
       expect(await prismaA.ledgerReservation.count({ where: { status: 'ACTIVE', userId: seeded.subject.id } })).toBe(0);
 

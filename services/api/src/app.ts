@@ -377,7 +377,9 @@ import {
   writeStaticDeploymentRoutingAlias,
   staticDeploymentSnapshotDir,
   triggerProviderDeployHook,
-  triggerProviderRollback,
+  dispatchProviderRollback,
+  observeProviderRollback,
+  resolveProviderRollbackBinding,
   providerRollbackProviders,
   createDeploymentSchema,
   deploymentProviders,
@@ -387,6 +389,7 @@ import {
   isDedicatedStaticDeployHost,
   type CreateDeploymentRequest,
   type RunStaticBuildResult,
+  type ProviderRollbackBinding,
   type StaticBuildLog,
 } from './deployments.js';
 import {
@@ -615,6 +618,7 @@ import {
   type ReleasePlanEntitlementsPin,
   type RemixStorageShareRecord,
   type RollbackLeaseFence,
+  type RollbackOperationRecord,
   type ServerImageReleaseCommitInput,
   type ServerImageReleaseCommitResult,
   type RuntimeWebSocketEndpoint,
@@ -6020,17 +6024,36 @@ async function requireRecentReauth(request: FastifyRequest, ttlSeconds = 300) {
   }
 }
 
-async function requireAdminMfaForSensitiveAction(request: FastifyRequest) {
-  if (!adminMfaRequired()) {
-    return;
-  }
-
+async function requireEnrolledAdminMfa(request: FastifyRequest) {
   if (!request.currentUser?.mfaEnabled) {
     throw Object.assign(new Error(appPublicEnglish('ADMIN_MFA_REQUIRED')), {
       statusCode: 403,
       code: 'ADMIN_MFA_REQUIRED',
     });
   }
+}
+
+async function requireCurrentAdminMfaCode(request: FastifyRequest, store: ApiStore, code: string) {
+  await requireEnrolledAdminMfa(request);
+  const user = await store.findUserById(request.currentUser!.id);
+  const totpValid = Boolean(user?.mfaEnabled && verifyEncryptedTotpCode(user.mfaSecretEncrypted, code));
+  const recoveryValid =
+    !totpValid && user?.mfaEnabled ? await store.consumeRecoveryCode(user.id, hashRecoveryCode(code)) : false;
+
+  if (!totpValid && !recoveryValid) {
+    throw Object.assign(new Error(appPublicEnglish('AUTH_INVALID_MFA_CODE')), {
+      statusCode: 403,
+      code: 'ADMIN_MFA_INVALID_CODE',
+    });
+  }
+}
+
+async function requireAdminMfaForSensitiveAction(request: FastifyRequest) {
+  if (!adminMfaRequired()) {
+    return;
+  }
+
+  await requireEnrolledAdminMfa(request);
 }
 
 function verifyEncryptedTotpCode(encryptedSecret: string | undefined, code: string) {
@@ -10391,6 +10414,98 @@ function rollbackRequestFingerprint(environment: string): string {
   return createHash('sha256')
     .update(JSON.stringify({ operation: 'rollback-to-previous', environment }))
     .digest('hex');
+}
+
+function providerRollbackRequestFingerprint(input: {
+  projectId: string;
+  sourceDeploymentId: string;
+  environment: string;
+  provider: string;
+  providerDeploymentId: string;
+  providerTarget: string;
+}): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify({
+        operation: 'provider-rollback',
+        projectId: input.projectId,
+        sourceDeploymentId: input.sourceDeploymentId,
+        environment: input.environment,
+        provider: input.provider,
+        providerDeploymentId: input.providerDeploymentId,
+        providerTarget: input.providerTarget,
+      }),
+    )
+    .digest('hex');
+}
+
+function persistedProviderRollbackBinding(operation: RollbackOperationRecord): ProviderRollbackBinding {
+  if (!operation.provider || !operation.providerDeploymentId || !operation.providerTarget) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+      code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+      statusCode: 503,
+    });
+  }
+
+  let target: unknown;
+  try {
+    target = JSON.parse(operation.providerTarget);
+  } catch {
+    target = undefined;
+  }
+
+  if (!target || typeof target !== 'object' || Array.isArray(target)) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+      code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+      statusCode: 503,
+    });
+  }
+
+  const record = target as Record<string, unknown>;
+
+  if (
+    operation.provider === 'vercel' &&
+    typeof record.projectId === 'string' &&
+    (record.teamId === null || typeof record.teamId === 'string')
+  ) {
+    return {
+      provider: operation.provider,
+      deploymentId: operation.providerDeploymentId,
+      providerTarget: operation.providerTarget,
+      projectId: record.projectId,
+      ...(typeof record.teamId === 'string' ? { teamId: record.teamId } : {}),
+    };
+  }
+
+  if (operation.provider === 'netlify' && typeof record.siteId === 'string') {
+    return {
+      provider: operation.provider,
+      deploymentId: operation.providerDeploymentId,
+      providerTarget: operation.providerTarget,
+      siteId: record.siteId,
+    };
+  }
+
+  if (
+    operation.provider === 'cloudflare-pages' &&
+    typeof record.accountId === 'string' &&
+    typeof record.projectName === 'string' &&
+    typeof record.projectId === 'string'
+  ) {
+    return {
+      provider: operation.provider,
+      deploymentId: operation.providerDeploymentId,
+      providerTarget: operation.providerTarget,
+      accountId: record.accountId,
+      projectName: record.projectName,
+      projectId: record.projectId,
+    };
+  }
+
+  throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+    code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+    statusCode: 503,
+  });
 }
 
 function rollbackLeaseConfiguration(): { leaseDurationMs: number; renewIntervalMs: number; waitMs: number } {
@@ -34504,6 +34619,315 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /**
+   * Operator recovery never dispatches a provider mutation. It reclaims only
+   * the durable operation lease, obtains a fresh project release fence, and
+   * asks the provider's canonical live-routing endpoint what is serving now.
+   */
+  app.post(
+    '/admin/provider-rollbacks/:operationId/recovery',
+    { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } },
+    async (request, reply) => {
+      await requirePlatformAdmin(request);
+      const { operationId } = parse(
+        z.object({ operationId: z.string().trim().min(1).max(512) }).strict(),
+        request.params,
+      );
+      const { mfaCode } = parse(z.object({ mfaCode: z.string().min(6).max(32) }).strict(), request.body ?? {});
+      // This endpoint resolves an ambiguous external traffic mutation. Both
+      // password/IdP step-up and a current TOTP/recovery proof are mandatory;
+      // the platform-wide compatibility flag cannot relax either factor.
+      await requireRecentAdminReauth(request, 60);
+      await requireCurrentAdminMfaCode(request, store, mfaCode);
+
+      const persisted = await store.getRollbackOperationById(operationId);
+      if (!persisted) {
+        return reply.code(404).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_OPERATION_NOT_FOUND',
+        });
+      }
+      if (
+        persisted.operationKind !== 'PROVIDER' ||
+        !persisted.actorUserId ||
+        !persisted.deploymentId ||
+        !persisted.sourceDeploymentId ||
+        !persisted.projectManifestDigest
+      ) {
+        return reply.code(409).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID',
+        });
+      }
+      if (persisted.status === 'COMPLETED') {
+        const resolution =
+          persisted.phase === 'RELEASE_COMMITTED' && persisted.providerEffectState === 'COMMITTED'
+            ? ('COMMITTED' as const)
+            : persisted.phase === 'PROVIDER_SUPERSEDED' && persisted.providerEffectState === 'SUPERSEDED'
+              ? ('SUPERSEDED' as const)
+              : undefined;
+        if (!resolution) {
+          return reply.code(409).send({
+            error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+            code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID',
+          });
+        }
+        return reply.send({
+          recovery: {
+            operationId: persisted.id,
+            deploymentId: persisted.deploymentId,
+            resolution,
+            replayed: true,
+          },
+        });
+      }
+      if (persisted.phase !== 'EFFECT_STARTED') {
+        return reply.code(409).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID',
+        });
+      }
+
+      const project = await store.getProject(persisted.projectId);
+      const source = await store.getDeployment(persisted.projectId, persisted.sourceDeploymentId);
+      const rollback = await store.getDeployment(persisted.projectId, persisted.deploymentId);
+      if (
+        !project ||
+        project.deletedAt ||
+        project.permanentDeletionStartedAt ||
+        !source ||
+        !rollback ||
+        source.provider !== persisted.provider
+      ) {
+        return reply.code(409).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID',
+        });
+      }
+
+      let providerBinding: ProviderRollbackBinding;
+      try {
+        providerBinding = persistedProviderRollbackBinding(persisted);
+      } catch {
+        return reply.code(503).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_LIVE_STATE_UNPROVABLE',
+          retryable: false,
+        });
+      }
+
+      const leaseConfig = rollbackLeaseConfiguration();
+      const ownerToken = `provider-rollback-operator:${randomUUID()}`;
+      const acquisition = await store.acquireRollbackOperation({
+        projectId: persisted.projectId,
+        actorUserId: persisted.actorUserId,
+        idempotencyKey: persisted.idempotencyKey,
+        requestFingerprint: persisted.requestFingerprint,
+        environment: persisted.environment,
+        operationKind: 'PROVIDER',
+        ownerToken,
+        leaseDurationMs: leaseConfig.leaseDurationMs,
+      });
+
+      if (acquisition.kind === 'BUSY') {
+        reply.header('retry-after', '2');
+        return reply.code(409).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_IN_PROGRESS'),
+          code: 'ROLLBACK_IN_PROGRESS',
+          retryable: true,
+        });
+      }
+      if (acquisition.kind !== 'ACQUIRED') {
+        return reply.code(409).send({
+          error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+          code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID',
+        });
+      }
+
+      let operation = acquisition.record;
+      const leaseManager = new RollbackOperationLeaseManager(
+        store,
+        { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+        leaseConfig.leaseDurationMs,
+        leaseConfig.renewIntervalMs,
+      );
+      leaseManager.start();
+      let completed = false;
+
+      try {
+        const liveManifest = await currentProjectManifest(store, project);
+        const result = await withProjectReleaseBarrier(
+          store,
+          {
+            projectId: project.id,
+            expectedOrganizationId: project.organizationId,
+            expectedManifestDigest: liveManifest.digest,
+            operationId: `provider-rollback-operator:${operation.id}:${operation.fencingToken}`,
+          },
+          async (releaseGuard) => {
+            const effect = await store.beginProviderRollbackEffect({
+              operationId: operation.id,
+              ownerToken,
+              fencingToken: operation.fencingToken,
+              releaseFence: releaseGuard.fence,
+            });
+            if (effect.kind !== 'RECOVER') {
+              throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+                code: 'PROVIDER_ROLLBACK_RECOVERY_DISPATCH_FORBIDDEN',
+                statusCode: 409,
+              });
+            }
+            operation = effect.record;
+
+            const authoritySignal = AbortSignal.any([releaseGuard.signal, leaseManager.signal]);
+            let observation;
+            try {
+              observation = await observeProviderRollback(providerBinding, fetch, process.env, authoritySignal);
+            } catch (error) {
+              observation = {
+                state: 'AMBIGUOUS' as const,
+                evidence: {
+                  provider: operation.provider,
+                  providerTarget: operation.providerTarget,
+                  targetDeploymentId: operation.providerDeploymentId,
+                  liveDeploymentIds: [],
+                  reason: error instanceof Error ? error.name : 'observation-error',
+                },
+              };
+            }
+
+            await leaseManager.guard();
+            operation = await store.recordProviderRollbackObservation({
+              operationId: operation.id,
+              ownerToken,
+              fencingToken: operation.fencingToken,
+              state: observation.state,
+              evidence: {
+                ...observation.evidence,
+                recoveryMode: 'OPERATOR',
+                operatorUserId: request.currentUser!.id,
+              },
+            });
+
+            if (observation.state === 'AMBIGUOUS') {
+              return { state: 'AMBIGUOUS' as const };
+            }
+
+            await releaseGuard.assert();
+            await leaseManager.guard();
+            if (observation.state === 'TARGET') {
+              const providerMetadata = (rollback.metadata ?? {}) as Record<string, unknown>;
+              return {
+                state: 'RESOLVED' as const,
+                result: await store.resolveProviderRollbackOperator({
+                  fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+                  releaseFence: releaseGuard.fence,
+                  operatorUserId: request.currentUser!.id,
+                  ipAddress: request.ip,
+                  resolution: 'COMMITTED',
+                  projectId: project.id,
+                  deploymentId: rollback.id,
+                  committedPatch: {
+                    status: 'READY',
+                    url: source.url,
+                    previewUrl: source.previewUrl,
+                    productionUrl: source.productionUrl,
+                    metadata: { ...providerMetadata, providerRollbackStatus: 'observed-live-operator-recovery' },
+                    logs: [
+                      ...rollback.logs,
+                      {
+                        timestamp: new Date().toISOString(),
+                        level: 'info',
+                        message: appPublicEnglish('DEPLOYMENT_ROLLED_BACK_TO', {
+                          deploymentId: source.id,
+                          provider: source.provider,
+                          buildId: persisted.providerDeploymentId ?? 'unknown',
+                          url: source.url ?? 'n/a',
+                        }),
+                      },
+                    ],
+                    finishedAt: new Date().toISOString(),
+                  },
+                }),
+              };
+            }
+
+            return {
+              state: 'RESOLVED' as const,
+              result: await store.resolveProviderRollbackOperator({
+                fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+                releaseFence: releaseGuard.fence,
+                operatorUserId: request.currentUser!.id,
+                ipAddress: request.ip,
+                resolution: 'SUPERSEDED',
+                projectId: project.id,
+                deploymentId: rollback.id,
+              }),
+            };
+          },
+        );
+
+        if (result.state === 'AMBIGUOUS') {
+          reply.header('retry-after', '60');
+          return reply.code(503).send({
+            error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+            code: 'PROVIDER_ROLLBACK_MANUAL_RECOVERY',
+            retryable: false,
+          });
+        }
+
+        completed = true;
+        return reply.send({
+          recovery: {
+            operationId: result.result.operation.id,
+            deploymentId: result.result.deployment.id,
+            resolution: result.result.resolution,
+            auditLogId: result.result.auditLogId,
+          },
+        });
+      } catch (error) {
+        const code = (error as { code?: string }).code;
+        if (code === 'PROVIDER_ROLLBACK_RECOVERY_WINDOW_ACTIVE') {
+          const retryAt = (error as { retryAt?: string }).retryAt;
+          const retrySeconds = retryAt ? Math.max(1, Math.ceil((Date.parse(retryAt) - Date.now()) / 1_000)) : 60;
+          reply.header('retry-after', String(retrySeconds));
+          return reply.code(409).send({
+            error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_IN_PROGRESS'),
+            code: 'PROVIDER_ROLLBACK_RECOVERY_WINDOW_ACTIVE',
+            retryable: true,
+            ...(retryAt ? { retryAt } : {}),
+          });
+        }
+        if (
+          error instanceof RollbackOperationLeaseLostError ||
+          code === 'ROLLBACK_OWNERSHIP_LOST' ||
+          code === 'PROJECT_RELEASE_BARRIER_LOST' ||
+          code === 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE' ||
+          code === 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'
+        ) {
+          reply.header('retry-after', '2');
+          return reply.code(503).send({
+            error: appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE'),
+            code: 'PROVIDER_ROLLBACK_MANUAL_RECOVERY',
+            retryable: false,
+          });
+        }
+        throw error;
+      } finally {
+        await leaseManager.stop();
+        if (!completed) {
+          await store
+            .yieldRollbackOperationLease({
+              operationId: operation.id,
+              ownerToken,
+              fencingToken: operation.fencingToken,
+            })
+            .catch(() => undefined);
+        }
+      }
+    },
+  );
+
+  /**
    * Fail-closed operator recovery for a registry effect whose PostgreSQL
    * session/fence was lost. Identity fields are derived from the locked row;
    * the client can submit observations but cannot manufacture an actor,
@@ -45479,18 +45903,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const canceled = await store.updateDeployment(project.id, deployment.id, {
-      status: 'CANCELED',
-      canceledAt: new Date().toISOString(),
-      logs: [
-        ...deployment.logs,
-        {
-          timestamp: new Date().toISOString(),
-          level: 'warn',
-          message: appPublicEnglish('DEPLOYMENT_CANCELED_BY_USER'),
-        },
-      ],
-    });
+    let canceled: DeploymentRecord;
+    try {
+      const canceledAt = new Date().toISOString();
+      canceled = await store.cancelDeployment({
+        projectId: project.id,
+        deploymentId: deployment.id,
+        canceledAt,
+        logs: [
+          ...deployment.logs,
+          {
+            timestamp: canceledAt,
+            level: 'warn',
+            message: appPublicEnglish('DEPLOYMENT_CANCELED_BY_USER'),
+          },
+        ],
+      });
+    } catch (error) {
+      const code = (error as { code?: string }).code;
+      if (code === 'DEPLOYMENT_ROLLBACK_IN_PROGRESS' || code === 'DEPLOYMENT_NOT_CANCELABLE') {
+        return reply.code(409).send({
+          error: appPublicEnglish('DEPLOYMENT_CANNOT_CANCEL_STATUS', { value1: deployment.status }),
+          code,
+        });
+      }
+      throw error;
+    }
 
     /*
      * A server deployment runs a durable Deployment+Service in the runtime
@@ -47567,26 +48005,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       if (orphan && orphan.status !== 'FAILED' && orphan.status !== 'CANCELED') {
-        await store.updateRollbackDeployment({
-          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
-          projectId: project.id,
-          deploymentId: operation.deploymentId,
-          patch: {
-            status: 'FAILED',
-            url: '',
-            previewUrl: '',
-            productionUrl: '',
-            logs: [
-              ...orphan.logs,
-              {
-                timestamp: new Date().toISOString(),
-                level: 'error',
-                message: appPublicEnglish('ROLLBACK_RECOVERED_FAILED_ATTEMPT'),
-              },
-            ],
-            finishedAt: new Date().toISOString(),
+        const recoveryManifest = await currentProjectManifest(store, project);
+        await withProjectReleaseBarrier(
+          store,
+          {
+            projectId: project.id,
+            expectedOrganizationId: project.organizationId,
+            expectedManifestDigest: recoveryManifest.digest,
+            operationId: `rollback-recovery:${operation.id}`,
           },
-        });
+          (releaseGuard) =>
+            store.updateRollbackDeployment({
+              fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
+              projectId: project.id,
+              deploymentId: operation.deploymentId!,
+              patch: {
+                status: 'FAILED',
+                url: '',
+                previewUrl: '',
+                productionUrl: '',
+                logs: [
+                  ...orphan.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'error',
+                    message: appPublicEnglish('ROLLBACK_RECOVERED_FAILED_ATTEMPT'),
+                  },
+                ],
+                finishedAt: new Date().toISOString(),
+              },
+            }),
+        );
       }
 
       try {
@@ -47681,28 +48131,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    if (!operation.deploymentId) {
-      operation = await store.bindRollbackOperationTarget({
-        operationId: operation.id,
-        ownerToken,
-        fencingToken: operation.fencingToken,
-        deploymentId: randomUUID(),
-        expectedHeadVersion: currentVersion,
-        previousManifestId: previous.id,
-        projectManifestDigest: liveProjectManifest.digest,
-      });
-    }
+    const rollbackDeploymentId = operation.deploymentId ?? randomUUID();
+    const expectedHeadVersion = operation.expectedHeadVersion ?? currentVersion;
 
-    const rollbackDeploymentId = operation.deploymentId;
-
-    if (!rollbackDeploymentId || operation.expectedHeadVersion === undefined) {
+    if (operation.deploymentId && operation.expectedHeadVersion === undefined) {
       throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
         code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
         statusCode: 503,
       });
     }
-
-    const expectedHeadVersion = operation.expectedHeadVersion;
 
     return withProjectReleaseBarrier(
       store,
@@ -47713,6 +48150,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         operationId: `rollback:${operation.id}`,
       },
       async (releaseGuard) => {
+        if (!operation.deploymentId) {
+          operation = await store.bindRollbackOperationTarget({
+            operationId: operation.id,
+            ownerToken,
+            fencingToken: operation.fencingToken,
+            deploymentId: rollbackDeploymentId,
+            expectedHeadVersion,
+            previousManifestId: previous.id,
+            projectManifestDigest: liveProjectManifest.digest,
+            releaseFence: releaseGuard.fence,
+          });
+        }
+
+        if (
+          operation.deploymentId !== rollbackDeploymentId ||
+          operation.expectedHeadVersion !== expectedHeadVersion ||
+          operation.previousManifestId !== previous.id
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+            code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+            statusCode: 503,
+          });
+        }
+
         // ---- STATIC: re-materialise + re-verify the previous snapshot bytes. ----
         if (previous.artifactKind === 'static-snapshot') {
           await requireRetainedReleaseAccessPolicy(previous);
@@ -47751,6 +48212,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const ensureStaticRollback = () =>
             store.ensureRollbackDeployment({
               fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
               deployment: {
                 id: rollbackDeploymentId,
                 projectId: project.id,
@@ -47809,6 +48271,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               operationId: operation.id,
               ownerToken,
               fencingToken: operation.fencingToken,
+              releaseFence: releaseGuard.fence,
             });
             await leaseManager.guard();
             const physicalReleaseScope = {
@@ -47901,6 +48364,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             );
             await store.updateRollbackDeployment({
               fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
               projectId: project.id,
               deploymentId: rollback.id,
               patch: {
@@ -48003,6 +48467,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           const ensureServerRollback = () =>
             store.ensureRollbackDeployment({
               fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
               deployment: {
                 id: rollbackDeploymentId,
                 projectId: project.id,
@@ -48094,6 +48559,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               operationId: operation.id,
               ownerToken,
               fencingToken: operation.fencingToken,
+              releaseFence: releaseGuard.fence,
             });
             await leaseManager.guard();
             await assertEnvironmentDatabaseLeaseHeld(environmentDatabaseLease);
@@ -48126,6 +48592,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             let ready = await store.updateRollbackDeployment({
               fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
               projectId: project.id,
               deploymentId: rollback.id,
               patch: {
@@ -48206,6 +48673,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             );
             await store.updateRollbackDeployment({
               fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
               projectId: project.id,
               deploymentId: rollback.id,
               patch: {
@@ -48334,6 +48802,390 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const expectedManifestDigest =
       typeof targetBoundDigest === 'string' ? targetBoundDigest : (await currentProjectManifest(store, project)).digest;
 
+    const providerRollbackProvider = providerRollbackProviders.includes(
+      target.provider as (typeof providerRollbackProviders)[number],
+    )
+      ? (target.provider as (typeof providerRollbackProviders)[number])
+      : undefined;
+
+    if (providerRollbackProvider) {
+      if (target.environment !== 'production') {
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+          code: 'PROVIDER_ROLLBACK_REQUIRES_PRODUCTION_TARGET',
+        });
+      }
+
+      const idempotencyKey = rollbackIdempotencyKey(request);
+      if (!idempotencyKey) {
+        return reply.code(400).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REQUIRED', locale),
+          code: 'IDEMPOTENCY_KEY_REQUIRED',
+        });
+      }
+
+      /*
+       * Netlify's public Site and Split Test APIs do not expose whether Skew
+       * Protection can still route pinned requests to an older deploy. A
+       * restore would therefore create a mutation whose accepted-but-lost
+       * outcome can never be reconciled or terminalized safely. Refuse before
+       * binding durable authority or sending the provider POST.
+       */
+      if (providerRollbackProvider === 'netlify') {
+        return reply.code(503).send({
+          error: appPublicEnglish('GENERIC_REQUEST_FAILED'),
+          code: 'PROVIDER_ROLLBACK_LIVE_STATE_UNPROVABLE',
+          retryable: false,
+        });
+      }
+
+      const providerDeploymentId = (target.metadata as Record<string, unknown> | undefined)?.providerBuildId;
+      if (typeof providerDeploymentId !== 'string' || !providerDeploymentId) {
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+          code: 'PROVIDER_ROLLBACK_TARGET_UNPROVABLE',
+        });
+      }
+
+      let providerBinding: ProviderRollbackBinding;
+      const existingProviderOperation = await store.getRollbackOperation(project.id, idempotencyKey);
+
+      try {
+        providerBinding =
+          existingProviderOperation?.operationKind === 'PROVIDER' && existingProviderOperation.providerTarget
+            ? persistedProviderRollbackBinding(existingProviderOperation)
+            : await resolveProviderRollbackBinding(providerRollbackProvider, providerDeploymentId);
+      } catch (error) {
+        const statusCode = (error as { statusCode?: number }).statusCode ?? 503;
+        return reply.code(statusCode).send({
+          error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
+          code: (error as { code?: string }).code ?? 'PROVIDER_ROLLBACK_TARGET_UNPROVABLE',
+          retryable: statusCode >= 500,
+        });
+      }
+
+      const requestFingerprint = providerRollbackRequestFingerprint({
+        projectId: project.id,
+        sourceDeploymentId: target.id,
+        environment: target.environment,
+        provider: providerRollbackProvider,
+        providerDeploymentId,
+        providerTarget: providerBinding.providerTarget,
+      });
+      const ownerToken = `provider-rollback-owner:${randomUUID()}`;
+      const leaseConfig = rollbackLeaseConfiguration();
+      const acquisitionDeadline = Date.now() + leaseConfig.waitMs;
+      let acquisitionDelayMs = 25;
+      let acquisition = await store.acquireRollbackOperation({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        idempotencyKey,
+        requestFingerprint,
+        environment: target.environment,
+        operationKind: 'PROVIDER',
+        ownerToken,
+        leaseDurationMs: leaseConfig.leaseDurationMs,
+      });
+
+      while (acquisition.kind === 'BUSY' && Date.now() < acquisitionDeadline) {
+        const remainingMs = acquisitionDeadline - Date.now();
+        const jitterMs = Math.floor(Math.random() * Math.max(1, Math.floor(acquisitionDelayMs / 4)));
+        await new Promise((resolve) => setTimeout(resolve, Math.min(remainingMs, acquisitionDelayMs + jitterMs)));
+        acquisition = await store.acquireRollbackOperation({
+          projectId: project.id,
+          actorUserId: request.currentUser!.id,
+          idempotencyKey,
+          requestFingerprint,
+          environment: target.environment,
+          operationKind: 'PROVIDER',
+          ownerToken,
+          leaseDurationMs: leaseConfig.leaseDurationMs,
+        });
+        acquisitionDelayMs = Math.min(500, Math.ceil(acquisitionDelayMs * 1.7));
+      }
+
+      if (acquisition.kind === 'FINGERPRINT_CONFLICT') {
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REUSED', locale),
+          code: 'IDEMPOTENCY_KEY_REUSED',
+        });
+      }
+
+      if (acquisition.kind === 'BUSY') {
+        reply.header('retry-after', '2');
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_IN_PROGRESS', locale),
+          code: 'ROLLBACK_IN_PROGRESS',
+          retryable: true,
+        });
+      }
+
+      if (acquisition.kind === 'REPLAY') {
+        if (
+          typeof acquisition.record.responseStatus !== 'number' ||
+          (acquisition.record.responseContentLanguage !== 'en' &&
+            acquisition.record.responseContentLanguage !== 'fr') ||
+          !acquisition.record.responseBody ||
+          typeof acquisition.record.responseBody !== 'object'
+        ) {
+          return reply.code(503).send({
+            error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+            code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        reply.header('idempotency-replayed', 'true');
+        setAppLocaleResponseHeaders(reply, acquisition.record.responseContentLanguage);
+        return reply.code(acquisition.record.responseStatus).send(acquisition.record.responseBody);
+      }
+
+      let operation = acquisition.record;
+      const leaseManager = new RollbackOperationLeaseManager(
+        store,
+        { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+        leaseConfig.leaseDurationMs,
+        leaseConfig.renewIntervalMs,
+      );
+      leaseManager.start();
+      request.rollbackOperation = {
+        operationId: operation.id,
+        ownerToken,
+        fencingToken: operation.fencingToken,
+        leaseManager,
+      };
+
+      const relinquishForRecovery = async () => {
+        request.rollbackOperation = undefined;
+        await leaseManager.stop();
+        await store
+          .yieldRollbackOperationLease({
+            operationId: operation.id,
+            ownerToken,
+            fencingToken: operation.fencingToken,
+          })
+          .catch(() => undefined);
+      };
+
+      if (operation.phase === 'RELEASE_COMMITTED') {
+        const committed = operation.deploymentId
+          ? await store.getDeployment(project.id, operation.deploymentId)
+          : undefined;
+        if (!committed || committed.status !== 'READY') {
+          await relinquishForRecovery();
+          return reply.code(503).send({
+            error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+            code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        return reply.code(201).send({ deployment: localizeDeploymentRecord(committed, locale) });
+      }
+
+      const rollbackDeploymentId = operation.deploymentId ?? randomUUID();
+      let providerEffectMayHaveStarted = operation.phase === 'EFFECT_STARTED';
+
+      try {
+        return await withProjectReleaseBarrier(
+          store,
+          {
+            projectId: project.id,
+            expectedOrganizationId: project.organizationId,
+            expectedManifestDigest,
+            operationId: `provider-rollback:${operation.id}`,
+          },
+          async (releaseGuard) => {
+            if (!operation.deploymentId) {
+              operation = await store.bindProviderRollbackTarget({
+                operationId: operation.id,
+                ownerToken,
+                fencingToken: operation.fencingToken,
+                deploymentId: rollbackDeploymentId,
+                sourceDeploymentId: target.id,
+                projectManifestDigest: expectedManifestDigest,
+                provider: providerRollbackProvider,
+                providerDeploymentId,
+                providerTarget: providerBinding.providerTarget,
+                releaseFence: releaseGuard.fence,
+              });
+            }
+
+            providerBinding = persistedProviderRollbackBinding(operation);
+            const providerMetadata = {
+              ...((target.metadata ?? {}) as Record<string, unknown>),
+              rollbackOperationId: operation.id,
+              projectManifestDigest: expectedManifestDigest,
+              rollbackTargetId: target.id,
+              restoredProviderBuildId: providerDeploymentId,
+              providerRollbackProvider,
+              providerRollbackTarget: providerDeploymentId,
+              providerRollbackTargetScope: providerBinding.providerTarget,
+            };
+            const ensureProviderDeployment = () =>
+              store.ensureRollbackDeployment({
+                fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+                releaseFence: releaseGuard.fence,
+                deployment: {
+                  id: rollbackDeploymentId,
+                  projectId: project.id,
+                  provider: providerRollbackProvider,
+                  environment: target.environment,
+                  status: 'QUEUED',
+                  accessPolicyVersion: target.accessPolicyVersion,
+                  rolledBackFromId: target.id,
+                  metadata: providerMetadata,
+                },
+              });
+            const existingRollback = await store.getDeployment(project.id, rollbackDeploymentId);
+            const rollback = existingRollback
+              ? await ensureProviderDeployment()
+              : await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+                  await ensureTenantAdmission(
+                    request,
+                    project.organizationId,
+                    'deployment.create',
+                    tenantDeploymentContext({
+                      provider: providerRollbackProvider,
+                      artifactSizeMb: 250,
+                      timeoutSeconds: 600,
+                    }),
+                  );
+                  await ensureQuota(request, project.organizationId, 'deployments.count');
+                  return ensureProviderDeployment();
+                });
+
+            if (rollback.status === 'FAILED' || rollback.status === 'CANCELED') {
+              await relinquishForRecovery();
+              return reply.code(503).send({
+                error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+                code: 'PROVIDER_ROLLBACK_MANUAL_RECOVERY',
+                retryable: true,
+              });
+            }
+
+            const effect = await store.beginProviderRollbackEffect({
+              operationId: operation.id,
+              ownerToken,
+              fencingToken: operation.fencingToken,
+              releaseFence: releaseGuard.fence,
+            });
+            operation = effect.record;
+            providerEffectMayHaveStarted = true;
+            const authoritySignal = AbortSignal.any([releaseGuard.signal, leaseManager.signal]);
+
+            if (effect.kind === 'DISPATCH') {
+              const dispatch = await dispatchProviderRollback(providerBinding, fetch, process.env, authoritySignal);
+              await leaseManager.guard();
+              operation = await store.recordProviderRollbackDispatch({
+                operationId: operation.id,
+                ownerToken,
+                fencingToken: operation.fencingToken,
+                state: dispatch.state,
+                ...(dispatch.responseStatus ? { responseStatus: dispatch.responseStatus } : {}),
+                responseEvidence: dispatch.evidence,
+              });
+            }
+
+            let observation;
+            try {
+              observation = await observeProviderRollback(providerBinding, fetch, process.env, authoritySignal);
+            } catch (error) {
+              observation = {
+                state: 'AMBIGUOUS' as const,
+                evidence: {
+                  provider: providerRollbackProvider,
+                  providerTarget: providerBinding.providerTarget,
+                  targetDeploymentId: providerDeploymentId,
+                  liveDeploymentIds: [],
+                  reason: error instanceof Error ? error.name : 'observation-error',
+                },
+              };
+            }
+
+            await leaseManager.guard();
+            operation = await store.recordProviderRollbackObservation({
+              operationId: operation.id,
+              ownerToken,
+              fencingToken: operation.fencingToken,
+              state: observation.state,
+              evidence: observation.evidence,
+            });
+
+            if (observation.state !== 'TARGET') {
+              await relinquishForRecovery();
+              reply.header('retry-after', '2');
+              return reply.code(503).send({
+                error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+                code: 'PROVIDER_ROLLBACK_MANUAL_RECOVERY',
+                retryable: true,
+              });
+            }
+
+            await releaseGuard.assert();
+            await leaseManager.guard();
+            const finalDeployment = await store.commitProviderRollbackDeployment({
+              fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+              releaseFence: releaseGuard.fence,
+              projectId: project.id,
+              deploymentId: rollback.id,
+              patch: {
+                status: 'READY',
+                url: target.url,
+                previewUrl: target.previewUrl,
+                productionUrl: target.productionUrl,
+                metadata: {
+                  ...providerMetadata,
+                  providerRollbackStatus: 'observed-live',
+                },
+                logs: [
+                  ...rollback.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'info',
+                    message: appPublicEnglish('DEPLOYMENT_ROLLED_BACK_TO', {
+                      deploymentId: target.id,
+                      provider: target.provider,
+                      buildId: providerDeploymentId,
+                      url: target.url ?? 'n/a',
+                    }),
+                  },
+                ],
+                finishedAt: new Date().toISOString(),
+              },
+            });
+
+            await audit(request, store, {
+              organizationId: project.organizationId,
+              action: 'deployment.rollback',
+              resourceType: 'deployment',
+              resourceId: finalDeployment.id,
+              metadata: {
+                targetDeploymentId: target.id,
+                providerRollbackStatus: 'observed-live',
+                rollbackOperationId: operation.id,
+              },
+            });
+
+            return reply.code(201).send({ deployment: localizeDeploymentRecord(finalDeployment, locale) });
+          },
+        );
+      } catch (error) {
+        if (!providerEffectMayHaveStarted) throw error;
+        request.log.error(
+          { err: error, rollbackOperationId: operation.id, targetDeploymentId: target.id },
+          'provider rollback requires live-state recovery',
+        );
+        await relinquishForRecovery();
+        reply.header('retry-after', '2');
+        return reply.code(503).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+          code: 'PROVIDER_ROLLBACK_MANUAL_RECOVERY',
+          retryable: true,
+        });
+      }
+    }
+
     if (target.provider === 'server' && process.env.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST === '0') {
       return reply.code(409).send({
         error: appPublicEnglish('DEPLOYMENT_SERVER_ROLLBACK_DISABLED'),
@@ -48392,8 +49244,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * Serialize quota + row creation at the org level (like create/redeploy) so
          * concurrent rollbacks can't bypass deployments.count. Only the fast
          * quota-check + createDeployment run under the lock — the external
-         * triggerProviderRollback below stays outside it to avoid holding the
-         * advisory-lock transaction across a network call.
+         * provider rollbacks returned through the durable recovery path above;
+         * this legacy branch now handles only in-platform static/server work.
          */
         /*
          * When a provider rollback will run, create the row as non-terminal (QUEUED)
@@ -48403,10 +49255,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * failed provider rollback looking successful. Non-provider rollbacks have no
          * follow-up call, so READY immediately is correct for them.
          */
-        const willTriggerProviderRollback = providerRollbackProviders.includes(
-          target.provider as (typeof providerRollbackProviders)[number],
-        );
-
         /*
          * D2 (approved 2026-07-17): server rollbacks are digest-only and FAIL-CLOSED.
          * The digest path is the DEFAULT — a lost env var (e.g. a helm upgrade wiping
@@ -48421,7 +49269,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * monotonic updateDeployment guard refuses to mutate a row already at a
          * terminal READY, which would silently drop the re-deploy + its metadata.
          */
-        const willServerDigestRollback = !willTriggerProviderRollback && target.provider === 'server';
+        const willServerDigestRollback = target.provider === 'server';
         const rollbackMetadata = (target.metadata ?? {}) as Record<string, unknown>;
 
         const rollbackMachineVcpu =
@@ -48452,7 +49300,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             workspaceId: target.workspaceId,
             provider: target.provider,
             environment: target.environment,
-            status: willTriggerProviderRollback || willServerDigestRollback ? 'QUEUED' : 'READY',
+            status: willServerDigestRollback ? 'QUEUED' : 'READY',
             url: target.url,
             previewUrl: target.previewUrl,
             productionUrl: target.productionUrl,
@@ -48487,51 +49335,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ],
           });
         });
-        let providerRollback;
-
-        if (willTriggerProviderRollback) {
-          await releaseGuard.assert();
-          providerRollback = await triggerProviderRollback(
-            target.provider as (typeof deploymentProviders)[number],
-            (target.metadata as Record<string, unknown>)?.providerBuildId as string | undefined,
-          );
-        }
-
         let finalDeployment = rollback;
-
-        if (providerRollback) {
-          await releaseGuard.assert();
-          const rollbackFailed = providerRollback.status === 'failed';
-          finalDeployment = await store.updateDeployment(
-            project.id,
-            rollback.id,
-            {
-              // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
-              status: rollbackFailed ? 'FAILED' : 'READY',
-
-              /*
-               * On a FAILED provider rollback, clear the live URLs copied from the target
-               * deployment up-front — the provider never actually switched traffic, so a
-               * FAILED row advertising the target's preview/production URL is misleading
-               * (dashboards/links point at a rollback that didn't happen).
-               */
-              ...(rollbackFailed ? { url: '', previewUrl: '', productionUrl: '' } : {}),
-              logs: [
-                ...rollback.logs,
-                {
-                  timestamp: new Date().toISOString(),
-                  level: providerRollback.status === 'failed' ? ('error' as const) : ('info' as const),
-                  message: providerRollback.log,
-                },
-              ],
-              metadata: {
-                ...(rollback.metadata as Record<string, unknown>),
-                providerRollbackStatus: providerRollback.status,
-              },
-            },
-            releaseGuard.fence,
-          );
-        }
 
         /*
          * Audit v4 rollback vertical: a SERVER deploy must actually RE-DEPLOY the
@@ -48723,7 +49527,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           resourceId: finalDeployment.id,
           metadata: {
             targetDeploymentId: target.id,
-            providerRollbackStatus: providerRollback?.status,
           },
         });
 

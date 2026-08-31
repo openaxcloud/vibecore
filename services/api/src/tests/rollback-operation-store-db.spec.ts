@@ -6,9 +6,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
+import { objectStorageStaticArtifactSummary } from '../object-storage-operation.js';
+import { projectPermanentDeletionRequestHash } from '../project-permanent-deletion.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
 import type { StaticRollbackReleaseCommitInput } from '../store.js';
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
+import { emptyManagedDatabaseErasureCallbacks } from './project-database-erasure-test-support.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -173,6 +176,10 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       });
       vi.restoreAllMocks();
 
+      const release = await acquireTestProjectReleaseFence(winnerStore, {
+        projectId: seeded.project.id,
+        organizationId: seeded.organization.id,
+      });
       const operation = await winnerStore.bindRollbackOperationTarget({
         operationId: winner.record.id,
         ownerToken: winnerOwner,
@@ -181,6 +188,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         expectedHeadVersion: 2,
         previousManifestId: seeded.sourceManifest.id,
         projectManifestDigest: seeded.manifestDigest,
+        releaseFence: release.releaseFence,
       });
       const metadata = rollbackMetadata({
         operationId: operation.id,
@@ -189,6 +197,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       });
       await winnerStore.ensureRollbackDeployment({
         fence: { operationId: operation.id, ownerToken: winnerOwner, fencingToken: 1 },
+        releaseFence: release.releaseFence,
         deployment: {
           id: operation.deploymentId!,
           projectId: seeded.project.id,
@@ -204,6 +213,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         operationId: operation.id,
         ownerToken: winnerOwner,
         fencingToken: 1,
+        releaseFence: release.releaseFence,
       });
 
       await prismaA.$executeRaw`
@@ -223,16 +233,12 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       await expect(
         winnerStore.updateRollbackDeployment({
           fence: { operationId: operation.id, ownerToken: winnerOwner, fencingToken: 1 },
+          releaseFence: release.releaseFence,
           projectId: seeded.project.id,
           deploymentId: operation.deploymentId!,
           patch: { status: 'FAILED' },
         }),
       ).rejects.toThrow('ROLLBACK_OWNERSHIP_LOST');
-
-      const release = await acquireTestProjectReleaseFence(otherStore, {
-        projectId: seeded.project.id,
-        organizationId: seeded.organization.id,
-      });
 
       const commit: StaticRollbackReleaseCommitInput = {
         operationId: operation.id,
@@ -258,6 +264,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       expect(await prismaA.releaseManifest.count({ where: { deploymentId: operation.deploymentId } })).toBe(0);
       await otherStore.updateRollbackDeployment({
         fence: { operationId: operation.id, ownerToken: 'owner-recovered', fencingToken: 2 },
+        releaseFence: release.releaseFence,
         projectId: seeded.project.id,
         deploymentId: operation.deploymentId!,
         patch: { status: 'FAILED' },
@@ -390,6 +397,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           expectedHeadVersion: 2,
           previousManifestId: seeded!.sourceManifest.id,
           projectManifestDigest: seeded!.manifestDigest,
+          releaseFence: release.releaseFence,
         });
         const metadata = rollbackMetadata({
           operationId: operation.id,
@@ -398,6 +406,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         });
         await store.ensureRollbackDeployment({
           fence: { operationId: operation.id, ownerToken, fencingToken: 1 },
+          releaseFence: release.releaseFence,
           deployment: {
             id: deploymentId,
             projectId: seeded!.project.id,
@@ -413,6 +422,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
           operationId: operation.id,
           ownerToken,
           fencingToken: 1,
+          releaseFence: release.releaseFence,
         });
 
         return {
@@ -572,7 +582,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             version,
             provider: 'server',
             artifactKind: 'server-image',
-            artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
+            artifactRef: `us-docker.pkg.dev/vibecore/runtime/p-${project.id}`,
             artifactDigest: `sha256:${String(version).repeat(64)}`,
             accessPolicyVersion: created.accessPolicyVersion,
             planEntitlements: PLAN_ENTITLEMENTS,
@@ -606,6 +616,898 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
       }
       if (actorId) await prisma.user.delete({ where: { id: actorId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('rechecks the permanent-deletion freeze after the project lock before inserting stale authority', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    const storeB = new PrismaApiStore(prismaB);
+    const unique = suffix();
+    let actorId: string | undefined;
+    let organizationId: string | undefined;
+    let projectId: string | undefined;
+    let releaseFreeze: () => void = () => undefined;
+
+    try {
+      const actor = await prismaA.user.create({ data: { email: `rollback-freeze-${unique}@example.test` } });
+      actorId = actor.id;
+      const organization = await prismaA.organization.create({
+        data: { name: `Rollback freeze ${unique}`, slug: `rollback-freeze-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prismaA.project.create({
+        data: { organizationId: organization.id, name: 'Rollback freeze', slug: `rollback-freeze-${unique}` },
+      });
+      projectId = project.id;
+
+      let lockHeld: (() => void) | undefined;
+      const held = new Promise<void>((resolve) => {
+        lockHeld = resolve;
+      });
+      const mayFreeze = new Promise<void>((resolve) => {
+        releaseFreeze = resolve;
+      });
+      const freeze = prismaA.$transaction(async (tx) => {
+        await tx.$executeRaw`
+          SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${project.id}`}, 0))
+        `;
+        lockHeld?.();
+        await mayFreeze;
+        await tx.project.update({
+          where: { id: project.id },
+          data: { deletedAt: new Date(), permanentDeletionStartedAt: new Date() },
+        });
+      });
+      await held;
+
+      const acquire = storeB.acquireRollbackOperation({
+        projectId: project.id,
+        actorUserId: actor.id,
+        idempotencyKey: `stale-after-freeze-${unique}`,
+        requestFingerprint: FINGERPRINT,
+        environment: 'production',
+        operationKind: 'PROVIDER',
+        ownerToken: `stale-owner-${unique}`,
+        leaseDurationMs: 30_000,
+      });
+
+      let waitingOnProjectLock = false;
+      for (let attempt = 0; attempt < 200; attempt += 1) {
+        const rows = await prismaA.$queryRaw<Array<{ waiting: bigint }>>`
+          SELECT count(*)::bigint AS "waiting"
+          FROM pg_locks lock
+          JOIN pg_stat_activity activity ON activity.pid = lock.pid
+          WHERE lock.locktype = 'advisory'
+            AND lock.database = (SELECT oid FROM pg_database WHERE datname = current_database())
+            AND NOT lock.granted
+            AND activity.query LIKE '%pg_advisory_xact_lock%'
+        `;
+        if (Number(rows[0]?.waiting ?? 0n) > 0) {
+          waitingOnProjectLock = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      expect(waitingOnProjectLock).toBe(true);
+      releaseFreeze();
+      await freeze;
+
+      await expect(acquire).rejects.toMatchObject({ code: 'PROJECT_PERMANENT_DELETION_ACTIVE', statusCode: 409 });
+      await expect(prismaA.rollbackIdempotencyRequest.count({ where: { projectId: project.id } })).resolves.toBe(0);
+    } finally {
+      releaseFreeze();
+      if (projectId) await prismaA.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
+      if (organizationId) {
+        await prismaA.organization.deleteMany({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      if (actorId) await prismaA.user.deleteMany({ where: { id: actorId } }).catch(() => undefined);
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('persists provider ambiguity after release-fence loss and recovers without opening a second dispatch', async () => {
+    const prisma = createDatabaseClient();
+    const topologyBlocker = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const unique = suffix();
+    let actorId: string | undefined;
+    let organizationId: string | undefined;
+    let projectId: string | undefined;
+    let releaseTopologyBlocker: () => void = () => undefined;
+
+    try {
+      const actor = await prisma.user.create({ data: { email: `provider-recovery-${unique}@example.test` } });
+      actorId = actor.id;
+      const organization = await prisma.organization.create({
+        data: { name: `Provider recovery ${unique}`, slug: `provider-recovery-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prisma.project.create({
+        data: { organizationId: organization.id, name: 'Provider recovery', slug: `provider-recovery-${unique}` },
+      });
+      projectId = project.id;
+      const source = await store.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        provider: 'netlify',
+        environment: 'production',
+        status: 'READY',
+        accessPolicy: { mode: 'PUBLIC' },
+        productionUrl: `https://source-${unique}.example.test`,
+        metadata: { providerBuildId: `netlify-deploy-${unique}` },
+      });
+      const firstRelease = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
+      const idempotencyKey = `provider-recovery-${unique}`;
+      const firstOwner = `provider-owner-1-${unique}`;
+      const acquired = await store.acquireRollbackOperation({
+        projectId: project.id,
+        actorUserId: actor.id,
+        idempotencyKey,
+        requestFingerprint: FINGERPRINT,
+        environment: 'production',
+        operationKind: 'PROVIDER',
+        ownerToken: firstOwner,
+        leaseDurationMs: 30_000,
+      });
+      expect(acquired.kind).toBe('ACQUIRED');
+
+      const rollbackDeploymentId = `provider-rollback-${unique}`;
+      const providerTarget = JSON.stringify({ provider: 'netlify', siteId: `site-${unique}` });
+      const bindInput = {
+        operationId: acquired.record.id,
+        ownerToken: firstOwner,
+        fencingToken: 1,
+        deploymentId: rollbackDeploymentId,
+        sourceDeploymentId: source.id,
+        projectManifestDigest: firstRelease.digest,
+        provider: 'netlify' as const,
+        providerDeploymentId: `netlify-deploy-${unique}`,
+        providerTarget,
+      };
+      const forgedReleaseFence = { ...firstRelease.releaseFence, ownerToken: `forged-${unique}` };
+      const forgedManifestDigest = `sha256:${'e'.repeat(64)}`;
+
+      await expect(
+        store.bindProviderRollbackTarget({ ...bindInput, releaseFence: forgedReleaseFence }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      await expect(
+        store.bindProviderRollbackTarget({
+          ...bindInput,
+          projectManifestDigest: forgedManifestDigest,
+          releaseFence: firstRelease.releaseFence,
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' });
+      await expect(
+        prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: acquired.record.id } }),
+      ).resolves.toMatchObject({ phase: 'CLAIMED', deploymentId: null, providerEffectState: null });
+
+      let signalTopologyHeld: () => void = () => undefined;
+      const topologyHeld = new Promise<void>((resolve) => {
+        signalTopologyHeld = resolve;
+      });
+      const mayReleaseTopology = new Promise<void>((resolve) => {
+        releaseTopologyBlocker = resolve;
+      });
+      const topologyBlockerTransaction = topologyBlocker.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock_shared(hashtext($1))', 'account-purge:topology');
+        signalTopologyHeld();
+        await mayReleaseTopology;
+      });
+      await topologyHeld;
+      const bindPromise = store.bindProviderRollbackTarget({
+        ...bindInput,
+        releaseFence: firstRelease.releaseFence,
+      });
+      const deadline = Symbol('rollback-bind-deadline');
+      let deadlineTimer: ReturnType<typeof setTimeout> | undefined;
+      const raced = await Promise.race([
+        bindPromise,
+        new Promise<typeof deadline>((resolve) => {
+          deadlineTimer = setTimeout(() => resolve(deadline), 2_000);
+        }),
+      ]);
+      if (deadlineTimer) clearTimeout(deadlineTimer);
+      releaseTopologyBlocker();
+      await topologyBlockerTransaction;
+      const bound = await bindPromise;
+      expect(raced).not.toBe(deadline);
+      const metadata = {
+        rollbackOperationId: bound.id,
+        projectManifestDigest: firstRelease.digest,
+        providerRollbackTarget: bindInput.providerDeploymentId,
+        providerRollbackProvider: bindInput.provider,
+        providerRollbackTargetScope: providerTarget,
+      };
+      const ensureInput = {
+        fence: { operationId: bound.id, ownerToken: firstOwner, fencingToken: 1 },
+        deployment: {
+          id: rollbackDeploymentId,
+          projectId: project.id,
+          provider: 'netlify',
+          environment: 'production' as const,
+          status: 'QUEUED' as const,
+          accessPolicyVersion: source.accessPolicyVersion,
+          rolledBackFromId: source.id,
+          metadata,
+        },
+      };
+
+      await expect(
+        store.ensureRollbackDeployment({ ...ensureInput, releaseFence: forgedReleaseFence }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      await expect(prisma.deployment.findUnique({ where: { id: rollbackDeploymentId } })).resolves.toBeNull();
+      await store.ensureRollbackDeployment({ ...ensureInput, releaseFence: firstRelease.releaseFence });
+      await expect(
+        store.updateRollbackDeployment({
+          fence: ensureInput.fence,
+          releaseFence: firstRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { metadata: { ...metadata, projectManifestDigest: forgedManifestDigest } },
+        }),
+      ).rejects.toMatchObject({ code: 'ROLLBACK_DEPLOYMENT_CONFLICT' });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { metadata },
+      );
+      await expect(
+        store.updateRollbackDeployment({
+          fence: ensureInput.fence,
+          releaseFence: forgedReleaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { status: 'BUILDING' },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      await expect(
+        store.beginProviderRollbackEffect({ ...ensureInput.fence, releaseFence: forgedReleaseFence }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { status: 'QUEUED' },
+      );
+
+      await expect(
+        store.beginProviderRollbackEffect({ ...ensureInput.fence, releaseFence: firstRelease.releaseFence }),
+      ).resolves.toMatchObject({
+        kind: 'DISPATCH',
+        record: { phase: 'EFFECT_STARTED', providerEffectState: 'DISPATCHING', effectFencingToken: 1 },
+      });
+      await expect(
+        store.cancelDeployment({
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          canceledAt: new Date().toISOString(),
+          logs: [],
+        }),
+      ).rejects.toMatchObject({ code: 'DEPLOYMENT_ROLLBACK_IN_PROGRESS', statusCode: 409 });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { status: 'QUEUED' },
+      );
+      await expect(firstRelease.release()).resolves.toBe(true);
+      await expect(
+        store.recordProviderRollbackDispatch({
+          ...ensureInput.fence,
+          state: 'AMBIGUOUS',
+          responseEvidence: { reason: 'response_lost_after_provider_acceptance' },
+        }),
+      ).resolves.toMatchObject({ providerEffectState: 'AMBIGUOUS' });
+      await expect(
+        prisma.rollbackIdempotencyRequest.update({
+          where: { id: bound.id },
+          data: { providerResponseEvidence: { reason: 'tampered' } },
+        }),
+      ).rejects.toBeDefined();
+      await expect(
+        prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: bound.id } }),
+      ).resolves.toMatchObject({ providerResponseEvidence: { reason: 'response_lost_after_provider_acceptance' } });
+      await store.yieldRollbackOperationLease(ensureInput.fence);
+
+      const secondOwner = `provider-owner-2-${unique}`;
+      const recovered = await store.acquireRollbackOperation({
+        projectId: project.id,
+        actorUserId: actor.id,
+        idempotencyKey,
+        requestFingerprint: FINGERPRINT,
+        environment: 'production',
+        operationKind: 'PROVIDER',
+        ownerToken: secondOwner,
+        leaseDurationMs: 30_000,
+      });
+      expect(recovered).toMatchObject({
+        kind: 'ACQUIRED',
+        record: {
+          fencingToken: 2,
+          phase: 'EFFECT_STARTED',
+          effectFencingToken: 1,
+          providerEffectState: 'AMBIGUOUS',
+        },
+      });
+      const secondFence = { operationId: bound.id, ownerToken: secondOwner, fencingToken: 2 };
+      await expect(
+        store.beginProviderRollbackEffect({ ...secondFence, releaseFence: firstRelease.releaseFence }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      const secondRelease = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
+      await expect(
+        store.beginProviderRollbackEffect({ ...secondFence, releaseFence: secondRelease.releaseFence }),
+      ).resolves.toMatchObject({
+        kind: 'RECOVER',
+        record: { phase: 'EFFECT_STARTED', effectFencingToken: 1, providerEffectState: 'AMBIGUOUS' },
+      });
+      await store.recordProviderRollbackObservation({
+        ...secondFence,
+        state: 'TARGET',
+        evidence: {
+          authority: 'site.published_deploy.id+traffic_splits',
+          liveDeploymentIds: [bindInput.providerDeploymentId],
+        },
+      });
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence: secondFence,
+          releaseFence: secondRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { productionUrl: `https://rollback-${unique}.example.test`, finishedAt: new Date().toISOString() },
+        }),
+      ).rejects.toMatchObject({ code: 'PROVIDER_ROLLBACK_RECOVERY_AUTHORITY_INVALID' });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { status: 'QUEUED' },
+      );
+      await store.recordProviderRollbackObservation({
+        ...secondFence,
+        state: 'TARGET',
+        evidence: {
+          provider: 'netlify',
+          authority: 'site.published_deploy.id+traffic_splits',
+          providerTarget,
+          targetDeploymentId: bindInput.providerDeploymentId,
+          liveDeploymentIds: [bindInput.providerDeploymentId],
+          responseStatus: 200,
+        },
+      });
+      const observed = await prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: bound.id } });
+      await expect(
+        prisma.rollbackIdempotencyRequest.update({
+          where: { id: bound.id },
+          data: { providerRecoveryEvidence: [{ state: 'TARGET', authority: 'tampered' }] },
+        }),
+      ).rejects.toBeDefined();
+      await expect(
+        prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: bound.id } }),
+      ).resolves.toMatchObject({ providerRecoveryEvidence: observed.providerRecoveryEvidence });
+      await prisma.deployment.update({
+        where: { id: rollbackDeploymentId },
+        data: { metadata: { ...metadata, projectManifestDigest: forgedManifestDigest } },
+      });
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence: secondFence,
+          releaseFence: secondRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { productionUrl: `https://rollback-${unique}.example.test`, finishedAt: new Date().toISOString() },
+        }),
+      ).rejects.toMatchObject({ code: 'ROLLBACK_DEPLOYMENT_CONFLICT' });
+      await prisma.deployment.update({
+        where: { id: rollbackDeploymentId },
+        data: { metadata },
+      });
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence: secondFence,
+          releaseFence: secondRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: {
+            metadata: { ...metadata, projectManifestDigest: forgedManifestDigest },
+            productionUrl: `https://rollback-${unique}.example.test`,
+            finishedAt: new Date().toISOString(),
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'ROLLBACK_DEPLOYMENT_CONFLICT' });
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence: secondFence,
+          releaseFence: firstRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { productionUrl: `https://rollback-${unique}.example.test`, finishedAt: new Date().toISOString() },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { status: 'QUEUED' },
+      );
+
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence: secondFence,
+          releaseFence: secondRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { productionUrl: `https://rollback-${unique}.example.test`, finishedAt: new Date().toISOString() },
+        }),
+      ).resolves.toMatchObject({
+        id: rollbackDeploymentId,
+        status: 'READY',
+        productionUrl: `https://rollback-${unique}.example.test`,
+      });
+      await store.completeRollbackOperation({
+        ...secondFence,
+        responseStatus: 201,
+        responseContentLanguage: 'en',
+        responseBody: { deployment: { id: rollbackDeploymentId, status: 'READY' } },
+      });
+      await expect(
+        prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: bound.id } }),
+      ).resolves.toMatchObject({
+        status: 'COMPLETED',
+        phase: 'RELEASE_COMMITTED',
+        providerEffectState: 'COMMITTED',
+        effectFencingToken: 1,
+        fencingToken: 2,
+      });
+      await expect(prisma.releaseManifest.count({ where: { deploymentId: rollbackDeploymentId } })).resolves.toBe(0);
+      await secondRelease.release();
+    } finally {
+      releaseTopologyBlocker();
+      if (projectId) {
+        await prisma.rollbackIdempotencyRequest.deleteMany({ where: { projectId } }).catch(() => undefined);
+        await prisma.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
+      }
+      if (organizationId)
+        await prisma.organization.deleteMany({ where: { id: organizationId } }).catch(() => undefined);
+      if (actorId) await prisma.user.deleteMany({ where: { id: actorId } }).catch(() => undefined);
+      await Promise.allSettled([prisma.$disconnect(), topologyBlocker.$disconnect()]);
+    }
+  });
+
+  it('refuses provider recovery commits under a newer valid manifest fence', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const unique = suffix();
+    let actorId: string | undefined;
+    let organizationId: string | undefined;
+    let projectId: string | undefined;
+    let secondRelease: Awaited<ReturnType<typeof acquireTestProjectReleaseFence>> | undefined;
+
+    try {
+      const actor = await prisma.user.create({ data: { email: `provider-digest-${unique}@example.test` } });
+      actorId = actor.id;
+      const organization = await prisma.organization.create({
+        data: { name: `Provider digest ${unique}`, slug: `provider-digest-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prisma.project.create({
+        data: { organizationId: organization.id, name: 'Provider digest', slug: `provider-digest-${unique}` },
+      });
+      projectId = project.id;
+      const firstManifest = createDefaultProjectManifest(project.id);
+      const firstManifestDigest = projectManifestDigest(firstManifest);
+      await store.createProjectManifestRevision({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        schemaVersion: firstManifest.schemaVersion,
+        manifestVersion: firstManifest.manifestVersion,
+        digest: firstManifestDigest,
+        manifest: firstManifest,
+      });
+      const source = await store.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        provider: 'netlify',
+        environment: 'production',
+        status: 'READY',
+        accessPolicy: { mode: 'PUBLIC' },
+        metadata: { providerBuildId: `netlify-digest-${unique}`, projectManifestDigest: firstManifestDigest },
+      });
+      const firstRelease = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
+      const ownerToken = `provider-digest-owner-${unique}`;
+      const acquired = await store.acquireRollbackOperation({
+        projectId: project.id,
+        actorUserId: actor.id,
+        idempotencyKey: `provider-digest-${unique}`,
+        requestFingerprint: FINGERPRINT,
+        environment: 'production',
+        operationKind: 'PROVIDER',
+        ownerToken,
+        leaseDurationMs: 30_000,
+      });
+      expect(acquired.kind).toBe('ACQUIRED');
+      const fence = { operationId: acquired.record.id, ownerToken, fencingToken: 1 };
+      const rollbackDeploymentId = `provider-digest-rollback-${unique}`;
+      const providerDeploymentId = `netlify-digest-${unique}`;
+      const providerTarget = JSON.stringify({ provider: 'netlify', siteId: `site-digest-${unique}` });
+      await store.bindProviderRollbackTarget({
+        ...fence,
+        releaseFence: firstRelease.releaseFence,
+        deploymentId: rollbackDeploymentId,
+        sourceDeploymentId: source.id,
+        projectManifestDigest: firstManifestDigest,
+        provider: 'netlify',
+        providerDeploymentId,
+        providerTarget,
+      });
+      await store.ensureRollbackDeployment({
+        fence,
+        releaseFence: firstRelease.releaseFence,
+        deployment: {
+          id: rollbackDeploymentId,
+          projectId: project.id,
+          provider: 'netlify',
+          environment: 'production',
+          status: 'QUEUED',
+          accessPolicyVersion: source.accessPolicyVersion,
+          rolledBackFromId: source.id,
+          metadata: {
+            rollbackOperationId: acquired.record.id,
+            projectManifestDigest: firstManifestDigest,
+            providerRollbackTarget: providerDeploymentId,
+            providerRollbackProvider: 'netlify',
+            providerRollbackTargetScope: providerTarget,
+          },
+        },
+      });
+      await store.beginProviderRollbackEffect({ ...fence, releaseFence: firstRelease.releaseFence });
+      await store.recordProviderRollbackDispatch({
+        ...fence,
+        state: 'ACCEPTED',
+        responseStatus: 200,
+        responseEvidence: { provider: 'netlify', status: 200 },
+      });
+      await store.recordProviderRollbackObservation({
+        ...fence,
+        state: 'TARGET',
+        evidence: {
+          provider: 'netlify',
+          authority: 'site.published_deploy.id+traffic_splits',
+          providerTarget,
+          targetDeploymentId: providerDeploymentId,
+          liveDeploymentIds: [providerDeploymentId],
+          responseStatus: 200,
+        },
+      });
+      await firstRelease.release();
+
+      const secondManifest = { ...firstManifest, manifestVersion: 2 };
+      const secondManifestDigest = projectManifestDigest(secondManifest);
+      await store.createProjectManifestRevision({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        schemaVersion: secondManifest.schemaVersion,
+        manifestVersion: secondManifest.manifestVersion,
+        digest: secondManifestDigest,
+        manifest: secondManifest,
+        expectedDigest: firstManifestDigest,
+      });
+      secondRelease = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
+      expect(secondRelease.digest).toBe(secondManifestDigest);
+
+      await expect(
+        store.beginProviderRollbackEffect({ ...fence, releaseFence: secondRelease.releaseFence }),
+      ).rejects.toMatchObject({ code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' });
+      await expect(
+        store.commitProviderRollbackDeployment({
+          fence,
+          releaseFence: secondRelease.releaseFence,
+          projectId: project.id,
+          deploymentId: rollbackDeploymentId,
+          patch: { finishedAt: new Date().toISOString() },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' });
+      await expect(prisma.deployment.findUniqueOrThrow({ where: { id: rollbackDeploymentId } })).resolves.toMatchObject(
+        { status: 'QUEUED' },
+      );
+    } finally {
+      await secondRelease?.release().catch(() => undefined);
+      if (projectId) {
+        await prisma.rollbackIdempotencyRequest.deleteMany({ where: { projectId } }).catch(() => undefined);
+        await prisma.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
+      }
+      if (organizationId) {
+        await prisma.organization.deleteMany({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      if (actorId) await prisma.user.deleteMany({ where: { id: actorId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('blocks every project deletion path while a provider rollback effect is in progress', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const unique = suffix();
+    let actorId: string | undefined;
+    let organizationId: string | undefined;
+    let projectId: string | undefined;
+
+    try {
+      const actor = await prisma.user.create({ data: { email: `provider-delete-guard-${unique}@example.test` } });
+      actorId = actor.id;
+      const organization = await prisma.organization.create({
+        data: { name: `Provider delete guard ${unique}`, slug: `provider-delete-guard-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prisma.project.create({
+        data: { organizationId: organization.id, name: 'Provider delete guard', slug: `provider-delete-${unique}` },
+      });
+      projectId = project.id;
+      const operation = await prisma.rollbackIdempotencyRequest.create({
+        data: {
+          projectId: project.id,
+          actorUserId: actor.id,
+          idempotencyKey: `provider-delete-${unique}`,
+          requestFingerprint: '9'.repeat(64),
+          environment: 'production',
+          operationKind: 'PROVIDER',
+          status: 'IN_PROGRESS',
+          phase: 'EFFECT_STARTED',
+          leaseOwner: `provider-owner-${unique}`,
+          leaseExpiresAt: new Date(Date.now() + 60_000),
+          fencingToken: 1,
+          effectFencingToken: 1,
+          deploymentId: `rollback-deployment-${unique}`,
+          sourceDeploymentId: `source-deployment-${unique}`,
+          projectManifestDigest: `sha256:${'8'.repeat(64)}`,
+          provider: 'netlify',
+          providerDeploymentId: `netlify-deploy-${unique}`,
+          providerTarget: JSON.stringify({ provider: 'netlify', siteId: `site-${unique}` }),
+          providerEffectState: 'DISPATCHING',
+          providerEffectStartedAt: new Date(),
+        },
+      });
+      const providerEffects = vi.fn();
+      const requestHash = projectPermanentDeletionRequestHash({
+        projectId: project.id,
+        organizationId: organization.id,
+        actorUserId: actor.id,
+        expectedProjectName: project.name,
+      });
+
+      await expect(
+        store.hardDeleteProject({
+          projectId: project.id,
+          expectedOrganizationId: organization.id,
+          expectedProjectName: project.name,
+          actorUserId: actor.id,
+          idempotencyKey: `hard-delete-${unique}`,
+          requestHash,
+          ...emptyManagedDatabaseErasureCallbacks(),
+          preflightPhysicalErasure: async () => {
+            providerEffects();
+            return { summary: objectStorageStaticArtifactSummary([]), artifacts: [] };
+          },
+          erasePhysical: async () => {
+            providerEffects();
+          },
+          verifyPhysicalAbsence: async () => {
+            providerEffects();
+            throw new Error('UNREACHABLE_PROVIDER_VERIFICATION');
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'PROJECT_ROLLBACK_OPERATION_IN_PROGRESS', statusCode: 409 });
+      expect(providerEffects).not.toHaveBeenCalled();
+      await expect(
+        prisma.project.findUniqueOrThrow({
+          where: { id: project.id },
+          select: { deletedAt: true, permanentDeletionStartedAt: true },
+        }),
+      ).resolves.toEqual({ deletedAt: null, permanentDeletionStartedAt: null });
+      await expect(prisma.rollbackIdempotencyRequest.delete({ where: { id: operation.id } })).rejects.toBeDefined();
+      await expect(prisma.rollbackIdempotencyRequest.count({ where: { id: operation.id } })).resolves.toBe(1);
+      await expect(prisma.project.delete({ where: { id: project.id } })).rejects.toMatchObject({ code: 'P2003' });
+
+      await prisma.rollbackIdempotencyRequest.update({
+        where: { id: operation.id },
+        data: {
+          providerEffectState: 'OBSERVED_TARGET',
+          providerRecoveryEvidence: [{ state: 'TARGET', liveDeploymentIds: [operation.providerDeploymentId] }],
+        },
+      });
+      const completedAt = new Date();
+      await prisma.rollbackIdempotencyRequest.update({
+        where: { id: operation.id },
+        data: {
+          status: 'COMPLETED',
+          phase: 'RELEASE_COMMITTED',
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          providerEffectState: 'COMMITTED',
+          providerEffectResolvedAt: completedAt,
+          responseStatus: 201,
+          responseContentLanguage: 'en',
+          responseBody: { deployment: { id: operation.deploymentId, status: 'READY' } },
+          completedAt,
+        },
+      });
+
+      await expect(prisma.project.delete({ where: { id: project.id } })).resolves.toMatchObject({ id: project.id });
+      projectId = undefined;
+      await expect(prisma.rollbackIdempotencyRequest.findUnique({ where: { id: operation.id } })).resolves.toBeNull();
+    } finally {
+      if (projectId) {
+        await prisma.rollbackIdempotencyRequest.deleteMany({ where: { projectId } }).catch(() => undefined);
+        await prisma.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
+      }
+      if (organizationId)
+        await prisma.organization.deleteMany({ where: { id: organizationId } }).catch(() => undefined);
+      if (actorId) await prisma.user.deleteMany({ where: { id: actorId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('audits DB-clock supersession and releases the project deletion guard', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const unique = suffix();
+    let actorId: string | undefined;
+    let operatorId: string | undefined;
+    let organizationId: string | undefined;
+    let projectId: string | undefined;
+
+    try {
+      const actor = await prisma.user.create({ data: { email: `provider-superseded-actor-${unique}@example.test` } });
+      actorId = actor.id;
+      const operator = await prisma.user.create({
+        data: { email: `provider-superseded-operator-${unique}@example.test`, platformAdmin: true },
+      });
+      operatorId = operator.id;
+      const organization = await prisma.organization.create({
+        data: { name: `Provider superseded ${unique}`, slug: `provider-superseded-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prisma.project.create({
+        data: { organizationId: organization.id, name: 'Provider superseded', slug: `provider-superseded-${unique}` },
+      });
+      projectId = project.id;
+      const providerDeploymentId = `netlify-target-${unique}`;
+      const providerTarget = JSON.stringify({ provider: 'netlify', siteId: `site-${unique}` });
+      const source = await store.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        provider: 'netlify',
+        environment: 'production',
+        status: 'READY',
+        accessPolicy: { mode: 'PUBLIC' },
+        productionUrl: `https://source-${unique}.example.test`,
+        metadata: { providerBuildId: providerDeploymentId },
+      });
+      const release = await acquireTestProjectReleaseFence(store, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
+      const operationId = `provider-superseded-${unique}`;
+      const rollback = await store.createDeployment({
+        projectId: project.id,
+        expectedOrganizationId: organization.id,
+        releaseFence: release.releaseFence,
+        provider: 'netlify',
+        environment: 'production',
+        status: 'QUEUED',
+        accessPolicyVersion: source.accessPolicyVersion,
+        rolledBackFromId: source.id,
+        metadata: {
+          rollbackOperationId: operationId,
+          providerRollbackTarget: providerDeploymentId,
+          providerRollbackProvider: 'netlify',
+          providerRollbackTargetScope: providerTarget,
+          projectManifestDigest: release.digest,
+        },
+      });
+      const firstObservedAt = new Date(Date.now() - 61_000).toISOString();
+      await prisma.rollbackIdempotencyRequest.create({
+        data: {
+          id: operationId,
+          projectId: project.id,
+          actorUserId: actor.id,
+          idempotencyKey: `provider-superseded-${unique}`,
+          requestFingerprint: '7'.repeat(64),
+          environment: 'production',
+          operationKind: 'PROVIDER',
+          status: 'IN_PROGRESS',
+          phase: 'EFFECT_STARTED',
+          leaseOwner: `provider-superseded-owner-${unique}`,
+          leaseExpiresAt: new Date(Date.now() + 60_000),
+          fencingToken: 1,
+          effectFencingToken: 1,
+          deploymentId: rollback.id,
+          sourceDeploymentId: source.id,
+          projectManifestDigest: release.digest,
+          provider: 'netlify',
+          providerDeploymentId,
+          providerTarget,
+          providerEffectState: 'MANUAL_RECOVERY',
+          providerResponseStatus: 409,
+          providerResponseEvidence: { provider: 'netlify', outcome: 'rejected' },
+          providerRecoveryEvidence: [
+            {
+              provider: 'netlify',
+              authority: 'site.published_deploy.id+traffic_splits',
+              providerTarget,
+              targetDeploymentId: providerDeploymentId,
+              liveDeploymentIds: [`netlify-newer-${unique}`],
+              responseStatus: 200,
+              state: 'OTHER',
+              recoveryMode: 'OPERATOR',
+              operatorUserId: operator.id,
+              observedAt: firstObservedAt,
+            },
+          ],
+          providerEffectStartedAt: new Date(Date.now() - 120_000),
+        },
+      });
+      const rollbackFence = {
+        operationId,
+        ownerToken: `provider-superseded-owner-${unique}`,
+        fencingToken: 1,
+      };
+      await store.recordProviderRollbackObservation({
+        ...rollbackFence,
+        state: 'OTHER',
+        evidence: {
+          provider: 'netlify',
+          authority: 'site.published_deploy.id+traffic_splits',
+          providerTarget,
+          targetDeploymentId: providerDeploymentId,
+          liveDeploymentIds: [`netlify-newer-${unique}`],
+          responseStatus: 200,
+          recoveryMode: 'OPERATOR',
+          operatorUserId: operator.id,
+        },
+      });
+
+      const resolved = await store.resolveProviderRollbackOperator({
+        fence: rollbackFence,
+        releaseFence: release.releaseFence,
+        operatorUserId: operator.id,
+        ipAddress: '127.0.0.1',
+        resolution: 'SUPERSEDED',
+        projectId: project.id,
+        deploymentId: rollback.id,
+      });
+      expect(resolved).toMatchObject({
+        resolution: 'SUPERSEDED',
+        operation: {
+          status: 'COMPLETED',
+          phase: 'PROVIDER_SUPERSEDED',
+          providerEffectState: 'SUPERSEDED',
+          responseStatus: 409,
+        },
+        deployment: { status: 'FAILED' },
+      });
+      await expect(prisma.auditLog.findUnique({ where: { id: resolved.auditLogId } })).resolves.toMatchObject({
+        organizationId: organization.id,
+        actorUserId: operator.id,
+        action: 'deployment.rollback.recovery',
+        resourceType: 'rollbackOperation',
+        resourceId: operationId,
+      });
+      await release.release();
+      await expect(prisma.project.delete({ where: { id: project.id } })).resolves.toMatchObject({ id: project.id });
+      projectId = undefined;
+      await expect(prisma.rollbackIdempotencyRequest.findUnique({ where: { id: operationId } })).resolves.toBeNull();
+    } finally {
+      if (projectId) {
+        await prisma.rollbackIdempotencyRequest.deleteMany({ where: { projectId } }).catch(() => undefined);
+        await prisma.project.deleteMany({ where: { id: projectId } }).catch(() => undefined);
+      }
+      if (organizationId) {
+        await prisma.auditLog.deleteMany({ where: { organizationId } }).catch(() => undefined);
+        await prisma.organization.deleteMany({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      if (operatorId) await prisma.user.deleteMany({ where: { id: operatorId } }).catch(() => undefined);
+      if (actorId) await prisma.user.deleteMany({ where: { id: actorId } }).catch(() => undefined);
       await prisma.$disconnect();
     }
   });

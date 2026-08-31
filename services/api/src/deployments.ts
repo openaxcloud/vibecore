@@ -65,14 +65,46 @@ export function providerHasAuthoritativePlanEdge(
 }
 
 /*
- * The subset of providers for which triggerProviderRollback() actually performs
- * an async follow-up call (so the rollback row must start QUEUED and transition
- * later). Every OTHER provider — static (in-process), github-pages,
- * google-cloud-run, docker — has no follow-up, so its rollback must be created
- * READY immediately; otherwise it sits QUEUED forever (the monotonic status
- * guard never flips it) and the in-flight lock blocks all new deploys for ~40min.
+ * Providers whose rollback is executed through the durable external-effect
+ * ledger. Every other provider stays on the in-platform rollback path.
  */
 export const providerRollbackProviders = ['vercel', 'netlify', 'cloudflare-pages'] as const;
+export type ProviderRollbackProvider = (typeof providerRollbackProviders)[number];
+
+export type ProviderRollbackBinding =
+  | {
+      provider: 'vercel';
+      deploymentId: string;
+      providerTarget: string;
+      projectId: string;
+      teamId?: string;
+    }
+  | {
+      provider: 'netlify';
+      deploymentId: string;
+      providerTarget: string;
+      siteId: string;
+    }
+  | {
+      provider: 'cloudflare-pages';
+      deploymentId: string;
+      providerTarget: string;
+      accountId: string;
+      projectName: string;
+      projectId: string;
+    };
+
+export interface ProviderRollbackDispatchResult {
+  state: 'ACCEPTED' | 'REJECTED' | 'AMBIGUOUS';
+  responseStatus?: number;
+  evidence: Record<string, unknown>;
+  log: string;
+}
+
+export interface ProviderRollbackObservation {
+  state: 'TARGET' | 'OTHER' | 'AMBIGUOUS';
+  evidence: Record<string, unknown>;
+}
 
 const deploymentSecretKeyPattern = /(SECRET|TOKEN|PASSWORD|PRIVATE[_-]?KEY|API[_-]?KEY|CREDENTIAL|WEBHOOK)/i;
 
@@ -441,37 +473,69 @@ function parseHookPayload(
   };
 }
 
-export async function triggerProviderRollback(
-  provider: (typeof deploymentProviders)[number],
-  buildId: string | undefined,
+export async function resolveProviderRollbackBinding(
+  provider: ProviderRollbackProvider,
+  buildId: string,
   fetchImpl: typeof fetch = fetch,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
-): Promise<ProviderHookResult | undefined> {
-  if (!buildId) {
-    return undefined;
-  }
+  signal?: AbortSignal,
+): Promise<ProviderRollbackBinding> {
+  if (!buildId || buildId.length > 256) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_BUILD_ID_INVALID');
 
   if (provider === 'vercel' && env.VERCEL_API_TOKEN) {
     const teamSuffix = env.VERCEL_TEAM_ID ? `?teamId=${encodeURIComponent(env.VERCEL_TEAM_ID)}` : '';
-    return rollbackHookCall(
-      provider,
-      `https://api.vercel.com/v13/deployments/${encodeURIComponent(buildId)}/promote${teamSuffix}`,
-      { authorization: `Bearer ${env.VERCEL_API_TOKEN}` },
-      undefined,
+    const response = await providerRollbackFetch(
       fetchImpl,
-      buildId,
+      `https://api.vercel.com/v13/deployments/${encodeURIComponent(buildId)}${teamSuffix}`,
+      { headers: providerAuthorizationHeaders(env.VERCEL_API_TOKEN), signal },
     );
+    const payload = await requireProviderJson(response, provider, 'deployment inspection');
+    const projectId = stringField(payload, 'projectId');
+
+    if (
+      response.status !== 200 ||
+      stringField(payload, 'id') !== buildId ||
+      stringField(payload, 'target') !== 'production' ||
+      stringField(payload, 'readyState') !== 'READY' ||
+      stringField(payload, 'readySubstate') !== 'PROMOTED' ||
+      !projectId
+    ) {
+      throw providerRollbackInspectionError(provider, response.status);
+    }
+
+    return {
+      provider,
+      deploymentId: buildId,
+      projectId,
+      ...(env.VERCEL_TEAM_ID ? { teamId: env.VERCEL_TEAM_ID } : {}),
+      providerTarget: stableProviderTarget({ provider, projectId, teamId: env.VERCEL_TEAM_ID ?? null }),
+    };
   }
 
   if (provider === 'netlify' && env.NETLIFY_AUTH_TOKEN && env.NETLIFY_SITE_ID) {
-    return rollbackHookCall(
-      provider,
-      `https://api.netlify.com/api/v1/sites/${encodeURIComponent(env.NETLIFY_SITE_ID)}/deploys/${encodeURIComponent(buildId)}/restore`,
-      { authorization: `Bearer ${env.NETLIFY_AUTH_TOKEN}` },
-      undefined,
+    const response = await providerRollbackFetch(
       fetchImpl,
-      buildId,
+      `https://api.netlify.com/api/v1/sites/${encodeURIComponent(env.NETLIFY_SITE_ID)}/deploys/${encodeURIComponent(buildId)}`,
+      { headers: providerAuthorizationHeaders(env.NETLIFY_AUTH_TOKEN), signal },
     );
+    const payload = await requireProviderJson(response, provider, 'deployment inspection');
+
+    if (
+      response.status !== 200 ||
+      stringField(payload, 'id') !== buildId ||
+      stringField(payload, 'site_id') !== env.NETLIFY_SITE_ID ||
+      stringField(payload, 'context') !== 'production' ||
+      stringField(payload, 'state') !== 'ready'
+    ) {
+      throw providerRollbackInspectionError(provider, response.status);
+    }
+
+    return {
+      provider,
+      deploymentId: buildId,
+      siteId: env.NETLIFY_SITE_ID,
+      providerTarget: stableProviderTarget({ provider, siteId: env.NETLIFY_SITE_ID }),
+    };
   }
 
   if (
@@ -480,52 +544,626 @@ export async function triggerProviderRollback(
     env.CLOUDFLARE_ACCOUNT_ID &&
     env.CLOUDFLARE_PAGES_PROJECT
   ) {
-    return rollbackHookCall(
-      provider,
-      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/${encodeURIComponent(env.CLOUDFLARE_PAGES_PROJECT)}/deployments/${encodeURIComponent(buildId)}/rollback`,
-      { authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` },
-      undefined,
+    const response = await providerRollbackFetch(
       fetchImpl,
-      buildId,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/${encodeURIComponent(env.CLOUDFLARE_PAGES_PROJECT)}/deployments/${encodeURIComponent(buildId)}`,
+      { headers: providerAuthorizationHeaders(env.CLOUDFLARE_API_TOKEN), signal },
+    );
+    const payload = await requireProviderJson(response, provider, 'deployment inspection');
+    const result = objectField(payload, 'result');
+    const projectId = stringField(result, 'project_id');
+
+    if (
+      response.status !== 200 ||
+      booleanField(payload, 'success') !== true ||
+      stringField(result, 'id') !== buildId ||
+      stringField(result, 'environment') !== 'production' ||
+      stringField(result, 'project_name') !== env.CLOUDFLARE_PAGES_PROJECT ||
+      !projectId ||
+      booleanField(result, 'is_skipped') !== false ||
+      stringField(objectField(result, 'latest_stage'), 'status') !== 'success'
+    ) {
+      throw providerRollbackInspectionError(provider, response.status);
+    }
+
+    return {
+      provider,
+      deploymentId: buildId,
+      accountId: env.CLOUDFLARE_ACCOUNT_ID,
+      projectName: env.CLOUDFLARE_PAGES_PROJECT,
+      projectId,
+      providerTarget: stableProviderTarget({
+        provider,
+        accountId: env.CLOUDFLARE_ACCOUNT_ID,
+        projectName: env.CLOUDFLARE_PAGES_PROJECT,
+        projectId,
+      }),
+    };
+  }
+
+  throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+}
+
+export async function dispatchProviderRollback(
+  binding: ProviderRollbackBinding,
+  fetchImpl: typeof fetch,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  signal?: AbortSignal,
+): Promise<ProviderRollbackDispatchResult> {
+  const spec = providerRollbackRequest(binding, env);
+
+  try {
+    const response = await providerRollbackFetch(fetchImpl, spec.url, {
+      method: 'POST',
+      headers: spec.headers,
+      ...(spec.body ? { body: spec.body } : {}),
+      signal,
+    });
+    const evidence = await providerResponseEvidence(response, binding.provider);
+
+    if (!response.ok) {
+      // A mutation may have reached the provider even when a gateway returns a
+      // conflict, rate limit, or server error. Only responses that establish
+      // rejection before dispatch may become terminally REJECTED; every other
+      // response must be reconciled against the provider's live authority.
+      const provablyRejectedBeforeDispatch = [400, 401, 403, 404, 405].includes(response.status);
+      return {
+        state: provablyRejectedBeforeDispatch ? 'REJECTED' : 'AMBIGUOUS',
+        responseStatus: response.status,
+        evidence,
+        log: `${binding.provider}: rollback response ${response.status} ${
+          provablyRejectedBeforeDispatch ? 'rejected the request' : 'has an ambiguous mutation outcome'
+        }`,
+      };
+    }
+
+    return {
+      state: 'ACCEPTED',
+      responseStatus: response.status,
+      evidence,
+      log: `${binding.provider}: rollback to build ${binding.deploymentId} accepted`,
+    };
+  } catch (error: unknown) {
+    return {
+      state: 'AMBIGUOUS',
+      evidence: {
+        provider: binding.provider,
+        outcome: 'response-lost',
+        errorClass: error instanceof Error ? error.name : 'Error',
+      },
+      log: `${binding.provider}: rollback response was not observed`,
+    };
+  }
+}
+
+export async function observeProviderRollback(
+  binding: ProviderRollbackBinding,
+  fetchImpl: typeof fetch,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+  signal?: AbortSignal,
+): Promise<ProviderRollbackObservation> {
+  if (binding.provider === 'netlify') {
+    const token = env.NETLIFY_AUTH_TOKEN;
+    if (!token) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+    const siteResponse = await providerRollbackFetch(
+      fetchImpl,
+      `https://api.netlify.com/api/v1/sites/${encodeURIComponent(binding.siteId)}`,
+      { headers: providerAuthorizationHeaders(token), signal },
+    );
+    const sitePayload = await requireProviderJson(siteResponse, binding.provider, 'live deployment observation');
+    const publishedDeploy = objectField(sitePayload, 'published_deploy');
+    const liveId = stringField(publishedDeploy, 'id');
+    if (
+      siteResponse.status !== 200 ||
+      stringField(sitePayload, 'id') !== binding.siteId ||
+      stringField(publishedDeploy, 'site_id') !== binding.siteId ||
+      !liveId
+    ) {
+      return ambiguousProviderObservation(binding, siteResponse.status, 'netlify-site-authority-unprovable');
+    }
+    const splitResponse = await providerRollbackFetch(
+      fetchImpl,
+      `https://api.netlify.com/api/v1/sites/${encodeURIComponent(binding.siteId)}/traffic_splits`,
+      { headers: providerAuthorizationHeaders(token), signal },
+    );
+    const splitTests = await requireProviderJsonArray(splitResponse, binding.provider, 'split-test observation');
+    const splitActivity = splitTests.map((value) => ({
+      id: stringField(value, 'id'),
+      siteId: stringField(value, 'site_id'),
+      active: booleanField(value, 'active'),
+    }));
+    if (
+      splitResponse.status !== 200 ||
+      splitResponse.headers.has('link') ||
+      splitActivity.some(({ id, siteId, active }) => !id || siteId !== binding.siteId || active === undefined)
+    ) {
+      return ambiguousProviderObservation(binding, splitResponse.status, 'netlify-split-test-state-unprovable');
+    }
+    if (splitActivity.some(({ active }) => active)) {
+      return ambiguousProviderObservation(binding, splitResponse.status, 'netlify-active-split-test');
+    }
+    const canonicalObservation = exactProviderObservation(binding, siteResponse, [liveId], {
+      activeSplitTestCount: 0,
+    });
+    return {
+      state: 'AMBIGUOUS',
+      evidence: {
+        ...canonicalObservation.evidence,
+        reason: 'netlify-skew-protection-state-unprovable',
+      },
+    };
+  }
+
+  if (binding.provider === 'cloudflare-pages') {
+    const token = env.CLOUDFLARE_API_TOKEN;
+    if (!token) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+    const response = await providerRollbackFetch(
+      fetchImpl,
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(binding.accountId)}/pages/projects/${encodeURIComponent(binding.projectName)}`,
+      { headers: providerAuthorizationHeaders(token), signal },
+    );
+    const payload = await requireProviderJson(response, binding.provider, 'live deployment observation');
+    const result = objectField(payload, 'result');
+    const projectId = stringField(result, 'id');
+    const projectName = stringField(result, 'name');
+    const canonicalDeployment = objectField(result, 'canonical_deployment');
+    const liveId = stringField(canonicalDeployment, 'id');
+    if (
+      response.status !== 200 ||
+      booleanField(payload, 'success') !== true ||
+      projectId !== binding.projectId ||
+      projectName !== binding.projectName ||
+      !liveId ||
+      stringField(canonicalDeployment, 'environment') !== 'production' ||
+      stringField(canonicalDeployment, 'project_id') !== projectId ||
+      stringField(canonicalDeployment, 'project_name') !== projectName
+    ) {
+      return ambiguousProviderObservation(binding, response.status, 'cloudflare-project-authority-unprovable');
+    }
+    return exactProviderObservation(binding, response, [liveId]);
+  }
+
+  const token = env.VERCEL_API_TOKEN;
+  if (!token) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+  const projectTeamSuffix = binding.teamId ? `?teamId=${encodeURIComponent(binding.teamId)}` : '';
+  const projectResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v9/projects/${encodeURIComponent(binding.projectId)}${projectTeamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const projectPayload = await requireProviderJson(projectResponse, binding.provider, 'rollback activity observation');
+  if (projectResponse.status !== 200 || stringField(projectPayload, 'id') !== binding.projectId) {
+    return ambiguousProviderObservation(binding, projectResponse.status, 'vercel-project-authority-unprovable');
+  }
+  if (numberField(projectPayload, 'skewProtectionMaxAge') !== 0) {
+    return ambiguousProviderObservation(binding, projectResponse.status, 'vercel-skew-protection-state-unprovable');
+  }
+
+  const rollingReleaseTeamSuffix = binding.teamId ? `&teamId=${encodeURIComponent(binding.teamId)}` : '';
+  const rollingReleaseResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v1/projects/${encodeURIComponent(binding.projectId)}/rolling-release?state=ACTIVE${rollingReleaseTeamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const rollingReleasePayload = await requireProviderJson(
+    rollingReleaseResponse,
+    binding.provider,
+    'rolling-release observation',
+  );
+  if (rollingReleaseResponse.status !== 200 || !Object.hasOwn(rollingReleasePayload, 'rollingRelease')) {
+    return ambiguousProviderObservation(
+      binding,
+      rollingReleaseResponse.status,
+      'vercel-rolling-release-state-unprovable',
+    );
+  }
+  if (rollingReleasePayload.rollingRelease !== null) {
+    return ambiguousProviderObservation(binding, rollingReleaseResponse.status, 'vercel-active-rolling-release');
+  }
+
+  const lastAliasRequestValue = projectPayload.lastAliasRequest;
+  const lastAliasRequestSnapshot = JSON.stringify(lastAliasRequestValue ?? null);
+  let aliasActivity: Record<string, unknown>;
+  if (lastAliasRequestValue === null || lastAliasRequestValue === undefined) {
+    aliasActivity = { vercelAliasRequestPresent: false };
+  } else {
+    const lastAliasRequest = objectField(projectPayload, 'lastAliasRequest');
+    const type = stringField(lastAliasRequest, 'type');
+    const toDeploymentId = stringField(lastAliasRequest, 'toDeploymentId');
+    const requestedAt = numberField(lastAliasRequest, 'requestedAt');
+    const jobStatus = stringField(lastAliasRequest, 'jobStatus');
+    if (
+      !lastAliasRequest ||
+      !type ||
+      !toDeploymentId ||
+      requestedAt === undefined ||
+      !jobStatus ||
+      !['pending', 'in-progress', 'failed', 'succeeded', 'skipped'].includes(jobStatus)
+    ) {
+      return ambiguousProviderObservation(binding, projectResponse.status, 'vercel-alias-activity-unprovable');
+    }
+    aliasActivity = {
+      vercelAliasRequestPresent: true,
+      vercelAliasRequestType: type,
+      vercelAliasRequestTargetDeploymentId: toDeploymentId,
+      vercelAliasRequestRequestedAt: requestedAt,
+      vercelAliasRequestJobStatus: jobStatus,
+    };
+  }
+
+  if (
+    aliasActivity.vercelAliasRequestPresent === true &&
+    ['pending', 'in-progress'].includes(String(aliasActivity.vercelAliasRequestJobStatus))
+  ) {
+    return ambiguousProviderObservation(binding, projectResponse.status, 'vercel-alias-mutation-still-active');
+  }
+
+  const teamSuffix = binding.teamId ? `&teamId=${encodeURIComponent(binding.teamId)}` : '';
+  const domainsResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v9/projects/${encodeURIComponent(binding.projectId)}/domains?production=true&target=production&verified=true&redirects=false&limit=100${teamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const domainsPayload = await requireProviderJson(domainsResponse, binding.provider, 'production domain observation');
+  const domainRows = arrayField(domainsPayload, 'domains');
+  const domains = domainRows
+    .map((value) => stringField(value, 'name'))
+    .filter((value): value is string => Boolean(value));
+  const pagination = objectField(domainsPayload, 'pagination');
+  const paginationCount = numberField(pagination, 'count');
+  const paginationNext = pagination?.next;
+  const paginationPrev = pagination?.prev;
+
+  if (
+    domainsResponse.status !== 200 ||
+    !pagination ||
+    domains.length === 0 ||
+    domains.length !== domainRows.length ||
+    paginationCount === undefined ||
+    !Number.isSafeInteger(paginationCount) ||
+    paginationCount !== domainRows.length ||
+    paginationNext !== null ||
+    paginationPrev !== null
+  ) {
+    return ambiguousProviderObservation(binding, domainsResponse.status, 'production-domain-set-unprovable');
+  }
+
+  const liveIds: string[] = [];
+
+  for (const domain of domains) {
+    const aliasTeamSuffix = binding.teamId ? `&teamId=${encodeURIComponent(binding.teamId)}` : '';
+    const aliasResponse = await providerRollbackFetch(
+      fetchImpl,
+      `https://api.vercel.com/v4/aliases/${encodeURIComponent(domain)}?projectId=${encodeURIComponent(binding.projectId)}${aliasTeamSuffix}`,
+      { headers: providerAuthorizationHeaders(token), signal },
+    );
+    const aliasPayload = await requireProviderJson(aliasResponse, binding.provider, 'production alias observation');
+    const deploymentId = stringField(aliasPayload, 'deploymentId');
+    const alias = stringField(aliasPayload, 'alias');
+    const projectId = stringField(aliasPayload, 'projectId');
+
+    if (aliasResponse.status !== 200 || !deploymentId || alias !== domain || projectId !== binding.projectId) {
+      return ambiguousProviderObservation(binding, aliasResponse.status, 'production-alias-unprovable');
+    }
+
+    liveIds.push(deploymentId);
+  }
+
+  const confirmedDomainsResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v9/projects/${encodeURIComponent(binding.projectId)}/domains?production=true&target=production&verified=true&redirects=false&limit=100${teamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const confirmedDomainsPayload = await requireProviderJson(
+    confirmedDomainsResponse,
+    binding.provider,
+    'production domain confirmation',
+  );
+  const confirmedDomainRows = arrayField(confirmedDomainsPayload, 'domains');
+  const confirmedDomains = confirmedDomainRows
+    .map((value) => stringField(value, 'name'))
+    .filter((value): value is string => Boolean(value));
+  const confirmedPagination = objectField(confirmedDomainsPayload, 'pagination');
+  if (
+    confirmedDomainsResponse.status !== 200 ||
+    !confirmedPagination ||
+    confirmedDomains.length === 0 ||
+    confirmedDomains.length !== confirmedDomainRows.length ||
+    numberField(confirmedPagination, 'count') !== confirmedDomainRows.length ||
+    confirmedPagination.next !== null ||
+    confirmedPagination.prev !== null ||
+    JSON.stringify([...confirmedDomains].sort()) !== JSON.stringify([...domains].sort())
+  ) {
+    return ambiguousProviderObservation(
+      binding,
+      confirmedDomainsResponse.status,
+      'vercel-production-domain-authority-changed',
     );
   }
 
-  return undefined;
+  const confirmedLiveIds: string[] = [];
+  for (const domain of confirmedDomains) {
+    const aliasTeamSuffix = binding.teamId ? `&teamId=${encodeURIComponent(binding.teamId)}` : '';
+    const aliasResponse = await providerRollbackFetch(
+      fetchImpl,
+      `https://api.vercel.com/v4/aliases/${encodeURIComponent(domain)}?projectId=${encodeURIComponent(binding.projectId)}${aliasTeamSuffix}`,
+      { headers: providerAuthorizationHeaders(token), signal },
+    );
+    const aliasPayload = await requireProviderJson(aliasResponse, binding.provider, 'production alias confirmation');
+    const deploymentId = stringField(aliasPayload, 'deploymentId');
+    if (
+      aliasResponse.status !== 200 ||
+      !deploymentId ||
+      stringField(aliasPayload, 'alias') !== domain ||
+      stringField(aliasPayload, 'projectId') !== binding.projectId
+    ) {
+      return ambiguousProviderObservation(binding, aliasResponse.status, 'vercel-production-alias-authority-changed');
+    }
+    confirmedLiveIds.push(deploymentId);
+  }
+  if (JSON.stringify([...confirmedLiveIds].sort()) !== JSON.stringify([...liveIds].sort())) {
+    return ambiguousProviderObservation(
+      binding,
+      confirmedDomainsResponse.status,
+      'vercel-production-alias-authority-changed',
+    );
+  }
+
+  const confirmedProjectResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v9/projects/${encodeURIComponent(binding.projectId)}${projectTeamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const confirmedProjectPayload = await requireProviderJson(
+    confirmedProjectResponse,
+    binding.provider,
+    'rollback activity confirmation',
+  );
+  if (
+    confirmedProjectResponse.status !== 200 ||
+    stringField(confirmedProjectPayload, 'id') !== binding.projectId ||
+    numberField(confirmedProjectPayload, 'skewProtectionMaxAge') !== 0 ||
+    JSON.stringify(confirmedProjectPayload.lastAliasRequest ?? null) !== lastAliasRequestSnapshot
+  ) {
+    return ambiguousProviderObservation(binding, confirmedProjectResponse.status, 'vercel-project-authority-changed');
+  }
+
+  const confirmedRollingReleaseResponse = await providerRollbackFetch(
+    fetchImpl,
+    `https://api.vercel.com/v1/projects/${encodeURIComponent(binding.projectId)}/rolling-release?state=ACTIVE${rollingReleaseTeamSuffix}`,
+    { headers: providerAuthorizationHeaders(token), signal },
+  );
+  const confirmedRollingReleasePayload = await requireProviderJson(
+    confirmedRollingReleaseResponse,
+    binding.provider,
+    'rolling-release confirmation',
+  );
+  if (
+    confirmedRollingReleaseResponse.status !== 200 ||
+    !Object.hasOwn(confirmedRollingReleasePayload, 'rollingRelease') ||
+    confirmedRollingReleasePayload.rollingRelease !== null
+  ) {
+    return ambiguousProviderObservation(
+      binding,
+      confirmedRollingReleaseResponse.status,
+      'vercel-rolling-release-authority-changed',
+    );
+  }
+
+  return exactProviderObservation(binding, confirmedDomainsResponse, confirmedLiveIds, {
+    productionDomainCount: domains.length,
+    ...aliasActivity,
+  });
 }
 
-async function rollbackHookCall(
-  provider: (typeof deploymentProviders)[number],
-  url: string,
-  extraHeaders: Record<string, string>,
-  body: string | undefined,
+function providerRollbackRequest(
+  binding: ProviderRollbackBinding,
+  env: Record<string, string | undefined>,
+): { url: string; headers: Record<string, string>; body?: string } {
+  if (binding.provider === 'vercel') {
+    if (!env.VERCEL_API_TOKEN) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+    const teamSuffix = binding.teamId ? `?teamId=${encodeURIComponent(binding.teamId)}` : '';
+    return {
+      url: `https://api.vercel.com/v1/projects/${encodeURIComponent(binding.projectId)}/rollback/${encodeURIComponent(binding.deploymentId)}${teamSuffix}`,
+      headers: providerAuthorizationHeaders(env.VERCEL_API_TOKEN),
+    };
+  }
+
+  if (binding.provider === 'netlify') {
+    if (!env.NETLIFY_AUTH_TOKEN) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+    return {
+      url: `https://api.netlify.com/api/v1/sites/${encodeURIComponent(binding.siteId)}/deploys/${encodeURIComponent(binding.deploymentId)}/restore`,
+      headers: providerAuthorizationHeaders(env.NETLIFY_AUTH_TOKEN),
+    };
+  }
+
+  if (!env.CLOUDFLARE_API_TOKEN) throw providerRollbackConfigurationError('PROVIDER_ROLLBACK_NOT_CONFIGURED');
+  return {
+    url: `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(binding.accountId)}/pages/projects/${encodeURIComponent(binding.projectName)}/deployments/${encodeURIComponent(binding.deploymentId)}/rollback`,
+    headers: providerAuthorizationHeaders(env.CLOUDFLARE_API_TOKEN),
+  };
+}
+
+async function providerRollbackFetch(
   fetchImpl: typeof fetch,
-  buildId: string,
-): Promise<ProviderHookResult> {
+  url: string,
+  init: RequestInit & { signal?: AbortSignal },
+): Promise<Response> {
+  // addEventListener does not replay an abort that happened before the
+  // listener was attached. Refuse before invoking the transport so a release
+  // or rollback lease already known to be lost cannot start a provider POST.
+  if (init.signal?.aborted) {
+    throw init.signal.reason instanceof Error
+      ? init.signal.reason
+      : Object.assign(new Error('PROVIDER_ROLLBACK_ABORTED'), { name: 'AbortError' });
+  }
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
+  const abort = () => controller.abort(init.signal?.reason);
+  init.signal?.addEventListener('abort', abort, { once: true });
+  const timeout = setTimeout(() => controller.abort(new Error('PROVIDER_ROLLBACK_TIMEOUT')), 10_000);
 
   try {
-    const response = await fetchImpl(url, {
-      method: 'POST',
-      headers: { ...extraHeaders, accept: 'application/json' },
-      body,
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      return { status: 'failed', log: `${provider}: rollback responded with ${response.status}`, buildId };
-    }
-
-    return { status: 'queued', log: `${provider}: rollback to build ${buildId} accepted`, buildId };
-  } catch (error: any) {
-    return {
-      status: 'failed',
-      log: `${provider}: rollback failed: ${error?.message ?? 'unknown error'}`,
-      buildId,
-    };
+    return await fetchImpl(url, { ...init, signal: controller.signal });
   } finally {
     clearTimeout(timeout);
+    init.signal?.removeEventListener('abort', abort);
   }
+}
+
+function providerAuthorizationHeaders(token: string): Record<string, string> {
+  return { authorization: `Bearer ${token}`, accept: 'application/json' };
+}
+
+async function requireProviderJson(
+  response: Response,
+  provider: ProviderRollbackProvider,
+  action: string,
+): Promise<Record<string, unknown>> {
+  try {
+    const payload = await response.json();
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) return payload as Record<string, unknown>;
+  } catch {
+    // A read endpoint without valid JSON cannot prove provider state.
+  }
+
+  throw Object.assign(new Error(`${provider}: ${action} returned invalid JSON`), {
+    code: 'PROVIDER_ROLLBACK_LIVE_STATE_UNPROVABLE',
+    statusCode: 503,
+  });
+}
+
+async function requireProviderJsonArray(
+  response: Response,
+  provider: ProviderRollbackProvider,
+  action: string,
+): Promise<unknown[]> {
+  try {
+    const payload = await response.json();
+    if (Array.isArray(payload)) return payload;
+  } catch {
+    // A read endpoint without valid JSON cannot prove provider state.
+  }
+
+  throw Object.assign(new Error(`${provider}: ${action} returned invalid JSON`), {
+    code: 'PROVIDER_ROLLBACK_LIVE_STATE_UNPROVABLE',
+    statusCode: 503,
+  });
+}
+
+async function providerResponseEvidence(
+  response: Response,
+  provider: ProviderRollbackProvider,
+): Promise<Record<string, unknown>> {
+  const text = await response.text().catch(() => '');
+  const bounded = text.slice(0, 32 * 1024);
+  const requestId =
+    response.headers.get('x-vercel-id') ?? response.headers.get('x-nf-request-id') ?? response.headers.get('cf-ray');
+
+  return {
+    provider,
+    status: response.status,
+    bodyDigest: createHash('sha256').update(bounded).digest('hex'),
+    bodyTruncated: bounded.length !== text.length,
+    ...(requestId ? { requestId: requestId.slice(0, 256) } : {}),
+  };
+}
+
+function exactProviderObservation(
+  binding: ProviderRollbackBinding,
+  response: Response,
+  liveIds: string[],
+  extra: Record<string, unknown> = {},
+): ProviderRollbackObservation {
+  const ids = [...new Set(liveIds)].sort();
+  const state =
+    response.ok && ids.length > 0
+      ? ids.every((id) => id === binding.deploymentId)
+        ? 'TARGET'
+        : ids.every((id) => id !== binding.deploymentId)
+          ? 'OTHER'
+          : 'AMBIGUOUS'
+      : 'AMBIGUOUS';
+  return {
+    state,
+    evidence: {
+      provider: binding.provider,
+      authority:
+        binding.provider === 'vercel'
+          ? 'project.production_aliases.deploymentId+rolling_release+skew_disabled'
+          : binding.provider === 'netlify'
+            ? 'site.published_deploy.id+traffic_splits'
+            : 'project.canonical_deployment.id',
+      providerTarget: binding.providerTarget,
+      targetDeploymentId: binding.deploymentId,
+      liveDeploymentIds: ids,
+      responseStatus: response.status,
+      ...extra,
+    },
+  };
+}
+
+function ambiguousProviderObservation(
+  binding: ProviderRollbackBinding,
+  responseStatus: number,
+  reason: string,
+): ProviderRollbackObservation {
+  return {
+    state: 'AMBIGUOUS',
+    evidence: {
+      provider: binding.provider,
+      providerTarget: binding.providerTarget,
+      targetDeploymentId: binding.deploymentId,
+      liveDeploymentIds: [],
+      responseStatus,
+      reason,
+    },
+  };
+}
+
+function stableProviderTarget(value: Record<string, unknown>): string {
+  return JSON.stringify(value);
+}
+
+function objectField(value: unknown, key: string): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return field && typeof field === 'object' && !Array.isArray(field) ? (field as Record<string, unknown>) : undefined;
+}
+
+function arrayField(value: unknown, key: string): unknown[] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return [];
+  const field = (value as Record<string, unknown>)[key];
+  return Array.isArray(field) ? field : [];
+}
+
+function stringField(value: unknown, key: string): string | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === 'string' && field.length > 0 ? field : undefined;
+}
+
+function numberField(value: unknown, key: string): number | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === 'number' && Number.isFinite(field) ? field : undefined;
+}
+
+function booleanField(value: unknown, key: string): boolean | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return typeof field === 'boolean' ? field : undefined;
+}
+
+function providerRollbackConfigurationError(code: string): Error {
+  return Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), { code, statusCode: 409 });
+}
+
+function providerRollbackInspectionError(provider: ProviderRollbackProvider, status: number): Error {
+  return Object.assign(new Error(`${provider}: rollback target could not be verified`), {
+    code: 'PROVIDER_ROLLBACK_TARGET_UNPROVABLE',
+    statusCode: status >= 400 && status < 500 ? 409 : 503,
+  });
 }
 
 export async function triggerProviderDeployHook(

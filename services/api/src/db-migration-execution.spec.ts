@@ -254,8 +254,15 @@ describe('fenced publish migration', () => {
   });
 
   it('revalidates release authority on both sides of every backup sleep', async () => {
-    const run = input();
     let releaseAuthorityHeld = true;
+    const run = {
+      ...input(),
+      backupTimeoutMs: 2,
+      backupPollIntervalMs: 1,
+      sleep: async () => {
+        releaseAuthorityHeld = false;
+      },
+    };
     run.assertReleaseAuthority = async () => {
       if (!releaseAuthorityHeld) {
         throw Object.assign(new Error('Project release barrier was lost.'), {
@@ -265,11 +272,6 @@ describe('fenced publish migration', () => {
       }
     };
     run.provisioner.backupStatus = async () => ({ found: true, completed: false, phase: 'running' });
-    run.backupTimeoutMs = 2;
-    run.backupPollIntervalMs = 1;
-    run.sleep = async () => {
-      releaseAuthorityHeld = false;
-    };
 
     await expect(runPublishMigration(run)).rejects.toMatchObject({ code: 'PROJECT_RELEASE_BARRIER_LOST' });
     expect(run.applier.applyCalls).toBe(0);

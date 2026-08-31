@@ -93900,6 +93900,7 @@ export namespace Prisma {
     fencingToken: number | null
     effectFencingToken: number | null
     expectedHeadVersion: number | null
+    providerResponseStatus: number | null
     responseStatus: number | null
   }
 
@@ -93907,6 +93908,7 @@ export namespace Prisma {
     fencingToken: number | null
     effectFencingToken: number | null
     expectedHeadVersion: number | null
+    providerResponseStatus: number | null
     responseStatus: number | null
   }
 
@@ -93917,6 +93919,7 @@ export namespace Prisma {
     idempotencyKey: string | null
     requestFingerprint: string | null
     environment: string | null
+    operationKind: string | null
     status: string | null
     phase: string | null
     leaseOwner: string | null
@@ -93924,9 +93927,17 @@ export namespace Prisma {
     fencingToken: number | null
     effectFencingToken: number | null
     deploymentId: string | null
+    sourceDeploymentId: string | null
     expectedHeadVersion: number | null
     previousManifestId: string | null
     projectManifestDigest: string | null
+    provider: string | null
+    providerDeploymentId: string | null
+    providerTarget: string | null
+    providerEffectState: string | null
+    providerResponseStatus: number | null
+    providerEffectStartedAt: Date | null
+    providerEffectResolvedAt: Date | null
     responseStatus: number | null
     responseContentLanguage: string | null
     completedAt: Date | null
@@ -93941,6 +93952,7 @@ export namespace Prisma {
     idempotencyKey: string | null
     requestFingerprint: string | null
     environment: string | null
+    operationKind: string | null
     status: string | null
     phase: string | null
     leaseOwner: string | null
@@ -93948,9 +93960,17 @@ export namespace Prisma {
     fencingToken: number | null
     effectFencingToken: number | null
     deploymentId: string | null
+    sourceDeploymentId: string | null
     expectedHeadVersion: number | null
     previousManifestId: string | null
     projectManifestDigest: string | null
+    provider: string | null
+    providerDeploymentId: string | null
+    providerTarget: string | null
+    providerEffectState: string | null
+    providerResponseStatus: number | null
+    providerEffectStartedAt: Date | null
+    providerEffectResolvedAt: Date | null
     responseStatus: number | null
     responseContentLanguage: string | null
     completedAt: Date | null
@@ -93965,6 +93985,7 @@ export namespace Prisma {
     idempotencyKey: number
     requestFingerprint: number
     environment: number
+    operationKind: number
     status: number
     phase: number
     leaseOwner: number
@@ -93972,9 +93993,19 @@ export namespace Prisma {
     fencingToken: number
     effectFencingToken: number
     deploymentId: number
+    sourceDeploymentId: number
     expectedHeadVersion: number
     previousManifestId: number
     projectManifestDigest: number
+    provider: number
+    providerDeploymentId: number
+    providerTarget: number
+    providerEffectState: number
+    providerResponseStatus: number
+    providerResponseEvidence: number
+    providerRecoveryEvidence: number
+    providerEffectStartedAt: number
+    providerEffectResolvedAt: number
     responseStatus: number
     responseContentLanguage: number
     responseBody: number
@@ -93989,6 +94020,7 @@ export namespace Prisma {
     fencingToken?: true
     effectFencingToken?: true
     expectedHeadVersion?: true
+    providerResponseStatus?: true
     responseStatus?: true
   }
 
@@ -93996,6 +94028,7 @@ export namespace Prisma {
     fencingToken?: true
     effectFencingToken?: true
     expectedHeadVersion?: true
+    providerResponseStatus?: true
     responseStatus?: true
   }
 
@@ -94006,6 +94039,7 @@ export namespace Prisma {
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
+    operationKind?: true
     status?: true
     phase?: true
     leaseOwner?: true
@@ -94013,9 +94047,17 @@ export namespace Prisma {
     fencingToken?: true
     effectFencingToken?: true
     deploymentId?: true
+    sourceDeploymentId?: true
     expectedHeadVersion?: true
     previousManifestId?: true
     projectManifestDigest?: true
+    provider?: true
+    providerDeploymentId?: true
+    providerTarget?: true
+    providerEffectState?: true
+    providerResponseStatus?: true
+    providerEffectStartedAt?: true
+    providerEffectResolvedAt?: true
     responseStatus?: true
     responseContentLanguage?: true
     completedAt?: true
@@ -94030,6 +94072,7 @@ export namespace Prisma {
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
+    operationKind?: true
     status?: true
     phase?: true
     leaseOwner?: true
@@ -94037,9 +94080,17 @@ export namespace Prisma {
     fencingToken?: true
     effectFencingToken?: true
     deploymentId?: true
+    sourceDeploymentId?: true
     expectedHeadVersion?: true
     previousManifestId?: true
     projectManifestDigest?: true
+    provider?: true
+    providerDeploymentId?: true
+    providerTarget?: true
+    providerEffectState?: true
+    providerResponseStatus?: true
+    providerEffectStartedAt?: true
+    providerEffectResolvedAt?: true
     responseStatus?: true
     responseContentLanguage?: true
     completedAt?: true
@@ -94054,6 +94105,7 @@ export namespace Prisma {
     idempotencyKey?: true
     requestFingerprint?: true
     environment?: true
+    operationKind?: true
     status?: true
     phase?: true
     leaseOwner?: true
@@ -94061,9 +94113,19 @@ export namespace Prisma {
     fencingToken?: true
     effectFencingToken?: true
     deploymentId?: true
+    sourceDeploymentId?: true
     expectedHeadVersion?: true
     previousManifestId?: true
     projectManifestDigest?: true
+    provider?: true
+    providerDeploymentId?: true
+    providerTarget?: true
+    providerEffectState?: true
+    providerResponseStatus?: true
+    providerResponseEvidence?: true
+    providerRecoveryEvidence?: true
+    providerEffectStartedAt?: true
+    providerEffectResolvedAt?: true
     responseStatus?: true
     responseContentLanguage?: true
     responseBody?: true
@@ -94166,6 +94228,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind: string
     status: string
     phase: string
     leaseOwner: string | null
@@ -94173,9 +94236,19 @@ export namespace Prisma {
     fencingToken: number
     effectFencingToken: number | null
     deploymentId: string | null
+    sourceDeploymentId: string | null
     expectedHeadVersion: number | null
     previousManifestId: string | null
     projectManifestDigest: string | null
+    provider: string | null
+    providerDeploymentId: string | null
+    providerTarget: string | null
+    providerEffectState: string | null
+    providerResponseStatus: number | null
+    providerResponseEvidence: JsonValue | null
+    providerRecoveryEvidence: JsonValue | null
+    providerEffectStartedAt: Date | null
+    providerEffectResolvedAt: Date | null
     responseStatus: number | null
     responseContentLanguage: string | null
     responseBody: JsonValue | null
@@ -94210,6 +94283,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
+    operationKind?: boolean
     status?: boolean
     phase?: boolean
     leaseOwner?: boolean
@@ -94217,9 +94291,19 @@ export namespace Prisma {
     fencingToken?: boolean
     effectFencingToken?: boolean
     deploymentId?: boolean
+    sourceDeploymentId?: boolean
     expectedHeadVersion?: boolean
     previousManifestId?: boolean
     projectManifestDigest?: boolean
+    provider?: boolean
+    providerDeploymentId?: boolean
+    providerTarget?: boolean
+    providerEffectState?: boolean
+    providerResponseStatus?: boolean
+    providerResponseEvidence?: boolean
+    providerRecoveryEvidence?: boolean
+    providerEffectStartedAt?: boolean
+    providerEffectResolvedAt?: boolean
     responseStatus?: boolean
     responseContentLanguage?: boolean
     responseBody?: boolean
@@ -94237,6 +94321,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
+    operationKind?: boolean
     status?: boolean
     phase?: boolean
     leaseOwner?: boolean
@@ -94244,9 +94329,19 @@ export namespace Prisma {
     fencingToken?: boolean
     effectFencingToken?: boolean
     deploymentId?: boolean
+    sourceDeploymentId?: boolean
     expectedHeadVersion?: boolean
     previousManifestId?: boolean
     projectManifestDigest?: boolean
+    provider?: boolean
+    providerDeploymentId?: boolean
+    providerTarget?: boolean
+    providerEffectState?: boolean
+    providerResponseStatus?: boolean
+    providerResponseEvidence?: boolean
+    providerRecoveryEvidence?: boolean
+    providerEffectStartedAt?: boolean
+    providerEffectResolvedAt?: boolean
     responseStatus?: boolean
     responseContentLanguage?: boolean
     responseBody?: boolean
@@ -94264,6 +94359,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
+    operationKind?: boolean
     status?: boolean
     phase?: boolean
     leaseOwner?: boolean
@@ -94271,9 +94367,19 @@ export namespace Prisma {
     fencingToken?: boolean
     effectFencingToken?: boolean
     deploymentId?: boolean
+    sourceDeploymentId?: boolean
     expectedHeadVersion?: boolean
     previousManifestId?: boolean
     projectManifestDigest?: boolean
+    provider?: boolean
+    providerDeploymentId?: boolean
+    providerTarget?: boolean
+    providerEffectState?: boolean
+    providerResponseStatus?: boolean
+    providerResponseEvidence?: boolean
+    providerRecoveryEvidence?: boolean
+    providerEffectStartedAt?: boolean
+    providerEffectResolvedAt?: boolean
     responseStatus?: boolean
     responseContentLanguage?: boolean
     responseBody?: boolean
@@ -94291,6 +94397,7 @@ export namespace Prisma {
     idempotencyKey?: boolean
     requestFingerprint?: boolean
     environment?: boolean
+    operationKind?: boolean
     status?: boolean
     phase?: boolean
     leaseOwner?: boolean
@@ -94298,9 +94405,19 @@ export namespace Prisma {
     fencingToken?: boolean
     effectFencingToken?: boolean
     deploymentId?: boolean
+    sourceDeploymentId?: boolean
     expectedHeadVersion?: boolean
     previousManifestId?: boolean
     projectManifestDigest?: boolean
+    provider?: boolean
+    providerDeploymentId?: boolean
+    providerTarget?: boolean
+    providerEffectState?: boolean
+    providerResponseStatus?: boolean
+    providerResponseEvidence?: boolean
+    providerRecoveryEvidence?: boolean
+    providerEffectStartedAt?: boolean
+    providerEffectResolvedAt?: boolean
     responseStatus?: boolean
     responseContentLanguage?: boolean
     responseBody?: boolean
@@ -94309,7 +94426,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type RollbackIdempotencyRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "actorUserId" | "idempotencyKey" | "requestFingerprint" | "environment" | "status" | "phase" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "effectFencingToken" | "deploymentId" | "expectedHeadVersion" | "previousManifestId" | "projectManifestDigest" | "responseStatus" | "responseContentLanguage" | "responseBody" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotencyRequest"]>
+  export type RollbackIdempotencyRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "actorUserId" | "idempotencyKey" | "requestFingerprint" | "environment" | "operationKind" | "status" | "phase" | "leaseOwner" | "leaseExpiresAt" | "fencingToken" | "effectFencingToken" | "deploymentId" | "sourceDeploymentId" | "expectedHeadVersion" | "previousManifestId" | "projectManifestDigest" | "provider" | "providerDeploymentId" | "providerTarget" | "providerEffectState" | "providerResponseStatus" | "providerResponseEvidence" | "providerRecoveryEvidence" | "providerEffectStartedAt" | "providerEffectResolvedAt" | "responseStatus" | "responseContentLanguage" | "responseBody" | "completedAt" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotencyRequest"]>
   export type RollbackIdempotencyRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     actor?: boolean | RollbackIdempotencyRequest$actorArgs<ExtArgs>
@@ -94336,6 +94453,7 @@ export namespace Prisma {
       idempotencyKey: string
       requestFingerprint: string
       environment: string
+      operationKind: string
       status: string
       phase: string
       leaseOwner: string | null
@@ -94343,9 +94461,19 @@ export namespace Prisma {
       fencingToken: number
       effectFencingToken: number | null
       deploymentId: string | null
+      sourceDeploymentId: string | null
       expectedHeadVersion: number | null
       previousManifestId: string | null
       projectManifestDigest: string | null
+      provider: string | null
+      providerDeploymentId: string | null
+      providerTarget: string | null
+      providerEffectState: string | null
+      providerResponseStatus: number | null
+      providerResponseEvidence: Prisma.JsonValue | null
+      providerRecoveryEvidence: Prisma.JsonValue | null
+      providerEffectStartedAt: Date | null
+      providerEffectResolvedAt: Date | null
       responseStatus: number | null
       responseContentLanguage: string | null
       responseBody: Prisma.JsonValue | null
@@ -94783,6 +94911,7 @@ export namespace Prisma {
     readonly idempotencyKey: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly requestFingerprint: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly environment: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly operationKind: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly status: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly phase: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly leaseOwner: FieldRef<"RollbackIdempotencyRequest", 'String'>
@@ -94790,9 +94919,19 @@ export namespace Prisma {
     readonly fencingToken: FieldRef<"RollbackIdempotencyRequest", 'Int'>
     readonly effectFencingToken: FieldRef<"RollbackIdempotencyRequest", 'Int'>
     readonly deploymentId: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly sourceDeploymentId: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly expectedHeadVersion: FieldRef<"RollbackIdempotencyRequest", 'Int'>
     readonly previousManifestId: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly projectManifestDigest: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly provider: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly providerDeploymentId: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly providerTarget: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly providerEffectState: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly providerResponseStatus: FieldRef<"RollbackIdempotencyRequest", 'Int'>
+    readonly providerResponseEvidence: FieldRef<"RollbackIdempotencyRequest", 'Json'>
+    readonly providerRecoveryEvidence: FieldRef<"RollbackIdempotencyRequest", 'Json'>
+    readonly providerEffectStartedAt: FieldRef<"RollbackIdempotencyRequest", 'DateTime'>
+    readonly providerEffectResolvedAt: FieldRef<"RollbackIdempotencyRequest", 'DateTime'>
     readonly responseStatus: FieldRef<"RollbackIdempotencyRequest", 'Int'>
     readonly responseContentLanguage: FieldRef<"RollbackIdempotencyRequest", 'String'>
     readonly responseBody: FieldRef<"RollbackIdempotencyRequest", 'Json'>
@@ -221244,6 +221383,7 @@ export namespace Prisma {
     idempotencyKey: 'idempotencyKey',
     requestFingerprint: 'requestFingerprint',
     environment: 'environment',
+    operationKind: 'operationKind',
     status: 'status',
     phase: 'phase',
     leaseOwner: 'leaseOwner',
@@ -221251,9 +221391,19 @@ export namespace Prisma {
     fencingToken: 'fencingToken',
     effectFencingToken: 'effectFencingToken',
     deploymentId: 'deploymentId',
+    sourceDeploymentId: 'sourceDeploymentId',
     expectedHeadVersion: 'expectedHeadVersion',
     previousManifestId: 'previousManifestId',
     projectManifestDigest: 'projectManifestDigest',
+    provider: 'provider',
+    providerDeploymentId: 'providerDeploymentId',
+    providerTarget: 'providerTarget',
+    providerEffectState: 'providerEffectState',
+    providerResponseStatus: 'providerResponseStatus',
+    providerResponseEvidence: 'providerResponseEvidence',
+    providerRecoveryEvidence: 'providerRecoveryEvidence',
+    providerEffectStartedAt: 'providerEffectStartedAt',
+    providerEffectResolvedAt: 'providerEffectResolvedAt',
     responseStatus: 'responseStatus',
     responseContentLanguage: 'responseContentLanguage',
     responseBody: 'responseBody',
@@ -229845,6 +229995,7 @@ export namespace Prisma {
     idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringFilter<"RollbackIdempotencyRequest"> | string
+    operationKind?: StringFilter<"RollbackIdempotencyRequest"> | string
     status?: StringFilter<"RollbackIdempotencyRequest"> | string
     phase?: StringFilter<"RollbackIdempotencyRequest"> | string
     leaseOwner?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
@@ -229852,9 +230003,19 @@ export namespace Prisma {
     fencingToken?: IntFilter<"RollbackIdempotencyRequest"> | number
     effectFencingToken?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    sourceDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     expectedHeadVersion?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     previousManifestId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     projectManifestDigest?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    provider?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerTarget?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerEffectState?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerResponseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    providerResponseEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerRecoveryEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerEffectStartedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    providerEffectResolvedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
     responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     responseContentLanguage?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
@@ -229872,6 +230033,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
+    operationKind?: SortOrder
     status?: SortOrder
     phase?: SortOrder
     leaseOwner?: SortOrderInput | SortOrder
@@ -229879,9 +230041,19 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrderInput | SortOrder
     deploymentId?: SortOrderInput | SortOrder
+    sourceDeploymentId?: SortOrderInput | SortOrder
     expectedHeadVersion?: SortOrderInput | SortOrder
     previousManifestId?: SortOrderInput | SortOrder
     projectManifestDigest?: SortOrderInput | SortOrder
+    provider?: SortOrderInput | SortOrder
+    providerDeploymentId?: SortOrderInput | SortOrder
+    providerTarget?: SortOrderInput | SortOrder
+    providerEffectState?: SortOrderInput | SortOrder
+    providerResponseStatus?: SortOrderInput | SortOrder
+    providerResponseEvidence?: SortOrderInput | SortOrder
+    providerRecoveryEvidence?: SortOrderInput | SortOrder
+    providerEffectStartedAt?: SortOrderInput | SortOrder
+    providerEffectResolvedAt?: SortOrderInput | SortOrder
     responseStatus?: SortOrderInput | SortOrder
     responseContentLanguage?: SortOrderInput | SortOrder
     responseBody?: SortOrderInput | SortOrder
@@ -229904,15 +230076,26 @@ export namespace Prisma {
     idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringFilter<"RollbackIdempotencyRequest"> | string
+    operationKind?: StringFilter<"RollbackIdempotencyRequest"> | string
     status?: StringFilter<"RollbackIdempotencyRequest"> | string
     phase?: StringFilter<"RollbackIdempotencyRequest"> | string
     leaseOwner?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     leaseExpiresAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
     fencingToken?: IntFilter<"RollbackIdempotencyRequest"> | number
     effectFencingToken?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    sourceDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     expectedHeadVersion?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     previousManifestId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     projectManifestDigest?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    provider?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerTarget?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerEffectState?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerResponseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    providerResponseEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerRecoveryEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerEffectStartedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    providerEffectResolvedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
     responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     responseContentLanguage?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
@@ -229930,6 +230113,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
+    operationKind?: SortOrder
     status?: SortOrder
     phase?: SortOrder
     leaseOwner?: SortOrderInput | SortOrder
@@ -229937,9 +230121,19 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrderInput | SortOrder
     deploymentId?: SortOrderInput | SortOrder
+    sourceDeploymentId?: SortOrderInput | SortOrder
     expectedHeadVersion?: SortOrderInput | SortOrder
     previousManifestId?: SortOrderInput | SortOrder
     projectManifestDigest?: SortOrderInput | SortOrder
+    provider?: SortOrderInput | SortOrder
+    providerDeploymentId?: SortOrderInput | SortOrder
+    providerTarget?: SortOrderInput | SortOrder
+    providerEffectState?: SortOrderInput | SortOrder
+    providerResponseStatus?: SortOrderInput | SortOrder
+    providerResponseEvidence?: SortOrderInput | SortOrder
+    providerRecoveryEvidence?: SortOrderInput | SortOrder
+    providerEffectStartedAt?: SortOrderInput | SortOrder
+    providerEffectResolvedAt?: SortOrderInput | SortOrder
     responseStatus?: SortOrderInput | SortOrder
     responseContentLanguage?: SortOrderInput | SortOrder
     responseBody?: SortOrderInput | SortOrder
@@ -229963,6 +230157,7 @@ export namespace Prisma {
     idempotencyKey?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    operationKind?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     status?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     phase?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
     leaseOwner?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
@@ -229970,9 +230165,19 @@ export namespace Prisma {
     fencingToken?: IntWithAggregatesFilter<"RollbackIdempotencyRequest"> | number
     effectFencingToken?: IntNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | number | null
     deploymentId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    sourceDeploymentId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
     expectedHeadVersion?: IntNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | number | null
     previousManifestId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
     projectManifestDigest?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    provider?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    providerDeploymentId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    providerTarget?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    providerEffectState?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    providerResponseStatus?: IntNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | number | null
+    providerResponseEvidence?: JsonNullableWithAggregatesFilter<"RollbackIdempotencyRequest">
+    providerRecoveryEvidence?: JsonNullableWithAggregatesFilter<"RollbackIdempotencyRequest">
+    providerEffectStartedAt?: DateTimeNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    providerEffectResolvedAt?: DateTimeNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string | null
     responseStatus?: IntNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | number | null
     responseContentLanguage?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
     responseBody?: JsonNullableWithAggregatesFilter<"RollbackIdempotencyRequest">
@@ -245939,6 +246144,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -245946,9 +246152,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -245966,6 +246182,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -245973,9 +246190,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -245989,6 +246216,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -245996,9 +246224,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -246016,6 +246254,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -246023,9 +246262,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -246041,6 +246290,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -246048,9 +246298,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -246064,6 +246324,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -246071,9 +246332,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -246089,6 +246360,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -246096,9 +246368,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -261450,6 +261732,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
+    operationKind?: SortOrder
     status?: SortOrder
     phase?: SortOrder
     leaseOwner?: SortOrder
@@ -261457,9 +261740,19 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrder
     deploymentId?: SortOrder
+    sourceDeploymentId?: SortOrder
     expectedHeadVersion?: SortOrder
     previousManifestId?: SortOrder
     projectManifestDigest?: SortOrder
+    provider?: SortOrder
+    providerDeploymentId?: SortOrder
+    providerTarget?: SortOrder
+    providerEffectState?: SortOrder
+    providerResponseStatus?: SortOrder
+    providerResponseEvidence?: SortOrder
+    providerRecoveryEvidence?: SortOrder
+    providerEffectStartedAt?: SortOrder
+    providerEffectResolvedAt?: SortOrder
     responseStatus?: SortOrder
     responseContentLanguage?: SortOrder
     responseBody?: SortOrder
@@ -261472,6 +261765,7 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrder
     expectedHeadVersion?: SortOrder
+    providerResponseStatus?: SortOrder
     responseStatus?: SortOrder
   }
 
@@ -261482,6 +261776,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
+    operationKind?: SortOrder
     status?: SortOrder
     phase?: SortOrder
     leaseOwner?: SortOrder
@@ -261489,9 +261784,17 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrder
     deploymentId?: SortOrder
+    sourceDeploymentId?: SortOrder
     expectedHeadVersion?: SortOrder
     previousManifestId?: SortOrder
     projectManifestDigest?: SortOrder
+    provider?: SortOrder
+    providerDeploymentId?: SortOrder
+    providerTarget?: SortOrder
+    providerEffectState?: SortOrder
+    providerResponseStatus?: SortOrder
+    providerEffectStartedAt?: SortOrder
+    providerEffectResolvedAt?: SortOrder
     responseStatus?: SortOrder
     responseContentLanguage?: SortOrder
     completedAt?: SortOrder
@@ -261506,6 +261809,7 @@ export namespace Prisma {
     idempotencyKey?: SortOrder
     requestFingerprint?: SortOrder
     environment?: SortOrder
+    operationKind?: SortOrder
     status?: SortOrder
     phase?: SortOrder
     leaseOwner?: SortOrder
@@ -261513,9 +261817,17 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrder
     deploymentId?: SortOrder
+    sourceDeploymentId?: SortOrder
     expectedHeadVersion?: SortOrder
     previousManifestId?: SortOrder
     projectManifestDigest?: SortOrder
+    provider?: SortOrder
+    providerDeploymentId?: SortOrder
+    providerTarget?: SortOrder
+    providerEffectState?: SortOrder
+    providerResponseStatus?: SortOrder
+    providerEffectStartedAt?: SortOrder
+    providerEffectResolvedAt?: SortOrder
     responseStatus?: SortOrder
     responseContentLanguage?: SortOrder
     completedAt?: SortOrder
@@ -261527,6 +261839,7 @@ export namespace Prisma {
     fencingToken?: SortOrder
     effectFencingToken?: SortOrder
     expectedHeadVersion?: SortOrder
+    providerResponseStatus?: SortOrder
     responseStatus?: SortOrder
   }
 
@@ -281548,6 +281861,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -281555,9 +281869,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -281573,6 +281897,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -281580,9 +281905,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -283274,6 +283609,7 @@ export namespace Prisma {
     idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
     requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
     environment?: StringFilter<"RollbackIdempotencyRequest"> | string
+    operationKind?: StringFilter<"RollbackIdempotencyRequest"> | string
     status?: StringFilter<"RollbackIdempotencyRequest"> | string
     phase?: StringFilter<"RollbackIdempotencyRequest"> | string
     leaseOwner?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
@@ -283281,9 +283617,19 @@ export namespace Prisma {
     fencingToken?: IntFilter<"RollbackIdempotencyRequest"> | number
     effectFencingToken?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    sourceDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     expectedHeadVersion?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     previousManifestId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     projectManifestDigest?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    provider?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerDeploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerTarget?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerEffectState?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    providerResponseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    providerResponseEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerRecoveryEvidence?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    providerEffectStartedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
+    providerEffectResolvedAt?: DateTimeNullableFilter<"RollbackIdempotencyRequest"> | Date | string | null
     responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
     responseContentLanguage?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
     responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
@@ -289239,6 +289585,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -289246,9 +289593,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -289264,6 +289621,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -289271,9 +289629,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -334917,6 +335285,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -334924,9 +335293,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -336413,6 +336792,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -336420,9 +336800,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -336438,6 +336828,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -336445,9 +336836,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -336462,6 +336863,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -336469,9 +336871,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -339297,6 +339709,7 @@ export namespace Prisma {
     idempotencyKey: string
     requestFingerprint: string
     environment: string
+    operationKind?: string
     status?: string
     phase?: string
     leaseOwner?: string | null
@@ -339304,9 +339717,19 @@ export namespace Prisma {
     fencingToken?: number
     effectFencingToken?: number | null
     deploymentId?: string | null
+    sourceDeploymentId?: string | null
     expectedHeadVersion?: number | null
     previousManifestId?: string | null
     projectManifestDigest?: string | null
+    provider?: string | null
+    providerDeploymentId?: string | null
+    providerTarget?: string | null
+    providerEffectState?: string | null
+    providerResponseStatus?: number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: Date | string | null
+    providerEffectResolvedAt?: Date | string | null
     responseStatus?: number | null
     responseContentLanguage?: string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -340406,6 +340829,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -340413,9 +340837,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -340431,6 +340865,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -340438,9 +340873,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue
@@ -340455,6 +340900,7 @@ export namespace Prisma {
     idempotencyKey?: StringFieldUpdateOperationsInput | string
     requestFingerprint?: StringFieldUpdateOperationsInput | string
     environment?: StringFieldUpdateOperationsInput | string
+    operationKind?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
     phase?: StringFieldUpdateOperationsInput | string
     leaseOwner?: NullableStringFieldUpdateOperationsInput | string | null
@@ -340462,9 +340908,19 @@ export namespace Prisma {
     fencingToken?: IntFieldUpdateOperationsInput | number
     effectFencingToken?: NullableIntFieldUpdateOperationsInput | number | null
     deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     expectedHeadVersion?: NullableIntFieldUpdateOperationsInput | number | null
     previousManifestId?: NullableStringFieldUpdateOperationsInput | string | null
     projectManifestDigest?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: NullableStringFieldUpdateOperationsInput | string | null
+    providerDeploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    providerTarget?: NullableStringFieldUpdateOperationsInput | string | null
+    providerEffectState?: NullableStringFieldUpdateOperationsInput | string | null
+    providerResponseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    providerResponseEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerRecoveryEvidence?: NullableJsonNullValueInput | InputJsonValue
+    providerEffectStartedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    providerEffectResolvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
     responseContentLanguage?: NullableStringFieldUpdateOperationsInput | string | null
     responseBody?: NullableJsonNullValueInput | InputJsonValue

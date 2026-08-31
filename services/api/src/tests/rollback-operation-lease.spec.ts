@@ -21,6 +21,23 @@ function releaseMetadata(projectManifestDigest = PROJECT_MANIFEST_DIGEST) {
   return { planEntitlements: PLAN_ENTITLEMENTS, projectManifestDigest };
 }
 
+async function createRollbackProject(store: TestApiStore, slug: string) {
+  const owner = await store.createUser({
+    email: `${slug}@example.test`,
+    passwordHash: 'test-only-hash',
+  });
+  const organization = await store.createOrganization({
+    name: slug,
+    slug,
+    ownerUserId: owner.id,
+  });
+  return store.createProject({
+    organizationId: organization.id,
+    name: slug,
+    slug,
+  });
+}
+
 describe('durable rollback operation — lease, fencing, and frozen target', () => {
   it('never exposes static READY without its pinned manifest and replays one exact commit', async () => {
     class FailingManifestStore extends TestApiStore {
@@ -90,9 +107,10 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('serializes one key, rejects a changed fingerprint, and replays the persisted response', async () => {
     const store = new TestApiStore();
+    const project = await createRollbackProject(store, 'rollback-serializes-key');
 
     const first = await store.acquireRollbackOperation({
-      projectId: 'project-a',
+      projectId: project.id,
       actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'same-key',
       requestFingerprint: FINGERPRINT,
@@ -104,7 +122,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     await expect(
       store.acquireRollbackOperation({
-        projectId: 'project-a',
+        projectId: project.id,
         actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: FINGERPRINT,
@@ -116,7 +134,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
     await expect(
       store.acquireRollbackOperation({
-        projectId: 'project-a',
+        projectId: project.id,
         actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: 'd'.repeat(64),
@@ -137,7 +155,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
     await expect(
       store.acquireRollbackOperation({
-        projectId: 'project-a',
+        projectId: project.id,
         actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'same-key',
         requestFingerprint: FINGERPRINT,
@@ -153,9 +171,10 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('increments the fence on orphan recovery and permanently rejects the expired owner', async () => {
     const store = new TestApiStore();
+    const project = await createRollbackProject(store, 'rollback-fence-recovery');
 
     const first = await store.acquireRollbackOperation({
-      projectId: 'project-fence',
+      projectId: project.id,
       actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'fenced-key',
       requestFingerprint: FINGERPRINT,
@@ -163,13 +182,13 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       ownerToken: 'owner-old',
       leaseDurationMs: 30_000,
     });
-    store.rollbackOperations.set('project-fence:fenced-key', {
+    store.rollbackOperations.set(`${project.id}:fenced-key`, {
       ...first.record,
       leaseExpiresAt: new Date(Date.now() - 1).toISOString(),
     });
 
     const recovered = await store.acquireRollbackOperation({
-      projectId: 'project-fence',
+      projectId: project.id,
       actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'fenced-key',
       requestFingerprint: FINGERPRINT,
@@ -197,8 +216,9 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('fails closed instead of resuming a historical actorless lease', async () => {
     const store = new TestApiStore();
+    const project = await createRollbackProject(store, 'rollback-legacy-actorless');
     const acquired = await store.acquireRollbackOperation({
-      projectId: 'project-legacy-actorless',
+      projectId: project.id,
       actorUserId: ACTOR_USER_ID,
       idempotencyKey: 'legacy-actorless-key',
       requestFingerprint: FINGERPRINT,
@@ -206,7 +226,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       ownerToken: 'legacy-owner',
       leaseDurationMs: 30_000,
     });
-    store.rollbackOperations.set('project-legacy-actorless:legacy-actorless-key', {
+    store.rollbackOperations.set(`${project.id}:legacy-actorless-key`, {
       ...acquired.record,
       actorUserId: undefined,
     });
@@ -228,7 +248,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     ).resolves.toBe(false);
     await expect(
       store.acquireRollbackOperation({
-        projectId: 'project-legacy-actorless',
+        projectId: project.id,
         actorUserId: ACTOR_USER_ID,
         idempotencyKey: 'legacy-actorless-key',
         requestFingerprint: FINGERPRINT,
@@ -255,13 +275,16 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       name: 'Rollback Pre Effect',
       slug: 'rollback-pre-effect',
     });
+    const projectManifest = await store.getLatestProjectManifest(project.id);
+    if (!projectManifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+    const projectManifestDigest = projectManifest.digest;
     const sourceDeployment = await store.createDeployment({
       projectId: project.id,
       expectedOrganizationId: project.organizationId,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
-      metadata: releaseMetadata(),
+      metadata: releaseMetadata(projectManifestDigest),
     });
     const currentDeployment = await store.createDeployment({
       projectId: project.id,
@@ -270,7 +293,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       environment: 'preview',
       status: 'READY',
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
-      metadata: releaseMetadata(),
+      metadata: releaseMetadata(projectManifestDigest),
     });
 
     const source = await store.createReleaseManifest({
@@ -284,7 +307,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactDigest: ARTIFACT_DIGEST,
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
       planEntitlements: PLAN_ENTITLEMENTS,
-      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest,
     });
     await store.createReleaseManifest({
       projectId: project.id,
@@ -297,7 +320,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       artifactDigest: `sha256:${'d'.repeat(64)}`,
       accessPolicyVersion: currentDeployment.accessPolicyVersion,
       planEntitlements: PLAN_ENTITLEMENTS,
-      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest,
     });
 
     const acquired = await store.acquireRollbackOperation({
@@ -309,6 +332,10 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       ownerToken: 'owner-pre-effect',
       leaseDurationMs: 30_000,
     });
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId: project.id,
+      organizationId: organization.id,
+    });
     const operation = await store.bindRollbackOperationTarget({
       operationId: acquired.record.id,
       ownerToken: 'owner-pre-effect',
@@ -316,10 +343,12 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       deploymentId: 'deployment-pre-effect',
       expectedHeadVersion: 2,
       previousManifestId: source.id,
-      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest,
+      releaseFence: release.releaseFence,
     });
     await store.ensureRollbackDeployment({
       fence: { operationId: operation.id, ownerToken: 'owner-pre-effect', fencingToken: 1 },
+      releaseFence: release.releaseFence,
       deployment: {
         id: 'deployment-pre-effect',
         projectId: project.id,
@@ -331,7 +360,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         metadata: {
           planEntitlements: PLAN_ENTITLEMENTS,
           rollbackOperationId: operation.id,
-          projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+          projectManifestDigest,
           restoredFromVersion: 1,
           restoredFromDeploymentId: source.deploymentId,
           supersededVersion: 2,
@@ -431,6 +460,10 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       ownerToken: 'owner-target',
       leaseDurationMs: 30_000,
     });
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId: project.id,
+      organizationId: organization.id,
+    });
     const operation = await store.bindRollbackOperationTarget({
       operationId: acquired.record.id,
       ownerToken: 'owner-target',
@@ -439,6 +472,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       expectedHeadVersion: 2,
       previousManifestId: source.id,
       projectManifestDigest: (await store.getLatestProjectManifest(project.id))!.digest,
+      releaseFence: release.releaseFence,
     });
     const metadata = {
       planEntitlements: PLAN_ENTITLEMENTS,
@@ -451,6 +485,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     };
     await store.ensureRollbackDeployment({
       fence: { operationId: operation.id, ownerToken: 'owner-target', fencingToken: 1 },
+      releaseFence: release.releaseFence,
       deployment: {
         id: 'deployment-rollback',
         projectId: project.id,
@@ -466,6 +501,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       operationId: operation.id,
       ownerToken: 'owner-target',
       fencingToken: 1,
+      releaseFence: release.releaseFence,
     });
     await expect(
       store.completeRollbackOperation({
@@ -477,11 +513,6 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         responseBody: { code: 'ROLLBACK_RESTORE_FAILED' },
       }),
     ).rejects.toThrow('ROLLBACK_CLEANUP_UNCONFIRMED');
-
-    const release = await acquireTestProjectReleaseFence(store, {
-      projectId: project.id,
-      organizationId: organization.id,
-    });
 
     const commit = (artifactDigest = ARTIFACT_DIGEST) =>
       store.commitStaticRollbackRelease({
@@ -509,6 +540,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     expect(store.releaseManifests).toHaveLength(2);
     await store.updateRollbackDeployment({
       fence: { operationId: operation.id, ownerToken: 'owner-target', fencingToken: 1 },
+      releaseFence: release.releaseFence,
       projectId: project.id,
       deploymentId: 'deployment-rollback',
       patch: { status: 'FAILED' },

@@ -1202,13 +1202,25 @@ export interface ProjectRegistryErasureAuthorityRecord {
 }
 
 export type RollbackOperationStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type RollbackOperationKind = 'RELEASE_HISTORY' | 'PROVIDER';
 export type RollbackOperationPhase =
   | 'CLAIMED'
   | 'TARGET_BOUND'
   | 'DEPLOYMENT_CREATED'
   | 'EFFECT_STARTED'
   | 'EFFECT_CLEANED'
-  | 'RELEASE_COMMITTED';
+  | 'RELEASE_COMMITTED'
+  | 'PROVIDER_SUPERSEDED';
+export type ProviderRollbackEffectState =
+  | 'PENDING'
+  | 'DISPATCHING'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'AMBIGUOUS'
+  | 'MANUAL_RECOVERY'
+  | 'OBSERVED_TARGET'
+  | 'COMMITTED'
+  | 'SUPERSEDED';
 
 /**
  * Durable rollback execution and response ledger. Lease timestamps are issued
@@ -1222,6 +1234,7 @@ export interface RollbackOperationRecord {
   idempotencyKey: string;
   requestFingerprint: string;
   environment: string;
+  operationKind: RollbackOperationKind;
   status: RollbackOperationStatus;
   phase: RollbackOperationPhase;
   leaseOwner?: string;
@@ -1231,15 +1244,32 @@ export interface RollbackOperationRecord {
   /** Fence that durably authorized the current external-effect generation. */
   effectFencingToken?: number;
   deploymentId?: string;
+  sourceDeploymentId?: string;
   expectedHeadVersion?: number;
   previousManifestId?: string;
   projectManifestDigest?: string;
+  provider?: 'vercel' | 'netlify' | 'cloudflare-pages';
+  providerDeploymentId?: string;
+  providerTarget?: string;
+  providerEffectState?: ProviderRollbackEffectState;
+  providerResponseStatus?: number;
+  providerResponseEvidence?: Record<string, unknown>;
+  providerRecoveryEvidence?: Array<Record<string, unknown>>;
+  providerEffectStartedAt?: string;
+  providerEffectResolvedAt?: string;
   responseStatus?: number;
   responseContentLanguage?: 'en' | 'fr';
   responseBody?: unknown;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ProviderRollbackOperatorResolutionResult {
+  resolution: 'COMMITTED' | 'SUPERSEDED';
+  operation: RollbackOperationRecord;
+  deployment: DeploymentRecord;
+  auditLogId: string;
 }
 
 export interface RollbackLeaseFence {
@@ -4191,6 +4221,17 @@ export interface ApiStore {
      */
     releaseFence?: ProjectReleaseFence,
   ): Promise<DeploymentRecord>;
+  /**
+   * Cancel only an ordinary in-flight deployment. The store must reject a row
+   * owned by an IN_PROGRESS RollbackIdempotencyRequest in the same transaction
+   * as the status CAS so generic cancellation cannot strand provider recovery.
+   */
+  cancelDeployment(input: {
+    projectId: string;
+    deploymentId: string;
+    canceledAt: string;
+    logs: DeploymentRecord['logs'];
+  }): Promise<DeploymentRecord>;
   listDeployments(projectId: string, options?: { take?: number }): Promise<DeploymentRecord[]>;
 
   /**
@@ -4257,6 +4298,7 @@ export interface ApiStore {
     idempotencyKey: string;
     requestFingerprint: string;
     environment: string;
+    operationKind?: RollbackOperationKind;
     ownerToken: string;
     leaseDurationMs: number;
   }): Promise<{
@@ -4264,6 +4306,7 @@ export interface ApiStore {
     record: RollbackOperationRecord;
   }>;
   getRollbackOperation(projectId: string, idempotencyKey: string): Promise<RollbackOperationRecord | undefined>;
+  getRollbackOperationById(operationId: string): Promise<RollbackOperationRecord | undefined>;
   renewRollbackOperationLease(input: {
     operationId: string;
     ownerToken: string;
@@ -4283,13 +4326,28 @@ export interface ApiStore {
     expectedHeadVersion: number;
     previousManifestId: string;
     projectManifestDigest: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<RollbackOperationRecord>;
+  bindProviderRollbackTarget(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deploymentId: string;
+    sourceDeploymentId: string;
+    projectManifestDigest: string;
+    provider: 'vercel' | 'netlify' | 'cloudflare-pages';
+    providerDeploymentId: string;
+    providerTarget: string;
+    releaseFence: ProjectReleaseFence;
   }): Promise<RollbackOperationRecord>;
   ensureRollbackDeployment(input: {
     fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    releaseFence: ProjectReleaseFence;
     deployment: RollbackDeploymentCreateInput;
   }): Promise<DeploymentRecord>;
   updateRollbackDeployment(input: {
     fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    releaseFence: ProjectReleaseFence;
     projectId: string;
     deploymentId: string;
     patch: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
@@ -4300,7 +4358,64 @@ export interface ApiStore {
     operationId: string;
     ownerToken: string;
     fencingToken: number;
+    releaseFence: ProjectReleaseFence;
   }): Promise<RollbackOperationRecord>;
+
+  /** Atomically mark the one provider dispatch window before the first POST. */
+  beginProviderRollbackEffect(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<{ kind: 'DISPATCH' | 'RECOVER'; record: RollbackOperationRecord }>;
+
+  /** Persist a bounded provider response or response-loss ambiguity. */
+  recordProviderRollbackDispatch(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    state: 'ACCEPTED' | 'REJECTED' | 'AMBIGUOUS';
+    responseStatus?: number;
+    responseEvidence: Record<string, unknown>;
+  }): Promise<RollbackOperationRecord>;
+
+  /** Append immutable live-routing evidence; never authorizes another POST. */
+  recordProviderRollbackObservation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    state: 'TARGET' | 'OTHER' | 'AMBIGUOUS';
+    evidence: Record<string, unknown>;
+  }): Promise<RollbackOperationRecord>;
+
+  /** Expire the current DB lease so a new request can recover immediately. */
+  yieldRollbackOperationLease(input: { operationId: string; ownerToken: string; fencingToken: number }): Promise<void>;
+
+  /** Commit the local READY row only after exact provider-live observation. */
+  commitProviderRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    releaseFence: ProjectReleaseFence;
+    projectId: string;
+    deploymentId: string;
+    patch: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
+  }): Promise<DeploymentRecord>;
+
+  /**
+   * Operator-only terminal recovery. The store revalidates platform-admin
+   * identity, immutable live evidence, DB-clock observation window, rollback
+   * lease and project release fence in the same transaction as the Deployment,
+   * durable HTTP receipt and AuditLog commit.
+   */
+  resolveProviderRollbackOperator(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    releaseFence: ProjectReleaseFence;
+    operatorUserId: string;
+    ipAddress?: string;
+    resolution: 'COMMITTED' | 'SUPERSEDED';
+    projectId: string;
+    deploymentId: string;
+    committedPatch?: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
+  }): Promise<ProviderRollbackOperatorResolutionResult>;
 
   /** Persist that failed external effects were proven absent before replay is finalizable. */
   completeRollbackEffectCleanup(input: {

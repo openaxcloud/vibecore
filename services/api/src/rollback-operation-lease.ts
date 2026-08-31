@@ -34,6 +34,9 @@ export class RollbackOperationLeaseManager {
   private _renewal: Promise<void> | undefined;
   private _stopped = false;
   private _lost = false;
+  private readonly _authorityAbort = new AbortController();
+
+  readonly signal = this._authorityAbort.signal;
 
   constructor(
     private readonly _store: RollbackOperationLeaseStore,
@@ -65,6 +68,7 @@ export class RollbackOperationLeaseManager {
       this._renewal = this._renew()
         .catch(() => {
           this._lost = true;
+          if (!this.signal.aborted) this._authorityAbort.abort(new RollbackOperationLeaseLostError());
         })
         .finally(() => {
           this._renewal = undefined;
@@ -85,6 +89,7 @@ export class RollbackOperationLeaseManager {
 
     if (!expiresAt) {
       this._lost = true;
+      if (!this.signal.aborted) this._authorityAbort.abort(new RollbackOperationLeaseLostError());
     }
   }
 
@@ -97,12 +102,14 @@ export class RollbackOperationLeaseManager {
 
     if (!valid) {
       this._lost = true;
+      if (!this.signal.aborted) this._authorityAbort.abort(new RollbackOperationLeaseLostError());
       throw new RollbackOperationLeaseLostError();
     }
   }
 
   async stop(): Promise<void> {
     this._stopped = true;
+    if (!this.signal.aborted) this._authorityAbort.abort(new Error('ROLLBACK_OPERATION_LEASE_STOPPED'));
 
     if (this._timer) {
       clearTimeout(this._timer);

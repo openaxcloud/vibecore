@@ -605,6 +605,8 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
     const projectManifest = await store.getLatestProjectManifest(projectId);
     expect(projectManifest).toBeDefined();
+    const project = await store.getProject(projectId);
+    if (!project) throw new Error('TEST_PROJECT_MISSING');
     await store.updateDeployment(projectId, previous.deployment.id, {
       metadata: {
         planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
@@ -626,6 +628,10 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       ownerToken: 'committed-owner',
       leaseDurationMs: 60_000,
     });
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId,
+      organizationId: project.organizationId,
+    });
 
     const sourceManifest = (await store.listReleaseManifests(projectId, 'preview'))[1];
     const deploymentId = 'committed-static-rollback';
@@ -638,6 +644,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       expectedHeadVersion: 2,
       previousManifestId: sourceManifest.id,
       projectManifestDigest: projectManifest!.digest,
+      releaseFence: release.releaseFence,
     });
     const metadata = {
       planEntitlements: RELEASE_PLAN_ENTITLEMENTS,
@@ -651,6 +658,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     };
     await store.ensureRollbackDeployment({
       fence: { operationId: operation.id, ownerToken: 'committed-owner', fencingToken: 1 },
+      releaseFence: release.releaseFence,
       deployment: {
         id: deploymentId,
         projectId,
@@ -666,14 +674,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       operationId: operation.id,
       ownerToken: 'committed-owner',
       fencingToken: 1,
-    });
-    const project = await store.getProject(projectId);
-
-    if (!project) throw new Error('TEST_PROJECT_MISSING');
-
-    const release = await acquireTestProjectReleaseFence(store, {
-      projectId,
-      organizationId: project.organizationId,
+      releaseFence: release.releaseFence,
     });
     await store.commitStaticRollbackRelease({
       operationId: operation.id,
@@ -856,6 +857,12 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
 
     const projectManifest = await store.getLatestProjectManifest(projectId);
     expect(projectManifest).toBeDefined();
+    const project = await store.getProject(projectId);
+    if (!project) throw new Error('TEST_PROJECT_MISSING');
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId,
+      organizationId: project.organizationId,
+    });
 
     const idempotencyKey = 'static-orphaned-effect';
 
@@ -883,6 +890,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       expectedHeadVersion: 2,
       previousManifestId: (await store.listReleaseManifests(projectId, 'preview'))[1].id,
       projectManifestDigest: projectManifest!.digest,
+      releaseFence: release.releaseFence,
     });
     await store.ensureRollbackDeployment({
       fence: {
@@ -890,6 +898,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         ownerToken: 'crashed-owner',
         fencingToken: bound.fencingToken,
       },
+      releaseFence: release.releaseFence,
       deployment: {
         id: deploymentId,
         projectId,
@@ -914,6 +923,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       operationId: bound.id,
       ownerToken: 'crashed-owner',
       fencingToken: bound.fencingToken,
+      releaseFence: release.releaseFence,
     });
 
     const orphanDir = staticDeploymentSnapshotDir(deploymentId);
@@ -928,6 +938,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       ...effect,
       leaseExpiresAt: new Date(0).toISOString(),
     });
+    await release.release();
 
     const partialArtifact = await app.inject({
       method: 'GET',
