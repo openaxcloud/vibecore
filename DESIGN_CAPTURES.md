@@ -133,3 +133,26 @@ périmée.
 
 **Une frappe non vérifiée dans un éditeur est le même faux négatif qu'une page non
 chargée** : la sonde produit un verdict sans avoir rien mesuré.
+
+---
+
+## Les faux négatifs rencontrés le 2026-08-31
+
+Tous ont la même forme : **l'outil n'a rien mesuré et a rendu un résultat rassurant.**
+
+| Sonde | Ce qui n'allait pas | Ce qu'elle rendait |
+|---|---|---|
+| balayage de contraste de l'IDE | `networkidle` ne se produit jamais (websocket, sondes, HMR) | **« 0 défaut »** sur une page jamais chargée |
+| résolution de thème | la feuille compilée écrit `[data-theme=light]` **sans guillemets** | le thème SOMBRE mesuré deux fois, vert et faux |
+| lecture d'une capture à l'œil | le blanc sur orange se lit comme du texte sombre | « avant et après sont identiques », alors que rien n'était appliqué |
+| **capture de requêtes** | corps **tronqués à 4 000 octets** par la sonde | **« le marqueur n'est pas dans la charge »** — il était au-delà de la coupure. Les corps faisaient EXACTEMENT 4 000 o, ce qui aurait dû alerter |
+| comptage de défauts | le fichier de test n'existait pas sur la branche | `grep \| wc -l` = **0**, indiscernable de « aucun défaut » |
+| filtre de contrôles CI | le filtre ne matchait aucun contrôle | `,,` lu comme **« tout est vert »**, sur une PR dont la CI n'avait pas démarré |
+| état des déploiements | 8/8 « Ready et à jour »… pour la révision **précédente** | « mon changement est déployé », alors que le build tournait. **Seule la révision Helm fait foi** |
+| frappe dans l'éditeur | rien ne garantissait que la saisie avait atteint Monaco | un verdict de perte de données sur une frappe jamais arrivée |
+| trace d'URL | l'hôte effacé du relevé | impossible de distinguer `app.` de `api.` — donc de savoir quel service traitait la requête |
+
+**Règle qui en découle, appliquée partout depuis :** toute commande de comptage
+doit distinguer « rien trouvé » de « rien exécuté », et toute sonde doit échouer
+bruyamment quand elle n'a pas pu mesurer. Un champ d'erreur qu'il faut penser à
+lire n'est pas une protection.
