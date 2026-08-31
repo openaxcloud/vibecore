@@ -46072,20 +46072,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             if (!durableRegistryAuthority.projectPackages.includes(promotionAuthority.targetRepository)) {
               throw new ServerImageReleaseGateError('PROMOTION_PACKAGE_AUTHORITY_MISSING');
             }
+            const promotionIntentHash = registryMutationIntentHash({
+              schemaVersion: 'deployment-publish-image-promotion-v1',
+              sourceDeploymentId: source.id,
+              projectManifestDigest: expectedManifestDigest,
+              source: promotionInput.source,
+              targetRepository: promotionAuthority.targetRepository,
+            });
+            await releaseGuard.assert();
             const promoted = await store.withRegistryMutation(
               {
-                operationId: `registry-mutation:publish:${source.id}:${releaseGuard.fence}`,
+                operationId: `registry-mutation:publish:${source.id}:${promotionIntentHash.slice('sha256:'.length)}`,
                 projectId: project.id,
                 organizationId: durableRegistryAuthority.organizationId,
                 ownershipEpoch: durableRegistryAuthority.ownershipEpoch,
                 kind: 'IMAGE_PROMOTION',
                 repositories: [...promotionAuthority.repositories],
-                intentHash: registryMutationIntentHash({
-                  sourceDeploymentId: source.id,
-                  promotionInput,
-                  targetRepository: promotionAuthority.targetRepository,
-                  releaseFence: releaseGuard.fence,
-                }),
+                intentHash: promotionIntentHash,
               },
               async (registryGuard) => {
                 await releaseGuard.assert();
@@ -46113,6 +46116,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 replayVerified: (evidence) => parseVerifiedPromotionEvidence(evidence, project.organizationId),
               },
             );
+            await releaseGuard.assert();
 
             if (
               !isCommittedPromotionForTenant(
