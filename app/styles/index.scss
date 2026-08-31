@@ -22387,7 +22387,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-border-subtle: #d5d8dc;
   --vc-auth-text: #17191c;
   --vc-auth-secondary: #3f4449;
-  --vc-auth-muted: #626970;
+  /*
+   * Assombri de #626970 à #545a60 le 2026-08-31. Mesuré en production sur les
+   * pixels rendus : la mention légale et « Back to home » de `/login` et
+   * `/register` tombaient à **3,91 à 4,40:1 en thème CLAIR** — le fond de ces
+   * pages est un dégradé chaud (jusqu'à #e1d6d2), pas du blanc, et le gris
+   * était calibré pour du blanc. #545a60 y donne 4,90:1 et reste plus clair que
+   * --vc-auth-secondary, donc la hiérarchie tient.
+   */
+  --vc-auth-muted: #545a60;
   --vc-auth-accent: #c2410c;
   --vc-auth-action-foreground: #ffffff;
   --vc-auth-link: var(--vc-auth-accent);
@@ -22404,6 +22412,58 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-auth-left-shade {
   background: linear-gradient(180deg, color-mix(in srgb, var(--vc-auth-card-solid) 72%, transparent), transparent);
+}
+
+/*
+ * PANNEAU D'ACCROCHE DES PAGES D'AUTHENTIFICATION — encre sombre, pas du blanc.
+ *
+ * Mesuré en production le 2026-08-31 (balayage de contraste par pixels rendus,
+ * `/login` et `/register`, bureau 1440, LES DEUX thèmes) : le panneau est un
+ * dégradé `--ecode-orange` → `#f99d25`, et le texte blanc qu'on y posait donnait
+ * **2,01 à 2,73:1** — onze éléments sous le seuil, dans les deux thèmes. Les
+ * pires étaient les libellés de statistiques en `text-white/72` (2,01) et
+ * l'accroche « AI-powered development » (2,26).
+ *
+ * Le blanc ne peut pas marcher sur cet orange : même à pleine opacité il plafonne
+ * à 2,62:1 sur le ton le plus foncé du dégradé. L'encre sombre, elle, donne 6,58
+ * à 8,34:1 — et c'est déjà le parti retenu ailleurs dans le produit, où les
+ * boutons d'action posent `#111827` sur l'orange de marque (5,51:1 mesuré en
+ * production sur « Talk to sales »).
+ *
+ * La rampe d'opacité est conservée pour garder la hiérarchie, mais son plancher
+ * remonte de 72 % à 80 % : à 72 % l'encre retombait à 4,18:1 sur les tons clairs
+ * du dégradé. À 80 % le pire cas est 4,88:1.
+ */
+.vc-auth-hero-copy {
+  --vc-auth-hero-ink: #111827;
+
+  color: var(--vc-auth-hero-ink);
+}
+
+.vc-auth-hero-eyebrow {
+  background: rgb(255 255 255 / 0.32);
+  color: var(--vc-auth-hero-ink);
+}
+
+.vc-auth-hero-body {
+  color: color-mix(in srgb, var(--vc-auth-hero-ink) 88%, transparent);
+}
+
+.vc-auth-hero-feature {
+  color: color-mix(in srgb, var(--vc-auth-hero-ink) 92%, transparent);
+}
+
+.vc-auth-hero-stat-label {
+  color: color-mix(in srgb, var(--vc-auth-hero-ink) 80%, transparent);
+}
+
+.vc-auth-hero-chip {
+  background: rgb(255 255 255 / 0.32);
+  color: var(--vc-auth-hero-ink);
+}
+
+.vc-auth-hero-divider {
+  border-color: rgb(17 24 39 / 0.24);
 }
 
 .vc-auth-back-link,
