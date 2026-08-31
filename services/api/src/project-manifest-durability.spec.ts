@@ -49,29 +49,74 @@ function corpsDuHandler(ancre: string): string {
   return fin === -1 ? suite : suite.slice(0, fin);
 }
 
-describe('MANIFEST-DURABILITY-001 — l’archive du projet suit-elle les écritures ?', () => {
-  it('DÉFAUT CONSTATÉ : la persistance du manifeste n’existe que sur les chemins en masse', () => {
-    const appels = [...APP.matchAll(/await persistProjectFileManifest\(/g)].length;
+/**
+ * Version FIX de la spec : sur la branche de préparation elle prouvait le défaut
+ * (`it.fails`), ici elle impose l'invariant.
+ *
+ * ⚠️ La première version cherchait littéralement `persistProjectFileManifest`
+ * dans le corps de la route. Le correctif utilise `persistProjectFileEntry` — la
+ * variante INCRÉMENTALE, parce que la première remplace le manifeste entier et
+ * qu'une sauvegarde unitaire ne connaît qu'un chemin. La recette ne basculait
+ * donc pas, alors que le correctif était bien là : **un test accroché à un nom
+ * précis rate la bonne implémentation**. Il vérifie maintenant le PRÉFIXE
+ * commun, et surtout le comportement observable — le marqueur d'origine.
+ */
+describe('MANIFEST-DURABILITY-001 — l’archive du projet suit les écritures humaines', () => {
+  it('la route d’écriture rend l’archive durable', () => {
+    const corps = corpsDuHandler("app.put('/api/runtime/workspaces/:workspaceId/files/write'");
 
-    expect(appels, 'la fonction doit exister et être utilisée').toBeGreaterThan(0);
+    expect(corps, 'aucune persistance du manifeste sur la route d’écriture').toMatch(
+      /persistProjectFile(Entry|Manifest)\(/,
+    );
+  });
+
+  it('mais PAS sur le trajet du flux de génération', () => {
+    /*
+     * Le garde-fou de coût. Sans lui, un correctif « qui marche » mettrait ~37
+     * mutations du blob `ide-state` partagé par fichier généré.
+     */
+    const corps = corpsDuHandler("app.put('/api/runtime/workspaces/:workspaceId/files/write'");
+
+    expect(corps).toMatch(/!estEcritureDeFlux\(request\)/);
+  });
+
+  it('le client marque ses écritures de flux, et seulement elles', () => {
+    const runner = readFileSync(join(__dirname, '..', '..', '..', 'app', 'lib', 'runtime', 'action-runner.ts'), 'utf8');
+
+    expect(runner).toMatch(/writeFile\(relativePath, payload, \{ streaming: isStreaming \}\)/);
+
+    const remote = readFileSync(
+      join(__dirname, '..', '..', '..', 'packages', 'runtime-remote', 'src', 'index.ts'),
+      'utf8',
+    );
+
+    expect(remote).toMatch(/'x-vc-write-origin': 'stream'/);
+  });
+
+  it('l’échec de persistance ne fait pas échouer l’écriture', () => {
+    /*
+     * Le fichier est déjà dans le pod : rendre 5xx ferait reprendre l'appelant
+     * sur une écriture qui a réussi, et la reprise est justement ce qui a produit
+     * la tempête de 468 requêtes du 21/08.
+     */
+    const corps = corpsDuHandler("app.put('/api/runtime/workspaces/:workspaceId/files/write'");
 
     /*
-     * Onze appels, TOUS sur des chemins en masse : création (vide, modèle, IA),
-     * imports (commit, GitHub ×2, zip), `/files/import/zip`, restauration de
-     * point de sauvegarde, duplication, restauration d'instantané. Si ce compte
-     * change, quelqu'un a touché à la persistance — et il faut relire ce fichier.
-     *
-     * Le compte a d'abord été lu à 5 sur un `head -6` tronqué. Il est ici pour
-     * que la prochaine lecture soit exacte, pas approximative.
+     * Ancré sur l'APPEL, pas sur la première mention : le commentaire au-dessus
+     * cite le nom, et partir de là mesurait de la prose.
      */
-    expect(appels, 'appels à persistProjectFileManifest').toBe(11);
+    const bloc = corps.slice(corps.indexOf('await persistProjectFileEntry('));
+
+    expect(bloc.slice(0, 400)).toMatch(/catch \(error\)/);
+    expect(bloc.slice(0, 400)).toMatch(/request\.log\.error/);
   });
 
-  it.each(ROUTES_ECRITURE)('DÉFAUT CONSTATÉ : %s n’écrit pas dans le manifeste', (ancre) => {
-    expect(corpsDuHandler(ancre)).not.toContain('persistProjectFileManifest');
-  });
-
-  it('DÉFAUT CONSTATÉ : le plan de reseed supprime ce que l’archive ignore', () => {
+  it('le plan de reseed supprime toujours ce que l’archive ignore', () => {
+    /*
+     * Inchangé, et c'est voulu : une fois l'archive à jour, cette convergence
+     * devient la bonne opération. C'est elle qui retire du pod ce que
+     * l'utilisateur a réellement supprimé.
+     */
     const reseed = readFileSync(
       join(__dirname, '..', '..', '..', 'app', 'lib', 'runtime', 'workspace-reseed.ts'),
       'utf8',
@@ -79,19 +124,6 @@ describe('MANIFEST-DURABILITY-001 — l’archive du projet suit-elle les écrit
 
     const plan = reseed.slice(reseed.indexOf('export function planReseedDeletions'));
 
-    /* La ligne exacte qui provoque la perte : absent de l'archive → supprimé. */
     expect(plan).toMatch(/if \(!archivePaths\.has\(relative\)\) \{\s*deletions\.push\(node\.path\);/);
-  });
-
-  /*
-   * L'INVARIANT VISÉ. Rouge tant que le défaut est là, ce qui est voulu :
-   * `it.fails` réussit tant que le corps échoue. Le jour où une route d'écriture
-   * persiste le manifeste, CE test devient rouge et force à retirer les
-   * « DÉFAUT CONSTATÉ » ci-dessus. C'est la recette du correctif.
-   */
-  it.fails('INVARIANT VISÉ : au moins une route d’écriture doit rendre l’archive durable', () => {
-    const durable = ROUTES_ECRITURE.some((ancre) => corpsDuHandler(ancre).includes('persistProjectFileManifest'));
-
-    expect(durable, 'aucune route d’écriture ne persiste le manifeste du projet').toBe(true);
   });
 });

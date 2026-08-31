@@ -601,7 +601,7 @@ describe('ActionRunner self-repair retry loop', () => {
     runner.addAction(fileAction);
     await runner.runAction(fileAction, false);
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n', { streaming: false });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(progressEvents).toHaveLength(0);
   });
@@ -645,7 +645,7 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
 
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n', { streaming: false });
 
     // One "attempt 1/2" progress, then a clearing null.
     expect(progressEvents).toEqual([
@@ -693,7 +693,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await runPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2', { streaming: false });
 
     const clearing = progressEvents.find((event) => event.status === null);
     expect(clearing).toBeDefined();
@@ -794,7 +794,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;', { streaming: false });
     expect(progressEvents.some((event) => event.status === null)).toBe(true);
   });
 });
@@ -867,7 +867,7 @@ describe('ActionRunner diff action apply', () => {
     expect(writeFile).toHaveBeenCalledTimes(1);
 
     const expected = original.replace('line 300\n', 'line THREE-HUNDRED\n');
-    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected, { streaming: false });
 
     // project-doctor / reconcile ran AFTER the write on the applied full content.
     expect(applyEntryExportReconcileMock).toHaveBeenCalledTimes(1);
@@ -989,7 +989,7 @@ describe('ActionRunner diff action apply', () => {
 
     const expected = ['const a = 10;', 'const b = 2;', 'const c = 30;', ''].join('\n');
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected, { streaming: false });
 
     // Sanitize + self-repair validation ran on the applied content, then reconcile.
     expect(validateAndFormatHunkMock).toHaveBeenCalledWith('src/multi.ts', expected);

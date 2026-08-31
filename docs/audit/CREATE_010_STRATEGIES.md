@@ -31,8 +31,12 @@ là toute l'amplification : **une requête HTTP par fragment et par fichier**.
 ### Ordre de grandeur
 
 - **750 `PUT` pour 20 fichiers** (≈ **37 écritures par fichier**) — mesure du
-  **2026-08-15**, ⚠️ **non remesurée le 31/08**. À reprendre avant de dimensionner
-  quoi que ce soit sur ce chiffre.
+  **2026-08-15**. ⚠️ **REMESURE TENTÉE LE 31/08, ÉCHOUÉE** : deux générations
+  lancées sur la production, toutes deux interrompues par un bandeau **« Service
+  unavailable »** avant la moindre écriture (`AMPLIFICATION requetes=0
+  fichiers=0` — un zéro qui ne mesure rien, pas un zéro d'amplification). Voir
+  `BUG-AGENT-007`. **Le chiffre reste donc celui du 15/08, et la décision ne doit
+  pas être prise dessus sans une remesure aboutie.**
 - Mesure connexe du 21/08, déjà corrigée : 468 `PUT` **tous en `425`**, sans aucun
   succès — c'était une tempête de reprises sur un espace pas encore prêt, réglée
   par le double budget de tentatives (`action-runner`, commentaire

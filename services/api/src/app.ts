@@ -4408,6 +4408,67 @@ async function persistProjectFileManifest(
   );
 }
 
+/**
+ * BUG-CREATE-010 — rend DURABLE une écriture fichier par fichier.
+ *
+ * `persistProjectFileManifest` remplace le manifeste entier : elle convient aux
+ * chemins en masse (création, imports, fermeture d'artefact, restaurations) mais
+ * pas à une sauvegarde unitaire, qui ne connaît qu'un chemin.
+ *
+ * Ici on fusionne UNE entrée dans le manifeste existant, à l'intérieur de la
+ * boucle à version optimiste : la relecture et la fusion se font sous le même
+ * contrôle de version que le reste, donc une édition collaborative concurrente
+ * n'est pas écrasée.
+ *
+ * Appelée UNIQUEMENT hors flux de génération (voir `estEcritureDeFlux`) : sur le
+ * trajet de l'agent, l'archive est déjà rafraîchie en une fois par
+ * `/files/import/zip` à la fermeture de l'artefact, et y brancher le manifeste
+ * ferait une mutation du blob partagé par FRAGMENT de fichier.
+ */
+async function persistProjectFileEntry(
+  store: ApiStore,
+  projectId: string,
+  file: { path: string; content: string; encoding?: FileEncoding },
+  updatedByUserId?: string,
+) {
+  const chemin = normalizeProjectPath(file.path);
+
+  if (!chemin) {
+    return;
+  }
+
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => {
+    const etat = (existing?.state ?? {}) as { files?: { entries?: Array<{ path: string; content: string; encoding?: 'base64' }> } };
+    const entrees = Array.isArray(etat.files?.entries) ? [...etat.files!.entries!] : [];
+    const entree = {
+      path: chemin,
+      content: file.content,
+      ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+    };
+    const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
+
+    if (index === -1) {
+      entrees.push(entree);
+    } else {
+      entrees[index] = entree;
+    }
+
+    return mergeProjectIdeState(existing?.state, {
+      files: { entries: entrees, updatedAt: new Date().toISOString() },
+    });
+  });
+}
+
+/**
+ * Une écriture émise pendant le FLUX de génération de l'agent. Le client la
+ * marque ; en l'absence de marqueur on considère que l'écriture vient d'un
+ * humain, parce qu'un faux « humain » coûte une mutation de trop tandis qu'un
+ * faux « flux » reperd la donnée.
+ */
+function estEcritureDeFlux(request: { headers: Record<string, unknown> }) {
+  return String(request.headers['x-vc-write-origin'] ?? '').toLowerCase() === 'stream';
+}
+
 function persistedIdeMessageContent(message: unknown) {
   if (!message || typeof message !== 'object' || Array.isArray(message)) {
     return '';
@@ -16997,6 +17058,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply;
     }
     await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+
+    /*
+     * BUG-CREATE-010 — l'archive du projet doit suivre, sinon la réouverture
+     * depuis un autre appareil réécrit le fichier depuis une archive périmée et
+     * le travail est perdu. Hors flux seulement : voir `persistProjectFileEntry`.
+     *
+     * L'échec de persistance ne fait PAS échouer l'écriture : le fichier est déjà
+     * dans le pod, et rendre 5xx ici ferait reprendre l'appelant alors que son
+     * écriture a réussi. Il est journalisé pour rester visible.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await persistProjectFileEntry(store, authorized.projectId, body, request.currentUser?.id);
+      } catch (error) {
+        request.log.error({ err: error, projectId: authorized.projectId, path: body.path }, 'project manifest persist failed');
+      }
+    }
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',

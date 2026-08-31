@@ -401,7 +401,20 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
    */
   #lastWrittenContent = new Map<string, string>();
 
-  async writeFile(path: string, content: string): Promise<void> {
+  /**
+   * BUG-CREATE-010 — `options.streaming` marque une écriture émise PENDANT le
+   * flux de génération. L'API rend l'archive du projet durable sur une écriture
+   * humaine, et surtout PAS sur une écriture de flux : pendant une génération il
+   * y a une requête par fragment et par fichier, et y brancher le manifeste
+   * ferait autant de mutations du blob `ide-state` partagé. L'agent, lui,
+   * rafraîchit l'archive en une fois à la fermeture de l'artefact
+   * (`/files/import/zip`).
+   *
+   * Le défaut est ASYMÉTRIQUE et le défaut de marquage suit cette asymétrie : un
+   * faux « humain » coûte une mutation de trop, un faux « flux » reperd la
+   * donnée. Sans marqueur, on persiste.
+   */
+  async writeFile(path: string, content: string, options?: 'utf8' | 'base64' | { streaming?: boolean }): Promise<void> {
     /*
      * Sauter une écriture qui produirait, octet pour octet, ce que l'on a déjà
      * écrit à ce chemin. On compare au DERNIER contenu, pas à l'ensemble des
@@ -418,7 +431,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      */
     await this.#request(
       `/workspaces/${this.#requireWorkspaceId()}/files/write`,
-      { method: 'PUT', body: JSON.stringify({ path, content }) },
+      {
+        method: 'PUT',
+        body: JSON.stringify({ path, content }),
+        ...(typeof options === 'object' && options.streaming ? { headers: { 'x-vc-write-origin': 'stream' } } : {}),
+      },
       { retryIdempotentWrite: true },
     );
 
@@ -1124,11 +1141,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         const provisioning = this.#isRetryableProvisioningError(error);
         const budget = provisioning ? maxProvisioningAttempts : maxAttempts;
 
-        if (
-          init.signal?.aborted ||
-          attempt >= budget ||
-          !(this.#isTransientStartError(error) || provisioning)
-        ) {
+        if (init.signal?.aborted || attempt >= budget || !(this.#isTransientStartError(error) || provisioning)) {
           throw error;
         }
 
