@@ -112,7 +112,9 @@ function appelsAvantDefinition(script) {
 }
 
 const temp = mkdtempSync(join(tmpdir(), 'wf-'));
+
 let blocsVus = 0;
+
 const problemes = [];
 
 for (const fichier of fichiers) {
@@ -139,12 +141,15 @@ for (const fichier of fichiers) {
 console.log(`${fichiers.length} workflow(s), ${blocsVus} bloc(s) de script validé(s).`);
 
 if (blocsVus < 10) {
-  console.error(`Seulement ${blocsVus} blocs trouvés : l'extraction est probablement cassée, la validation ne mesure rien.`);
+  console.error(
+    `Seulement ${blocsVus} blocs trouvés : l'extraction est probablement cassée, la validation ne mesure rien.`,
+  );
   process.exit(1);
 }
 
 if (problemes.length > 0) {
   console.error(`\n${problemes.length} problème(s) :`);
+
   for (const p of problemes) {
     console.error(`  ${p}`);
   }
