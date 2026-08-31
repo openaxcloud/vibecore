@@ -81,6 +81,41 @@ describe('FILES-GUARD-001 — le manifeste le plus récent gagne', () => {
     expect(corps).toMatch(/files: existing\.files/);
   });
 
+  it('LES DEUX MOITIÉS sont présentes — retirer l’une ramène le bug en silence', () => {
+    /*
+     * BUG-CREATE-010 se corrige en DEUX morceaux qui ne valent rien l'un sans
+     * l'autre, et c'est contre-intuitif :
+     *
+     *   * la route d'écriture persiste le manifeste (#289) — sans elle, rien
+     *     n'écrit jamais le contenu édité dans l'archive ;
+     *   * la fusion refuse un manifeste plus ancien (#294) — sans elle, le
+     *     `PUT ide-state` que le client émet juste après écrase ce que la
+     *     première vient d'écrire.
+     *
+     * Mesuré : avec #289 seule en production, l'archive restait inchangée. J'ai
+     * conclu à tort que #289 était inerte, et j'ai cherché ailleurs. Quelqu'un
+     * qui annulerait l'une des deux dans six mois, en la croyant isolée,
+     * ramènerait le bug SANS qu'aucun test ne tombe — d'où ce cas.
+     */
+    const routeEcriture = APP.slice(APP.indexOf("app.put('/api/runtime/workspaces/:workspaceId/files/write'"));
+    const handler = routeEcriture.slice(0, routeEcriture.search(/\n {2}app\.(get|put|post|patch|delete)\(/));
+
+    expect(handler.length, 'route d’écriture introuvable : le test ne mesure rien').toBeGreaterThan(200);
+    expect(
+      handler,
+      'MOITIÉ 1 MANQUANTE : la route d’écriture ne persiste plus le manifeste. ' +
+        'La garde de fusion seule ne suffit pas — rien n’écrira le contenu édité dans l’archive.',
+    ).toMatch(/persistProjectFile(Entry|Manifest)\(/);
+
+    const fusion = corpsDeFonction(APP, 'mergeProjectIdeState');
+
+    expect(
+      fusion,
+      'MOITIÉ 2 MANQUANTE : la fusion ne protège plus le manifeste. ' +
+        'La persistance seule ne suffit pas — le PUT ide-state du client l’écrasera.',
+    ).toMatch(/files: existing\.files/);
+  });
+
   it('les trois autres nœuds gardent leur protection', () => {
     const corps = corpsDeFonction(APP, 'mergeProjectIdeState');
 
