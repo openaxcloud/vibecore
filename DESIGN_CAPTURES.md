@@ -102,3 +102,34 @@ pour que le trou soit visible, pas pour laisser croire qu'elles sont vérifiées
 | Facturation et `/upgrade` | clair + sombre | 390 / 768 / web |
 | Réglages (tous les onglets) | clair + sombre | 390 / 768 / web |
 | Pages marketing publiques | clair + sombre | 390 / 768 / web |
+
+---
+
+## Parcours de création — mesure du 2026-08-31 sur la production
+
+**Méthode.** Compte jetable, projet vide, `app.e-code.ai`, navigateur piloté, trafic
+réseau enregistré. Vérification de l'état **côté serveur** par l'API, jamais depuis la
+page : une sonde exécutée dans la page a rendu des `404` sur du HTML et aurait fait
+conclure n'importe quoi. Compte supprimé après coup (`reste=0`).
+
+| Point | Verdict |
+|---|---|
+| `BUG-CREATE-010` | **reproduit de bout en bout** — perte de données P0 |
+| `BUG-CREATE-007` | **reproduit** — `400 WORKSPACE_AGENT_CLIENT_ERROR` sur un dossier |
+| `BUG-CREATE-006` | **non concluant** — pas de 502, mais l'espace n'était pas réellement froid |
+
+### Le piège de cette passe : mesurer par un chemin que l'utilisateur n'emprunte pas
+
+Ma première reproduction de `BUG-CREATE-010` écrivait le fichier marqueur par l'API
+runtime en direct. Le marqueur disparaissait — mais **cette écriture n'est pas celle
+d'un utilisateur**, et conclure là-dessus aurait été un faux positif.
+
+Il a fallu refaire le parcours par l'interface : ouvrir le fichier dans l'éditeur, taper,
+**vérifier que la frappe est bien arrivée dans Monaco** (`CONTENU_EDITEUR` relu après la
+saisie), puis `Ctrl+S`. C'est seulement là que la mesure vaut quelque chose — et elle a
+montré que la sauvegarde n'émet qu'un `PUT …/ide-state`, que l'archive du projet ne bouge
+pas, et que la réouverture depuis un appareil neuf réécrit le fichier depuis cette archive
+périmée.
+
+**Une frappe non vérifiée dans un éditeur est le même faux négatif qu'une page non
+chargée** : la sonde produit un verdict sans avoir rien mesuré.
