@@ -77,6 +77,7 @@
     "i18n:check": "pnpm run i18n:validate && pnpm run i18n:scan:source",
     "test:watch": "vitest",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint app",
+    "valider:workflows": "node scripts/valider-scripts-workflows.mjs",
     "lint:fix": "npm run lint -- --fix && prettier app --write",
     "start:windows": "wrangler pages dev ./build/client",
     "start:unix": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings",

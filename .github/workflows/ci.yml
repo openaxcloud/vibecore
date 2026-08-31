@@ -108,6 +108,14 @@ jobs:
       - name: Lint
         run: pnpm run lint
 
+      - name: Valider les scripts shell des workflows
+        # Un défaut de script ne se voit qu'au DÉPLOIEMENT : celui du 31/08 a
+        # attendu trois jours qu'une conjonction rare l'atteigne. On le rend
+        # détectable au commit. `bash -n` seul ne suffit pas — il ne voit pas
+        # une fonction appelée AVANT sa définition, ce qui était exactement le
+        # cas (vérifié : exit 0 sur le script fautif).
+        run: pnpm run valider:workflows
+
       - name: I18n catalogs and source regression guard
         run: pnpm run i18n:check
 
