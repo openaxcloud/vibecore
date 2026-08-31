@@ -1277,7 +1277,23 @@ function expectMobileAgentComposerConstrained(
   expect(details.patchListHeight, `${label} patch list height`).toBeLessThanOrEqual(
     Math.min(details.viewportHeight * 0.24, 230) + 1,
   );
-  expect(Number.parseFloat(details.scrollPaddingBottom), `${label} scroll padding bottom`).toBeGreaterThanOrEqual(236);
+
+  /*
+   * DÉRIVÉ, plus figé. Ce seuil valait 236 — la valeur du plancher CSS du jour,
+   * recopiée, pas une exigence mesurée : sur `main` elle ne couvrait déjà pas la
+   * hauteur du composer de ce montage (289,6 px à 1024x768 pour 276,5 px de
+   * réserve). Un littéral pareil ne garde rien, il fige.
+   *
+   * Ce qui doit VRAIMENT tenir : la réserve de défilement doit couvrir le chrome
+   * qui recouvre en permanence le transcript — la barre de navigation du bas et
+   * la boîte de saisie. En dessous, faire défiler jusqu'au dernier message le
+   * laisse passer sous la zone de saisie. Le reste du composer (avis, revue de
+   * patch) est transitoire et déjà borné plus haut.
+   */
+  expect(
+    Number.parseFloat(details.scrollPaddingBottom),
+    `${label} scroll padding bottom couvre barre + boîte de saisie`,
+  ).toBeGreaterThanOrEqual(details.navHeight + (details.chatboxBottom - details.chatboxTop));
   expect(details.suggestionsDisplay, `${label} suggestions hidden while notices are present`).toBe('none');
   expect(details.tailBottom, `${label} transcript tail above composer`).toBeLessThanOrEqual(details.composerTop - 4);
   expect(details.toolCallsHeight, `${label} collapsed tool calls height`).toBeLessThanOrEqual(144);
