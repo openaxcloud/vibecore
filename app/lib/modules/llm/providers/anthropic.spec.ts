@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /*
  * `anthropic.ts` -> `base-provider.ts` -> `manager.ts` -> `registry.ts` -> every
@@ -70,14 +70,24 @@ describe('createAnthropicCachingFetch', () => {
     ]);
   });
 
-  it('leaves a body without a system field unchanged', async () => {
+  it('leaves the CACHING shape of a body without a system field untouched', async () => {
+    /*
+     * L'intention de ce test est le CACHE : sans `system`, aucun point de rupture
+     * ne doit être posé. Il comparait l'octet près, ce qui le rendait aussi
+     * sensible à toute autre écriture du corps — il est tombé quand
+     * BUG-AGENT-007 a ajouté `thinking: disabled`, qui n'a rien à voir avec le
+     * cache. Il vérifie maintenant ce qu'il voulait vérifier.
+     */
     const base = vi.fn(async () => new Response('ok'));
     const wrapped = createAnthropicCachingFetch(base as unknown as typeof fetch);
     const body = JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] });
 
     await wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body });
 
-    expect((base.mock.calls[0][1] as RequestInit).body).toBe(body);
+    const envoye = JSON.parse(String((base.mock.calls[0][1] as RequestInit).body));
+
+    expect(envoye.system).toBeUndefined();
+    expect(envoye.messages).toEqual([{ role: 'user', content: 'hi' }]);
   });
 
   it('does not throw and passes the request through on a non-JSON body', async () => {
@@ -97,7 +107,11 @@ describe('createAnthropicCachingFetch', () => {
 
     await wrapped('https://api.anthropic.com/v1/messages', { method: 'POST', body });
 
-    expect((base.mock.calls[0][1] as RequestInit).body).toBe(body);
+    /* Comme ci-dessus : c'est l'absence de mise en cache qui compte, pas l'égalité octet à octet. */
+    const envoye = JSON.parse(String((base.mock.calls[0][1] as RequestInit).body));
+
+    expect(envoye.system).toBe('   ');
+    expect(envoye.messages).toEqual([]);
   });
 
   it('caches the conversation prefix: cache_control on the last STABLE message when the prefix clears the model minimum', async () => {
@@ -177,5 +191,80 @@ describe('buildAnthropicModelLabel', () => {
   it('never renders a literal "undefined" label', () => {
     const label = buildAnthropicModelLabel({ id: 'claude-future-1' }, 200000);
     expect(label).not.toContain('undefined');
+  });
+});
+
+/**
+ * BUG-AGENT-007 — ces cas vérifient ce que les sept tests de
+ * `anthropic-thinking.spec.ts` ne vérifiaient PAS : que la désactivation de la
+ * réflexion part réellement SUR LE FIL.
+ *
+ * L'ancien contournement écrivait `providerOptions.anthropic.thinking`, et
+ * `@ai-sdk/anthropic@0.0.39` ne lit jamais `providerOptions` : l'option n'a
+ * jamais quitté le processus. Un test qui inspecte l'objet d'options passe au
+ * vert sans rien garantir ; seul un test qui lit le CORPS ENVOYÉ le fait.
+ */
+describe('BUG-AGENT-007 — la réflexion est désactivée sur le fil', () => {
+  const corpsEnvoyes: string[] = [];
+
+  const baseFetch = (async (_input: unknown, init?: { body?: unknown }) => {
+    corpsEnvoyes.push(String(init?.body ?? ''));
+
+    return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+  }) as unknown as typeof fetch;
+
+  beforeEach(() => {
+    corpsEnvoyes.length = 0;
+  });
+
+  it('pose `thinking: disabled` sur une requête de messages', async () => {
+    const fetchEnrobe = createAnthropicCachingFetch(baseFetch);
+
+    await fetchEnrobe('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({ model: 'claude-opus-5', messages: [{ role: 'user', content: 'salut' }] }),
+    });
+
+    expect(corpsEnvoyes, 'aucune requête émise : le test ne mesure rien').toHaveLength(1);
+    expect(JSON.parse(corpsEnvoyes[0]).thinking).toEqual({ type: 'disabled' });
+  });
+
+  it('ne touche pas à un `thinking` posé explicitement par l’appelant', async () => {
+    const fetchEnrobe = createAnthropicCachingFetch(baseFetch);
+
+    await fetchEnrobe('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        model: 'claude-opus-5',
+        messages: [{ role: 'user', content: 'salut' }],
+        thinking: { type: 'enabled', budget_tokens: 1024 },
+      }),
+    });
+
+    expect(JSON.parse(corpsEnvoyes[0]).thinking).toEqual({ type: 'enabled', budget_tokens: 1024 });
+  });
+
+  it('renvoie SANS le paramètre quand l’API le refuse, au lieu d’échouer', async () => {
+    let appel = 0;
+
+    const refuseThinking = (async (_input: unknown, init?: { body?: unknown }) => {
+      appel += 1;
+      corpsEnvoyes.push(String(init?.body ?? ''));
+
+      if (appel === 1) {
+        return new Response(JSON.stringify({ error: { message: 'unexpected parameter: thinking' } }), { status: 400 });
+      }
+
+      return new Response('{}', { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const reponse = await createAnthropicCachingFetch(refuseThinking)('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      body: JSON.stringify({ model: 'claude-2', messages: [{ role: 'user', content: 'salut' }] }),
+    });
+
+    expect(appel, 'le repli n’a pas eu lieu').toBe(2);
+    expect(reponse.status).toBe(200);
+    expect(JSON.parse(corpsEnvoyes[1]).thinking).toBeUndefined();
   });
 });
