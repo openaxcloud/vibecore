@@ -20450,7 +20450,29 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * valeur MESURÉE (`--vc-agent-composer-measured-height`) reprend la main dès
      * le premier rendu : ce repli ne gouverne que la toute première image.
      */
-    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(184px, 26dvh, 240px));
+    /*
+     * PLANCHER CALCULE, PAS CHOISI. Ne pas le rebaisser sans refaire la mesure.
+     *
+     * Le repli doit tenir le meme invariant que la valeur mesuree : la reserve
+     * de defilement couvre la barre de navigation ET la boite de saisie, sinon
+     * defiler jusqu'au dernier message le laisse passer sous la zone de saisie.
+     *
+     * Mesure le 2026-09-01 via `ui-details.spec.ts`, aux CINQ viewports du test
+     * (820x1180, 1024x768, 390x844, 320x568, 568x320) :
+     *     barre de navigation .............  72,0000 px
+     *     boite de saisie ................ 123,4375 px
+     *     -> requis ...................... 195,4375 px
+     * Plancher entier minimal = 196px.
+     *
+     * A 184px, les deux viewports les plus courts (568x320 et 320x568) tombaient
+     * sous le requis de 11,44 px : c'est la seule fenetre ou `26dvh` passe sous
+     * le plancher, donc la seule ou le plancher decide.
+     *
+     * Le clamp lui-meme est INCHANGE : c'est le composer compact voulu. Relever
+     * le plancher ne grandit pas la boite de saisie, il empeche seulement le
+     * dernier message d'etre recouvert.
+     */
+    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(196px, 26dvh, 240px));
     height: 100%;
     max-height: 100%;
     padding-bottom: 0;
