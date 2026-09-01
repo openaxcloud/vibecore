@@ -23047,6 +23047,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const connections = await listDatabaseConnections(store, project.id);
 
+    /*
+     * Une base EN COURS de provisionnement n'a pas encore de secret, donc aucune
+     * `connection` — et cette route ne renvoyait rien d'autre. Le panneau
+     * affichait donc « Aucune base de données pour le moment » à un projet qui
+     * en a une, en cours de création. Vu de l'utilisateur : on appuie sur
+     * « Créer », et rien ne se passe. C'est le même symptôme que BUG-DB-002,
+     * par un autre chemin.
+     *
+     * C'est aussi le cas qui dure : deux instances de production sont bloquées
+     * en PROVISIONING depuis un mois (BUG-DB-001, défaut d'infrastructure
+     * distinct). Ce correctif ne les débloque pas — il rend leur état VISIBLE
+     * au lieu de le présenter comme une absence de base.
+     *
+     * On ne l'expose que si aucune connexion n'existe : dès que le secret est
+     * semé, la connexion réelle est la meilleure description de la base.
+     */
+    const instanceEnCours = connections.length === 0 ? await store.getDatabaseInstanceByProject(project.id) : undefined;
+
+    const databases =
+      instanceEnCours && instanceEnCours.status !== 'ACTIVE'
+        ? [
+            {
+              key:
+                (instanceEnCours as { environment?: string }).environment === 'production'
+                  ? 'PROD_DATABASE_URL'
+                  : 'DATABASE_URL',
+              name: (instanceEnCours as { environment?: string }).environment ?? 'development',
+              status: instanceEnCours.status,
+            },
+          ]
+        : [];
+
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
         ...connection,
@@ -23057,6 +23089,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? ['schema', 'readonly-commands']
               : ['schema', 'readonly-sql', 'query'],
       })),
+      databases,
       environments: ['development', 'preview', 'staging', 'production', 'shared'],
     };
   });

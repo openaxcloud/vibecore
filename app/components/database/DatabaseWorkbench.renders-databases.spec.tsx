@@ -77,6 +77,35 @@ describe('DatabaseWorkbench — ce que le panneau AFFICHE réellement', () => {
     expect(screen.getByText('DATABASE_URL')).toBeTruthy();
   });
 
+  it('affiche une base EN COURS de provisionnement au lieu de l’état vide', () => {
+    /*
+     * Second mécanisme, côté panneau. L'API renvoie l'instance dans `databases`
+     * tant qu'elle n'est pas ACTIVE (elle n'a pas encore de secret, donc aucune
+     * `connection`). Sans ce rendu, un projet dont la base est en création
+     * afficherait « Aucune base de données pour le moment » — le symptôme que
+     * l'utilisateur a signalé.
+     */
+    fetchers = [
+      makeFetcher({
+        connections: [],
+        databases: [{ key: 'DATABASE_URL', name: 'development', status: 'PROVISIONING' }],
+        environments: CHARGE_API.environments,
+      }),
+      makeFetcher(),
+    ];
+
+    render(<DatabaseWorkbench projectId="project-1" />);
+
+    expect(
+      screen.queryByText('Aucune base de données pour le moment'),
+      'une base en cours de création n’est pas une absence de base',
+    ).toBeNull();
+
+    /* Ce que l'utilisateur doit lire à la place : la base, et son état. */
+    expect(screen.getByText('development')).toBeTruthy();
+    expect(screen.getByText('Création en cours')).toBeTruthy();
+  });
+
   it('garde l’état vide honnête quand le projet n’a réellement aucune base', () => {
     /*
      * L'autre sens : le correctif ne doit pas inventer des bases à partir des
