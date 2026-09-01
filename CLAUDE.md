@@ -2,7 +2,7 @@
 
 ## Règles
 
-### Méthode — dix-huit règles tirées d'erreurs réelles
+### Méthode — dix-neuf règles tirées d'erreurs réelles
 
 Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
 généraux : ce sont des pièges qui ont déjà coûté.
@@ -155,7 +155,33 @@ généraux : ce sont des pièges qui ont déjà coûté.
     200. Trente secondes plus tard : **8/8**. Un rollback réflexe aurait annulé
     une livraison saine pendant que la plateforme absorbait sa charge.
 
-**Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
+19. **Une garde de sécurité qui bloque le travail normal se fait REVERT, pas
+    corriger.** Le coût d'une garde ne se mesure pas à ce qu'elle interdit à un
+    attaquant, mais à ce qu'elle interdit à un utilisateur légitime. Une garde
+    correcte sur le plan sécurité et fausse sur le chemin nominal ne survit pas
+    à sa première astreinte : elle est retirée en urgence, et le trou se
+    rouvre — durablement, parce que « on a déjà essayé » devient l'argument.
+
+    Donc : **toute garde ajoutée doit être accompagnée d'un test qui prouve
+    qu'elle laisse passer le travail ordinaire**, au même titre que du test qui
+    prouve qu'elle bloque l'attaque. Le cas nominal à tester en priorité est
+    celui de la **ressource pas encore créée** — c'est là que les contrôles de
+    confinement se trompent.
+
+    Vérifié le 2026-09-01 (AUDX-001, PR #355) : la garde anti-symlink de
+    `project-storage` remontait la chaîne des ancêtres **au-delà de la racine**.
+    La racine d'un workspace secondaire étant créée paresseusement, elle
+    n'existe pas à la première écriture ; la remontée atteignait alors le
+    répertoire du projet — un ancêtre STRICT — dont le chemin relatif commence
+    par `..` et **ressemble exactement à une évasion**. Résultat : toute
+    première écriture dans un nouveau workspace était refusée. **5 tests métier
+    existants sont tombés** et ont rattrapé la faute avant la revue. La boucle
+    est désormais bornée à la racine, et un test dédié couvre le cas nominal.
+
+    Corollaire : quand une suite existante tombe sur un correctif de sécurité,
+    **la présomption va à la garde, pas aux tests**.
+
+**Les règles 3, 4 et 19 visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
 

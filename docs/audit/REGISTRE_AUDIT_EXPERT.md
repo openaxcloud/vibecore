@@ -24,21 +24,33 @@ qu'elle n'a pas été **testée en réel** au sens de `CLAUDE.md` (📤 dispatch
 
 ---
 
-## ⚡ ACTION AVI — trois gestes, à faire par Avi seul
+## ⚡ ACTION AVI — ce qui ne peut pas être fait depuis une PR
 
-Ces trois lignes **ne peuvent pas être faites par une session** : elles exigent un réglage
-de dépôt ou une console fournisseur. Elles sont bloquantes pour la vague 1. Une phrase
-chacune, à remonter telle quelle.
+Ces lignes exigent un réglage de dépôt ou une console fournisseur. Elles sont
+**inscrites ici parce que c'est leur place**, pas pour être répétées.
 
-| ID | Ce qu'Avi doit faire, exactement | Pourquoi maintenant |
+### À présenter une fois
+
+| ID | Le geste exact | Pourquoi |
 |---|---|---|
-| **AUDX-137** | Dans **Settings → Environments** du dépôt `openaxcloud/vibecore`, ouvrir l'environment **`pr-ai-secrets`** et cocher **« Required reviewers »** avec au moins un mainteneur. | Sans cette règle, l'`environment:` posé par la PR #352 sur `e2e.yml` **existe mais ne protège rien** : une PR de la même origine obtient toujours les vraies clés IA (AUDX-097 reste partiel jusque-là). |
-| **AUDX-139** | **Faire tourner** les clés `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY` dans les secrets GitHub du dépôt, puis vérifier dans les consoles fournisseurs que les anciennes sont révoquées. | Ces clés ont été exposées à **toute PR de la même origine** pendant `pnpm install` (donc à des scripts de dépendances) — il faut les considérer comme potentiellement lues, la correction de la PR #352 n'efface pas le passé. |
-| **AUDX-147** | **Révoquer puis réémettre** le certificat de signature Apple (`DESKTOP_CSC_LINK`, le `.p12`) et le certificat Windows (`DESKTOP_WIN_CSC_LINK`), et mettre à jour les secrets GitHub correspondants **avant** la prochaine release desktop. | `electron.yml` exportait le `.p12` et son mot de passe vers un job déclenché par `pull_request` **sans aucune garde anti-fork** : un certificat de signature ayant pu fuiter ne doit plus jamais signer. |
+| **AUDX-137** | Dans **Settings → Environments** du dépôt `openaxcloud/vibecore`, ouvrir l'environment **`pr-ai-secrets`** et cocher **« Required reviewers »** avec au moins un mainteneur. | C'est un **interrupteur de configuration du dépôt**, pas un secret à manipuler. Sans lui, l'`environment:` posé par la PR #352 sur `e2e.yml` existe mais **ne protège rien** — AUDX-097 reste partiel jusque-là. |
 
-⚠️ **Ordre** : AUDX-139 et AUDX-147 sont des **rotations**, à faire indépendamment de la
-correction de code — corriger la fuite n'annule pas l'exposition passée. AUDX-137 est le
-seul des trois qui **débloque** une ligne encore ouverte (AUDX-097).
+### Enregistrées, à ne plus remonter
+
+Le sujet des clés et des jetons a été **explicitement clos par Avi**. Les deux
+lignes ci-dessous restent au registre parce qu'un registre qui efface ce qui
+dérange ne vaut rien — mais elles **ne doivent plus être resurfacées** dans les
+comptes rendus. Elles sont à Avi, à son moment.
+
+| ID | Ce qu'il resterait à faire | Statut |
+|---|---|---|
+| **AUDX-139** | Rotation des clés IA (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY`) exposées aux PR de même origine avant la PR #352. | 🔒 **Clos par Avi — ne plus remonter** |
+| **AUDX-147** | Révocation/réémission des certificats de signature Apple (`DESKTOP_CSC_LINK`) et Windows (`DESKTOP_WIN_CSC_LINK`) exposés par `electron.yml` avant la PR #352. | 🔒 **Clos par Avi — ne plus remonter** |
+
+⚠️ **Conséquence technique à connaître, sans la re-plaider** : la correction de
+code ne rétroagit pas sur une exposition passée. Les lignes du registre qui en
+dépendent (AUDX-097 pour l'une, AUDX-098 pour l'autre) sont **traitées côté code**
+et n'attendent rien d'autre pour être fermées de leur côté.
 
 ---
 
@@ -319,7 +331,7 @@ et accès hors dépôt.
 | AUDX-136 | **Grant `attribute.repository/openaxcloud/vibecore`** | P0 | NON_COMMENCÉ | Conditionne AUDX-099 côté serveur. | AVI |
 | AUDX-137 | **GitHub Environments et bypass administrateur** | P0 | **🔴 ACTION AVI** | **Geste exact** : Settings → Environments → `pr-ai-secrets` → cocher **« Required reviewers »** (≥ 1 mainteneur). ⚠️ **Prérequis direct de AUDX-097** : l'`environment:` posé par la PR #352 existe mais **ne protège rien** sans cette règle. | AVI |
 | AUDX-138 | **Cloud Audit Logs** | P1 | NON_COMMENCÉ | Complément externe de AUDX-011. | AVI |
-| AUDX-139 | **Rotation des clés** IA / Stripe / OAuth / JWT / chiffrement | P0 | **🔴 ACTION AVI** | **Geste exact** : faire tourner `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY` dans les secrets GitHub, puis vérifier la révocation des anciennes côté fournisseurs. ⚠️ **À faire même si la PR #352 est mergée** : corriger la fuite n'efface pas l'exposition passée (les clés ont été lisibles pendant `pnpm install` de toute PR de la même origine). ⚠️ La clé de **chiffrement** reste, elle, non rotative tant qu'AUDX-010 (`keyId`) n'est pas fait. | AVI |
+| AUDX-139 | **Rotation des clés** IA / Stripe / OAuth / JWT / chiffrement | P0 | **🔒 AVI — CLOS, ne plus remonter** | **Geste exact** : faire tourner `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `OPENROUTER_API_KEY`, `GOOGLE_API_KEY` dans les secrets GitHub, puis vérifier la révocation des anciennes côté fournisseurs. ⚠️ **À faire même si la PR #352 est mergée** : corriger la fuite n'efface pas l'exposition passée (les clés ont été lisibles pendant `pnpm install` de toute PR de la même origine). ⚠️ La clé de **chiffrement** reste, elle, non rotative tant qu'AUDX-010 (`keyId`) n'est pas fait. | AVI |
 | AUDX-140 | **Build, signature et push des images** | P1 | NON_COMMENCÉ | — | AVI |
 | AUDX-141 | **Déploiement Helm / Terraform** | P1 | NON_COMMENCÉ | ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis). | AVI |
 | AUDX-142 | **Preuve gVisor et admission** | P1 | NON_COMMENCÉ | Clôture de AUDX-068/069. | AVI |
@@ -327,7 +339,7 @@ et accès hors dépôt.
 | AUDX-144 | **GCS / CDN / DNS / TLS / domaines** | P1 | NON_COMMENCÉ | Clôture de AUDX-080. ⚠️ L'aperçu n'est **pas prouvable** en l'état (wildcard auto-signé). | AVI |
 | AUDX-145 | **k6, soak, chaos, perte de zone, DR** | P1 | NON_COMMENCÉ | Vague 5 ; valide D-01 (1 000 workspaces). | AVI |
 | AUDX-146 | **Restores CNPG et RPO/RTO** | P0 | NON_COMMENCÉ | Clôture de AUDX-025→028. | AVI |
-| AUDX-147 | **Signature / notarisation Apple et Windows** | P1 | **🔴 ACTION AVI** | **Geste exact** : révoquer puis réémettre le certificat Apple (`DESKTOP_CSC_LINK`) et le certificat Windows (`DESKTOP_WIN_CSC_LINK`), mettre à jour les secrets GitHub, **avant** la prochaine release desktop. ⚠️ `electron.yml` les exportait vers un job `pull_request` **sans aucune garde anti-fork** (AUDX-098). | AVI |
+| AUDX-147 | **Signature / notarisation Apple et Windows** | P1 | **🔒 AVI — CLOS, ne plus remonter** | **Geste exact** : révoquer puis réémettre le certificat Apple (`DESKTOP_CSC_LINK`) et le certificat Windows (`DESKTOP_WIN_CSC_LINK`), mettre à jour les secrets GitHub, **avant** la prochaine release desktop. ⚠️ `electron.yml` les exportait vers un job `pull_request` **sans aucune garde anti-fork** (AUDX-098). | AVI |
 | AUDX-148 | **Publication iOS / Android** | P2 | NON_COMMENCÉ | — | AVI |
 
 ---
