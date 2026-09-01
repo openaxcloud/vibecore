@@ -769,7 +769,7 @@ export function EcodeMobilePage() {
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_20%,rgba(249,157,37,0.16),transparent_32%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Smartphone}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -792,7 +792,7 @@ export function EcodeMobilePage() {
 
         <Section tone="muted">
           <SectionIntro title={copy.intro.title} description={copy.intro.description} />
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {copy.features.map((feature) => {
               const Icon = mobileFeatureIcons[feature.id];
               return (
@@ -817,7 +817,7 @@ export function EcodeMobilePage() {
         </Section>
 
         <Section>
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <Panel>
               <h2 className="text-3xl font-bold text-bolt-elements-textPrimary">{activeFeature.title}</h2>
               <p className="mt-3 text-bolt-elements-textSecondary">{activeFeature.description}</p>
