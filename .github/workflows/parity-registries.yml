@@ -213,11 +213,26 @@ jobs:
           git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
           git push origin "$BRANCHE"
 
-          gh pr create --base main --head "$BRANCHE" \
+          # ATTESTATION-PR-002 — `gh pr create` peut être REFUSÉ par la
+          # politique du dépôt : « GitHub Actions is not permitted to create or
+          # approve pull requests ». Mesuré le 2026-09-01, run 33541668907, sur
+          # le commit 9b59b348 : la branche était poussée, l'attestation donc
+          # sauvegardée, et le job échouait quand même — l'étape tourne en
+          # `bash -e`, et seul `gh pr merge` était protégé. Un check rouge à
+          # chaque push sur `main` finit par ne plus rien vouloir dire.
+          #
+          # On protège donc les DEUX appels, séparément. L'attestation vit sur
+          # sa branche dans tous les cas ; ce qui reste à faire est nommé.
+          if ! gh pr create --base main --head "$BRANCHE" \
             --title "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID})" \
             --body "Attestation roulée par le workflow \`parity-registries\` pour le run ${GITHUB_RUN_ID} (\`${GITHUB_SHA:0:8}\`).
 
-          Passe par une PR et non par un push direct : la protection de \`main\` exige 3 contrôles, qu'un push direct ne peut pas porter. La fusion est automatique et n'aboutira qu'une fois ces contrôles verts."
+          Passe par une PR et non par un push direct : la protection de \`main\` exige 3 contrôles, qu'un push direct ne peut pas porter. La fusion est automatique et n'aboutira qu'une fois ces contrôles verts."; then
+            echo "::warning::création de PR refusée — l'attestation est sauvegardée sur la branche ${BRANCHE}, à fusionner à la main. Pour automatiser : activer « Allow GitHub Actions to create and approve pull requests » (Settings → Actions → General)."
+            echo "branche=$BRANCHE" >> "$GITHUB_OUTPUT"
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           # `--auto` : GitHub fusionne SEULEMENT quand les contrôles requis sont
           # verts. Si l'appel échoue (auto-merge désactivé sur le dépôt), on
@@ -312,11 +327,16 @@ jobs:
                      -m "$(tail -20 /tmp/collect.log)"
           git push origin "$BRANCHE"
 
-          gh pr create --base main --head "$BRANCHE" \
+          # ATTESTATION-PR-002, second site — même refus possible, même
+          # protection. Voir le commentaire du job d'attestation.
+          if ! gh pr create --base main --head "$BRANCHE" \
             --title "chore(parity): baseline snapshot ${DAY}" \
             --body "Relevé quotidien du collecteur de parité (P0-04) pour ${DAY}.
 
-          Passe par une PR : la protection de \`main\` refuse les pushes directs. La fusion est automatique et subordonnée aux contrôles requis."
+          Passe par une PR : la protection de \`main\` refuse les pushes directs. La fusion est automatique et subordonnée aux contrôles requis."; then
+            echo "::warning::création de PR refusée — le relevé est sauvegardé sur la branche ${BRANCHE}, à fusionner à la main. Pour automatiser : activer « Allow GitHub Actions to create and approve pull requests » (Settings → Actions → General)."
+            exit 0
+          fi
 
           if ! gh pr merge "$BRANCHE" --auto --squash --delete-branch; then
             echo "::warning::fusion automatique indisponible — PR laissée ouverte pour fusion manuelle"
