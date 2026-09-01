@@ -151,6 +151,28 @@ async function paneTabPanels(page: Page): Promise<string[][]> {
 
 for (const theme of ['light', 'dark'] as const) {
   test(`RPL-IDE panels .4-.8 (${theme})`, async ({ page }, testInfo) => {
+    /*
+     * BUDGET MESURÉ, PAS ARBITRAIRE.
+     *
+     * Ce test échouait par intermittence sur `Test timeout of 30000ms
+     * exceeded`, en bloquant sur une PRÉCONDITION — l'ouverture de la palette
+     * de commandes — sans jamais atteindre ses assertions métier.
+     *
+     * Durées relevées le 2026-09-01 sur un même run CI :
+     *     12,5 s / 19,9 s / 30,1 s (expiration)
+     * contre un budget global de 30 s (`playwright.config.ts`). La marge
+     * n'était que de ×1,5 : dépasser 30 s sous contention CI est
+     * ATTENDU, pas exceptionnel.
+     *
+     * C'est la différence avec `dashboard.spec.ts` (#338), où la marge était
+     * de ×10 et où gonfler le budget aurait MASQUÉ un vrai blocage. Ici le
+     * budget est réellement trop serré pour le travail effectué, et le
+     * relever est la correction mesurée.
+     *
+     * Aucune assertion n'est touchée : seul le temps alloué change.
+     */
+    test.setTimeout(90_000);
+
     const label = `${theme}-${width(testInfo)}`;
     page.on('pageerror', (error) => console.log(`[pageerror ${label}]`, error.message));
 
@@ -235,6 +257,23 @@ for (const theme of ['light', 'dark'] as const) {
 
       // The tools that used to be unreachable are reachable now.
       const search = page.locator('[data-testid="project-command-palette-search"]');
+
+      /*
+       * Attente EXPLICITE du champ de recherche, avec son propre message.
+       *
+       * `fill()` attend déjà l'élément, mais son échec sort en
+       * « locator.fill: Test timeout of 30000ms exceeded » — qui ne dit ni
+       * QUEL élément manquait, ni que la palette, elle, s'était bien ouverte.
+       * C'est ce message opaque qui a fait chercher la cause du mauvais côté.
+       *
+       * La palette est visible à ce stade (assertion juste au-dessus) ; son
+       * champ se monte un instant après. On attend donc ce montage
+       * explicitement, et une absence RÉELLE échoue en le nommant.
+       */
+      await expect(search, 'la palette est ouverte mais son champ de recherche ne se monte pas').toBeVisible({
+        timeout: 15_000,
+      });
+
       await search.fill('studio');
       await page.waitForTimeout(400);
       await expect(palette).toContainText(/studio/i);

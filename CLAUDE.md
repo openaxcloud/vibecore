@@ -2,7 +2,7 @@
 
 ## Règles
 
-### Méthode — dix-sept règles tirées d'erreurs réelles
+### Méthode — dix-huit règles tirées d'erreurs réelles
 
 Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
 généraux : ce sont des pièges qui ont déjà coûté.
@@ -136,6 +136,24 @@ généraux : ce sont des pièges qui ont déjà coûté.
     **Le corollaire vaut aussi** : un test qu'on croit déterministe et qui
     passe une fois sur trois n'est pas un défaut produit. Mesurer AVANT de
     conclure, dans les deux sens.
+
+18. **Avant de faire un rollback, distinguer une MONTÉE EN CHARGE d'une
+    défaillance.** Des `readyReplicas < replicas` juste après un déploiement ne
+    prouvent rien à eux seuls. Trois signaux tranchent, et ils se lisent en
+    trente secondes :
+
+    - **l'âge des pods** — quelques secondes = ils démarrent ;
+    - **le compteur de redémarrages** — `0` = rien ne plante ;
+    - **l'état de l'HPA** — au-dessus de sa cible = il monte volontairement.
+
+    Une sonde de disponibilité qui répond `connection refused` sur un pod de
+    vingt secondes est NORMALE : le processus n'a pas encore ouvert son port.
+
+    Vérifié le 2026-09-01 : `api 4/6` et `workspace-manager 8/10` après le
+    déploiement de #329. HPA à **97 % de CPU** pour une cible de 70 %, pods de
+    **18 secondes**, **0 redémarrage**, anciens pods tous prêts, `e-code.ai` en
+    200. Trente secondes plus tard : **8/8**. Un rollback réflexe aurait annulé
+    une livraison saine pendant que la plateforme absorbait sa charge.
 
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code

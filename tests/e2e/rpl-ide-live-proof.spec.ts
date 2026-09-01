@@ -153,6 +153,28 @@ async function clickPaneAction(page: Page, paneIndex: number, name: string) {
 
 for (const theme of ['light', 'dark'] as const) {
   test(`RPL-IDE live proof (${theme})`, async ({ page }, testInfo) => {
+    /*
+     * BUDGET MESURÉ, PAS ARBITRAIRE.
+     *
+     * Ce test échouait par intermittence sur `Test timeout of 30000ms
+     * exceeded`, en bloquant sur une PRÉCONDITION — l'ouverture de la palette
+     * de commandes — sans jamais atteindre ses assertions métier.
+     *
+     * Durées relevées le 2026-09-01 sur un même run CI :
+     *     17,0 s / 17,7 s
+     * contre un budget global de 30 s (`playwright.config.ts`). La marge
+     * n'était que de ×1,8 : dépasser 30 s sous contention CI est
+     * ATTENDU, pas exceptionnel.
+     *
+     * C'est la différence avec `dashboard.spec.ts` (#338), où la marge était
+     * de ×10 et où gonfler le budget aurait MASQUÉ un vrai blocage. Ici le
+     * budget est réellement trop serré pour le travail effectué, et le
+     * relever est la correction mesurée.
+     *
+     * Aucune assertion n'est touchée : seul le temps alloué change.
+     */
+    test.setTimeout(90_000);
+
     const label = `${theme}-${width(testInfo)}`;
     page.on('pageerror', (e) => console.log(`[pageerror ${label}]`, e.message));
 
