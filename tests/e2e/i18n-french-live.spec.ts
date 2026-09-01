@@ -47,6 +47,37 @@ function isIdeShellPath(path: string): boolean {
   return /^\/projects\/[^/]+\/(ide|git)$/u.test(path);
 }
 
+/**
+ * BUG-CI-010 — sous 768 px, la coque applicative REPLIE la bascule de langue
+ * dans le menu (bouton « Menu »). Mesuré en réel sur la production, page
+ * `/invitations/accept` : l'élément est présent dans le DOM aux TROIS largeurs,
+ * mais visible seulement à 1440 et 768. Décision produit d'Avi : cette absence
+ * à 390 px n'est PAS un défaut.
+ *
+ * La porte exigeait pourtant une bascule VISIBLE partout. Elle échouait donc
+ * sur `/invitations/accept` et sur les routes authentifiées, et — plus coûteux —
+ * `waitForApplicationReady` brûlait 15 s d'attente morte par route et par
+ * langue à attendre une visibilité qui ne vient jamais : ~96 audits × 15 s
+ * ≈ 24 min par tentative, ce qui faisait dépasser le budget de 90 min et
+ * annulait le run. La porte n'a jamais été verte pour cette seule raison.
+ *
+ * Comme partout dans ce fichier, on ne `skip` PAS : on vérifie l'invariant
+ * ADAPTÉ — sous 768 px la bascule doit être PRÉSENTE dans le DOM (repliée),
+ * au-dessus elle doit être VISIBLE. Une bascule qui disparaîtrait vraiment
+ * ferait toujours rougir la porte, à toutes les largeurs.
+ */
+const LARGEUR_REPLI_BASCULE = 768;
+
+function basculeRepliee(page: Page, path: string): boolean {
+  if (isIdeShellPath(path)) {
+    return false;
+  }
+
+  const largeur = page.viewportSize()?.width ?? LARGEUR_REPLI_BASCULE;
+
+  return largeur < LARGEUR_REPLI_BASCULE;
+}
+
 const USER_PATHS = [
   '/dashboard',
   '/projects',
@@ -285,6 +316,19 @@ async function waitForApplicationReady(page: Page, path: string, language: 'en' 
     return;
   }
 
+  if (basculeRepliee(page, path)) {
+    /*
+     * Repliée dans le menu : attendre sa VISIBILITÉ coûterait 15 s pour rien,
+     * à chaque route et à chaque langue. On attend sa présence, qui est
+     * l'invariant réel à cette largeur.
+     */
+    await expect
+      .soft(page.locator('[data-testid="language-switch"]'), `${path} ${language} bascule repliée présente`)
+      .not.toHaveCount(0, { timeout: 15_000 });
+
+    return;
+  }
+
   await expect
     .soft(globalLanguageSwitch, `${path} ${language} global language switch ready`)
     .toBeVisible({ timeout: 15_000 });
@@ -388,6 +432,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   const findings = findFrenchAuditResidue(english, french);
 
   const languageSwitchCount = await page.locator('[data-testid="language-switch"]:visible').count();
+  const languageSwitchDomCount = await page.locator('[data-testid="language-switch"]').count();
 
   const languageSwitchInteraction = await page
     .locator('[data-testid="language-switch"]:visible')
@@ -533,6 +578,11 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     expect
       .soft(languageSwitchCount, `${path} (${theme}) la coque IDE ne remonte PAS de bascule de langue globale`)
       .toBe(0);
+  } else if (basculeRepliee(page, path)) {
+    // Sous 768 px : repliée dans le menu, donc présente mais pas visible.
+    expect
+      .soft(languageSwitchDomCount, `${path} (${theme}) bascule repliée dans le menu : doit rester PRÉSENTE`)
+      .toBeGreaterThan(0);
   } else {
     expect.soft(languageSwitchCount, `${path} (${theme}) visible global language switch`).toBeGreaterThan(0);
   }
