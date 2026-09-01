@@ -189,6 +189,7 @@ import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugify, slugifyRouteSegment } from './slugify.js';
+import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -18309,15 +18310,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const organizationId = authorized.organizationId;
 
       /*
+       * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
+       * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
+       * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
+       * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
+       * à 1, un seul shell dans le pod.
+       *
+       * Sans `sessionId`, on retombe sur le décompte par connexion : un
+       * appelant sans identité de panneau stable ne peut pas se rattacher de
+       * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
+       * du quota (il suffirait d'omettre le paramètre).
+       */
+      const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
+      const sessionSlotKey = typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
+      const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
+
+      /*
        * Serialize the concurrency check + the +1 so two concurrent terminal opens
        * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
        */
-      await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
-        await ensureQuota(request, organizationId, 'terminals.concurrent');
-        await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
-          workspaceId: authorized.workspaceId,
-        });
-      });
+      if (chargeSlot) {
+        try {
+          await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+            await ensureQuota(request, organizationId, 'terminals.concurrent');
+            await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
+              workspaceId: authorized.workspaceId,
+              sessionId: sessionSlotKey,
+            });
+          });
+        } catch (error) {
+          /*
+           * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
+           * il faut donc rendre la prise du registre tout de suite. Sans ça, une
+           * session refusée resterait marquée vivante et la reconnexion suivante
+           * se croirait en rattachement — elle passerait SANS être facturée.
+           */
+          if (sessionSlotKey) {
+            releaseTerminalSlot(organizationId, sessionSlotKey);
+          }
+
+          throw error;
+        }
+      }
 
       /*
        * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
@@ -18334,8 +18368,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         released = true;
+
+        /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
+        const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
+
+        if (!refund) {
+          return;
+        }
+
         void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
           workspaceId: authorized.workspaceId,
+          sessionId: sessionSlotKey,
         }).catch(() => {
           // Releasing the quota gauge must never crash socket teardown.
         });
