@@ -2,6 +2,47 @@
 
 ## Règles
 
+### Méthode — douze règles tirées d'erreurs réelles
+
+Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
+généraux : ce sont des pièges qui ont déjà coûté.
+
+1. **Mesurer le chemin réel avant d'écrire une ligne de correctif.** Un correctif
+   posé sur une route déduite de la lecture du code, sans avoir tracé le trajet
+   de bout en bout, corrige un chemin que personne n'emprunte.
+2. **Relancer le même commit avant d'accuser un changement.** Un test rouge sur
+   votre commit et vert sur les précédents ne prouve rien. Une relance coûte
+   quelques minutes ; un revert inutile coûte une journée.
+3. **Distinguer « rien trouvé » de « rien exécuté ».** 50 runs `cancelled` ne
+   disent rien sur le code. Un `grep` à zéro résultat peut être un motif mal
+   échappé.
+4. **Vérifier qu'une mesure a bien mesuré quelque chose.** Un corps tronqué à
+   exactement 4000 octets, un cache d'outil, une fenêtre de lecture trop courte :
+   tous rendent un « absent » qui n'en est pas un.
+5. **Ancrer les tests sur du code, jamais sur de la prose.** Un test qui lit
+   l'inventaire passe au vert quand on réécrit l'inventaire.
+6. **Contre-épreuve dans les deux sens.** Retirer le correctif doit faire rougir.
+   Retirer ce que le correctif protège doit faire rougir aussi. Sinon les deux
+   moitiés ne sont pas couplées.
+7. **Viser la règle, pas la première occurrence.** Trois symptômes du même
+   mécanisme se corrigent une fois.
+8. **Chercher s'il existe déjà une PR** avant d'en ouvrir une.
+9. **Vérifier ce qu'un état de base déclenche avant de l'écrire.** Réconcilier
+   196 lignes vers `STOPPED` arme une suppression de disques 24 h plus tard.
+10. **Vérifier l'existence de ce qu'on croit protéger.** Un avertissement sur des
+    disques qui n'existent pas est du bruit ; un correctif qui route vers un
+    panneau vide ne corrige rien.
+11. **Une mesure sans son environnement consigné n'est pas une mesure.** Noter le
+    commit exact, l'état de l'arbre (propre ou non) et la commande complète.
+    Sinon on ne peut ni la refaire ni la réfuter — et une conclusion bâtie
+    dessus est à refaire.
+12. **Ne jamais imprimer une VALEUR de secret, même filtrée.** La rédaction par
+    sous-chaîne ne tient pas : sur les 49 clés du Secret de production, 25 sont
+    sensibles et un filtre sur « SECRET » n'en masque que 14. Vérifier la
+    PRÉSENCE et la LONGUEUR, ou comparer une empreinte `shasum`. Cela suffit à
+    diagnostiquer une variable manquante ou tronquée.
+
+
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
 
