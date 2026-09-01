@@ -817,7 +817,7 @@ export function EcodeMobilePage() {
         </Section>
 
         <Section>
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <Panel>
               <h2 className="text-3xl font-bold text-bolt-elements-textPrimary">{activeFeature.title}</h2>
               <p className="mt-3 text-bolt-elements-textSecondary">{activeFeature.description}</p>
