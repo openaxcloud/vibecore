@@ -208,7 +208,35 @@ for (const viewport of VIEWPORTS) {
     const composerField = page.locator('.bolt-project-chatbox textarea');
     await expect(composerField).toBeVisible({ timeout: 60_000 });
 
-    const police = await composerField.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    /*
+     * La mesure doit RE-RÉSOUDRE le sélecteur à chaque essai. Mesurer une seule
+     * fois échouait : le composer se re-rend entre la résolution du locator et
+     * l'évaluation, et `getComputedStyle` sur un nœud DÉTACHÉ rend la chaîne
+     * vide, donc `parseFloat` rend NaN. Symptôme observé : rouge en 390, mais
+     * vert au retry en 768 — une course, pas une police trop petite.
+     *
+     * Le sondage ne relâche RIEN : il s'arrête au premier relevé exploitable,
+     * quelle que soit sa valeur. Une police réellement à 14 px sort de la
+     * boucle immédiatement et tombe sur l'assertion de plancher ci-dessous.
+     */
+    let police = Number.NaN;
+
+    await expect
+      .poll(
+        async () => {
+          police = await page
+            .locator('.bolt-project-chatbox textarea')
+            .evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+            .catch(() => Number.NaN);
+
+          return Number.isFinite(police);
+        },
+        {
+          message: 'police non mesurée sur la zone de saisie de l’agent',
+          timeout: 15_000,
+        },
+      )
+      .toBe(true);
 
     /*
      * Témoin positif : sans lui, un sélecteur qui ne matche plus donnerait un
