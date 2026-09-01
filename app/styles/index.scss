@@ -1906,6 +1906,15 @@ body
     overflow: hidden;
   }
 
+  /*
+   * `[data-actions-revealed]` est posé par l'appui lui-même (voir
+   * Messages.client.tsx). C'est le chemin PRINCIPAL au doigt : s'appuyer sur
+   * `:focus-within` seul supposait que le moteur focalise un conteneur non
+   * interactif au toucher — ce que Safari iOS ne fait pas. `:focus-within`
+   * reste pour le clavier, `:last-child` pour la dernière réponse.
+   */
+  .bolt-chat-message-row[data-actions-revealed='true'] .bolt-assistant-message-footer,
+  .bolt-chat-message-row[data-actions-revealed='true'] .bolt-user-message-footer,
   .bolt-chat-message-row:focus-within .bolt-assistant-message-footer,
   .bolt-chat-message-row:focus-within .bolt-user-message-footer,
   .bolt-chat-message-row:last-child .bolt-assistant-message-footer {

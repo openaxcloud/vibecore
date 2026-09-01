@@ -216,12 +216,60 @@ test.describe('densité des messages — pointeur grossier', () => {
     ).toBe(true);
     expect(atRest.footerHeights.at(-1), 'la dernière réponse n’expose pas ses actions').toBeGreaterThan(0);
 
-    await rows.nth(1).tap();
+    /*
+     * On vise la PROSE du message, pas le centre géométrique de la ligne : une
+     * fois la barre ouverte la ligne grandit, et son centre tombe alors SUR la
+     * barre — un appui sur une commande ne doit pas replier, donc le geste ne
+     * serait plus « toucher le message ».
+     */
+    const prose = () => rows.nth(1).locator('[class*="MarkdownContent"]').first();
+
+    await prose().tap();
     await page.waitForTimeout(300);
+
+    /*
+     * La révélation ne doit PAS dépendre du focus. Elle reposait sur
+     * `:focus-within` — donc sur le fait que le moteur focalise un `<div
+     * tabindex="-1">` au toucher. Chromium le fait, Safari iOS ne le fait pas :
+     * un test vert ici n'aurait rien dit de l'appareil d'Avi. On vérifie donc
+     * l'attribut explicite que l'appui pose, PUIS son effet mesuré.
+     */
+    const marque = await rows.nth(1).getAttribute('data-actions-revealed');
+    expect(marque, 'l’appui n’a pas marqué la ligne comme dépliée').toBe('true');
 
     const tapped = await measureRows(page);
 
     expect(tapped.footerHeights[0], 'le toucher ne déplie pas les actions du message').toBeGreaterThan(0);
+
+    /*
+     * Contre-vérification du même mécanisme SANS focus : on retire le focus, la
+     * barre doit rester ouverte parce que c'est l'attribut qui la tient.
+     */
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.waitForTimeout(200);
+
+    const sansFocus = await measureRows(page);
+
+    expect(
+      sansFocus.footerHeights[0],
+      'la barre se referme dès que le focus part — elle dépend encore du focus',
+    ).toBeGreaterThan(0);
+
+    /*
+     * Un second appui referme : une seule ligne dépliée à la fois. On retire le
+     * focus AVANT de mesurer — l'appui refocalise la ligne sous Chromium, et
+     * `:focus-within` la garderait ouverte : ce serait mesurer le repli du
+     * focus, pas celui de l'attribut.
+     */
+    await prose().tap();
+    await page.waitForTimeout(300);
+    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+    await page.waitForTimeout(200);
+
+    const referme = await measureRows(page);
+
+    expect(await rows.nth(1).getAttribute('data-actions-revealed'), 'la ligne reste marquée dépliée').toBeNull();
+    expect(referme.footerHeights[0], 'un second appui ne referme pas les actions').toBe(0);
     expect(tapped.footerOpacities[0], 'les actions dépliées restent invisibles').toBe(1);
 
     /*
