@@ -223,6 +223,59 @@ export class FilesStore {
     });
   }
 
+  /**
+   * Adopte la version du RUNTIME pour un fichier, sans rien écrire.
+   *
+   * BUG-CREATE-011, moitié « lecture ». L'éditeur affichait le contenu de la
+   * carte `files`, alimentée à l'ouverture du projet par `ide-state` — la
+   * mémoire LOCALE de l'appareil. Un fichier modifié ailleurs (l'agent, un autre
+   * onglet, un autre appareil) s'ouvrait donc dans sa version périmée, sans le
+   * moindre signal. La moitié « écriture » (le contrôle de concurrence
+   * fail-closed) empêche désormais d'écraser le serveur, mais elle transforme la
+   * situation en refus de sauvegarde : il faut aussi CHARGER la bonne version.
+   *
+   * Ne renvoie jamais de contenu inventé : une lecture impossible laisse le
+   * tampon intact et le dit (`illisible`). L'appelant décide.
+   */
+  async adoptRemoteContent(filePath: string): Promise<'adopte' | 'inchange' | 'illisible' | 'hors-portee'> {
+    if (this.#runtime.mode !== 'remote-kubernetes') {
+      return 'hors-portee';
+    }
+
+    const relativePath = this.#toRuntimePath(filePath);
+
+    if (!relativePath) {
+      return 'hors-portee';
+    }
+
+    const courant = this.files.get()[filePath];
+
+    /*
+     * Un binaire ne se compare pas par son texte, et un fichier qu'on ne connaît
+     * pas encore n'a pas de tampon à rafraîchir.
+     */
+    if (!courant || courant.type !== 'file' || courant.isBinary) {
+      return 'hors-portee';
+    }
+
+    const distant = await this.#runtime
+      .readFile(relativePath)
+      .then((resultat) => resultat.content)
+      .catch(() => undefined);
+
+    if (distant === undefined) {
+      return 'illisible';
+    }
+
+    if (distant === courant.content) {
+      return 'inchange';
+    }
+
+    this.files.setKey(filePath, { ...courant, content: distant });
+
+    return 'adopte';
+  }
+
   async reloadFromRuntime(rootPath = '.') {
     const nodes = await this.#runtime.listFiles(rootPath);
     const nextFiles: FileMap = {};
