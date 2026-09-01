@@ -1,7 +1,31 @@
 name: French i18n live audit
 
 on:
+  # Cette porte fait tourner QUATRE crawls responsifs complets (~13 min chacun,
+  # 282 audits JSON et 564 captures par ecran). Sur une journee a 20 PR ouvertes
+  # elle sature les runners et devient le facteur limitant de toute livraison.
+  #
+  # Elle ne mesure QUE du rendu : traductions, contraste, debordement, cibles
+  # tactiles. Une PR qui ne touche ni le code applicatif, ni les styles, ni les
+  # catalogues n'a rien a lui apprendre.
+  #
+  # `paths-ignore` est SUR ici, contrairement au cas general : aucun des quatre
+  # shards n'est un controle REQUIS sur `main` (les trois requis sont
+  # « Install, test, build, scan », « Playwright local stack » et
+  # « Quality Gates »). Une porte non declenchee ne laissera donc jamais une PR
+  # bloquee en attente d'un statut qui ne viendra pas.
   pull_request:
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'infra/**'
+      - 'scripts/**'
+      - 'services/**'
+      - '.github/**'
+      - '**/*.spec.ts'
+      - '**/*.spec.tsx'
+      - '**/*.spec.mjs'
+      - '**/*.spec.js'
   workflow_dispatch:
 
 concurrency:
