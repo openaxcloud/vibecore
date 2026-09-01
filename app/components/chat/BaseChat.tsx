@@ -2505,6 +2505,15 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement> | undefined;
+
+  /**
+   * Le chargement du fil a échoué et les reprises automatiques sont épuisées.
+   * Sans cela le panneau retombait sur son état de DÉPART — « Agent prêt », des
+   * suggestions de démarrage, « 0 message » — c'est-à-dire qu'il présentait une
+   * conversation existante comme une conversation neuve, pendant que le seul
+   * signal d'échec, un toast, avait déjà disparu.
+   */
+  transcriptError?: { retry: () => void } | undefined;
   messageRef?: RefCallback<HTMLDivElement> | undefined;
   scrollRef?: RefCallback<HTMLDivElement> | undefined;
   showChat?: boolean;
@@ -2561,6 +2570,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   (
     {
       textareaRef,
+      transcriptError,
       showChat = true,
       chatStarted = false,
       isStreaming = false,
@@ -4651,11 +4661,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const mobileAgentStatusLabel = isAgentRunning
       ? t('baseChatAst.mobile.working')
-      : chatStarted || visibleProjectMessageCount > 0
-        ? t('baseChatAst.mobile.messageCount', { count: visibleProjectMessageCount })
-        : t('baseChatAst.mobile.ready');
+      : transcriptError
+        ? /* Annoncer « 0 message » alors qu'on n'a pas pu les lire serait faux. */
+          t('baseChatAst.transcript.errorTitle')
+        : chatStarted || visibleProjectMessageCount > 0
+          ? t('baseChatAst.mobile.messageCount', { count: visibleProjectMessageCount })
+          : t('baseChatAst.mobile.ready');
 
-    const shouldShowMobileAgentStartState = projectIdeMode && useMobileIde && visibleProjectMessageCount === 0;
+    const shouldShowMobileAgentStartState =
+      projectIdeMode && useMobileIde && visibleProjectMessageCount === 0 && !transcriptError;
 
     const mobileAgentContextLabel = mobileAgentSelectedFileLabel
       ? mobileAgentSelectedFileLabel
@@ -7271,6 +7285,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </div>
         )}
+        {transcriptError ? (
+          <div className="bolt-agent-transcript-error" role="alert" data-testid="agent-transcript-error">
+            <span className="i-ph:warning-circle bolt-agent-transcript-error-icon" aria-hidden />
+            <div className="bolt-agent-transcript-error-copy">
+              <strong>{t('baseChatAst.transcript.errorTitle')}</strong>
+              <p>{t('baseChatAst.transcript.errorBody')}</p>
+            </div>
+            <button type="button" className="bolt-agent-transcript-error-retry" onClick={transcriptError.retry}>
+              {t('baseChatAst.transcript.errorRetry')}
+            </button>
+          </div>
+        ) : null}
         {shouldShowMobileAgentStartState ? (
           <MobileAgentStartState
             fileCount={mobileAgentFileCount}

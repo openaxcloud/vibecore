@@ -8464,6 +8464,135 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 5px;
 }
 
+/*
+ * TACTILE — la moitié LARGEUR du plancher tactile.
+ *
+ * Même cause que la hauteur : UnoCSS émet `min-w-11` / `w-11` en `2.75rem`, et
+ * la base rem du produit est posée sur `html` à 12px (desktop) / 14px
+ * (<=1024px). La classe rend donc 33px / 38,5px, jamais 44 — et une
+ * cinquantaine de fichiers de test vérifient sa PRÉSENCE, donc ils sont verts
+ * sur des cibles trop petites.
+ *
+ * Mesuré sur le panneau Agent à 390 : le repli des actions d'un artefact rendait
+ * 42×59 — assez haut, trop étroit.
+ *
+ * ⚠️ DOUBLON ASSUMÉ ET TEMPORAIRE. La PR #328 d'une autre session a trouvé la
+ * même cause racine et pose désormais les deux axes, à l'identique. Ce bloc est
+ * écrit RIGOUREUSEMENT comme le sien, au même endroit, pour que les deux disent
+ * la même chose si l'ordre de fusion les met côte à côte.
+ *
+ * Il est conservé ici uniquement parce que #328 n'est pas encore sur `main` :
+ * sans lui, l'épreuve mesurée de ce lot (`tests/e2e/agent-panel-states.spec.ts`,
+ * « toutes les cibles du panneau tiennent 44px ») serait ROUGE sur cette
+ * branche — et un test rouge n'est pas une livraison.
+ *
+ * À RETIRER dès que #328 est fusionnée. Condition vérifiable :
+ *   git show origin/main:app/styles/index.scss | grep -c 'min-width: var(--vc-touch-min'
+ * renvoie une occurrence portée par `.min-w-11` / `.w-11`.
+ *
+ * `!important` assumé, même raisonnement que le plancher de police : c'est une
+ * garantie d'accessibilité, pas un style. Sans lui, l'utilitaire généré par
+ * UnoCSS l'emporte selon l'ordre des couches et le plancher ne s'appliquerait
+ * qu'aux endroits que personne n'a déjà stylés.
+ */
+@media (max-width: 1024px) {
+  .min-w-11,
+  .w-11 {
+    min-width: var(--vc-touch-min, 44px) !important;
+  }
+
+  /*
+   * Tant que #328 n'est pas fusionnée, la hauteur manque aussi : sans elle, le
+   * test mesuré de ce lot échouerait sur des cibles de 38,5px. Rigoureusement
+   * identique à la règle de #328 — si les deux atterrissent, elles disent la
+   * même chose.
+   */
+  .min-h-11,
+  .h-11 {
+    min-height: var(--vc-touch-min, 44px) !important;
+  }
+}
+
+/*
+ * Échec de chargement du fil — état PERSISTANT, à la place de l'écran de départ.
+ *
+ * Le panneau retombait sur « Agent prêt » avec ses suggestions de démarrage : il
+ * présentait une conversation existante comme une conversation neuve, et le seul
+ * signal d'échec était un toast, déjà disparu quand l'utilisateur regarde.
+ */
+.bolt-agent-transcript-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-warning, #d97706) 45%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vc-ide-accent-warning, #d97706) 10%, transparent);
+  color: var(--vc-ide-text-primary);
+  padding: 12px;
+  margin: 0 0 12px;
+}
+
+.bolt-agent-transcript-error-icon {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  color: var(--vc-ide-accent-warning, #d97706);
+  font-size: 18px;
+}
+
+.bolt-agent-transcript-error-copy {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bolt-agent-transcript-error-copy strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bolt-agent-transcript-error-copy p {
+  margin: 2px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.bolt-agent-transcript-error-retry {
+  flex: 0 0 auto;
+
+  /* Plancher tactile en pixels, comme le reste du panneau. */
+  min-height: 32px;
+  align-self: center;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+}
+
+.bolt-agent-transcript-error-retry:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-agent-transcript-error-retry:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 1024px) {
+  .bolt-agent-transcript-error {
+    flex-wrap: wrap;
+  }
+
+  .bolt-agent-transcript-error-retry {
+    min-height: 44px;
+    width: 100%;
+  }
+}
+
 /* Le « fin trait » qui sépare deux étiquettes. Décoratif : aria-hidden côté DOM. */
 .bolt-composer-chip-divider {
   width: 1px;
