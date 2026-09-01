@@ -1000,7 +1000,12 @@ export class ReponseFournisseurIncomprise extends Error {
   }
 }
 
-function extractContent(payload: any): string {
+/*
+ * Exportee pour etre testee DIRECTEMENT. Les specs de #312 notaient qu'elles
+ * ne pouvaient pas l'atteindre et se rabattaient sur la classe d'erreur ; un
+ * test qui n'appelle pas la fonction ne tient pas ses branches.
+ */
+export function extractContent(payload: any): string {
   if (typeof payload?.choices?.[0]?.message?.content === 'string') {
     return payload.choices[0].message.content;
   }
@@ -1024,7 +1029,28 @@ function extractContent(payload: any): string {
   }
 
   if (Array.isArray(payload?.candidates?.[0]?.content?.parts)) {
-    return payload.candidates[0].content.parts.map((part: any) => part.text ?? '').join('');
+    /*
+     * MEME DEFAUT QUE LE CHEMIN ANTHROPIC CI-DESSUS, sur le chemin Google.
+     *
+     * #312 a fermé `content[]` (Anthropic) et le repli final, mais a laissé ce
+     * `part.text ?? ''` intact. Or Gemini rend lui aussi des parts hétérogènes
+     * — `functionCall`, `inlineData`, `executableCode` — qui n'ont pas de
+     * `.text`. Une réponse composée UNIQUEMENT de telles parts redonnait `''`,
+     * donc un message vide persisté comme s'il avait réussi.
+     *
+     * Le fournisseur Google est ACTIF en production (mesuré le 2026-09-01 :
+     * `enabled=true`), ce chemin est donc atteignable. Trois sites portaient la
+     * même faute ; deux étaient corrigés, celui-ci ne l'était pas.
+     */
+    const parts = payload.candidates[0].content.parts;
+    const partsTexte = parts.filter((part: any) => typeof part?.text === 'string');
+
+    if (partsTexte.length === 0) {
+      const types = parts.map((part: any) => String(Object.keys(part ?? {})[0] ?? '?'));
+      throw new ReponseFournisseurIncomprise([`candidates[].parts sans texte: ${types.join('|')}`]);
+    }
+
+    return partsTexte.map((part: any) => part.text).join('');
   }
 
   if (typeof payload?.message?.content === 'string') {
@@ -1586,6 +1612,13 @@ async function* providerStream(
       try {
         const payload = JSON.parse(jsonLine);
 
+        /*
+         * Le `?? ''` sur les parts Google est CORRECT ICI, contrairement aux
+         * trois sites de `extractContent` : `parseLine` traite UN fragment SSE,
+         * ou l'absence de texte est legitime (metadonnee, `tool_use`, marqueur
+         * de fin). Lever y casserait tous les flux. La garde sur le TOTAL
+         * accumule appartient au consommateur qui persiste le message.
+         */
         return (
           payload.choices?.[0]?.delta?.content ??
           payload.delta?.text ??
