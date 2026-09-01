@@ -361,20 +361,20 @@ export default function LoginPage() {
 
               return (
                 <div key={feature.key} className="flex items-center gap-3">
-                  <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/18 backdrop-blur-md">
+                  <div className="vc-auth-hero-chip grid h-10 w-10 place-items-center rounded-lg backdrop-blur-md">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className="text-[14px] font-medium text-white/92">{t(feature.key)}</span>
+                  <span className="vc-auth-hero-feature text-[14px] font-medium">{t(feature.key)}</span>
                 </div>
               );
             })}
           </div>
 
-          <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
+          <div className="vc-auth-hero-divider mt-10 grid grid-cols-2 gap-5 border-t pt-8">
             {AUTH_HERO_STATS.slice(0, 2).map((item) => (
               <div key={item.value}>
                 <div className="text-3xl font-bold">{item.value}</div>
-                <div className="mt-1 text-[12px] text-white/72">{t(item.labelKey)}</div>
+                <div className="vc-auth-hero-stat-label mt-1 text-[12px]">{t(item.labelKey)}</div>
               </div>
             ))}
           </div>
