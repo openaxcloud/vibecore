@@ -169,6 +169,16 @@ function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
  * the orange fill. Carrying background and foreground together in one variant
  * removes the conflict instead of racing it.
  */
+/*
+ * La variante `accent` prend son fond ET son encre dans la MÊME paire de
+ * jetons. Poser `text-white` sur `--ecode-accent` (#f26207) donnait 3,22:1 :
+ * le correctif de BUG-THEME-006 avait bien chassé le bleu sur l'orange
+ * (1,07:1) mais l'avait remplacé par du blanc sur le MÊME orange, qui ne passe
+ * pas davantage — c'est le constat de BUG-THEME-011, où le blanc sur cet
+ * orange plafonne à 2,62:1. La paire sanctionnée bascule avec le thème :
+ * #ffffff sur #c2410c = 5,18:1 en clair, #111827 sur #f97316 = 6,33:1 en
+ * sombre. Épinglé par `app/styles/on-accent-ink.spec.ts`.
+ */
 function PanelButton({
   children,
   variant,
@@ -182,7 +192,8 @@ function PanelButton({
         'inline-flex h-[32px] items-center justify-center rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
         variant === 'outline' &&
           'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
-        variant === 'accent' && 'bg-[var(--ecode-accent,#F26207)] font-semibold text-white hover:opacity-90',
+        variant === 'accent' &&
+          'bg-[var(--vc-action-primary)] font-semibold text-[var(--vc-action-primary-foreground)] hover:opacity-90',
         !variant &&
           'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
         props.className,
