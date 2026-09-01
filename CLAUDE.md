@@ -2,7 +2,7 @@
 
 ## Règles
 
-### Méthode — dix-huit règles tirées d'erreurs réelles
+### Méthode — dix-neuf règles tirées d'erreurs réelles
 
 Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
 généraux : ce sont des pièges qui ont déjà coûté.
@@ -154,6 +154,23 @@ généraux : ce sont des pièges qui ont déjà coûté.
     **18 secondes**, **0 redémarrage**, anciens pods tous prêts, `e-code.ai` en
     200. Trente secondes plus tard : **8/8**. Un rollback réflexe aurait annulé
     une livraison saine pendant que la plateforme absorbait sa charge.
+
+19. **Ne JAMAIS interroger le trousseau ni un magasin d'identifiants — filtrer
+    ne protège pas.** Pas `security find-internet-password`, pas
+    `security find-generic-password`, pas de lecture d'un fichier de credentials,
+    même en ne demandant que des noms de champs.
+
+    Un secret peut vivre dans un champ qu'on croit anodin. Vécu le 2026-09-01 :
+    je filtrais la sortie sur les champs `acct` / `srvr` / `ptcl` — des
+    métadonnées, en apparence — et le jeton GitHub était **dans `acct`**. Il
+    s'est retrouvé en clair dans le transcript, et la seule mesure qui vaille
+    ensuite est de le RÉVOQUER : un transcript ne se nettoie pas.
+
+    **Seule l'abstention protège.** Pour diagnostiquer un chemin
+    d'authentification, on interroge le COMPORTEMENT, jamais le magasin :
+    `gh auth status` (qui masque), `git config --get credential.helper`,
+    ou un push de test sur une branche jetable. Ces trois-là répondent à la
+    question sans jamais lire une valeur.
 
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
