@@ -50,6 +50,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Le pas `running-*` appelle scripts/ar-protect/tag-running.sh : sans
+      # checkout, le job n'a pas le script.
+      - uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -71,12 +75,13 @@ jobs:
       - name: Tag running platform images (running-*)
         run: |
           set -euo pipefail
+          # La dérivation du nom de paquet et la tolérance à un échec isolé
+          # vivent dans le script, qui est testé (scripts/ar-protect/*.spec.mjs).
+          # Les garder ici en ligne est ce qui a laissé les deux défauts passer.
           kubectl get pods -A \
             -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
-            | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
-            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%:*}"
-            gcloud artifacts docker tags add "$img" "$REPO_CONTAINERS/$pkg:running-$pkg" --quiet
-          done
+            | sort -u \
+            | scripts/ar-protect/tag-running.sh
 
       - name: Tag Helm-active images (helm-active-*)
         run: |
