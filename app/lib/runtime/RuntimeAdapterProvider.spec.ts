@@ -32,7 +32,8 @@ describe('createRuntimeAdapter(remote-kubernetes)', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
 
-      if (url.endsWith('/api/runtime-token')) {
+      // AUDX-004: the mint URL now carries ?projectId=… , so match on the path.
+      if (url.includes('/api/runtime-token')) {
         tokenMints += 1;
 
         return new Response(JSON.stringify({ token: `session-token-${tokenMints}` }), {
@@ -78,5 +79,119 @@ describe('createRuntimeAdapter(remote-kubernetes)', () => {
 
     // Two mints prove the self-heal fired: the initial token + one fresh refresh after the 401.
     expect(tokenMints).toBe(2);
+  });
+});
+
+/*
+ * AUDX-004 — the browser must never receive the session token.
+ *
+ * /api/runtime-token used to return `readSessionToken(request)` verbatim: the
+ * httpOnly session cookie value, handed to JavaScript. These guard the client
+ * half of the replacement.
+ */
+describe('AUDX-004 runtime ticket resolution', () => {
+  beforeEach(() => {
+    invalidateRuntimeToken();
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    invalidateRuntimeToken();
+  });
+
+  /*
+   * MECHANISM 1: no localStorage override. A `runtime-auth-token` entry used to
+   * short-circuit the resolver entirely — localStorage is readable by any script
+   * on the origin, so it is the one place a runtime credential must never live.
+   */
+  it('ignores a runtime-auth-token planted in localStorage', async () => {
+    localStorage.setItem('runtime-auth-token', 'attacker-planted-token');
+
+    const seen: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+
+        if (url.includes('/api/runtime-token')) {
+          return new Response(JSON.stringify({ token: 'vcrt_server-minted' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        seen.push(new Headers(init?.headers).get('authorization') ?? '');
+
+        return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
+      }),
+    );
+
+    const adapter = createRuntimeAdapter('remote-kubernetes', { projectId: 'project-1', workspaceId: 'ws-1' });
+    await adapter.listFiles('ws-1');
+
+    expect(seen).not.toContain('Bearer attacker-planted-token');
+    expect(seen.some((value) => value.includes('vcrt_server-minted'))).toBe(true);
+  });
+
+  /*
+   * MECHANISM 2: the mint request must name the project, or the server cannot
+   * scope the ticket and fails closed.
+   */
+  it('asks for a ticket scoped to the current project', async () => {
+    const urls: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        urls.push(url);
+
+        if (url.includes('/api/runtime-token')) {
+          return new Response(JSON.stringify({ token: 'vcrt_scoped' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
+      }),
+    );
+
+    const adapter = createRuntimeAdapter('remote-kubernetes', { projectId: 'project-42', workspaceId: 'ws-1' });
+    await adapter.listFiles('ws-1');
+
+    expect(urls.some((url) => url.includes('/api/runtime-token?projectId=project-42'))).toBe(true);
+  });
+
+  /*
+   * MECHANISM 3: one cache slot per project. A single shared slot would hand
+   * project B the ticket minted for project A — which the API rejects on scope,
+   * turning a stale cache into a hard 401 loop.
+   */
+  it('does not reuse one project ticket for another project', async () => {
+    const minted: string[] = [];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url.includes('/api/runtime-token')) {
+          const projectId = new URL(url, 'http://local').searchParams.get('projectId') ?? '';
+          minted.push(projectId);
+
+          return new Response(JSON.stringify({ token: `vcrt_${projectId}` }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        return new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } });
+      }),
+    );
+
+    await createRuntimeAdapter('remote-kubernetes', { projectId: 'project-a', workspaceId: 'ws-a' }).listFiles('ws-a');
+    await createRuntimeAdapter('remote-kubernetes', { projectId: 'project-b', workspaceId: 'ws-b' }).listFiles('ws-b');
+
+    expect(minted).toEqual(['project-a', 'project-b']);
   });
 });
