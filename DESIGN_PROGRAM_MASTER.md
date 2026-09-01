@@ -181,7 +181,7 @@ Trois raisons, à ne pas séparer :
 | ID | Surface | Propriétaire | 📤 | 💻 | ✅ |
 |---|---|---|:---:|:---:|:---:|
 | SURF-01 | surfaces du composeur et de `BaseChat.tsx` (à recenser par son propriétaire) | session Agent | ✅ 01/09 | ☐ | ☐ |
-| SURF-02 | `TerminalTabs` — borner la hauteur et faire défiler | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-02 | `TerminalTabs` — borner la hauteur et faire défiler | session Livraisons | ✅ 01/09 | 🟡 en PR | ☐ **live à faire : 390 / 768 / 1440, menu ouvert avec assez d'entrées pour déborder** |
 | SURF-03 | `ModelSelector` — passer de 240 px fixes à une fraction d'écran | session Agent (composeur) | ✅ 01/09 | ☐ | ☐ |
 
 ⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste **assez longue pour déborder** — un panneau court ne prouve rien, le défaut n'apparaît qu'au débordement.
