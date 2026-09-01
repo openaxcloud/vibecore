@@ -96,7 +96,7 @@ import {
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
-import { resolveProviderKeyPresence } from './provider-key-presence';
+import { resolveProviderKeyPresence } from './provider-key-presence.js';
 import {
   redactSecrets,
   redactSecretString,
