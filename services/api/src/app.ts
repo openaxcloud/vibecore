@@ -1883,7 +1883,28 @@ function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
 }
 
-function aiTranscriptMessageId(conversationId: string, clientId: string) {
+/**
+ * Row id for one client-side transcript message.
+ *
+ * The derivation has to be IDEMPOTENT ACROSS REOPENS, and the plain hash was
+ * not. A project's transcript is written here with the ids the client holds;
+ * when that project is reopened the client loads the transcript back and adopts
+ * OUR row ids as its own message ids. The next sync therefore sent
+ * `clientId = 'aimsg_<a>'`, which re-hashed to a different `aimsg_<b>` — an
+ * INSERT, not an update. Every reopen appended a full copy of the conversation:
+ * measured on a real 6-message thread, ten reopens left 66 rows in the database
+ * and the agent panel header counting them all.
+ *
+ * So an id we already issued for THIS conversation is reused as-is. Membership
+ * in `existingIds` is also the authorisation check: a caller can only address
+ * rows that already belong to the conversation it is allowed to write to, so a
+ * forged `aimsg_…` cannot reach another conversation's message.
+ */
+function aiTranscriptMessageId(conversationId: string, clientId: string, existingIds: ReadonlySet<string>) {
+  if (existingIds.has(clientId)) {
+    return clientId;
+  }
+
   return `aimsg_${createHash('sha256').update(`${conversationId}:${clientId}`).digest('hex').slice(0, 32)}`;
 }
 
@@ -26454,12 +26475,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiTranscriptSchema, request.body ?? {});
+    const existingIds = new Set(await store.listAiMessageIds(conversationId));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
 
     for (const message of body.messages) {
       messages.push(
         await store.createAiMessage({
-          id: aiTranscriptMessageId(conversationId, message.clientId),
+          id: aiTranscriptMessageId(conversationId, message.clientId, existingIds),
           conversationId,
           role: message.role,
           content: message.content,
