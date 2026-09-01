@@ -32,6 +32,19 @@ jobs:
     # and prod keys aren't exposed to untrusted fork code.
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
+    # The fork guard above stops FORK PRs. It does not stop same-repo PR
+    # branches, and its own comment says so: "same-repo PR branches run
+    # arbitrary code with the real prod keys injected". This environment is the
+    # control for that remaining case — attach "Required reviewers" to the
+    # `pr-ai-secrets` environment and GitHub will hold the run, and therefore
+    # withhold the secrets, until a maintainer approves it.
+    #
+    # ⚠️ Referencing an environment auto-creates it WITHOUT protection rules, so
+    # this line changes nothing on its own: it is the hook, not the control.
+    # The protection rule must be added in the repository settings (tracked as
+    # AUDX-137 in docs/audit/REGISTRE_AUDIT_EXPERT.md — needs Avi).
+    environment: ${{ github.event_name == 'pull_request' && 'pr-ai-secrets' || 'ci' }}
+
     env:
       CI: true
       HUSKY: 0
@@ -62,10 +75,15 @@ jobs:
       # comment says operators may lift it via this variable.
       AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
       AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      # NOTE: the AI provider keys are deliberately NOT declared here. A job-level
+      # `env:` puts them in the environment of EVERY step, including
+      # `pnpm install --frozen-lockfile` — which executes dependency lifecycle
+      # scripts resolved from the PR's own lockfile. A PR that adds a malicious
+      # dependency could read the keys during install without ever running a
+      # test. They are now attached only to the steps that genuinely need them
+      # (secret validation, Start API, Start web app), which closes that
+      # dependency vector. It does NOT make a same-repo PR safe on its own — the
+      # servers still hold the keys — hence the `environment:` gate above.
 
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +104,11 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Validate AI provider secret for E2E
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
             echo "Production E2E requires ANTHROPIC_API_KEY because the default IDE model is Anthropic."
@@ -104,7 +127,14 @@ jobs:
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
+      # The API resolves provider keys from its own server env, so they belong
+      # to this step (the background process inherits them).
       - name: Start API
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
           echo $! > /tmp/vibecore-api.pid
@@ -113,7 +143,14 @@ jobs:
       - name: Build web app
         run: pnpm run build
 
+      # The web app reads the provider keys server-side too
+      # (app/lib/.server/llm/provider-credentials.ts), so it needs them as well.
       - name: Start web app
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         run: |
           HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid

@@ -1,0 +1,413 @@
+# REGISTRE_AUDIT_EXPERT — registre complet de l'audit externe
+
+**Objet.** Registre **exhaustif** des points remontés par l'audit externe. Aucun point
+n'est perdu : chaque point de la remise devient **une ligne** portant un identifiant
+stable `AUDX-NNN`, son énoncé, son domaine, sa sévérité, son statut, sa preuve, un
+propriétaire proposé et, quand elle existe, la décision d'arbitrage déjà prise.
+
+**Base de vérification.** `origin/main` @ `9b59b3489` (2026-09-01). Toutes les preuves
+ci-dessous ont été **relues sur cette base**, pas sur une branche de travail.
+⚠️ Les branches de travail locales sont très en retard sur `main` (jusqu'à ~990 commits) :
+une preuve prise sur une branche peut contredire `main`. Exemple rencontré pendant la
+rédaction : `BaseChat.tsx` fait **23 745** lignes sur `main` mais 20 667 sur une branche
+stale — les chiffres de l'audit sont exacts, c'est la branche qui mentait.
+
+**Règle de statut.** `NON_COMMENCÉ` est le défaut. `DÉJÀ_FAIT` et `PARTIEL` ne sont
+posés **qu'avec une preuve vérifiée dans le code**, citée en clair (fichier:ligne,
+commande, ou sortie). Aucun statut n'est déduit d'un « ça devrait être fait ».
+`PARTIEL` = un mécanisme existe et est cité, mais ne couvre pas l'énoncé complet ;
+c'est délibérément distingué de `DÉJÀ_FAIT` pour ne pas fermer un point à moitié traité.
+
+⚠️ **Ce registre trace, il ne réalise pas.** Une ligne `NON_COMMENCÉ` reste ouverte tant
+qu'elle n'a pas été **testée en réel** au sens de `CLAUDE.md` (📤 dispatché / 💻 codé /
+✅ testé live — seul ✅ compte).
+
+---
+
+## 0. Décisions déjà prises (cadre non rediscuté)
+
+Ces décisions sont **acquises** et s'appliquent à toutes les lignes du registre.
+Une ligne qui les contredit doit être corrigée, pas la décision.
+
+| # | Décision | Portée |
+|---|---|---|
+| D-01 | **1 000 espaces de travail simultanés** est la cible de dimensionnement | Runtime, échelle, coûts |
+| D-02 | Les **aperçus sont PRIVÉS par défaut** | Sécurité preview |
+| D-03 | **Rétention, prix, plans, régions, SLA** = décisions d'**Avi**, en attente | Facturation, produit |
+| D-04 | Collaboration : **CAS avec conflits explicites**, **PAS de CRDT temps réel** pour l'instant | AUDX-034→042 |
+| D-05 | Un **checkpoint couvre fichiers + base PostgreSQL** | AUDX-043→053 |
+| D-06 | Scheduler : après une panne, rejouer **UNE seule** occurrence manquée, jamais toutes | AUDX-054→064 |
+| D-07 | Pool **gVisor isolé DANS le même cluster**, pas de cluster séparé | AUDX-065→080 |
+| D-08 | Vérifier si le **second cluster Terraform** est réellement inutilisé ; le supprimer si oui (coût inutile) | AUDX-080 |
+| D-09 | `ecode.lock` **généré automatiquement** mais **obligatoire une fois généré** | AUDX-071 |
+| D-10 | **Firecracker reporté** | Runtime |
+| D-11 | Le **menu bas mobile/tablette d'Avi est CONSERVÉ** | AUDX-101→113 |
+| D-12 | L'**orange de marque n'est PAS changé** — on corrige la façon de poser du texte dessus | AUDX-109 |
+| D-13 | Les **deux gros découpages sont REPORTÉS** tant que les défauts visibles d'Avi ne sont pas réglés (trois sessions travaillent dans ces fichiers en ce moment) | AUDX-115, AUDX-116 |
+| D-14 | Gouvernance : **fermer les PR mortes et les doublons**, mais **PAS de rebasage en masse** des 72 PR | AUDX-153 |
+| D-15 | Parité : cible = **parité fonctionnelle observable et datée**, jamais la reproduction prétendue de systèmes internes propriétaires | AUDX-118→132 |
+| D-16 | Le **gate exact-SHA et ses tests internes sont jugés corrects** — ne pas les casser | AUDX-081→100 |
+
+### Ordre de correction retenu
+
+| Rang | Vague | Lignes concernées |
+|---|---|---|
+| 1 | **Sécurité immédiate** — secret agent, symlinks, ticket runtime, previews HTTP/WS, WIF, secrets dans les PR | AUDX-001→013, 095→097, 133, 134 |
+| 2 | **Argent et données** — metering IA, Stripe/outbox, object storage, import, restore DB, collaboration | AUDX-014→042 |
+| 3 | **Runtime** — snapshots, scheduler, NetworkPolicies, admission, quotas, Nix | AUDX-043→080 |
+| 4 | **Release** — CI bloquante, actions/images immuables, historique Git, images signées | AUDX-081→100 |
+| 5 | **Échelle** — workers/KEDA, GCS/CDN, autoscale, load/soak/chaos/DR | AUDX-076→079, 143 |
+| 6 | **Parité produit** | AUDX-118→132 |
+
+**Propriétaires proposés** (rôles, pas personnes) : `SEC` sécurité applicative · `BE`
+backend/données · `BILL` facturation · `RT` runtime/Kubernetes · `REL` release/CI ·
+`FE` frontend/UX · `PROD` produit/parité · `GOV` gouvernance dépôt · `AVI` décisions
+et accès hors dépôt.
+
+---
+
+## 1. Sécurité applicative — AUDX-001 → AUDX-013
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-001 | Exfiltration par **symlinks Git** dans `conflict-file`, `import`, `pull`, `restore` | P0 | **PARTIEL** | Une seule garde existe, et elle est en **aval** d'un seul chemin d'écriture : `services/workspace-agent/src/app.ts:1680` fait `lstat(safePath)` puis rejette si `finalStat?.isSymbolicLink()` (commentaire l.1677 : « create (flag 'wx') and rename are already immune »). `grep -c "isSymbolicLink()" services/workspace-agent/src/app.ts` = **1** : les quatre flux nommés par l'audit (conflict-file, import, pull, restore) ne sont **pas** couverts chacun. Reste : une garde par **site d'appel**, pas une garde centrale supposée. | SEC | — |
+| AUDX-002 | **Courses TOCTOU** des opérations fichiers du workspace-agent | P0 | NON_COMMENCÉ | Le contrôle actuel est un `lstat` **après** résolution de chemin (`app.ts:1680`) : c'est exactement la forme check-then-use vulnérable. Aucun `O_NOFOLLOW` / `openat` / descripteur épinglé dans `services/workspace-agent/src`. | SEC | — |
+| AUDX-003 | **Secret HMAC global** visible par le code locataire via `/proc` | P0 | **PARTIEL** | Le retrait de l'env des processus enfants existe : `AGENT_PRIVATE_ENV_KEYS = ['WORKSPACE_AGENT_TOKEN_SECRET']` (`services/workspace-agent/src/app.ts:120`), consommé l.179, avec un commentaire décrivant précisément la prise de contrôle inter-locataire évitée. **Mais le secret reste GLOBAL** : un seul `WORKSPACE_AGENT_TOKEN_SECRET` signe pour tous les workspaces, donc toute fuite résiduelle (`/proc/1/environ` du process agent, dump mémoire, log) reste une compromission inter-locataire. Reste : **dérivation par workspace** ou secret par pod. | SEC | — |
+| AUDX-004 | Remplacer le **bearer de session exposé au navigateur** par un **ticket runtime** court, limité au workspace, à usage unique | P0 | NON_COMMENCÉ | Aucune notion de ticket runtime dans le dépôt (`grep -ri "runtimeticket\|runtime_ticket\|singleUseTicket"` → 0 résultat). | SEC | — |
+| AUDX-005 | Authentification **fail-closed des previews HTTP et WebSocket/HMR** | P0 | NON_COMMENCÉ | Aucun marqueur fail-closed dans `services/preview-proxy/src`. À rapprocher de D-02 (aperçus privés par défaut) : sans fail-closed, « privé par défaut » n'est pas tenable. | SEC | D-02 |
+| AUDX-006 | **DNS rebinding et SSRF** Git / webhook / screenshotter | P0 | **PARTIEL** | Contrôle applicatif existant côté screenshotter : `SCREENSHOTTER_ALLOWED_HOSTS`, et exception `169.254.169.254/32` dans `infra/helm/platform/templates/networkpolicy.yaml`. Le commentaire de ce même fichier **reconnaît que la NetworkPolicy screenshotter n'est PAS contraignante** (« this policy does not tighten screenshotter below those today — it documents intent »), les politiques étant une **union** et `allow-platform-required-egress` (podSelector `{}`) ouvrant déjà 443 à tous. Reste : rebinding DNS non traité (allowlist par **nom**, résolution non épinglée), Git et webhook non couverts. | SEC | — |
+| AUDX-007 | **PAT GitHub/GitLab/Vercel/Netlify/Supabase** stockés dans `localStorage` | P0 | NON_COMMENCÉ | `app/lib/stores/github.ts:68` et `:125` — `localStorage.setItem('github_connection', JSON.stringify(...))`. Le jeton est donc lisible par tout script de la page (XSS = vol de PAT). | SEC | — |
+| AUDX-008 | **Bearer admin** stocké dans le navigateur | P0 | NON_COMMENCÉ | Non retrouvé sous forme `localStorage`/`sessionStorage` par grep direct, mais **l'absence de preuve n'est pas une preuve** : la surface admin n'a pas été auditée ligne à ligne. Statut laissé au défaut, à instruire. | SEC | — |
+| AUDX-009 | **API keys trop générales**, sans binding organisation/projet | P1 | NON_COMMENCÉ | — | SEC | — |
+| AUDX-010 | **Chiffrement global non versionné**, sans rotation ni `keyId` | P1 | NON_COMMENCÉ | `packages/security/src/index.ts:105` : clé unique `CONFIG_ENCRYPTION_KEY` (défaut `dev-config-encryption-key-change-me`, refus en production l.108-110). **Aucun `keyId` / `keyVersion`** dans `packages/security/src` → aucun chiffré ne porte l'identité de la clé, donc **aucune rotation possible sans réécrire tout le corpus**. | SEC | Rotation elle-même = AUDX-137 (AVI) |
+| AUDX-011 | **Audit présenté comme immuable** alors qu'il est modifiable/supprimable | P1 | NON_COMMENCÉ | `packages/database/prisma/schema.prisma:838` `model AuditLog` — table Prisma ordinaire : **aucun trigger, aucune RULE, aucun REVOKE** dans les migrations. Le schéma **affirme pourtant l'immuabilité** en commentaire (l.858-861 : « DERIVED from immutable AuditLog rows … without mutating the append-only audit trail »). L'immuabilité est **documentée mais non appliquée** — c'est précisément l'écart signalé. | SEC | — |
+| AUDX-012 | **Séparation des secrets et rôles DB par service** dans Helm/Terraform | P1 | NON_COMMENCÉ | — | SEC / RT | — |
+| AUDX-013 | **Tests adversariaux inter-tenant** | P1 | NON_COMMENCÉ | Prérequis de clôture de AUDX-001→008 : sans jeu adversarial, « corrigé » ne sera pas prouvable. | SEC | — |
+
+---
+
+## 2. Backend, données, facturation — AUDX-014 → AUDX-035
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-014 | **Import durable multi-replica** : staging partagé, idempotence DB, transitions CAS, compensation réelle | P0 | NON_COMMENCÉ | — | BE | — |
+| AUDX-015 | Suppression des **projets fantômes** après échec d'import | P1 | NON_COMMENCÉ | — | BE | — |
+| AUDX-016 | **Metering IA dont l'AI Gateway est seule autorité** | P0 | NON_COMMENCÉ | Aujourd'hui l'autorité est partagée avec le client — voir AUDX-017. | BILL | — |
+| AUDX-017 | Suppression de **`/ai/record-usage`** comme source de tokens **déclarés par le client** | P0 | NON_COMMENCÉ | Route toujours présente : `services/api/src/app.ts:23539` `app.post('/projects/:projectId/ai/record-usage', …)`. `packages/billing/src/ai-pricing.ts:221` **documente le trou** : « only the `record-usage` HTTP route zod-validates these » — la validation porte sur la **forme**, pas sur la **véracité** : un client peut déclarer 0 token. | BILL | — |
+| AUDX-018 | **Réservation atomique de crédits AVANT** appel fournisseur | P0 | NON_COMMENCÉ | — | BILL | — |
+| AUDX-019 | **Ledger idempotent et outbox** pour Stripe/PAYG | P0 | NON_COMMENCÉ | `model StripeEvent` existe (`schema.prisma:1018`) — déduplication d'événements entrants — mais **aucun modèle Outbox** (`grep "model.*Outbox"` → 0). Le sens manquant est le **sortant** : pas de publication transactionnelle. | BILL | — |
+| AUDX-020 | **Quotas de stockage AVANT** émission d'une URL signée | P1 | NON_COMMENCÉ | — | BE | — |
+| AUDX-021 | Limites **taille / checksum / génération** des uploads | P1 | NON_COMMENCÉ | — | BE | — |
+| AUDX-022 | **Tokens stockage courts**, séparés read/write/delete/admin | P1 | NON_COMMENCÉ | — | SEC / BE | — |
+| AUDX-023 | **Inventaire et metering réels** des objets GCS | P1 | **PARTIEL** | `services/worker/src/object-storage-metering.ts` existe (+ `.spec.ts`). Reste à établir que le comptage est **réel** (inventaire GCS) et non dérivé d'un journal applicatif — non vérifié ici. | BE / BILL | — |
+| AUDX-024 | **Pagination au-delà de 1 000 objets** | P1 | NON_COMMENCÉ | Plafond classique d'une page GCS : au-delà, l'inventaire de AUDX-023 est silencieusement tronqué. | BE | — |
+| AUDX-025 | **État durable** des backups et restores PostgreSQL | P0 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-026 | **Cutover atomique** vers la base restaurée | P0 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-027 | **Validation par données sentinelles** et **rollback du cutover** | P0 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-028 | Suppression / réconciliation des **bases CNPG orphelines** | P1 | NON_COMMENCÉ | — | RT / BE | — |
+| AUDX-029 | **Arrêt gracieux de l'API** lors des rollouts | P1 | **PARTIEL** | Le zéro-downtime plateforme est actif depuis `5c2c3586` (`maxUnavailable: 0` + `preStop` sur tous les Deployments, cf. `CLAUDE.md`). Reste le volet **applicatif** : drain des requêtes en vol et des jobs côté API, non vérifié. | BE / RT | — |
+| AUDX-030 | **Séparation des workers et files par SLA**, avec **DLQ** et métriques | P1 | NON_COMMENCÉ | — | BE | — |
+| AUDX-031 | Sortie des **ZIP/base64 hors de PostgreSQL** vers un blob store | P1 | NON_COMMENCÉ | Lié à AUDX-048 (ZIP en RAM) : même corpus, deux symptômes. | BE | — |
+| AUDX-032 | **Rétention, GC et suppression** des snapshots/exports | P1 | NON_COMMENCÉ | Politique de rétention = **décision d'Avi** (D-03) ; le **mécanisme** reste à écrire quelle que soit la valeur retenue. | BE | D-03 |
+| AUDX-033 | L'état **FAILED**, les **causes d'échec** et le **nettoyage des ressources orphelines** ne sont **pas** couverts par le correctif DB récent | P1 | NON_COMMENCÉ | Vérifié : le dernier correctif DB sur `main` est `9b59b3489` « un provisionnement bloqué n'enferme plus le projet à vie (#342) » — il **débloque** le projet, il ne modélise ni la cause d'échec ni le nettoyage des ressources déjà créées. La réserve de l'audit est **exacte**. | BE | — |
+| AUDX-034 | Le panneau base de données a **5 instances ACTIVE invisibles** en production (BUG-DB-002) — vérifier l'état réel du correctif | P0 | **DÉJÀ_FAIT (correctif fusionné)** | PR **#317 est MERGÉE** : `mergedAt 2026-09-01T09:07:28Z`, merge commit `43336cb1e70d3dd519412b2f4d14309200a4fbd6`, présent sur `origin/main`. ⚠️ `BUG_INVENTORY_LIVE.md:265` sur `main` la décrit encore comme « **PR #317 (non mergé)** » → **correction de suivi requise** (AUDX-152). La preuve « créer une base depuis l'IHM et la voir » exige en outre le **déploiement**, non couvert par la fusion. | BE / GOV | — |
+| AUDX-035 | Le correctif #317 rend **visibles** 2 instances `PROVISIONING` sans secret (BUG-DB-001, défaut d'infra distinct) | P1 | NON_COMMENCÉ | Défaut d'infra séparé, que #317 expose au lieu de le masquer derrière l'état vide. | RT / BE | — |
+
+---
+
+## 3. Collaboration et perte de fichiers — AUDX-036 → AUDX-044
+
+> **Décision D-04 : CAS avec conflits explicites, PAS de CRDT temps réel pour l'instant.**
+> Toute proposition CRDT sur ces lignes est hors cadre.
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-036 | Remplacer le **« dernier write gagne »** | P0 | NON_COMMENCÉ | Cause racine de la perte de fichiers : sans révision, deux écritures concurrentes se recouvrent silencieusement. | BE / FE | D-04 |
+| AUDX-037 | **Révisions / CAS obligatoires** | P0 | NON_COMMENCÉ | « Obligatoires » = refus par défaut d'une écriture sans révision, pas une option. | BE | D-04 |
+| AUDX-038 | **Journal durable par document** | P0 | NON_COMMENCÉ | — | BE | D-04 |
+| AUDX-039 | **Application réelle** des événements `document.sync` | P0 | NON_COMMENCÉ | L'événement existe mais n'est pas appliqué : le canal donne l'illusion d'une synchronisation. | BE / FE | D-04 |
+| AUDX-040 | **Gestion des conflits dans Monaco** | P1 | NON_COMMENCÉ | Cf. la référence Replit : le merge editor affiche des **marqueurs bruts**. | FE | D-04 |
+| AUDX-041 | **Rebase ou merge explicite** entre utilisateur et Agent | P0 | NON_COMMENCÉ | C'est le cas le plus fréquent de perte : l'Agent écrit pendant que l'utilisateur édite. | BE / FE | D-04 |
+| AUDX-042 | **Reprise offline / reconnexion** | P1 | NON_COMMENCÉ | — | FE | D-04 |
+| AUDX-043 | **Tests simultanés** : deux navigateurs + un Agent | P1 | NON_COMMENCÉ | Condition de clôture de AUDX-036→042 : sans ce test, « corrigé » n'est pas démontrable. | REL / FE | D-04 |
+| AUDX-044 | **Protection des checkpoints pendant TOUTES les mutations**, pas seulement deux routes | P0 | NON_COMMENCÉ | ⚠️ Forme de défaut déjà rencontrée ici : le mécanisme est bon, c'est le **site d'appel** qui est incomplet. Vérifier **chaque** route mutante, pas le helper. | BE | D-04 |
+
+---
+
+## 4. Snapshots et checkpoints — AUDX-045 → AUDX-055
+
+> **Décision D-05 : un checkpoint couvre fichiers + base PostgreSQL.**
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-045 | **Restore runtime qui renvoie 204 en restaurant zéro fichier** | P0 | NON_COMMENCÉ | Succès menteur : le pire mode d'échec, l'utilisateur croit être restauré. | BE / RT | D-05 |
+| AUDX-046 | **Snapshots WebContainer seulement en mémoire** | P0 | NON_COMMENCÉ | Un rechargement d'onglet perd le snapshot. | FE | D-05 |
+| AUDX-047 | **Persistance des fichiers binaires** | P1 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-048 | **Checkpoints qui oublient l'archive durable** | P0 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-049 | **Archives créées AVANT le contrôle du quota** | P1 | NON_COMMENCÉ | Ordre inversé : le quota doit précéder l'écriture. Même famille que AUDX-020. | BE | D-05 |
+| AUDX-050 | **ZIP entièrement chargés en RAM** | P1 | NON_COMMENCÉ | Lié à AUDX-031. | BE | D-05 |
+| AUDX-051 | **Restore qui efface le projet puis réécrit fichier par fichier** | P0 | NON_COMMENCÉ | Fenêtre destructrice : une interruption en cours laisse le projet **vide**. Résolu par AUDX-053 (staging + swap). ⚠️ Rappel : un correctif antérieur (reopen, 13/07) portait exactement ce motif — « fetch+validate AVANT de vider ». | BE | D-05 |
+| AUDX-052 | **Erreurs de synchronisation vers le pod avalées** | P0 | NON_COMMENCÉ | Cause directe de AUDX-045 : l'erreur est mangée, le 204 part quand même. | BE / RT | D-05 |
+| AUDX-053 | **Staging puis swap atomique** | P0 | NON_COMMENCÉ | Correctif structurel de AUDX-051. | BE | D-05 |
+| AUDX-054 | Statuts **RESTORING / COMMITTED / FAILED** | P1 | NON_COMMENCÉ | — | BE | D-05 |
+| AUDX-055 | **Réconciliation après crash** | P1 | NON_COMMENCÉ | — | BE | D-05 |
+
+---
+
+## 5. Scheduler — AUDX-056 → AUDX-066
+
+> **Décision D-06 : après une panne, rejouer UNE seule occurrence manquée, jamais toutes.**
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-056 | **Claim et création de run non atomiques** | P0 | NON_COMMENCÉ | Cause racine de AUDX-059 (double exécution). | BE | — |
+| AUDX-057 | **Déclenchement perdu en cas de crash** | P0 | NON_COMMENCÉ | — | BE | D-06 |
+| AUDX-058 | **Compteur de retries qui repart à 1 et boucle** | P0 | NON_COMMENCÉ | Boucle infinie de réessais : consomme du budget IA et du runtime sans fin. | BE | — |
+| AUDX-059 | **Double exécution possible avec FORBID** | P0 | **PARTIEL** | La politique existe : `services/api/src/scheduled-tasks.ts:290` (« No-overlap (concurrency=FORBID): a previous run still RUNNING means … »), l.306 message de saut. **Mais le code lui-même documente sa faille** l.562 : un run « stuck RUNNING forever … would also block the FORBID overlap guard ». La garde est un **read-then-check** non atomique (AUDX-056) : deux replicas peuvent lire « pas de run » simultanément. | BE | — |
+| AUDX-060 | **Annulation qui marque CANCELED mais laisse le pod tourner** | P0 | NON_COMMENCÉ | Fuite de ressources **et** de coût : facturé sans être visible. | RT / BE | — |
+| AUDX-061 | **`AbortController` jamais transmis au processus** | P1 | NON_COMMENCÉ | Cause directe de AUDX-060. | BE | — |
+| AUDX-062 | **Metering scheduler fail-open** | P0 | NON_COMMENCÉ | Fail-open sur du metering = exécution gratuite non comptée. Même classe que AUDX-016/017. | BILL | — |
+| AUDX-063 | **Historique supprimé en cascade** avec la tâche | P1 | NON_COMMENCÉ | Perte de traçabilité **et** de preuve de facturation. | BE | — |
+| AUDX-064 | **Pods et Secrets Kubernetes orphelins** | P1 | NON_COMMENCÉ | — | RT | — |
+| AUDX-065 | **Exécution multi-replica** avec **leases et idempotence** | P0 | NON_COMMENCÉ | Correctif structurel de AUDX-056/059. | BE | — |
+| AUDX-066 | **Réconciliation périodique par labels Kubernetes** | P1 | NON_COMMENCÉ | Correctif de AUDX-064. | RT | — |
+
+---
+
+## 6. Runtime, gVisor, Nix, déploiements — AUDX-067 → AUDX-082
+
+> **Décisions D-07 (pool gVisor dans le même cluster), D-08 (second cluster Terraform à
+> vérifier puis supprimer si inutilisé), D-09 (`ecode.lock` auto-généré mais obligatoire),
+> D-10 (Firecracker reporté).**
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-067 | **NetworkPolicies correctes** pour workspace / build / scheduled / server | P0 | **PARTIEL** | Existant et solide côté workspace : `infra/kubernetes/workspaces-runtime/networkpolicies.yaml` (default-deny + egress 443 seul, `except` sur `169.254.169.254/32` **et** tout le RFC1918) et `infra/helm/platform/templates/networkpolicy.yaml` (deny-all + intra-ns + runtime + DB/Redis). **Trous confirmés** : (a) `allow-platform-required-egress` a un `podSelector: {}` qui **ré-ouvre 443 à tout pod** et annule par union toute politique plus stricte — le fichier l'admet pour le screenshotter ; (b) rien de dédié pour **build / scheduled / server-deploy** hormis un `Exists` large sur `vibecore.ai/server-deploy` **tous ports**. | RT | D-07 |
+| AUDX-068 | **Politique d'admission unique et cohérente** | P1 | **PARTIEL** | `infra/kubernetes/admission-policies/workspace-restricted-policies.yaml` + `infra/kubernetes/podsecurity/namespaces.yaml` + Kyverno **en mode AUDIT** (jamais passé en Enforce). Deux mécanismes coexistent → « unique et cohérente » n'est pas tenu. | RT | — |
+| AUDX-069 | **Interdiction du kill switch gVisor en production** | P0 | NON_COMMENCÉ | `runtimeClassName: gvisor` est **exigé** par `infra/scripts/validate.mjs` sur les deux manifestes d'exemple, mais aucun garde-fou n'empêche de le **désactiver** au niveau values/manager en production. | RT | D-07 |
+| AUDX-070 | Limites **ephemeral-storage, /tmp, PID, inodes, fichiers ouverts** | P1 | **PARTIEL** | Seul `ephemeral-storage` est traité, et **côté plateforme** : `infra/helm/platform/templates/deployments.yaml:204` (« Cap node ephemeral-storage usage so a runaway write to /tmp can't … »). **Rien** pour PID / inodes / fichiers ouverts, et rien côté **workspace locataire** — qui est justement la surface hostile. | RT | D-01 |
+| AUDX-071 | **Montage Nix dans les tâches planifiées** | P1 | NON_COMMENCÉ | — | RT | D-09 |
+| AUDX-072 | **Propagation de `nixGenerationRef`** sur dev / preview / build / publish / scheduled | P1 | **PARTIEL** | La référence existe et circule : `services/workspace-manager/src/manager.ts`, `services/api/src/server-deploy-revision.ts`, `services/api/src/release-rollback.ts`, `packages/k8s-client/src/nix-generations.ts`. ⚠️ Même forme de risque que AUDX-044 : la **propagation par site d'appel** (les 5 chemins nommés) n'est pas démontrée — à vérifier chemin par chemin. | RT | D-09 |
+| AUDX-073 | **Respect strict d'`ecode.lock`** | P1 | **PARTIEL** | Machinerie présente et testée : `packages/k8s-client/src/ecode-lock.ts` + `ecode-lock.spec.ts`, `nix-placement.spec.ts`. Reste : « strict » = **refus** en l'absence de lock, une fois le lock généré (D-09). | RT | **D-09** |
+| AUDX-074 | **Rejet d'une génération Nix inconnue ou révoquée** | P1 | **DÉJÀ_FAIT (mécanisme)** | `packages/k8s-client/src/nix-generations.ts` : `type NixGenerationStatus = 'ACTIVE' \| 'RETIRED' \| 'REVOKED'` (l.26) ; codes d'erreur `NIX_GENERATION_REVOKED` et `NIX_GENERATION_NONE_ACTIVE` (l.80-81) ; invariants documentés l.98-100 (« AT MOST one ACTIVE », « REVOKED requires revokedAt + revokedReason »). ⚠️ Le **mécanisme** est fait ; son **application à tous les sites d'appel** relève de AUDX-072. | RT | — |
+| AUDX-075 | **PATH déterministe** limité aux bundles autorisés | P1 | NON_COMMENCÉ | — | RT | — |
+| AUDX-076 | **Première version déployée par digest** et non par tag | P1 | NON_COMMENCÉ | Le rollback par digest existe déjà (13/07, 17/07) ; c'est le **premier** déploiement qui reste sur tag. | REL / RT | — |
+| AUDX-077 | **Capture automatique d'une révision immuable** | P1 | NON_COMMENCÉ | — | REL | — |
+| AUDX-078 | **HPA / KEDA** workers et applications | P2 | NON_COMMENCÉ | Vague 5. | RT | D-01 |
+| AUDX-079 | **Compteur autoscale durable** plutôt qu'une annotation Kubernetes | P2 | NON_COMMENCÉ | Une annotation n'est ni transactionnelle ni durable : perdue au recreate du pod. | RT | — |
+| AUDX-080 | **Pipeline statique vers object storage + CDN** | P2 | NON_COMMENCÉ | Aujourd'hui l'ingress est en **DNS direct, sans CDN** (LB `34.1.6.93`, cf. `CLAUDE.md`). | RT | — |
+| AUDX-081 | **Gestion Terraform du stockage** aujourd'hui manuel | P2 | NON_COMMENCÉ | ⚠️ `terraform apply` exige Avi (SA TF + bucket réel) — la CI est **plan-only**. | RT | AVI |
+| AUDX-082 | **Vérifier si le second cluster Terraform est réellement inutilisé, et le supprimer si oui** (coût inutile) | P2 | NON_COMMENCÉ | `infra/terraform/envs/{staging,prod}` existent tous deux. **Vérification d'usage réel = accès GCP (hors dépôt)**. ⚠️ Suppression d'infra = action destructrice → **Avi uniquement**. | AVI / RT | **D-08** |
+
+---
+
+## 7. CI/CD et chaîne d'approvisionnement — AUDX-083 → AUDX-102
+
+> **Décision D-16 : le gate exact-SHA et ses tests internes sont jugés corrects — ne pas les casser.**
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-083 | **`infra/scripts/validate.mjs` échoue sur deux NetworkPolicies absentes** — *seul échec réel de la passe* | P0 | **TRAITÉ DANS CETTE PR** | Reproduit sur `main` : `node infra/scripts/validate.mjs` → `Missing required infra path: kubernetes/networkpolicies/workspaces-deny-default.yaml`. ⚠️ **La remédiation évidente est un piège** : ces deux fichiers ont été supprimés **volontairement** par `6589338b8` (« remove colliding standalone NetworkPolicies ») parce qu'ils portaient les **mêmes noms** que les objets Helm et, appliqués **après** Helm, **écrasaient l'egress plus strict — ils ré-ouvraient le port 80 depuis les sandboxes** (`git show 6589338b8^:…/workspaces-deny-default.yaml` : `port: 80` présent, absent du manifeste actuel). **Les recréer serait une régression de sécurité.** Correctif retenu : le validateur pointe sur les **sources survivantes** et vérifie les mêmes garanties (default-deny, sélecteur ingress-nginx), en **ajoutant** une assertion « pas de port 80 en egress workspace » qui interdit le retour de la régression. **Fait** : `infra/scripts/validate.mjs` → `infra scaffold valid`. **Contre-épreuves (4 mécanismes cassés séparément, 4 erreurs distinctes)** : (1) réintroduire `port: 80` → *Unexpected workspace egress port(s) 80* ; (2) renommer `workspace-default-deny` → *Missing workspaces default-deny NetworkPolicy* ; (3) renommer `deny-all-default` → *Missing platform default-deny NetworkPolicy* ; (4) supprimer tous les ports egress → *No egress ports found … the guard would pass vacuously* (garde anti-vacuité). ⚠️ La garde est scopée au **document YAML** de la policy egress : le fichier porte aussi une policy d'INGRESS dont les `:8080` sont légitimes. | REL / RT | — |
+| AUDX-084 | **`platform:verify` en gate obligatoire** | P0 | NON_COMMENCÉ | La cible existe (`package.json:19`) mais **n'est référencée par AUCUN workflow** (`grep -r "platform:verify" .github/workflows/` → 0). Elle enchaîne no-mocks, lint, test, typecheck, build **et `infra:validate`** — donc elle est **rouge aujourd'hui** à cause de AUDX-083 : c'est vraisemblablement la raison pour laquelle elle n'a jamais été câblée. Ordre imposé : **AUDX-083 d'abord**, AUDX-084 ensuite. | REL | — |
+| AUDX-085 | **E2E `@runtime` en gate réel** | P0 | NON_COMMENCÉ | Aucun `@runtime` dans `.github/workflows/` ni `package.json`. | REL | — |
+| AUDX-086 | Tests **preview/workspace sur runtime provisionné** | P1 | NON_COMMENCÉ | — | REL | — |
+| AUDX-087 | **Audits dépendances bloquants** | P1 | NON_COMMENCÉ | — | REL | — |
+| AUDX-088 | **axe, Lighthouse, dead-code, complexité, bundle-size bloquants** | P1 | NON_COMMENCÉ | — | REL / FE | — |
+| AUDX-089 | **Pin de toutes les GitHub Actions par SHA** | P1 | NON_COMMENCÉ | Mesuré sur `main` : **1 sur 159** références `uses:` est épinglée par SHA 40 caractères (`amannn/action-semantic-pull-request@0723387f…`). Les 158 autres sont des tags mutables (`actions/checkout@v4`, `aquasecurity/trivy-action@0.35.0`, …). | REL | — |
+| AUDX-090 | **Pin des images Docker et builders par digest** | P1 | NON_COMMENCÉ | — | REL | — |
+| AUDX-091 | **`npm install` reproductible** pour `workspace-agent` | P1 | NON_COMMENCÉ | — | REL | — |
+| AUDX-092 | **Checksums sur les binaires téléchargés** | P1 | NON_COMMENCÉ | Cas concret : `.github/workflows/security.yaml` télécharge gitleaks 8.21.2 par `curl … \| tar -xz` puis `sudo install` — **sans aucune vérification de somme**. Le *gate de secrets lui-même* est donc installé sans contrôle d'intégrité. | REL | — |
+| AUDX-093 | **Gitleaks sur l'historique complet** | P1 | NON_COMMENCÉ | Le job bloquant scanne `--no-git --source .` (`security.yaml`) : **arbre de travail uniquement**, sur un checkout **sans `fetch-depth: 0`**. Le commentaire l'assume (« catches NEW leaks … without re-litigating already-removed history ») — mais un secret **déjà** dans l'historique n'est jamais vu. (Le `fetch-depth: 0` du fichier appartient au job **Trivy**, pas au job gitleaks.) | REL | — |
+| AUDX-094 | **Resserrer les allowlists Gitleaks** | P1 | NON_COMMENCÉ | `.gitleaks.toml` présent. ⚠️ La CI épingle **8.21.2** : un gitleaks local plus récent renvoie d'autres findings/lignes et **fausse les fingerprints** `.gitleaksignore`. Resserrer **avec la version épinglée**, et générer les secrets de dev plutôt que les ignorer. | REL | — |
+| AUDX-095 | **CodeQL et Trivy bloquants** | P1 | NON_COMMENCÉ | Les deux existent dans `security.yaml` mais publient en SARIF/artefact ; seul le job gitleaks est explicitement « blocking ». | REL | — |
+| AUDX-096 | **Permissions GitHub Actions par job, deny-by-default** | P1 | NON_COMMENCÉ | Les `permissions:` sont aujourd'hui **au niveau workflow** (donc héritées par tous les jobs) — c'est la cause structurelle de AUDX-099. | REL | — |
+| **AUDX-097** | 🔴 **URGENT — les workflows PR reçoivent les CLÉS IA** | **P0** | **TRAITÉ DANS CETTE PR (partiel — voir AUDX-137)** | **Constat** : `e2e.yml` injectait les quatre clés dans l'`env` du **job**, sur un workflow déclenché par `pull_request`. La garde anti-fork (l.33) ne couvre que les forks, et son propre commentaire **énonce le trou restant** : « same-repo PR branches run arbitrary code with the real prod keys injected ». **Fait ici, deux choses** : (a) les clés quittent l'`env` du job et sont rattachées **aux seuls 3 pas qui en ont besoin** (*Validate AI provider secret*, *Start API*, *Start web app*) — cela ferme le vecteur **chaîne d'approvisionnement** : `pnpm install --frozen-lockfile` exécutait des scripts de cycle de vie issus du lockfile de la PR **avec les clés en environnement**, sans qu'aucun test n'ait à s'exécuter ; (b) le job passe derrière `environment: pr-ai-secrets` sur `pull_request`. ⚠️ **Honnêteté sur (b)** : référencer un environment le **crée sans règle** — c'est le **crochet**, pas le contrôle. Tant qu'Avi n'a pas attaché « relecteurs requis » à `pr-ai-secrets` (**AUDX-137**), une PR de la même origine garde accès aux clés via les serveurs démarrés. ⚠️ Vérifié avant de déplacer : l'app web lit les clés **côté serveur** (`app/lib/.server/llm/provider-credentials.ts`) autant que l'API — les retirer du pas *Start web app* aurait **cassé le gate**. | REL / SEC | AUDX-137 = AVI |
+| **AUDX-098** | 🔴 **URGENT — les builds Electron PR reçoivent les CERTIFICATS DE SIGNATURE** | **P0** | **TRAITÉ DANS CETTE PR** | `.github/workflows/electron.yml` : déclencheur `pull_request` (l.4) et `env` de job portant `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`, `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD` (l.48-54). **Aucune garde anti-fork** sur ce workflow. Une PR n'a aucun besoin de signer : un build PR doit être **non signé**. **Fait** : les 7 secrets deviennent `${{ github.event_name != 'pull_request' && secrets.X || '' }}` — vides sur PR, intacts sur tag/dispatch. ⚠️ Ajout nécessaire : `CSC_IDENTITY_AUTO_DISCOVERY: ${{ github.event_name != 'pull_request' }}` — sans lui, `CSC_LINK` vide fait chercher une identité **dans le trousseau du runner** et le build macOS de PR **échoue** au lieu de produire un binaire non signé. Le build PR continue donc de prouver ce qu'il doit prouver (ça compile et ça empaquette sur les 3 plateformes) : **aucun test affaibli**. | REL / SEC | — |
+| **AUDX-099** | 🔴 **URGENT — le workflow Terraform PR conserve `id-token: write`** | **P0** | **TRAITÉ DANS CETTE PR** | `.github/workflows/terraform.yml:19` `id-token: write` (+ l.20 `pull-requests: write`) au **niveau workflow**, donc actif aussi sur `pull_request`, alors que l'étape d'authentification GCP est déjà `if: github.event_name != 'pull_request'`. Le jeton OIDC est donc **frappable depuis une PR** sans qu'aucune étape ne l'utilise — permission gratuite vers WIF. ⚠️ `permissions:` **n'accepte aucune expression** : on ne peut pas conditionner la permission, seulement le job qui la porte. **Fait** : le workflow est scindé — `validate` (fmt + `init -backend=false` + validate, `contents: read` **seul**, tourne sur PR) et `plan` (auth WIF + plan + upload, `id-token: write`, `if: github.event_name != 'pull_request'`). Workflow en **deny-by-default** (`contents: read`), et `pull-requests: write` — que rien n'utilisait — est supprimé. Sur une PR, **aucun jeton OIDC n'est atteignable**. Les checks statiques restent joués sur PR : **aucune couverture perdue**. | REL / SEC | — |
+| AUDX-100 | **Dépendances `npx` non verrouillées** | P1 | NON_COMMENCÉ | Cas concret : `npx wait-on` dans `e2e.yml` — résolution non épinglée à l'exécution. | REL | — |
+| AUDX-101 | **Tests WebKit/Safari et Firefox** | P1 | NON_COMMENCÉ | `playwright.config.ts` sur `main` ne déclare que **trois** projets : `chromium` (l.45), `tablet` (l.49), `mobile` (l.59). Aucun WebKit, aucun Firefox. | REL / FE | — |
+| AUDX-102 | **Gates WCAG 2.2 AA** | P1 | NON_COMMENCÉ | Recoupe AUDX-088 (axe) et AUDX-106→110. | REL / FE | — |
+
+---
+
+## 8. Frontend, mobile/tablette, UX — AUDX-103 → AUDX-119
+
+> **Décisions D-11 (menu bas mobile/tablette CONSERVÉ), D-12 (orange de marque NON changé),
+> D-13 (les deux gros découpages sont REPORTÉS — trois sessions travaillent dans ces fichiers).**
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-103 | **Écrans coupés ou débordants** | P1 | NON_COMMENCÉ | Clôture = vérification **en réel** sur web / tablette / mobile (règle `CLAUDE.md`). | FE | D-11 |
+| AUDX-104 | **Breakpoints CSS/JS contradictoires** | P1 | NON_COMMENCÉ | ⚠️ Symptôme déjà observé : **768 se comporte comme 390**. | FE | D-11 |
+| AUDX-105 | **Cibles tactiles sous 44 px** | P1 | NON_COMMENCÉ | ⚠️ Cause racine déjà identifiée dans l'historique : **base rem redéfinie à 12/14 px** — corriger la base, pas les cibles une à une. | FE | D-11 |
+| AUDX-106 | **Sheets et dialogs sans piège de focus** | P1 | NON_COMMENCÉ | Bloquant WCAG 2.2 AA (AUDX-102). | FE | — |
+| AUDX-107 | **Swipe qui intercepte éditeur, terminal, diff** | P1 | NON_COMMENCÉ | ⚠️ Ne pas « corriger » en retirant le menu bas — **D-11**. | FE | **D-11** |
+| AUDX-108 | **FileTree non accessible** | P1 | NON_COMMENCÉ | — | FE | — |
+| AUDX-109 | **Terminal sans mode lecteur d'écran** | P1 | NON_COMMENCÉ | — | FE | — |
+| AUDX-110 | **Séparateurs inutilisables au clavier** | P1 | NON_COMMENCÉ | — | FE | — |
+| AUDX-111 | **Contrastes et erreurs de thème** | P1 | NON_COMMENCÉ | ⚠️ **47 défauts de contraste mesurés sur `main`** (sonde `audit/tint-contrast`, 01/09) — la sonde n'a **jamais été fusionnée**. Une famille de tokens `-on-tint` **existe déjà** : corriger la **façon de poser le texte** sur l'orange, pas l'orange (**D-12**). ⚠️ Méthode : l'ancêtre-walk DOM **ment** (calques frères absolus) — échantillonner les **pixels rendus**, différentiel light↔dark, surface la plus défavorable. | FE | **D-12** |
+| AUDX-112 | **Traductions FR manquantes** | P1 | NON_COMMENCÉ | ⚠️ Le shard CI `Playwright mobile-390` (audit i18n live) est **rouge par timeout 90 min sur toutes les branches depuis ≥24/08** : il **ne donne plus aucun signal**. Ne pas s'appuyer dessus pour prouver la clôture. | FE | — |
+| AUDX-113 | **États de chargement infinis** | P1 | NON_COMMENCÉ | — | FE | — |
+| AUDX-114 | **Erreurs techniques affichées au client** | P1 | NON_COMMENCÉ | ⚠️ Risque de fuite prouvé sur ce dépôt : le texte d'amont d'une erreur base de données peut porter une **chaîne de connexion, donc un mot de passe** (rattrapé par le test i18n « masks raw list and provisioning errors » lors de #317). Copie d'échec à choisir sur le **code**, jamais sur le texte d'amont. | FE / SEC | — |
+| AUDX-115 | **Profils / paramètres / surfaces encore sur `localStorage`** | P1 | NON_COMMENCÉ | `app/lib/stores/settings.ts` : `PROVIDER_SETTINGS_KEY`, `AUTO_ENABLED_KEY`, `SETTINGS_KEYS.*` tous en `localStorage`. Distinct de AUDX-007 (qui porte sur les **secrets**), même corpus. | FE | — |
+| AUDX-116 | **Retrait du `@ts-nocheck` de `BaseChat.tsx`** | P1 | NON_COMMENCÉ | Présent en tête de fichier sur `main` : `// @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.` 23 745 lignes échappent au typage. | FE | Indépendant de D-13 |
+| AUDX-117 | **Découpage progressif de `BaseChat.tsx`** (23 745 lignes) | P2 | **REPORTÉ (décision)** | `wc -l` sur `main` = **23 745** — chiffre de l'audit exact. | FE | **D-13 — reporté** |
+| AUDX-118 | **Découpage de `services/api/src/app.ts`** (37 520 lignes) | P2 | **REPORTÉ (décision)** | `wc -l` sur `main` = **37 520** — chiffre de l'audit exact. | BE | **D-13 — reporté** |
+| AUDX-119 | **Nettoyage des composants morts et de la dette CSS** | P2 | NON_COMMENCÉ | Cas avéré : `DatabasePanel` **n'est importé nulle part** — du travail serveur l'a ciblé alors que le composant rendu est `DatabaseWorkbench` (constat de BUG-DB-002 / #317). Le code mort ne coûte pas que de la place : il **absorbe des correctifs**. | FE | — |
+
+---
+
+## 9. Parité produit — AUDX-120 → AUDX-134
+
+> **Décision D-15 : cible = parité fonctionnelle observable et datée, jamais la
+> reproduction prétendue de systèmes internes propriétaires.** Chantier long, **planifié à part**.
+
+| ID | Énoncé | Sév. | Statut | Preuve / reste à faire | Prop. | Arbitrage |
+|---|---|---|---|---|---|---|
+| AUDX-120 | **Tâches Agent persistantes et parallèles** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-121 | **Isolation par copie / micro-environnement** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-122 | **Task board, pause, reprise, cancel, apply diff** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-123 | **App Testing / automatisation navigateur** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-124 | **Collaboration multi-utilisateur** | P2 | NON_COMMENCÉ | Dépend de AUDX-036→044 (CAS). | PROD | D-04, D-15 |
+| AUDX-125 | **Skills projet / utilisateur / organisation** | P2 | **PARTIEL** | Interop Agent Skills livrée et vérifiée en production (RPL-SK-001.1→.4, 31/07). Reste la **portée** projet/utilisateur/organisation. | PROD | D-15 |
+| AUDX-126 | **Multi-artifacts** web / mobile / slides / data / media | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-127 | **Backend et secrets partagés entre artifacts** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-128 | **Design Canvas et annotations** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-129 | **Reserved VM, Autoscale 0..N, Static, Scheduled** | P2 | **PARTIEL** | `server-deploy` est LIVE (`d-<id>.preview.e-code.ai`) et le scheduled existe (AUDX-056→066). Reste Reserved VM et Autoscale 0..N (cf. AUDX-078/079). | PROD / RT | D-15 |
+| AUDX-130 | **Profils publics, publication et remix** | P2 | **PARTIEL** | Remix + licence/PII livré et live (03/08). Reste profils publics et publication. | PROD | D-15 |
+| AUDX-131 | **Imports Vercel / Figma / Claude aujourd'hui simulés** | P1 | NON_COMMENCÉ | ⚠️ bolt/lovable/base44 sont E2E ; **vercel/figma sont BLOCKED 424**. « Simulé » présenté comme réel est un défaut de **véracité**, pas seulement de fonctionnalité. ⚠️ Le garde-fou `check-no-runtime-mocks` bloque le mot « mock » — en tenir compte dans la rédaction du correctif. | PROD | D-15 |
+| AUDX-132 | **Marketplace et Bounties réels** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-133 | **Mobile natif, push, biométrie, crash reporting** | P2 | NON_COMMENCÉ | — | PROD | D-15 |
+| AUDX-134 | **SSO/SAML/SCIM, RBAC Enterprise, private deployments** | P2 | **PARTIEL** | Enforcement d'identité sur 14 routes livré (21/07) ; **SCIM reste**. `SAML_X509_CERTIFICATE` est câblé dans `deploy-prod.yml:145`. | PROD / SEC | D-15 |
+
+---
+
+## 10. Accès externes — AUDX-135 → AUDX-148
+
+> ⛔ **Hors dépôt — NE PAS TENTER.** Ces lignes sont inscrites pour qu'aucun point ne soit
+> perdu, et **assignées à Avi**. Aucune session ne doit les « faire » : elles exigent des
+> accès (GCP, GitHub org, Stripe, Apple, Google Play) ou des actions destructrices /
+> sortantes hors de la portée d'une PR. Elles restent **NON_COMMENCÉ** jusqu'à
+> intervention d'Avi.
+>
+> ⚠️ Rappels de garde-fous applicables ici : **jamais de `printenv` en production**,
+> jamais de lecture du trousseau, jamais de compte de test en production, jamais de
+> suppression définitive de données. La preuve du SHA déployé se prend sur le **digest du
+> deploy** + `gcloud container images list-tags`, jamais en listant l'environnement d'un pod.
+
+| ID | Énoncé | Sév. | Statut | Note | Prop. |
+|---|---|---|---|---|---|
+| AUDX-135 | **Bindings WIF GCP** | P0 | NON_COMMENCÉ | Vague 1 de l'ordre retenu, mais **exécution = Avi**. | AVI |
+| AUDX-136 | **Grant `attribute.repository/openaxcloud/vibecore`** | P0 | NON_COMMENCÉ | Conditionne AUDX-099 côté serveur. | AVI |
+| AUDX-137 | **GitHub Environments et bypass administrateur** | P0 | NON_COMMENCÉ | ⚠️ **Prérequis direct de AUDX-097** : la protection des clés IA en PR repose sur un Environment à **relecteurs requis** — cette PR référence l'environment, Avi doit lui **attacher la règle**. | AVI |
+| AUDX-138 | **Cloud Audit Logs** | P1 | NON_COMMENCÉ | Complément externe de AUDX-011. | AVI |
+| AUDX-139 | **Rotation des clés** IA / Stripe / OAuth / JWT / chiffrement | P0 | NON_COMMENCÉ | ⚠️ **À déclencher si AUDX-097/098 ont pu fuiter** ; techniquement impossible sans AUDX-010 (`keyId`) pour la clé de chiffrement. | AVI |
+| AUDX-140 | **Build, signature et push des images** | P1 | NON_COMMENCÉ | — | AVI |
+| AUDX-141 | **Déploiement Helm / Terraform** | P1 | NON_COMMENCÉ | ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis). | AVI |
+| AUDX-142 | **Preuve gVisor et admission** | P1 | NON_COMMENCÉ | Clôture de AUDX-068/069. | AVI |
+| AUDX-143 | **Stripe live** | P1 | NON_COMMENCÉ | Clôture de AUDX-019. | AVI |
+| AUDX-144 | **GCS / CDN / DNS / TLS / domaines** | P1 | NON_COMMENCÉ | Clôture de AUDX-080. ⚠️ L'aperçu n'est **pas prouvable** en l'état (wildcard auto-signé). | AVI |
+| AUDX-145 | **k6, soak, chaos, perte de zone, DR** | P1 | NON_COMMENCÉ | Vague 5 ; valide D-01 (1 000 workspaces). | AVI |
+| AUDX-146 | **Restores CNPG et RPO/RTO** | P0 | NON_COMMENCÉ | Clôture de AUDX-025→028. | AVI |
+| AUDX-147 | **Signature / notarisation Apple et Windows** | P1 | NON_COMMENCÉ | ⚠️ Lié à AUDX-098 : si les certificats ont fuité, **rotation avant** toute nouvelle signature. | AVI |
+| AUDX-148 | **Publication iOS / Android** | P2 | NON_COMMENCÉ | — | AVI |
+
+---
+
+## 11. Gouvernance — AUDX-149 → AUDX-158
+
+**Note de méthode.** Les compteurs de l'audit ont été **recomptés sur `origin/main`**.
+Deux d'entre eux sont **exacts**, deux sont **différents de ma mesure**, et un groupe est
+**non reproductible** parce que les registres qui portent ces statuts **n'existent pas sur
+`main`** — ils vivent sur une branche de travail très en retard. C'est en soi un constat
+de gouvernance : *le tableau de bord n'est pas sur la branche de référence.*
+
+| ID | Énoncé (chiffre de l'audit) | Sév. | Statut | Vérification sur `origin/main` @ `9b59b3489` | Prop. |
+|---|---|---|---|---|---|
+| AUDX-149 | **25 P0 encore OPEN** | P1 | **NON VÉRIFIABLE** | Non reproductible : `docs/audit/GAP_REGISTER.yaml` **n'existe pas** sur `main` (`git ls-tree origin/main docs/audit/` ne le liste pas). `PLAN_REMAINING_UNIFIED.md` sur `main` ne contient que **8** occurrences de « P0 » et **1** seul « PROVEN ». Le chiffre 25 provient d'une source hors `main`. **Action : republier le registre sur `main` avant de piloter dessus.** | GOV |
+| AUDX-150 | **11 PROVEN / 43 PARTIAL / 37 NOT_STARTED** | P1 | **NON VÉRIFIABLE** | Idem AUDX-149. Les registres présents sur `main` (`docs/parity/PRODUCTION_READINESS_REGISTRY.yaml`, `BOLT_DEBT_REGISTRY.yaml`) ne portent **qu'un seul statut** : `NON_FAIT` × **50** et × **29** respectivement — aucun PROVEN/PARTIAL/NOT_STARTED. | GOV |
+| AUDX-151 | **159 surfaces UNKNOWN** | P1 | **ÉCART DE MESURE** | Mesuré sur `main` : `SURFACE_REGISTRY.yaml` déclare **174 `surfaceId`** et **224 occurrences** de `UNKNOWN`. Le chiffre 159 n'est reproductible ni comme nombre de surfaces ni comme nombre de champs UNKNOWN — **définition de la métrique à fixer** avant de la suivre. | GOV |
+| AUDX-152 | **`PARITY_STATUS.md` référence encore `6709d2cc`** | P1 | **CONFIRMÉ** | `docs/parity/PARITY_STATUS.md:4` → `repoCommit: 6709d2cc` ; l.8 « run 33317678364 (2026-08-30…, commit 6709d2cc) ». Base réelle = `9b59b3489`. | GOV |
+| AUDX-153 | **`SURFACE_REGISTRY.yaml` référence encore `06fabcf1`** | P1 | **CONFIRMÉ** | `docs/parity/SURFACE_REGISTRY.yaml:7` → `repoCommit: 06fabcf1`. | GOV |
+| AUDX-154 | **Le bug DB #317 est décrit « PR non mergée » alors qu'il est fusionné** — vérifier et corriger | P1 | **CONFIRMÉ — correction à porter** | ✅ **Vérifié** : PR #317 est **MERGED**, `mergedAt 2026-09-01T09:07:28Z`, merge commit `43336cb1e70d3dd519412b2f4d14309200a4fbd6`, **présent sur `origin/main`**. ❌ `BUG_INVENTORY_LIVE.md:265` (BUG-DB-002) sur `main` porte toujours « **correctif en PR #317 (non mergé)** » et ses trois états ☐ ☐ ☐. **Correction requise** : 💻 Codé ✅ (fusionné), ✅ Testé live **reste ☐** — la preuve « créer une base depuis l'IHM et la voir apparaître » exige le **déploiement**, non acquis. ⚠️ Ne PAS cocher ✅ Testé live sur la seule fusion (règle `CLAUDE.md`). Voir AUDX-034. | GOV |
+| AUDX-155 | **72 PR ouvertes** | P1 | **CONFIRMÉ (exact)** | `gh pr list -R openaxcloud/vibecore --state open --limit 200` → **72**. | GOV |
+| AUDX-156 | **894 branches locales** | P2 | **ÉCART MINEUR** | `git branch \| wc -l` → **900** (l'écart s'explique par les branches créées depuis la passe d'audit, dont celle-ci). Ordre de grandeur **confirmé**. | GOV |
+| AUDX-157 | **316 branches avec travail unique non poussé** | P2 | NON_COMMENCÉ | Non recompté ici (mesure coûteuse : un `rev-list` par branche sur 900 branches). À instruire avec AUDX-156. | GOV |
+| AUDX-158 | **92 worktrees non commités** | P2 | **ÉCART DE MESURE** | `git worktree list \| wc -l` → **214** worktrees au total. Le chiffre 92 porte sur le sous-ensemble « non commités », non recompté ici. **Définition à fixer** (total vs sales) avant suivi. | GOV |
+
+**Arbitrage gouvernance (D-14).** Fermer les **PR mortes et les doublons** ; **PAS de
+rebasage en masse** des 72 PR. ⚠️ Piège connu sur ce dépôt : merger la **base** d'une pile
+de PR **ferme la PR enfant** — réparation en quatre temps (recréer la base, rouvrir,
+recibler, supprimer). Vérifier les piles avant toute fermeture.
+
+---
+
+## 12. Points d'attention transverses
+
+Recueillis pendant la vérification, ils s'appliquent à plusieurs lignes et évitent des
+faux positifs comme des faux « corrigés ».
+
+1. **Le mécanisme n'est presque jamais le problème — le site d'appel l'est.**
+   AUDX-001, AUDX-044, AUDX-072 et AUDX-074 partagent cette forme : un helper correct,
+   des appelants incomplets. Chaque mécanisme doit être **cassé séparément** dans les
+   tests, sinon un test vert n'atteste rien.
+2. **Une NetworkPolicy est une UNION, pas une intersection.** Un `podSelector: {}`
+   permissif (`allow-platform-required-egress`) **annule** toute politique plus stricte
+   ajoutée à côté. Le dépôt le documente déjà pour le screenshotter. Toute ligne
+   « resserrer les egress » (AUDX-067, AUDX-006) doit **exclure** le pod des politiques
+   génériques, sinon elle est cosmétique.
+3. **La remédiation évidente peut être une régression** — cf. AUDX-083 : recréer les deux
+   fichiers manquants ré-ouvrirait le port 80 depuis les sandboxes. **Toujours lire
+   l'historique de suppression avant de restaurer un fichier.**
+4. **Deux signaux CI sont morts** : le shard `Playwright mobile-390` (i18n) est rouge par
+   timeout depuis ≥24/08 sur **toutes** les branches, et `platform:verify` n'est câblé
+   nulle part. Ne pas conclure d'un vert qu'on n'a pas.
+5. **Un test vert peut épingler sa propre copie.** Cas déjà rencontré ici : deux specs
+   vertes vérifiaient leur propre duplicata. **Contre-épreuve obligatoire dans les deux
+   sens** (casser le correctif → rouge ; élargir → rouge).
+6. **Les branches locales mentent sur `main`.** Écart mesuré jusqu'à ~990 commits ;
+   `BaseChat.tsx` y perd 3 078 lignes. **Toute preuve se prend sur `origin/main`.**
+
+---
+
+## Annexe A — table de correspondance énoncé → identifiant
+
+Contrôle d'exhaustivité : **158 lignes**, aucune perte par rapport à la remise.
+
+| Section de la remise | Plage | Nb |
+|---|---|---|
+| Sécurité applicative | AUDX-001 → 013 | 13 |
+| Backend, données, facturation | AUDX-014 → 035 | 22 |
+| Collaboration et perte de fichiers | AUDX-036 → 044 | 9 |
+| Snapshots et checkpoints | AUDX-045 → 055 | 11 |
+| Scheduler | AUDX-056 → 066 | 11 |
+| Runtime, gVisor, Nix, déploiements | AUDX-067 → 082 | 16 |
+| CI/CD et chaîne d'approvisionnement | AUDX-083 → 102 | 20 |
+| Frontend, mobile/tablette, UX | AUDX-103 → 119 | 17 |
+| Parité produit | AUDX-120 → 134 | 15 |
+| Accès externes (hors dépôt) | AUDX-135 → 148 | 14 |
+| Gouvernance | AUDX-149 → 158 | 10 |
+| **Total** | | **158** |
+
+Les lignes **AUDX-034**, **AUDX-035** et **AUDX-082** ont été **ajoutées** au découpage
+littéral de la remise : la première et la deuxième parce que la remise demandait
+explicitement de *vérifier et corriger* l'état du bug DB #317 (deux défauts distincts en
+sont ressortis), la troisième parce que la décision D-08 porte une **action** (vérifier
+puis supprimer le second cluster) qui doit être suivie comme telle et non seulement
+comme un arbitrage.
+
+## Annexe B — synthèse des statuts
+
+| Statut | Nb | Lecture |
+|---|---|---|
+| `NON_COMMENCÉ` | 126 | Défaut. Aucune preuve de traitement. |
+| `PARTIEL` | 15 | Un mécanisme existe **et est cité** ; l'énoncé n'est pas couvert. |
+| `DÉJÀ_FAIT` | 2 | AUDX-034 (correctif #317 fusionné), AUDX-074 (mécanisme générations Nix). |
+| `TRAITÉ DANS CETTE PR` | 4 | AUDX-083, 098, 099 (complets, contre-épreuves faites) ; **AUDX-097 partiel** — le contrôle final (règle « relecteurs requis » sur l'environment `pr-ai-secrets`) relève d'**AUDX-137 / Avi**. |
+| `REPORTÉ (décision)` | 2 | AUDX-117, AUDX-118 — **D-13**. |
+| `NON VÉRIFIABLE` / `ÉCART DE MESURE` | 5 | AUDX-149, 150, 151, 156, 158 — métrique ou source à rétablir. |
+| `CONFIRMÉ` | 4 | AUDX-152, 153, 154, 155 — constats d'audit reproduits à l'identique. |
+
+⚠️ **Aucune ligne de ce registre ne vaut clôture.** Conformément à `CLAUDE.md`, un point
+n'est « fait » que lorsque **✅ Testé live** est coché — vérification à l'écran + greps,
+responsive web / tablette / mobile. `📤 Dispatché` et `💻 Codé` ne suffisent jamais.
