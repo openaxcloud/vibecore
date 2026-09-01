@@ -15,13 +15,6 @@
 @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
 
 :root {
-  /*
-   * Espace vertical réellement utilisable : la fenêtre moins ce que le chrome du
-   * navigateur (barre d'outils Safari, clavier) lui reprend. Voir
-   * app/components/chat/visual-viewport-bottom.ts pour la mesure.
-   */
-  --vc-mobile-espace-utile: calc(100dvh - var(--vc-mobile-visual-viewport-bottom, 0px));
-
   --vc-mobile-visual-viewport-height: 100dvh;
   --vc-mobile-sheet-height: min(
     calc(var(--vc-mobile-visual-viewport-height) - env(safe-area-inset-top, 0px) - 10px),
@@ -2053,10 +2046,7 @@ body
     position: fixed !important;
     top: auto !important;
     right: max(12px, env(safe-area-inset-right, 0px)) !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 18px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 18px + env(safe-area-inset-bottom, 0px)) !important;
     left: max(12px, env(safe-area-inset-left, 0px)) !important;
     width: auto !important;
     inline-size: auto !important;
@@ -2400,10 +2390,7 @@ body
     position: fixed;
     top: auto;
     right: 12px;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    );
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px));
     left: 12px;
     width: auto;
     max-width: none;
@@ -20362,10 +20349,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     z-index: 12030 !important;
     display: grid;
@@ -21848,9 +21832,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-project-statusbar-mobile {
     right: 16px;
-    bottom: calc(
-      var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
-    );
+    bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px));
     left: 16px;
     z-index: 1000;
     container-type: normal;
@@ -22023,10 +22005,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     z-index: 12030 !important;
     display: grid;
@@ -22211,32 +22190,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     z-index: 12022;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
     min-width: 0;
     max-width: var(--vc-mobile-sheet-max-width);
-    /*
-     * La hauteur ne doit jamais dépasser l'espace RÉELLEMENT disponible
-     * au-dessus de l'ancre basse, sinon le panneau est coupé EN HAUT — c'est ce
-     * qu'Avi photographie : « Ouvrir Supabase » et « Exécute la tâche de bout en
-     * bout » tranchés à mi-hauteur.
-     *
-     * La fraction porte sur l'espace UTILE, pas sur `dvh`. Mesuré : avec une
-     * barre de navigateur de 87px, l'ancre basse remontait bien de 87px mais
-     * `64dvh` rendait exactement la même hauteur maximale — le panneau gardait
-     * sa taille pendant que la place rétrécissait, donc il débordait par le
-     * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
-     */
-    max-height: min(
-      calc(0.64 * var(--vc-mobile-espace-utile)),
-      520px,
-      calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px)
-    );
+    max-height: min(64dvh, 520px);
     overflow-y: auto;
     overscroll-behavior: contain;
     border-color: var(--mobile-nav-border);
@@ -22262,32 +22222,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     z-index: 12022;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
     min-width: 0;
     max-width: var(--vc-mobile-sheet-max-width);
-    /*
-     * La hauteur ne doit jamais dépasser l'espace RÉELLEMENT disponible
-     * au-dessus de l'ancre basse, sinon le panneau est coupé EN HAUT — c'est ce
-     * qu'Avi photographie : « Ouvrir Supabase » et « Exécute la tâche de bout en
-     * bout » tranchés à mi-hauteur.
-     *
-     * La fraction porte sur l'espace UTILE, pas sur `dvh`. Mesuré : avec une
-     * barre de navigateur de 87px, l'ancre basse remontait bien de 87px mais
-     * `64dvh` rendait exactement la même hauteur maximale — le panneau gardait
-     * sa taille pendant que la place rétrécissait, donc il débordait par le
-     * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
-     */
-    max-height: min(
-      calc(0.64 * var(--vc-mobile-espace-utile)),
-      520px,
-      calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px)
-    );
+    max-height: min(64dvh, 520px);
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--vc-ide-bg-panel);
@@ -22349,31 +22290,12 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px) +
-        var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height, 72px) + 16px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     z-index: 12022;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width));
     max-width: var(--vc-mobile-sheet-max-width);
-    /*
-     * La hauteur ne doit jamais dépasser l'espace RÉELLEMENT disponible
-     * au-dessus de l'ancre basse, sinon le panneau est coupé EN HAUT — c'est ce
-     * qu'Avi photographie : « Ouvrir Supabase » et « Exécute la tâche de bout en
-     * bout » tranchés à mi-hauteur.
-     *
-     * La fraction porte sur l'espace UTILE, pas sur `dvh`. Mesuré : avec une
-     * barre de navigateur de 87px, l'ancre basse remontait bien de 87px mais
-     * `64dvh` rendait exactement la même hauteur maximale — le panneau gardait
-     * sa taille pendant que la place rétrécissait, donc il débordait par le
-     * haut. `dvh` ne décrit pas le chrome du navigateur ni le clavier.
-     */
-    max-height: min(
-      calc(0.64 * var(--vc-mobile-espace-utile)),
-      520px,
-      calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 32px)
-    );
+    max-height: min(64dvh, 520px);
     margin: 0 !important;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -22483,9 +22405,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     position: fixed !important;
     top: auto !important;
     right: auto !important;
-    bottom: calc(
-      var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
-    ) !important;
+    bottom: calc(var(--mobile-nav-height) + 18px + env(safe-area-inset-bottom, 0px)) !important;
     left: 50% !important;
     width: min(calc(100vw - 24px), var(--vc-mobile-sheet-max-width)) !important;
     max-width: var(--vc-mobile-sheet-max-width);

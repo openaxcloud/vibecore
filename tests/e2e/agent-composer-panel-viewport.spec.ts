@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test';
 
 /**
  * Les panneaux de la zone de saisie tiennent dans ce que l'utilisateur VOIT.
@@ -84,48 +84,91 @@ async function createProjectSession(request: APIRequestContext) {
   throw new Error(`Impossible d'ouvrir une session de test : ${lastBody}`);
 }
 
+/**
+ * Referme ce qui traîne, au mieux et SANS assertion.
+ *
+ * La fermeture n'est pas le sujet de ce fichier : la géométrie l'est. Une
+ * première version refermait APRÈS la mesure et affirmait `toBeHidden` — si la
+ * fermeture ratait, le test rougissait sur elle et la mesure n'était jamais
+ * jugée. Mesuré : sans le correctif, la contre-épreuve échouait par dépassement
+ * de délai sur la fermeture au lieu d'échouer sur « passe sous le clavier ».
+ * On repart donc d'un état propre AVANT chaque ouverture.
+ */
+async function refermerCeQuiTraine(page: Page, declencheur: Locator, panneau: Locator) {
+  const gestes = [
+    () => page.keyboard.press('Escape'),
+    () => declencheur.tap(),
+    () => page.locator('.bolt-project-chatbox textarea').first().click({ force: true }),
+  ];
+
+  for (let essai = 0; essai < 6; essai += 1) {
+    if (!(await panneau.isVisible().catch(() => false))) {
+      return;
+    }
+
+    await gestes[essai % gestes.length]().catch(() => {});
+    await page.waitForTimeout(400);
+  }
+}
+
 async function ouvrirEtMesurer(page: Page, bouton: RegExp, selecteur: string) {
   const declencheur = page.getByRole('button', { name: bouton }).first();
-  await expect(declencheur).toBeVisible({ timeout: 60_000 });
-  await declencheur.tap();
+  await expect(declencheur, `déclencheur introuvable pour ${selecteur}`).toBeVisible({ timeout: 60_000 });
 
   const panneau = page.locator(selecteur);
-  await expect(panneau).toBeVisible({ timeout: 10_000 });
-
-  const mesure = await panneau.evaluate((element) => {
-    const boite = element.getBoundingClientRect();
-
-    return {
-      haut: Math.round(boite.top),
-      bas: Math.round(boite.bottom),
-      debordeSansDefilement:
-        element.scrollHeight > boite.height + 2 && !['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
-    };
-  });
 
   /*
-   * Refermer : aucune des trois surfaces ne répond au même geste. Mesuré —
-   * l'appui extérieur seul laissait le panneau ouvert et faisait échouer la
-   * mesure SUIVANTE, pas celle-ci. On essaie donc les trois gestes dans l'ordre.
+   * Ouvrir PUIS mesurer, en réessayant : certaines surfaces se referment toutes
+   * seules juste après l'ouverture (re-rendu du composeur). Mesuré 1 passage sur
+   * ~15 : `elementHandle` expirait parce que le panneau avait disparu entre
+   * l'assertion de visibilité et la mesure. On réessaie l'ouverture ; les
+   * assertions de géométrie, elles, ne changent pas.
    */
-  await page.mouse.click(Math.round(page.viewportSize()!.width / 2), 120).catch(() => {});
+  for (let essai = 0; essai < 3; essai += 1) {
+    await refermerCeQuiTraine(page, declencheur, panneau);
+    await declencheur.tap();
+    await expect(panneau, `le panneau ${selecteur} ne s’ouvre pas`).toBeVisible({ timeout: 10_000 });
 
-  if (await panneau.isVisible().catch(() => false)) {
-    await page.keyboard.press('Escape').catch(() => {});
+    const poignee = await panneau
+      .first()
+      .elementHandle({ timeout: 5_000 })
+      .catch(() => null);
+
+    if (poignee) {
+      return poignee.evaluate((element) => {
+        const boite = element.getBoundingClientRect();
+
+        return {
+          haut: Math.round(boite.top),
+          bas: Math.round(boite.bottom),
+          debordeSansDefilement:
+            element.scrollHeight > boite.height + 2 &&
+            !['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
+        };
+      });
+    }
   }
 
-  if (await panneau.isVisible().catch(() => false)) {
-    await declencheur.tap().catch(() => {});
-  }
-
-  await expect(panneau).toBeHidden({ timeout: 10_000 });
-
-  return mesure;
+  throw new Error(`le panneau ${selecteur} se referme tout seul avant d’être mesuré`);
 }
 
 test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () => {
   // Une session par fichier : une par test faisait passer la suite à 21 minutes.
   test.describe.configure({ mode: 'serial' });
+
+  /*
+   * Le tactile est une option de CONTEXTE, pas de fenêtre.
+   *
+   * Ce fichier ouvre les panneaux avec `tap()`, parce que c'est le geste d'Avi.
+   * Le projet `webkit-iphone` l'autorise en héritant de `devices['iPhone 15 Pro']`,
+   * mais le projet `chromium` reprend le même fichier sans tactile, et `tap()` y
+   * échoue de façon déterministe : « The page does not support tap. » — 3 essais,
+   * 3 échecs.
+   *
+   * Le dépôt porte déjà le motif : le projet `tablet` (playwright.config.ts) et
+   * `ide-touch-targets.spec.ts` posent `hasTouch: true` sur le contexte.
+   */
+  test.use({ hasTouch: true });
 
   let session: { token: string; projectId: string };
 
@@ -137,6 +180,14 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
 
   for (const recouvrement of RECOUVREMENTS) {
     test(`aucun panneau n’est coupé — ${recouvrement.label} (${recouvrement.pixels} px)`, async ({ page }) => {
+      /*
+       * Trois panneaux ouverts et mesurés sur un serveur de dev : mesuré à 39 s
+       * pour un seul test. Au délai par défaut de 30 s, la page était démontée
+       * PENDANT l'assertion et l'échec disait « page has been closed » au lieu
+       * de nommer le défaut. On allonge le délai ; on n'allège pas la mesure.
+       */
+      test.setTimeout(180_000);
+
       // Langue figée : les libellés des trois déclencheurs existent en FR et en EN.
       await page.context().addCookies([
         { name: 'vc_session', value: session.token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
@@ -148,6 +199,18 @@ test.describe('panneaux de la zone de saisie sous le chrome du navigateur', () =
       const basVisible = hauteurFenetre - recouvrement.pixels;
 
       await expect(page.locator('.bolt-project-chatbox textarea')).toBeVisible({ timeout: 60_000 });
+
+      /*
+       * Attendre l'HYDRATATION, pas seulement le champ.
+       *
+       * Le champ est rendu côté serveur ; les déclencheurs de la barre d'outils
+       * ne sortent que du rendu client. Mesuré : 1 passage sur 6 échouait sur
+       * « element(s) not found » pour un déclencheur, pas pour un panneau —
+       * la spec ouvrait les surfaces avant que leurs boutons existent.
+       * `agent-mode-advanced` sert déjà de signal d'hydratation dans
+       * agent-composer-compact.spec.ts.
+       */
+      await expect(page.getByTestId('agent-mode-advanced')).toBeVisible({ timeout: 60_000 });
 
       /*
        * Le recouvrement est posé par FEUILLE DE STYLE, en `!important`, pas en
