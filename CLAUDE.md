@@ -42,6 +42,27 @@ généraux : ce sont des pièges qui ont déjà coûté.
     PRÉSENCE et la LONGUEUR, ou comparer une empreinte `shasum`. Cela suffit à
     diagnostiquer une variable manquante ou tronquée.
 
+13. **Ne jamais masquer la sortie d'erreur d'une commande de diagnostic.**
+    `2>/dev/null` sur un diagnostic transforme un échec en résultat vide, et un
+    résultat vide se lit comme une réponse. Mesuré : huit tentatives de rebase
+    ont rendu « branche introuvable » alors que git disait
+    `cannot lock ref 'refs/heads/tmp': 'refs/heads/tmp/102-rebase' exists` — le
+    message était supprimé. Rediriger la sortie d'erreur est acceptable pour
+    du bruit connu ; jamais pour la commande dont on lit le résultat.
+14. **Vérifier qu'un « 0 résultat » vient d'une recherche qui a fonctionné.**
+    Zéro n'est une information que si la recherche s'est exécutée sur la bonne
+    cible avec le bon motif. Trois occurrences mesurées sur ce projet :
+    `grep -rl '--vc-…'` où le motif a été pris pour des options ;
+    `grep -c 'DEP_IMAGE="$(kubectl'` rendant 0 par artefact de quoting alors
+    que `grep -F` en trouvait 1 ; et des corps tronqués à exactement 4000
+    octets rendant un « marqueur absent » faux. Contrôle systématique : faire
+    rendre au moins un résultat à la même commande sur un cas connu positif,
+    ou utiliser `grep -F` avec le motif dans un fichier.
+
+**Ces deux dernières visent le facteur d'erreur dominant.** Sur cette
+campagne, mes commandes de mesure m'ont plus souvent trompé que le code
+lui-même.
+
 
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
