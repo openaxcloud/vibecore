@@ -378,6 +378,7 @@ import {
 } from './agent-routing-service.js';
 import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
+import { statutConnexion } from './database-connection-status.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -23156,9 +23157,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ]
         : [];
 
+    /*
+     * BUG-DB-003 — sans cette lecture, la route renvoyait des connexions SANS
+     * statut, et le panneau affichait « Status unavailable » pour une base
+     * ACTIVE. La route CONNAIT pourtant l'etat : elle vient de reconcilier
+     * l'instance en `ACTIVE` quelques lignes plus haut.
+     */
+    const instancePourStatut = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
+
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
         ...connection,
+        status: statutConnexion(connection.key, instancePourStatut),
         capabilities:
           connection.kind === 'mongodb'
             ? ['schema', 'find', 'readonly-json']
