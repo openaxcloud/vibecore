@@ -69,6 +69,27 @@ généraux : ce sont des pièges qui ont déjà coûté.
     et vérifier qu'elle est bien apparue — l'absence de verdict n'est jamais un
     verdict.
 
+12 bis. **INTERDICTION ABSOLUE — ne jamais lancer `printenv`, `env`, ni aucune
+    commande listant les variables d'environnement dans un pod de production,
+    même filtrée par un motif.** Deux fuites de clés de production dans un
+    transcript ont suivi cette commande, la seconde après que la règle 12
+    (« ne jamais imprimer une valeur de secret ») ait déjà été écrite : filtrer
+    ne suffit pas, parce qu'on ne connaît pas d'avance ce que le filtre laissera
+    passer.
+
+    **Ce qui remplace ces commandes :**
+    * pour savoir si une variable EXISTE — `kubectl get secret <nom> -o json`
+      puis lire les **clés** de `.data` (jamais les valeurs), ou l'endpoint
+      `/admin/providers/ai` qui rend `configured` / `length` / `last4` ;
+    * pour comparer une valeur sans l'afficher — son empreinte :
+      `… -o jsonpath='{.data.X}' | base64 -d | shasum -a 256` ;
+    * pour le **SHA déployé** — le registre d'images ou les annotations du
+      Deployment :
+      `kubectl -n vibecore get deploy <nom> -o jsonpath='{.spec.template.spec.containers[0].image}'`,
+      jamais une variable d'environnement.
+
+    Cette règle n'a pas d'exception « juste pour vérifier ».
+
 15. **Un correctif sans test qui le tienne est considéré comme NON LIVRÉ.**
     C'est la règle qui casse la boucle « corrigé → revenu → recorrigé ».
     Mesuré le 2026-09-01 sur les points de tête de l'analyse des recoupements :
