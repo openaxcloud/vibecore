@@ -64,6 +64,8 @@ import {
   type ProjectEditorWindowState,
 } from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
+
+import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './composer-reserved-space';
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
@@ -3104,14 +3106,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        const reserved = Math.round(height) + 16;
+        /*
+         * La reserve doit couvrir TOUT le chrome qui recouvre en permanence le
+         * transcript : la boite de saisie ET la barre de navigation du bas.
+         *
+         * Elle valait `height + 16` — un padding fixe qui n'incluait pas la
+         * barre. Des que celle-ci depasse 16 px (elle fait 72 px, mesure au
+         * 2026-09-01), faire defiler jusqu'au dernier message le laissait
+         * passer dessous. On mesure donc la barre au lieu de la supposer : sa
+         * hauteur depend de `--mobile-nav-height` ET de la zone de securite du
+         * telephone, qu'aucune constante ne peut deviner.
+         */
+        const navBar = document.querySelector<HTMLElement>('.bolt-mobile-replit-nav');
+        const navHeight = navBar ? navBar.getBoundingClientRect().height : 0;
+
+        const reserved = computeComposerReservedSpace(height, navHeight);
 
         /*
          * Only rewrite the reserved space when it changes by a meaningful amount.
          * Sub-pixel/1-2px churn while streaming would otherwise re-shift the
          * transcript on every frame — the very "jumping" we're trying to kill.
          */
-        if (Math.abs(reserved - lastReserved) < 6) {
+        if (!shouldRewriteReservedSpace(lastReserved, reserved)) {
           return;
         }
 
