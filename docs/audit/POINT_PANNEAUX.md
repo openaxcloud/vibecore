@@ -301,7 +301,8 @@ par `on-accent-ink.spec.ts` (vert), mais **n'a pas été revu à l'écran** dans
 |---|---|---|
 | **1. Contraste** | ✅ **traité** (§7.3) | Déjà corrigé sur `main` ; dérivation depuis la feuille compilée vérifiée ; 0 défaut réel à la sonde pixels. Reste : UnoCSS + surfaces authentifiées. |
 | **2. Terminal** — BUG-TERM-002, BUG-QUOTA-001 | 🔧 **code et gardes vérifiés ; reste la preuve live** (§7.6) | Aucune modification d'apparence : le correctif est déjà sur `main`, je n'ai touché à rien. |
-| **3. 14 composants morts + 2 ressources orphelines** (`4e534565c`) | ⬜ **non commencé** | Prouver la mort de chacun (aucune référence vivante, commentaires exclus) **avant** suppression, par lots, preuve dans le message de commit. |
+| **3. 14 composants morts** (`4e534565c`) | ✅ **livré — PR #340**, deux lots, 14/14 supprimés (§7.8) | `tsc` 0 erreur, `vitest` 7 197 tests, 0 échec. |
+| **3 bis. 2 ressources CNPG orphelines** (`BUG-QA-DB-ORPHAN-CR-001`) | ⬜ **non commencé** | Deux CR `Database` survivent à la suppression de leur projet. Touche de la donnée : à traiter avec précaution, hors de cette PR. |
 
 ### 7.5 Prochaine reprise — dans cet ordre
 
@@ -368,3 +369,35 @@ reconstruction sur `main` (`fce8639ab3`).
 **Ne pas déployer soi-même** : une fois les images poussées, la bascule Helm de l'env d'audit
 suit le runbook §4, avec `--kube-context` explicite — le nom de release ne protège de rien, la
 release d'audit s'appelle `vibecore` comme la prod.
+
+### 7.8 Composants morts — livré en deux lots (PR #340)
+
+Les **14** composants jamais référencés sont supprimés. Le premier, `DatabasePanel.tsx`, est
+celui qui avait déjà coûté : un correctif serveur avait été écrit et justifié contre son bloc
+`role="alert"`, alors que le panneau réellement rendu est `DatabaseWorkbench`.
+
+| Lot | Contenu | Vérification |
+|---|---|---|
+| **1** | 6 composants sans spec partagé + 5 specs dédiés | `tsc` 0 erreur, 7 216 tests passés |
+| **2** | 8 composants + 2 specs dédiés, **7 specs partagés désenchevêtrés** | `tsc` 0 erreur, **7 197 tests, 0 échec** |
+
+**Preuve de mort** — sonde sur 2 882 fichiers, commentaires retirés et littéraux de chaîne
+neutralisés, avec **témoin positif** (`DatabaseWorkbench` = 3 références vivantes) sans lequel
+la sonde ne prouverait rien.
+
+**Deux garde-fous méthodologiques que ce chantier a imposés :**
+
+1. **Contrôler par EXPORT, pas par nom de fichier.** `SettingsButton.tsx` exporte aussi
+   `HelpButton` ; `EcodeExactLegalPages.tsx` exporte **onze** symboles. Raisonner par nom de
+   fichier aurait emporté du code vivant sans s'en apercevoir. Tous vérifiés à 0 référence.
+2. **La sonde par import a un angle mort : les références par CHEMIN DE FICHIER.** Quatre
+   existaient (`readFileSync('./pages/LegalArticle.tsx')`, deux listes de chemins dans des
+   gardes de source, un `vi.mock`) et **aucune n'a été vue par la sonde** — c'est la suite de
+   tests complète qui les a trouvées. D'où la règle appliquée : ne supprimer que ce dont la mort
+   est prouvée **et** confirmée par une suite verte, quitte à réduire le lot en cours de route
+   (c'est ce qui a fait passer `LegalArticle` du lot 1 au lot 2).
+
+*Vérification spécifique* : `EcodeExactLegalPages` exporte `EcodeTermsPage`, `EcodePrivacyPage`…
+— de quoi croire que `/terms` et `/privacy` en dépendent. Ils n'en dépendent pas : ces routes
+importent `ecode-exact/pages/Terms` et `pages/Privacy`. Le module supprimé était un **doublon
+mort** des pages légales.
