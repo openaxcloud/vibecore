@@ -75,6 +75,12 @@ import {
   renderImageToCanvas,
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
+import {
+  composerHandoffScope,
+  peekPendingComposerInput,
+  takePendingComposerInput,
+  useComposerHandoffLayoutEffect,
+} from './composer-handoff';
 import { devServerStatusText } from './dev-server-status';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import {
@@ -2775,6 +2781,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const composerDraftWriter = useMemo(() => createComposerDraftWriter(), []);
     const composerDraftRestoreDoneRef = useRef(false);
 
+    /*
+     * Reprise de la frappe faite pendant le chargement de l'historique.
+     *
+     * Elle passe AVANT le brouillon stocké : c'est ce que l'utilisateur vient
+     * de taper, pas ce qu'il avait laissé à une visite précédente. Le drapeau
+     * n'est levé qu'une fois qu'un gestionnaire existe — sinon le premier rendu
+     * consommerait la frappe sans pouvoir la poser nulle part.
+     */
+    const composerHandoffDoneRef = useRef(false);
+
+    useComposerHandoffLayoutEffect(() => {
+      if (composerHandoffDoneRef.current || !handleInputChange) {
+        return;
+      }
+
+      composerHandoffDoneRef.current = true;
+
+      const handedOver = takePendingComposerInput(
+        composerHandoffScope(projectId, typeof window === 'undefined' ? undefined : window.location.pathname),
+      );
+
+      if (!handedOver || (input?.length ?? 0) > 0) {
+        return;
+      }
+
+      handleInputChange({
+        target: { value: handedOver },
+        currentTarget: { value: handedOver },
+      } as unknown as React.ChangeEvent<HTMLTextAreaElement>);
+
+      /*
+       * Rendre le texte ne suffit pas : le remontage emporte aussi le FOCUS.
+       * Mesuré à 390, l'utilisateur tapait « Ajoute une page… », la bascule
+       * survenait après « Ajout », et tout ce qui suivait partait dans le vide —
+       * le champ récupérait bien les cinq premières lettres, mais plus personne
+       * n'écoutait le clavier. On rend le focus et on place le curseur en fin de
+       * texte, là où la frappe s'était arrêtée.
+       */
+      const field = textareaRef?.current;
+
+      if (field) {
+        field.focus();
+        field.setSelectionRange(handedOver.length, handedOver.length);
+      }
+    }, [handleInputChange, input, projectId, textareaRef]);
+
     useEffect(() => {
       if (composerDraftRestoreDoneRef.current || !projectId) {
         return;
@@ -2783,6 +2835,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       composerDraftRestoreDoneRef.current = true;
 
       if (input.length > 0 || !handleInputChange) {
+        return;
+      }
+
+      /*
+       * Une frappe transmise par la coquille de chargement est plus récente que
+       * le brouillon stocké : la restaurer par-dessus l'effacerait.
+       */
+      if (peekPendingComposerInput()) {
         return;
       }
 

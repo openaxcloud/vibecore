@@ -49,6 +49,7 @@ import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import { PendingComposerShell } from './PendingComposerShell';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
 import {
   projectModelSelectionFromMetadata,
@@ -208,7 +209,7 @@ export function Chat({
 
   if (!ready) {
     return (
-      <BaseChat
+      <PendingComposerShell
         chatStarted={forceWorkbench}
         projectIdeMode={projectIdeMode}
         projectId={projectId}
