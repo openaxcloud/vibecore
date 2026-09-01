@@ -376,6 +376,7 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
+import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -32927,7 +32928,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
     const existing = await store.getDatabaseInstanceByProject(project.id, environment);
 
-    if (existing) {
+    /*
+     * BUG-DB-001, moitié « réessai » — une ligne PROVISIONING périmée enfermait
+     * le projet À VIE.
+     *
+     * Le court-circuit portait sur TOUTE ligne existante. Une instance dont le
+     * provisionnement avait été accepté mais dont la grappe n'aboutissait
+     * jamais restait `PROVISIONING` indéfiniment — `updateDatabaseInstance`
+     * n'est appelée qu'avec `ACTIVE`, donc rien ne la réconcilie — et chaque
+     * nouvelle demande recevait `{ created: false }` : un 200 qui ne fait rien.
+     * L'utilisateur ne pouvait même pas distinguer « ma base marche » de « je
+     * suis bloqué depuis un mois ».
+     *
+     * Mesuré en production le 2026-09-01 : 2 instances `PROVISIONING` depuis
+     * 32,2 et 30,4 jours, `updatedAt` = `createdAt` (jamais réconciliées). Les
+     * DEUX projets ont été SUPPRIMÉS par leur propriétaire dans les heures qui
+     * ont suivi — 2 h 23 et 7 h 48 après. Personne n'est enfermé aujourd'hui,
+     * mais ces utilisateurs ont vraisemblablement abandonné leur projet.
+     *
+     * On ne court-circuite donc plus que sur une instance UTILISABLE, ou sur un
+     * provisionnement RÉCENT réellement en vol. Au-delà du seuil, la demande
+     * relance le provisionnement au lieu de mentir.
+     *
+     * Pourquoi pas un état `FAILED` : l'énumération `DatabaseInstanceStatus` ne
+     * contient que PROVISIONING / ACTIVE / SUSPENDED / DELETED. L'ajouter
+     * demande une migration Prisma — traitée séparément. Ce correctif lève le
+     * piège sans migration.
+     */
+    const provisioningPerime = estProvisionnementPerime(existing);
+
+    if (existing && !provisioningPerime) {
       return { instance: existing, created: false };
     }
 
@@ -32985,12 +33015,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * un reessai repart d'un etat propre (la contrainte unique
      * (projectId, environment) rendait sinon la reprise impossible).
      */
-    const instance = await store.createDatabaseInstance({
-      projectId: project.id,
-      organizationId: project.organizationId,
-      retentionDays: entitlement.retentionDays,
-      environment,
-    });
+    /*
+     * Reprise plutôt que création quand une ligne périmée existe : la
+     * contrainte unique `(projectId, environment)` interdit d'en écrire une
+     * seconde. On rafraîchit la ligne, ce qui remet `updatedAt` à l'heure et
+     * redonne au seuil de péremption un point de départ franc.
+     */
+    const instance = provisioningPerime
+      ? ((await store.updateDatabaseInstance(existing!.id, { status: 'PROVISIONING' })) ?? existing!)
+      : await store.createDatabaseInstance({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          retentionDays: entitlement.retentionDays,
+          environment,
+        });
 
     return reply
       .code(202)
