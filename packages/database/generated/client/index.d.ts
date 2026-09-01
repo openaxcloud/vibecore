@@ -552,6 +552,20 @@ export type EmailDeliveryEvent = $Result.DefaultSelection<Prisma.$EmailDeliveryE
  */
 export type CreditWallet = $Result.DefaultSelection<Prisma.$CreditWalletPayload>
 /**
+ * Model CreditReservation
+ * AUDX-018 — a credit hold taken BEFORE a provider call and settled after.
+ * 
+ * The metering path debits only when usage is REPORTED, i.e. after the call has
+ * already cost money. A report that never arrives (crash, closed tab, a caller
+ * that simply omits it) is free AI, and concurrent calls can each clear the same
+ * pre-check. A reservation moves the decision before the spend.
+ * 
+ * Lifecycle: HELD -> SETTLED (actual cost debited, remainder released)
+ * -> RELEASED (call failed / never happened)
+ * -> EXPIRED (swept; a crashed request must not strand credits)
+ */
+export type CreditReservation = $Result.DefaultSelection<Prisma.$CreditReservationPayload>
+/**
  * Model CreditPack
  * Purchased credit pack (Replit). Credits expire 6 months after purchase, are
  * consumed earliest-expiring-first, and do NOT roll over after expiry.
@@ -2164,6 +2178,16 @@ export class PrismaClient<
   get creditWallet(): Prisma.CreditWalletDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.creditReservation`: Exposes CRUD operations for the **CreditReservation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more CreditReservations
+    * const creditReservations = await prisma.creditReservation.findMany()
+    * ```
+    */
+  get creditReservation(): Prisma.CreditReservationDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.creditPack`: Exposes CRUD operations for the **CreditPack** model.
     * Example usage:
     * ```ts
@@ -2964,6 +2988,7 @@ export namespace Prisma {
     IntegrationFeatureRequest: 'IntegrationFeatureRequest',
     EmailDeliveryEvent: 'EmailDeliveryEvent',
     CreditWallet: 'CreditWallet',
+    CreditReservation: 'CreditReservation',
     CreditPack: 'CreditPack',
     CreditLedger: 'CreditLedger',
     AgentCheckpoint: 'AgentCheckpoint',
@@ -3006,7 +3031,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditReservation" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -10246,6 +10271,80 @@ export namespace Prisma {
           }
         }
       }
+      CreditReservation: {
+        payload: Prisma.$CreditReservationPayload<ExtArgs>
+        fields: Prisma.CreditReservationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.CreditReservationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.CreditReservationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          findFirst: {
+            args: Prisma.CreditReservationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.CreditReservationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          findMany: {
+            args: Prisma.CreditReservationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>[]
+          }
+          create: {
+            args: Prisma.CreditReservationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          createMany: {
+            args: Prisma.CreditReservationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.CreditReservationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>[]
+          }
+          delete: {
+            args: Prisma.CreditReservationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          update: {
+            args: Prisma.CreditReservationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          deleteMany: {
+            args: Prisma.CreditReservationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.CreditReservationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.CreditReservationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>[]
+          }
+          upsert: {
+            args: Prisma.CreditReservationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$CreditReservationPayload>
+          }
+          aggregate: {
+            args: Prisma.CreditReservationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateCreditReservation>
+          }
+          groupBy: {
+            args: Prisma.CreditReservationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<CreditReservationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.CreditReservationCountArgs<ExtArgs>
+            result: $Utils.Optional<CreditReservationCountAggregateOutputType> | number
+          }
+        }
+      }
       CreditPack: {
         payload: Prisma.$CreditPackPayload<ExtArgs>
         fields: Prisma.CreditPackFieldRefs
@@ -12450,6 +12549,7 @@ export namespace Prisma {
     integrationFeatureRequest?: IntegrationFeatureRequestOmit
     emailDeliveryEvent?: EmailDeliveryEventOmit
     creditWallet?: CreditWalletOmit
+    creditReservation?: CreditReservationOmit
     creditPack?: CreditPackOmit
     creditLedger?: CreditLedgerOmit
     agentCheckpoint?: AgentCheckpointOmit
@@ -125205,6 +125305,7 @@ export namespace Prisma {
 
   export type CreditWalletAvgAggregateOutputType = {
     balanceCents: number | null
+    heldCents: number | null
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
@@ -125213,6 +125314,7 @@ export namespace Prisma {
 
   export type CreditWalletSumAggregateOutputType = {
     balanceCents: number | null
+    heldCents: number | null
     budgetCapCents: number | null
     serviceShutdownCents: number | null
     autoTopupCents: number | null
@@ -125223,6 +125325,7 @@ export namespace Prisma {
     id: string | null
     organizationId: string | null
     balanceCents: number | null
+    heldCents: number | null
     currency: string | null
     budgetCapCents: number | null
     serviceShutdownCents: number | null
@@ -125237,6 +125340,7 @@ export namespace Prisma {
     id: string | null
     organizationId: string | null
     balanceCents: number | null
+    heldCents: number | null
     currency: string | null
     budgetCapCents: number | null
     serviceShutdownCents: number | null
@@ -125251,6 +125355,7 @@ export namespace Prisma {
     id: number
     organizationId: number
     balanceCents: number
+    heldCents: number
     currency: number
     budgetCapCents: number
     serviceShutdownCents: number
@@ -125265,6 +125370,7 @@ export namespace Prisma {
 
   export type CreditWalletAvgAggregateInputType = {
     balanceCents?: true
+    heldCents?: true
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
@@ -125273,6 +125379,7 @@ export namespace Prisma {
 
   export type CreditWalletSumAggregateInputType = {
     balanceCents?: true
+    heldCents?: true
     budgetCapCents?: true
     serviceShutdownCents?: true
     autoTopupCents?: true
@@ -125283,6 +125390,7 @@ export namespace Prisma {
     id?: true
     organizationId?: true
     balanceCents?: true
+    heldCents?: true
     currency?: true
     budgetCapCents?: true
     serviceShutdownCents?: true
@@ -125297,6 +125405,7 @@ export namespace Prisma {
     id?: true
     organizationId?: true
     balanceCents?: true
+    heldCents?: true
     currency?: true
     budgetCapCents?: true
     serviceShutdownCents?: true
@@ -125311,6 +125420,7 @@ export namespace Prisma {
     id?: true
     organizationId?: true
     balanceCents?: true
+    heldCents?: true
     currency?: true
     budgetCapCents?: true
     serviceShutdownCents?: true
@@ -125412,6 +125522,7 @@ export namespace Prisma {
     id: string
     organizationId: string
     balanceCents: number
+    heldCents: number
     currency: string
     budgetCapCents: number | null
     serviceShutdownCents: number | null
@@ -125445,6 +125556,7 @@ export namespace Prisma {
     id?: boolean
     organizationId?: boolean
     balanceCents?: boolean
+    heldCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
@@ -125462,6 +125574,7 @@ export namespace Prisma {
     id?: boolean
     organizationId?: boolean
     balanceCents?: boolean
+    heldCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
@@ -125477,6 +125590,7 @@ export namespace Prisma {
     id?: boolean
     organizationId?: boolean
     balanceCents?: boolean
+    heldCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
@@ -125492,6 +125606,7 @@ export namespace Prisma {
     id?: boolean
     organizationId?: boolean
     balanceCents?: boolean
+    heldCents?: boolean
     currency?: boolean
     budgetCapCents?: boolean
     serviceShutdownCents?: boolean
@@ -125502,7 +125617,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "currency" | "budgetCapCents" | "serviceShutdownCents" | "autoTopupCents" | "lastSpendAlertPct" | "lastSpendAlertPeriodStart" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
+  export type CreditWalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "balanceCents" | "heldCents" | "currency" | "budgetCapCents" | "serviceShutdownCents" | "autoTopupCents" | "lastSpendAlertPct" | "lastSpendAlertPeriodStart" | "createdAt" | "updatedAt", ExtArgs["result"]["creditWallet"]>
   export type CreditWalletInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
     entries?: boolean | CreditWallet$entriesArgs<ExtArgs>
@@ -125525,6 +125640,7 @@ export namespace Prisma {
       id: string
       organizationId: string
       balanceCents: number
+      heldCents: number
       currency: string
       budgetCapCents: number | null
       serviceShutdownCents: number | null
@@ -125961,6 +126077,7 @@ export namespace Prisma {
     readonly id: FieldRef<"CreditWallet", 'String'>
     readonly organizationId: FieldRef<"CreditWallet", 'String'>
     readonly balanceCents: FieldRef<"CreditWallet", 'Int'>
+    readonly heldCents: FieldRef<"CreditWallet", 'Int'>
     readonly currency: FieldRef<"CreditWallet", 'String'>
     readonly budgetCapCents: FieldRef<"CreditWallet", 'Int'>
     readonly serviceShutdownCents: FieldRef<"CreditWallet", 'Int'>
@@ -126409,6 +126526,1109 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: CreditWalletInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model CreditReservation
+   */
+
+  export type AggregateCreditReservation = {
+    _count: CreditReservationCountAggregateOutputType | null
+    _avg: CreditReservationAvgAggregateOutputType | null
+    _sum: CreditReservationSumAggregateOutputType | null
+    _min: CreditReservationMinAggregateOutputType | null
+    _max: CreditReservationMaxAggregateOutputType | null
+  }
+
+  export type CreditReservationAvgAggregateOutputType = {
+    amountCents: number | null
+    settledCents: number | null
+  }
+
+  export type CreditReservationSumAggregateOutputType = {
+    amountCents: number | null
+    settledCents: number | null
+  }
+
+  export type CreditReservationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    projectId: string | null
+    conversationId: string | null
+    amountCents: number | null
+    status: string | null
+    settledCents: number | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CreditReservationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    projectId: string | null
+    conversationId: string | null
+    amountCents: number | null
+    status: string | null
+    settledCents: number | null
+    expiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type CreditReservationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    projectId: number
+    conversationId: number
+    amountCents: number
+    status: number
+    settledCents: number
+    expiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type CreditReservationAvgAggregateInputType = {
+    amountCents?: true
+    settledCents?: true
+  }
+
+  export type CreditReservationSumAggregateInputType = {
+    amountCents?: true
+    settledCents?: true
+  }
+
+  export type CreditReservationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    conversationId?: true
+    amountCents?: true
+    status?: true
+    settledCents?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CreditReservationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    conversationId?: true
+    amountCents?: true
+    status?: true
+    settledCents?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type CreditReservationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    projectId?: true
+    conversationId?: true
+    amountCents?: true
+    status?: true
+    settledCents?: true
+    expiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type CreditReservationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CreditReservation to aggregate.
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditReservations to fetch.
+     */
+    orderBy?: CreditReservationOrderByWithRelationInput | CreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: CreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned CreditReservations
+    **/
+    _count?: true | CreditReservationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: CreditReservationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: CreditReservationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: CreditReservationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: CreditReservationMaxAggregateInputType
+  }
+
+  export type GetCreditReservationAggregateType<T extends CreditReservationAggregateArgs> = {
+        [P in keyof T & keyof AggregateCreditReservation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateCreditReservation[P]>
+      : GetScalarType<T[P], AggregateCreditReservation[P]>
+  }
+
+
+
+
+  export type CreditReservationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: CreditReservationWhereInput
+    orderBy?: CreditReservationOrderByWithAggregationInput | CreditReservationOrderByWithAggregationInput[]
+    by: CreditReservationScalarFieldEnum[] | CreditReservationScalarFieldEnum
+    having?: CreditReservationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: CreditReservationCountAggregateInputType | true
+    _avg?: CreditReservationAvgAggregateInputType
+    _sum?: CreditReservationSumAggregateInputType
+    _min?: CreditReservationMinAggregateInputType
+    _max?: CreditReservationMaxAggregateInputType
+  }
+
+  export type CreditReservationGroupByOutputType = {
+    id: string
+    organizationId: string
+    projectId: string | null
+    conversationId: string | null
+    amountCents: number
+    status: string
+    settledCents: number | null
+    expiresAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: CreditReservationCountAggregateOutputType | null
+    _avg: CreditReservationAvgAggregateOutputType | null
+    _sum: CreditReservationSumAggregateOutputType | null
+    _min: CreditReservationMinAggregateOutputType | null
+    _max: CreditReservationMaxAggregateOutputType | null
+  }
+
+  type GetCreditReservationGroupByPayload<T extends CreditReservationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<CreditReservationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof CreditReservationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], CreditReservationGroupByOutputType[P]>
+            : GetScalarType<T[P], CreditReservationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type CreditReservationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    conversationId?: boolean
+    amountCents?: boolean
+    status?: boolean
+    settledCents?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["creditReservation"]>
+
+  export type CreditReservationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    conversationId?: boolean
+    amountCents?: boolean
+    status?: boolean
+    settledCents?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["creditReservation"]>
+
+  export type CreditReservationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    conversationId?: boolean
+    amountCents?: boolean
+    status?: boolean
+    settledCents?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["creditReservation"]>
+
+  export type CreditReservationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    projectId?: boolean
+    conversationId?: boolean
+    amountCents?: boolean
+    status?: boolean
+    settledCents?: boolean
+    expiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type CreditReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "conversationId" | "amountCents" | "status" | "settledCents" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["creditReservation"]>
+
+  export type $CreditReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "CreditReservation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      projectId: string | null
+      conversationId: string | null
+      amountCents: number
+      status: string
+      settledCents: number | null
+      expiresAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["creditReservation"]>
+    composites: {}
+  }
+
+  type CreditReservationGetPayload<S extends boolean | null | undefined | CreditReservationDefaultArgs> = $Result.GetResult<Prisma.$CreditReservationPayload, S>
+
+  type CreditReservationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<CreditReservationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: CreditReservationCountAggregateInputType | true
+    }
+
+  export interface CreditReservationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['CreditReservation'], meta: { name: 'CreditReservation' } }
+    /**
+     * Find zero or one CreditReservation that matches the filter.
+     * @param {CreditReservationFindUniqueArgs} args - Arguments to find a CreditReservation
+     * @example
+     * // Get one CreditReservation
+     * const creditReservation = await prisma.creditReservation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends CreditReservationFindUniqueArgs>(args: SelectSubset<T, CreditReservationFindUniqueArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one CreditReservation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {CreditReservationFindUniqueOrThrowArgs} args - Arguments to find a CreditReservation
+     * @example
+     * // Get one CreditReservation
+     * const creditReservation = await prisma.creditReservation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends CreditReservationFindUniqueOrThrowArgs>(args: SelectSubset<T, CreditReservationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CreditReservation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationFindFirstArgs} args - Arguments to find a CreditReservation
+     * @example
+     * // Get one CreditReservation
+     * const creditReservation = await prisma.creditReservation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends CreditReservationFindFirstArgs>(args?: SelectSubset<T, CreditReservationFindFirstArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first CreditReservation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationFindFirstOrThrowArgs} args - Arguments to find a CreditReservation
+     * @example
+     * // Get one CreditReservation
+     * const creditReservation = await prisma.creditReservation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends CreditReservationFindFirstOrThrowArgs>(args?: SelectSubset<T, CreditReservationFindFirstOrThrowArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more CreditReservations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all CreditReservations
+     * const creditReservations = await prisma.creditReservation.findMany()
+     * 
+     * // Get first 10 CreditReservations
+     * const creditReservations = await prisma.creditReservation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const creditReservationWithIdOnly = await prisma.creditReservation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends CreditReservationFindManyArgs>(args?: SelectSubset<T, CreditReservationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a CreditReservation.
+     * @param {CreditReservationCreateArgs} args - Arguments to create a CreditReservation.
+     * @example
+     * // Create one CreditReservation
+     * const CreditReservation = await prisma.creditReservation.create({
+     *   data: {
+     *     // ... data to create a CreditReservation
+     *   }
+     * })
+     * 
+     */
+    create<T extends CreditReservationCreateArgs>(args: SelectSubset<T, CreditReservationCreateArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many CreditReservations.
+     * @param {CreditReservationCreateManyArgs} args - Arguments to create many CreditReservations.
+     * @example
+     * // Create many CreditReservations
+     * const creditReservation = await prisma.creditReservation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends CreditReservationCreateManyArgs>(args?: SelectSubset<T, CreditReservationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many CreditReservations and returns the data saved in the database.
+     * @param {CreditReservationCreateManyAndReturnArgs} args - Arguments to create many CreditReservations.
+     * @example
+     * // Create many CreditReservations
+     * const creditReservation = await prisma.creditReservation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many CreditReservations and only return the `id`
+     * const creditReservationWithIdOnly = await prisma.creditReservation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends CreditReservationCreateManyAndReturnArgs>(args?: SelectSubset<T, CreditReservationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a CreditReservation.
+     * @param {CreditReservationDeleteArgs} args - Arguments to delete one CreditReservation.
+     * @example
+     * // Delete one CreditReservation
+     * const CreditReservation = await prisma.creditReservation.delete({
+     *   where: {
+     *     // ... filter to delete one CreditReservation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends CreditReservationDeleteArgs>(args: SelectSubset<T, CreditReservationDeleteArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one CreditReservation.
+     * @param {CreditReservationUpdateArgs} args - Arguments to update one CreditReservation.
+     * @example
+     * // Update one CreditReservation
+     * const creditReservation = await prisma.creditReservation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends CreditReservationUpdateArgs>(args: SelectSubset<T, CreditReservationUpdateArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more CreditReservations.
+     * @param {CreditReservationDeleteManyArgs} args - Arguments to filter CreditReservations to delete.
+     * @example
+     * // Delete a few CreditReservations
+     * const { count } = await prisma.creditReservation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends CreditReservationDeleteManyArgs>(args?: SelectSubset<T, CreditReservationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many CreditReservations
+     * const creditReservation = await prisma.creditReservation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends CreditReservationUpdateManyArgs>(args: SelectSubset<T, CreditReservationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more CreditReservations and returns the data updated in the database.
+     * @param {CreditReservationUpdateManyAndReturnArgs} args - Arguments to update many CreditReservations.
+     * @example
+     * // Update many CreditReservations
+     * const creditReservation = await prisma.creditReservation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more CreditReservations and only return the `id`
+     * const creditReservationWithIdOnly = await prisma.creditReservation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends CreditReservationUpdateManyAndReturnArgs>(args: SelectSubset<T, CreditReservationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one CreditReservation.
+     * @param {CreditReservationUpsertArgs} args - Arguments to update or create a CreditReservation.
+     * @example
+     * // Update or create a CreditReservation
+     * const creditReservation = await prisma.creditReservation.upsert({
+     *   create: {
+     *     // ... data to create a CreditReservation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the CreditReservation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends CreditReservationUpsertArgs>(args: SelectSubset<T, CreditReservationUpsertArgs<ExtArgs>>): Prisma__CreditReservationClient<$Result.GetResult<Prisma.$CreditReservationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of CreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationCountArgs} args - Arguments to filter CreditReservations to count.
+     * @example
+     * // Count the number of CreditReservations
+     * const count = await prisma.creditReservation.count({
+     *   where: {
+     *     // ... the filter for the CreditReservations we want to count
+     *   }
+     * })
+    **/
+    count<T extends CreditReservationCountArgs>(
+      args?: Subset<T, CreditReservationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], CreditReservationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a CreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends CreditReservationAggregateArgs>(args: Subset<T, CreditReservationAggregateArgs>): Prisma.PrismaPromise<GetCreditReservationAggregateType<T>>
+
+    /**
+     * Group by CreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {CreditReservationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends CreditReservationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: CreditReservationGroupByArgs['orderBy'] }
+        : { orderBy?: CreditReservationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, CreditReservationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetCreditReservationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the CreditReservation model
+   */
+  readonly fields: CreditReservationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for CreditReservation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__CreditReservationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the CreditReservation model
+   */
+  interface CreditReservationFieldRefs {
+    readonly id: FieldRef<"CreditReservation", 'String'>
+    readonly organizationId: FieldRef<"CreditReservation", 'String'>
+    readonly projectId: FieldRef<"CreditReservation", 'String'>
+    readonly conversationId: FieldRef<"CreditReservation", 'String'>
+    readonly amountCents: FieldRef<"CreditReservation", 'Int'>
+    readonly status: FieldRef<"CreditReservation", 'String'>
+    readonly settledCents: FieldRef<"CreditReservation", 'Int'>
+    readonly expiresAt: FieldRef<"CreditReservation", 'DateTime'>
+    readonly createdAt: FieldRef<"CreditReservation", 'DateTime'>
+    readonly updatedAt: FieldRef<"CreditReservation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * CreditReservation findUnique
+   */
+  export type CreditReservationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which CreditReservation to fetch.
+     */
+    where: CreditReservationWhereUniqueInput
+  }
+
+  /**
+   * CreditReservation findUniqueOrThrow
+   */
+  export type CreditReservationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which CreditReservation to fetch.
+     */
+    where: CreditReservationWhereUniqueInput
+  }
+
+  /**
+   * CreditReservation findFirst
+   */
+  export type CreditReservationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which CreditReservation to fetch.
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditReservations to fetch.
+     */
+    orderBy?: CreditReservationOrderByWithRelationInput | CreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CreditReservations.
+     */
+    cursor?: CreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditReservations.
+     */
+    distinct?: CreditReservationScalarFieldEnum | CreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * CreditReservation findFirstOrThrow
+   */
+  export type CreditReservationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which CreditReservation to fetch.
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditReservations to fetch.
+     */
+    orderBy?: CreditReservationOrderByWithRelationInput | CreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for CreditReservations.
+     */
+    cursor?: CreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditReservations.
+     */
+    distinct?: CreditReservationScalarFieldEnum | CreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * CreditReservation findMany
+   */
+  export type CreditReservationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which CreditReservations to fetch.
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of CreditReservations to fetch.
+     */
+    orderBy?: CreditReservationOrderByWithRelationInput | CreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing CreditReservations.
+     */
+    cursor?: CreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` CreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` CreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of CreditReservations.
+     */
+    distinct?: CreditReservationScalarFieldEnum | CreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * CreditReservation create
+   */
+  export type CreditReservationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a CreditReservation.
+     */
+    data: XOR<CreditReservationCreateInput, CreditReservationUncheckedCreateInput>
+  }
+
+  /**
+   * CreditReservation createMany
+   */
+  export type CreditReservationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many CreditReservations.
+     */
+    data: CreditReservationCreateManyInput | CreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CreditReservation createManyAndReturn
+   */
+  export type CreditReservationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to create many CreditReservations.
+     */
+    data: CreditReservationCreateManyInput | CreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * CreditReservation update
+   */
+  export type CreditReservationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a CreditReservation.
+     */
+    data: XOR<CreditReservationUpdateInput, CreditReservationUncheckedUpdateInput>
+    /**
+     * Choose, which CreditReservation to update.
+     */
+    where: CreditReservationWhereUniqueInput
+  }
+
+  /**
+   * CreditReservation updateMany
+   */
+  export type CreditReservationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update CreditReservations.
+     */
+    data: XOR<CreditReservationUpdateManyMutationInput, CreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which CreditReservations to update
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * Limit how many CreditReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CreditReservation updateManyAndReturn
+   */
+  export type CreditReservationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to update CreditReservations.
+     */
+    data: XOR<CreditReservationUpdateManyMutationInput, CreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which CreditReservations to update
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * Limit how many CreditReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * CreditReservation upsert
+   */
+  export type CreditReservationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the CreditReservation to update in case it exists.
+     */
+    where: CreditReservationWhereUniqueInput
+    /**
+     * In case the CreditReservation found by the `where` argument doesn't exist, create a new CreditReservation with this data.
+     */
+    create: XOR<CreditReservationCreateInput, CreditReservationUncheckedCreateInput>
+    /**
+     * In case the CreditReservation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<CreditReservationUpdateInput, CreditReservationUncheckedUpdateInput>
+  }
+
+  /**
+   * CreditReservation delete
+   */
+  export type CreditReservationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter which CreditReservation to delete.
+     */
+    where: CreditReservationWhereUniqueInput
+  }
+
+  /**
+   * CreditReservation deleteMany
+   */
+  export type CreditReservationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which CreditReservations to delete
+     */
+    where?: CreditReservationWhereInput
+    /**
+     * Limit how many CreditReservations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * CreditReservation without action
+   */
+  export type CreditReservationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the CreditReservation
+     */
+    select?: CreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the CreditReservation
+     */
+    omit?: CreditReservationOmit<ExtArgs> | null
   }
 
 
@@ -159952,6 +161172,7 @@ export namespace Prisma {
     id: 'id',
     organizationId: 'organizationId',
     balanceCents: 'balanceCents',
+    heldCents: 'heldCents',
     currency: 'currency',
     budgetCapCents: 'budgetCapCents',
     serviceShutdownCents: 'serviceShutdownCents',
@@ -159963,6 +161184,22 @@ export namespace Prisma {
   };
 
   export type CreditWalletScalarFieldEnum = (typeof CreditWalletScalarFieldEnum)[keyof typeof CreditWalletScalarFieldEnum]
+
+
+  export const CreditReservationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    projectId: 'projectId',
+    conversationId: 'conversationId',
+    amountCents: 'amountCents',
+    status: 'status',
+    settledCents: 'settledCents',
+    expiresAt: 'expiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type CreditReservationScalarFieldEnum = (typeof CreditReservationScalarFieldEnum)[keyof typeof CreditReservationScalarFieldEnum]
 
 
   export const CreditPackScalarFieldEnum: {
@@ -168527,6 +169764,7 @@ export namespace Prisma {
     id?: StringFilter<"CreditWallet"> | string
     organizationId?: StringFilter<"CreditWallet"> | string
     balanceCents?: IntFilter<"CreditWallet"> | number
+    heldCents?: IntFilter<"CreditWallet"> | number
     currency?: StringFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
@@ -168543,6 +169781,7 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrderInput | SortOrder
     serviceShutdownCents?: SortOrderInput | SortOrder
@@ -168562,6 +169801,7 @@ export namespace Prisma {
     OR?: CreditWalletWhereInput[]
     NOT?: CreditWalletWhereInput | CreditWalletWhereInput[]
     balanceCents?: IntFilter<"CreditWallet"> | number
+    heldCents?: IntFilter<"CreditWallet"> | number
     currency?: StringFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableFilter<"CreditWallet"> | number | null
@@ -168578,6 +169818,7 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrderInput | SortOrder
     serviceShutdownCents?: SortOrderInput | SortOrder
@@ -168600,6 +169841,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"CreditWallet"> | string
     organizationId?: StringWithAggregatesFilter<"CreditWallet"> | string
     balanceCents?: IntWithAggregatesFilter<"CreditWallet"> | number
+    heldCents?: IntWithAggregatesFilter<"CreditWallet"> | number
     currency?: StringWithAggregatesFilter<"CreditWallet"> | string
     budgetCapCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
     serviceShutdownCents?: IntNullableWithAggregatesFilter<"CreditWallet"> | number | null
@@ -168608,6 +169850,85 @@ export namespace Prisma {
     lastSpendAlertPeriodStart?: DateTimeNullableWithAggregatesFilter<"CreditWallet"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"CreditWallet"> | Date | string
+  }
+
+  export type CreditReservationWhereInput = {
+    AND?: CreditReservationWhereInput | CreditReservationWhereInput[]
+    OR?: CreditReservationWhereInput[]
+    NOT?: CreditReservationWhereInput | CreditReservationWhereInput[]
+    id?: StringFilter<"CreditReservation"> | string
+    organizationId?: StringFilter<"CreditReservation"> | string
+    projectId?: StringNullableFilter<"CreditReservation"> | string | null
+    conversationId?: StringNullableFilter<"CreditReservation"> | string | null
+    amountCents?: IntFilter<"CreditReservation"> | number
+    status?: StringFilter<"CreditReservation"> | string
+    settledCents?: IntNullableFilter<"CreditReservation"> | number | null
+    expiresAt?: DateTimeFilter<"CreditReservation"> | Date | string
+    createdAt?: DateTimeFilter<"CreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"CreditReservation"> | Date | string
+  }
+
+  export type CreditReservationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    amountCents?: SortOrder
+    status?: SortOrder
+    settledCents?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CreditReservationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: CreditReservationWhereInput | CreditReservationWhereInput[]
+    OR?: CreditReservationWhereInput[]
+    NOT?: CreditReservationWhereInput | CreditReservationWhereInput[]
+    organizationId?: StringFilter<"CreditReservation"> | string
+    projectId?: StringNullableFilter<"CreditReservation"> | string | null
+    conversationId?: StringNullableFilter<"CreditReservation"> | string | null
+    amountCents?: IntFilter<"CreditReservation"> | number
+    status?: StringFilter<"CreditReservation"> | string
+    settledCents?: IntNullableFilter<"CreditReservation"> | number | null
+    expiresAt?: DateTimeFilter<"CreditReservation"> | Date | string
+    createdAt?: DateTimeFilter<"CreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"CreditReservation"> | Date | string
+  }, "id">
+
+  export type CreditReservationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrderInput | SortOrder
+    conversationId?: SortOrderInput | SortOrder
+    amountCents?: SortOrder
+    status?: SortOrder
+    settledCents?: SortOrderInput | SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: CreditReservationCountOrderByAggregateInput
+    _avg?: CreditReservationAvgOrderByAggregateInput
+    _max?: CreditReservationMaxOrderByAggregateInput
+    _min?: CreditReservationMinOrderByAggregateInput
+    _sum?: CreditReservationSumOrderByAggregateInput
+  }
+
+  export type CreditReservationScalarWhereWithAggregatesInput = {
+    AND?: CreditReservationScalarWhereWithAggregatesInput | CreditReservationScalarWhereWithAggregatesInput[]
+    OR?: CreditReservationScalarWhereWithAggregatesInput[]
+    NOT?: CreditReservationScalarWhereWithAggregatesInput | CreditReservationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"CreditReservation"> | string
+    organizationId?: StringWithAggregatesFilter<"CreditReservation"> | string
+    projectId?: StringNullableWithAggregatesFilter<"CreditReservation"> | string | null
+    conversationId?: StringNullableWithAggregatesFilter<"CreditReservation"> | string | null
+    amountCents?: IntWithAggregatesFilter<"CreditReservation"> | number
+    status?: StringWithAggregatesFilter<"CreditReservation"> | string
+    settledCents?: IntNullableWithAggregatesFilter<"CreditReservation"> | number | null
+    expiresAt?: DateTimeWithAggregatesFilter<"CreditReservation"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"CreditReservation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"CreditReservation"> | Date | string
   }
 
   export type CreditPackWhereInput = {
@@ -179450,6 +180771,7 @@ export namespace Prisma {
   export type CreditWalletCreateInput = {
     id?: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -179466,6 +180788,7 @@ export namespace Prisma {
     id?: string
     organizationId: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -179480,6 +180803,7 @@ export namespace Prisma {
   export type CreditWalletUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -179496,6 +180820,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -179511,6 +180836,7 @@ export namespace Prisma {
     id?: string
     organizationId: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -179524,6 +180850,7 @@ export namespace Prisma {
   export type CreditWalletUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -179538,12 +180865,104 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
     autoTopupCents?: NullableIntFieldUpdateOperationsInput | number | null
     lastSpendAlertPct?: NullableIntFieldUpdateOperationsInput | number | null
     lastSpendAlertPeriodStart?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditReservationCreateInput = {
+    id?: string
+    organizationId: string
+    projectId?: string | null
+    conversationId?: string | null
+    amountCents: number
+    status?: string
+    settledCents?: number | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CreditReservationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    projectId?: string | null
+    conversationId?: string | null
+    amountCents: number
+    status?: string
+    settledCents?: number | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CreditReservationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    amountCents?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    settledCents?: NullableIntFieldUpdateOperationsInput | number | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditReservationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    amountCents?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    settledCents?: NullableIntFieldUpdateOperationsInput | number | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditReservationCreateManyInput = {
+    id?: string
+    organizationId: string
+    projectId?: string | null
+    conversationId?: string | null
+    amountCents: number
+    status?: string
+    settledCents?: number | null
+    expiresAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type CreditReservationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    amountCents?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    settledCents?: NullableIntFieldUpdateOperationsInput | number | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type CreditReservationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    projectId?: NullableStringFieldUpdateOperationsInput | string | null
+    conversationId?: NullableStringFieldUpdateOperationsInput | string | null
+    amountCents?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    settledCents?: NullableIntFieldUpdateOperationsInput | number | null
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -187592,6 +189011,7 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
@@ -187604,6 +189024,7 @@ export namespace Prisma {
 
   export type CreditWalletAvgOrderByAggregateInput = {
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
@@ -187614,6 +189035,7 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
@@ -187628,6 +189050,7 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     currency?: SortOrder
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
@@ -187640,10 +189063,60 @@ export namespace Prisma {
 
   export type CreditWalletSumOrderByAggregateInput = {
     balanceCents?: SortOrder
+    heldCents?: SortOrder
     budgetCapCents?: SortOrder
     serviceShutdownCents?: SortOrder
     autoTopupCents?: SortOrder
     lastSpendAlertPct?: SortOrder
+  }
+
+  export type CreditReservationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    conversationId?: SortOrder
+    amountCents?: SortOrder
+    status?: SortOrder
+    settledCents?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CreditReservationAvgOrderByAggregateInput = {
+    amountCents?: SortOrder
+    settledCents?: SortOrder
+  }
+
+  export type CreditReservationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    conversationId?: SortOrder
+    amountCents?: SortOrder
+    status?: SortOrder
+    settledCents?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CreditReservationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    projectId?: SortOrder
+    conversationId?: SortOrder
+    amountCents?: SortOrder
+    status?: SortOrder
+    settledCents?: SortOrder
+    expiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type CreditReservationSumOrderByAggregateInput = {
+    amountCents?: SortOrder
+    settledCents?: SortOrder
   }
 
   export type CreditPackCountOrderByAggregateInput = {
@@ -200956,6 +202429,7 @@ export namespace Prisma {
   export type CreditWalletCreateWithoutOrganizationInput = {
     id?: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -200970,6 +202444,7 @@ export namespace Prisma {
   export type CreditWalletUncheckedCreateWithoutOrganizationInput = {
     id?: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -201867,6 +203342,7 @@ export namespace Prisma {
   export type CreditWalletUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -201881,6 +203357,7 @@ export namespace Prisma {
   export type CreditWalletUncheckedUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -222172,6 +223649,7 @@ export namespace Prisma {
   export type CreditWalletCreateWithoutEntriesInput = {
     id?: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -222187,6 +223665,7 @@ export namespace Prisma {
     id?: string
     organizationId: string
     balanceCents?: number
+    heldCents?: number
     currency?: string
     budgetCapCents?: number | null
     serviceShutdownCents?: number | null
@@ -222305,6 +223784,7 @@ export namespace Prisma {
   export type CreditWalletUpdateWithoutEntriesInput = {
     id?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null
@@ -222320,6 +223800,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     balanceCents?: IntFieldUpdateOperationsInput | number
+    heldCents?: IntFieldUpdateOperationsInput | number
     currency?: StringFieldUpdateOperationsInput | string
     budgetCapCents?: NullableIntFieldUpdateOperationsInput | number | null
     serviceShutdownCents?: NullableIntFieldUpdateOperationsInput | number | null

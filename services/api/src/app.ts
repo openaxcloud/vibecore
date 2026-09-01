@@ -1817,6 +1817,13 @@ const aiRecordUsageSchema = z.object({
   finishReason: z.string().optional(),
   source: z.string().min(1).default('remix-chat'),
 
+  /*
+   * AUDX-018 — the hold taken at check-quota, handed back so it can be settled
+   * against the real cost. Opaque and single-use: settling is conditional on
+   * status = 'HELD', so replaying an id cannot release credits twice.
+   */
+  reservationId: z.string().min(1).optional(),
+
   // Replit-parity per-request power controls (effort-based checkpoint).
   highPowerModel: z.boolean().optional(),
   extendedThinking: z.boolean().optional(),
@@ -3517,6 +3524,33 @@ async function requirePlatformAdmin(request: FastifyRequest) {
  * WORKSPACE_MANAGER_SHARED_SECRET, which the manager/worker pods already hold).
  * Fails closed when no secret is configured.
  */
+/*
+ * AUDX-018 — how long a credit hold survives before the sweep reclaims it.
+ * Long enough for a slow generation, short enough that a crashed request does
+ * not strand a user's credits for any meaningful time.
+ */
+const AI_RESERVATION_TTL_MS = 15 * 60_000;
+
+/*
+ * Cost to hold for a request we have not made yet. Deliberately an ESTIMATE:
+ * the input tokens we know about plus a modest output allowance. The hold is
+ * provisional and settled against the real cost afterwards, so erring slightly
+ * HIGH is the correct direction — a hold that is too small lets the wallet go
+ * negative, which is the failure this exists to prevent.
+ */
+function estimateAiReservationCents(inputTokens: number, model?: string, provider?: string): number {
+  const assumedOutputTokens = Math.max(256, Math.ceil(inputTokens / 2));
+
+  const { costCents } = computeAiCostCents({
+    model: model ?? 'unknown',
+    provider: provider as Parameters<typeof computeAiCostCents>[0]['provider'],
+    inputTokens: Math.max(0, inputTokens),
+    outputTokens: assumedOutputTokens,
+  });
+
+  return Math.max(1, costCents);
+}
+
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
   const header = request.headers.authorization;
@@ -26651,6 +26685,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * can render a "X tokens left this month" hint. The plan-resolution
      * path is shared with ensureQuota so the override table is honoured.
      */
+    /*
+     * AUDX-018 — reserve credits BEFORE the provider call.
+     *
+     * Metering debits only when usage is REPORTED, i.e. after the call already
+     * cost money. A report that never arrives (crash, closed tab, a caller that
+     * simply omits it) is free AI, and N concurrent calls each clear this same
+     * pre-check and collectively overspend. A hold moves the decision before the
+     * spend and is released on settle, on failure, or by the expiry sweep.
+     *
+     * ⚠️ Inert unless BILLING_CREDITS_ENABLED === 'true' — credits are ~90%
+     * SHADOW today, and enforcing a hold while the wallet is dormant would
+     * refuse every chat on the platform. Same gate the rest of credits uses.
+     */
+    let reservation: { id: string; amountCents: number } | undefined;
+
+    if (process.env.BILLING_CREDITS_ENABLED === 'true') {
+      const estimatedCostCents = estimateAiReservationCents(estimated, body.model, body.provider);
+
+      if (estimatedCostCents > 0) {
+        reservation = await store
+          .reserveCredits({
+            organizationId: project.organizationId,
+            projectId: project.id,
+            amountCents: estimatedCostCents,
+            expiresAtMs: Date.now() + AI_RESERVATION_TTL_MS,
+          })
+          .catch(() => undefined);
+
+        if (!reservation) {
+          throw Object.assign(new Error(appPublicEnglish('CREDITS_RESERVATION_REFUSED')), {
+            statusCode: 402,
+            code: 'CREDITS_RESERVATION_REFUSED',
+          });
+        }
+      }
+    }
+
     const state = await billingState(project.organizationId);
     const { limits, plan } = state;
     const tokenOverride = await store.getQuotaOverride(project.organizationId, 'ai.inputTokens');
@@ -26693,6 +26764,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return {
       ok: true,
+
+      /*
+       * AUDX-018 — hand back the hold so the caller can settle it after the
+       * provider call. Undefined when credits are dormant or nothing was held.
+       */
+      reservationId: reservation?.id,
       ai: {
         inputTokens: {
           used: tokenUsed,
@@ -26986,6 +27063,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       costCents,
       reason: `chat.completion.${body.source}`,
     });
+
+    /*
+     * AUDX-018 — settle the hold taken at check-quota against the REAL cost.
+     *
+     * Without this the hold sits until the expiry sweep, so a busy project would
+     * watch its available credits shrink with every message and eventually
+     * refuse to start anything — a guard that breaks normal work gets reverted,
+     * not fixed. Best-effort: a settle failure must never fail the usage
+     * recording, and the sweep is the backstop.
+     */
+    if (process.env.BILLING_CREDITS_ENABLED === 'true' && body.reservationId) {
+      await store.settleCreditReservation({ id: body.reservationId, actualCents: costCents }).catch(() => false);
+    }
 
     /*
      * AGM per-call log (admin-only): stamp the REAL provider+model this call
