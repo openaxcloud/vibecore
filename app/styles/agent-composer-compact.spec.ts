@@ -98,11 +98,38 @@ describe('COMPOSER-001 — deux lignes au repos, pas trois blocs', () => {
     expect(occurrences).toBe(1);
   });
 
-  it('rend les sélecteurs DANS la rangée de commandes', () => {
-    const toolbar = CHATBOX.slice(CHATBOX.indexOf('bolt-chatbox-toolbar-primary'));
+  it('rend les sélecteurs DANS la rangée de commandes, jamais au-dessus du champ', () => {
+    /*
+     * Réécrit avec COMPOSER-002 (#319), qui remplace la première passe #278.
+     * L'INVARIANT est inchangé — les sélecteurs appartiennent à la rangée de
+     * commandes, pas à une rangée séparée au-dessus du champ. C'est
+     * l'ANCRAGE qui a dû suivre : #319 extrait les contrôles en constantes
+     * nommées, donc `<AgentPowerControls` n'est plus voisin de la barre dans
+     * le texte source — sa DÉFINITION est plus haut, son PLACEMENT est ici.
+     *
+     * La nouvelle version est plus stricte que l'ancienne : elle vérifie non
+     * seulement que le placement est dans la rangée, mais qu'il n'existe
+     * NULLE PART au-dessus. Déplacer les sélecteurs sur leur propre rangée —
+     * la régression que ce test doit empêcher — la fait échouer, alors que la
+     * version d'origine, purement de proximité, ne l'aurait pas vue.
+     */
+    const debutRangee = CHATBOX.indexOf('bolt-chatbox-toolbar-primary');
 
-    expect(toolbar.slice(0, 2000)).toMatch(/bolt-chatbox-selectors/);
-    expect(toolbar.slice(0, 2000)).toMatch(/<AgentPowerControls/);
+    expect(debutRangee, 'rangée de commandes introuvable').toBeGreaterThan(-1);
+
+    const rangee = CHATBOX.slice(debutRangee, debutRangee + 2000);
+
+    expect(rangee).toMatch(/\{agentModeControl\}/);
+    expect(rangee).toMatch(/\{agentPowerControl\}/);
+
+    /*
+     * Au-dessus de la rangée on ne doit trouver que la DÉFINITION des
+     * contrôles (`const agentPowerControl = …`), jamais leur placement.
+     */
+    const avant = CHATBOX.slice(0, debutRangee);
+
+    expect(avant).not.toMatch(/\{agentPowerControl\}/);
+    expect(avant).not.toMatch(/\{agentModeControl\}/);
   });
 
   it('n’introduit aucune couleur nouvelle sur les sélecteurs', () => {

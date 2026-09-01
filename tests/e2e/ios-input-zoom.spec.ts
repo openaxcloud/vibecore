@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type APIRequestContext } from '@playwright/test';
 
 /**
  * IOS-ZOOM-001 — aucun champ ne doit descendre sous 16 px de police RENDUE.
@@ -137,3 +137,116 @@ test('la balise viewport n’interdit pas le zoom volontaire', async ({ page }) 
   expect(contenu).not.toMatch(/maximum-scale\s*=\s*1(\.0)?\b/);
   expect(contenu).not.toMatch(/user-scalable\s*=\s*(no|0)/);
 });
+
+/*
+ * La zone de saisie de l'agent — le champ qui avait MOTIVÉ IOS-ZOOM-001 et que la
+ * suite ne regardait pas.
+ *
+ * Les routes publiques ci-dessus respectaient déjà le plancher : le test était
+ * vert sur des pages qui n'avaient jamais eu le défaut, pendant que le champ
+ * signalé rendait 14 px. Il faut donc s'authentifier et ouvrir un vrai projet
+ * pour mesurer la seule surface qui comptait.
+ */
+const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
+async function createProjectSession(request: APIRequestContext) {
+  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  let lastBody = '';
+
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    const registration = await request.post(`${apiBaseUrl}/auth/register`, {
+      data: {
+        email: `ios-zoom-agent-${suffix}-${attempt}@local.test`,
+        password: 'Password123!',
+        name: 'iOS zoom agent composer',
+        organizationName: `iOS zoom agent ${suffix}-${attempt}`,
+      },
+    });
+
+    lastBody = await registration.text();
+
+    if (registration.ok()) {
+      const auth = JSON.parse(lastBody) as { token: string; organization: { id: string } };
+
+      const project = await request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+        headers: { authorization: `Bearer ${auth.token}` },
+        data: { name: 'iOS zoom agent composer' },
+      });
+
+      expect(project.ok(), await project.text()).toBeTruthy();
+
+      return {
+        token: auth.token,
+        projectId: (await project.json()).project.id as string,
+      };
+    }
+
+    // /auth/register est limité par IP ; on patiente plutôt que de rougir la suite.
+    if (registration.status() === 429 && attempt < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 11_000));
+      continue;
+    }
+
+    break;
+  }
+
+  throw new Error(`Impossible d'ouvrir une session de test : ${lastBody}`);
+}
+
+for (const viewport of VIEWPORTS) {
+  test(`la zone de saisie de l'agent tient le plancher — ${viewport.label}`, async ({ page, request }) => {
+    const { token, projectId } = await createProjectSession(request);
+
+    await page
+      .context()
+      .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+    const composerField = page.locator('.bolt-project-chatbox textarea');
+    await expect(composerField).toBeVisible({ timeout: 60_000 });
+
+    /*
+     * La mesure doit RE-RÉSOUDRE le sélecteur à chaque essai. Mesurer une seule
+     * fois échouait : le composer se re-rend entre la résolution du locator et
+     * l'évaluation, et `getComputedStyle` sur un nœud DÉTACHÉ rend la chaîne
+     * vide, donc `parseFloat` rend NaN. Symptôme observé : rouge en 390, mais
+     * vert au retry en 768 — une course, pas une police trop petite.
+     *
+     * Le sondage ne relâche RIEN : il s'arrête au premier relevé exploitable,
+     * quelle que soit sa valeur. Une police réellement à 14 px sort de la
+     * boucle immédiatement et tombe sur l'assertion de plancher ci-dessous.
+     */
+    let police = Number.NaN;
+
+    await expect
+      .poll(
+        async () => {
+          police = await page
+            .locator('.bolt-project-chatbox textarea')
+            .evaluate((element) => parseFloat(getComputedStyle(element).fontSize))
+            .catch(() => Number.NaN);
+
+          return Number.isFinite(police);
+        },
+        {
+          message: 'police non mesurée sur la zone de saisie de l’agent',
+          timeout: 15_000,
+        },
+      )
+      .toBe(true);
+
+    /*
+     * Témoin positif : sans lui, un sélecteur qui ne matche plus donnerait un
+     * « aucun champ fautif » sur une page jamais regardée — le piège que ce
+     * fichier documente déjà plus haut.
+     */
+    expect(Number.isFinite(police), 'police non mesurée sur la zone de saisie de l’agent').toBe(true);
+
+    expect(police, `zone de saisie de l’agent en ${viewport.label} : ${police}px`).toBeGreaterThanOrEqual(
+      IOS_MIN_FONT_PX,
+    );
+  });
+}

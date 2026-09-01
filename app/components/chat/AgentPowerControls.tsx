@@ -43,6 +43,28 @@ export interface AgentPowerControlsProps {
   /** Invoked when the user clicks the upgrade CTA shown while premium is locked. */
   onUpgrade?: () => void;
   className?: string;
+
+  /**
+   * `full` keeps the three-part row (segmented + Advanced + cost) used by the
+   * standalone composer. `compact` collapses the whole thing to ONE discreet
+   * label in the composer's single control row; the segmented control, the
+   * switches, the Plan-first toggle and the cost estimate all move inside the
+   * popover. At 390 the full row wrapped onto three lines and, with the field
+   * and the action row, ate ~40% of the panel.
+   */
+  variant?: 'full' | 'compact';
+
+  /**
+   * Plan-first toggle, hosted inside the popover in `compact` so it no longer
+   * occupies a row of its own. Omitted entirely when the caller has no
+   * plan-first pipeline wired.
+   */
+  planFirst?: {
+    enabled: boolean;
+    onChange: (next: boolean) => void;
+    label: string;
+    title: string;
+  };
 }
 
 /*
@@ -67,6 +89,8 @@ export function AgentPowerControls({
   availability,
   onUpgrade,
   className,
+  variant = 'full',
+  planFirst,
 }: AgentPowerControlsProps) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -191,89 +215,141 @@ export function AgentPowerControls({
   const activeTier = buildTiers.find((tier) => tier.id === value.buildTier) ?? buildTiers[1];
   const activeSwitches = (value.highEffort ? 1 : 0) + (value.turboMode ? 1 : 0);
 
+  const compact = variant === 'compact';
+
+  const segmentedControl = (
+    <div
+      role="radiogroup"
+      aria-label={copy['chatControls.power.groupAria']}
+      aria-describedby={hintId}
+      title={value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
+      data-testid="agent-mode-segmented"
+      className="inline-grid max-w-full grid-cols-3 items-stretch rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
+    >
+      {buildTiers.map((tier) => {
+        const active = value.buildTier === tier.id;
+        const available = modeAvailable(tier.id);
+
+        return (
+          <button
+            key={tier.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            disabled={disabled || !available}
+            onClick={() => selectMode(tier.id)}
+            title={
+              available
+                ? formatChatControlsCopy(copy['chatControls.power.availableTitle'], {
+                    label: tier.label,
+                    hint: tier.hint,
+                  })
+                : formatChatControlsCopy(copy['chatControls.power.unavailableTitle'], { label: tier.label })
+            }
+            data-testid={`agent-mode-${tier.id}`}
+            className={classNames(
+              'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
+              'disabled:cursor-not-allowed disabled:opacity-50',
+              active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+            )}
+            style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+          >
+            {tier.label}
+            {!available ? <span className="i-ph:lock ml-1 inline-block align-middle text-xs" aria-hidden /> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const advancedTrigger = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-haspopup="dialog"
+      aria-expanded={advancedOpen}
+      aria-controls={panelId}
+      onClick={() => setAdvancedOpen((prev) => !prev)}
+      title={copy['chatControls.power.advancedTitle']}
+      data-testid="agent-mode-advanced"
+      className={classNames(
+        'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        advancedOpen || activeSwitches > 0
+          ? 'border-transparent text-white'
+          : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
+      )}
+      style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
+    >
+      <span className="i-ph:sliders-horizontal text-sm" aria-hidden />
+      <span>{copy['chatControls.power.advanced']}</span>
+      {activeSwitches > 0 ? (
+        <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
+      ) : null}
+      <span className="i-ph:caret-down text-xs" aria-hidden />
+    </button>
+  );
+
+  const costChip = (
+    <span
+      className="inline-flex h-8 items-center gap-1 self-center rounded-lg bg-bolt-elements-background-depth-2 px-2.5 text-xs font-semibold text-bolt-elements-textPrimary"
+      title={copy['chatControls.power.estimatedTitle']}
+    >
+      <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
+      {formatChatControlsCost(estimatedCents, language)}
+    </span>
+  );
+
+  const planFirstToggle = planFirst ? (
+    <button
+      type="button"
+      className={classNames('bolt-chatbox-plan-toggle', { 'is-active': planFirst.enabled })}
+      aria-pressed={planFirst.enabled}
+      disabled={disabled}
+      title={planFirst.title}
+      onClick={() => planFirst.onChange(!planFirst.enabled)}
+    >
+      <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
+      <span className="bolt-chatbox-plan-toggle-label">{planFirst.label}</span>
+    </button>
+  ) : null;
+
+  const compactTrigger = (
+    <button
+      type="button"
+      disabled={disabled}
+      aria-haspopup="dialog"
+      aria-expanded={advancedOpen}
+      aria-controls={panelId}
+      aria-describedby={hintId}
+      onClick={() => setAdvancedOpen((prev) => !prev)}
+      title={copy['chatControls.power.advancedTitle']}
+      aria-label={formatChatControlsCopy(copy['chatControls.power.compactAria'], { mode: activeTier.label })}
+      data-testid="agent-mode-advanced"
+      className={classNames('bolt-composer-chip', { 'is-open': advancedOpen })}
+    >
+      <span className="bolt-composer-chip-label">{activeTier.label}</span>
+      {activeSwitches > 0 ? <span className="bolt-composer-chip-badge">+{activeSwitches}</span> : null}
+      <span className="i-ph:caret-up bolt-composer-chip-caret" aria-hidden />
+    </button>
+  );
+
   return (
-    <div ref={rootRef} className={classNames('relative flex flex-wrap items-center gap-2', className)}>
-      <div
-        role="radiogroup"
-        aria-label={copy['chatControls.power.groupAria']}
-        aria-describedby={hintId}
-        title={value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
-        data-testid="agent-mode-segmented"
-        className="inline-grid max-w-full grid-cols-3 items-stretch rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
-      >
-        {buildTiers.map((tier) => {
-          const active = value.buildTier === tier.id;
-          const available = modeAvailable(tier.id);
-
-          return (
-            <button
-              key={tier.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              disabled={disabled || !available}
-              onClick={() => selectMode(tier.id)}
-              title={
-                available
-                  ? formatChatControlsCopy(copy['chatControls.power.availableTitle'], {
-                      label: tier.label,
-                      hint: tier.hint,
-                    })
-                  : formatChatControlsCopy(copy['chatControls.power.unavailableTitle'], { label: tier.label })
-              }
-              data-testid={`agent-mode-${tier.id}`}
-              className={classNames(
-                'min-h-7 min-w-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-medium leading-tight transition-colors sm:px-2 sm:text-xs',
-                'disabled:cursor-not-allowed disabled:opacity-50',
-                active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
-              )}
-              style={active ? { background: 'var(--vc-ide-accent-action)' } : undefined}
-            >
-              {tier.label}
-              {!available ? <span className="i-ph:lock ml-1 inline-block align-middle text-xs" aria-hidden /> : null}
-            </button>
-          );
-        })}
-      </div>
-
-      <button
-        type="button"
-        disabled={disabled}
-        aria-haspopup="dialog"
-        aria-expanded={advancedOpen}
-        aria-controls={panelId}
-        onClick={() => setAdvancedOpen((prev) => !prev)}
-        title={copy['chatControls.power.advancedTitle']}
-        data-testid="agent-mode-advanced"
-        className={classNames(
-          'inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-xs font-medium transition-colors',
-          'disabled:cursor-not-allowed disabled:opacity-50',
-          advancedOpen || activeSwitches > 0
-            ? 'border-transparent text-white'
-            : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
-        )}
-        style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
-      >
-        <span className="i-ph:sliders-horizontal text-sm" aria-hidden />
-        <span>{copy['chatControls.power.advanced']}</span>
-        {activeSwitches > 0 ? (
-          <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
-        ) : null}
-        <span className="i-ph:caret-down text-xs" aria-hidden />
-      </button>
-
-      <span
-        className="inline-flex h-8 items-center gap-1 self-center rounded-lg bg-bolt-elements-background-depth-2 px-2.5 text-xs font-semibold text-bolt-elements-textPrimary"
-        title={copy['chatControls.power.estimatedTitle']}
-      >
-        <span className="i-ph:sparkle text-sm" style={{ color: 'var(--vc-ide-accent-action)' }} aria-hidden />
-        {formatChatControlsCost(estimatedCents, language)}
-      </span>
+    <div
+      ref={rootRef}
+      className={classNames(
+        'relative flex items-center',
+        compact ? 'bolt-agent-power-compact' : 'flex-wrap gap-2',
+        className,
+      )}
+    >
+      {compact ? compactTrigger : segmentedControl}
+      {compact ? null : advancedTrigger}
+      {compact ? null : costChip}
 
       <p className="sr-only" data-testid="agent-mode-hint" id={hintId}>
         {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
       </p>
-
       {advancedOpen ? (
         <div
           id={panelId}
@@ -281,6 +357,13 @@ export function AgentPowerControls({
           aria-label={copy['chatControls.power.dialogAria']}
           className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
         >
+          {compact ? (
+            <div className="bolt-agent-power-compact-modes">
+              {segmentedControl}
+              {planFirstToggle}
+            </div>
+          ) : null}
+
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
             {copy['chatControls.power.dialogTitle']}
           </p>

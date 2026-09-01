@@ -20,7 +20,21 @@ vi.mock('remix-utils/client-only', () => ({
   ClientOnly: ({ children }: { children: () => ReactNode }) => <>{children()}</>,
 }));
 
-vi.mock('./AgentPowerControls', () => ({ AgentPowerControls: () => null }));
+/*
+ * Le contrôle de puissance est bouchonné ici — ce fichier teste la copie
+ * française de ChatBox, pas le rendu du popover. Mais « Planifier » vit
+ * désormais DANS ce contrôle : on capture donc les props que ChatBox lui
+ * transmet, pour vérifier que le libellé et l'info-bulle passés vers le bas
+ * sont bien traduits.
+ */
+const agentPowerProps = vi.hoisted(() => ({ current: undefined as Record<string, any> | undefined }));
+
+vi.mock('./AgentPowerControls', () => ({
+  AgentPowerControls: (props: Record<string, any>) => {
+    agentPowerProps.current = props;
+    return null;
+  },
+}));
 vi.mock('./APIKeyManager', () => ({ APIKeyManager: () => null }));
 vi.mock('./ChatBoxModeDropdown', () => ({ ChatBoxModeDropdown: () => null }));
 vi.mock('./ComposerMentionsOverlay', () => ({ ComposerMentionsOverlay: () => null }));
@@ -178,8 +192,17 @@ describe('ChatBox i18n', () => {
       uploadedFiles: [new File(['image'], 'customer-image.png', { type: 'image/png' })],
     });
 
-    const planButton = screen.getByRole('button', { name: 'Planifier' });
-    expect(planButton.getAttribute('title')).toBe(
+    /*
+     * Composer compact : « Planifier » est replié dans le popover « Avancé »
+     * pour ne plus occuper une rangée à lui seul. Il n'est donc plus rendu par
+     * ChatBox — mais ChatBox reste responsable de sa copie, qu'il transmet au
+     * contrôle de puissance. C'est cette transmission qu'on vérifie.
+     */
+    expect(screen.queryByRole('button', { name: 'Planifier' })).toBeNull();
+
+    expect(agentPowerProps.current?.variant).toBe('compact');
+    expect(agentPowerProps.current?.planFirst?.label).toBe('Planifier');
+    expect(agentPowerProps.current?.planFirst?.title).toBe(
       'Planifier d’abord : proposer un plan vérifiable et attendre votre approbation avant toute modification',
     );
     expect(screen.getByRole('textbox', { name: 'Prompt de l’agent' })).toBeTruthy();
