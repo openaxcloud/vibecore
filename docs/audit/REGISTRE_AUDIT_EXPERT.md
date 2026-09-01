@@ -18,6 +18,25 @@ commande, ou sortie). Aucun statut n'est déduit d'un « ça devrait être fait 
 `PARTIEL` = un mécanisme existe et est cité, mais ne couvre pas l'énoncé complet ;
 c'est délibérément distingué de `DÉJÀ_FAIT` pour ne pas fermer un point à moitié traité.
 
+### ⚠️ « Livré » n'est pas « exercé » — les deux états sont distincts
+
+Un point porte **deux états séparés**, et le second ne se déduit jamais du premier :
+
+| État | Ce qu'il affirme | Ce qu'il n'affirme PAS |
+|---|---|---|
+| 💻 **Livré** | le code est écrit, testé unitairement, mergé | que quiconque l'ait vu fonctionner |
+| ✅ **Exercé en réel** | quelqu'un a emprunté le chemin, à l'écran, dans les 3 formats | — |
+
+**Aucune ligne de ce registre n'est ✅ Exercé.** Les correctifs ouverts en PR sont
+au mieux 💻 ; tant qu'une PR n'est pas mergée ET le chemin parcouru en réel, le
+point reste ouvert. Une ligne marquée « CORRIGÉ — PR #N » signifie **le code
+existe**, rien de plus.
+
+⚠️ **Ce n'est pas de la prudence rhétorique, c'est un mode d'échec observé.**
+Voir **AUDX-160** : la pastille « aller au dernier message » était livrée depuis
+des semaines, cochée comme faite — et **rendue hors écran**, donc inutilisable
+par tout le monde, tout ce temps. Le code était juste ; personne n'avait regardé.
+
 ⚠️ **Ce registre trace, il ne réalise pas.** Une ligne `NON_COMMENCÉ` reste ouverte tant
 qu'elle n'a pas été **testée en réel** au sens de `CLAUDE.md` (📤 dispatché / 💻 codé /
 ✅ testé live — seul ✅ compte).
@@ -372,6 +391,25 @@ recibler, supprimer). Vérifier les piles avant toute fermeture.
 
 ---
 
+## 12-bis. Points constatés HORS REMISE — AUDX-159 → AUDX-160
+
+⚠️ **Ce que cette section prouve : le registre n'est PAS exhaustif du réel.**
+Les 158 lignes ci-dessus couvrent exactement ce que l'audit externe a remis. Les
+lignes ci-dessous ont été trouvées **en dehors** de cette remise, sur le produit
+en marche. Elles sont numérotées dans la même série pour rester citables, et
+regroupées ici pour que la provenance ne se perde pas.
+
+**La leçon vaut plus que les deux lignes** : un audit, même sérieux, cadre ce
+qu'il a regardé. Un P0 de production peut se tenir entièrement hors de ce cadre.
+Toute nouvelle constatation vient ici, jamais dans les 158.
+
+| ID | Énoncé | Sév. | Statut | Preuve / leçon | Prop. |
+|---|---|---|---|---|---|
+| AUDX-159 | **La génération IA était MORTE en production** — la route s'auto-annulait, et le chemin streaming rendait **200 avec zéro octet** | **P0** | **💻 Livré — PR #358 mergée (`a354779a3`)** | ⚠️ **Absent de TOUT audit** : ni la remise externe, ni les registres internes ne le portaient. Deux défauts distincts sur le même chemin : (a) le garde-fou anti-gaspillage tuait la génération qu'il devait protéger — une annulation déclenchée sans déconnexion réelle du client ; (b) le chemin **streaming** répondait **200 avec un corps vide**, donc un succès menteur, la pire forme d'échec (rien à voir dans les logs, rien à voir côté client, sauf que rien n'arrive). C'est la fonction centrale du produit. ⚠️ **Reste ✅ Exercé ☐** : mergé n'est pas déployé, et « la génération marche » se prouve à l'écran. | BE |
+| AUDX-160 | **La pastille « aller au dernier message » était livrée depuis des semaines et rendue HORS ÉCRAN** — donc inutilisable | P1 | **NON_COMMENCÉ** | ⚠️ **Le point était coché « livré ».** Le code existait, il était correct, il était mergé — et personne n'avait jamais regardé le rendu. Résultat : une fonctionnalité inexistante en pratique pendant des semaines, avec un suivi qui affirmait le contraire. **C'est la justification concrète de la distinction 💻 Livré / ✅ Exercé** posée en tête de ce registre. Rejoint AUDX-103 (écrans coupés ou débordants) mais mérite sa propre ligne : ici le défaut n'est pas le CSS, c'est le **processus de clôture**. | FE |
+
+---
+
 ## 12. Points d'attention transverses
 
 Recueillis pendant la vérification, ils s'appliquent à plusieurs lignes et évitent des
@@ -402,7 +440,7 @@ faux positifs comme des faux « corrigés ».
 
 ## Annexe A — table de correspondance énoncé → identifiant
 
-Contrôle d'exhaustivité : **158 lignes**, aucune perte par rapport à la remise.
+Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — plus **2 lignes hors remise** (§12-bis), qui prouvent que le registre n'est pas exhaustif du réel.
 
 | Section de la remise | Plage | Nb |
 |---|---|---|
@@ -417,7 +455,8 @@ Contrôle d'exhaustivité : **158 lignes**, aucune perte par rapport à la remis
 | Parité produit | AUDX-120 → 134 | 15 |
 | Accès externes (hors dépôt) | AUDX-135 → 148 | 14 |
 | Gouvernance | AUDX-149 → 158 | 10 |
-| **Total** | | **158** |
+| Points constatés **hors remise** | AUDX-159 → 160 | 2 |
+| **Total** | | **160** |
 
 Les lignes **AUDX-034**, **AUDX-035** et **AUDX-082** ont été **ajoutées** au découpage
 littéral de la remise : la première et la deuxième parce que la remise demandait
