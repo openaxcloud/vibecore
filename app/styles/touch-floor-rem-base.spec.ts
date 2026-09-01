@@ -79,6 +79,25 @@ describe('TACTILE-004 — plancher tactile face à la base rem redéfinie', () =
     expect(bloc![1], 'une valeur en rem serait à nouveau dégonflée par la base').not.toMatch(/rem/);
   });
 
+  it('MÉCANISME 2b — la LARGEUR aussi, sinon un bouton carré reste à moitié corrigé', async () => {
+    /*
+     * Une cible tactile a DEUX dimensions. La première version de ce correctif
+     * ne posait que la hauteur : un bouton `min-h-11 min-w-11` rendait alors
+     * 44px de haut sur 33 de large. Mesuré en réel à 390 par la session du
+     * panneau Agent : 42x59 sur le repli des actions d'un artefact.
+     */
+    const uno = createGenerator({ presets: [presetUno()] });
+    const { css } = await uno.generate('min-w-11 w-11', { preflights: false });
+
+    expect(css, 'les classes de largeur sortent du même rem').toContain('min-width:2.75rem');
+
+    const bloc = CSS.match(/@media \(max-width: 1024px\)\s*\{[\s\S]*?\.min-w-11,\s*\.w-11\s*\{([^}]*)\}/);
+
+    expect(bloc, 'le plancher de largeur doit exister').toBeTruthy();
+    expect(bloc![1], 'en pixels, jamais en rem').toMatch(/min-width:\s*var\(--vc-touch-min, 44px\)/);
+    expect(bloc![1]).not.toMatch(/rem/);
+  });
+
   it('le jeton de plancher vaut bien 44px, en pixels', () => {
     expect(jeton(':root', '--vc-touch-min')).toBe('44px');
   });

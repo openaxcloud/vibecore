@@ -962,6 +962,21 @@ html:has(.vc-app-shell-grid) body {
   .h-11 {
     min-height: var(--vc-touch-min, 44px) !important;
   }
+
+  /*
+   * L'AUTRE MOITIÉ, et elle manquait. Une cible tactile a DEUX dimensions :
+   * poser le plancher en hauteur seulement laisse un bouton carré déclaré
+   * `min-h-11 min-w-11` à 44px de haut sur 33 de large. Mesuré par la session
+   * du panneau Agent après application de la seule règle de hauteur : le repli
+   * des actions d'un artefact rendait 42x59 — hauteur corrigée, largeur au sol.
+   *
+   * `min-w-11` et `w-11` sortent du MÊME `2.75rem` (vérifié en exécutant le
+   * générateur), donc du même 33/38,5px.
+   */
+  .min-w-11,
+  .w-11 {
+    min-width: var(--vc-touch-min, 44px) !important;
+  }
 }
 
 @media (max-width: 1024px) {
