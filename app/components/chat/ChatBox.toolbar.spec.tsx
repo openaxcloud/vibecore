@@ -111,25 +111,55 @@ describe('<ChatBox /> toolbar', () => {
     window.localStorage.clear();
   });
 
-  it('keeps the composer toolbar compact and moves the newline hint behind a tooltip', () => {
-    renderChatBox();
+  it('keeps the IDE composer to a single control row — selectors left, actions right', () => {
+    const { container } = renderChatBox();
 
     expect(screen.queryByText(/Use Shift \+ Return a new line/i)).toBeNull();
     expect(screen.getByRole('button', { name: 'Attach images' }).getAttribute('data-vc-tooltip')).toBe('Attach images');
 
     /*
-     * The mode dropdown is Agent/Assistant only now; Plan is a standalone toggle
-     * beside it. With agentMode='agent' the trigger reads "Agent" and the Plan
-     * toggle is present and not pressed (planFirstEnabled=false).
+     * Composer compact : la rangée porte DEUX étiquettes de sélection à gauche
+     * (mode d'exécution, puis mode de puissance) et les actions à droite. Le
+     * segmenté Léger/Économique/Puissance, le coût et « Planifier » se replient
+     * dans le popover « Avancé » — ils ne doivent plus occuper de rangée.
      */
-    const modeTrigger = screen.getByRole('button', { name: /Agent/, expanded: false });
+    const primary = container.querySelector('.bolt-chatbox-toolbar-primary') as HTMLElement;
+    const secondary = container.querySelector('.bolt-chatbox-toolbar-secondary') as HTMLElement;
+
+    const modeTrigger = primary.querySelector('.bolt-chatbox-mode-trigger') as HTMLElement;
+    expect(modeTrigger.textContent).toContain('Agent');
     expect(modeTrigger.getAttribute('aria-haspopup')).toBe('menu');
     expect(modeTrigger.getAttribute('data-mode')).toBe('agent');
 
-    const planToggle = screen.getByRole('button', { name: 'Plan' });
-    expect(planToggle.getAttribute('aria-pressed')).toBe('false');
+    const powerTrigger = within(primary).getByTestId('agent-mode-advanced');
+    expect(powerTrigger.getAttribute('aria-label')).toBe('Agent mode: Economy. Opens advanced settings.');
+    expect(powerTrigger.getAttribute('aria-expanded')).toBe('false');
 
-    expect(screen.getByRole('button', { name: 'More composer & tools' }).getAttribute('aria-haspopup')).toBe('menu');
+    // Les actions sont à DROITE, pas mélangées aux sélecteurs.
+    expect(within(secondary).getByRole('button', { name: 'Attach images' })).toBeTruthy();
+    expect(within(secondary).getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
+    expect(within(secondary).getByRole('button', { name: 'More composer & tools' }).getAttribute('aria-haspopup')).toBe(
+      'menu',
+    );
+    expect(within(primary).queryByRole('button', { name: 'Attach images' })).toBeNull();
+
+    // Rien de repliable ne reste dans la rangée au repos.
+    expect(within(primary).queryByRole('radiogroup', { name: /Agent mode/i })).toBeNull();
+    expect(within(primary).queryByRole('button', { name: 'Plan' })).toBeNull();
+    expect(primary.textContent).not.toMatch(/\$/);
+
+    /*
+     * Le bouton « i » quitte la rangée de l'IDE : le raccourci reste porté par
+     * le champ, là où il s'utilise.
+     */
+    expect(screen.queryByRole('button', { name: 'Composer shortcuts' })).toBeNull();
+    expect(screen.getByRole('textbox', { name: /agent/i }).getAttribute('title')).toBe(
+      'Shift + Return inserts a new line',
+    );
+  });
+
+  it('keeps the newline-hint button on the standalone composer', () => {
+    renderChatBox({ projectIdeMode: false });
 
     const shortcuts = screen.getByRole('button', { name: 'Composer shortcuts' });
 
@@ -159,11 +189,15 @@ describe('<ChatBox /> toolbar', () => {
     expect(screen.getByRole('button', { name: 'Start speech recognition' })).toBeTruthy();
   });
 
-  it('toggles Plan first from the standalone Plan toggle (Replit parity)', () => {
+  it('toggles Plan first from inside the Advanced popover (Replit parity)', () => {
     const onPlanFirstChange = vi.fn();
     renderChatBox({ planFirstEnabled: false, onPlanFirstChange });
 
-    // Standalone toggle, next to the mode dropdown — not a dropdown mode.
+    // Replié au repos : le bouton n'occupe plus une rangée à lui.
+    expect(screen.queryByRole('button', { name: 'Plan' })).toBeNull();
+
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+
     const planToggle = screen.getByRole('button', { name: 'Plan' });
     expect(planToggle.getAttribute('aria-pressed')).toBe('false');
 
@@ -171,9 +205,11 @@ describe('<ChatBox /> toolbar', () => {
     expect(onPlanFirstChange).toHaveBeenCalledWith(true);
   });
 
-  it('shows the standalone Plan toggle pressed when plan-first is on, and turns it off', () => {
+  it('shows the Plan toggle pressed when plan-first is on, and turns it off', () => {
     const onPlanFirstChange = vi.fn();
     renderChatBox({ planFirstEnabled: true, onPlanFirstChange });
+
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     const planToggle = screen.getByRole('button', { name: 'Plan' });
     expect(planToggle.getAttribute('aria-pressed')).toBe('true');
@@ -204,6 +240,10 @@ describe('<ChatBox /> agent power controls', () => {
      * control — never a model name — and the two switches (High effort, Turbo)
      * live behind the Advanced popover. The live cost estimate stays visible.
      */
+    // Replié au repos ; l'étiquette de la rangée ouvre le panneau.
+    expect(screen.queryByRole('radiogroup', { name: /Agent mode/i })).toBeNull();
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+
     const segmented = screen.getByRole('radiogroup', { name: /Agent mode/i });
     expect(
       within(segmented)
@@ -213,20 +253,24 @@ describe('<ChatBox /> agent power controls', () => {
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
-
     expect(screen.getByRole('switch', { name: /High effort/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
 
     // No model name anywhere in the composer — the product rule.
     expect(document.body.textContent).not.toMatch(/claude|gpt-|anthropic|openai|gemini/i);
 
-    // economy (×1) × $0.25 baseline, +30% server AI margin → ceil(33¢) = $0.33
-    expect(screen.getAllByTitle(/Estimated cost for this request/i)[0].textContent).toContain('~$0.33');
+    /*
+     * Le coût vit désormais dans le popover, plus dans la rangée : c'est la
+     * ligne « Estimated » du panneau qui le porte. economy (×1) × $0.25 de base,
+     * +30 % de marge IA serveur → ceil(33¢) = $0.33.
+     */
+    const panel = screen.getByRole('dialog', { name: /Agent settings|Advanced/i });
+    expect(panel.textContent).toContain('~$0.33');
   });
 
   it('does not render the power controls outside the IDE composer', () => {
     renderChatBox({ projectIdeMode: false });
+    expect(screen.queryByTestId('agent-mode-advanced')).toBeNull();
     expect(screen.queryByRole('radiogroup', { name: /Agent mode/i })).toBeNull();
   });
 
@@ -234,7 +278,7 @@ describe('<ChatBox /> agent power controls', () => {
     const onAgentPowerChange = vi.fn();
     renderChatBox({ onAgentPowerChange });
 
-    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     // Economy: Turbo is locked (Power only)…
     const turbo = screen.getByRole('switch', { name: /Turbo/i });
@@ -259,7 +303,7 @@ describe('<ChatBox /> agent power controls', () => {
       onAgentPowerChange: vi.fn(),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Advanced/i }));
+    fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
   });

@@ -1096,10 +1096,9 @@ export const chatEn = {
   'chat.copy.dependenciesManager_5bf6692e': 'Dependencies manager',
   'chat.copy.deployAndHostModernWebApps_c87b1d87': 'Deploy and host modern web apps.',
   'chat.copy.deploymentContextDetected_4ffe7eeb': 'Deployment context detected',
-  'chat.copy.describeAScopedEditEG_0d84e847': 'Describe a scoped edit, e.g. "Add a logout button to the navbar"…',
-  'chat.copy.describeTheSystemToDesignGoals_b6fcef66':
-    'Describe the system to design — goals, constraints, integrations…',
-  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Describe what you want the agent to build, fix or refactor…',
+  'chat.copy.describeAScopedEditEG_0d84e847': 'Describe a scoped edit…',
+  'chat.copy.describeTheSystemToDesignGoals_b6fcef66': 'Describe the system to design…',
+  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Build, fix or refactor — describe it…',
   'chat.copy.describeWhatYouWantToBuild_998d9a1a':
     'Describe what you want to build, fix or refactor. Use Plan first when you want approval before edits.',
   'chat.copy.designArchitectureContractsRisksAndRollout_33a8af69':
@@ -2698,12 +2697,9 @@ export const chatFr = {
   'chat.copy.dependenciesManager_5bf6692e': 'Gestionnaire de dépendances',
   'chat.copy.deployAndHostModernWebApps_c87b1d87': 'Déployez et hébergez des applications Web modernes.',
   'chat.copy.deploymentContextDetected_4ffe7eeb': 'Contexte de déploiement détecté',
-  'chat.copy.describeAScopedEditEG_0d84e847':
-    'Décrivez une modification de portée, par ex. "Ajouter un bouton de déconnexion à la barre de navigation"…',
-  'chat.copy.describeTheSystemToDesignGoals_b6fcef66':
-    'Décrire le système à concevoir – objectifs, contraintes, intégrations…',
-  'chat.copy.describeWhatYouWantTheAgent_283b294d':
-    "Décrivez ce que vous souhaitez que l'agent construise, corrige ou refactorise…",
+  'chat.copy.describeAScopedEditEG_0d84e847': 'Décrivez une modification ciblée…',
+  'chat.copy.describeTheSystemToDesignGoals_b6fcef66': 'Décrivez le système à concevoir…',
+  'chat.copy.describeWhatYouWantTheAgent_283b294d': 'Construire, corriger, refactoriser…',
   'chat.copy.describeWhatYouWantToBuild_998d9a1a':
     'Décrivez ce que vous souhaitez créer, réparer ou refactoriser. Utilisez Plan en premier lorsque vous souhaitez une approbation avant les modifications.',
   'chat.copy.designArchitectureContractsRisksAndRollout_33a8af69':
