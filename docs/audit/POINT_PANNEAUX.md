@@ -1,7 +1,7 @@
 # Point panneaux IDE — état de la connaissance
 
 > **Régénéré à chaque passage du balayage QA continu.**
-> Dernière régénération : **2026-09-01**, balayage QA continu.
+> Dernière régénération : **2026-09-01 ~17h40**, balayage QA continu (2ᵉ passage).
 
 ---
 
@@ -10,17 +10,36 @@
 **La production ne tourne PAS le code de `main`, et l'environnement d'audit tourne un code
 encore plus ancien que la production.** Tout constat ci-dessous doit être lu à travers cet écart.
 
+### Relevé de 17h40 — la production a rattrapé son retard
+
+| Surface | SHA déployé | Date du commit | Retard vs `main` |
+|---|---|---|---:|
+| `main` (référence) | `fce8639ab` | 01/09 | — |
+| **prod `api`** | `7fe97070b7` | 01/09 13:15 | **2 commits** |
+| **prod `web`** | `273d161ab3` | 01/09 16:23 | **1 commit** |
+| **env d'audit `web` + `api`** | `040dd2976d` | 27/08 07:59 | **128 commits** |
+
+**L'atterrissage a eu lieu.** La production est désormais à jour à 1–2 commits près, et les
+28 commits listés au §5 sont en ligne. La liste de re-vérification du §5 est donc **active**,
+plus « en attente ».
+
+**Mais le déséquilibre s'est inversé et aggravé** : l'environnement d'audit, lui, n'a pas bougé.
+Il est maintenant **128 commits derrière la production**. Tout constat panneau du §3 a été
+obtenu sur ce build périmé et doit être rejoué. C'est aujourd'hui le principal frein de ce
+balayage.
+
+### Relevé précédent (matin), conservé pour mémoire
+
 | Surface | SHA déployé | Date du commit | Retard vs `main` |
 |---|---|---|---:|
 | `main` (référence) | `7fe97070b` | 01/09 13:15 | — |
 | **prod `api`** | `17fe73df55` | 01/09 03:38 | **26 commits** |
 | **prod `web`** | `e597a021ab` | 31/08 22:46 | **28 commits** |
-| **env d'audit `web` + `api`** | `040dd2976d` | 27/08 07:59 | **128 commits** |
 
 Trois conséquences, toutes gênantes :
 
-1. **La prod est hétérogène.** `web` est **2 commits derrière** son propre `api`. L'interface
-   observée en production n'est donc pas celle de `main`, ni même celle de l'API qui la sert.
+1. **La prod reste hétérogène**, mais dans l'autre sens et de peu : `web` (`273d161ab3`, 16h23)
+   est désormais **plus récent** que son `api` (`7fe97070b7`, 13h15).
 2. **L'environnement d'audit est 100 commits DERRIÈRE la production** (`040dd2976d` est un
    ancêtre de `e597a021ab`). Il est donc **plus vieux que la prod**, pas plus récent : un défaut
    qu'on y observe peut avoir été corrigé depuis, et un correctif qu'on y valide ne prouve rien
@@ -188,3 +207,99 @@ attendent la revue, puis un déploiement.
   preuve de MA part », pas « personne ne les a jamais regardés ».
 - L'environnement d'audit étant **antérieur à la production**, un ❌ constaté ici peut déjà être
   corrigé en ligne, et un 🔧 ne dit rien de la prod.
+
+---
+
+## 7. Deuxième passage — 2026-09-01, ~17h40
+
+### 7.1 Ce qui a changé depuis le premier passage
+
+La production a atterri (§1). **Les 10 panneaux du §3 restent donc à rejouer** : ils ont été
+mesurés sur l'environnement d'audit, désormais **128 commits derrière la production**. Leur
+état reste 🔧 et ne peut pas monter à ✅.
+
+**Le plafond du §2 n'a pas bougé** : la création d'un compte de test en production reste
+interdite à cette session, et un panneau IDE exige un compte, un projet et un espace de travail.
+**Aucun panneau ne peut donc passer ✅ sans une décision d'Avi** (compte de QA dédié en prod, ou
+preuve produite par la session « Livraisons + preuves prod »).
+
+**Surface intermédiaire montée pendant ce passage** : un serveur de développement local sur
+`main` (worktree `wt-qasep01`, port 5173). Ce n'est pas la production, mais c'est **du code
+courant**, contre les 128 commits de retard de l'env d'audit. Il a servi aux mesures du §7.3.
+
+> ⚠️ **Piège de worktree rencontré, à connaître.** Le `node_modules` du worktree était un
+> symlink vers celui du checkout principal ; or les liens `@vibecore/*` y sont **relatifs** et
+> pointaient vers les paquets du checkout principal, qui est sur une **autre branche**. Résultat :
+> `Cannot find module '@vibecore/editor/install-pwa-sw'` et **500 sur toutes les pages**.
+> Réparé en remplaçant le symlink par un vrai répertoire de liens, avec `@vibecore/*` pointant
+> vers les paquets **du worktree**. `pnpm install` n'a **pas** été lancé : dans un worktree, il
+> purge le `node_modules` partagé du checkout principal.
+
+### 7.2 `/mobile` — deux grilles de plus, trouvées par le garde-fou
+
+Le spec ajouté le matin (`tests/e2e/mobile-content-clipping.spec.ts`) a **échoué en CI sur
+`main`** : `/mobile` amputait encore **14 px** (`body.scrollWidth = 404` pour un viewport de
+390), de façon déterministe — essai initial **et** deux reprises. Deux grilles de
+`EcodeMobilePage` n'avaient pas de piste de base clampée (accroche et cartes) ; corrigées
+(commit `15821f583`).
+
+> ⚠️ **Non reproductible en local sur macOS.** Mesuré sur le serveur local à la même révision :
+> `clip = +0 px`, **avec et sans** le correctif. Le débordement dépend donc des **polices de la
+> plateforme** : il apparaît sur les runners Linux de la CI, pas sur macOS. **La CI est ici le
+> seul juge honnête**, et c'est elle qui valide le correctif. À retenir pour toute mesure future
+> de min-content : une mesure macOS propre ne prouve rien pour Linux.
+
+### 7.3 Groupe contraste — repris de la campagne arrêtée
+
+**Constat : le chantier est déjà fait et il tient.** Le correctif `c17a8e2cb` (« 47 textes sur
+une teinte de leur propre couleur ») est sur `main` et en production.
+
+**L'énumération est bien faite depuis la feuille COMPILÉE**, pas depuis une liste tenue à la
+main : `app/styles/tint-contrast-sweep.spec.ts` compile `index.scss` avec `sass-embedded` et
+dérive les paires texte/fond de la sortie. Le fichier documente aussi le piège que la feuille
+compilée écrit `:root[data-theme=light]` **sans guillemets**, et **échoue bruyamment s'il n'a
+rien mesuré** — le faux négatif le plus coûteux est rendu impossible plutôt que signalé.
+
+| Vérification | Résultat |
+|---|---|
+| `tint-contrast-sweep.spec.ts` + `on-accent-ink.spec.ts` sur `main` | **8/8 verts** |
+| Sonde **pixels rendus** — 8 pages × 2 thèmes, 1440 px | **0 défaut réel** |
+
+*Méthode de la sonde* : capture d'écran réelle → canvas → couleur de fond **effectivement
+rendue** sous chaque nœud de texte (et non l'ancêtre DOM, qui ment dès qu'un calque frère
+absolu se glisse entre les deux), comparée à la `color` calculée, seuils AA 4,5:1 / 3:1 selon
+taille et graisse.
+
+**Deux signaux levés, tous deux écartés après vérification** — ils auraient fait deux faux
+positifs :
+
+1. **« Créer le compte » sur `/register`**, blanc sur orange clairci, 2,62:1 (clair) / 3,12:1
+   (sombre). **Le bouton est `disabled` avec `opacity: 0.6`.** WCAG 1.4.3 exempte explicitement
+   les composants d'interface **inactifs**. Pas un défaut.
+2. **« Chargement d'E-Code… »**, 1,69:1 à 3,63:1. Texte de l'**overlay de chargement**, mesuré
+   en cours de fondu, avec un fond qui change d'une mesure à l'autre (`rgb(12,12,28)` sur
+   `/features`, `rgb(244,116,20)` sur `/login`). Artefact de mesure, pas un état stable.
+
+**Reste à couvrir sur ce groupe** : les utilitaires **UnoCSS** (`text-X` sur `bg-X/10`) ne
+passent pas par `index.scss` et échappent donc au spec de dérivation ; la sonde pixels les
+attrape, mais elle n'a tourné que sur 8 pages marketing, **sans les surfaces authentifiées ni
+l'IDE** (le serveur local n'a pas d'API). Le cas « Commit changes » du panneau Git est couvert
+par `on-accent-ink.spec.ts` (vert), mais **n'a pas été revu à l'écran** dans ce passage.
+
+### 7.4 File reprise — état
+
+| Chantier | État | Note |
+|---|---|---|
+| **1. Contraste** | ✅ **traité** (§7.3) | Déjà corrigé sur `main` ; dérivation depuis la feuille compilée vérifiée ; 0 défaut réel à la sonde pixels. Reste : UnoCSS + surfaces authentifiées. |
+| **2. Terminal** — BUG-TERM-002, BUG-QUOTA-001 | ⬜ **non commencé** | Apparence mobile **GELÉE** sur IMG_9149 : ne jamais la modifier. Garde à faire porter sur le **vrai site d'appel**, pas sur une copie du composant. |
+| **3. 14 composants morts + 2 ressources orphelines** (`4e534565c`) | ⬜ **non commencé** | Prouver la mort de chacun (aucune référence vivante, commentaires exclus) **avant** suppression, par lots, preuve dans le message de commit. |
+
+### 7.5 Prochaine reprise — dans cet ordre
+
+1. **Rejouer les 10 panneaux sur du code courant.** L'env d'audit est inutilisable tel quel
+   (128 commits de retard) : soit y reconstruire `deps` → `web` → `api` **en série** (le fan-out
+   à 7 images y meurt en `INTERNAL_ERROR`, voir runbook §4.1), soit monter une API locale à côté
+   du serveur web déjà en place. **Couvrir aussi le thème sombre et 768 / 1024 / 1440**, qui
+   n'ont jamais été faits.
+2. **Terminal** (chantier 2), puis **composants morts** (chantier 3).
+3. Étendre la sonde pixels de contraste aux surfaces authentifiées et à l'IDE.
