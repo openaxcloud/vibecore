@@ -39,18 +39,6 @@ const RACINE = join(__dirname);
  * chacun, parce qu'un mort non expliqué finit par être pris pour du code vivant.
  */
 const MORTS_CONNUS = [
-  /* SettingsStatusSurfaces.i18n.spec.tsx le monte, à côté de surfaces vivantes. */
-  '@settings/tabs/github/components/GitHubProgressiveLoader',
-
-  /* ChatResiduals.i18n.spec.tsx l'importe pour un balayage de résidus i18n. */
-  'chat/DicussMode',
-
-  /* ChatControls.i18n.spec.tsx le monte dans des cas nommés « chat controls ». */
-  'chat/ModelSelector',
-
-  /* client-ast-residual.spec.tsx l'importe ET lit son chemin de fichier. */
-  'chat/PresenceAvatars',
-
   /* typography-closed-scale.spec.ts nomme son chemin ; DeployRemainingComponents le monte. */
   'deploy/DeploymentTypeSelector',
 
@@ -66,9 +54,6 @@ const MORTS_CONNUS = [
    * Le supprimer rendrait cette garde trivialement vraie — à décider ensemble.
    */
   'marketing/ecode-exact/pages/Pricing',
-
-  /* SharedUiResidual.i18n.spec.tsx le monte avec `HelpButton`, lui bien vivant. */
-  'ui/SettingsButton',
 ];
 
 function fichiers(dir: string, acc: string[] = []): string[] {
