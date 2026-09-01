@@ -4,6 +4,20 @@ on:
   pull_request:
   push:
     branches: [main, stable, product/saas-platform-production]
+  # ATTESTATION-CHECKS-001 — déclenchable à la demande, sur un SHA précis.
+  #
+  # Les commits poussés par le bot d'attestation avec `GITHUB_TOKEN` ne
+  # redéclenchent AUCUN workflow — c'est délibéré, pour que le workflow ne se
+  # relance pas sur son propre commit (voir parity-registries.yml). Conséquence :
+  # ces commits n'ont aucun contrôle, et la porte de déploiement, qui exige des
+  # contrôles verts pour CE commit exact, ne peut jamais les laisser passer.
+  #
+  # Plutôt que d'exempter le bot ou de faire remonter la porte à un autre commit
+  # — deux assouplissements déguisés — le workflow d'attestation DISPATCHE
+  # lui-même les contrôles requis sur son nouveau commit. Il faut donc que
+  # celui-ci soit dispatchable. Pas de boucle : on relance les contrôles requis,
+  # jamais l'attestation elle-même.
+  workflow_dispatch:
 
 concurrency:
   # Never cancel on main. This workflow is a REQUIRED check for the production

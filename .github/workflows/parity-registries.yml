@@ -27,10 +27,13 @@ on:
 
 permissions:
   contents: write
+  # ATTESTATION-CHECKS-001 — `actions: write` pour DEMANDER les contrôles requis
+  # sur le commit qu'on vient de pousser. En lecture seule, on saurait constater
+  # qu'il n'en a aucun sans pouvoir y remédier.
+  actions: write
   # LS-16 (verdict -04) : verify-attestation-run.mjs appelle « Get a workflow
   # run » — sans actions:read, l'API répond « Resource not accessible by
   # integration » et le contrôle est cassable.
-  actions: read
 
 concurrency:
   group: parity-registries-${{ github.ref }}
@@ -171,6 +174,7 @@ jobs:
           PARITY_DEPS=/tmp/parity-deps node scripts/parity/generate-document-manifest.mjs
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
       - name: Commit the rolled attestation
+        id: attest
         run: |
           git config user.name "parity-attestation-bot"
           git config user.email "noreply@e-code.ai"
@@ -180,7 +184,49 @@ jobs:
           else
             git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
             git push origin HEAD:main
+            echo "pushed=true" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Déclencher les contrôles requis sur le commit d'attestation
+        # ATTESTATION-CHECKS-001 — un commit sans contrôle est un commit
+        # indéployable.
+        #
+        # Les pushes faits avec `GITHUB_TOKEN` ne redéclenchent aucun workflow.
+        # C'est voulu : sans cela, ce workflow se relancerait sur son propre
+        # commit, indéfiniment. Mais la porte de déploiement exige des contrôles
+        # VERTS POUR CE COMMIT EXACT — un commit d'attestation en tête de `main`
+        # bloquait donc tout déploiement automatique.
+        #
+        # On ne l'exempte pas et on ne fait pas remonter la porte à un autre
+        # commit : les deux seraient des assouplissements déguisés. On DEMANDE
+        # les contrôles, explicitement, sur le SHA qu'on vient de créer.
+        #
+        # Pas de boucle : on dispatche les workflows REQUIS, jamais celui-ci.
+        if: steps.attest.outputs.pushed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          echo "contrôles demandés pour ${SHA}"
+
+          # `--ref` prend une BRANCHE, pas un SHA : le dispatch part donc de la
+          # tête de `main`. C'est correct ici — le commit qu'on vient de pousser
+          # EST cette tête — et on le journalise pour que ce ne soit pas une
+          # supposition silencieuse si un autre push survenait entre-temps.
+          HEAD_MAIN="$(gh api repos/${GITHUB_REPOSITORY}/commits/main --jq .sha)"
+          if [ "${HEAD_MAIN}" != "${SHA}" ]; then
+            echo "::warning::main a avancé (${HEAD_MAIN}) depuis notre commit ${SHA} — les contrôles porteront sur la tête courante"
+          fi
+
+          for wf in ci.yml e2e.yml; do
+            if gh workflow run "${wf}" --ref main; then
+              echo "dispatché: ${wf}"
+            else
+              echo "::error::impossible de dispatcher ${wf} — le commit d'attestation resterait sans contrôle"
+              exit 1
+            fi
+          done
 
   collect-baseline:
     name: Daily baseline snapshot (schedule only)
