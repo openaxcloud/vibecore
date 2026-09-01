@@ -10304,9 +10304,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-pill bolt-project-statusbar-workspace"
-                onClick={() => openBottomTerminal('terminal')}
-                title={workspaceStatusTitle}
-                aria-label={workspaceStatusTitle || t('chat.copy.openWorkspaceTerminal_b039db9a')}
+                /*
+                 * BUG-CREATE-002 — le rejet de quota n'était signalé que par un « ! »
+                 * posé sur CE bouton, dont le clic ouvrait la vue « terminal » : le
+                 * Shell, où le message n'est pas rendu. Le diagnostic est pourtant
+                 * bien poussé dans le panneau PROBLÈMES (diagnostics.ts:248). On
+                 * route donc le clic vers la vue qui contient réellement le message,
+                 * et on met ce message dans l'infobulle pour qu'il soit lisible sans
+                 * ouvrir quoi que ce soit.
+                 */
+                onClick={() => openBottomTerminal(quotaWarning || billingUpgradePrompt ? 'problems' : 'terminal')}
+                title={quotaWarning || workspaceStatusTitle}
+                aria-label={quotaWarning || workspaceStatusTitle || t('chat.copy.openWorkspaceTerminal_b039db9a')}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
