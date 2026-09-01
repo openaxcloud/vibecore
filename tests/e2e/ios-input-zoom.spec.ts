@@ -197,6 +197,14 @@ async function createProjectSession(request: APIRequestContext) {
 
 for (const viewport of VIEWPORTS) {
   test(`la zone de saisie de l'agent tient le plancher — ${viewport.label}`, async ({ page, request }) => {
+    /*
+     * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
+     * fixture peut donc attendre plusieurs paliers de repli avant d'obtenir une
+     * session. Le délai par défaut de 30 s de la configuration ne le couvre pas,
+     * et c'est la cause n°1 des faux rouges de cette suite.
+     */
+    test.setTimeout(120_000);
+
     const { token, projectId } = await createProjectSession(request);
 
     await page

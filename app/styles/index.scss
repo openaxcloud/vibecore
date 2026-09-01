@@ -1781,20 +1781,138 @@ body
   font-weight: 600;
 }
 
-.bolt-assistant-message-footer {
+/*
+ * Actions de message — discrètes, révélées au survol ou au toucher.
+ *
+ * Elles étaient rendues en permanence sous CHAQUE message, à 0,85 d'opacité et
+ * surmontées d'un filet, soit 47 px de chrome par réponse en 390 : sur un fil de
+ * dix échanges, presque un écran entier de barres d'icônes. La référence donnée
+ * est la conversation de Claude — texte dense, marges serrées, actions qui
+ * n'apparaissent qu'au moment où on les cherche.
+ *
+ * La place reste RÉSERVÉE (opacité, pas `display`) : une barre qui apparaît en
+ * poussant le texte fait sauter la lecture au moment précis où le curseur entre
+ * dans le message.
+ */
+.bolt-assistant-message-footer,
+.bolt-user-message-footer {
   display: flex;
   align-items: center;
   gap: 2px;
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--vc-ide-border-subtle);
-  opacity: 0.85;
+  margin-top: 2px;
+  opacity: 0;
   transition: opacity 120ms ease-out;
 }
 
-.bolt-assistant-message:hover .bolt-assistant-message-footer,
-.bolt-assistant-message:focus-within .bolt-assistant-message-footer {
-  opacity: 1;
+.bolt-user-message-footer {
+  justify-content: flex-end;
+}
+
+/*
+ * Ces trois éléments sont des conteneurs de MISE EN PAGE, pas des surfaces.
+ *
+ * Une règle très large plus haut dans la feuille — `body :where(…,
+ * [class*='message'], …) { background-color: var(--vc-ide-bg-card) }` — peint
+ * tout ce dont la classe contient « message ». Elle passait inaperçue tant que
+ * `.bolt-user-message` ÉTAIT la bulle ; depuis que la bulle a son propre nœud,
+ * le conteneur peignait une bande pleine largeur à gauche du message. Elle
+ * peignait aussi la bande grise sous chaque réponse, derrière la barre
+ * d'actions. On ne touche pas à la règle générale, on déclare que ces
+ * conteneurs-là n'ont pas de fond.
+ */
+.bolt-user-message,
+.bolt-user-message-footer,
+.bolt-assistant-message-footer {
+  background-color: transparent;
+}
+
+.bolt-user-message-edit {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+}
+
+/*
+ * Plancher tactile des actions de message, EN PIXELS.
+ *
+ * Le bouton « modifier et renvoyer » portait `min-h-11 min-w-11`. En Tailwind
+ * c'est 2,75rem, donc 44 px avec une base de 16 — mais la base rem du produit
+ * est redéfinie à 14 px sous 1024 px : la classe rendait 38,5 px, sous le
+ * plancher, et un test vérifiait la PRÉSENCE de cette classe, donc il était vert
+ * sur une cible trop petite.
+ */
+@media (max-width: 1024px) {
+  .bolt-user-message-edit,
+  .bolt-assistant-message-action {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Pointeur fin : survol et focus clavier. */
+@media (hover: hover) {
+  .bolt-chat-message-row:hover .bolt-assistant-message-footer,
+  .bolt-chat-message-row:hover .bolt-user-message-footer,
+  .bolt-chat-message-row:focus-within .bolt-assistant-message-footer,
+  .bolt-chat-message-row:focus-within .bolt-user-message-footer {
+    opacity: 1;
+  }
+}
+
+/*
+ * Pointeur grossier : aucun survol. Le toucher focalise la ligne
+ * (`tabIndex={-1}` côté DOM) et révèle ses actions ; la DERNIÈRE réponse garde
+ * les siennes visibles, parce que c'est celle sur laquelle on agit.
+ *
+ * Ici la place n'est PAS réservée : au doigt les cibles font 44 px, donc une
+ * bande invisible de 44 px sous chaque message coûterait, sur un fil de dix
+ * échanges, presque un écran entier de vide. Le déplacement au moment de la
+ * révélation est acceptable parce qu'il fait suite à un geste délibéré, au
+ * contraire d'un survol qu'on traverse en lisant.
+ */
+@media (hover: none) {
+  .bolt-assistant-message-footer,
+  .bolt-user-message-footer {
+    height: 0;
+    margin-top: 0;
+    overflow: hidden;
+  }
+
+  .bolt-chat-message-row:focus-within .bolt-assistant-message-footer,
+  .bolt-chat-message-row:focus-within .bolt-user-message-footer,
+  .bolt-chat-message-row:last-child .bolt-assistant-message-footer {
+    height: auto;
+    margin-top: 2px;
+    overflow: visible;
+    opacity: 1;
+  }
+}
+
+/*
+ * La bulle de l'utilisateur ne réserve jamais sa bande : son action unique
+ * (« modifier et renvoyer ») n'est pas ce qu'on cherche en relisant un fil, et
+ * 32 px sous chaque tour se voyaient.
+ */
+@media (hover: hover) {
+  .bolt-user-message-footer {
+    height: 0;
+    margin-top: 0;
+    overflow: hidden;
+  }
+
+  .bolt-chat-message-row:hover .bolt-user-message-footer,
+  .bolt-chat-message-row:focus-within .bolt-user-message-footer {
+    height: auto;
+    margin-top: 2px;
+    overflow: visible;
+  }
+}
+
+/* La ligne est focalisable pour cette révélation, pas pour dessiner un cadre. */
+.bolt-chat-message-row:focus {
+  outline: none;
 }
 
 .bolt-assistant-message-action {
@@ -7156,6 +7274,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-agent-transcript {
   min-width: 0;
+
+  /*
+   * L'espacement entre messages venait de `gap-4`, soit 1rem — donc 14 px en
+   * mobile et 12 px en desktop, l'INVERSE de ce qu'on veut, parce que la base
+   * rem du produit est redéfinie à 14 px sous 1024 px et 12 px au-delà. En
+   * pixels, la valeur ne dépend plus de cette redéfinition.
+   */
+  gap: 6px;
 }
 
 /*
@@ -8494,6 +8620,17 @@ body :where(.lucide, svg[data-lucide]) {
   .bolt-chatbox-mode-trigger-label {
     /* Hide the text label at the tightest width; the icon + caret still read. */
     display: none;
+  }
+
+  /*
+   * …sauf dans le composer de l'agent, où l'icône est justement celle qu'on a
+   * masquée pour rendre de la place au libellé. Cacher les deux ne laissait
+   * qu'un chevron : à 1440 le panneau Agent fait 303 px, sa barre 283 px, donc
+   * cette requête de conteneur s'applique en PLEIN DESKTOP. Le libellé reste,
+   * tronqué au besoin par son ellipse.
+   */
+  .bolt-project-chatbox .bolt-chatbox-mode-trigger-label {
+    display: block;
   }
 }
 
@@ -22103,15 +22240,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     transform: translateX(-50%) !important;
   }
 
-  /* "Edit & resend" on a user message is hover-only; reveal it on touch (no hover). */
-  .bolt-responsive-ide-mobile .bolt-user-message-edit {
-    opacity: 1 !important;
-  }
+  /*
+   * « Modifier et renvoyer » n'est plus révélé par une règle qui lui est propre :
+   * il vit dans `.bolt-user-message-footer` et suit la même révélation que les
+   * actions de l'agent (survol ou toucher). Forcer `opacity: 1 !important` ici
+   * le rendrait à nouveau permanent et casserait ce traitement.
+   */
 
-  /* Touch-size the assistant message actions (copy/regenerate/fork/feedback), 26px -> 40px. */
-  .bolt-responsive-ide-mobile .bolt-assistant-message-action {
-    width: 40px;
-    height: 40px;
+  /*
+   * Cibles tactiles des actions de message (copier / régénérer / éditer / avis).
+   * 40 px restait SOUS le plancher produit de 44 px — et le plancher s'exprime en
+   * pixels, la base rem valant 14 px sous 1024 px.
+   */
+  .bolt-responsive-ide-mobile .bolt-assistant-message-action,
+  .bolt-responsive-ide-mobile .bolt-user-message-edit {
+    width: 44px;
+    height: 44px;
   }
 
   .bolt-responsive-ide-mobile .bolt-assistant-message-footer {
