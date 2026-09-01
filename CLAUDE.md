@@ -59,6 +59,38 @@ généraux : ce sont des pièges qui ont déjà coûté.
     rendre au moins un résultat à la même commande sur un cas connu positif,
     ou utiliser `grep -F` avec le motif dans un fichier.
 
+15. **Un correctif sans test qui le tienne est considéré comme NON LIVRÉ.**
+    C'est la règle qui casse la boucle « corrigé → revenu → recorrigé ».
+    Mesuré le 2026-09-01 sur les points de tête de l'analyse des recoupements :
+    le code était déjà bon dans **six cas sur sept**. Le défaut dominant n'est
+    plus la correction manquante, c'est la **garde manquante** — des correctifs
+    justes, souvent documentés en commentaire, que rien n'empêche de défaire.
+
+    Trois exemples du même jour :
+    * `BUG-CREATE-004` — tout le correctif tient dans l'**ordre de deux
+      branches `if`**. Un réordonnancement anodin le réintroduisait sans un
+      seul test rouge.
+    * `BUG-AGENT-005` — la garde ne cherche que `'<boltAction'` ; le cas
+      `'<boltArtifact'` n'était couvert par **aucun** test.
+    * `BUG-DEVSTART-…-001` — `#deferredStartArtifacts` n'apparaissait que
+      dans son implémentation, et aucun spec ne contenait « Start application ».
+
+    Un commentaire qui explique le piège ne protège personne : il se supprime
+    aussi facilement que le code qu'il décrit. Seul un test rouge arrête un
+    refactor.
+
+16. **Fermer un point d'inventaire exige la RÉFÉRENCE DU TEST qui l'épingle**,
+    pas seulement la preuve que ça marche aujourd'hui. Une preuve live date du
+    jour où elle a été prise ; un test vaut pour tous les jours suivants.
+
+    Format imposé dans la colonne Preuve : `preuve live … + épinglé par
+    <chemin/du/test.spec.ts>`. Sans référence de test, le point reste ouvert —
+    même si la vérification en réel est concluante.
+
+    **Exception unique** : un point établi comme NON-DÉFAUT ou comme DOUBLON se
+    ferme sans test, puisqu'il n'y a rien à tenir. Il doit alors le dire
+    explicitement.
+
 **Ces deux dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
@@ -74,6 +106,14 @@ Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vér
 **Plan** — un point n'est ✅ que s'il est 100% surfacé ET marche en réel à 100%.
 
 **Parité Replit** — suivi dans `REPLIT_PARITY.md` (parité fonctionnelle ET pixel). Un point n'y passe ✅ qu'après test réel live (à l'écran + greps) sur web / tablette / mobile — jamais sur « dispatché » ni « codé ».
+
+**Garde obligatoire (règle 16)** — la colonne Preuve d'un point fermé doit
+porter la **référence du test** qui l'épingle, en plus de la preuve live :
+`preuve live … + épinglé par <chemin/du/test.spec.ts>`. Une preuve live vaut
+pour le jour où elle a été prise ; un test vaut pour tous les jours suivants.
+C'est ce qui empêche un défaut corrigé de revenir. Sans référence de test, le
+point reste OUVERT même si la vérification en réel est concluante — seules
+exceptions : un NON-DÉFAUT ou un DOUBLON établi, qui doit le dire explicitement.
 
 **États** — chaque point des 4 fichiers de suivi (`DESIGN_PROGRAM_MASTER`, `BUG_INVENTORY_LIVE`, `PLAN_REMAINING_UNIFIED`, `REPLIT_PARITY`) trace **3 états séparés**, affichés côte à côte par point pour voir précisément où il en est :
 - 📤 **Dispatché** — envoyé à une session
