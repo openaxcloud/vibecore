@@ -231,6 +231,9 @@ export const adminRouteCatalog = {
     'admin.route.aiProviderErrors_a6770e': 'AI provider errors',
     'admin.route.aiProviderGatewayHealthChecks_b2dd87': 'AI provider gateway health checks.',
     'admin.route.aiProviders_897a9f': 'AI providers',
+    'admin.route.aiProviderKeys': 'AI provider keys',
+    'admin.route.aiProviderKeysDescription':
+      'The four AI provider keys as the platform actually reads them, from the Kubernetes secret. Read-only and masked: presence, length and the last four characters — never the value, and never a field to retype one.',
     'admin.route.aiTokensByProvider_7993e6': 'AI tokens by provider',
     'admin.route.aiUsage_03b2de': 'AI usage',
     'admin.route.allowed_c3de44': 'allowed',
@@ -857,6 +860,9 @@ export const adminRouteCatalog = {
     'admin.route.aiProviderErrors_a6770e': 'Erreurs des fournisseurs d’IA',
     'admin.route.aiProviderGatewayHealthChecks_b2dd87': 'Contrôles d’état de la passerelle des fournisseurs d’IA.',
     'admin.route.aiProviders_897a9f': 'Fournisseurs d’IA',
+    'admin.route.aiProviderKeys': 'Clés des fournisseurs d’IA',
+    'admin.route.aiProviderKeysDescription':
+      'Les quatre clés de fournisseurs d’IA telles que la plateforme les lit réellement, depuis le secret Kubernetes. En lecture seule et masquées : présence, longueur et quatre derniers caractères — jamais la valeur, et jamais un champ pour en recopier une.',
     'admin.route.aiTokensByProvider_7993e6': 'Jetons IA par fournisseur',
     'admin.route.aiUsage_03b2de': 'Utilisation de l’IA',
     'admin.route.allowed_c3de44': 'autorisé',

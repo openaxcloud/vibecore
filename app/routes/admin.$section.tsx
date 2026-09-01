@@ -43,7 +43,7 @@ type AdminSectionConfig = {
   primaryKey?: string;
 };
 
-const adminSections: Record<string, AdminSectionConfig> = {
+export const adminSections: Record<string, AdminSectionConfig> = {
   overview: {
     title: adminT('admin.route.adminOverview_aa5b85'),
     description: adminT('admin.route.platformControlPlaneForHealthUsageSecurityAnd_843347'),
@@ -194,6 +194,19 @@ const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/costs',
     primaryKey: 'aiCosts',
   },
+  'ai-provider-keys': {
+    title: adminT('admin.route.aiProviderKeys'),
+    description: adminT('admin.route.aiProviderKeysDescription'),
+
+    /*
+     * Lit la MEME source que le runtime (le secret Kubernetes, via les variables
+     * d'environnement). L'endpoint ne rend que l'etat — configured / length /
+     * last4 — jamais la valeur, et il n'expose aucun POST : il ne peut donc pas
+     * exister de champ de saisie ici, et personne n'a a recopier une cle.
+     */
+    endpoint: '/admin/providers/ai',
+    primaryKey: 'providers',
+  },
   providers: {
     title: adminT('admin.route.aiProviders_897a9f'),
     description: adminT('admin.route.platformOwnedAiProviderRegistryEnableDisableProviders_f56491'),
@@ -246,7 +259,7 @@ const adminSections: Record<string, AdminSectionConfig> = {
  * order of entries WITHIN each group are unchanged from the historical flat
  * list — only the grouping and labels are new.
  */
-const navGroups: Array<{ label: string; items: string[] }> = [
+export const navGroups: Array<{ label: string; items: string[] }> = [
   {
     label: adminT('admin.route.platform_123a7f'),
     items: ['overview', 'health', 'monitoring', 'infrastructure', 'projects', 'workspaces', 'previews', 'deployments'],
@@ -265,7 +278,7 @@ const navGroups: Array<{ label: string; items: string[] }> = [
   },
   {
     label: adminT('admin.route.ai_560040'),
-    items: ['providers', 'models', 'mcp-catalog'],
+    items: ['ai-provider-keys', 'providers', 'models', 'mcp-catalog'],
   },
   {
     label: adminT('admin.route.ops_907a54'),
