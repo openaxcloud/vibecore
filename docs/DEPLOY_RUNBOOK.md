@@ -167,6 +167,63 @@ Push to `main` → `deploy-main.yml` does:
 
 `--reuse-values` means **a change to `values-prod.yaml` alone never reaches prod** — it must be re-asserted via `--set` (that's why `previewUrlTemplate` is always re-set). A **template** change (e.g. the zero-downtime strategy) *does* take effect on the next upgrade.
 
+## ⚠️ `kubectl set image` skips the schema migration — and the symptom lies
+
+**Any image switch that does not go through Helm leaves the database schema
+behind.** The Prisma `migrate deploy` step is a Helm **pre-install / pre-upgrade
+hook** (`infra/helm/platform/templates/migrations-job.yaml`). `kubectl set image`,
+`kubectl rollout restart`, `kubectl edit deploy` and friends never fire it, so a
+newer image starts against an older schema.
+
+**The symptom does not name the cause.** The API answers `500` with a *generic*
+body — the message is sanitised. Measured on the audit environment on 2026-09-01,
+rolling `web` and `api` from `040dd2976d` to `fce8639ab3` with `kubectl set image`:
+
+```
+POST /auth/register  ->  500  {"error":"Internal server error","code":"P2022"}
+```
+
+Nothing in that response says "migration". `P2022` is Prisma for *the column does
+not exist in the current database*; the environment was **four migrations behind**
+(`0081_project_checkpoint`, `0082_db_migration_execution`, `0083_account_lockout`,
+`0083_session_idle_timeout`). Pods were `Running` and `/ready` answered `200`
+throughout — readiness probes do not exercise the columns the app needs, so
+**every health signal stayed green while registration was dead**.
+
+**If you must switch images by hand**, run the same migration the hook runs, from
+the *new* api image, before or right after the rollout:
+
+```bash
+AUDIT_CTX=...            # ALWAYS pass --context explicitly; see the warning below
+kubectl --context "$AUDIT_CTX" -n vibecore create job qa-migrate-<SHA> --dry-run=client -o yaml ... 
+# container: api:<NEW_SHA>, envFrom secretRef vibecore-platform-secrets, and:
+#   DB_DIR=$(node -e "process.stdout.write(require('path').dirname(require.resolve('@vibecore/database/package.json')))")
+#   cd "$DB_DIR" && node "$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")" migrate deploy
+```
+
+Two gotchas met while doing exactly this:
+
+* **PodSecurity `restricted` rejects a naive Job.** The pod is refused with
+  `FailedCreate` and the Job sits at zero pods with **no status at all** — easy to
+  read as "still starting". The pod template needs `runAsNonRoot: true`,
+  `allowPrivilegeEscalation: false`, `capabilities.drop: ["ALL"]` and
+  `seccompProfile.type: RuntimeDefault`.
+* **Quote the image reference.** `"$REGISTRY/$tier:$SHA"` can lose the `:` and the
+  first characters of the tag under some shells (observed: `web:fce8639ab3` became
+  `webe8639ab3`), producing an `ImagePullBackOff` whose message points at a tag
+  nobody wrote. Use `"${REGISTRY}/${tier}:${SHA}"`.
+
+**Preferred alternative**: use `helm upgrade`, which runs the hook for you. Reach
+for `kubectl set image` only when you deliberately want to change *nothing but the
+image* — and then own the migration yourself.
+
+> **Context safety.** The ambient `kubectl` context on a maintainer machine is
+> frequently **production** (verified 2026-09-01). Pass `--kube-context` /
+> `--context` explicitly on every `helm` and `kubectl` command, and guard scripts
+> with a refusal on any context containing `vibecore-prod`. The Helm *release
+> name* protects nothing: the audit release is also called `vibecore`, in a
+> namespace also called `vibecore`.
+
 ## Manual path (what to run by hand — ad-hoc / hotfix / re-deploy a SHA)
 
 You need: `gcloud` (auth'd to `vibecore-495216`), `helm`, `kubectl` context above.
