@@ -85,15 +85,23 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                 return <Fragment key={rowKey} />;
               }
 
+              /*
+               * `tabIndex={-1}` sort la ligne du parcours de tabulation mais la
+               * rend focalisable au TOUCHER : c'est ce qui permet à
+               * `:focus-within` de révéler la barre d'actions sur un écran sans
+               * survol, au lieu de la laisser affichée en permanence sous chaque
+               * message.
+               */
               return (
                 <div
                   key={rowKey}
                   id={messageId ? `chat-message-${messageId}` : undefined}
                   data-message-id={messageId}
-                  className={classNames('bolt-chat-message-row flex gap-4 py-2 w-full rounded-lg', {
+                  tabIndex={-1}
+                  className={classNames('bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg', {
                     'bolt-chat-message-row-user': isUserMessage,
                     'bolt-chat-message-row-assistant': !isUserMessage,
-                    'mt-3': !isFirst,
+                    'mt-1': !isFirst,
                   })}
                 >
                   <div className="grid grid-col-1 w-full">
