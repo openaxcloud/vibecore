@@ -137,41 +137,51 @@ Hors périmètre absolu : l'onglet Terminal/Shell mobile (référence GELÉE d'A
 
 ## Lot SURF-2026-09 — surfaces flottantes : hauteur bornée, défilement interne, marge basse
 
-Origine : captures iPhone d'Avi, 01/09 — les panneaux ouverts depuis la zone de saisie s'affichent **tronqués en haut et en bas** et passent **sous la barre d'outils**. Le relevé qui suit montre que ce n'est **pas un cas isolé** mais un défaut générique.
+Origine : captures iPhone d'Avi, 01/09 — les panneaux ouverts depuis la zone de saisie s'affichent **tronqués en haut et en bas** et passent **sous la barre d'outils**.
 
 ### Relevé du 01/09 (sur `origin/main`, commit `9b59b3489`)
 
-**26 surfaces flottantes** détectées (positionnement absolu ancré à un déclencheur, ou `role="menu"` / `role="listbox"`). Sur ces 26 :
+⚠️ **Avertissement de méthode, écrit d'expérience.** Un relevé par `grep` de `absolute` + `max-h` sur chaque fichier **ne conclut pas** : il produit beaucoup de faux positifs et de faux négatifs. Vérifiés à la main :
 
-- **2 sont correctes** — `AvatarDropdown`, `BranchSelector` ;
-- **1 est à mi-chemin** — `ModelSelector` : il défile (`overflow-y-auto`) mais sa borne est une constante en pixels (`max-h-60` = 240 px), pas une fraction d'écran ;
-- **les autres n'ont NI hauteur bornée NI défilement interne**. Restreint aux surfaces rendant réellement une liste susceptible de grandir : **14**.
+- **Faux positifs** — `CloudProvidersTab` (badges en coin), `SearchInput` (icône et bouton d'effacement), `TabsWithSlider` (indicateur coulissant) : du décor positionné en absolu, pas des panneaux.
+- **Faux négatifs** — `ProjectCardMenu` paraissait dépourvu de borne alors qu'il **délègue** à `~/components/ui/Dropdown`, qui porte déjà la forme correcte. La borne vit dans la primitive partagée, pas chez le consommateur. Même chose pour `TerminalTabs`, dont les styles sont en SCSS et non en classes utilitaires.
 
-### Forme de référence — à appliquer partout, tirée d'`AvatarDropdown`
+**Ne conclure qu'après avoir ouvert le composant et suivi sa primitive.**
+
+### Ce qui est VÉRIFIÉ
+
+| état | surface | détail |
+|---|---|---|
+| ✅ correct | `~/components/ui/Dropdown` | `min-w-[min(220px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[10010]` — couvre `ProjectCardMenu`, `HeaderActionButtons`, `admin.$section` |
+| ✅ correct | `AvatarDropdown` | forme de référence ci-dessous |
+| ✅ correct | `BranchSelector` | `max-h-[80vh]` + `overflow-y-auto` |
+| 🟠 à mi-chemin | `ModelSelector` | défile (`overflow-y-auto`) mais borne en **pixels fixes** (`max-h-60` = 240 px), pas en fraction d'écran |
+| 🔴 défectueux | `TerminalTabs` | `.bolt-terminal-session-menu` et `.bolt-terminal-more-menu` bornent la **largeur** (`min(320px, calc(100vw - 24px))`) mais **ni hauteur ni défilement** |
+| ❓ non vérifié | surfaces du composeur et de `BaseChat.tsx` | territoire de la session Agent — non ouvertes par la session Livraisons |
+
+### Forme de référence — tirée d'`AvatarDropdown`
 
 ```
 min-w-[min(240px,calc(100vw-24px))]
 max-w-[calc(100vw-24px)]
 max-h-[min(420px,calc(100dvh-24px))]
 overflow-auto
-z-[250]
 ```
 
 Trois raisons, à ne pas séparer :
 
 1. **`dvh` et non `vh`** — `vh` ignore la barre d'outils mobile rétractable ; c'est ce qui fait passer un panneau *sous* la barre. `dvh` suit la hauteur réellement visible.
 2. **`calc(...-24px)`** — laisse une gouttière, sinon le panneau colle aux bords et paraît tronqué.
-3. **`overflow-auto`** — une hauteur bornée SANS défilement ne tronque pas moins, elle coupe le contenu. Les deux vont ensemble.
+3. **`overflow-auto`** — une hauteur bornée SANS défilement ne tronque pas moins, elle coupe. Les deux vont ensemble.
 
-### Répartition du travail
+**Le meilleur correctif est de déléguer à `~/components/ui/Dropdown`** plutôt que de recopier ces classes : une primitive juste vaut mieux que N copies à maintenir.
 
-| ID | Surface | Propriétaire | 📤 Dispatché | 💻 Codé | ✅ Testé live |
+### Répartition
+
+| ID | Surface | Propriétaire | 📤 | 💻 | ✅ |
 |---|---|---|:---:|:---:|:---:|
-| SURF-01 | `ChatBoxModeDropdown` (composeur) | session Agent | ✅ 01/09 | ☐ | ☐ |
-| SURF-02 | `ConversationBranchesMenu` (`BaseChat.tsx`) | session Agent | ✅ 01/09 | ☐ | ☐ |
-| SURF-03 | `HeaderOverflowMenu` (`BaseChat.tsx`) | session Agent | ✅ 01/09 | ☐ | ☐ |
-| SURF-04 | `ProjectCardMenu` (tableau de bord) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
-| SURF-05 | `TerminalTabs` (menu du terminal) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
-| SURF-06 | `CloudProvidersTab` (@settings) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-01 | surfaces du composeur et de `BaseChat.tsx` (à recenser par son propriétaire) | session Agent | ✅ 01/09 | ☐ | ☐ |
+| SURF-02 | `TerminalTabs` — borner la hauteur et faire défiler | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-03 | `ModelSelector` — passer de 240 px fixes à une fraction d'écran | session Agent (composeur) | ✅ 01/09 | ☐ | ☐ |
 
-⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste assez longue pour dépasser — un panneau court ne prouve rien, puisque le défaut n'apparaît qu'au débordement.
+⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste **assez longue pour déborder** — un panneau court ne prouve rien, le défaut n'apparaît qu'au débordement.
