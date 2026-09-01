@@ -69,6 +69,7 @@ function reglesApparence(source: string): string[] {
 /** Ce qui s'applique RÉELLEMENT à 390 px : la base, plus les `@media` actifs. */
 function surfaceMobile(): string[] {
   const base = CSS.replace(/@media[^{]+\{[\s\S]*?\n\}/g, '');
+
   let mobile = '';
 
   for (const m of CSS.matchAll(/@media([^{]+)\{([\s\S]*?)\n\}/g)) {
@@ -107,7 +108,7 @@ describe('TERMINAL-GEL-001 — apparence gelée de l’onglet Terminal mobile', 
     expect(
       empreinte,
       "L'apparence de l'onglet Terminal mobile est GELÉE sur la référence d'Avi (IMG_9149).\n" +
-        "Si ce changement est VOULU, mettre à jour EMPREINTE dans le MÊME commit et le dire dans le message.\n" +
+        'Si ce changement est VOULU, mettre à jour EMPREINTE dans le MÊME commit et le dire dans le message.\n' +
         "S'il ne l'est pas, c'est une régression visuelle sur une surface gelée.\n" +
         `Règles surveillées : ${regles.length}`,
     ).toBe(EMPREINTE);
