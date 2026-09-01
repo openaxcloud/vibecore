@@ -134,3 +134,54 @@ Enregistré le 24/08 : « améliorer l'agent, la zone de saisie, les onglets/men
 | UNIF-14 | **Lot 8 — boutons/contrôles ad hoc restants de BaseChat.tsx sur les primitives** : (1) **Env** : onglets de scope Development\|Preview\|Production → `PanelToolTabs` (nouvelle prop `disabled` — gelés pendant la vue Diff, comme avant) ; « Diff scopes » et « Reveal values » → `PanelButton` outline sm à `aria-pressed` ; Edit/Copy de ligne → `PanelButton` outline sm (le Delete de ligne aligné en sm) ; (2) **Security** : exports SARIF/JSON/Print → `PanelButton` outline sm ; « Cancel scan » → `PanelButton` danger (classe `.bolt-project-security-cancel` supprimée JSX+SCSS) ; (3) **Monitoring** : zoom fit/2x/4x → `FilterChip` commun (« Refresh metrics » du lot 7 re-vérifié) ; (4) **Integrations** : raccourcis d'en-tête (API keys/Webhooks/Event streaming, outline sm + icônes), CTA de section (Create webhook/Create API key/Add stream, primary sm), Connect/Manage de carte (primary sm — sortie des tokens legacy `--bolt-elements-button-primary-*`), Configure et Close configuration (outline sm) → `PanelButton` ; il ne reste que 3 boutons nus, tous navigationnels (onglets, catégories sidebar, mini-liste Connected) ; (5) **Workflows** : « New workflow » → `PanelButton` primary ; corbeille de tâche → `PanelButton` danger sm (aria-label conservé) ; restent 3 boutons nus assumés (disclosure de carte + bascule Sequential\|Parallel qui soumet un form) ; (6) **Skills** : bascule de scope communautaire Project\|Workspace → `FilterChip` (nouvelle prop `disabled` quand pas de workspace) ; Install/Uninstall qui dupliquaient à la main les classes du PanelButton → composant partagé ; (7) `PanelButton` gagne `gap-1.5` au gabarit (icône+libellé sans gap SCSS ad hoc) ; SCSS nus correspondants retirés (env-scopes/env-diff/env-row/security-cancel/security-reports/monitoring-zoom/integrations ×4/workflows ×2) + purge de l'orphelin `.bolt-project-object-grid` (17 sélecteurs, 0 usage JSX depuis le lot 7) — les planchers tactiles mobiles 40/42px restent (ils ciblent les conteneurs). | 📤 25/08 | 💻 25/08 (branche `chore/ide-ui-uniformization-lot8`, empilée sur lot 7 + main) | ☐ | `panel-uniformization-lot8.spec.tsx` : 19 tests source+DOM (19 ROUGES sur les sources lot 7 — preuve échec-sans —, 19/19 verts avec le lot) ; `PanelPrimitives.spec.tsx` étendu de 2 tests DOM (PanelToolTabs disabled, gap-1.5) → 20/20 ; lot7 13/13 (compteur `<PanelToolTabs>` mis à jour 3→4) ; suite complète : 5758 tests exécutés verts ; typecheck complet vert (web app + packages) ; eslint app 0 erreur (30 warnings préexistants). Vérif live à faire : Env (onglets scope + Diff + Reveal + lignes), Security (Cancel + exports), Monitoring (zoom), Integrations (~11 boutons), Workflows (New workflow + corbeille), Skills (bascule + Install/Uninstall), en 390/768/1440 clair+sombre. |
 
 Hors périmètre absolu : l'onglet Terminal/Shell mobile (référence GELÉE d'Avi, IMG_9149).
+
+## Lot SURF-2026-09 — surfaces flottantes : hauteur bornée, défilement interne, marge basse
+
+Origine : captures iPhone d'Avi, 01/09 — les panneaux ouverts depuis la zone de saisie s'affichent **tronqués en haut et en bas** et passent **sous la barre d'outils**.
+
+### Relevé du 01/09 (sur `origin/main`, commit `9b59b3489`)
+
+⚠️ **Avertissement de méthode, écrit d'expérience.** Un relevé par `grep` de `absolute` + `max-h` sur chaque fichier **ne conclut pas** : il produit beaucoup de faux positifs et de faux négatifs. Vérifiés à la main :
+
+- **Faux positifs** — `CloudProvidersTab` (badges en coin), `SearchInput` (icône et bouton d'effacement), `TabsWithSlider` (indicateur coulissant) : du décor positionné en absolu, pas des panneaux.
+- **Faux négatifs** — `ProjectCardMenu` paraissait dépourvu de borne alors qu'il **délègue** à `~/components/ui/Dropdown`, qui porte déjà la forme correcte. La borne vit dans la primitive partagée, pas chez le consommateur. Même chose pour `TerminalTabs`, dont les styles sont en SCSS et non en classes utilitaires.
+
+**Ne conclure qu'après avoir ouvert le composant et suivi sa primitive.**
+
+### Ce qui est VÉRIFIÉ
+
+| état | surface | détail |
+|---|---|---|
+| ✅ correct | `~/components/ui/Dropdown` | `min-w-[min(220px,calc(100vw-24px))] max-w-[calc(100vw-24px)] max-h-[min(420px,calc(100dvh-24px))] overflow-auto z-[10010]` — couvre `ProjectCardMenu`, `HeaderActionButtons`, `admin.$section` |
+| ✅ correct | `AvatarDropdown` | forme de référence ci-dessous |
+| ✅ correct | `BranchSelector` | `max-h-[80vh]` + `overflow-y-auto` |
+| 🟠 à mi-chemin | `ModelSelector` | défile (`overflow-y-auto`) mais borne en **pixels fixes** (`max-h-60` = 240 px), pas en fraction d'écran |
+| 🔴 défectueux | `TerminalTabs` | `.bolt-terminal-session-menu` et `.bolt-terminal-more-menu` bornent la **largeur** (`min(320px, calc(100vw - 24px))`) mais **ni hauteur ni défilement** |
+| ❓ non vérifié | surfaces du composeur et de `BaseChat.tsx` | territoire de la session Agent — non ouvertes par la session Livraisons |
+
+### Forme de référence — tirée d'`AvatarDropdown`
+
+```
+min-w-[min(240px,calc(100vw-24px))]
+max-w-[calc(100vw-24px)]
+max-h-[min(420px,calc(100dvh-24px))]
+overflow-auto
+```
+
+Trois raisons, à ne pas séparer :
+
+1. **`dvh` et non `vh`** — `vh` ignore la barre d'outils mobile rétractable ; c'est ce qui fait passer un panneau *sous* la barre. `dvh` suit la hauteur réellement visible.
+2. **`calc(...-24px)`** — laisse une gouttière, sinon le panneau colle aux bords et paraît tronqué.
+3. **`overflow-auto`** — une hauteur bornée SANS défilement ne tronque pas moins, elle coupe. Les deux vont ensemble.
+
+**Le meilleur correctif est de déléguer à `~/components/ui/Dropdown`** plutôt que de recopier ces classes : une primitive juste vaut mieux que N copies à maintenir.
+
+### Répartition
+
+| ID | Surface | Propriétaire | 📤 | 💻 | ✅ |
+|---|---|---|:---:|:---:|:---:|
+| SURF-01 | surfaces du composeur et de `BaseChat.tsx` (à recenser par son propriétaire) | session Agent | ✅ 01/09 | ☐ | ☐ |
+| SURF-02 | `TerminalTabs` — borner la hauteur et faire défiler | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-03 | `ModelSelector` — passer de 240 px fixes à une fraction d'écran | session Agent (composeur) | ✅ 01/09 | ☐ | ☐ |
+
+⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste **assez longue pour déborder** — un panneau court ne prouve rien, le défaut n'apparaît qu'au débordement.

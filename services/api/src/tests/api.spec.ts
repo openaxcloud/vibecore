@@ -5041,6 +5041,70 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     await app.close();
   });
 
+  it('BUG-AI-002 — un 403 « plan » de la passerelle atteint l’utilisateur au lieu d’un 502 opaque', async () => {
+    /*
+     * Mesuré en production le 2026-09-01 : la passerelle renvoyait
+     * `403 AI_MODEL_PLAN_BLOCKED` et l'utilisateur recevait
+     * `502 {"error":"Internal server error"}` — impossible de comprendre qu'il
+     * suffisait de changer de modèle ou de forfait.
+     *
+     * Ce test porte sur le SITE D'APPEL : le module de traduction peut être
+     * juste et la route continuer d'écraser.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'ai-plan@example.com', organizationName: 'AI Plan Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'AI Plan Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const conversation = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/ai/conversations`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { title: 'Plan' },
+    });
+    const conversationId = conversation.json().conversation.id as string;
+
+    const vraiFetch = globalThis.fetch;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
+      const url = input instanceof Request ? input.url : input instanceof URL ? input.toString() : String(input);
+
+      if (url.endsWith('/chat/completions')) {
+        return new Response(
+          JSON.stringify({
+            error: 'No model from this provider is available on your plan.',
+            code: 'AI_MODEL_PLAN_BLOCKED',
+          }),
+          { status: 403, headers: { 'content-type': 'application/json' } },
+        );
+      }
+
+      return vraiFetch(input as never, init as never);
+    });
+
+    try {
+      const reponse = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/ai/conversations/${conversationId}/messages`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { content: 'Bonjour' },
+      });
+
+      expect(reponse.statusCode).toBe(403);
+      expect(reponse.json()).toMatchObject({ code: 'AI_MODEL_PLAN_BLOCKED' });
+      expect(JSON.stringify(reponse.json())).not.toContain('Internal server error');
+    } finally {
+      vi.restoreAllMocks();
+      await app.close();
+    }
+  });
+
   it('discovers database connections without exposing secret values', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });
