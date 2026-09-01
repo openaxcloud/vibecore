@@ -7266,6 +7266,35 @@ body :where(.lucide, svg[data-lucide]) {
   cursor: pointer;
 }
 
+/*
+ * La pastille perdait son ancrage — deux défauts distincts, mesurés séparément.
+ *
+ * 1. SPÉCIFICITÉ. L'ancrage des infobulles pose
+ *      :where(.bolt-responsive-ide, …) :where(button, …)[data-vc-tooltip]:not([data-vc-radix-tooltip='true'])
+ *        { position: relative }
+ *    dont la spécificité vaut (0,2,0) : `:where()` ne compte pas, mais
+ *    l'attribut ET l'argument de `:not()` comptent tous deux dans la colonne des
+ *    classes. `.bolt-agent-scroll-to-bottom` seul ne pèse que (0,1,0), donc le
+ *    `position: sticky` ci-dessus était écrasé. Mesuré sur WebKit : `position`
+ *    calculée = `relative`, pastille rendue à y=795..839 dans une fenêtre de
+ *    659 px — hors écran, 0 point sur 430 de sa surface atteignable.
+ *
+ * 2. RECOUVREMENT. Même collante, `bottom: 12px` l'attachait au bas du MÊME
+ *    conteneur que la boîte de saisie, elle aussi collée là et portant un
+ *    z-index de 50 contre 20 : Playwright rapportait que le `textarea`
+ *    interceptait les événements de pointeur sur toute la surface de la
+ *    pastille. `--vc-agent-composer-measured-height` est déjà publiée par
+ *    BaseChat (boîte de saisie + barre du bas, au ResizeObserver) : c'est
+ *    exactement la hauteur à franchir.
+ *
+ * Le sélecteur reprend la forme de la règle d'infobulle pour répondre à sa
+ * spécificité sans `!important` et sans toucher aux infobulles elles-mêmes.
+ */
+.bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
+  position: sticky;
+  bottom: calc(var(--vc-agent-composer-measured-height, 0px) + 12px);
+}
+
 .bolt-agent-scroll-to-bottom:where(:hover, :focus-visible) {
   background: var(--vc-ide-bg-hover, var(--bolt-elements-background-depth-3));
 }
