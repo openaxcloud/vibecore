@@ -59,6 +59,16 @@ généraux : ce sont des pièges qui ont déjà coûté.
     rendre au moins un résultat à la même commande sur un cas connu positif,
     ou utiliser `grep -F` avec le motif dans un fichier.
 
+14 bis. **Un résultat NOYÉ trompe autant qu'un résultat absent.** La règle 14
+    vise le « 0 résultat » ; celle-ci vise le résultat qu'on ne lit pas parce
+    qu'il est enseveli. Mesuré le 2026-09-01 : une contre-épreuve dont la sortie
+    portait 81 lignes de tests sautés n'a jamais affiché sa ligne `Tests` — le
+    silence se lisait comme un succès. Même classe : une sortie tronquée, un
+    `head -N` qui coupe avant l'information, des journaux `stdout` d'erreurs
+    volontaires pris pour de vrais échecs. **Filtrer sur la ligne de verdict**,
+    et vérifier qu'elle est bien apparue — l'absence de verdict n'est jamais un
+    verdict.
+
 15. **Un correctif sans test qui le tienne est considéré comme NON LIVRÉ.**
     C'est la règle qui casse la boucle « corrigé → revenu → recorrigé ».
     Mesuré le 2026-09-01 sur les points de tête de l'analyse des recoupements :
