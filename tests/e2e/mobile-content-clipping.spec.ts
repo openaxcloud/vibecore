@@ -38,11 +38,54 @@ test.setTimeout(120_000);
  * test at the bottom, which is the check every existing overflow guard lacks.
  */
 function measureClip(page: Page) {
-  return page.evaluate(() => ({
-    bodyScrollWidth: document.body.scrollWidth,
-    clientWidth: document.documentElement.clientWidth,
-    documentScrollWidth: document.documentElement.scrollWidth,
-  }));
+  return page.evaluate(() => {
+    /*
+     * The width alone is not actionable: this defect did not reproduce on macOS
+     * (it depends on platform font metrics driving min-content), so the CI run
+     * IS the measurement. Name the outermost offending element and the grid
+     * track that sized it, or the next person is left guessing the same way.
+     */
+    const offenders = [];
+
+    for (const element of document.querySelectorAll('body *')) {
+      const rect = element.getBoundingClientRect();
+      const style = getComputedStyle(element);
+
+      if (rect.width <= document.documentElement.clientWidth + 2 || rect.height < 4) {
+        continue;
+      }
+
+      if (style.position === 'fixed' || style.display === 'none' || style.visibility === 'hidden') {
+        continue;
+      }
+
+      offenders.push(element);
+    }
+
+    const set = new Set(offenders);
+    const outermost = offenders.filter((element) => !set.has(element.parentElement));
+
+    return {
+      bodyScrollWidth: document.body.scrollWidth,
+      clientWidth: document.documentElement.clientWidth,
+      documentScrollWidth: document.documentElement.scrollWidth,
+      offenders: outermost.slice(0, 3).map((element) => {
+        const rect = element.getBoundingClientRect();
+        const parent = element.parentElement;
+
+        return {
+          tag: element.tagName.toLowerCase(),
+          className: String(element.className).slice(0, 120),
+          width: Math.round(rect.width),
+          right: Math.round(rect.right),
+          text: (element.textContent ?? '').trim().slice(0, 60),
+          parentClassName: String(parent?.className ?? '').slice(0, 120),
+          parentWidth: Math.round(parent?.getBoundingClientRect().width ?? 0),
+          parentTemplateColumns: parent ? getComputedStyle(parent).gridTemplateColumns.slice(0, 60) : '',
+        };
+      }),
+    };
+  });
 }
 
 async function settle(page: Page) {
@@ -99,7 +142,8 @@ for (const { route, anchor } of PUBLIC_ROUTES) {
       expect(
         measured.bodyScrollWidth,
         `${route} amputates ${measured.bodyScrollWidth - measured.clientWidth}px of content ` +
-          `(body.scrollWidth=${measured.bodyScrollWidth}, viewport=${measured.clientWidth})`,
+          `(body.scrollWidth=${measured.bodyScrollWidth}, viewport=${measured.clientWidth}). ` +
+          `Outermost offenders: ${JSON.stringify(measured.offenders)}`,
       ).toBeLessThanOrEqual(measured.clientWidth + 1);
     } finally {
       await context.close();
@@ -146,7 +190,8 @@ test(`/organization-roles does not amputate the permission matrix at ${IPHONE.wi
     expect(
       measured.bodyScrollWidth,
       `/organization-roles amputates ${measured.bodyScrollWidth - measured.clientWidth}px of content ` +
-        `(body.scrollWidth=${measured.bodyScrollWidth}, viewport=${measured.clientWidth})`,
+        `(body.scrollWidth=${measured.bodyScrollWidth}, viewport=${measured.clientWidth}). ` +
+        `Outermost offenders: ${JSON.stringify(measured.offenders)}`,
     ).toBeLessThanOrEqual(measured.clientWidth + 1);
   } finally {
     await context.close();
