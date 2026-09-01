@@ -8243,6 +8243,59 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-chatbox-toolbar-primary {
   flex: 1 1 auto;
+  /*
+   * COMPOSER-001 — UNE rangée, pas plusieurs.
+   *
+   * La barre portait `flex-wrap: wrap` « à toute largeur », et les sélecteurs
+   * vivaient en plus sur une rangée séparée au-dessus du champ. Le composer
+   * empilait donc trois blocs au repos et réservait `clamp(236px, 36dvh, 360px)`
+   * — plus du tiers d'un écran d'iPhone.
+   *
+   * Les commandes tiennent maintenant sur une seule ligne. Si le panneau devient
+   * trop étroit, elles DÉFILENT horizontalement au lieu de repasser à la ligne :
+   * la hauteur au repos reste constante, ce qui est précisément ce qu'Avi
+   * demande. Le défilement est masqué visuellement mais reste accessible au
+   * clavier et au doigt.
+   */
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.bolt-chatbox-toolbar-primary::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Les sélecteurs, groupés et séparés par de FINS TRAITS verticaux plutôt que par
+ * des aplats — modèle demandé. Texte coloré sur fond transparent : aucune
+ * nouvelle couleur n'est introduite, et le bleu sémantique reste sémantique.
+ */
+.bolt-chatbox-selectors {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0;
+}
+
+.bolt-chatbox-selectors > * + * {
+  margin-left: 8px;
+  padding-left: 8px;
+  border-left: 1px solid var(--vc-ide-border-subtle, var(--bolt-elements-borderColor));
+}
+
+/*
+ * Plancher tactile de la rangée, EN PIXELS. En rem, la base redéfinie à 12/14px
+ * le dégonflerait — c'est la cause unique corrigée par TACTILE-003.
+ */
+.bolt-chatbox-selectors button,
+.bolt-chatbox-toolbar-primary > .bolt-chatbox-toolbar-button {
+  min-height: var(--vc-touch-min, 44px);
 }
 
 .bolt-chatbox-toolbar-secondary {
@@ -20106,7 +20159,25 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * fallback. A static clamp made the transcript jump whenever the composer
      * grew (notices, tool-calls card, suggestions).
      */
-    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(236px, 36dvh, 360px));
+    /*
+     * COMPOSER-001 — le repli suit la nouvelle hauteur au repos.
+     *
+     * `clamp(236px, 36dvh, 360px)` décrivait un composer à TROIS blocs. Avec le
+     * champ sur une ligne et UNE rangée de commandes, deux lignes suffisent :
+     * ~44px de champ + ~44px de commandes + marges.
+     *
+     * POURQUOI 168 ET NON 132. Un premier jet à 132px a fait tomber
+     * `ui-details` : « transcript tail above composer ». Ce repli ne sert pas
+     * qu'à réserver de la place — il sert AUSSI de rembourrage au bas du fil,
+     * pour que le dernier message ne glisse pas sous la zone de saisie. Trop
+     * court, la queue du transcript passait dessous.
+     *
+     * 168px couvre le composer au repos ET la pile d'avertissements quand elle
+     * est présente. C'est encore 29 % de moins que les 236px d'avant, et la
+     * valeur MESURÉE (`--vc-agent-composer-measured-height`) reprend la main dès
+     * le premier rendu : ce repli ne gouverne que la toute première image.
+     */
+    --vc-agent-composer-reserved-space: var(--vc-agent-composer-measured-height, clamp(184px, 26dvh, 240px));
     height: 100%;
     max-height: 100%;
     padding-bottom: 0;

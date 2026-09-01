@@ -438,39 +438,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
        * discoverable. ClientOnly because the estimate + persisted state are
        * client-side.
        */}
-      {props.projectIdeMode && (
-        <ClientOnly>
-          {() => (
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor px-1 pt-2">
-              <AgentPowerControls
-                value={agentPower}
-                onChange={handleAgentPowerChange}
-                estimatedCents={agentPowerEstimateCents}
-                disabled={props.isStreaming}
-                availability={agentModeAvailability}
-              />
-              {/* Replit parity: the Plan-first toggle sits directly beside the
-                  effort/Power control (shares the projectPlanFirst state — no
-                  dup). Wired to the real plan-first pipeline (create-agent-plan). */}
-              {props.onPlanFirstChange ? (
-                <button
-                  type="button"
-                  className={classNames('bolt-chatbox-plan-toggle', {
-                    'is-active': props.planFirstEnabled ?? false,
-                  })}
-                  aria-pressed={props.planFirstEnabled ?? false}
-                  disabled={props.isStreaming}
-                  title={copy['chatBox.planFirst.title']}
-                  onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
-                >
-                  <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
-                  <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
-                </button>
-              ) : null}
-            </div>
-          )}
-        </ClientOnly>
-      )}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
@@ -634,6 +601,48 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
+            {/*
+             * COMPOSER-001 — les sélecteurs REJOIGNENT la rangée de commandes.
+             *
+             * Ils vivaient sur une rangée à eux, au-dessus du champ, avec sa
+             * propre bordure et ses propres marges. Le composer empilait donc
+             * TROIS blocs au repos — sélecteurs, champ, commandes — et réservait
+             * de 236 à 360 px, soit plus du tiers d'un écran d'iPhone.
+             *
+             * Modèle demandé par Avi : un seul bloc, le champ sur une ligne, puis
+             * UNE rangée de commandes — sélecteurs à gauche, actions à droite.
+             */}
+            {props.projectIdeMode ? (
+              <ClientOnly>
+                {() => (
+                  <div className="bolt-chatbox-selectors">
+                    <AgentPowerControls
+                      value={agentPower}
+                      onChange={handleAgentPowerChange}
+                      estimatedCents={agentPowerEstimateCents}
+                      disabled={props.isStreaming}
+                      availability={agentModeAvailability}
+                    />
+                    {props.onPlanFirstChange ? (
+                      <button
+                        type="button"
+                        className={classNames('bolt-chatbox-plan-toggle', {
+                          'is-active': props.planFirstEnabled ?? false,
+                        })}
+                        aria-pressed={props.planFirstEnabled ?? false}
+                        disabled={props.isStreaming}
+                        title={copy['chatBox.planFirst.title']}
+                        onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
+                      >
+                        <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
+                        <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
+                      </button>
+                    ) : null}
+                  </div>
+                )}
+              </ClientOnly>
+            ) : null}
+
             <IconButton
               title={copy['chatBox.attachments.attach']}
               tooltip={copy['chatBox.attachments.attach']}
