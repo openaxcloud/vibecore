@@ -174,10 +174,12 @@ function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
  * jetons. Poser `text-white` sur `--ecode-accent` (#f26207) donnait 3,22:1 :
  * le correctif de BUG-THEME-006 avait bien chassé le bleu sur l'orange
  * (1,07:1) mais l'avait remplacé par du blanc sur le MÊME orange, qui ne passe
- * pas davantage — c'est le constat de BUG-THEME-011, où le blanc sur cet
- * orange plafonne à 2,62:1. La paire sanctionnée bascule avec le thème :
- * #ffffff sur #c2410c = 5,18:1 en clair, #111827 sur #f97316 = 6,33:1 en
- * sombre. Épinglé par `app/styles/on-accent-ink.spec.ts`.
+ * pas davantage. Cet aplat NE BASCULE PAS et reste sous AA dans les DEUX
+ * thèmes — c'est le constat de BUG-THEME-011, où le blanc y plafonne à 2,62:1.
+ * La paire sanctionnée, elle, bascule : #ffffff sur #c2410c = 5,18:1 en clair,
+ * #111827 sur #f97316 = 6,33:1 en sombre.
+ * Épinglé par `app/styles/on-accent-ink.spec.ts` ET
+ * `app/styles/on-accent-white.spec.ts`.
  */
 function PanelButton({
   children,

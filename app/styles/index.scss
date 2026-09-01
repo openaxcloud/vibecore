@@ -543,6 +543,25 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  /*
+   * Encre posée SUR un aplat d'accent plein. Elle doit S'INVERSER avec le thème,
+   * parce que l'aplat s'inverse : en CLAIR il est foncé (#c2410c, #dc2626) et
+   * porte du blanc ; en SOMBRE il est vif (#f97316, #f85149) et le blanc n'y
+   * tient plus. Mesuré sur la feuille compilée :
+   *
+   *   aplat   | blanc clair | blanc sombre | encre sombre
+   *   action  |    5,18     |   2,80 ✗     |    6,33
+   *   erreur  |    4,83     |   3,35 ✗     |    5,29
+   *
+   * Un `text-white` en dur est donc juste dans un thème et faux dans l'autre.
+   *
+   * ⚠️ NE PAS appliquer ces jetons à un aplat qui NE BASCULE PAS.
+   * `--vc-action-primary-strong` vaut #c2410c dans TOUS les thèmes : le blanc y
+   * tient des deux côtés (5,18) et y poser l'encre sombre le casserait en
+   * sombre (3,43). C'est pourquoi la garde ne vise que les aplats basculants.
+   */
+  --vc-ide-on-accent-action: #111827;
+  --vc-ide-on-accent-error: #111827;
 
   /*
    * En sombre les canoniques passent déjà AA sur leur propre teinte
@@ -990,6 +1009,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-orange: #c2410c;
   --vc-ide-accent-error: #dc2626;
   --vc-ide-accent-warning: #a16207;
+  /* Voir la note en tête de `:root` : l'encre sur aplat s'inverse avec le thème. */
+  --vc-ide-on-accent-action: #ffffff;
+  --vc-ide-on-accent-error: #ffffff;
 
   /*
    * Variantes « sur teinte » : même famille que les canoniques ci-dessus, mais
@@ -1279,6 +1301,25 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  /*
+   * Encre posée SUR un aplat d'accent plein. Elle doit S'INVERSER avec le thème,
+   * parce que l'aplat s'inverse : en CLAIR il est foncé (#c2410c, #dc2626) et
+   * porte du blanc ; en SOMBRE il est vif (#f97316, #f85149) et le blanc n'y
+   * tient plus. Mesuré sur la feuille compilée :
+   *
+   *   aplat   | blanc clair | blanc sombre | encre sombre
+   *   action  |    5,18     |   2,80 ✗     |    6,33
+   *   erreur  |    4,83     |   3,35 ✗     |    5,29
+   *
+   * Un `text-white` en dur est donc juste dans un thème et faux dans l'autre.
+   *
+   * ⚠️ NE PAS appliquer ces jetons à un aplat qui NE BASCULE PAS.
+   * `--vc-action-primary-strong` vaut #c2410c dans TOUS les thèmes : le blanc y
+   * tient des deux côtés (5,18) et y poser l'encre sombre le casserait en
+   * sombre (3,43). C'est pourquoi la garde ne vise que les aplats basculants.
+   */
+  --vc-ide-on-accent-action: #111827;
+  --vc-ide-on-accent-error: #111827;
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
