@@ -376,6 +376,7 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
+import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
 import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import {
   assertPublicationStartable,
@@ -15810,9 +15811,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (!response.ok) {
-      throw Object.assign(new Error(appPublicEnglish('AI_GATEWAY_REQUEST_FAILED')), {
-        statusCode: 502,
-        code: 'AI_GATEWAY_REQUEST_FAILED',
+      /*
+       * BUG-AI-002 — ne plus écraser un statut ACTIONNABLE. La passerelle
+       * distingue soigneusement 403 (plan), 429 (quota) et 400 (requête) ; les
+       * aplatir tous en 502 « Internal server error » prive l'utilisateur de la
+       * seule information qui lui permettrait d'agir.
+       */
+      const corpsAmont = (await response.json().catch(() => undefined)) as
+        | { error?: unknown; code?: unknown }
+        | undefined;
+      const mappee = mapperErreurPasserelle(
+        response.status,
+        corpsAmont,
+        appPublicEnglish('AI_GATEWAY_REQUEST_FAILED'),
+      );
+
+      throw Object.assign(new Error(mappee.message), {
+        statusCode: mappee.statusCode,
+        code: mappee.code,
+        publicMessage: mappee.message,
         upstreamStatus: response.status,
       });
     }

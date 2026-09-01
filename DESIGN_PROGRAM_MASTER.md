@@ -134,3 +134,44 @@ Enregistré le 24/08 : « améliorer l'agent, la zone de saisie, les onglets/men
 | UNIF-14 | **Lot 8 — boutons/contrôles ad hoc restants de BaseChat.tsx sur les primitives** : (1) **Env** : onglets de scope Development\|Preview\|Production → `PanelToolTabs` (nouvelle prop `disabled` — gelés pendant la vue Diff, comme avant) ; « Diff scopes » et « Reveal values » → `PanelButton` outline sm à `aria-pressed` ; Edit/Copy de ligne → `PanelButton` outline sm (le Delete de ligne aligné en sm) ; (2) **Security** : exports SARIF/JSON/Print → `PanelButton` outline sm ; « Cancel scan » → `PanelButton` danger (classe `.bolt-project-security-cancel` supprimée JSX+SCSS) ; (3) **Monitoring** : zoom fit/2x/4x → `FilterChip` commun (« Refresh metrics » du lot 7 re-vérifié) ; (4) **Integrations** : raccourcis d'en-tête (API keys/Webhooks/Event streaming, outline sm + icônes), CTA de section (Create webhook/Create API key/Add stream, primary sm), Connect/Manage de carte (primary sm — sortie des tokens legacy `--bolt-elements-button-primary-*`), Configure et Close configuration (outline sm) → `PanelButton` ; il ne reste que 3 boutons nus, tous navigationnels (onglets, catégories sidebar, mini-liste Connected) ; (5) **Workflows** : « New workflow » → `PanelButton` primary ; corbeille de tâche → `PanelButton` danger sm (aria-label conservé) ; restent 3 boutons nus assumés (disclosure de carte + bascule Sequential\|Parallel qui soumet un form) ; (6) **Skills** : bascule de scope communautaire Project\|Workspace → `FilterChip` (nouvelle prop `disabled` quand pas de workspace) ; Install/Uninstall qui dupliquaient à la main les classes du PanelButton → composant partagé ; (7) `PanelButton` gagne `gap-1.5` au gabarit (icône+libellé sans gap SCSS ad hoc) ; SCSS nus correspondants retirés (env-scopes/env-diff/env-row/security-cancel/security-reports/monitoring-zoom/integrations ×4/workflows ×2) + purge de l'orphelin `.bolt-project-object-grid` (17 sélecteurs, 0 usage JSX depuis le lot 7) — les planchers tactiles mobiles 40/42px restent (ils ciblent les conteneurs). | 📤 25/08 | 💻 25/08 (branche `chore/ide-ui-uniformization-lot8`, empilée sur lot 7 + main) | ☐ | `panel-uniformization-lot8.spec.tsx` : 19 tests source+DOM (19 ROUGES sur les sources lot 7 — preuve échec-sans —, 19/19 verts avec le lot) ; `PanelPrimitives.spec.tsx` étendu de 2 tests DOM (PanelToolTabs disabled, gap-1.5) → 20/20 ; lot7 13/13 (compteur `<PanelToolTabs>` mis à jour 3→4) ; suite complète : 5758 tests exécutés verts ; typecheck complet vert (web app + packages) ; eslint app 0 erreur (30 warnings préexistants). Vérif live à faire : Env (onglets scope + Diff + Reveal + lignes), Security (Cancel + exports), Monitoring (zoom), Integrations (~11 boutons), Workflows (New workflow + corbeille), Skills (bascule + Install/Uninstall), en 390/768/1440 clair+sombre. |
 
 Hors périmètre absolu : l'onglet Terminal/Shell mobile (référence GELÉE d'Avi, IMG_9149).
+
+## Lot SURF-2026-09 — surfaces flottantes : hauteur bornée, défilement interne, marge basse
+
+Origine : captures iPhone d'Avi, 01/09 — les panneaux ouverts depuis la zone de saisie s'affichent **tronqués en haut et en bas** et passent **sous la barre d'outils**. Le relevé qui suit montre que ce n'est **pas un cas isolé** mais un défaut générique.
+
+### Relevé du 01/09 (sur `origin/main`, commit `9b59b3489`)
+
+**26 surfaces flottantes** détectées (positionnement absolu ancré à un déclencheur, ou `role="menu"` / `role="listbox"`). Sur ces 26 :
+
+- **2 sont correctes** — `AvatarDropdown`, `BranchSelector` ;
+- **1 est à mi-chemin** — `ModelSelector` : il défile (`overflow-y-auto`) mais sa borne est une constante en pixels (`max-h-60` = 240 px), pas une fraction d'écran ;
+- **les autres n'ont NI hauteur bornée NI défilement interne**. Restreint aux surfaces rendant réellement une liste susceptible de grandir : **14**.
+
+### Forme de référence — à appliquer partout, tirée d'`AvatarDropdown`
+
+```
+min-w-[min(240px,calc(100vw-24px))]
+max-w-[calc(100vw-24px)]
+max-h-[min(420px,calc(100dvh-24px))]
+overflow-auto
+z-[250]
+```
+
+Trois raisons, à ne pas séparer :
+
+1. **`dvh` et non `vh`** — `vh` ignore la barre d'outils mobile rétractable ; c'est ce qui fait passer un panneau *sous* la barre. `dvh` suit la hauteur réellement visible.
+2. **`calc(...-24px)`** — laisse une gouttière, sinon le panneau colle aux bords et paraît tronqué.
+3. **`overflow-auto`** — une hauteur bornée SANS défilement ne tronque pas moins, elle coupe le contenu. Les deux vont ensemble.
+
+### Répartition du travail
+
+| ID | Surface | Propriétaire | 📤 Dispatché | 💻 Codé | ✅ Testé live |
+|---|---|---|:---:|:---:|:---:|
+| SURF-01 | `ChatBoxModeDropdown` (composeur) | session Agent | ✅ 01/09 | ☐ | ☐ |
+| SURF-02 | `ConversationBranchesMenu` (`BaseChat.tsx`) | session Agent | ✅ 01/09 | ☐ | ☐ |
+| SURF-03 | `HeaderOverflowMenu` (`BaseChat.tsx`) | session Agent | ✅ 01/09 | ☐ | ☐ |
+| SURF-04 | `ProjectCardMenu` (tableau de bord) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-05 | `TerminalTabs` (menu du terminal) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+| SURF-06 | `CloudProvidersTab` (@settings) | session Livraisons | ✅ 01/09 | ☐ | ☐ |
+
+⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste assez longue pour dépasser — un panneau court ne prouve rien, puisque le défaut n'apparaît qu'au débordement.
