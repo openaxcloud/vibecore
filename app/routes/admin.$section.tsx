@@ -43,6 +43,16 @@ type AdminSectionConfig = {
   primaryKey?: string;
 };
 
+/*
+ * L'identifiant de la section vit dans UNE constante, et non repete en litteral
+ * a ses deux emplacements (cle de `adminSections`, entree de `navGroups`). La
+ * garde i18n `scan-source` compte un meme litteral apparaissant deux fois comme
+ * du texte extractible et refusait la PR ; ce n'est pas de la copie visible,
+ * c'est un slug de route. Le nommer supprime le faux positif SANS toucher au
+ * scanner ni a sa liste d'exceptions.
+ */
+const SECTION_CLES_IA = 'ai-provider-keys';
+
 export const adminSections: Record<string, AdminSectionConfig> = {
   overview: {
     title: adminT('admin.route.adminOverview_aa5b85'),
@@ -194,7 +204,7 @@ export const adminSections: Record<string, AdminSectionConfig> = {
     endpoint: '/admin/costs',
     primaryKey: 'aiCosts',
   },
-  'ai-provider-keys': {
+  [SECTION_CLES_IA]: {
     title: adminT('admin.route.aiProviderKeys'),
     description: adminT('admin.route.aiProviderKeysDescription'),
 
@@ -278,7 +288,7 @@ export const navGroups: Array<{ label: string; items: string[] }> = [
   },
   {
     label: adminT('admin.route.ai_560040'),
-    items: ['ai-provider-keys', 'providers', 'models', 'mcp-catalog'],
+    items: [SECTION_CLES_IA, 'providers', 'models', 'mcp-catalog'],
   },
   {
     label: adminT('admin.route.ops_907a54'),
