@@ -300,7 +300,7 @@ par `on-accent-ink.spec.ts` (vert), mais **n'a pas été revu à l'écran** dans
 | Chantier | État | Note |
 |---|---|---|
 | **1. Contraste** | ✅ **traité** (§7.3) | Déjà corrigé sur `main` ; dérivation depuis la feuille compilée vérifiée ; 0 défaut réel à la sonde pixels. Reste : UnoCSS + surfaces authentifiées. |
-| **2. Terminal** — BUG-TERM-002, BUG-QUOTA-001 | ⬜ **non commencé** | Apparence mobile **GELÉE** sur IMG_9149 : ne jamais la modifier. Garde à faire porter sur le **vrai site d'appel**, pas sur une copie du composant. |
+| **2. Terminal** — BUG-TERM-002, BUG-QUOTA-001 | 🔧 **code et gardes vérifiés ; reste la preuve live** (§7.6) | Aucune modification d'apparence : le correctif est déjà sur `main`, je n'ai touché à rien. |
 | **3. 14 composants morts + 2 ressources orphelines** (`4e534565c`) | ⬜ **non commencé** | Prouver la mort de chacun (aucune référence vivante, commentaires exclus) **avant** suppression, par lots, preuve dans le message de commit. |
 
 ### 7.5 Prochaine reprise — dans cet ordre
@@ -312,3 +312,59 @@ par `on-accent-ink.spec.ts` (vert), mais **n'a pas été revu à l'écran** dans
    n'ont jamais été faits.
 2. **Terminal** (chantier 2), puis **composants morts** (chantier 3).
 3. Étendre la sonde pixels de contraste aux surfaces authentifiées et à l'IDE.
+
+### 7.6 Terminal — BUG-TERM-002 et BUG-QUOTA-001
+
+**Les deux sont déjà corrigés sur `main`.** Aucune ligne de produit n'a été modifiée par ce
+balayage — et en particulier **aucune retouche d'apparence** : l'onglet Terminal/Shell mobile
+reste gelé sur la référence d'Avi (IMG_9149).
+
+| Bug | État du code sur `main` |
+|---|---|
+| **BUG-TERM-002** — le client forgeait un `sessionId` neuf à chaque connexion, donc le terminal ne se rattachait jamais et épuisait le budget `maxSessions` (8) | Corrigé : `packages/runtime-remote/src/index.ts:604` appelle `deriveTerminalId(request.sessionKey)`, identité **déterministe** par panneau. |
+| **BUG-QUOTA-001** — le quota `terminals.concurrent` était décompté par connexion WebSocket et non par session | Corrigé par `e9d73b9b2` (« le créneau de quota appartient à la session, pas au socket »). |
+
+#### La garde porte bien sur le vrai site d'appel — vérifié par contre-épreuve
+
+C'était le point de vigilance : une garde précédente épinglait sa propre copie du composant.
+Ici la structure est correcte, et je l'ai **prouvée en cassant le produit** plutôt qu'en la
+relisant :
+
+| Spec | Ce qu'il tient | Comment il le tient |
+|---|---|---|
+| `terminal-session-key.spec.ts` | la **dérivation** est déterministe | importe `deriveTerminalId` depuis `./terminal-session.js` — **le module que `index.ts` importe lui-même** (ligne 29), pas une copie |
+| `terminal-session-wiring.spec.ts` | le produit **appelle réellement** cette dérivation | lit le **vrai `index.ts`** par `readFileSync` et vérifie le site d'appel |
+
+**Contre-épreuve (01/09)** — j'ai remis le défaut d'origine au site d'appel
+(`const terminalId = \`terminal-${Date.now()}-${Math.random()...}\``) :
+
+| État | `terminal-session-key` | `terminal-session-wiring` |
+|---|---|---|
+| Code sain | ✅ 10/10 | ✅ |
+| Site d'appel cassé | ✅ **reste vert** (la fonction est toujours correcte) | ❌ **2 tests échouent** |
+
+C'est exactement la répartition voulue — **un test par mécanisme**. La garde de la fonction ne
+masque pas la régression du câblage, et c'est le câblage qui était le vrai défaut. Fichier
+restauré après la contre-épreuve.
+
+**Ce qui reste** : la preuve **live** (attacher un shell, le fermer, le rouvrir, vérifier
+`0 shell créé` au 2ᵉ rattachement et l'absence de 429). Elle est bloquée sur la même chose que
+les panneaux — un environnement à jour. Reconstruction en cours, voir §7.7.
+
+### 7.7 Reconstruction de l'environnement d'audit — en cours
+
+Pour lever le blocage des panneaux **et** de la preuve terminal, l'env d'audit est en cours de
+reconstruction sur `main` (`fce8639ab3`).
+
+- **Build** `b289c6ec-309f-492c-b019-2ee08867770f`, projet `vibecore-audit-test-20260807`.
+- **Méthode imposée par deux pièges du runbook** : (a) le contexte pèse 358 Mo dont 264 Mo de
+  `docs/` qu'aucun Dockerfile ne lit, et le débit d'upload rend l'envoi impraticable → une étape
+  `clone` fait **cloner le SHA par Cloud Build lui-même** (`--no-source`), démarrage immédiat ;
+  (b) le fan-out à 7 images tue le worker sur ce projet à cache froid (`INTERNAL_ERROR`
+  reproduit deux fois le 27/08) → **build en série** `deps` → `web` → `api` uniquement.
+- ⚠️ Le bloc `images:` est conservé : sans lui le build serait **`SUCCESS` sans rien pousser**.
+  Vérifier le push avec `gcloud artifacts docker tags list`, jamais le seul statut du build.
+
+**Ne pas déployer soi-même** : une fois les images poussées, la bascule Helm de l'env d'audit
+suit le runbook §4, avec `--kube-context` explicite — le nom de release ne protège de rien, la
+release d'audit s'appelle `vibecore` comme la prod.
