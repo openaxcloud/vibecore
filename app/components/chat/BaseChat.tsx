@@ -124,6 +124,7 @@ import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -3060,8 +3061,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const updateVisualViewportHeight = () => {
-        const height = window.visualViewport?.height ?? window.innerHeight;
+        const vue = window.visualViewport;
+        const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
+
+        /*
+         * RECOUVREMENT BAS DU NAVIGATEUR — ce que `env(safe-area-inset-bottom)`
+         * ne dit PAS.
+         *
+         * Sur iOS, la barre d'outils de Safari recouvre le bas de la fenêtre de
+         * MISE EN PAGE : un panneau en `position: fixed` ancré à
+         * `bottom: calc(nav + env(safe-area-inset-bottom))` se place donc SOUS
+         * elle. `env(safe-area-inset-bottom)` vaut 0 tant que la barre est
+         * affichée — ce n'est pas une encoche, c'est du chrome de navigateur.
+         *
+         * La seule grandeur qui le décrit est l'écart entre la fenêtre de mise
+         * en page et la fenêtre VISUELLE. Avi le photographie : les panneaux du
+         * composeur passent sous la barre Safari et sous la barre d'outils de
+         * l'IDE, coupés en haut ET en bas.
+         */
+        const recouvrementBas = recouvrementBasDuNavigateur(window.innerHeight, vue ?? undefined);
+        document.documentElement.style.setProperty(
+          '--vc-mobile-visual-viewport-bottom',
+          `${Math.round(recouvrementBas)}px`,
+        );
       };
 
       updateVisualViewportHeight();
@@ -3074,6 +3097,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.visualViewport?.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-height');
+        document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-bottom');
       };
     }, [useMobileIde]);
 
