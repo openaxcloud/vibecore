@@ -16,7 +16,7 @@ malveillant ; la rotation est une précaution, pas une réponse à un incident.
 | `ANTHROPIC_API_KEY` | Anthropic | console.anthropic.com → **Settings → API keys** → *Create key*, puis révoquer l'ancienne |
 | `XAI_API_KEY` | xAI | console.x.ai → **API Keys** → *Create*, puis supprimer l'ancienne |
 | `MOONSHOT_API_KEY` | Moonshot | platform.moonshot.cn → **API Keys** → *Create*, puis supprimer l'ancienne |
-| `GOOGLE_GEMINI_API_KEY` | Google AI Studio | aistudio.google.com/apikey → *Create API key* (projet `vibecore-495216`), puis supprimer l'ancienne |
+| `GOOGLE_GEMINI_API_KEY` **et** `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI Studio | aistudio.google.com/apikey → *Create API key* (projet `vibecore-495216`), puis supprimer l'ancienne |
 
 ---
 
@@ -50,13 +50,42 @@ kubectl -n vibecore patch secret vibecore-platform-secrets \
 rm -P /tmp/k
 ```
 
-Répéter pour `XAI_API_KEY`, `MOONSHOT_API_KEY`, `GOOGLE_GEMINI_API_KEY`.
+Répéter pour `XAI_API_KEY`, `MOONSHOT_API_KEY`, puis — voir ci-dessous — pour
+`GOOGLE_GEMINI_API_KEY` **et** `GOOGLE_GENERATIVE_AI_API_KEY`.
+
+> ⚠️ **La clé Gemini est stockée sous DEUX noms, et il faut patcher les deux.**
+> Les composants ne lisent pas la même variable : l'`ai-gateway` lit
+> `GOOGLE_GEMINI_API_KEY` (`services/ai-gateway/src/gateway.ts`), tandis que
+> l'application web (`app/lib/modules/llm/providers/google.ts`) et l'API
+> (`services/api/src/app.ts`, `PROVIDER_KEY_ENV`) lisent
+> `GOOGLE_GENERATIVE_AI_API_KEY`.
+>
+> Vérifié en production le 2026-09-01 : les deux variables portent **la même
+> valeur** — empreintes SHA-256 identiques, comparées sans jamais afficher les
+> valeurs, avec témoin négatif (`ANTHROPIC_API_KEY` diffère bien).
+>
+> Conséquence : ne patcher que `GOOGLE_GEMINI_API_KEY` **annulerait la
+> rotation** — la clé fuitée resterait vivante sous l'autre nom, et l'application
+> web continuerait de s'en servir. Une seule clé neuve à créer chez Google, mais
+> **deux entrées du Secret** à écrire avec cette même valeur.
 
 **Vérifier sans afficher la valeur** — comparer les empreintes :
 
 ```bash
 kubectl -n vibecore get secret vibecore-platform-secrets \
   -o jsonpath='{.data.ANTHROPIC_API_KEY}' | base64 -d | shasum -a 256
+```
+
+Et pour Gemini, vérifier en plus que les **deux** noms portent bien la nouvelle
+valeur — les deux empreintes doivent être identiques entre elles, et différentes
+de celle relevée avant la rotation :
+
+```bash
+for v in GOOGLE_GEMINI_API_KEY GOOGLE_GENERATIVE_AI_API_KEY; do
+  printf '%s : ' "$v"
+  kubectl -n vibecore get secret vibecore-platform-secrets \
+    -o jsonpath="{.data.$v}" | base64 -d | shasum -a 256
+done
 ```
 
 ### 3. Redémarrer les services qui lisent le Secret
