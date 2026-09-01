@@ -26,6 +26,7 @@ import {
   onTerminalReconnectScheduled,
   onTerminalReconnected,
 } from './terminal-reconnect.js';
+import { buildTerminalPath, deriveTerminalId } from './terminal-session.js';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;
@@ -596,10 +597,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * same pane must present the same id on every reconnect and remount. The
      * random fallback stays for callers that have no stable pane identity —
      * it works, but it can never reattach.
+     *
+     * Derivation and path live in `terminal-session.ts` so the regression test
+     * exercises THIS code rather than a copy of it (see that file's header).
      */
-    const terminalId = request.sessionKey
-      ? `terminal-${request.sessionKey}`
-      : `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const terminalId = deriveTerminalId(request.sessionKey);
 
     const cols = request.terminal?.cols ?? 80;
     const rows = request.terminal?.rows ?? 24;
@@ -610,9 +612,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * on reattach, so reusing the same id across reconnects keeps a single shell alive
      * instead of spawning a fresh one (and losing the running command) each time.
      */
-    const terminalPath = `/workspaces/${this.#requireWorkspaceId()}/terminal?sessionId=${encodeURIComponent(
+    const terminalPath = buildTerminalPath(
+      this.#requireWorkspaceId(),
       terminalId,
-    )}&cols=${cols}&rows=${rows}${request.managed ? '&managed=1' : ''}`;
+      cols,
+      rows,
+      Boolean(request.managed),
+    );
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
