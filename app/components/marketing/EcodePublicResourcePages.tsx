@@ -528,7 +528,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <section id="community-feed" className="container-responsive py-16 sm:py-24">
-          <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div>
               <SectionHeader eyebrow={copy.feed.eyebrow} title={copy.feed.title} description={copy.feed.description} />
 
