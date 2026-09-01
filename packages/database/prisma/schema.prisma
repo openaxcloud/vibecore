@@ -1706,6 +1706,14 @@ model WorkspaceRuntime {
   podName              String
   serviceName          String
   agentTokenSecretName String
+  // Which signing scheme this workspace's RUNNING pod was created with.
+  // 'root' (legacy, the default for existing rows) = the pod's mounted Secret
+  // holds the manager's global secret verbatim; 'derived-v1' = it holds only
+  // HMAC(rootSecret, workspaceId). A pod's mounted Secret is fixed at creation
+  // time, so this must be read — never assumed — before signing a token for a
+  // live pod. Advanced to 'derived-v1' when the manager (re)applies the Secret
+  // and (re)creates the pod; never moves backwards.
+  agentTokenScheme     String    @default("root")
   error                String?
   createdAt            DateTime  @default(now())
   lastActiveAt         DateTime  @default(now())
