@@ -35,9 +35,71 @@ function container(data: unknown): Record<string, unknown> {
   return (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, unknown>;
 }
 
-function readEnvironments(data: unknown): DbEnv[] {
+/**
+ * Message d'échec de provisionnement — choisi sur le CODE, jamais sur le texte
+ * libre de l'amont.
+ *
+ * Deux exigences s'opposaient ici, et il faut les tenir ensemble :
+ *
+ *  1. Ne JAMAIS afficher le message brut de l'amont. Il peut contenir une
+ *     chaîne de connexion, donc un mot de passe — c'est ce que garde le test
+ *     « masks raw list and provisioning errors » (`… not.toContain('password
+ *     leaked')`). Une première version de ce correctif affichait `data.error`
+ *     et a été rattrapée par ce test.
+ *  2. Ne pas conseiller un réessai qui ne peut PAS aboutir. Quand la cause est
+ *     `DATABASE_PROVISION_UNAVAILABLE`, aucun réessai ne marchera tant que la
+ *     plateforme n'est pas configurée : « Réessayez » est un conseil faux.
+ *
+ * La route amont a déjà fait le tri (`ACTIONABLE_PANEL_CODES`) : elle ne laisse
+ * passer que des CODES sur lesquels l'utilisateur peut agir et masque tout le
+ * reste. On s'appuie donc sur le code — une valeur d'énumération, pas du texte
+ * d'amont — pour choisir une copie LOCALISÉE.
+ */
+export function provisionFailureCopyKey(data: { error?: string; code?: string } | undefined) {
+  if (!data?.error?.trim()) {
+    return undefined;
+  }
+
+  return data.code === 'DATABASE_PROVISION_UNAVAILABLE'
+    ? ('databaseWorkbench.provisionUnavailable' as const)
+    : ('databaseWorkbench.provisionFailed' as const);
+}
+
+/**
+ * Détail technique affichable À CÔTÉ de la copie localisée. `reason` est une
+ * valeur d'énumération (`SHARED_TENANT_UNAVAILABLE`), mais elle vient de
+ * l'amont : on ne l'affiche que si elle EN A LA FORME, sinon un amont bavard
+ * rouvrirait exactement la fuite que la règle 1 ferme.
+ */
+export function provisionFailureReason(data: { reason?: string } | undefined) {
+  const reason = data?.reason?.trim();
+
+  return reason && /^[A-Z][A-Z0-9_]{2,63}$/.test(reason) ? reason : undefined;
+}
+
+export function readEnvironments(data: unknown): DbEnv[] {
   const c = container(data);
-  const raw = asArray(c.environments ?? c.databases ?? c.connections);
+
+  /*
+   * `GET /projects/:id/databases` renvoie DEUX champs de sens différent :
+   * `connections`, les bases réelles du projet (des OBJETS portant `key`), et
+   * `environments`, la liste des NOMS d'environnement possibles (des CHAÎNES —
+   * une constante, jamais vide).
+   *
+   * Le lecteur prenait `c.environments ?? c.databases ?? c.connections`. Comme
+   * `environments` est TOUJOURS présent, le `??` ne retombait jamais sur
+   * `connections` : on itérait des chaînes, dont aucune n'expose de `key`, et
+   * on les écartait toutes. Le panneau rendait donc l'état vide « Aucune base
+   * de données pour le moment » quoi qu'il arrive, y compris juste après un
+   * provisionnement réussi — d'où « j'appuie sur Créer, rien ne se passe ».
+   *
+   * On retient donc la première source qui décrit VRAIMENT des bases, c'est-à-
+   * dire dont au moins une entrée est un objet. Un tableau de chaînes ne peut
+   * plus être pris pour une liste de bases, dans un sens comme dans l'autre :
+   * ni masquer les vraies, ni en inventer cinq pour un projet qui n'en a aucune.
+   */
+  const decrit = (source: unknown) => asArray(source).some((d) => d !== null && typeof d === 'object');
+  const raw = asArray([c.databases, c.connections, c.environments].find(decrit) ?? []);
   const envs: DbEnv[] = [];
 
   for (const d of raw) {
@@ -148,7 +210,15 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const copy = getDatabaseStudioCopy(language);
   const base = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`;
   const fetcher = useFetcher();
-  const provisionFetcher = useFetcher<{ ok?: boolean; instance?: unknown; error?: string }>();
+
+  const provisionFetcher = useFetcher<{
+    ok?: boolean;
+    instance?: unknown;
+    error?: string;
+    code?: string;
+    reason?: string;
+  }>();
+
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -309,7 +379,10 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             </button>
             {provisionFetcher.data?.error ? (
               <p className="break-words text-[12px] text-red-500 [overflow-wrap:anywhere]" role="alert">
-                {copy['databaseWorkbench.provisionFailed']}
+                {copy[provisionFailureCopyKey(provisionFetcher.data) ?? 'databaseWorkbench.provisionFailed']}
+                {provisionFailureReason(provisionFetcher.data)
+                  ? ` (${provisionFailureReason(provisionFetcher.data)})`
+                  : ''}
               </p>
             ) : null}
           </div>
