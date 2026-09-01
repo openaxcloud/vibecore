@@ -96,6 +96,7 @@ import {
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
+import { resolveProviderKeyPresence } from './provider-key-presence';
 import {
   redactSecrets,
   redactSecretString,
@@ -5124,6 +5125,7 @@ const PROVIDER_KEY_ENV: Record<string, string> = {
 /** Local/keyless providers that are "ready" once enabled, no platform key needed. */
 const KEYLESS_LLM_PROVIDERS = new Set(['LMStudio', 'Ollama']);
 
+
 /*
  * Map the ai-gateway's provider `id` (services/ai-gateway/src/gateway.ts:
  * providerConfigs()) onto the user-facing ProviderConfig display name, so its
@@ -5262,14 +5264,9 @@ async function providerHealth(
   for (const name of KNOWN_LLM_PROVIDERS) {
     const config = byProvider.get(name);
     const enabled = config?.enabled ?? false;
-    const envKey = PROVIDER_KEY_ENV[name];
-
-    // DB-first: an admin-set encrypted key beats env; env is the fallback source.
-    const hasDbKey = Boolean(config?.apiKeyEnc);
-    const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
-
-    const keyConfigured = KEYLESS_LLM_PROVIDERS.has(name) || hasDbKey || hasEnvKey;
-    const keySource: ProviderHealthRow['keySource'] = hasDbKey ? 'db' : hasEnvKey ? 'env' : 'none';
+    const presence = resolveProviderKeyPresence(name, config?.apiKeyEnc);
+    const keyConfigured = presence.keyConfigured;
+    const keySource: ProviderHealthRow['keySource'] = presence.source;
 
     let status: ProviderHealthRow['status'];
 
@@ -8351,17 +8348,15 @@ const KNOWN_LLM_PROVIDER_SET = new Set(KNOWN_LLM_PROVIDERS);
  * that echoes a provider so a stored ciphertext can't leak through any of them.
  */
 function providerAdminView(p: ProviderConfigRecord) {
-  const envKey = PROVIDER_KEY_ENV[p.provider];
-  const hasDbKey = Boolean(p.apiKeyEnc);
-  const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
+  const presence = resolveProviderKeyPresence(p.provider, p.apiKeyEnc);
 
   return {
     id: p.id,
     provider: p.provider,
     displayName: p.displayName,
     enabled: p.enabled,
-    hasKey: hasDbKey,
-    source: hasDbKey ? ('db' as const) : hasEnvKey ? ('env' as const) : ('none' as const),
+    hasKey: presence.hasDbKey,
+    source: presence.source,
     baseUrl: p.baseUrl ?? null,
     byokAllowed: p.byokAllowed,
     createdAt: p.createdAt,
@@ -28878,8 +28873,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           displayName: byName.get(name)?.displayName ?? name,
           enabled: byName.get(name)?.enabled ?? false,
 
-          // Non-secret: whether a platform key (apiKeyEnc) is stored — never the value.
-          keyConfigured: Boolean(byName.get(name)?.apiKeyEnc),
+          /*
+           * Non-secret : la PRÉSENCE d'une clé et sa provenance, jamais sa
+           * valeur. Tenir compte de l'environnement est indispensable — c'est
+           * de là que viennent les clés en production (BUG-ADMIN-002).
+           */
+          keyConfigured: resolveProviderKeyPresence(name, byName.get(name)?.apiKeyEnc).keyConfigured,
+          keySource: resolveProviderKeyPresence(name, byName.get(name)?.apiKeyEnc).source,
           sampleCount: metric?.sampleCount ?? 0,
           p95LatencyMs: metric?.p95LatencyMs ?? null,
           errorRatePct: metric?.errorRatePct ?? null,
