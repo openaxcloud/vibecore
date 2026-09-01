@@ -26,9 +26,7 @@ describe('BUG-CREATE-004 — la Webview ne dit pas « Prêt » quand elle démar
   it("une entrée d'aperçu ne suffit PAS à déclarer « prêt » si l'amont ne répond pas", () => {
     const r = resolvePreviewBootProgress({ ...BASE, upstreamNotReady: true });
 
-    expect(r.activeStep, 'la Webview se déclare prête alors que l’amont ne répond pas').not.toBe(
-      'ready',
-    );
+    expect(r.activeStep, 'la Webview se déclare prête alors que l’amont ne répond pas').not.toBe('ready');
     expect(r.progress).toBeLessThan(100);
   });
 

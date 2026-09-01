@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { isAgentRunDegraded } from './bundled-artifact-state';
 import { deriveProgressState } from './ProgressCompilation';
+import { isAgentRunDegraded } from './bundled-artifact-state';
 
 /*
  * BUG-AGENT-003 — « les 5 sous-agents parallèles échouent tous, le consensus
@@ -43,16 +43,15 @@ describe('BUG-AGENT-003 — un run dont toutes les voies échouent ne dit pas «
   it('chacun des trois signaux suffit seul — aucun ne porte le résultat à lui seul', () => {
     const voiesSeules = [{ type: 'agentExecution', results: [{ status: 'failed' }] }];
     const consensusSeul = [{ type: 'agentExecution', consensus: { outcome: 'REJECTED' } }];
-    const scoreSeul = [
-      { type: 'agentExecution', consensus: { agreementScore: 0, threshold: 0.6 } },
-    ];
+
+    const scoreSeul = [{ type: 'agentExecution', consensus: { agreementScore: 0, threshold: 0.6 } }];
 
     expect(isAgentRunDegraded(voiesSeules), 'voies échouées').toBe(true);
     expect(isAgentRunDegraded(consensusSeul), 'consensus rejeté').toBe(true);
     expect(isAgentRunDegraded(scoreSeul), 'accord sous le seuil').toBe(true);
   });
 
-  it("contre-épreuve : un run réellement sain reste « terminé »", () => {
+  it('contre-épreuve : un run réellement sain reste « terminé »', () => {
     const sain = [
       {
         type: 'agentExecution',
