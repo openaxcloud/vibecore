@@ -72,6 +72,8 @@ export const databaseStudioEn = {
   'databaseWorkbench.creating': 'Creating database…',
   'databaseWorkbench.create': 'Create database',
   'databaseWorkbench.provisionFailed': 'Could not create the database. Try again.',
+  'databaseWorkbench.provisionUnavailable':
+    'This platform cannot create managed databases right now. Retrying will not help — contact your administrator.',
   'databaseWorkbench.status.connected': 'Connected',
   'databaseWorkbench.status.provisioning': 'Provisioning',
   'databaseWorkbench.status.unavailable': 'Unavailable',
@@ -166,6 +168,8 @@ export const databaseStudioFr: DatabaseStudioCopy = {
   'databaseWorkbench.creating': 'Création de la base de données…',
   'databaseWorkbench.create': 'Créer une base de données',
   'databaseWorkbench.provisionFailed': 'Impossible de créer la base de données. Réessayez.',
+  'databaseWorkbench.provisionUnavailable':
+    "Cette plateforme ne peut pas créer de base de données gérée pour le moment. Un réessai n'y changera rien — contactez votre administrateur.",
   'databaseWorkbench.status.connected': 'Connectée',
   'databaseWorkbench.status.provisioning': 'Création en cours',
   'databaseWorkbench.status.unavailable': 'Indisponible',
