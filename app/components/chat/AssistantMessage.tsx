@@ -308,10 +308,15 @@ export const AssistantMessage = memo(
     return (
       <div className="bolt-assistant-message overflow-hidden w-full">
         <>
-          <div className="bolt-assistant-message-mobile-head" aria-hidden>
-            <span className="i-ph:sparkle" />
-            <strong>{copy['assistantMessage.agent']}</strong>
-          </div>
+          {/*
+            Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
+            fond plein, et il était `aria-hidden` — donc du bruit visuel qui
+            n'apportait rien à un lecteur d'écran non plus. L'auteur se lit déjà
+            sans lui : le message de l'utilisateur est une bulle teintée alignée
+            à droite, celui de l'agent du texte pleine largeur. On garde
+            l'information pour les lecteurs d'écran, on retire le bandeau.
+          */}
+          <span className="vc-sr-only">{copy['assistantMessage.agent']}</span>
           <div className="flex gap-1.5 items-center text-sm text-bolt-elements-textSecondary mb-1">
             {(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) && (
               <Popover
