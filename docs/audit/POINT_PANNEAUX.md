@@ -280,6 +280,15 @@ positifs :
    en cours de fondu, avec un fond qui change d'une mesure à l'autre (`rgb(12,12,28)` sur
    `/features`, `rgb(244,116,20)` sur `/login`). Artefact de mesure, pas un état stable.
 
+> ⚠️ **Correction d'une affirmation que j'avais faite trop vite.** En corrigeant les quatre
+> faux amis (§7.3 bis), j'ai écrit avoir vérifié qu'aucune porte n'exigeait qu'une valeur FR
+> diffère de l'EN. J'avais vérifié **deux** portes (`validate-catalogs.mjs`, `scan-source.mjs`)
+> et manqué la troisième : `app/lib/i18n/catalogs/chat.spec.ts` exige que toute valeur FR
+> identique à l'EN soit **explicitement documentée** dans une liste justifiée. La CI l'a
+> attrapée (`expected [ 'extension', 'Extensions', …(2) ] to deeply equal []`). Les quatre
+> termes y sont désormais déclarés **avec leur justification**. C'est une bonne porte : elle
+> empêche qu'une chaîne reste anglaise par oubli, et elle a fait exactement son travail.
+
 **Reste à couvrir sur ce groupe** : les utilitaires **UnoCSS** (`text-X` sur `bg-X/10`) ne
 passent pas par `index.scss` et échappent donc au spec de dérivation ; la sonde pixels les
 attrape, mais elle n'a tourné que sur 8 pages marketing, **sans les surfaces authentifiées ni
