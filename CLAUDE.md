@@ -2,7 +2,7 @@
 
 ## Règles
 
-### Méthode — douze règles tirées d'erreurs réelles
+### Méthode — dix-sept règles tirées d'erreurs réelles
 
 Chacune vient d'une faute commise sur ce projet. Elles ne sont pas des principes
 généraux : ce sont des pièges qui ont déjà coûté.
@@ -122,7 +122,22 @@ généraux : ce sont des pièges qui ont déjà coûté.
     ferme sans test, puisqu'il n'y a rien à tenir. Il doit alors le dire
     explicitement.
 
-**Ces deux dernières visent le facteur d'erreur dominant.** Sur cette
+17. **Un test qui cesse d'être intermittent ne se diagnostique plus comme une
+    course.** Tant qu'il passe au retry, l'hypothèse « race » tient. Le jour où
+    il échoue sur TOUTES les tentatives, cette hypothèse est morte : soit le
+    comportement a réellement changé, soit la course s'est élargie au point de
+    ne plus se refermer. Continuer à le traiter en flake — le relancer, le
+    tolérer — c'est laisser passer un vrai défaut.
+
+    Vérifié le 2026-09-01 sur `agent-message-density.spec.ts` : `flaky (passed
+    on retry): 1` pendant plusieurs runs, puis `failing: 1, flaky: 0`. Le
+    compteur du garde-fou E2E distingue déjà les deux — il suffit de le lire.
+
+    **Le corollaire vaut aussi** : un test qu'on croit déterministe et qui
+    passe une fois sur trois n'est pas un défaut produit. Mesurer AVANT de
+    conclure, dans les deux sens.
+
+**Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
 
