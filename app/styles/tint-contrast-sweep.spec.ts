@@ -288,6 +288,31 @@ describe('TINT-SWEEP-001 — texte sur une teinte de sa propre couleur', () => {
     }
   });
 
+  it('tout jeton « sur teinte » RÉFÉRENCÉ est bien DÉFINI dans les deux thèmes', () => {
+    /*
+     * Deuxième mécanisme du correctif, et il lui fallait son propre test.
+     *
+     * Le premier mécanisme est que la règle POINTE vers `-on-tint` ; le retirer
+     * fait bien rougir « tient AA ». Mais le correctif en a un SECOND : que le
+     * jeton `-on-tint` EXISTE. Or `valeur()` rend `undefined` pour un jeton
+     * introuvable, et `paires()` ÉCARTE alors la règle au lieu de la signaler :
+     * supprimer les définitions laissait donc les 74 tests au VERT tout en
+     * faisant mesurer MOINS. Une sonde qui rétrécit en silence est le même
+     * faux négatif que celle qui ne mesure rien — en plus discret.
+     *
+     * On vérifie donc la résolution elle-même, séparément du contraste.
+     */
+    const references = new Set([...CSS.matchAll(/var\(\s*(--[\w-]+-on-tint)\s*[),]/g)].map((m) => m[1]));
+
+    expect(references.size, 'aucun jeton « sur teinte » référencé — la sonde ne lit plus rien').toBeGreaterThan(3);
+
+    for (const theme of THEMES) {
+      const introuvables = [...references].filter((nom) => jeton(theme.prefixe, nom) === undefined);
+
+      expect(introuvables, `jetons non résolus en thème ${theme.nom}`).toEqual([]);
+    }
+  });
+
   it.each(THEMES.map((t) => [t.nom, t.prefixe] as const))('tient AA en thème %s', (nom, prefixe) => {
     const fautifs = paires(prefixe)
       .filter((p) => p.ratio < AA_BODY_TEXT)
