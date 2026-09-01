@@ -376,6 +376,7 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
+import { estProvisionnementPerime } from './database-provisioning-staleness.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -32912,19 +32913,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Provision a project's managed database (Phase 2). Dormant: while
    * DB_ROLLBACK_ENABLED is off the provisioner is a Noop and this just 404s.
    */
-  /*
-   * Au-delà de ce délai, un provisionnement encore `PROVISIONING` n'est plus
-   * considéré comme « en vol » : il est périmé, et une nouvelle demande le
-   * relance au lieu de répondre `{ created: false }`.
-   *
-   * 30 minutes : très au-dessus d'un provisionnement CNPG nominal — celui que
-   * j'ai déclenché depuis l'interface le 2026-09-01 est passé `ACTIVE` en moins
-   * d'une minute — et très en dessous des 30 JOURS pendant lesquels les deux
-   * lignes mesurées sont restées bloquées. Le seuil sépare donc franchement les
-   * deux cas sans risquer d'interrompre un provisionnement réellement en cours.
-   */
-  const PROVISIONING_STALE_MS = 30 * 60 * 1000;
-
   app.post('/projects/:projectId/database/provision', async (request, reply) => {
     if (!isDatabaseRollbackEnabled()) {
       return reply.code(404).send({ error: appPublicEnglish('ROLLBACK_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
@@ -32967,10 +32955,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * demande une migration Prisma — traitée séparément. Ce correctif lève le
      * piège sans migration.
      */
-    const provisioningPerime =
-      existing !== undefined &&
-      existing.status === 'PROVISIONING' &&
-      Date.now() - new Date(existing.createdAt).getTime() >= PROVISIONING_STALE_MS;
+    const provisioningPerime = estProvisionnementPerime(existing);
 
     if (existing && !provisioningPerime) {
       return { instance: existing, created: false };
