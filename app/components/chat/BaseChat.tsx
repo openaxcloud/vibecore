@@ -130,6 +130,7 @@ import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
+import { initialesPersonne, libellePersonne } from '~/utils/person-label';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -13908,11 +13909,27 @@ function ProjectIdePanelContent({
           ) : null}
           <div className="bolt-project-collaboration-users">
             {presence.length ? (
-              presence.map((user: any) => (
+              presence.map((user: any, index: number) => (
                 <div key={user.sessionId} className="bolt-project-collaboration-user">
-                  <span className="bolt-project-collaboration-avatar">{String(user.userId ?? 'U').slice(0, 2)}</span>
+                  <span className="bolt-project-collaboration-avatar">
+                    {initialesPersonne(
+                      libellePersonne({
+                        displayName: user.displayName,
+                        name: user.name,
+                        userId: user.userId,
+                        repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                      }),
+                    )}
+                  </span>
                   <div>
-                    <strong>{user.userId}</strong>
+                    <strong>
+                      {libellePersonne({
+                        displayName: user.displayName,
+                        name: user.name,
+                        userId: user.userId,
+                        repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                      })}
+                    </strong>
                     <small>
                       {presenceStateLabel(t, user.mode, 'editing')}{' '}
                       {user.filePath ? t('chat.copy.inValue0_79271ca2', { value0: user.filePath }) : ''}
@@ -13936,9 +13953,16 @@ function ProjectIdePanelContent({
           </div>
           <div className="bolt-project-collaboration-list">
             {collaborators.length ? (
-              collaborators.map((collaborator: any) => (
+              collaborators.map((collaborator: any, index: number) => (
                 <div key={collaborator.id} className="bolt-project-collaboration-row">
-                  <span>{collaborator.userId}</span>
+                  <span>
+                    {libellePersonne({
+                      displayName: collaborator.displayName,
+                      name: collaborator.name,
+                      userId: collaborator.userId,
+                      repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                    })}
+                  </span>
                   <strong>{collaborationRoleLabel(t, collaborator.roleKey)}</strong>
                   <form method="post" onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="terminal-permission" />
@@ -14025,7 +14049,14 @@ function ProjectIdePanelContent({
                     {comment.filePath ?? t('chat.copy.project_f6f4da8d')} {comment.line ? `:${comment.line}` : ''}
                   </strong>
                   <p>{comment.body}</p>
-                  <small>{comment.userId}</small>
+                  <small>
+                    {libellePersonne({
+                      displayName: comment.displayName,
+                      name: comment.name,
+                      userId: comment.userId,
+                      repli: t('baseChatAst.collaboration.participantUnknown'),
+                    })}
+                  </small>
                 </div>
               ))
             ) : (
@@ -14096,14 +14127,17 @@ function ProjectIdePanelContent({
             </div>
           </div>
           <PanelRows
-            rows={activity
-              .slice(-8)
-              .map((event: any) => [
-                formatProjectActivityAction(t, event.action),
-                event.actorUserId
-                  ? t('baseChatAst.collaboration.by', { user: event.actorUserId })
-                  : t('baseChatAst.collaboration.system'),
-              ])}
+            rows={activity.slice(-8).map((event: any) => [
+              formatProjectActivityAction(t, event.action),
+              event.actorUserId
+                ? t('baseChatAst.collaboration.by', {
+                    user: libellePersonne({
+                      userId: event.actorUserId,
+                      repli: t('baseChatAst.collaboration.participantUnknown'),
+                    }),
+                  })
+                : t('baseChatAst.collaboration.system'),
+            ])}
             empty={t('baseChatAst.collaboration.noActivity')}
           />
         </section>
