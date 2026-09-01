@@ -16267,7 +16267,24 @@ body :where(.lucide, svg[data-lucide]) {
   left: 8px;
   z-index: 30;
   display: flex;
-  max-height: min(620px, calc(100dvh - 72px));
+  /*
+   * La borne est exprimée dans le référentiel du panneau, pas en nombres magiques.
+   *
+   * `min(620px, calc(100dvh - 72px))` supposait que le panneau commence à 72 px
+   * du haut de la fenêtre. Mesuré en 393×659 : il commence à **92** — son bloc
+   * conteneur est lui-même décalé de 48 px. Le panneau était donc rendu de 92 à
+   * **679 dans une fenêtre de 659** : ses 20 derniers pixels tombaient hors de
+   * l'écran, avant même la barre d'outils du navigateur.
+   *
+   * `100%` suit le bloc conteneur, celui-là même auquel `top: 44px` se réfère :
+   * la borne se corrige donc toute seule si le décalage change. Les 12 px sont
+   * la gouttière basse.
+   *
+   * La variable de recouvrement retire en plus ce que la barre de Safari ou le
+   * clavier prennent réellement (0 par défaut, donc sans effet si elle n'est pas
+   * publiée) — voir app/components/chat/visual-viewport-bottom.ts.
+   */
+  max-height: min(620px, calc(100% - 44px - 12px - var(--vc-mobile-visual-viewport-bottom, 0px)));
   min-height: 260px;
   flex-direction: column;
   border: 1px solid var(--vc-ide-border-visible);
