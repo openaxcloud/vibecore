@@ -976,13 +976,51 @@ async function readJson(response: Response) {
   }
 }
 
-function extractContent(payload: any) {
+/**
+ * Erreur levee quand la reponse d'un fournisseur ne correspond a AUCUNE forme
+ * connue. Elle EXISTE parce que le contraire — rendre une chaine vide — a
+ * produit une perte de donnees massive et parfaitement silencieuse.
+ *
+ * Mesure du 2026-09-01 sur la base de production : sur 1039 messages
+ * d'assistant, **564 avaient un contenu VIDE (54,3 %)**, contre 0 sur 508 cotes
+ * utilisateur. A l'ecran, le fil de conversation affiche l'etiquette « Agent »
+ * et sa barre d'actions, mais AUCUN texte : le panneau principal du produit ne
+ * sert plus a rien, sans qu'aucune erreur ne soit jamais remontee.
+ *
+ * Un `return ''` en dernier recours ne distingue pas « le modele a repondu du
+ * vide » de « nous n'avons pas compris la reponse ». Le premier cas est rare et
+ * legitime ; le second est un bug qui doit etre bruyant.
+ */
+export class ReponseFournisseurIncomprise extends Error {
+  readonly code = 'AI_PROVIDER_SHAPE_UNKNOWN';
+
+  constructor(readonly formesVues: string[]) {
+    super(`Forme de reponse non reconnue (cles vues: ${formesVues.join(', ') || 'aucune'})`);
+    this.name = 'ReponseFournisseurIncomprise';
+  }
+}
+
+function extractContent(payload: any): string {
   if (typeof payload?.choices?.[0]?.message?.content === 'string') {
     return payload.choices[0].message.content;
   }
 
   if (Array.isArray(payload?.content)) {
-    return payload.content.map((part: any) => part.text ?? '').join('');
+    /*
+     * Anthropic rend un tableau de blocs heterogenes : `text`, mais aussi
+     * `thinking`, `tool_use`, `redacted_thinking`. Ceux-la n'ont pas de `.text`.
+     * Une reponse composee UNIQUEMENT de tels blocs donnait `''` — un message
+     * vide persiste comme s'il avait reussi. On rend le texte concatene, et on
+     * signale explicitement le cas ou aucun bloc de texte n'existait.
+     */
+    const blocsTexte = payload.content.filter((part: any) => typeof part?.text === 'string');
+
+    if (blocsTexte.length === 0) {
+      const types = payload.content.map((part: any) => String(part?.type ?? '?'));
+      throw new ReponseFournisseurIncomprise([`content[] sans bloc texte: ${types.join('|')}`]);
+    }
+
+    return blocsTexte.map((part: any) => part.text).join('');
   }
 
   if (Array.isArray(payload?.candidates?.[0]?.content?.parts)) {
@@ -993,7 +1031,15 @@ function extractContent(payload: any) {
     return payload.message.content;
   }
 
-  return '';
+  /*
+   * Aucune forme connue. NE PAS rendre '' : c'est exactement ce qui a rempli la
+   * base de 564 messages vides. On leve, l'appelant transforme en 502 comme
+   * toute autre panne de passerelle, et l'utilisateur voit une erreur au lieu
+   * d'une bulle muette.
+   */
+  throw new ReponseFournisseurIncomprise(
+    payload && typeof payload === 'object' ? Object.keys(payload).slice(0, 8) : [typeof payload],
+  );
 }
 
 /*
