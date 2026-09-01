@@ -17067,6 +17067,27 @@ button.bolt-project-statusbar-pill:focus-visible,
   }
 }
 
+/*
+ * Ces trois-là ne sont pas des libellés : ils ne doivent pas rétrécir.
+ *
+ * `.bolt-project-statusbar-pill > span:not([class*='i-ph:'])` fait tronquer les
+ * libellés trop longs et pose pour cela `min-width: 0`. Mais le point d'état et
+ * les deux compteurs sont eux aussi des `<span>` sans classe d'icône : ils
+ * tombent dans la règle, perdent leur plancher, et le conteneur flex les réduit.
+ *
+ * Mesuré en 1440 : le point d'état du runtime est rendu **0×7** — il est dans le
+ * flux, sa couleur est correcte, et il est invisible. Le voyant qui dit si
+ * l'environnement tourne n'a jamais rien montré.
+ *
+ * `flex: none` plutôt qu'une bataille de spécificité : il empêche le rétrécissement
+ * quel que soit le `min-width`, donc la règle de troncature peut rester intacte.
+ */
+.bolt-project-statusbar-runtime-dot,
+.bolt-project-statusbar-error-count,
+.bolt-project-statusbar-warning-count {
+  flex: none;
+}
+
 .bolt-project-statusbar-runtime-dot {
   width: 7px;
   height: 7px;
