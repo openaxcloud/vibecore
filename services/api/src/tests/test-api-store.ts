@@ -3688,6 +3688,12 @@ export class TestApiStore implements ApiStore {
     return [...this.aiMessages.values()].filter((message) => message.conversationId === conversationId);
   }
 
+  async listAiMessageIds(conversationId: string) {
+    return [...this.aiMessages.values()]
+      .filter((message) => message.conversationId === conversationId)
+      .map((message) => message.id);
+  }
+
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {
     const toolCall: AiToolCallRecord = { id: id('ai_tool'), ...input, createdAt: now() };
     this.aiToolCalls.set(toolCall.id, toolCall);

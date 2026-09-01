@@ -4728,6 +4728,15 @@ export class PrismaApiStore implements ApiStore {
     return rows.reverse().map(mapAiMessage);
   }
 
+  async listAiMessageIds(conversationId: string) {
+    const rows = await this.prisma.aiMessage.findMany({
+      where: { conversationId },
+      select: { id: true },
+    });
+
+    return rows.map((row) => row.id);
+  }
+
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {
     return mapAiToolCall(
       await this.prisma.aiToolCall.create({

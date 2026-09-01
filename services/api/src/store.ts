@@ -2420,6 +2420,12 @@ export interface ApiStore {
     content: string;
   }): Promise<AiMessageRecord>;
   listAiMessages(conversationId: string): Promise<AiMessageRecord[]>;
+
+  /**
+   * Ids only. The transcript sync needs to know which rows already belong to a
+   * conversation without pulling every message body over the wire on each save.
+   */
+  listAiMessageIds(conversationId: string): Promise<string[]>;
   createAiToolCall(input: {
     messageId: string;
     name: string;

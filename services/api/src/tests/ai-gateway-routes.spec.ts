@@ -180,4 +180,123 @@ describe('AI conversation message routes', () => {
 
     await app.close();
   });
+
+  it('does not duplicate the transcript when a reopened project syncs the ids it was given', async () => {
+    /*
+     * The reopen cycle, which the sync-twice test above never exercised: the
+     * client loads the transcript back and adopts OUR row ids as its own
+     * message ids, so the NEXT sync arrives with `clientId = 'aimsg_…'`. Before
+     * the fix that re-hashed into a fresh row and every reopen appended a full
+     * copy of the conversation.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const { token, organizationId } = await registerUser(app, 'transcript-reopen@example.com');
+    const { projectId, conversationId } = await createConversation(app, token, organizationId);
+    vi.stubGlobal('fetch', vi.fn());
+
+    const transcriptUrl = `/projects/${projectId}/ai/conversations/${conversationId}/transcript`;
+    const messagesUrl = `/projects/${projectId}/ai/conversations/${conversationId}/messages`;
+    const headers = { authorization: `Bearer ${token}` };
+
+    const firstSync = await app.inject({
+      method: 'PUT',
+      url: transcriptUrl,
+      headers,
+      payload: {
+        messages: [
+          { clientId: 'user-turn-1', role: 'user', content: 'Ajoute une page de contact.' },
+          { clientId: 'assistant-turn-1', role: 'assistant', content: 'La page est créée.' },
+        ],
+      },
+    });
+    expect(firstSync.statusCode).toBe(200);
+
+    const readBack = async () =>
+      (
+        (await app.inject({ method: 'GET', url: messagesUrl, headers })).json() as {
+          messages: Array<{ id: string; role: string; content: string }>;
+        }
+      ).messages;
+
+    // Three reopens in a row — each one syncs back the ids the server just handed out.
+    for (let reopen = 0; reopen < 3; reopen += 1) {
+      const hydrated = await readBack();
+
+      const resync = await app.inject({
+        method: 'PUT',
+        url: transcriptUrl,
+        headers,
+        payload: {
+          messages: hydrated.map((message) => ({
+            clientId: message.id,
+            role: message.role,
+            content: message.content,
+          })),
+        },
+      });
+      expect(resync.statusCode).toBe(200);
+    }
+
+    const finalMessages = await readBack();
+
+    expect(finalMessages).toHaveLength(2);
+    expect(finalMessages).toMatchObject([
+      { role: 'user', content: 'Ajoute une page de contact.' },
+      { role: 'assistant', content: 'La page est créée.' },
+    ]);
+
+    await app.close();
+  });
+
+  it('never lets a forged message id reach another conversation', async () => {
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const { token, organizationId } = await registerUser(app, 'transcript-forge@example.com');
+    const first = await createConversation(app, token, organizationId);
+    const second = await createConversation(app, token, organizationId);
+    vi.stubGlobal('fetch', vi.fn());
+
+    const headers = { authorization: `Bearer ${token}` };
+
+    await app.inject({
+      method: 'PUT',
+      url: `/projects/${first.projectId}/ai/conversations/${first.conversationId}/transcript`,
+      headers,
+      payload: { messages: [{ clientId: 'turn-1', role: 'user', content: 'Fil A.' }] },
+    });
+
+    const victim = (
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/projects/${first.projectId}/ai/conversations/${first.conversationId}/messages`,
+          headers,
+        })
+      ).json() as { messages: Array<{ id: string }> }
+    ).messages[0];
+
+    // The second conversation claims the first conversation's row id.
+    await app.inject({
+      method: 'PUT',
+      url: `/projects/${second.projectId}/ai/conversations/${second.conversationId}/transcript`,
+      headers,
+      payload: { messages: [{ clientId: victim.id, role: 'user', content: 'Écrasé depuis le fil B.' }] },
+    });
+
+    const untouched = (
+      (
+        await app.inject({
+          method: 'GET',
+          url: `/projects/${first.projectId}/ai/conversations/${first.conversationId}/messages`,
+          headers,
+        })
+      ).json() as { messages: Array<{ id: string; content: string }> }
+    ).messages;
+
+    expect(untouched).toHaveLength(1);
+    expect(untouched[0].content).toBe('Fil A.');
+
+    await app.close();
+  });
 });
