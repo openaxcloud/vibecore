@@ -27,6 +27,10 @@ on:
 
 permissions:
   contents: write
+  # ATTESTATION-PR-001 — créer la PR d'attestation et activer sa fusion
+  # automatique. La protection de `main` reste intacte : c'est elle qui décide
+  # quand la fusion peut avoir lieu.
+  pull-requests: write
   # ATTESTATION-CHECKS-001 — `actions: write` pour DEMANDER les contrôles requis
   # sur le commit qu'on vient de pousser. En lecture seule, on saurait constater
   # qu'il n'en a aucun sans pouvoir y remédier.
@@ -175,17 +179,56 @@ jobs:
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
       - name: Commit the rolled attestation
         id: attest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           git config user.name "parity-attestation-bot"
           git config user.email "noreply@e-code.ai"
           git add docs/parity
+
           if git diff --cached --quiet; then
             echo "attestation already current"
-          else
-            git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
-            git push origin HEAD:main
-            echo "pushed=true" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          #
+          # ATTESTATION-PR-001 — l'attestation passe par une PR, jamais par un
+          # push direct sur `main`.
+          #
+          # Mesuré le 2026-09-01 (run 33477515318) : `git push origin HEAD:main`
+          # est refusé par la protection de branche —
+          #   remote: error: GH006: Protected branch update failed
+          #   remote: - 3 of 3 required status checks are expected
+          # L'attestation n'était donc plus roulée du tout. Impasse par
+          # construction : un push DIRECT ne peut par définition pas porter les
+          # contrôles requis, puisqu'ils s'exécutent après.
+          #
+          # On n'assouplit PAS la protection. On emprunte le chemin qu'elle
+          # autorise : une branche, une PR, les contrôles demandés sur SA tête,
+          # et une fusion automatique qui n'aboutit que lorsqu'ils sont verts.
+          #
+          BRANCHE="chore/attestation-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCHE"
+          git commit -m "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID} @ ${GITHUB_SHA:0:8}) — LS-16"
+          git push origin "$BRANCHE"
+
+          gh pr create --base main --head "$BRANCHE" \
+            --title "chore(parity): attestation roulée automatiquement (run ${GITHUB_RUN_ID})" \
+            --body "Attestation roulée par le workflow \`parity-registries\` pour le run ${GITHUB_RUN_ID} (\`${GITHUB_SHA:0:8}\`).
+
+          Passe par une PR et non par un push direct : la protection de \`main\` exige 3 contrôles, qu'un push direct ne peut pas porter. La fusion est automatique et n'aboutira qu'une fois ces contrôles verts."
+
+          # `--auto` : GitHub fusionne SEULEMENT quand les contrôles requis sont
+          # verts. Si l'appel échoue (auto-merge désactivé sur le dépôt), on
+          # laisse la PR ouverte plutôt que d'échouer le run — l'attestation est
+          # sauvegardée sur sa branche et reste fusionnable à la main.
+          if ! gh pr merge "$BRANCHE" --auto --squash --delete-branch; then
+            echo "::warning::fusion automatique indisponible — PR laissée ouverte pour fusion manuelle"
+          fi
+
+          echo "branche=$BRANCHE" >> "$GITHUB_OUTPUT"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
 
       - name: Déclencher les contrôles requis sur le commit d'attestation
         # ATTESTATION-CHECKS-001 — un commit sans contrôle est un commit
@@ -207,8 +250,9 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
+          BRANCHE="${{ steps.attest.outputs.branche }}"
           SHA="$(git rev-parse HEAD)"
-          echo "contrôles demandés pour ${SHA}"
+          echo "contrôles demandés pour ${SHA} sur ${BRANCHE}"
 
           # `--ref` prend une BRANCHE, pas un SHA : le dispatch part donc de la
           # tête de `main`. C'est correct ici — le commit qu'on vient de pousser
@@ -220,10 +264,10 @@ jobs:
           fi
 
           for wf in ci.yml e2e.yml; do
-            if gh workflow run "${wf}" --ref main; then
-              echo "dispatché: ${wf}"
+            if gh workflow run "${wf}" --ref "${BRANCHE}"; then
+              echo "dispatché: ${wf} sur ${BRANCHE}"
             else
-              echo "::error::impossible de dispatcher ${wf} — le commit d'attestation resterait sans contrôle"
+              echo "::error::impossible de dispatcher ${wf} — la PR d'attestation resterait sans contrôle"
               exit 1
             fi
           done
@@ -245,15 +289,35 @@ jobs:
       - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
       - name: Commit the day's snapshot
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
           git config user.name "parity-baseline-bot"
           git config user.email "noreply@e-code.ai"
           git add docs/parity/baseline/snapshots
+
           if git diff --cached --quiet; then
             echo "no snapshot change to commit"
-          else
-            DAY=$(date -u +%F)
-            git commit -m "chore(parity): baseline snapshot ${DAY} (P0-04 daily collector)" \
-                       -m "$(tail -20 /tmp/collect.log)"
-            git push origin HEAD:main
+            exit 0
+          fi
+
+          # ATTESTATION-PR-001 (même défaut que le job d'attestation, second
+          # site) : la protection de `main` refuse tout push direct. Ce relevé
+          # quotidien emprunte donc lui aussi le chemin PR + fusion automatique.
+          DAY=$(date -u +%F)
+          BRANCHE="chore/baseline-${DAY}-${GITHUB_RUN_ID}"
+          git checkout -b "$BRANCHE"
+          git commit -m "chore(parity): baseline snapshot ${DAY} (P0-04 daily collector)" \
+                     -m "$(tail -20 /tmp/collect.log)"
+          git push origin "$BRANCHE"
+
+          gh pr create --base main --head "$BRANCHE" \
+            --title "chore(parity): baseline snapshot ${DAY}" \
+            --body "Relevé quotidien du collecteur de parité (P0-04) pour ${DAY}.
+
+          Passe par une PR : la protection de \`main\` refuse les pushes directs. La fusion est automatique et subordonnée aux contrôles requis."
+
+          if ! gh pr merge "$BRANCHE" --auto --squash --delete-branch; then
+            echo "::warning::fusion automatique indisponible — PR laissée ouverte pour fusion manuelle"
           fi
