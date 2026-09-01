@@ -359,6 +359,211 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
     setIsToolsMenuOpen(false);
   };
 
+  const attachControl = (
+    <>
+      <IconButton
+        title={copy['chatBox.attachments.attach']}
+        tooltip={copy['chatBox.attachments.attach']}
+        className="bolt-chatbox-toolbar-button"
+        onClick={() => props.handleFileUpload()}
+      >
+        <div className="i-ph:paperclip text-lg"></div>
+      </IconButton>
+
+      {props.uploadedFiles.length > 0 ? (
+        <span
+          className="text-xs text-bolt-elements-textTertiary"
+          aria-live="polite"
+          title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
+        >
+          {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
+        </span>
+      ) : null}
+    </>
+  );
+
+  const micControl = (
+    <>
+      {/*
+       * I13: the mic/dictation button belongs on EVERY composer (landing /
+       * new chat), not just the IDE. Its unsupported-browser guard lives
+       * inside SpeechRecognitionButton itself (returns null when the Web
+       * Speech API is missing — same G30 behaviour), and the listening
+       * props come from BaseChat regardless of projectIdeMode, so it is
+       * safe to render unconditionally here.
+       */}
+      <SpeechRecognitionButton
+        isListening={props.isListening}
+        onStart={props.startListening}
+        onStop={props.stopListening}
+        disabled={props.isStreaming}
+        triggerVariant="icon"
+        triggerClassName="bolt-chatbox-toolbar-button"
+      />
+    </>
+  );
+
+  const agentModeControl = (
+    <>
+      {/* Agent/Assistant mode selector. The Plan-first toggle moved up beside
+                the effort/Power control (Replit parity), so it no longer lives here. */}
+      {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
+        <ChatBoxModeDropdown
+          agentMode={props.agentMode}
+          setAgentMode={props.setAgentMode}
+          disabled={props.isStreaming}
+        />
+      ) : null}
+    </>
+  );
+
+  const toolsMenuControl = (
+    <>
+      <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
+        <IconButton
+          title={copy['chatBox.tools.more']}
+          tooltip={copy['chatBox.tools.more']}
+          className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
+          ariaExpanded={isToolsMenuOpen}
+          ariaHasPopup="menu"
+          onClick={() => setIsToolsMenuOpen((open) => !open)}
+        >
+          <div className="i-ph:dots-three-outline text-lg" />
+        </IconButton>
+
+        {isToolsMenuOpen ? (
+          <div
+            className="bolt-chatbox-tools-menu"
+            role="menu"
+            aria-label={copy['chatBox.tools.menuAria']}
+            data-testid="composer-tools-menu"
+          >
+            <ColorSchemeDialog
+              designScheme={props.designScheme}
+              setDesignScheme={props.setDesignScheme}
+              triggerVariant="menu"
+            />
+            <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
+            <WebSearch
+              onSearchResult={(result) => props.onWebSearchResult?.(result)}
+              disabled={props.isStreaming}
+              triggerVariant="menu"
+              triggerLabel={copy['chatBox.tools.fetchUrl']}
+            />
+            <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
+            <IconButton
+              title={enhancePromptTitle}
+              tooltip={enhancePromptTitle}
+              disabled={props.input.length === 0 || props.enhancingPrompt}
+              className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
+              onClick={enhancePrompt}
+            >
+              <>
+                {props.enhancingPrompt ? (
+                  <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                ) : (
+                  <div className="i-bolt:stars text-xl"></div>
+                )}
+                <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                  {copy['chatBox.enhance.action']}
+                </span>
+              </>
+            </IconButton>
+
+            {/* In the IDE the mic is surfaced directly on the composer bar
+                      (Replit parity), so it's omitted from this menu to avoid a
+                      duplicate; the standalone composer keeps it here. */}
+            {!props.projectIdeMode ? (
+              <SpeechRecognitionButton
+                isListening={props.isListening}
+                onStart={() => {
+                  props.startListening();
+                  setIsToolsMenuOpen(false);
+                }}
+                onStop={() => {
+                  props.stopListening();
+                  setIsToolsMenuOpen(false);
+                }}
+                disabled={props.isStreaming}
+                triggerVariant="menu"
+                triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
+              />
+            ) : null}
+
+            {props.chatStarted && !props.projectIdeMode ? (
+              <IconButton
+                title={copy['chatBox.discuss.title']}
+                tooltip={copy['chatBox.discuss.title']}
+                className={classNames('bolt-chatbox-tools-menu-item', {
+                  'is-active': props.chatMode === 'discuss',
+                })}
+                onClick={toggleChatMode}
+              >
+                <>
+                  <div className="i-ph:chats text-xl" />
+                  <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                    {props.chatMode === 'discuss'
+                      ? copy['chatBox.discuss.switchToBuild']
+                      : copy['chatBox.discuss.title']}
+                  </span>
+                </>
+              </IconButton>
+            ) : null}
+
+            <IconButton
+              title={settingsToggleTitle}
+              tooltip={settingsToggleTitle}
+              data-testid="composer-tools-menu-settings"
+              className={classNames('bolt-chatbox-tools-menu-item', {
+                'is-active': props.isModelSettingsCollapsed,
+              })}
+              onClick={toggleModelSettings}
+              disabled={!props.providerList || props.providerList.length === 0}
+            >
+              <>
+                <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
+                <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                  {settingsToggleTitle}
+                </span>
+              </>
+            </IconButton>
+          </div>
+        ) : null}
+      </div>
+    </>
+  );
+
+  /*
+   * Composer compact : les trois modes, les interrupteurs, le coût estimé et le
+   * bouton Planifier tenaient chacun leur rangée au-dessus du champ — cinq
+   * rangées empilées, près de la moitié de l'écran en 390. Tout passe derrière
+   * une étiquette discrète de la rangée de commandes unique.
+   */
+  const agentPowerControl = props.projectIdeMode ? (
+    <ClientOnly>
+      {() => (
+        <AgentPowerControls
+          variant="compact"
+          value={agentPower}
+          onChange={handleAgentPowerChange}
+          estimatedCents={agentPowerEstimateCents}
+          disabled={props.isStreaming}
+          availability={agentModeAvailability}
+          planFirst={
+            props.onPlanFirstChange
+              ? {
+                  enabled: props.planFirstEnabled ?? false,
+                  onChange: (next) => props.onPlanFirstChange?.(next),
+                  label: copy['chatBox.planFirst.label'],
+                  title: copy['chatBox.planFirst.title'],
+                }
+              : undefined
+          }
+        />
+      )}
+    </ClientOnly>
+  ) : null;
+
   return (
     <div
       className={classNames(
@@ -438,39 +643,6 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
        * discoverable. ClientOnly because the estimate + persisted state are
        * client-side.
        */}
-      {props.projectIdeMode && (
-        <ClientOnly>
-          {() => (
-            <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-bolt-elements-borderColor px-1 pt-2">
-              <AgentPowerControls
-                value={agentPower}
-                onChange={handleAgentPowerChange}
-                estimatedCents={agentPowerEstimateCents}
-                disabled={props.isStreaming}
-                availability={agentModeAvailability}
-              />
-              {/* Replit parity: the Plan-first toggle sits directly beside the
-                  effort/Power control (shares the projectPlanFirst state — no
-                  dup). Wired to the real plan-first pipeline (create-agent-plan). */}
-              {props.onPlanFirstChange ? (
-                <button
-                  type="button"
-                  className={classNames('bolt-chatbox-plan-toggle', {
-                    'is-active': props.planFirstEnabled ?? false,
-                  })}
-                  aria-pressed={props.planFirstEnabled ?? false}
-                  disabled={props.isStreaming}
-                  title={copy['chatBox.planFirst.title']}
-                  onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
-                >
-                  <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
-                  <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
-                </button>
-              ) : null}
-            </div>
-          )}
-        </ClientOnly>
-      )}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
@@ -531,8 +703,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         onDrop={handleComposerDrop}
       >
         <div className="bolt-chatbox-input-frame relative">
+          {/*
+            Le bouton « i » ne figure plus dans la rangée de commandes de l'IDE :
+            elle porte les sélecteurs à gauche et les actions à droite, et un
+            sixième contrôle purement informatif la faisait déborder. Le raccourci
+            reste porté par le champ (`title`), là où il s'utilise.
+
+            `rows={1}` : sans cet attribut un textarea vaut DEUX lignes par
+            défaut. L'auto-agrandissement remet `height: auto` avant de lire
+            `scrollHeight`, il lisait donc deux lignes pour un champ vide et
+            posait 63 px au repos au lieu d'une. Le composer autonome garde sa
+            taille plus ample.
+          */}
           <textarea
             ref={props.textareaRef}
+            rows={props.projectIdeMode ? 1 : undefined}
             aria-label={props.projectIdeMode ? copy['chatBox.prompt.agentAria'] : copy['chatBox.prompt.chatAria']}
             className={classNames(
               'block w-full pl-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
@@ -585,6 +770,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 ? copy['chatBox.prompt.buildPlaceholder']
                 : copy['chatBox.prompt.discussPlaceholder'])
             }
+            title={props.projectIdeMode ? copy['chatBox.shortcuts.newLine'] : undefined}
             translate="no"
           />
           {props.textareaRef ? (
@@ -634,174 +820,39 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         </div>
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
-            <IconButton
-              title={copy['chatBox.attachments.attach']}
-              tooltip={copy['chatBox.attachments.attach']}
-              className="bolt-chatbox-toolbar-button"
-              onClick={() => props.handleFileUpload()}
-            >
-              <div className="i-ph:paperclip text-lg"></div>
-            </IconButton>
-
-            {props.uploadedFiles.length > 0 ? (
-              <span
-                className="text-xs text-bolt-elements-textTertiary"
-                aria-live="polite"
-                title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
-              >
-                {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
-              </span>
-            ) : null}
-
-            {/*
-             * I13: the mic/dictation button belongs on EVERY composer (landing /
-             * new chat), not just the IDE. Its unsupported-browser guard lives
-             * inside SpeechRecognitionButton itself (returns null when the Web
-             * Speech API is missing — same G30 behaviour), and the listening
-             * props come from BaseChat regardless of projectIdeMode, so it is
-             * safe to render unconditionally here.
-             */}
-            <SpeechRecognitionButton
-              isListening={props.isListening}
-              onStart={props.startListening}
-              onStop={props.stopListening}
-              disabled={props.isStreaming}
-              triggerVariant="icon"
-              triggerClassName="bolt-chatbox-toolbar-button"
-            />
-
-            {/* Agent/Assistant mode selector. The Plan-first toggle moved up beside
-                the effort/Power control (Replit parity), so it no longer lives here. */}
-            {props.projectIdeMode && props.agentMode && props.setAgentMode ? (
-              <ChatBoxModeDropdown
-                agentMode={props.agentMode}
-                setAgentMode={props.setAgentMode}
-                disabled={props.isStreaming}
-              />
-            ) : null}
-
-            <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
-              <IconButton
-                title={copy['chatBox.tools.more']}
-                tooltip={copy['chatBox.tools.more']}
-                className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
-                ariaExpanded={isToolsMenuOpen}
-                ariaHasPopup="menu"
-                onClick={() => setIsToolsMenuOpen((open) => !open)}
-              >
-                <div className="i-ph:dots-three-outline text-lg" />
-              </IconButton>
-
-              {isToolsMenuOpen ? (
-                <div
-                  className="bolt-chatbox-tools-menu"
-                  role="menu"
-                  aria-label={copy['chatBox.tools.menuAria']}
-                  data-testid="composer-tools-menu"
-                >
-                  <ColorSchemeDialog
-                    designScheme={props.designScheme}
-                    setDesignScheme={props.setDesignScheme}
-                    triggerVariant="menu"
-                  />
-                  <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
-                  <WebSearch
-                    onSearchResult={(result) => props.onWebSearchResult?.(result)}
-                    disabled={props.isStreaming}
-                    triggerVariant="menu"
-                    triggerLabel={copy['chatBox.tools.fetchUrl']}
-                  />
-                  <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
-                  <IconButton
-                    title={enhancePromptTitle}
-                    tooltip={enhancePromptTitle}
-                    disabled={props.input.length === 0 || props.enhancingPrompt}
-                    className={classNames('bolt-chatbox-tools-menu-item', props.enhancingPrompt ? 'opacity-100' : '')}
-                    onClick={enhancePrompt}
-                  >
-                    <>
-                      {props.enhancingPrompt ? (
-                        <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
-                      ) : (
-                        <div className="i-bolt:stars text-xl"></div>
-                      )}
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {copy['chatBox.enhance.action']}
-                      </span>
-                    </>
-                  </IconButton>
-
-                  {/* In the IDE the mic is surfaced directly on the composer bar
-                      (Replit parity), so it's omitted from this menu to avoid a
-                      duplicate; the standalone composer keeps it here. */}
-                  {!props.projectIdeMode ? (
-                    <SpeechRecognitionButton
-                      isListening={props.isListening}
-                      onStart={() => {
-                        props.startListening();
-                        setIsToolsMenuOpen(false);
-                      }}
-                      onStop={() => {
-                        props.stopListening();
-                        setIsToolsMenuOpen(false);
-                      }}
-                      disabled={props.isStreaming}
-                      triggerVariant="menu"
-                      triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
-                    />
-                  ) : null}
-
-                  {props.chatStarted && !props.projectIdeMode ? (
-                    <IconButton
-                      title={copy['chatBox.discuss.title']}
-                      tooltip={copy['chatBox.discuss.title']}
-                      className={classNames('bolt-chatbox-tools-menu-item', {
-                        'is-active': props.chatMode === 'discuss',
-                      })}
-                      onClick={toggleChatMode}
-                    >
-                      <>
-                        <div className="i-ph:chats text-xl" />
-                        <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                          {props.chatMode === 'discuss'
-                            ? copy['chatBox.discuss.switchToBuild']
-                            : copy['chatBox.discuss.title']}
-                        </span>
-                      </>
-                    </IconButton>
-                  ) : null}
-
-                  <IconButton
-                    title={settingsToggleTitle}
-                    tooltip={settingsToggleTitle}
-                    data-testid="composer-tools-menu-settings"
-                    className={classNames('bolt-chatbox-tools-menu-item', {
-                      'is-active': props.isModelSettingsCollapsed,
-                    })}
-                    onClick={toggleModelSettings}
-                    disabled={!props.providerList || props.providerList.length === 0}
-                  >
-                    <>
-                      <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {settingsToggleTitle}
-                      </span>
-                    </>
-                  </IconButton>
-                </div>
-              ) : null}
-            </div>
+            {props.projectIdeMode ? (
+              <>
+                {agentModeControl}
+                {agentPowerControl ? <span className="bolt-composer-chip-divider" aria-hidden /> : null}
+                {agentPowerControl}
+              </>
+            ) : (
+              <>
+                {attachControl}
+                {micControl}
+                {agentModeControl}
+                {toolsMenuControl}
+              </>
+            )}
           </div>
 
           <div className="bolt-chatbox-toolbar-secondary">
-            <IconButton
-              title={copy['chatBox.shortcuts.title']}
-              tooltip={copy['chatBox.shortcuts.newLine']}
-              tooltipLocked
-              className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
-            >
-              <div className="i-ph:info text-lg" />
-            </IconButton>
+            {props.projectIdeMode ? (
+              <>
+                {attachControl}
+                {micControl}
+                {toolsMenuControl}
+              </>
+            ) : (
+              <IconButton
+                title={copy['chatBox.shortcuts.title']}
+                tooltip={copy['chatBox.shortcuts.newLine']}
+                tooltipLocked
+                className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
+              >
+                <div className="i-ph:info text-lg" />
+              </IconButton>
+            )}
             {props.projectIdeMode ? (
               <ClientOnly>
                 {() => (

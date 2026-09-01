@@ -8165,7 +8165,13 @@ body :where(.lucide, svg[data-lucide]) {
    * Le rembourrage droit reste : il dégage le bouton d'envoi, en absolu.
    */
   min-height: 44px;
-  padding: 8px 56px 8px 8px !important;
+
+  /*
+   * 56 px de réserve à droite dégageaient le bouton d'envoi SUPERPOSÉ. Dans le
+   * composer de l'IDE l'envoi vit dans la rangée de commandes : cette réserve
+   * n'était plus qu'une bande morte qui rognait la largeur utile du champ.
+   */
+  padding: 10px 12px !important;
   color: var(--vc-ide-text-primary);
   font-size: 13px !important;
 }
@@ -8202,7 +8208,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-chatbox .bolt-chatbox-input-frame {
-  min-height: 76px;
+  /*
+   * 76 px réservaient DEUX lignes pour un champ vide. Le bouton d'envoi n'est
+   * plus superposé au champ dans l'IDE (il vit dans la rangée de commandes),
+   * donc le champ n'a plus rien à dégager : une ligne au repos, puis il grandit
+   * à la frappe jusqu'à son maximum.
+   */
+  min-height: 44px;
 }
 
 .bolt-chatbox-toolbar {
@@ -8247,6 +8259,207 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-chatbox-toolbar-secondary {
   margin-left: auto;
+}
+
+/*
+ * Composer de l'agent — UNE rangée de commandes, plus cinq rangées empilées.
+ *
+ * Au repos le composer de l'IDE présentait, de haut en bas : le segmenté
+ * Léger/Économique/Puissance, le bouton « Avancé », la ligne de coût, le bouton
+ * « Planifier », le champ, puis la rangée trombone/micro/Agent/⋯. Mesuré à 390 :
+ * 249 px pour un champ vide, soit 31 % du panneau ; 312 px en desktop, 40 %.
+ *
+ * Les sélecteurs deviennent des étiquettes discrètes, séparées par de fins
+ * traits, à gauche de la rangée unique ; les actions restent à droite. Le
+ * segmenté, les interrupteurs, le coût et « Planifier » vivent désormais dans le
+ * popover « Avancé ».
+ *
+ * Les hauteurs de cible sont EN PIXELS : la base rem du produit vaut 12 px en
+ * desktop et 14 px sous 1024 px, donc toute valeur en rem serait déformée.
+ */
+.bolt-composer-chip {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 32px;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0 6px;
+  transition:
+    background-color 120ms ease-out,
+    color 120ms ease-out;
+}
+
+.bolt-composer-chip:hover:not(:disabled),
+.bolt-composer-chip.is-open {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-composer-chip:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--vc-ide-accent-action) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.bolt-composer-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.bolt-composer-chip-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-composer-chip-caret {
+  flex: 0 0 auto;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+.bolt-composer-chip-badge {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
+  color: var(--vc-ide-accent-action);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  padding: 0 5px;
+}
+
+/* Le « fin trait » qui sépare deux étiquettes. Décoratif : aria-hidden côté DOM. */
+.bolt-composer-chip-divider {
+  width: 1px;
+  height: 16px;
+  flex: 0 0 auto;
+
+  /*
+   * `--vc-ide-border-subtle` disparaissait sur le fond sombre du composer. Le
+   * trait est le seul séparateur entre deux étiquettes sans bordure : il doit
+   * rester perceptible dans les deux thèmes.
+   */
+  background: color-mix(in srgb, var(--vc-ide-text-muted) 42%, transparent);
+  margin: 0 2px;
+}
+
+/*
+ * Le sélecteur de mode Agent/Assistant/Plan adopte la même étiquette discrète.
+ * Son icône disparaît dans le composer : elle ne dit rien que le libellé ne dise
+ * déjà, et dans un panneau étroit (303 px en desktop) elle mangeait la place au
+ * point de tronquer le mot « Agent » lui-même.
+ */
+.bolt-project-chatbox .bolt-chatbox-mode-trigger-icon {
+  display: none;
+}
+
+.bolt-project-chatbox .bolt-chatbox-mode-trigger {
+  height: auto;
+  min-width: 0;
+  min-height: 32px;
+  border-color: transparent;
+  background: transparent;
+  font-weight: 600;
+  padding: 0 6px;
+}
+
+.bolt-project-chatbox .bolt-chatbox-mode-trigger:hover,
+.bolt-project-chatbox .bolt-chatbox-mode-trigger[aria-expanded='true'] {
+  border-color: transparent;
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-agent-power-compact {
+  min-width: 0;
+}
+
+/*
+ * UNE rangée : les groupes ne passent plus à la ligne. Les étiquettes de gauche
+ * rétrécissent (et tronquent) pour laisser les actions de droite sur la même
+ * ligne — c'est la demande explicite : sélecteurs à gauche, actions à droite,
+ * une seule rangée.
+ */
+.bolt-project-chatbox .bolt-chatbox-toolbar,
+.bolt-project-chatbox .bolt-chatbox-toolbar-primary,
+.bolt-project-chatbox .bolt-chatbox-toolbar-secondary {
+  flex-wrap: nowrap;
+}
+
+.bolt-project-chatbox .bolt-chatbox-toolbar-primary {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.bolt-project-chatbox .bolt-chatbox-toolbar-secondary {
+  flex: 0 0 auto;
+}
+
+/*
+ * Serré : à 390 la place utile de la rangée est d'environ 350 px, dont 132 pour
+ * les trois actions de droite. Des écarts de 10 px tronquaient l'étiquette du
+ * mode (« Économ… »). 4 px suffisent visuellement puisque les traits séparateurs
+ * portent déjà la lecture.
+ */
+.bolt-project-chatbox .bolt-chatbox-toolbar {
+  gap: 4px;
+}
+
+.bolt-project-chatbox .bolt-chatbox-toolbar-primary,
+.bolt-project-chatbox .bolt-chatbox-toolbar-secondary {
+  gap: 2px;
+}
+
+.bolt-project-chatbox .bolt-chatbox-mode-trigger .bolt-chatbox-mode-trigger-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Dans le popover, le segmenté et « Planifier » ouvrent le panneau. */
+.bolt-agent-power-compact-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-bottom: 1px solid var(--vc-ide-border-subtle);
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.bolt-agent-power-compact-modes [data-testid='agent-mode-segmented'] {
+  width: 100%;
+}
+
+.bolt-agent-power-compact-modes .bolt-chatbox-plan-toggle {
+  width: 100%;
+  justify-content: center;
+}
+
+/*
+ * Planchers tactiles. 44 px EN PIXELS sous 1024 px — la tablette 768 se traite
+ * comme le mobile 390, conformément à la règle produit.
+ */
+@media (max-width: 1024px) {
+  .bolt-composer-chip,
+  .bolt-project-chatbox .bolt-chatbox-mode-trigger,
+  .bolt-project-chatbox .bolt-chatbox-toolbar-button {
+    min-height: 44px;
+  }
+
+  .bolt-project-chatbox .bolt-chatbox-toolbar-button {
+    min-width: 44px;
+  }
 }
 
 /*
@@ -19487,6 +19700,27 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: var(--vc-type-heading-compact-size) !important;
 }
 
+/*
+ * IOS-ZOOM-001, le cas qui avait motivé la règle et qu'elle ne couvrait pas.
+ *
+ * Le plancher générique `textarea { font-size: 16px !important }` (voir plus
+ * haut) perdait la cascade contre le bloc de typographie ci-dessus : même
+ * `!important`, mais `.bolt-project-agent-panel :where(… textarea …)
+ * :not([class*='i-'])` pèse (0,2,0) — la classe plus l'attribut du `:not` —
+ * contre (0,0,1) pour un simple `textarea`. MESURÉ à 390 sur la zone de saisie
+ * de l'agent : 14 px rendus, donc Safari iOS zoomait sur EXACTEMENT le champ
+ * que le garde-fou visait.
+ *
+ * On rétablit le plancher avec une spécificité qui gagne — (0,2,1) — et
+ * toujours en pixels, seule unité que la base rem (14 px sous 1024 px) ne peut
+ * pas déformer.
+ */
+@media (max-width: 1024px) {
+  .bolt-project-chatbox textarea:not([class*='i-']) {
+    font-size: 16px !important;
+  }
+}
+
 @media (max-width: 767px) {
   .bolt-mobile-tabbar {
     display: grid;
@@ -21750,18 +21984,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     font-size: 16px !important;
   }
 
+  /*
+   * La rangée de commandes ne passe plus à la ligne : le composer compact tient
+   * en UNE rangée (étiquettes à gauche, actions à droite). Le retour à la ligne
+   * datait des cinq rangées empilées, où il évitait un rognage ; il produit
+   * maintenant une deuxième rangée inutile qui regagne ~50 px de hauteur.
+   */
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar {
     min-height: 48px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 8px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 4px;
     padding: 8px 2px 0;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-primary,
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-secondary {
     min-width: 0;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-primary {
+    overflow: hidden;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-secondary {
@@ -21974,8 +22218,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * viewport visuel rétrécit.
      */
     max-height: calc(
-      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) - 20px -
-        env(safe-area-inset-top, 0px)
+      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) -
+        20px - env(safe-area-inset-top, 0px)
     );
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -27058,7 +27302,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-project-agent-composer {
     bottom: calc(var(--vc-mobile-shell-bottom, 72px) + 4px) !important;
-    max-height: min(24dvh, 160px);
+
+    /*
+     * 160 px suffisaient pour un champ épinglé à 48 px ; ils rogneraient un
+     * champ qui grandit (140 px de champ + 44 px de rangée + marges). Le
+     * composer reste à 133 px au repos — ce plafond ne joue qu'à la frappe.
+     */
+    max-height: min(38dvh, 260px);
     padding-bottom: 4px;
   }
 
@@ -27073,12 +27323,26 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-height: 48px;
   }
 
+  /*
+   * Le champ grandit à la frappe, jusqu'à un maximum.
+   *
+   * Une passe de compaction antérieure l'avait ÉPINGLÉ à exactement 48 px
+   * (`height` + `min-height` + `max-height`, les trois en `!important`) sous
+   * 1199 px. L'auto-agrandissement fonctionnait pourtant : mesuré à 390 avec
+   * 40 lignes saisies, le style en ligne valait bien `height: 140px` et
+   * `scrollHeight` 927 px — mais une déclaration `!important` d'une feuille de
+   * style l'emporte sur un style en ligne SANS `!important`, donc la boîte
+   * restait à 48 px et tout le texte défilait dans une seule ligne.
+   *
+   * On garde 48 px comme PLANCHER (une ligne au repos) et on laisse le plafond
+   * à la valeur que pose l'auto-agrandissement (TEXTAREA_MAX_HEIGHT = 140 px
+   * dans le panneau Agent). En pixels : la base rem vaut 14 px sous 1024 px.
+   */
   .bolt-responsive-ide-mobile .bolt-project-chatbox textarea,
   .bolt-project-chatbox textarea {
     box-sizing: border-box !important;
-    height: 48px !important;
     min-height: 48px !important;
-    max-height: 48px !important;
+    max-height: 140px !important;
     padding: 10px 10px 8px !important;
     overflow-y: auto !important;
   }
@@ -27111,7 +27375,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-project-chatbox .bolt-chatbox-toolbar {
     min-height: var(--vc-touch-min);
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     padding: 0 4px;
   }
 
@@ -27119,7 +27383,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-project-chatbox .bolt-chatbox-toolbar-secondary {
     align-items: center;
     min-width: 0;
-    gap: 6px;
+    gap: 2px;
   }
 
   /*
