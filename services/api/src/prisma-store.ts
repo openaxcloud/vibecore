@@ -2562,14 +2562,46 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  /**
+   * BUG-CREATE-001 — le quota comptait des LIGNES, pas des espaces qui tournent.
+   *
+   * Mesuré en production le 2026-09-01 : **198 espaces comptés actifs pour 2 pods
+   * réellement en cours** — un facteur 99. 196 d'entre eux n'avaient pas été
+   * touchés depuis plus de 24 h, le plus récent des morts datant de 11 jours.
+   * Chaque ligne morte retenait son créneau indéfiniment, et un utilisateur au
+   * plafond ne pouvait plus créer un seul projet.
+   *
+   * La fenêtre de fraîcheur n'est pas un réglage arbitraire : les données
+   * montrent une séparation nette. À 6 h il reste exactement 2 espaces — les
+   * deux qui ont un pod — et le suivant a 11 jours. Aucun seuil entre 6 h et
+   * 72 h ne change le résultat.
+   *
+   * Le risque résiduel est assumé et il est le bon sens : un espace réellement
+   * vivant mais dont la ligne n'aurait pas bougé depuis 6 h ne serait plus
+   * compté, donc le quota SOUS-compterait. Un utilisateur pourrait dépasser son
+   * plan de quelques espaces. C'est sans commune mesure avec l'inverse — plus
+   * personne ne peut rien créer.
+   *
+   * AUCUNE ÉCRITURE EN BASE ICI, et c'est délibéré. J'avais d'abord ajouté une
+   * réconciliation qui remettait les lignes périmées à STOPPED. Vérification
+   * faite AVANT de livrer : `STOPPED` n'est pas un état neutre — le
+   * ramasse-miettes supprime un espace STOPPED après 24 h, PVC compris. La
+   * réconciliation aurait donc armé la suppression de 196 espaces. On se
+   * contente d'ignorer les lignes périmées à la lecture : elles restent en base,
+   * rien n'est déclenché, et le quota cesse de bloquer.
+   */
+  static readonly ACTIVE_WORKSPACE_FRESHNESS_MS = 6 * 60 * 60 * 1000;
+
   async countActiveWorkspaces(organizationId: string) {
     return this.prisma.workspace.count({
       where: {
         project: { organizationId, deletedAt: null },
         status: { in: ['PENDING', 'STARTING', 'RUNNING'] },
+        updatedAt: { gte: new Date(Date.now() - PrismaApiStore.ACTIVE_WORKSPACE_FRESHNESS_MS) },
       },
     });
   }
+
 
   async listActiveWorkspaces(organizationId: string) {
     return (
