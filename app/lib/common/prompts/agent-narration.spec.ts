@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { PromptLibrary } from '../prompt-library';
+import { PromptLibrary } from '~/lib/common/prompt-library';
 
 /*
  * Avi : « tout doit être détaillé » — les messages de l'agent doivent dire ce
