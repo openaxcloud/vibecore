@@ -546,6 +546,19 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-warning-on-tint: var(--vc-ide-accent-warning);
   --vc-ide-accent-error-on-tint: var(--vc-ide-accent-error);
   --vc-ide-accent-action-on-tint: var(--vc-ide-accent-action);
+  /*
+   * Familles qui ALIASENT une canonique ci-dessus : leur variante « sur teinte »
+   * suit la variante de la famille pointée, sinon un texte posé sur sa propre
+   * teinte via l'alias échapperait au durcissement. `textTertiary` est du gris
+   * de texte, pas un accent : il tient déjà sur sa propre teinte, l'alias est
+   * donc l'identité — mais il EXISTE, pour que le motif soit uniforme et que
+   * la prochaine règle écrite sur ce modèle soit couverte sans y penser.
+   */
+  --vc-ide-accent-primary-on-tint: var(--vc-ide-accent-action-on-tint);
+  --vc-auth-success-on-tint: var(--vc-ide-accent-success-on-tint);
+  --vc-auth-error-on-tint: var(--vc-ide-accent-error-on-tint);
+  --ecode-accent-on-tint: var(--vc-ide-accent-action-on-tint);
+  --bolt-elements-textTertiary-on-tint: var(--bolt-elements-textTertiary);
   // AI gradient stops. Already hard-coded in the agent placeholder SVG served
   // by services/api; declaring them makes the pair part of the token layer
   // instead of a duplicated literal.
@@ -963,6 +976,19 @@ html:has(.vc-app-shell-grid) body {
    * teinte orange.
    */
   --vc-ide-accent-action-on-tint: #9a3412;
+  /*
+   * Familles qui ALIASENT une canonique ci-dessus : leur variante « sur teinte »
+   * suit la variante de la famille pointée, sinon un texte posé sur sa propre
+   * teinte via l'alias échapperait au durcissement. `textTertiary` est du gris
+   * de texte, pas un accent : il tient déjà sur sa propre teinte, l'alias est
+   * donc l'identité — mais il EXISTE, pour que le motif soit uniforme et que
+   * la prochaine règle écrite sur ce modèle soit couverte sans y penser.
+   */
+  --vc-ide-accent-primary-on-tint: var(--vc-ide-accent-action-on-tint);
+  --vc-auth-success-on-tint: var(--vc-ide-accent-success-on-tint);
+  --vc-auth-error-on-tint: var(--vc-ide-accent-error-on-tint);
+  --ecode-accent-on-tint: var(--vc-ide-accent-action-on-tint);
+  --bolt-elements-textTertiary-on-tint: var(--bolt-elements-textTertiary);
   --vc-ide-accent: var(--vc-ide-accent-action);
   --vc-ide-accent-primary: var(--vc-ide-accent-action);
   --vc-ide-accent-green: var(--vc-ide-accent-success);
@@ -1832,7 +1858,7 @@ body
 
 .bolt-assistant-message-action[data-active='true'] {
   background: color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 40%, transparent);
 }
 
@@ -3219,7 +3245,7 @@ body
   flex-direction: column;
   gap: 4px;
   padding: 12px;
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 12px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 8%, transparent);
 }
@@ -6033,7 +6059,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-workbench-mobile-run-action {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 52%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   transition:
     background 150ms ease,
     border-color 150ms ease,
@@ -6329,22 +6355,28 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
+/*
+ * Ces deux pastilles étaient les SEULES de la famille statut écrites en hex
+ * littéral : elles ne suivaient donc ni le thème ni le durcissement `-on-tint`,
+ * et sortaient à 3,04:1 en clair. Repassées sur les jetons, elles héritent des
+ * deux.
+ */
 .bolt-project-notification-item[data-kind='success'] .bolt-project-notification-icon {
-  background: color-mix(in srgb, #3fb950, transparent 86%);
-  color: #2f9e44;
+  background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-project-notification-item[data-kind='warning'] .bolt-project-notification-icon {
-  background: color-mix(in srgb, #d29922, transparent 84%);
-  color: #b7791f;
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 84%);
+  color: var(--vc-ide-accent-warning-on-tint);
 }
 
 .bolt-project-notification-item[data-kind='error'] .bolt-project-notification-icon {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-notification-detail {
@@ -6999,18 +7031,25 @@ body :where(.lucide, svg[data-lucide]) {
   background: color-mix(in srgb, var(--vc-ide-accent-error), black 12%) !important;
 }
 
+/*
+ * L'encre était ÉCLAIRCIE vers le blanc (`white 22%`, `white 34%` au survol)
+ * alors que le fond est lui aussi une teinte claire : les deux se rapprochaient
+ * au lieu de s'écarter — 3,17:1, et 2,30:1 au survol, le pire écart de la
+ * feuille. L'éclaircissement venait du thème sombre, où il ouvre bien l'écart ;
+ * `-on-tint` fait le bon choix dans CHAQUE thème.
+ */
 .bolt-project-publish-button {
   min-height: 30px;
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), white 18%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 91%);
-  color: color-mix(in srgb, var(--vc-ide-accent-action), white 22%) !important;
+  color: var(--vc-ide-accent-action-on-tint) !important;
   padding: 0 12px;
 }
 
 .bolt-project-publish-button:hover {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%) !important;
-  color: color-mix(in srgb, var(--vc-ide-accent-action), white 34%) !important;
+  color: var(--vc-ide-accent-action-on-tint) !important;
   transform: translateY(-1px);
 }
 
@@ -7418,7 +7457,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-primary), transparent 62%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
-  color: var(--vc-ide-accent-primary);
+  color: var(--vc-ide-accent-primary-on-tint);
   font-size: 15px;
 }
 
@@ -7507,7 +7546,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-agent-tool-call-status[data-status='complete'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-agent-tool-call-copy strong {
@@ -7641,7 +7680,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 10px !important;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -7915,7 +7954,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 52%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
-  color: var(--vc-ide-accent-success) !important;
+  color: var(--vc-ide-accent-success-on-tint) !important;
   font-size: 10px !important;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -8001,7 +8040,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 55%);
   border-radius: 6px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 91%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
   font-size: 11px;
   padding: 6px 8px;
 }
@@ -9334,7 +9373,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 34%);
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
   font-size: 12px;
   font-weight: 700;
   padding: 0 10px;
@@ -10013,7 +10052,7 @@ body :where(.lucide, svg[data-lucide]) {
   margin-left: auto;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 85%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
   font-size: 10px;
   font-style: normal;
   padding: 2px 6px;
@@ -10627,7 +10666,7 @@ body :where(.lucide, svg[data-lucide]) {
 .vc-editor-header-save-button {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
-  color: var(--vc-ide-accent-action) !important;
+  color: var(--vc-ide-accent-action-on-tint) !important;
   font-weight: 700;
 }
 
@@ -11339,7 +11378,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
   padding: 2px 8px;
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   cursor: pointer;
   font-family: var(--vc-font-code);
   font-size: 11px;
@@ -11348,7 +11387,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-devtools-body .bolt-preview-console-open:hover {
   background: color-mix(in srgb, var(--vc-ide-accent-action) 20%, transparent);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .bolt-preview-devtools-body .bolt-preview-console-open:focus-visible {
@@ -11400,7 +11439,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), var(--vc-ide-bg-panel) 84%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   box-shadow: var(--vc-ui-shadow-md);
   cursor: pointer;
   font-size: 11px;
@@ -11595,7 +11634,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 76%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.4px;
@@ -12000,7 +12039,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-steps div[data-state='active'] span {
   border-color: var(--vc-ide-accent-action);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .bolt-preview-splash-steps div[data-state='complete'] {
@@ -12010,7 +12049,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-splash-steps div[data-state='complete'] span {
   border-color: var(--vc-ide-accent-success);
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-preview-splash-footer {
@@ -12103,7 +12142,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 42%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 20px;
 }
 
@@ -12218,7 +12257,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action), transparent 42%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 88%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 20px;
 }
 
@@ -12313,7 +12352,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-loading-steps li[data-state='active'] span {
   border-color: var(--vc-ide-accent-action);
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .bolt-preview-loading-steps li[data-state='complete'] {
@@ -12323,7 +12362,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-loading-steps li[data-state='complete'] span {
   border-color: var(--vc-ide-accent-success);
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-preview-loading-card pre {
@@ -12781,7 +12820,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 6px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, transparent);
   transition: background 150ms ease;
 }
@@ -12915,7 +12954,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 42%, transparent);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 10px;
   font-weight: 900;
   letter-spacing: 0.14em;
@@ -13027,13 +13066,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-domain-status.verified {
   border-color: color-mix(in srgb, var(--vc-ide-accent-success) 50%, transparent);
   background: color-mix(in srgb, var(--vc-ide-accent-success) 12%, transparent);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-project-domain-status.pending {
   border-color: color-mix(in srgb, var(--vc-ide-accent-warning) 50%, transparent);
   background: color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent);
-  color: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-accent-warning-on-tint);
 }
 
 .bolt-project-domain-status-grid {
@@ -13430,7 +13469,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-extension-card[data-enabled='true'] .bolt-project-extension-card-footer em {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-project-extension-legacy-note {
@@ -13715,7 +13754,7 @@ body :where(.lucide, svg[data-lucide]) {
   width: fit-content;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 10%, var(--vc-ide-bg-hover));
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 10px;
   font-style: normal;
   font-weight: 800;
@@ -14532,7 +14571,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-vulnerability-card span[data-severity='critical'],
 .bolt-project-vulnerability-card span[data-severity='high'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-vulnerability-card strong {
@@ -14662,7 +14701,7 @@ body :where(.lucide, svg[data-lucide]) {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-success), transparent 65%);
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 90%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
   font-size: 11px;
   padding: 3px 8px;
 }
@@ -14900,7 +14939,7 @@ body :where(.lucide, svg[data-lucide]) {
   place-items: center;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   font-size: 12px;
 }
 
@@ -15078,7 +15117,7 @@ body :where(.lucide, svg[data-lucide]) {
   height: 22px;
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 86%);
-  color: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-accent-warning-on-tint);
   font-size: 11px;
   font-style: normal;
   line-height: 22px;
@@ -15087,13 +15126,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-deploy-card em[data-status='READY'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 86%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-project-deploy-card em[data-status='FAILED'],
 .bolt-project-deploy-card em[data-status='CANCELED'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 86%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-deploy-card pre {
@@ -15580,13 +15619,13 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-bottom-terminal-problem-badge[data-severity='error'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 56%);
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 88%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-bottom-terminal-problem-badge[data-severity='warning'] {
   border-color: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 52%);
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 88%);
-  color: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-accent-warning-on-tint);
 }
 
 .bolt-project-bottom-terminal-status,
@@ -15696,12 +15735,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-problems-count-error {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-problems-count-warning {
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
-  color: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-accent-warning-on-tint);
 }
 
 .bolt-project-problems-count[data-empty='true'] {
@@ -15785,7 +15824,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 999px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, transparent);
   padding: 2px 8px;
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 11px;
@@ -16611,17 +16650,17 @@ button.bolt-project-statusbar-pill:focus-visible,
 
 .bolt-project-statusbar-count {
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .bolt-project-statusbar-error-count {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-statusbar-warning-count {
   background: color-mix(in srgb, var(--vc-ide-accent-warning), transparent 82%);
-  color: var(--vc-ide-accent-warning);
+  color: var(--vc-ide-accent-warning-on-tint);
 }
 
 .bolt-project-statusbar-error-count[data-empty='true'],
@@ -17107,7 +17146,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-ide-shell .bolt-project-editor-save-button:not(:disabled) {
   border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 58%) !important;
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%) !important;
-  color: var(--vc-ide-accent-action) !important;
+  color: var(--vc-ide-accent-action-on-tint) !important;
 }
 
 .bolt-project-ide-shell .bolt-project-editor-save-button:hover:not(:disabled) {
@@ -17433,7 +17472,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 88%);
       padding: 0 12px;
-      color: var(--vc-ide-accent-success);
+      color: var(--vc-ide-accent-success-on-tint);
       font-size: 11px;
       font-weight: 700;
       white-space: nowrap;
@@ -17830,7 +17869,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 90%);
       padding: 3px 8px;
-      color: var(--vc-ide-accent-success);
+      color: var(--vc-ide-accent-success-on-tint);
       font-size: 10px;
       font-style: normal;
       font-weight: 800;
@@ -17881,7 +17920,7 @@ button.bolt-project-statusbar-pill:focus-visible,
       border-radius: 999px;
       background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 90%);
       padding: 3px 8px;
-      color: var(--vc-ide-accent-action);
+      color: var(--vc-ide-accent-action-on-tint);
       font-size: 10px;
       font-style: normal;
       font-weight: 800;
@@ -17898,7 +17937,7 @@ button.bolt-project-statusbar-pill:focus-visible,
     border-radius: 8px;
     background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
     padding: 10px;
-    color: var(--vc-ide-accent-error);
+    color: var(--vc-ide-accent-error-on-tint);
     font-size: 12px;
   }
 
@@ -19226,19 +19265,19 @@ button.bolt-project-statusbar-pill:focus-visible,
 .bolt-project-integrations-connected-list i[data-status='active'],
 .bolt-project-integrations-grid em[data-status='active'] {
   background: color-mix(in srgb, var(--vc-ide-accent-success), transparent 84%);
-  color: var(--vc-ide-accent-success);
+  color: var(--vc-ide-accent-success-on-tint);
 }
 
 .bolt-project-integrations-connected-list i[data-status='error'],
 .bolt-project-integrations-grid em[data-status='error'] {
   background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 84%);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .bolt-project-integrations-connected-list i[data-status='syncing'],
 .bolt-project-integrations-grid em[data-status='syncing'] {
   background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 84%);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .bolt-project-integrations-main {
@@ -22610,12 +22649,12 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-auth-alert-success {
   background: color-mix(in srgb, var(--vc-auth-success) 12%, transparent);
-  color: var(--vc-auth-success);
+  color: var(--vc-auth-success-on-tint);
 }
 
 .vc-auth-alert-error {
   background: color-mix(in srgb, var(--vc-auth-error) 10%, transparent);
-  color: var(--vc-auth-error);
+  color: var(--vc-auth-error-on-tint);
 }
 
 .vc-auth-card-footer,
@@ -24839,7 +24878,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background:
     linear-gradient(135deg, color-mix(in srgb, var(--vc-ide-accent-action) 18%, transparent), transparent),
     var(--vc-create-card-strong);
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
   box-shadow:
     0 18px 36px color-mix(in srgb, var(--vc-ide-accent-action) 16%, transparent),
     inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
@@ -24864,7 +24903,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error) 36%, transparent);
   border-radius: var(--vc-ui-radius-input);
   background: color-mix(in srgb, var(--vc-ide-accent-error) 11%, transparent);
-  color: var(--vc-ide-accent-error);
+  color: var(--vc-ide-accent-error-on-tint);
 }
 
 .vc-create-composer,
@@ -25147,7 +25186,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 40%, var(--vc-create-border));
   border-radius: 12px;
   background: color-mix(in srgb, var(--vc-ide-accent-action) 12%, var(--vc-create-card));
-  color: var(--vc-ide-accent-action);
+  color: var(--vc-ide-accent-action-on-tint);
 }
 
 .vc-create-status-dot {
@@ -25568,7 +25607,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-submit:disabled {
   background: color-mix(in srgb, var(--bolt-elements-textTertiary) 28%, transparent);
-  color: var(--bolt-elements-textTertiary);
+  color: var(--bolt-elements-textTertiary-on-tint);
   cursor: not-allowed;
   box-shadow: none;
 }
@@ -27040,7 +27079,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overflow: hidden;
     border-radius: 8px;
     background: color-mix(in srgb, var(--ecode-accent) 14%, transparent);
-    color: var(--ecode-accent);
+    color: var(--ecode-accent-on-tint);
   }
 
   .bolt-mobile-agent-start-icon svg {
@@ -27057,7 +27096,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     align-items: center;
     border-radius: 999px;
     background: color-mix(in srgb, var(--vc-ide-accent-success) 14%, transparent);
-    color: var(--vc-ide-accent-success);
+    color: var(--vc-ide-accent-success-on-tint);
     font-size: 11px;
     font-weight: 700;
     padding: 0 8px;
