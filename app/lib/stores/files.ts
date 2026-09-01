@@ -848,10 +848,60 @@ export class FilesStore {
       });
 
       if (this.#runtime.mode === 'remote-kubernetes') {
-        const remoteContent = await this.#runtime
-          .readFile(relativePath)
-          .then((result) => result.content)
-          .catch(() => oldContent);
+        /*
+         * BUG-CREATE-011 — la relecture de contrôle repliait sur `oldContent`
+         * quand elle échouait :
+         *
+         *   .catch(() => oldContent)   // ⇒ remoteContent === oldContent
+         *
+         * ce qui rendait les deux valeurs égales PAR CONSTRUCTION. À la moindre
+         * défaillance de lecture — coupure réseau, 425 sur un espace de travail
+         * froid, 5xx — le contrôle de concurrence s'annulait et le tampon
+         * périmé écrasait le serveur sans un mot. Perte de données constatée en
+         * production le 31/08 : `MARQUEUR-B`, écrit hors session, détruit par un
+         * Ctrl+S.
+         *
+         * Une garde de sûreté des données doit échouer du côté qui PROTÈGE. On
+         * réessaie donc une fois — une défaillance isolée ne doit pas coûter une
+         * sauvegarde — puis, si l'on ne sait toujours pas ce qu'il y a en face,
+         * on refuse d'écrire plutôt que de risquer d'écraser.
+         */
+        const lireDistant = () =>
+          this.#runtime
+            .readFile(relativePath)
+            .then((result) => ({ lu: true as const, content: result.content }))
+            .catch(() => ({ lu: false as const, content: undefined }));
+
+        let lecture = await lireDistant();
+
+        if (!lecture.lu) {
+          lecture = await lireDistant();
+        }
+
+        if (!lecture.lu) {
+          /*
+           * Un fichier que nous ne connaissons pas encore comme non vide n'a
+           * rien à perdre : une lecture qui échoue y est le cas NORMAL (le
+           * fichier n'existe pas encore côté distant). On ne bloque donc que
+           * lorsqu'il y a réellement quelque chose à écraser.
+           */
+          const quelqueChoseAPerdre = oldContent !== '';
+
+          if (quelqueChoseAPerdre && options?.onRemoteConflict !== 'reconcile') {
+            throw new Error(clientStoresServicesText('clientStores.files.remoteUnreadable', { path: filePath }));
+          }
+
+          if (quelqueChoseAPerdre) {
+            /*
+             * Le pipeline de correctifs de l'agent ne peut pas être bloqué par
+             * une lecture indisponible — mais il ne doit pas non plus écraser en
+             * silence : on le dit dans le journal.
+             */
+            logger.warn('Remote copy unreadable before an agent write; proceeding without the concurrency check');
+          }
+        }
+
+        const remoteContent = lecture.lu ? lecture.content : oldContent;
 
         if (remoteContent !== oldContent) {
           /*

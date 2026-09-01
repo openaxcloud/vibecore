@@ -4,6 +4,8 @@ export const clientStoresServicesEn = {
   'clientStores.files.invalidFileWrite': 'EINVAL: The file path is invalid and cannot be written: {path}',
   'clientStores.files.remoteChanged':
     'Remote file changed since it was loaded: {path}. Reload it before saving your changes.',
+  'clientStores.files.remoteUnreadable':
+    'Could not check the workspace copy of {path} before saving, so your changes were not written — saving anyway could have overwritten a newer version. Try again in a moment.',
   'clientStores.files.invalidFileCreate': 'EINVAL: The file path is invalid and cannot be created: {path}',
   'clientStores.files.invalidFolderCreate': 'EINVAL: The folder path is invalid and cannot be created: {path}',
   'clientStores.files.invalidFileDelete': 'EINVAL: The file path is invalid and cannot be deleted: {path}',
@@ -117,6 +119,8 @@ export const clientStoresServicesFr: ClientStoresServicesCopy = {
     'EINVAL : le chemin du fichier n’est pas valide et ne permet pas l’écriture : {path}',
   'clientStores.files.remoteChanged':
     'Le fichier a changé dans l’espace de travail après son chargement : {path}. Rechargez-le avant d’enregistrer vos modifications.',
+  'clientStores.files.remoteUnreadable':
+    'Impossible de vérifier la version de {path} dans l’espace de travail avant d’enregistrer : vos modifications n’ont pas été écrites, car elles auraient pu écraser une version plus récente. Réessayez dans un instant.',
   'clientStores.files.invalidFileCreate':
     'EINVAL : le chemin du fichier n’est pas valide et ne permet pas sa création : {path}',
   'clientStores.files.invalidFolderCreate':
