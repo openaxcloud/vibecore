@@ -9,7 +9,6 @@ import type {
 import { useStore } from '@nanostores/react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
-import { useCoarsePointer } from '~/components/sidebar/HistoryItem';
 import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
 import {
   formatChatResidualsCopy,
@@ -17,7 +16,6 @@ import {
   getChatResidualsCopy,
 } from '~/lib/i18n/catalogs/chat-residuals';
 import { profileStore } from '~/lib/stores/profile';
-import { classNames } from '~/utils/classNames';
 import { MODEL_REGEX, PROVIDER_REGEX } from '~/utils/constants';
 
 interface UserMessageProps {
@@ -35,24 +33,22 @@ interface UserMessageProps {
  * composer with `text`, so the user edits it and resends through the normal path.
  */
 function EditMessageButton({ messageId, text }: { messageId: string; text: string }) {
-  /*
-   * On a coarse (touch) pointer there is no hover, so the hover-only reveal left
-   * the edit affordance permanently invisible. Show it outright on touch; on a
-   * fine pointer keep the hover reveal but also surface it on keyboard focus.
-   */
-  const coarse = useCoarsePointer();
   const { i18n } = useTranslation();
   const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
+  /*
+   * La révélation est portée par la feuille de style
+   * (`.bolt-user-message-footer`) : survol sur pointeur fin, toucher sur
+   * pointeur grossier. Un test JS du type de pointeur ne survivait pas à un
+   * changement d'entrée en cours de session (une souris branchée sur une
+   * tablette) et dupliquait une règle que CSS exprime directement.
+   */
   return (
     <button
       type="button"
       aria-label={copy['chatResiduals.user.editAria']}
       data-vc-tooltip={copy['chatResiduals.user.editTooltip']}
-      className={classNames(
-        'bolt-user-message-edit flex min-h-11 min-w-11 items-center justify-center rounded-md text-bolt-elements-textTertiary outline-none transition-opacity hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-bolt-elements-focus',
-        coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
-      )}
+      className="bolt-user-message-edit flex items-center justify-center rounded-md text-bolt-elements-textTertiary outline-none transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
       onClick={() => {
         if (typeof window === 'undefined') {
           return;
@@ -132,26 +128,37 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
   const textContent = stripMetadata(content);
 
   return (
-    <div className="group bolt-user-message bolt-user-message-bubble flex flex-col bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
-      <div className="flex gap-3 mb-2">
-        {images.map((item, index) => (
-          <div key={index} className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">
-            <div className="h-16 w-16 bg-transparent outline-none">
-              <img
-                src={`data:${item.mimeType};base64,${item.data}`}
-                alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
-                  count: formatChatResidualsNumber(index + 1, language),
-                })}
-                className="h-full w-full rounded-lg"
-                style={{ objectFit: 'fill' }}
-              />
+    <div className="group bolt-user-message flex flex-col items-end">
+      <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
+        <div className="flex gap-3 mb-2">
+          {images.map((item, index) => (
+            <div
+              key={index}
+              className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden"
+            >
+              <div className="h-16 w-16 bg-transparent outline-none">
+                <img
+                  src={`data:${item.mimeType};base64,${item.data}`}
+                  alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
+                    count: formatChatResidualsNumber(index + 1, language),
+                  })}
+                  className="h-full w-full rounded-lg"
+                  style={{ objectFit: 'fill' }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
+        <Markdown html>{textContent}</Markdown>
       </div>
-      <Markdown html>{textContent}</Markdown>
+      {/*
+        « Modifier et renvoyer » occupait une rangée ENTIÈRE dans la bulle, et sur
+        écran tactile elle était rendue en permanence : une bulle d'une ligne
+        mesurait 102 px. L'action sort de la bulle et rejoint le même traitement
+        que celles de l'agent — discrète, révélée au survol ou au toucher.
+      */}
       {canEdit && messageId && textContent ? (
-        <div className="mt-1 flex justify-end">
+        <div className="bolt-user-message-footer" role="group" aria-label={copy['chatResiduals.user.editAria']}>
           <EditMessageButton messageId={messageId} text={textContent} />
         </div>
       ) : null}

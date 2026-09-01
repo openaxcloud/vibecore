@@ -111,6 +111,14 @@ async function measureComposer(page: Page) {
 
 for (const viewport of VIEWPORTS) {
   test(`la zone de saisie tient en une rangée — ${viewport.label}`, async ({ page, request }) => {
+    /*
+     * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
+     * fixture peut donc attendre plusieurs paliers de repli avant d'obtenir une
+     * session. Le délai par défaut de 30 s de la configuration ne le couvre pas,
+     * et c'est la cause n°1 des faux rouges de cette suite.
+     */
+    test.setTimeout(120_000);
+
     const { token, projectId } = await createProjectSession(request);
 
     await page
@@ -154,13 +162,42 @@ for (const viewport of VIEWPORTS) {
     await expect(page.locator('.bolt-chatbox-toolbar .bolt-chatbox-plan-toggle')).toHaveCount(0);
 
     // Le champ grandit à la frappe, jusqu'à son maximum, et pas au-delà.
+    const saisie = Array.from({ length: 40 }, (_, index) => `ligne ${index}`).join('\n');
+
     await field.click();
-    await field.fill(Array.from({ length: 40 }, (_, index) => `ligne ${index}`).join('\n'));
-    await page.waitForTimeout(500);
+
+    /*
+     * Une frappe envoyée pendant que la page finit de s'hydrater est PERDUE : le
+     * champ est contrôlé par React, qui réécrit sa valeur au premier rendu et
+     * efface ce qui avait été tapé. Mesuré sur un serveur froid : `value.length`
+     * reste à 0 pendant plus de cinq secondes. C'est un défaut du composer, sans
+     * rapport avec la géométrie que ce fichier vérifie ; on retape donc jusqu'à
+     * ce que la valeur tienne, plutôt que de mesurer un champ resté vide.
+     */
+    await expect
+      .poll(
+        async () => {
+          await field.fill(saisie);
+          return (await field.inputValue()).length;
+        },
+        { message: 'la saisie n’atteint pas le champ', timeout: 20_000 },
+      )
+      .toBeGreaterThan(0);
+
+    /*
+     * L'agrandissement est un effet React déclenché par la mise à jour d'état,
+     * pas un style synchrone : on attend la CONDITION, pas une durée. Si le champ
+     * ne grandit jamais, l'attente expire et le test échoue.
+     */
+    await expect
+      .poll(async () => (await measureComposer(page))!.fieldHeight, {
+        message: 'le champ ne grandit pas à la frappe',
+        timeout: 10_000,
+      })
+      .toBeGreaterThan(atRest!.fieldHeight);
 
     const grown = await measureComposer(page);
 
-    expect(grown!.fieldHeight, 'le champ ne grandit pas à la frappe').toBeGreaterThan(atRest!.fieldHeight);
     expect(grown!.fieldHeight, 'le champ dépasse son maximum').toBeLessThanOrEqual(FIELD_MAX_PX + 2);
   });
 }
