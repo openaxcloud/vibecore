@@ -928,6 +928,42 @@ html:has(.vc-app-shell-grid) body {
   }
 }
 
+/*
+ * TACTILE-004 — `min-h-11` ne rend PAS 44px dans ce produit.
+ *
+ * CAUSE RACINE, mesurée et non déduite. UnoCSS émet `min-h-11` en
+ * `min-height: 2.75rem` (vérifié en exécutant le générateur, pas en le
+ * supposant). Or `--vc-type-interface-size` redéfinit la base rem à 12px en
+ * desktop et 14px sous 1024px. `2.75rem` rend donc :
+ *
+ *   base 12px -> 33,0px      base 14px -> 38,5px      base 16px -> 44,0px
+ *
+ * `11` est la classe canonique pour « 44px » : 373 endroits l'écrivent en
+ * croyant poser le plancher tactile. Aucun ne l'obtient. C'est la cause commune
+ * des trois points BUG-QA-TAP-TARGETS-{MARKETING,IDE-MOBILE,APP}-001, dont les
+ * intitulés renvoient déjà à BUG-QA-REM-BASE-12-14PX-001.
+ *
+ * CE QU'ON NE FAIT PAS : remettre la base rem à 16px. Elle porte la densité
+ * ASSUMÉE du produit ; la changer redimensionnerait toute l'interface de 33%.
+ * Et on ne réécrit pas non plus les 373 littéraux de classe : le plancher se
+ * pose une fois, là où il manque.
+ *
+ * Portée <=1024px, comme le plancher de 16px juste au-dessus : c'est là que
+ * vivent les appareils tactiles. Au-delà, la densité desktop reste intacte.
+ *
+ * `!important` ASSUMÉ, même raisonnement que le plancher de police : c'est une
+ * GARANTIE d'accessibilité, pas un style. Sans lui, l'utilitaire `min-h-11`
+ * généré par UnoCSS gagne selon l'ordre des couches, et le plancher ne
+ * s'appliquerait qu'aux endroits que personne n'a déjà stylés — exactement le
+ * mode d'échec du premier correctif iOS-ZOOM-001.
+ */
+@media (max-width: 1024px) {
+  .min-h-11,
+  .h-11 {
+    min-height: var(--vc-touch-min, 44px) !important;
+  }
+}
+
 @media (max-width: 1024px) {
   :root {
     --vc-type-interface-size: 14px;
