@@ -29460,6 +29460,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const API_KEY_CONNECTOR_KEYS = ['vercel', 'netlify', 'supabase'] as const;
 
+  /*
+   * Fournisseurs d'IA — LECTURE SEULE, jamais de re-saisie.
+   *
+   * Les quatre cles vivent deja dans le Secret Kubernetes
+   * `vibecore-platform-secrets`, d'ou elles arrivent au processus comme
+   * variables d'environnement. Demander a un administrateur de les RETAPER dans
+   * une interface les ferait transiter par un presse-papiers, un journal de
+   * navigateur et potentiellement un transcript — pour aboutir a une seconde
+   * source de verite qui divergerait de la premiere.
+   *
+   * Cet endpoint expose donc l'ETAT, jamais la valeur : configure ou non, la
+   * longueur, les quatre derniers caracteres, et l'adresse de la console du
+   * fournisseur pour la rotation. Aucun champ de saisie ne lui correspond.
+   */
+  const AI_PROVIDERS = [
+    { provider: 'anthropic', displayName: 'Anthropic', envVar: 'ANTHROPIC_API_KEY',
+      tokenConsoleUrl: 'https://console.anthropic.com/settings/keys' },
+    { provider: 'xai', displayName: 'xAI', envVar: 'XAI_API_KEY',
+      tokenConsoleUrl: 'https://console.x.ai' },
+    { provider: 'moonshot', displayName: 'Moonshot', envVar: 'MOONSHOT_API_KEY',
+      tokenConsoleUrl: 'https://platform.moonshot.cn/console/api-keys' },
+    { provider: 'google', displayName: 'Google Gemini', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
+      tokenConsoleUrl: 'https://aistudio.google.com/apikey' },
+  ] as const;
+
+  /**
+   * Ne rend JAMAIS la valeur. Les quatre derniers caracteres suffisent a
+   * reconnaitre une cle et a confirmer une rotation ; ils ne permettent pas de
+   * la reconstituer. En dessous de 8 caracteres on ne montre meme pas cela.
+   */
+  function empreinteCle(valeur: string | undefined) {
+    if (!valeur || valeur.trim().length === 0) {
+      return { configured: false as const, length: 0, last4: null };
+    }
+
+    const nettoyee = valeur.trim();
+
+    return {
+      configured: true as const,
+      length: nettoyee.length,
+      last4: nettoyee.length >= 8 ? nettoyee.slice(-4) : null,
+    };
+  }
+
+  app.get('/admin/providers/ai', async (request) => {
+    await requirePlatformAdmin(request);
+
+    return {
+      providers: AI_PROVIDERS.map((p) => ({
+        provider: p.provider,
+        displayName: p.displayName,
+        envVar: p.envVar,
+        source: 'kubernetes-secret' as const,
+        tokenConsoleUrl: p.tokenConsoleUrl,
+        ...empreinteCle(process.env[p.envVar]),
+      })),
+    };
+  });
+
   app.get('/admin/connectors/api-key', async (request) => {
     await requirePlatformAdmin(request);
 
