@@ -648,6 +648,36 @@ export const ChatImpl = memo(
       addToolResult,
     } = useChat({
       api: '/api/chat',
+
+      /*
+       * IDENTITÉ STABLE DE LA CONVERSATION.
+       *
+       * Sans `id`, le SDK clé son magasin sur `useId()` — vérifié dans la source
+       * installée (`@ai-sdk/react/dist/index.js`) :
+       *
+       *   const hookId = useId();
+       *   const chatId = id != null ? id : hookId;
+       *   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
+       *   useSWR([chatKey, 'messages'], …)
+       *
+       * `useId()` dépend de la POSITION du composant dans l'arbre. Toute
+       * recréation de l'instance — une frontière Suspense qui se résout, un
+       * enveloppement conditionnel qui apparaît — produit une clé DIFFÉRENTE, et
+       * le hook lit alors un magasin VIDE. Un `setMessages` déjà appliqué reste
+       * écrit sous l'ancienne clé : il est perdu sans aucune erreur, sans aucun
+       * retrait de nœud, et le panneau affiche un fil vide alors que le réseau a
+       * bien rendu les messages.
+       *
+       * C'est le tableau exact mesuré en production : trois `/messages` en 200
+       * avec du contenu réel, zéro erreur, l'échafaudage du transcript monté et
+       * sa liste à zéro enfant, et la garde `hasMessages` restée fausse après
+       * chaque application — donc `setMessages` n'alimentait pas l'état que la
+       * liste consulte.
+       *
+       * Une conversation a une identité propre ; elle ne doit pas dépendre de la
+       * forme de l'arbre. En mode projet c'est le projet qui la porte.
+       */
+      id: projectIdeMode && projectId ? `project:${projectId}` : undefined,
       body: chatRequestBodyBase,
 
       /*
