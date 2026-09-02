@@ -292,6 +292,14 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
+
+    /*
+     * Souscrit, pas lu au vol : `chatMetadata.get()` ne déclenche aucun rendu,
+     * si bien que l'hydratation de la transcription n'était jamais relancée
+     * quand l'identifiant de conversation arrivait après le premier rendu.
+     */
+    const metadataAiConversationId = useStore(chatMetadata)?.aiConversationId;
+
     const files = useStore(workbenchStore.files);
     const filesHydrated = useStore(workbenchStore.filesHydrated);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
@@ -942,6 +950,7 @@ export const ChatImpl = memo(
       enabled: projectIdeMode,
       projectId,
       hasMessages: initialMessages.length > 0 || messages.length > 0,
+      conversationId: metadataAiConversationId,
       resolveConversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
       loadTranscript: async (currentProjectId, conversationId) => {
         const response = await fetch(
