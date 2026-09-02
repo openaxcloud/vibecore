@@ -123,6 +123,7 @@ import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
+import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
@@ -3498,6 +3499,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
+
+    /*
+     * Miroir de la disposition COURANTE, lisible depuis une réponse asynchrone.
+     * La valeur capturée dans la fermeture de l'effet date de son lancement ;
+     * or c'est précisément l'écart entre les deux qui nous intéresse.
+     */
+    const paneTreeRef = useRef(paneTree);
+
+    paneTreeRef.current = paneTree;
+
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
@@ -5054,12 +5065,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ? normalizePaneTree(windowSlice.paneTree)
               : undefined;
 
-          if (restoredTree) {
+          /*
+           * Ne pas écraser une disposition que l'utilisateur vient de changer.
+           *
+           * Tracé le 2026-09-02 : split demandé à t=24 104 ms, restauration
+           * appliquée à t=24 361 ms — le split avait disparu. Tant que la
+           * restauration n'aboutissait jamais, le défaut restait invisible ;
+           * la réparer l'a mis au jour.
+           */
+          const dispositionIntacte = laDispositionPeutEtreRestauree(paneTreeRef.current, cloneDefaultPaneTree());
+
+          if (restoredTree && dispositionIntacte) {
             setPaneTree(restoredTree);
           }
 
           const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
-          setFloatingPanes(restoredFloating);
+
+          if (dispositionIntacte) {
+            setFloatingPanes(restoredFloating);
+          }
 
           const dockedLeafIds = new Set(restoredTree ? flattenPaneLeafIds(restoredTree) : flattenPaneLeafIds(paneTree));
           restoredFloating.forEach((floating) => dockedLeafIds.add(floating.pane.id));
@@ -5070,7 +5094,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               : restoredTree
                 ? (findFirstLeaf(restoredTree)?.id ?? 'pane-main')
                 : 'pane-main';
-          setActivePaneId(restoredActivePaneId);
+
+          if (dispositionIntacte) {
+            setActivePaneId(restoredActivePaneId);
+          }
 
           if (restoredTree) {
             projectEditorWindowSyncRef.current = projectEditorLayoutSignature(
