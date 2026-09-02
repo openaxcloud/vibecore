@@ -35,6 +35,7 @@ function bloc(scss: string, selecteurs: string): string {
     `^${selecteurs.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\n/g, '\\n')}\\s*\\{([^}]*)\\}`,
     'm',
   );
+
   const trouve = scss.match(motif);
 
   expect(trouve, `règle « ${selecteurs} » introuvable`).not.toBeNull();
