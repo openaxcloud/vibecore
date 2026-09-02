@@ -6,8 +6,6 @@ import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
-  firstOrganization,
-  firstOrganizationOrNull,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -34,7 +32,7 @@ type Domain = {
   /** Real TLS lifecycle from the api (VerifiedDomain.sslStatus). */
   sslStatus?: 'pending_dns' | 'dns_verified' | 'failed' | string;
 };
-type Project = { id: string; name: string; description?: string };
+type Project = { id: string; name: string; description?: string; organizationId: string };
 
 // DNS identifiers and domain examples are technical values, identical in every locale.
 const DOMAIN_PLACEHOLDER = 'app.example.com';
@@ -88,16 +86,40 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
-  const [projectResult, organization] = await Promise.all([
-    apiRequest<{ project: Project }>(request, `/projects/${projectId}`),
-    firstOrganizationOrNull(request),
+  const projectResult = await apiRequest<{ project: Project }>(request, `/projects/${projectId}`);
+
+  /*
+   * L'organisation est celle DU PROJET, pas la premiere de l'utilisateur.
+   *
+   * `firstOrganizationOrNull` renvoyait `organizations[0]`. Tant qu'un
+   * utilisateur n'appartient qu'a une organisation, les deux coincident — c'est
+   * le cas de 295 utilisateurs sur 295 mesures en production le 2026-09-02, ce
+   * qui rendait le defaut invisible. Au premier membre de deux organisations,
+   * ouvrir un projet de l'organisation B affichait les domaines de A.
+   *
+   * Et surtout, l'ACTION plus bas visait la meme organisation : un domaine
+   * ajoute depuis un projet de B aurait atterri dans A, sans erreur ni message.
+   * Le symptome signale etait l'affichage ; le piege etait l'ecriture.
+   *
+   * Aucune fuite entre locataires dans les deux cas — `organizations[0]` reste
+   * une organisation dont l'utilisateur est membre. C'est un defaut de portee,
+   * pas d'isolation. Verifie avant de le classer.
+   */
+  const organizationId = projectResult.project.organizationId;
+
+  const [organizationResult, domains] = await Promise.all([
+    apiRequest<{ organization: { id: string; name?: string; slug?: string } | null }>(
+      request,
+      `/orgs/${organizationId}`,
+    ),
+    apiRequest<{ domains: Domain[] }>(request, `/orgs/${organizationId}/domains`),
   ]);
+
+  const organization = organizationResult?.organization ?? null;
 
   if (!organization) {
     return redirect('/');
   }
-
-  const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
 
   return json({ project: projectResult.project, organization, domains: domains?.domains ?? [], language });
 }
@@ -111,10 +133,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
-  let organization: Awaited<ReturnType<typeof firstOrganization>>;
+  let organization: { id: string };
 
   try {
-    organization = await firstOrganization(request);
+    /*
+     * MEME correction que dans le loader, et c'est ICI qu'elle compte le plus :
+     * l'action ECRIT. Avec `firstOrganization`, un domaine ajoute ou verifie
+     * depuis un projet de l'organisation B serait alle dans l'organisation A,
+     * sans erreur ni message — un effet silencieux, pas un simple affichage
+     * trompeur.
+     */
+    const { project } = await apiRequest<{ project: Project }>(request, `/projects/${projectId}`);
+
+    organization = { id: project.organizationId };
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
