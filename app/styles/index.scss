@@ -7438,10 +7438,12 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: var(--vc-composer-text) !important;
 }
 
-.bolt-project-ide-shell .bolt-project-agent-composer :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']),
-.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']) {
+.bolt-project-ide-shell
+  .bolt-project-agent-composer
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])),
+.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])) {
   font-size: var(--vc-composer-text-secondary) !important;
 }
 
