@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
+import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
@@ -305,8 +306,14 @@ export const AssistantMessage = memo(
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
+    const menuContextuel = useMenuContextuelDeMessage();
+
     return (
-      <div className="bolt-assistant-message overflow-hidden w-full">
+      <div
+        className="bolt-assistant-message overflow-hidden w-full"
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+      >
         <>
           {/*
             Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
@@ -956,7 +963,21 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
-        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        {/*
+          La rangée d'actions n'est plus posée sous chaque message : c'est
+          exactement ce qu'Avi entoure en rouge sur ses captures — « pourquoi
+          perdre tant de place dans les bubbles ». Ce sont les MÊMES boutons,
+          les mêmes gestionnaires et les mêmes libellés, déplacés dans le menu
+          contextuel : appui long au doigt, clic droit à la souris.
+        */}
+        <MenuContextuel
+          ouvert={menuContextuel.ouvert}
+          position={menuContextuel.position}
+          fermer={menuContextuel.fermer}
+          etiquette={copy['assistantMessage.footer.group']}
+        >
+          <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        </MenuContextuel>
       </div>
     );
   },

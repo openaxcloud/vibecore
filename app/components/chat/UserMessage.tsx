@@ -9,6 +9,7 @@ import type {
 import { useStore } from '@nanostores/react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from './Markdown';
+import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { stripInternalAgentScaffolding } from '~/lib/chat/agent-message-scaffolding';
 import {
   formatChatResidualsCopy,
@@ -74,12 +75,23 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
       (part): part is FileUIPart => part.type === 'file' && 'mimeType' in part && part.mimeType.startsWith('image/'),
     ) || [];
 
+  /*
+   * Appelé avant tout retour conditionnel : ce composant a deux branches de
+   * rendu, et un hook appelé dans une seule d'entre elles casserait l'ordre des
+   * hooks au premier message contenant une image.
+   */
+  const menuContextuel = useMenuContextuelDeMessage();
+
   if (Array.isArray(content)) {
     const textItem = content.find((item) => item.type === 'text');
     const textContent = stripMetadata(textItem?.text || '');
 
     return (
-      <div className="bolt-user-message overflow-hidden flex flex-col gap-3 items-center ">
+      <div
+        className="bolt-user-message overflow-hidden flex flex-col gap-3 items-center "
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+      >
         <div className="flex flex-row items-start justify-center overflow-hidden shrink-0 self-start">
           {profile?.avatar || profile?.username ? (
             <div className="flex items-end gap-2">
@@ -116,9 +128,14 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
             />
           ))}
           {canEdit && messageId && textContent ? (
-            <div className="flex justify-end">
+            <MenuContextuel
+              ouvert={menuContextuel.ouvert}
+              position={menuContextuel.position}
+              fermer={menuContextuel.fermer}
+              etiquette={copy['chatResiduals.user.editAria']}
+            >
               <EditMessageButton messageId={messageId} text={textContent} />
-            </div>
+            </MenuContextuel>
           ) : null}
         </div>
       </div>
@@ -128,7 +145,11 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
   const textContent = stripMetadata(content);
 
   return (
-    <div className="group bolt-user-message flex flex-col items-end">
+    <div
+      className="group bolt-user-message flex flex-col items-end"
+      data-menu-contextuel="true"
+      {...menuContextuel.gestes}
+    >
       <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
         <div className="flex gap-3 mb-2">
           {images.map((item, index) => (
@@ -158,9 +179,14 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
         que celles de l'agent — discrète, révélée au survol ou au toucher.
       */}
       {canEdit && messageId && textContent ? (
-        <div className="bolt-user-message-footer" role="group" aria-label={copy['chatResiduals.user.editAria']}>
+        <MenuContextuel
+          ouvert={menuContextuel.ouvert}
+          position={menuContextuel.position}
+          fermer={menuContextuel.fermer}
+          etiquette={copy['chatResiduals.user.editAria']}
+        >
           <EditMessageButton messageId={messageId} text={textContent} />
-        </div>
+        </MenuContextuel>
       ) : null}
     </div>
   );

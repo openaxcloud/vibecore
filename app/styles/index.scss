@@ -7743,6 +7743,123 @@ body :where(.lucide, svg[data-lucide]) {
    * saisie, qui n'est pas le perimetre de ce correctif.
    */
   font-size: max(13px, var(--vc-composer-caption)) !important;
+ * MENU CONTEXTUEL D'UN MESSAGE — appui long au doigt, clic droit à la souris.
+ *
+ * Avi entoure en rouge, sur ses captures : le crayon d'édition posé en
+ * permanence dans la bulle, et la rangée « copier / relancer / éditer / pouce
+ * haut / pouce bas » affichée sous chaque message, occupant une bande entière
+ * même quand la bulle est vide. « Pourquoi perdre tant de place dans les
+ * bubbles. »
+ *
+ * Ce sont les MÊMES boutons, déplacés ici : mêmes gestionnaires, mêmes
+ * libellés traduits.
+ */
+.bolt-message-context-menu-veil {
+  position: fixed;
+  z-index: 12040;
+  inset: 0;
+}
+
+.bolt-message-context-menu {
+  position: fixed;
+  z-index: 12041;
+  min-width: 232px;
+  max-width: calc(100vw - 24px);
+
+  /*
+   * Bornée et défilante, comme toute surface flottante de ce produit — barre
+   * d'outils du navigateur et clavier compris.
+   */
+  max-height: min(60dvh, calc(var(--vc-mobile-espace-utile, 100dvh) - 24px));
+  padding: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 14px;
+  background: var(--vc-ide-bg-panel);
+  box-shadow: 0 18px 48px rgb(0 0 0 / 0.35);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/*
+ * Remettre la rangée en état d'être VUE.
+ *
+ * Elle porte, hors de ce menu, des règles qui la replient tant qu'on ne survole
+ * pas le message — et au toucher, un `height: 0`. Sans cette remise à plat,
+ * déplacer la rangée dans le menu l'aurait rendue invisible : le menu se serait
+ * ouvert sur du vide.
+ *
+ * Les sélecteurs sont à (0,3,0) parce que `.bolt-responsive-ide-mobile
+ * .bolt-assistant-message-action` impose `width: 44px` à (0,2,0). Mesuré avec
+ * un `:where()` — donc (0,1,0) — les entrées restaient carrées de 44px et
+ * rognaient leur libellé : le menu s'ouvrait sur cinq pastilles muettes.
+ */
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-footer,
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-footer {
+  display: flex;
+  height: auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  margin: 0;
+  overflow: visible;
+  opacity: 1;
+}
+
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action,
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 0 12px;
+  border-radius: 10px;
+  font-size: var(--vc-composer-text, 15px);
+  text-align: start;
+}
+
+/*
+ * Le libellé est déjà traduit dans `aria-label` : on l'AFFICHE plutôt que de le
+ * dupliquer dans le balisage. Une icône seule n'annonce pas ce qu'elle fait à
+ * qui ne la connaît pas — c'est la même raison qui a fait écrire le libellé de
+ * la pastille « aller au dernier message ».
+ */
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action::after,
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit::after {
+  content: attr(aria-label);
+  overflow: hidden;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action:hover,
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit:hover {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-message-context-menu .bolt-assistant-message-action-divider {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--vc-ide-border-subtle);
+}
+
+/*
+ * L'appui long ne doit pas ouvrir le menu SYSTÈME de sélection de texte.
+ *
+ * On le neutralise sur la bulle — et nulle part ailleurs. Sélectionner du texte
+ * dans un bloc de code est un geste volontaire et utile : le lui retirer serait
+ * échanger un défaut contre un autre.
+ */
+[data-menu-contextuel='true'] {
+  -webkit-touch-callout: none;
+}
+
+[data-menu-contextuel='true'] :where(pre, code, .bolt-assistant-message-code) {
+  -webkit-touch-callout: default;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 .bolt-agent-scroll-to-bottom {
