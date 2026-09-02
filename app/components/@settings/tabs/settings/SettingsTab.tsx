@@ -180,6 +180,22 @@ export default function SettingsTab() {
         return;
       }
 
+      /*
+       * FAMILLE C — le repère de déduplication doit être RENDU sur échec.
+       *
+       * Il est posé avant l'appel, ce qui est juste : il empêche deux PATCH
+       * concurrents pour le même état. Mais il n'était pas rendu en cas
+       * d'échec : le `catch` affichait « échec de synchronisation » et
+       * laissait `lastPersistedRef` porter un instantané JAMAIS persisté. Le
+       * réglage restait alors local, sans nouvelle tentative — et si
+       * l'utilisateur revenait à sa valeur d'avant, la comparaison
+       * d'instantanés faisait sauter le PATCH correctif.
+       *
+       * La réconciliation d'hydratation (plus haut) ne rattrape PAS ce cas :
+       * elle ne joue qu'au montage, pas après un échec survenu ensuite.
+       * Vérifié avant d'écrire ce correctif.
+       */
+      const instantanePrecedent = lastPersistedRef.current;
       lastPersistedRef.current = snapshot;
 
       persistPreferencesToBackend(settings)
@@ -189,6 +205,7 @@ export default function SettingsTab() {
           );
         })
         .catch(() => {
+          lastPersistedRef.current = instantanePrecedent;
           toast.error(t('settingsPreferences.toast.syncFailed'));
         });
     } catch {

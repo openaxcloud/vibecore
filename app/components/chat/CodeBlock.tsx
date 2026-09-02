@@ -3,6 +3,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { bundledLanguages, codeToHtml, isSpecialLang, type BundledLanguage, type SpecialLanguage } from 'shiki';
 import styles from './CodeBlock.module.scss';
+import { useCoarsePointer } from '~/lib/hooks/useCoarsePointer';
 import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
@@ -22,6 +23,7 @@ export const CodeBlock = memo(
   ({ className, code, language = 'plaintext', theme, disableCopy = false }: CodeBlockProps) => {
     const { i18n } = useTranslation();
     const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
+    const coarse = useCoarsePointer();
     const [html, setHTML] = useState<string | undefined>(undefined);
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'failed'>('idle');
     const [highlightFailed, setHighlightFailed] = useState(false);
@@ -129,7 +131,14 @@ export const CodeBlock = memo(
         <div
           className={classNames(
             styles.CopyButtonContainer,
-            'absolute right-[10px] top-[10px] z-10 flex items-center justify-center rounded-md bg-transparent text-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100',
+            'absolute right-[10px] top-[10px] z-10 flex items-center justify-center rounded-md bg-transparent text-lg',
+            /*
+             * Le repli par POINT DE RUPTURE (`sm:`) couvrait le telephone mais
+             * pas la TABLETTE tactile : a 768 ou 1024 px, `sm:` s'applique et il
+             * n'y a pourtant pas plus de survol qu'a 390. On decide donc sur le
+             * POINTEUR, pas sur la largeur.
+             */
+            coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100',
             {
               'rounded-l-0 opacity-100': copyStatus !== 'idle',
             },
