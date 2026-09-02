@@ -6,8 +6,6 @@ import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
   apiRequest,
-  firstOrganization,
-  firstOrganizationOrNull,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -34,7 +32,7 @@ type Domain = {
   /** Real TLS lifecycle from the api (VerifiedDomain.sslStatus). */
   sslStatus?: 'pending_dns' | 'dns_verified' | 'failed' | string;
 };
-type Project = { id: string; name: string; description?: string };
+type Project = { id: string; name: string; description?: string; organizationId?: string };
 
 // DNS identifiers and domain examples are technical values, identical in every locale.
 const DOMAIN_PLACEHOLDER = 'app.example.com';
@@ -88,18 +86,45 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
-  const [projectResult, organization] = await Promise.all([
-    apiRequest<{ project: Project }>(request, `/projects/${projectId}`),
-    firstOrganizationOrNull(request),
-  ]);
+  const projectResult = await apiRequest<{ project: Project }>(request, `/projects/${projectId}`);
 
-  if (!organization) {
-    return redirect('/');
+  /*
+   * R-1 bis — the organization MUST come from the project, never from
+   * `firstOrganization*`.
+   *
+   * That helper returns the caller's OLDEST organization membership
+   * (`listOrganizations` orders by membership `createdAt asc`), which has
+   * nothing to do with the project in the URL. For anyone who belongs to more
+   * than one organization, opening project X of org B listed org A's domains —
+   * and the action below then WROTE new domains into org A while the page said
+   * project X. `/api/projects/:id/ide-panel/domains` already does this
+   * correctly; this route was the only project-scoped one that did not.
+   *
+   * This is a wrong-CONTEXT defect, not a leak: every `/orgs/:orgId/domains`
+   * route is behind `requireOrg(... 'enterprise:read' | 'enterprise:write')`,
+   * so the user was always a member of the organization they were shown.
+   */
+  const organizationId = projectResult.project.organizationId;
+
+  if (!organizationId) {
+    return json({
+      project: projectResult.project,
+      organization: null,
+      domains: [] as Domain[],
+      language,
+      error: copy['projectDomains.error.organizationMissing'],
+    });
   }
 
-  const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
+  const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organizationId}/domains`);
 
-  return json({ project: projectResult.project, organization, domains: domains?.domains ?? [], language });
+  return json({
+    project: projectResult.project,
+    organization: { id: organizationId },
+    domains: domains?.domains ?? [],
+    language,
+    error: undefined as string | undefined,
+  });
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
@@ -111,26 +136,36 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
-  let organization: Awaited<ReturnType<typeof firstOrganization>>;
+  /*
+   * Same rule as the loader: write into the PROJECT's organization. Using
+   * `firstOrganization` here meant "Add domain" on project X's page could
+   * create the domain in a completely different organization — silently, with
+   * a 201 and a redirect that looked like success.
+   */
+  let organizationId: string | undefined;
 
   try {
-    organization = await firstOrganization(request);
+    const projectResult = await apiRequest<{ project: Project }>(request, `/projects/${projectId}`);
+    organizationId = projectResult.project.organizationId;
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
     }
 
     /*
-     * firstOrganization calls apiRequest('/orgs'), whose default
-     * AbortSignal.timeout fires on a hung/draining api pod (rejecting with a
-     * non-Response TimeoutError) and which also throws a 5xx Response on
-     * upstream failure. Neither must reach the root error boundary and blow
-     * away the whole Custom Domains page — surface the same friendly inline
-     * message the add/verify branches use so the user stays on the page.
+     * apiRequest's default AbortSignal.timeout fires on a hung/draining api pod
+     * (rejecting with a non-Response TimeoutError) and it also throws a 5xx
+     * Response on upstream failure. Neither must reach the root error boundary
+     * and blow away the whole Custom Domains page — surface the same friendly
+     * inline message the add/verify branches use so the user stays on the page.
      */
-    console.error('Organization lookup failed in domains action:', error);
+    console.error('Project lookup failed in domains action:', error);
 
     return json({ error: copy['projectDomains.error.serviceUnavailable'] });
+  }
+
+  if (!organizationId) {
+    return json({ error: copy['projectDomains.error.organizationMissing'] });
   }
 
   const form = await request.formData();
@@ -139,7 +174,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
   if (intent === 'verify') {
     try {
-      await apiRequest(request, `/orgs/${organization.id}/domains/${encodeURIComponent(domain)}/verify`, {
+      await apiRequest(request, `/orgs/${organizationId}/domains/${encodeURIComponent(domain)}/verify`, {
         method: 'POST',
       });
     } catch (error) {
@@ -169,7 +204,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     }
   } else {
     try {
-      await apiRequest(request, `/orgs/${organization.id}/domains`, {
+      await apiRequest(request, `/orgs/${organizationId}/domains`, {
         method: 'POST',
         body: JSON.stringify({ domain }),
       });
@@ -204,7 +239,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
 export default function ProjectDomainsPage() {
   const { i18n } = useTranslation();
-  const { project, domains, language: loadedLanguage } = useLoaderData<typeof loader>();
+
+  const { project, domains, language: loadedLanguage, error: loaderError } = useLoaderData<typeof loader>();
+
   const language = resolveProjectDomainsLanguage(i18n.resolvedLanguage ?? i18n.language ?? loadedLanguage);
   const copy = getProjectDomainsCopy(language);
   const navigation = useNavigation();
@@ -217,6 +254,27 @@ export default function ProjectDomainsPage() {
       title={copy['projectDomains.page.title']}
       description={copy['projectDomains.page.description']}
     >
+      {/*
+       * R-1 bis — say the real scope. `VerifiedDomain` has no `projectId`
+       * column: a domain is verified once per ORGANIZATION
+       * (`@@unique([organizationId, domain])`) and is then usable by any of
+       * its projects. This page sits inside a project shell, so without this
+       * line it promises a per-project list it cannot deliver — and never
+       * could, whatever it filtered on.
+       */}
+      {loaderError ? (
+        <p
+          className="mb-6 rounded-md border border-bolt-elements-icon-error bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-icon-error"
+          role="alert"
+        >
+          {loaderError}
+        </p>
+      ) : (
+        <p className="mb-6 text-sm text-bolt-elements-textSecondary" data-testid="project-domains-scope-notice">
+          {copy['projectDomains.scope.notice']}
+        </p>
+      )}
+
       <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
         <ActivityList
           items={

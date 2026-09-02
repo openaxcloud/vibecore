@@ -32,7 +32,13 @@ import { classNames } from '~/utils/classNames';
  *   POST  /orgs/:orgId/domains/:domain/verify (app.ts:14602)
  * The verify handler checks a TXT record at `_vibecore.<domain>` equal to
  * `vibecore-domain-verification=<verificationToken>` (prisma-store verifyDomain).
- * This is distinct from per-PROJECT domains (projects.$projectId.domains.tsx).
+ * NOT distinct from `projects.$projectId.domains.tsx`, despite what this
+ * comment used to claim: that route reads and writes the SAME
+ * `/orgs/:orgId/domains` endpoints. `VerifiedDomain` has no `projectId` column
+ * at all (`@@unique([organizationId, domain])`), so a domain is verified once
+ * per ORGANISATION and is then usable by any of its projects — there is no
+ * per-project domain to be distinct from. The two pages are two renderings of
+ * one list; see R-1 in BUG_INVENTORY_LIVE.md for the consolidation.
  */
 type DomainVerification = {
   id: string;
