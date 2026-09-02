@@ -6,8 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const FULL_COMMIT_SHA = /^[0-9a-f]{40}$/;
 const FULL_CONTAINER_DIGEST = /^docker:\/\/[^@\s]+@sha256:[0-9a-f]{64}$/i;
-const DOCKER_USES_DIRECTIVE = /\buses:\s*["']?(docker:\/\/[^\s#"']+)/g;
-const USES_DIRECTIVE = /\buses:\s*["']?([^@\s"']+)@([^\s#"']+)/g;
+const USES_DIRECTIVE = /\buses:\s*["']?([^\s#"']+)/g;
 
 // These are the exact mutable references temporarily blocked by coordination:
 // 15 are owned by Claude's active PR #352; five belong to the legacy preview
@@ -45,32 +44,58 @@ export function findUnpinnedActions(source, filename = '<memory>') {
   const findings = [];
 
   for (const [index, line] of source.split(/\r?\n/).entries()) {
-    DOCKER_USES_DIRECTIVE.lastIndex = 0;
+    if (line.trimStart().startsWith('#')) {
+      continue;
+    }
+
     USES_DIRECTIVE.lastIndex = 0;
     let match;
 
-    while ((match = DOCKER_USES_DIRECTIVE.exec(line)) !== null) {
-      const [, image] = match;
-
-      if (!FULL_CONTAINER_DIGEST.test(image)) {
-        findings.push({
-          filename,
-          line: index + 1,
-          action: image,
-          ref: 'mutable-container-image',
-          kind: 'container',
-        });
-      }
-    }
-
     while ((match = USES_DIRECTIVE.exec(line)) !== null) {
-      const [, action, ref] = match;
+      // Closing braces/commas can follow a scalar in an inline YAML mapping.
+      const value = match[1].replace(/[},]+$/, '');
 
-      if (action.startsWith('./') || action.startsWith('docker://') || FULL_COMMIT_SHA.test(ref)) {
+      if (value.startsWith('./')) {
         continue;
       }
 
-      findings.push({ filename, line: index + 1, action, ref });
+      if (value.startsWith('docker://')) {
+        if (!FULL_CONTAINER_DIGEST.test(value)) {
+          findings.push({
+            filename,
+            line: index + 1,
+            action: value,
+            ref: 'mutable-container-image',
+            kind: 'container',
+          });
+        }
+
+        continue;
+      }
+
+      const separator = value.lastIndexOf('@');
+
+      // Reject aliases, expressions and malformed values fail-closed. GitHub
+      // supports YAML anchors, so checking only literal action@ref strings lets
+      // a mutable reference hide behind `uses: *alias`.
+      if (separator <= 0) {
+        findings.push({
+          filename,
+          line: index + 1,
+          action: value,
+          ref: 'missing-or-dynamic-ref',
+          kind: 'dynamic',
+        });
+
+        continue;
+      }
+
+      const action = value.slice(0, separator);
+      const ref = value.slice(separator + 1);
+
+      if (!FULL_COMMIT_SHA.test(ref)) {
+        findings.push({ filename, line: index + 1, action, ref, kind: 'action' });
+      }
     }
   }
 
@@ -102,17 +127,24 @@ function selfTest() {
     "  - uses: 'vendor/action@main'",
     '  - uses: docker://alpine:3.20',
     `  - uses: docker://alpine@sha256:${'a'.repeat(64)}`,
+    '  - uses: *mutable-action-alias',
+    '  - uses: ${{ matrix.action }}',
+    '  # example only: uses: vendor/commented@main',
   ].join('\n');
   const findings = findUnpinnedActions(fixture);
 
   if (
-    findings.length !== 3 ||
+    findings.length !== 5 ||
     findings[0]?.action !== 'actions/setup-node' ||
     findings[0]?.ref !== 'v4' ||
     findings[1]?.action !== 'vendor/action' ||
     findings[1]?.ref !== 'main' ||
     findings[2]?.action !== 'docker://alpine:3.20' ||
-    findings[2]?.kind !== 'container'
+    findings[2]?.kind !== 'container' ||
+    findings[3]?.action !== '*mutable-action-alias' ||
+    findings[3]?.kind !== 'dynamic' ||
+    findings[4]?.action !== '${{' ||
+    findings[4]?.kind !== 'dynamic'
   ) {
     throw new Error(`self-test failed: ${JSON.stringify(findings)}`);
   }
@@ -169,6 +201,10 @@ function main() {
       if (finding.kind === 'container') {
         console.error(
           `${finding.filename}:${finding.line}: ${finding.action} is not pinned to a sha256 container digest`,
+        );
+      } else if (finding.kind === 'dynamic') {
+        console.error(
+          `${finding.filename}:${finding.line}: ${finding.action} is not a literal local action or immutable external action reference`,
         );
       } else {
         console.error(

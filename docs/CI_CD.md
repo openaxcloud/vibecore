@@ -85,7 +85,9 @@ reviewed release remains in an inline comment for maintainability. The
 regression gate is `scripts/validate-github-actions-pinned.mjs` and it also
 scans composite actions under `.github/actions`. Container actions declared as
 `docker://...` must use an immutable `sha256` image digest; mutable image tags
-and implicit `latest` references fail the same gate.
+and implicit `latest` references fail the same gate. Dynamic expressions and
+YAML aliases in `uses:` are rejected fail-closed because their resolved trust
+identity cannot be proven by the source scan.
 
 Twenty-four exact references are temporarily locked as count-bound exceptions:
 fifteen in `e2e.yml`, `electron.yml` and `terraform.yml` while Claude PR #352
