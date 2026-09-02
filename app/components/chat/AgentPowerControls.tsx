@@ -115,7 +115,23 @@ export function AgentPowerControls({
   ];
 
   const [advancedOpen, setAdvancedOpen] = useState(false);
+
+  /*
+   * La feuille NAVIGUE SUR PLACE, elle n'empile pas de fenêtres.
+   *
+   * Référence Replit, captures d'Avi : « Agent modes » liste les modes ; on en
+   * choisit un et la feuille passe à ses réglages, avec un chevron de retour en
+   * haut à gauche. Jamais deux surfaces superposées.
+   */
+  const [niveau, setNiveau] = useState<'modes' | 'reglages'>('modes');
   const rootRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!advancedOpen) {
+      /* Rouvrir doit toujours repartir de la liste des modes, jamais d'un sous-écran. */
+      setNiveau('modes');
+    }
+  }, [advancedOpen]);
+
   const panelId = useId();
   const hintId = useId();
 
@@ -357,140 +373,194 @@ export function AgentPowerControls({
           aria-label={copy['chatControls.power.dialogAria']}
           className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
         >
-          {compact ? (
-            <div className="bolt-agent-power-compact-modes">
-              {segmentedControl}
+          {niveau === 'modes' ? (
+            <div className="bolt-agent-sheet-modes" role="radiogroup" aria-label={copy['chatControls.power.groupAria']}>
+              <p className="bolt-agent-sheet-title">{copy['chatControls.power.modesTitle']}</p>
+              {buildTiers.map((tier) => {
+                const actif = value.buildTier === tier.id;
+                const disponible = modeAvailable(tier.id);
+
+                return (
+                  <button
+                    key={tier.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={actif}
+                    data-selected={actif ? 'true' : 'false'}
+                    data-verrouille={disponible ? 'false' : 'true'}
+                    disabled={disabled}
+                    onClick={() => {
+                      if (disponible) {
+                        selectMode(tier.id);
+                      }
+
+                      /*
+                       * On avance MÊME si le mode est verrouillé : l'utilisateur
+                       * doit pouvoir lire ce qu'il n'a pas, pas se heurter à un
+                       * bouton mort. Le cadenas dit pourquoi.
+                       */
+                      setNiveau('reglages');
+                    }}
+                    className="bolt-agent-sheet-row"
+                  >
+                    <span className="bolt-agent-sheet-row-label">{tier.label}</span>
+                    <span className="bolt-agent-sheet-row-hint">{tier.hint}</span>
+                    {disponible ? null : (
+                      <span
+                        className="bolt-agent-sheet-lock i-ph:lock-simple"
+                        aria-label={copy['chatControls.power.locked']}
+                        title={copy['chatControls.power.locked']}
+                      />
+                    )}
+                  </button>
+                );
+              })}
               {planFirstToggle}
             </div>
           ) : null}
 
-          <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {copy['chatControls.power.dialogTitle']}
-          </p>
-
-          <div className="flex flex-col gap-0.5">
-            {/* High effort — Economy and Power only, never Lite. */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={value.highEffort && value.buildTier !== 'lite'}
-              disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
-              onClick={() => setHighEffort(!value.highEffort)}
-              data-testid="agent-switch-high-effort"
-              title={
-                value.buildTier === 'lite'
-                  ? copy['chatControls.power.highEffortLite']
-                  : highEffortAvailable
-                    ? copy['chatControls.power.highEffortAvailable']
-                    : copy['chatControls.power.highEffortPaid']
-              }
-              className={classNames(
-                'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                value.buildTier === 'lite' || !highEffortAvailable
-                  ? 'opacity-60'
-                  : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-              )}
-            >
-              <span className="flex flex-col">
-                <span className="flex items-center gap-2 font-medium">
-                  <span
-                    className="i-ph:lightning text-sm"
-                    style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                    aria-hidden
-                  />
-                  {copy['chatControls.power.highEffort']}
-                </span>
-                <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.highEffortDescription']}
-                </span>
-              </span>
-              {!highEffortAvailable && value.buildTier !== 'lite' ? (
-                <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.proBadge']}
-                </span>
-              ) : (
-                <span
-                  className={classNames(
-                    'flex h-4 w-4 items-center justify-center rounded border',
-                    value.highEffort && value.buildTier !== 'lite'
-                      ? 'border-transparent'
-                      : 'border-bolt-elements-borderColor',
-                  )}
-                  style={
-                    value.highEffort && value.buildTier !== 'lite'
-                      ? { background: 'var(--vc-ide-accent-action)' }
-                      : undefined
-                  }
+          {niveau === 'reglages' ? (
+            <>
+              <div className="bolt-agent-sheet-head">
+                <button
+                  type="button"
+                  className="bolt-agent-sheet-back"
+                  aria-label={copy['chatControls.power.back']}
+                  onClick={() => setNiveau('modes')}
                 >
-                  {value.highEffort && value.buildTier !== 'lite' ? (
-                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
-                  ) : null}
-                </span>
-              )}
-            </button>
+                  <span className="i-ph:caret-left" aria-hidden />
+                </button>
+                <p className="bolt-agent-sheet-title">{activeTier.label}</p>
+              </div>
+              <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                {copy['chatControls.power.dialogTitle']}
+              </p>
 
-            {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
-            <button
-              type="button"
-              role="switch"
-              aria-checked={value.turboMode && value.buildTier === 'power'}
-              disabled={disabled || value.buildTier !== 'power' || !turboAvailable}
-              onClick={() => setTurbo(!value.turboMode)}
-              data-testid="agent-switch-turbo"
-              title={
-                value.buildTier !== 'power'
-                  ? copy['chatControls.power.turboPower']
-                  : turboAvailable
-                    ? copy['chatControls.power.turboAvailable']
-                    : copy['chatControls.power.turboOrganization']
-              }
-              className={classNames(
-                'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
-                value.buildTier !== 'power' || !turboAvailable
-                  ? 'opacity-60'
-                  : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
-                value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
-              )}
-            >
-              <span className="flex flex-col">
-                <span className="flex items-center gap-2 font-medium">
-                  <span
-                    className="i-ph:gauge text-sm"
-                    style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
-                    aria-hidden
-                  />
-                  {copy['chatControls.power.turbo']}
-                </span>
-                <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.turboDescription']}
-                </span>
-              </span>
-              {!turboAvailable && value.buildTier === 'power' ? (
-                <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.organizationBadge']}
-                </span>
-              ) : (
-                <span
-                  className={classNames(
-                    'flex h-4 w-4 items-center justify-center rounded border',
-                    value.turboMode && value.buildTier === 'power'
-                      ? 'border-transparent'
-                      : 'border-bolt-elements-borderColor',
-                  )}
-                  style={
-                    value.turboMode && value.buildTier === 'power'
-                      ? { background: 'var(--vc-ide-accent-action)' }
-                      : undefined
+              <div className="flex flex-col gap-0.5">
+                {/* High effort — Economy and Power only, never Lite. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={value.highEffort && value.buildTier !== 'lite'}
+                  disabled={disabled || value.buildTier === 'lite' || !highEffortAvailable}
+                  onClick={() => setHighEffort(!value.highEffort)}
+                  data-testid="agent-switch-high-effort"
+                  title={
+                    value.buildTier === 'lite'
+                      ? copy['chatControls.power.highEffortLite']
+                      : highEffortAvailable
+                        ? copy['chatControls.power.highEffortAvailable']
+                        : copy['chatControls.power.highEffortPaid']
                   }
+                  className={classNames(
+                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+                    value.buildTier === 'lite' || !highEffortAvailable
+                      ? 'opacity-60'
+                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+                    value.highEffort ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+                  )}
                 >
-                  {value.turboMode && value.buildTier === 'power' ? (
-                    <span className="i-ph:check-bold text-xs text-white" aria-hidden />
-                  ) : null}
-                </span>
-              )}
-            </button>
-          </div>
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-2 font-medium">
+                      <span
+                        className="i-ph:lightning text-sm"
+                        style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                        aria-hidden
+                      />
+                      {copy['chatControls.power.highEffort']}
+                    </span>
+                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.highEffortDescription']}
+                    </span>
+                  </span>
+                  {!highEffortAvailable && value.buildTier !== 'lite' ? (
+                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.proBadge']}
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(
+                        'flex h-4 w-4 items-center justify-center rounded border',
+                        value.highEffort && value.buildTier !== 'lite'
+                          ? 'border-transparent'
+                          : 'border-bolt-elements-borderColor',
+                      )}
+                      style={
+                        value.highEffort && value.buildTier !== 'lite'
+                          ? { background: 'var(--vc-ide-accent-action)' }
+                          : undefined
+                      }
+                    >
+                      {value.highEffort && value.buildTier !== 'lite' ? (
+                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                      ) : null}
+                    </span>
+                  )}
+                </button>
+
+                {/* Turbo — Power only, OFF by default, enabled per-org by an admin. */}
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={value.turboMode && value.buildTier === 'power'}
+                  disabled={disabled || value.buildTier !== 'power' || !turboAvailable}
+                  onClick={() => setTurbo(!value.turboMode)}
+                  data-testid="agent-switch-turbo"
+                  title={
+                    value.buildTier !== 'power'
+                      ? copy['chatControls.power.turboPower']
+                      : turboAvailable
+                        ? copy['chatControls.power.turboAvailable']
+                        : copy['chatControls.power.turboOrganization']
+                  }
+                  className={classNames(
+                    'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
+                    value.buildTier !== 'power' || !turboAvailable
+                      ? 'opacity-60'
+                      : 'hover:bg-bolt-elements-background-depth-2 disabled:opacity-50',
+                    value.turboMode ? 'text-bolt-elements-textPrimary' : 'text-bolt-elements-textSecondary',
+                  )}
+                >
+                  <span className="flex flex-col">
+                    <span className="flex items-center gap-2 font-medium">
+                      <span
+                        className="i-ph:gauge text-sm"
+                        style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
+                        aria-hidden
+                      />
+                      {copy['chatControls.power.turbo']}
+                    </span>
+                    <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.turboDescription']}
+                    </span>
+                  </span>
+                  {!turboAvailable && value.buildTier === 'power' ? (
+                    <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                      {copy['chatControls.power.organizationBadge']}
+                    </span>
+                  ) : (
+                    <span
+                      className={classNames(
+                        'flex h-4 w-4 items-center justify-center rounded border',
+                        value.turboMode && value.buildTier === 'power'
+                          ? 'border-transparent'
+                          : 'border-bolt-elements-borderColor',
+                      )}
+                      style={
+                        value.turboMode && value.buildTier === 'power'
+                          ? { background: 'var(--vc-ide-accent-action)' }
+                          : undefined
+                      }
+                    >
+                      {value.turboMode && value.buildTier === 'power' ? (
+                        <span className="i-ph:check-bold text-xs text-white" aria-hidden />
+                      ) : null}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </>
+          ) : null}
 
           {!highEffortAvailable || (!turboAvailable && value.buildTier === 'power') ? (
             <button
