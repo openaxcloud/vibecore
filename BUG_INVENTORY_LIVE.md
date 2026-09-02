@@ -876,3 +876,7 @@ l'est pour la cause serveur, prouvée ci-dessus.
 |---|---|---|
 | **Notifications** (`/notifications`) | **Sain — mutation ET persistance prouvées** | FR complet, état vide honnête (« Vous êtes à jour »), 10 bascules sur 5 catégories × 2 canaux. Bascule de « Actualités des déploiements via E-mail » : `PATCH /api/user/preferences` → **200**, commutateur `true` → `false`. **Persistance vérifiée par rechargement** : la préférence modifiée reste à `false` pendant que les 4 témoins restent à `true` — c'est le test qui compte, une bascule purement visuelle serait un défaut classique. |
 | **Données et confidentialité** (`/account-settings/data`) | **Sain** | FR complet, statut du compte « Actif », parcours de suppression exposé avec **délai avant caractère définitif**. Bouton « Supprimer le compte… » **délibérément non déclenché** (action destructrice irréversible). Zéro débordement en 1440. |
+
+---
+
+**Recensement des recouvrements « un écran, combien d'implémentations ? »** — voir [`docs/AUDIT_RECOUVREMENTS_IDE.md`](docs/AUDIT_RECOUVREMENTS_IDE.md) (02/09). 3 axes comparés (grille des outils, onglets internes, routes zone utilisateur). 4 recouvrements corrigés (PR #379, #384), 3 ouverts dont **R-1** bloqué sur une décision produit d'Avi (5 surfaces « domaines », 0 consommateur d'hébergement) et **R-9** (12 routes zone utilisateur doublant un panneau IDE sur les mêmes endpoints), 3 non-défauts établis.
