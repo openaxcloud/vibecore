@@ -21740,8 +21740,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const ideState = (await store.getProjectIdeState(project.id)) ?? null;
 
-    if (ideState) {
-      reply.header('etag', `"${ideState.version}"`);
+    if (!ideState) {
+      return { ideState: null };
+    }
+
+    const etag = `"${ideState.version}"`;
+    reply.header('etag', etag);
+
+    /*
+     * AUDX-167 — honour If-None-Match.
+     *
+     * The ETag was already emitted here and never checked, so every load paid
+     * for the full state blob again: read from Postgres, serialised, and sent
+     * before the first byte reaches the client. The blob is UNBOUNDED (the PUT
+     * accepts up to API_BODY_LIMIT_BYTES, 25 MB by default), which is the shape
+     * that turns a slow response into a functional outage — the IDE abandons at
+     * 5 s and the conversation panel then stays empty for the whole page.
+     *
+     * A revisit with the version it already holds now costs a 304 and no body.
+     * This does NOT make a first load faster; it removes the repeat cost, which
+     * is the part that was being paid over and over for nothing.
+     */
+    const ifNoneMatch = request.headers['if-none-match'];
+
+    if (typeof ifNoneMatch === 'string' && ifNoneMatch.split(',').some((value) => value.trim() === etag)) {
+      return reply.code(304).send();
     }
 
     return { ideState };
