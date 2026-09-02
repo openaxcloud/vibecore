@@ -73,6 +73,8 @@ Detected events create `AbuseEvent` records, audit entries, and can stop workspa
 
 - External GitHub Actions must be pinned to a full commit SHA. Mutable tags and
   branches are rejected by `scripts/validate-github-actions-pinned.mjs`.
+- Container actions using `docker://...` must be pinned to a full `sha256`
+  image digest; mutable tags and implicit `latest` references are rejected.
 - Composite actions under `.github/actions` are included in the same scan.
 - Human-readable version comments are not trust anchors; the 40-character SHA
   is the executed identity.

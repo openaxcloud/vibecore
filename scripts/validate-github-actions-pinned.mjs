@@ -5,6 +5,8 @@ import { dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const FULL_COMMIT_SHA = /^[0-9a-f]{40}$/;
+const FULL_CONTAINER_DIGEST = /^docker:\/\/[^@\s]+@sha256:[0-9a-f]{64}$/i;
+const DOCKER_USES_DIRECTIVE = /\buses:\s*["']?(docker:\/\/[^\s#"']+)/g;
 const USES_DIRECTIVE = /\buses:\s*["']?([^@\s"']+)@([^\s#"']+)/g;
 
 // These are the exact mutable references temporarily blocked by coordination:
@@ -43,13 +45,28 @@ export function findUnpinnedActions(source, filename = '<memory>') {
   const findings = [];
 
   for (const [index, line] of source.split(/\r?\n/).entries()) {
+    DOCKER_USES_DIRECTIVE.lastIndex = 0;
     USES_DIRECTIVE.lastIndex = 0;
     let match;
+
+    while ((match = DOCKER_USES_DIRECTIVE.exec(line)) !== null) {
+      const [, image] = match;
+
+      if (!FULL_CONTAINER_DIGEST.test(image)) {
+        findings.push({
+          filename,
+          line: index + 1,
+          action: image,
+          ref: 'mutable-container-image',
+          kind: 'container',
+        });
+      }
+    }
 
     while ((match = USES_DIRECTIVE.exec(line)) !== null) {
       const [, action, ref] = match;
 
-      if (action.startsWith('./') || FULL_COMMIT_SHA.test(ref)) {
+      if (action.startsWith('./') || action.startsWith('docker://') || FULL_COMMIT_SHA.test(ref)) {
         continue;
       }
 
@@ -83,15 +100,19 @@ function selfTest() {
     '  - uses: ./my-local-action',
     '  - uses: actions/setup-node@v4',
     "  - uses: 'vendor/action@main'",
+    '  - uses: docker://alpine:3.20',
+    `  - uses: docker://alpine@sha256:${'a'.repeat(64)}`,
   ].join('\n');
   const findings = findUnpinnedActions(fixture);
 
   if (
-    findings.length !== 2 ||
+    findings.length !== 3 ||
     findings[0]?.action !== 'actions/setup-node' ||
     findings[0]?.ref !== 'v4' ||
     findings[1]?.action !== 'vendor/action' ||
-    findings[1]?.ref !== 'main'
+    findings[1]?.ref !== 'main' ||
+    findings[2]?.action !== 'docker://alpine:3.20' ||
+    findings[2]?.kind !== 'container'
   ) {
     throw new Error(`self-test failed: ${JSON.stringify(findings)}`);
   }
@@ -145,9 +166,15 @@ function main() {
 
   if (blocked.length > 0) {
     for (const finding of blocked) {
-      console.error(
-        `${finding.filename}:${finding.line}: ${finding.action}@${finding.ref} is not pinned to a full commit SHA`,
-      );
+      if (finding.kind === 'container') {
+        console.error(
+          `${finding.filename}:${finding.line}: ${finding.action} is not pinned to a sha256 container digest`,
+        );
+      } else {
+        console.error(
+          `${finding.filename}:${finding.line}: ${finding.action}@${finding.ref} is not pinned to a full commit SHA`,
+        );
+      }
     }
 
     console.error(`GitHub Actions pinning validation: FAIL (${blocked.length} mutable reference(s))`);
