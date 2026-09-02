@@ -596,6 +596,9 @@ importers:
       electron-builder-squirrel-windows:
         specifier: ^26.8.1
         version: 26.8.1(dmg-builder@26.8.1)
+      esbuild:
+        specifier: 0.27.7
+        version: 0.27.7
       eslint-config-prettier:
         specifier: ^10.1.1
         version: 10.1.8(eslint@9.31.0(jiti@2.6.1))
