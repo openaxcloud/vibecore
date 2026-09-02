@@ -7226,6 +7226,44 @@ body :where(.lucide, svg[data-lucide]) {
  * le pousser, tout en restant dans la colonne de conversation — elle suit donc
  * la largeur du panneau, y compris quand l'IDE est en deux volets.
  */
+/*
+ * Bandeau d'échec de chargement de la conversation.
+ *
+ * Le bouton est à 44 px, exprimés en PIXELS : la base rem du produit vaut 12 px
+ * en bureau et 14 px sous 1024 px, donc toute valeur en rem serait déformée.
+ */
+.bolt-agent-memory-load-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, var(--chat-max-width, 100%));
+  margin: 0 auto 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-elevated);
+  color: var(--vc-ide-text-primary);
+  font-size: 13px;
+}
+
+.bolt-agent-memory-load-error p {
+  flex: 1;
+  margin: 0;
+  min-width: 0;
+}
+
+.bolt-agent-memory-load-error__retry {
+  flex: none;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+}
+
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
