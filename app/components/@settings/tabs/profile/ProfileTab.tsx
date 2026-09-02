@@ -3,12 +3,14 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { downscaleAvatarDataUrl, isQuotaExceededError } from './avatar-upload';
+import { useCoarsePointer } from '~/lib/hooks/useCoarsePointer';
 import { formatProfileTabCopy, getProfileTabCopy } from '~/lib/i18n/catalogs/profile-tab';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 
 export default function ProfileTab() {
+  const coarse = useCoarsePointer();
   const { i18n } = useTranslation();
   const copy = getProfileTabCopy(i18n.resolvedLanguage ?? i18n.language);
   const profile = useStore(profileStore);
@@ -151,7 +153,16 @@ export default function ProfileTab() {
                   />
                 ) : (
                   <div
-                    className="i-ph:camera-plus h-6 w-6 transform text-white opacity-0 transition-all duration-300 ease-out group-hover:scale-110 group-hover:opacity-100"
+                    className={classNames(
+                      'i-ph:camera-plus h-6 w-6 transform text-white transition-all duration-300 ease-out group-hover:scale-110',
+
+                      /*
+                       * L'indice « on peut changer sa photo » n'apparaissait
+                       * qu'au survol : au doigt, rien ne signalait que l'avatar
+                       * etait actionnable.
+                       */
+                      coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                    )}
                     aria-hidden
                   />
                 )}
