@@ -2048,3 +2048,62 @@ test('le voyant d’état du runtime et les compteurs ne sont pas réduits à z�
   expect(mesures.erreurs!.largeur, 'le compteur d’erreurs est réduit à zéro').toBeGreaterThanOrEqual(16);
   expect(mesures.avertissements!.largeur, 'le compteur d’avertissements est réduit à zéro').toBeGreaterThanOrEqual(16);
 });
+
+test('le panneau d’historique tient dans la fenêtre, quel que soit son décalage', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 393, height: 659 });
+
+  /*
+   * Le bloc conteneur est décalé du haut de la fenêtre — c'est le cas réel :
+   * mesuré dans l'IDE en 393×659, le panneau commence à 92 px alors que sa
+   * règle le borne à `100dvh - 72px`, comme s'il commençait à 72.
+   *
+   * Résultat mesuré avant correctif : panneau rendu de 92 à 679 dans une
+   * fenêtre de 659 — ses 20 derniers pixels hors écran, avant même la barre
+   * d'outils du navigateur.
+   *
+   * Le test reproduit le décalage plutôt que de le supposer nul : c'est
+   * exactement ce que la borne doit encaisser.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div style="position: absolute; top: 48px; left: 0; right: 0; bottom: 0;">
+          <div class="bolt-project-conversation-history">
+            <div class="bolt-project-conversation-history-head"><span>Historique</span></div>
+            <div class="bolt-project-conversation-history-list">
+              ${Array.from({ length: 30 }, (_, index) => `<div style="height: 60px">Conversation ${index + 1}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const panneau = document.querySelector('.bolt-project-conversation-history');
+    const liste = document.querySelector('.bolt-project-conversation-history-list');
+
+    if (!panneau || !liste) {
+      return null;
+    }
+
+    const boite = panneau.getBoundingClientRect();
+    const avant = liste.scrollTop;
+    liste.scrollTop = 99_999;
+
+    return {
+      haut: Math.round(boite.top),
+      bas: Math.round(boite.bottom),
+      fenetre: window.innerHeight,
+      listeDefile: liste.scrollTop > avant,
+    };
+  });
+
+  expect(mesure, 'le panneau n’est pas monté').not.toBeNull();
+  expect(mesure!.haut, 'le panneau est coupé en haut').toBeGreaterThanOrEqual(0);
+  expect(mesure!.bas, 'le panneau déborde sous la fenêtre').toBeLessThanOrEqual(mesure!.fenetre);
+  expect(mesure!.listeDefile, 'la liste ne défile pas : le reste est inatteignable').toBe(true);
+});
