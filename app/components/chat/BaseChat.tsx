@@ -123,6 +123,7 @@ import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
+import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
@@ -3932,7 +3933,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
-    const restoredProjectId = useRef<string | undefined>(undefined);
+    const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
@@ -4644,7 +4645,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         : t('baseChatAst.mobile.workspaceReady');
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
-      restoredProjectId.current = undefined;
+      gardeDeRestauration.current.oublier();
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
 
@@ -4988,12 +4989,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
-      if (!projectIdeMode || !projectId || restoredProjectId.current === projectId) {
+      if (!projectIdeMode || !projectId || !gardeDeRestauration.current.peutLancer(projectId)) {
         return undefined;
       }
 
       let cancelled = false;
-      restoredProjectId.current = projectId;
+
+      const jeton = gardeDeRestauration.current.lancer(projectId);
 
       const restoreFallbackTimer = window.setTimeout(() => {
         if (!cancelled) {
@@ -5162,11 +5164,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           if (Array.isArray(ui?.deletedPaths)) {
             workbenchStore.setDeletedPaths(ui.deletedPaths.filter((filePath: unknown) => typeof filePath === 'string'));
           }
+
+          /*
+           * Le garde se pose ICI, après une restauration réellement appliquée —
+           * jamais à l'entrée de l'opération.
+           */
+          gardeDeRestauration.current.reussir(projectId);
         })
         .catch((error) => {
           console.error('Failed to restore project IDE state', error);
         })
         .finally(() => {
+          gardeDeRestauration.current.liberer(jeton);
           window.clearTimeout(restoreFallbackTimer);
 
           if (!cancelled) {
@@ -5176,6 +5185,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return () => {
         cancelled = true;
+        gardeDeRestauration.current.liberer(jeton);
         window.clearTimeout(restoreFallbackTimer);
       };
     }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
