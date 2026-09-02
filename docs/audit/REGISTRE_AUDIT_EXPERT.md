@@ -406,7 +406,7 @@ recibler, supprimer). Vérifier les piles avant toute fermeture.
 
 ---
 
-## 12-bis. Points constatés HORS REMISE — AUDX-159 → AUDX-162
+## 12-bis. Points constatés HORS REMISE — AUDX-159 → AUDX-163
 
 ⚠️ **Ce que cette section prouve : le registre n'est PAS exhaustif du réel.**
 Les 158 lignes ci-dessus couvrent exactement ce que l'audit externe a remis. Les
@@ -422,8 +422,9 @@ Toute nouvelle constatation vient ici, jamais dans les 158.
 |---|---|---|---|---|---|
 | AUDX-159 | **La génération IA était MORTE en production** — la route s'auto-annulait, et le chemin streaming rendait **200 avec zéro octet** | **P0** | **✅ Livré ET exercé — PR #358 mergée (`a354779a3c`)** | ⚠️ **Absent de TOUT audit** : ni la remise externe, ni les registres internes ne le portaient. Deux défauts distincts sur le même chemin : (a) le garde-fou anti-gaspillage tuait la génération qu'il devait protéger — une annulation déclenchée sans déconnexion réelle du client ; (b) le chemin **streaming** répondait **200 avec un corps vide**, donc un succès menteur, la pire forme d'échec (rien à voir dans les logs, rien à voir côté client, sauf que rien n'arrive). C'est la fonction centrale du produit. ✅ **Exercé en réel confirmé par Avi le 02/09** — c'est la première ligne du registre à atteindre cet état, et la seule à ce jour. Elle sert de repère : toutes les autres, y compris les correctifs en PR ouverte, restent au mieux 💻. | BE |
 | AUDX-160 | **La pastille « aller au dernier message » était livrée depuis des semaines et rendue HORS ÉCRAN** — donc inutilisable | P1 | **NON_COMMENCÉ** | ⚠️ **Le point était coché « livré ».** Le code existait, il était correct, il était mergé — et personne n'avait jamais regardé le rendu. Résultat : une fonctionnalité inexistante en pratique pendant des semaines, avec un suivi qui affirmait le contraire. **C'est la justification concrète de la distinction 💻 Livré / ✅ Exercé** posée en tête de ce registre. Rejoint AUDX-103 (écrans coupés ou débordants) mais mérite sa propre ligne : ici le défaut n'est pas le CSS, c'est le **processus de clôture**. | FE |
-| AUDX-161 | **MOTIF RÉCURRENT — un garde posé à l'ENTRÉE d'une opération asynchrone au lieu d'APRÈS son succès** | **P0** | NON_COMMENCÉ | ⚠️ **Trouvé trois fois dans la même journée**, par des sessions différentes, sur des chemins sans rapport entre eux — ce n'est donc pas un bug, c'est une **classe**. Le garde s'exécute quand l'opération *commence* et non quand elle *réussit* : il autorise, marque, débite ou libère sur une promesse qui peut encore échouer. La panne produite est **silencieuse et intermittente** — rien dans les logs, rien à l'écran, et elle ne se reproduit que sous concurrence ou sous latence. **Deux exemples déjà consignés ici** : AUDX-159 (le garde anti-gaspillage annulait la génération avant toute déconnexion réelle) et AUDX-003 (marquer `derived-v1` à l'*apply* du Secret plutôt qu'à la *création effective* du pod aurait bloqué chaque workspace hérité). **Recherche systématique à mener** : tout `await` suivi d'une écriture d'état, tout marquage placé avant un `waitFor*`, tout `catch` qui traite un échec comme un succès. Le test qui l'attrape est toujours le même : **casser l'opération et vérifier que le garde n'a PAS bougé**. | SEC / BE |
+| AUDX-161 | **MOTIF RÉCURRENT — un garde posé à l'ENTRÉE d'une opération asynchrone au lieu d'APRÈS son succès** | **P0** | **🔬 RECHERCHE FAITE — 1er correctif PR #370** | ⚠️ Trouvé trois fois en une journée sur des chemins sans rapport ⇒ **classe, pas bug**. **Recherche systématique menée le 02/09 : 9 candidats, 3 vrais défauts.** **Corrigé (PR #370)** : `VercelConnection.tsx:51` — `hasInitialized.current = true` posé **avant** l'`await` ⇒ une auto-connexion échouée verrouillait, l'effet ne repartait plus, **panneau déconnecté avec un jeton valide en main** et rien qui retente. Le verrou faisait **deux travaux avec un seul drapeau** : séparés en `autoConnectInFlight` (concurrence) et `hasInitialized` (succès seul) ; dépendances vides → `[user, token]`, sans quoi même verrou ouvert aucun re-essai n'était possible. **3 contre-épreuves.** **Faux positifs documentés pour ne pas les re-suspecter** : `SettingsTab.tsx:147` verrouille dans un `finally` (**dégradation voulue** vers le cache) ; `useProjectAiTranscriptHydration.ts:82` verrouille tôt **mais avec re-essai borné** — c'est la **forme de référence**. **Méthode qui l'attrape** : *casser l'opération et vérifier que le garde n'a PAS bougé*. **Reste** : 2 des 3 vrais défauts non encore corrigés. | SEC / BE |
 | AUDX-162 | **Une primitive mal rangée est une primitive inexistante** — `useCoarsePointer()` est correcte mais vit dans un composant de barre latérale | P1 | NON_COMMENCÉ | La primitive **existe, est juste, et n'est utilisée nulle part** : rangée dans un composant de barre latérale, elle est introuvable pour quiconque cherche à détecter un pointeur grossier. Résultat concret : les chantiers tactiles (**AUDX-103** écrans coupés, **AUDX-105** cibles < 44 px, **AUDX-107** swipe) ont été traités **sans** elle, chacun réinventant sa propre détection ou s'en passant. ⚠️ **Le défaut n'est pas le code, c'est le rangement** — même famille qu'AUDX-160 (livré ≠ utilisable). **Action** : extraire vers un module de hooks partagé, puis **grep des détections concurrentes** pour les remplacer ; sans cette seconde moitié, l'extraction ne fait qu'ajouter une copie de plus. | FE |
+| AUDX-163 | **DÉFAUT STRUCTUREL — une bonne pratique écrite dans le dépôt et non adoptée ailleurs** | **P1** | NON_COMMENCÉ | ⚠️ **Troisième constatation, donc plus une coïncidence.** Trois fois, la forme correcte **existait déjà** et le code neuf ne l'a pas reprise : (1) `useProjectAiTranscriptHydration.ts` porte la forme de référence du garde asynchrone, et `VercelConnection.tsx` a réintroduit le défaut à côté (**AUDX-161**) ; (2) `useCoarsePointer()` est correcte et **inutilisée**, rangée dans un composant de barre latérale (**AUDX-162**) ; (3) le ticket WS collaboration portait déjà la bonne construction *et* le piège de liste d'IP documenté — il a fallu le relire pour ne pas le repayer sur le ticket runtime (**AUDX-004**). **Le défaut n'est ni le code ni la personne : c'est la DÉCOUVRABILITÉ.** Une primitive correcte mais mal rangée est **une primitive inexistante**, et elle coûte deux fois — le défaut réintroduit, puis la copie concurrente qui divergera. **Action** : inventaire des primitives transverses (gardes asynchrones, détection de pointeur, tickets signés, confinement de chemin), extraction vers des modules nommés, **puis grep des ré-implémentations** pour les remplacer ; sans cette seconde moitié, l'extraction ne fait qu'ajouter une copie de plus. **Un correctif qui ne range pas sa primitive prépare le suivant.** | FE / BE |
 
 ---
 
@@ -457,7 +458,7 @@ faux positifs comme des faux « corrigés ».
 
 ## Annexe A — table de correspondance énoncé → identifiant
 
-Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — plus **4 lignes hors remise** (§12-bis), qui prouvent que le registre n'est pas exhaustif du réel.
+Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — plus **5 lignes hors remise** (§12-bis), qui prouvent que le registre n'est pas exhaustif du réel.
 
 | Section de la remise | Plage | Nb |
 |---|---|---|
@@ -472,8 +473,8 @@ Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — 
 | Parité produit | AUDX-120 → 134 | 15 |
 | Accès externes (hors dépôt) | AUDX-135 → 148 | 14 |
 | Gouvernance | AUDX-149 → 158 | 10 |
-| Points constatés **hors remise** | AUDX-159 → 162 | 4 |
-| **Total** | | **162** |
+| Points constatés **hors remise** | AUDX-159 → 163 | 5 |
+| **Total** | | **163** |
 
 Les lignes **AUDX-034**, **AUDX-035** et **AUDX-082** ont été **ajoutées** au découpage
 littéral de la remise : la première et la deuxième parce que la remise demandait
