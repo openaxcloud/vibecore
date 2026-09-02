@@ -34,7 +34,13 @@ type Domain = {
   /** Real TLS lifecycle from the api (VerifiedDomain.sslStatus). */
   sslStatus?: 'pending_dns' | 'dns_verified' | 'failed' | string;
 };
-type Project = { id: string; name: string; description?: string };
+
+/*
+ * AUDX-169 — `organizationId` is what scopes the domains below. The API's
+ * /projects/:id already returns it; the type simply never asked for it, which is
+ * how the wrong organization got used without anything looking wrong.
+ */
+type Project = { id: string; name: string; description?: string; organizationId: string };
 
 // DNS identifiers and domain examples are technical values, identical in every locale.
 const DOMAIN_PLACEHOLDER = 'app.example.com';
@@ -88,16 +94,35 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
-  const [projectResult, organization] = await Promise.all([
+  const [projectResult, userOrganization] = await Promise.all([
     apiRequest<{ project: Project }>(request, `/projects/${projectId}`),
     firstOrganizationOrNull(request),
   ]);
 
-  if (!organization) {
+  if (!userOrganization) {
     return redirect('/');
   }
 
-  const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
+  /*
+   * AUDX-169 — scope the domains to the PROJECT's organization.
+   *
+   * This listed (and the action added and verified) against
+   * firstOrganizationOrNull(user) — the user's FIRST organization, which is not
+   * necessarily the one owning this project. It is invisible today because no
+   * user belongs to two organizations, so "first" is always "the right one".
+   * The first multi-organization customer would silently read, write and verify
+   * domains on the wrong organization — and that customer is by construction an
+   * Enterprise account, i.e. the worst possible moment to find out.
+   *
+   * The user's organization is still resolved, but only to decide whether the
+   * user has one at all; it never scopes a request.
+   */
+  const organizationId = projectResult.project.organizationId ?? userOrganization.id;
+
+  const organization =
+    organizationId === userOrganization.id ? userOrganization : { ...userOrganization, id: organizationId };
+
+  const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organizationId}/domains`);
 
   return json({ project: projectResult.project, organization, domains: domains?.domains ?? [], language });
 }
@@ -111,10 +136,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
   }
 
+  /*
+   * AUDX-169 — the organization that owns THIS PROJECT, not the user's first.
+   * See the loader for why the difference is invisible today and certain later.
+   */
   let organization: Awaited<ReturnType<typeof firstOrganization>>;
 
   try {
-    organization = await firstOrganization(request);
+    const projectResult = await apiRequest<{ project: Project }>(request, `/projects/${projectId}`);
+    const userOrganization = await firstOrganization(request);
+    const organizationId = projectResult.project.organizationId ?? userOrganization.id;
+
+    organization =
+      organizationId === userOrganization.id ? userOrganization : { ...userOrganization, id: organizationId };
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
