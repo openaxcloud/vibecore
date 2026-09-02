@@ -7503,6 +7503,16 @@ body :where(.lucide, svg[data-lucide]) {
    */
   padding-bottom: 16px;
   transform: none !important;
+
+  /*
+   * Une feuille ancrée doit être OPAQUE : le fil défile juste derrière elle, et
+   * un fond translucide le laisse transparaître à travers les libellés.
+   * (Un garde-fou de `av-ux-12points.spec.ts` vérifie cette propriété en lisant
+   * la feuille de style comme du texte ; il tombe désormais sur ce bloc-ci en
+   * premier, ce qui est bien : la règle qui positionne la feuille est aussi
+   * celle qui doit garantir son opacité.)
+   */
+  background: var(--vc-ide-bg-panel);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
