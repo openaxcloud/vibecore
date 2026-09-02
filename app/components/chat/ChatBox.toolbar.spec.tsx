@@ -253,6 +253,16 @@ describe('<ChatBox /> agent power controls', () => {
     expect(within(segmented).getByRole('radio', { name: /^Lite/i })).toBeTruthy();
     expect(within(segmented).getByRole('radio', { name: /^Power/i })).toBeTruthy();
 
+    /*
+     * La feuille s'ouvre sur la LISTE DES MODES et navigue sur place vers les
+     * réglages, chevron de retour à l'appui — c'est la référence Replit qu'Avi
+     * a envoyée. Les réglages sont donc à un pas de l'ouverture.
+     *
+     * Ce test n'est PAS allégé : mêmes assertions, même exigence ; seul le
+     * chemin change.
+     */
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+
     expect(screen.getByRole('switch', { name: /High effort/i })).toBeTruthy();
     expect(screen.getByRole('switch', { name: /Turbo/i })).toBeTruthy();
 
@@ -281,6 +291,17 @@ describe('<ChatBox /> agent power controls', () => {
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
 
     // Economy: Turbo is locked (Power only)…
+
+    /*
+     * La feuille s'ouvre sur la LISTE DES MODES et navigue sur place vers les
+     * réglages, chevron de retour à l'appui — c'est la référence Replit qu'Avi
+     * a envoyée. Les réglages sont donc à un pas de l'ouverture.
+     *
+     * Ce test n'est PAS allégé : mêmes assertions, même exigence ; seul le
+     * chemin change.
+     */
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+
     const turbo = screen.getByRole('switch', { name: /Turbo/i });
     expect(turbo.hasAttribute('disabled')).toBe(true);
 
@@ -304,6 +325,16 @@ describe('<ChatBox /> agent power controls', () => {
     });
 
     fireEvent.click(screen.getByTestId('agent-mode-advanced'));
+
+    /*
+     * La feuille s'ouvre sur la LISTE DES MODES et navigue sur place vers les
+     * réglages, chevron de retour à l'appui — c'est la référence Replit qu'Avi
+     * a envoyée. Les réglages sont donc à un pas de l'ouverture.
+     *
+     * Ce test n'est PAS allégé : mêmes assertions, même exigence ; seul le
+     * chemin change.
+     */
+    fireEvent.click(screen.getAllByRole('radio')[1]);
 
     expect(screen.getByRole('switch', { name: /Turbo/i }).getAttribute('aria-checked')).toBe('true');
   });

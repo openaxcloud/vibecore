@@ -7517,6 +7517,107 @@ body :where(.lucide, svg[data-lucide]) {
   overscroll-behavior: contain;
 }
 
+/*
+ * FEUILLE DES MODES DE L'AGENT — deux niveaux, navigation sur place.
+ *
+ * Référence Replit, captures d'Avi : « Agent modes » liste les modes ; on en
+ * choisit un et la feuille passe à ses réglages, avec un chevron de retour en
+ * haut à gauche. Jamais une pile de fenêtres qui se recouvrent.
+ */
+.bolt-agent-sheet-title {
+  margin: 0 0 6px;
+  padding: 0 4px;
+  color: var(--vc-ide-text-secondary);
+  font-size: var(--vc-composer-caption);
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.bolt-agent-sheet-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.bolt-agent-sheet-head .bolt-agent-sheet-title {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-size: var(--vc-composer-text);
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.bolt-agent-sheet-back {
+  display: flex;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-agent-sheet-modes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/*
+ * La ligne sélectionnée porte un fond plein sur TOUTE la largeur, comme la
+ * référence — pas une pastille au milieu d'une ligne vide.
+ *
+ * On ne touche PAS à la couleur du texte : une première tentative dans #382
+ * avait rendu « Économique » illisible, texte sombre sur aplat orange. Le fond
+ * de sélection est ici un accent DOUX, qui garde le texte lisible.
+ */
+.bolt-agent-sheet-row {
+  display: grid;
+  min-height: 44px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 10px;
+  color: var(--vc-ide-text-primary);
+  gap: 0 10px;
+  grid-template-areas: 'libelle cadenas' 'aide cadenas';
+  grid-template-columns: 1fr auto;
+  text-align: start;
+}
+
+.bolt-agent-sheet-row[data-selected='true'] {
+  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 86%);
+}
+
+.bolt-agent-sheet-row-label {
+  font-size: var(--vc-composer-text);
+  font-weight: 600;
+  grid-area: libelle;
+}
+
+.bolt-agent-sheet-row-hint {
+  color: var(--vc-ide-text-secondary);
+  font-size: var(--vc-composer-text-secondary);
+  grid-area: aide;
+}
+
+/*
+ * Une entrée verrouillée reste LISIBLE et porte un cadenas discret, plutôt que
+ * d'être masquée : on doit pouvoir voir ce qu'on n'a pas.
+ */
+.bolt-agent-sheet-lock {
+  width: 16px;
+  height: 16px;
+  color: var(--vc-ide-text-muted);
+  grid-area: cadenas;
+}
+
+.bolt-agent-sheet-row[data-verrouille='true'] .bolt-agent-sheet-row-label {
+  color: var(--vc-ide-text-secondary);
+}
+
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;

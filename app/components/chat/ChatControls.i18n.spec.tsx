@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -92,7 +92,21 @@ describe('chat controls i18n', () => {
     expect(screen.getByText(/1,25/u)).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Avancé' }));
-    expect(screen.getByRole('dialog', { name: 'Paramètres avancés de l’agent' })).toBeTruthy();
+
+    const feuille = screen.getByRole('dialog', { name: 'Paramètres avancés de l’agent' });
+
+    expect(feuille).toBeTruthy();
+
+    /*
+     * La feuille s'ouvre sur la liste des modes et navigue sur place vers les
+     * réglages — référence Replit. Les libellés vérifiés ci-dessous sont donc à
+     * un pas ; l'exigence sur leur traduction est inchangée.
+     *
+     * Le clic est porté DANS la feuille : dans cette variante non compacte, une
+     * grille de modes existe aussi à l'extérieur, et viser la première du
+     * document cliquait la mauvaise.
+     */
+    fireEvent.click(within(feuille).getAllByRole('radio')[1]);
     expect(screen.getByText('Effort élevé')).toBeTruthy();
     expect(screen.getByText(/Réserve les modèles plus puissants/u)).toBeTruthy();
     expect(screen.queryByText('Advanced settings')).toBeNull();
