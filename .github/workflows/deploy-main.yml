@@ -149,7 +149,7 @@ jobs:
       target_sha: ${{ steps.target.outputs.target_sha }}
       short_sha: ${{ steps.target.outputs.short_sha }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # Full history: the dispatch path has to prove the requested commit is
           # actually on main, which needs main's history locally.
@@ -269,7 +269,7 @@ jobs:
       actions: read # read other workflows' runs for this commit
       # NO id-token. A refusal here happens before any Google credential exists.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-target.outputs.target_sha }}
 
@@ -320,7 +320,7 @@ jobs:
 
       - name: Upload gate verdict
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-gate-verdict-${{ needs.resolve-target.outputs.short_sha }}
           path: gate-verdict.json
@@ -340,7 +340,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ needs.resolve-target.outputs.target_sha }}
 
@@ -420,7 +420,7 @@ jobs:
       name: production
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           # Pinned to the gated commit, not to whatever main points at now: on a
           # busy branch, `github.sha` for a queued run can be several commits behind
@@ -554,13 +554,13 @@ jobs:
           echo "Tiers to build -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
 
       - name: Authenticate to Google Cloud (Workload Identity Federation)
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
@@ -670,7 +670,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
           version: v3.16.2
 
@@ -1218,7 +1218,7 @@ jobs:
       # dépendent. `get-credentials` seul n'y suffit pas : il réécrit le
       # kubeconfig, il ne renouvelle pas le jeton d'accès sous-jacent.
       - name: Refresh Google Cloud credentials before the rollout
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
@@ -1821,7 +1821,7 @@ jobs:
 
       - name: Upload release manifest and SBOMs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: release-manifest-${{ needs.resolve-target.outputs.short_sha }}
           path: sbom/

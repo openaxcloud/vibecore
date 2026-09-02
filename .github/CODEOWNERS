@@ -8,6 +8,12 @@
 /.github/ @openaxcloud
 /package.json @openaxcloud
 /pnpm-lock.yaml @openaxcloud
+/scripts/build-github-actions-validator.ts @openaxcloud
+/scripts/github-actions-temporary-exceptions.json @openaxcloud
+/scripts/validate-github-actions-pinned.bundle.mjs @openaxcloud
+/scripts/validate-github-actions-pinned.spec.ts @openaxcloud
+/scripts/validate-github-actions-pinned.ts @openaxcloud
+/tsconfig.actions-validator.json @openaxcloud
 
 # Security-sensitive configurations - require maintainer review
 /.env* @openaxcloud

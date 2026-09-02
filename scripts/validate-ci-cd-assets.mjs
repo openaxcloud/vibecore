@@ -97,11 +97,20 @@ for (const expected of [
   }
 }
 
-const stagingWorkflow = fs.readFileSync('.github/workflows/deploy-staging.yml', 'utf8');
-for (const expected of ['actions/setup-node@v4', 'pnpm/action-setup@v4', 'pnpm install --frozen-lockfile']) {
-  if (!stagingWorkflow.includes(expected)) {
-    throw new Error(`deploy-staging.yml missing dependency setup: ${expected}`);
+function requirePinnedAction(source, action, version, file) {
+  const escapedAction = action.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const pattern = new RegExp(`uses:\\s*${escapedAction}@[0-9a-f]{40}\\s+#\\s*${version}(?:\\s|$)`);
+
+  if (!pattern.test(source)) {
+    throw new Error(`${file} missing pinned ${action} (${version})`);
   }
+}
+
+const stagingWorkflow = fs.readFileSync('.github/workflows/deploy-staging.yml', 'utf8');
+requirePinnedAction(stagingWorkflow, 'actions/setup-node', 'v4', 'deploy-staging.yml');
+requirePinnedAction(stagingWorkflow, 'pnpm/action-setup', 'v4', 'deploy-staging.yml');
+if (!stagingWorkflow.includes('pnpm install --frozen-lockfile')) {
+  throw new Error('deploy-staging.yml missing dependency setup: pnpm install --frozen-lockfile');
 }
 
 for (const [file, requiredPermissions] of [
@@ -153,8 +162,8 @@ for (const expected of [
 }
 
 const mobileWorkflow = fs.readFileSync('.github/workflows/mobile-release.yml', 'utf8');
+requirePinnedAction(mobileWorkflow, 'actions/setup-java', 'v4', 'mobile-release.yml');
 for (const expected of [
-  'actions/setup-java@v4',
   'java-version: 21',
   'pnpm mobile:validate',
   'pnpm mobile:release-assets',

@@ -68,3 +68,42 @@ Detected events create `AbuseEvent` records, audit entries, and can stop workspa
 - Route package installs through an allowlisted registry proxy where required.
 - Send audit and abuse events to SIEM.
 - Configure backup, restore, retention, and legal hold workflows.
+
+## CI supply chain
+
+- External GitHub Actions must be pinned to a full commit SHA. Mutable tags and
+  branches are rejected by the strict TypeScript/YAML-AST gate in
+  `scripts/validate-github-actions-pinned.ts`.
+- Container actions using `docker://...` must be pinned to a full `sha256`
+  image digest. Job and service containers follow the same policy; mutable tags
+  and implicit `latest` references are rejected.
+- A `uses:` value must be a literal local path or immutable external identity;
+  YAML aliases, merge keys, duplicate keys, non-literal keys and runtime
+  expressions are rejected fail-closed.
+- Reachable local composite actions and reusable workflows are scanned
+  recursively even outside `.github`; missing descriptors, traversal,
+  symlinks and cycles are rejected.
+- A generated standalone copy of the typed validator runs before setup actions
+  or package installation; CI later proves it is a byte-for-byte rebuild of the
+  reviewed TypeScript source and bundled YAML parser.
+- CODEOWNERS explicitly assigns the validator, its generated bundle, tests,
+  exception manifest and compiler configuration to the repository maintainer.
+  Repository settings must separately require code-owner approval; the file
+  alone cannot enforce that setting.
+- Human-readable version comments are not trust anchors; the 40-character SHA
+  is the executed identity.
+- Immutable external actions are also restricted to the explicitly reviewed
+  owner trust policy; a new owner requires a CODEOWNERS-reviewed policy change.
+- WIF proof workflows may assert a secret's expected prefix but must never
+  print the fetched value; temporary response files are private to the runner
+  and removed on exit.
+- Temporary exceptions bind file, structural YAML path, action and ref. Moving
+  or copying one cannot reuse its authorization. They also bind a SHA-256 of
+  the complete workflow context, an owner, a PR and a maximum 30-day lifetime,
+  use strict calendar dates, cannot activate before `createdOn`, and are unique
+  per workflow location. Changing permissions, events, inputs or secrets
+  invalidates them. Strict mode remains red until they are removed, so a
+  partial migration cannot be presented as full supply-chain certification.
+- Reachable local Docker actions may use their checked-in `Dockerfile`; any
+  `docker://` image in action metadata must carry a literal full `sha256`
+  digest, just like workflow, job and service container identities.

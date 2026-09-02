@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.package.node.json",
+  "include": ["scripts/build-github-actions-validator.ts", "scripts/validate-github-actions-pinned.ts"]
+}

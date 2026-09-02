@@ -40,7 +40,7 @@ jobs:
 
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b # pg16 multi-platform index
         env:
           POSTGRES_DB: vibecore
           POSTGRES_USER: vibecore
@@ -52,7 +52,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:7-alpine
+        image: redis@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf # 7-alpine multi-platform index
         ports: ['56379:6379']
         options: >-
           --health-cmd "redis-cli ping"
@@ -69,19 +69,38 @@ jobs:
       API_PORT: 3001
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      # Standalone bundle (TypeScript source + YAML parser) runs before any
+      # setup action or package lifecycle. Its byte-for-byte reproducibility is
+      # checked from the strictly typed source after the frozen install below.
+      - name: Pre-install GitHub Actions identity gate
+        run: |
+          node scripts/validate-github-actions-pinned.bundle.mjs --self-test
+          node scripts/validate-github-actions-pinned.bundle.mjs --allow-temporary-exceptions
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      # The validator parses the YAML AST instead of grepping text. Keep its
+      # strict compilation explicit here so this security gate cannot silently
+      # drift outside the repository's TypeScript contract.
+      - name: GitHub Actions pinning regression gate
+        run: |
+          pnpm exec tsc --project tsconfig.actions-validator.json --noEmit --pretty false
+          pnpm exec vitest run scripts/validate-github-actions-pinned.spec.ts
+          node --import tsx scripts/validate-github-actions-pinned.ts --self-test
+          node --import tsx scripts/validate-github-actions-pinned.ts --allow-temporary-exceptions
+          node --import tsx scripts/build-github-actions-validator.ts --check
 
       - name: Prisma validate and generate
         run: |
