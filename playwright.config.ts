@@ -59,5 +59,31 @@ export default defineConfig({
       name: 'mobile',
       use: { ...devices['Pixel 7'] },
     },
+
+    /*
+     * WebKit, profil iPhone — le moteur d'Avi.
+     *
+     * Nos trois autres projets tournent tous sur Chromium, et l'écart avec
+     * Safari iOS est SILENCIEUX : mesuré le 2026-09-01, Chromium focalise un
+     * conteneur non interactif au toucher, Safari iOS ne le fait pas. Une barre
+     * d'actions révélée par `:focus-within` était donc morte sur l'iPhone
+     * pendant qu'un test Chromium la voyait s'ouvrir — un vert sur une surface
+     * qui n'a pas le problème.
+     *
+     * La portée est VOLONTAIREMENT ÉTROITE : seulement les specs dont le sujet
+     * EST une interaction tactile. Faire tourner toute la suite sur un second
+     * moteur doublerait le temps de CI pour un gain nul sur les specs qui ne
+     * touchent à rien.
+     */
+    {
+      name: 'webkit-iphone',
+      use: { ...devices['iPhone 15 Pro'] },
+      testMatch: [
+        /agent-message-density\.spec\.ts/,
+        /agent-scroll-pill\.spec\.ts/,
+        /agent-composer-panel-viewport\.spec\.ts/,
+        /ide-touch-targets\.spec\.ts/,
+      ],
+    },
   ],
 });
