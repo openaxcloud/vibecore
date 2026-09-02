@@ -182,6 +182,30 @@ type IdeStateEnvelope = {
 };
 
 const memoryCache = new Map<string, ProjectIdeMemory>();
+
+/**
+ * Entrées du cache qui font AUTORITÉ, c'est-à-dire venues d'une lecture serveur.
+ *
+ * Le défaut : `saveProjectIdeMemory` peuple `memoryCache`. Une sauvegarde
+ * précoce — la sélection de modèle, par exemple — y installe donc l'état
+ * PARTIEL du client, et toute lecture ultérieure est servie par cette entrée
+ * sans jamais interroger le serveur.
+ *
+ * Tracé le 2026-09-02, dans cet ordre :
+ *   SAUVEGARDE peuple le cache — aiConversationId=ABSENT
+ *   lecture servie par le CACHE — aiConversationId=ABSENT   (×5)
+ *   useChatHistory RESOLU en 2 ms
+ *
+ * Conséquence : `chatMetadata` était posé sans identifiant de conversation, donc
+ * l'hydratation n'avait rien à charger, donc transcription vide pour toute la
+ * durée de la page. Le réseau n'y était pour rien — ce qui explique enfin
+ * pourquoi allonger l'échéance de lecture ne changeait rien.
+ *
+ * C'est la famille de BUG-CREATE-011 : un état partiel local qui écrase un état
+ * plus riche. Ici dans le cache, pas sur le serveur — côté serveur la fusion est
+ * correcte, vérifié séparément.
+ */
+const entreesFaisantAutorite = new Set<string>();
 const pendingSaves = new Map<string, Promise<void>>();
 const pendingDirty = new Map<string, ProjectIdeMemory>();
 const crossTabListeners = new Map<string, Set<(memory: ProjectIdeMemory) => void>>();
@@ -521,6 +545,38 @@ function prunerMaintenant(): string[] {
   }
 }
 
+/**
+ * Réunit les métadonnées de conversation des deux côtés.
+ *
+ * `newerMemory` ne fusionne pas : elle CHOISIT un objet entier selon
+ * `updatedAt`. Une sauvegarde locale, plus récente mais plus pauvre, remplaçait
+ * donc en bloc l'état serveur — et emportait `aiConversationId` avec elle.
+ * Mesuré : le client sauvegarde `{selectedModel, selectedProvider}`, la lecture
+ * suivante rend cet objet-là, `chatMetadata` est posé sans identifiant de
+ * conversation, et la transcription reste vide pour toute la durée de la page.
+ *
+ * On garde le choix de `newerMemory` — le plus récent fait foi — mais on
+ * complète ses métadonnées avec les clés que l'autre côté est seul à porter.
+ * Le gagnant garde ses valeurs ; il ne perd plus ce qu'il ignorait.
+ *
+ * Volontairement limité aux MÉTADONNÉES : fusionner les messages des deux côtés
+ * ressusciterait ceux qu'une suppression a retirés, ce que la mécanique de
+ * `clearMessages` existe précisément pour empêcher.
+ */
+function completerLesMetadonneesDeChat(
+  choisi: ProjectIdeMemory,
+  premier: ProjectIdeMemory | undefined,
+  second: ProjectIdeMemory | undefined,
+): ProjectIdeMemory {
+  const metadonnees = { ...premier?.chat?.metadata, ...second?.chat?.metadata, ...choisi.chat?.metadata };
+
+  if (Object.keys(metadonnees).length === 0) {
+    return choisi;
+  }
+
+  return { ...choisi, chat: { ...choisi.chat, metadata: metadonnees } };
+}
+
 function newerMemory(first: ProjectIdeMemory | undefined, second: ProjectIdeMemory | undefined) {
   if (!first) {
     return second ?? {};
@@ -569,6 +625,7 @@ export function clearProjectIdeMemoryCacheForTest(projectId?: string, workspaceI
 
   pendingDebouncedSaves.clear();
   saveDebounceMs = DEFAULT_SAVE_DEBOUNCE_MS;
+  entreesFaisantAutorite.clear();
 }
 
 /**
@@ -770,7 +827,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
 
   const cached = memoryCache.get(id);
 
-  if (cached) {
+  if (cached && entreesFaisantAutorite.has(id)) {
     return cached;
   }
 
@@ -780,7 +837,9 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
     const response = await fetchProjectIdeMemory(endpoint);
 
     if (PROJECT_IDE_MEMORY_AUTH_STATUSES.has(response.status)) {
+      /* Le serveur a répondu — refuser est une réponse : on ne le redemandera pas. */
       const memory = localMemory ?? {};
+      entreesFaisantAutorite.add(id);
       memoryCache.set(id, memory);
       versionByProject.delete(id);
 
@@ -793,7 +852,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
 
     const payload = (await response.json()) as IdeStateEnvelope;
     const serverMemory = payload.ideState?.state ?? {};
-    const memory = newerMemory(serverMemory, localMemory);
+    const memory = completerLesMetadonneesDeChat(newerMemory(serverMemory, localMemory), serverMemory, localMemory);
 
     const version = parseEtagHeader(readResponseHeader(response, 'etag')) ?? payload.ideState?.version;
 
@@ -801,6 +860,7 @@ export async function getProjectIdeMemory(projectId: string, workspaceId?: strin
       versionByProject.set(id, version);
     }
 
+    entreesFaisantAutorite.add(id);
     memoryCache.set(id, memory);
     writeLocalProjectIdeMemory(id, memory);
 
@@ -1075,6 +1135,7 @@ async function persistWithRetry(scope: string): Promise<void> {
            * toggle isn't lost when we save a panel resize, for example).
            */
           const merged = mergeProjectIdeMemory(serverMemory, dirty);
+          entreesFaisantAutorite.add(scope);
           memoryCache.set(scope, merged);
           writeLocalProjectIdeMemory(scope, merged);
           notifyCrossTabListeners(scope, merged);
