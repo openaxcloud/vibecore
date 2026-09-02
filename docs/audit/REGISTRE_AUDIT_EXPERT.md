@@ -73,6 +73,21 @@ et n'attendent rien d'autre pour être fermées de leur côté.
 
 ---
 
+## 📍 État des demi-correctifs — au 2026-09-02
+
+Un point à moitié fermé finit compté comme fermé. Les 🟠 que j'ai moi-même
+signalés sont donc suivis ici explicitement, avec ce qui les bloque.
+
+| Point | PR | État | Ce qui reste, et pourquoi |
+|---|---|---|---|
+| AUDX-004 | #357 | ✅ **refermé** | Usage unique livré sur les upgrades (Redis `SET NX`). Reste assumé : pas de révocation à la déconnexion, le ticket expire (TTL 120 s). |
+| AUDX-006 | #362 | ✅ **refermé** | Git et webhook câblés. Reste ❌ le rebinding **TOCTOU complet** — exigerait d'épingler l'IP jusqu'à la socket, non exposé par les clients HTTP en place. |
+| AUDX-005 | #361 | 🟠 **bloqué hors code** | Le code est prêt et testé ; les deux enforcements restent `OFF` par défaut. Les activer est une **bascule d'exploitation coordonnée** : l'app doit d'abord émettre `vc_preview` et le laisser se propager, sinon **403 sur chaque aperçu**. Flipper le défaut dans une PR ferait exactement ce que la règle 19 interdit. **D-02 (« aperçus privés par défaut ») reste donc non tenue.** |
+| AUDX-017 | #365 | 🟠 **bloqué par AUDX-016** | Rend la sous-déclaration **visible et réconciliable**, pas **impossible**. L'impossibilité exige que le serveur connaisse le vrai usage, donc le reroutage **C1.b.4** de l'appel LLM par l'ai-gateway. ⚠️ **Fausse piste écartée** : faire *capturer* le hold d'AUDX-018 à l'expiration rendrait bien le non-rapport coûteux — mais **facturerait aussi les générations échouées**, faute d'un chemin de libération sur échec prouvé complet. Écarté délibérément : je ne remplace pas une sous-facturation par une **surfacturation**. |
+| AUDX-007 | #363 | 🟠 **cliquet seulement** | Les 5 stores héritées persistent toujours leur PAT. L'architecture serveur **existe** (`UserConnection.accessTokenEncrypted` + `connector-proxy`) : le correctif est une **migration** de 5 surfaces UI, pas un patch. Le cliquet empêche la dette de **grossir** en attendant. |
+
+---
+
 ## 0. Décisions déjà prises (cadre non rediscuté)
 
 Ces décisions sont **acquises** et s'appliquent à toutes les lignes du registre.
