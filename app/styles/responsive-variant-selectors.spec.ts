@@ -49,6 +49,7 @@ const sourceDuProduit = fichiersTsx('app')
 function contextesParLigne(feuille: string): string[] {
   const lignes = feuille.split('\n');
   const contextes: string[] = [];
+
   let pile: Array<{ condition: string; profondeur: number }> = [];
   let profondeur = 0;
 
