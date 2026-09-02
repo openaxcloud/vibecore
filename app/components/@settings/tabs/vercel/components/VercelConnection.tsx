@@ -26,6 +26,9 @@ export default function VercelConnection() {
   const [isProjectsExpanded, setIsProjectsExpanded] = useState(false);
   const hasInitialized = useRef(false);
 
+  /* Separate from hasInitialized: stops CONCURRENT runs without latching failure. */
+  const autoConnectInFlight = useRef(false);
+
   console.log('VercelConnection initial state:', {
     connection: {
       user: connection.user,
@@ -35,9 +38,27 @@ export default function VercelConnection() {
   });
 
   useEffect(() => {
-    // Prevent multiple initializations
-    if (hasInitialized.current) {
-      console.log('Vercel: Already initialized, skipping');
+    /*
+     * AUDX-161 — the latch must mean "this SUCCEEDED", not "this STARTED".
+     *
+     * It previously set hasInitialized.current = true BEFORE awaiting
+     * autoConnectVercel(). A failed auto-connection — an expired env token, a
+     * Vercel blip, an offline laptop — latched anyway, so the effect never ran
+     * again for the life of the mount: the panel sat disconnected with a valid
+     * token in hand and nothing, anywhere, retried. Silent and intermittent,
+     * exactly the class this rule is about.
+     *
+     * The latch does two different jobs, and they need two different flags:
+     *   - inFlight: stop CONCURRENT runs (what the original was reaching for);
+     *   - succeeded: stop repeating work that already worked.
+     * The reference form is useProjectAiTranscriptHydration.ts, which latches
+     * early but pairs it with a bounded retry — the half that was missing here.
+     *
+     * The "no conditions met" branch deliberately latches NOTHING: those
+     * conditions can become true once a token arrives, and latching there would
+     * make the panel permanently inert for anyone who connects later.
+     */
+    if (hasInitialized.current || autoConnectInFlight.current) {
       return;
     }
 
@@ -48,30 +69,43 @@ export default function VercelConnection() {
         envToken: import.meta.env?.VITE_VERCEL_ACCESS_TOKEN ? '[ENV_TOKEN_EXISTS]' : '[NO_ENV_TOKEN]',
       });
 
-      hasInitialized.current = true;
+      autoConnectInFlight.current = true;
 
       // Auto-connect using environment variable if no existing connection but token exists
       if (!connection.user && connection.token && import.meta.env?.VITE_VERCEL_ACCESS_TOKEN) {
         console.log('Vercel: Attempting auto-connection');
 
-        const result = await autoConnectVercel();
+        try {
+          const result = await autoConnectVercel();
 
-        if (result.success) {
-          toast.success(t('settings.copy.connectedToVercelAutomatically_a5d70873'));
-        } else {
-          console.error('Vercel auto-connection failed:', result.error);
+          if (result.success) {
+            hasInitialized.current = true;
+            toast.success(t('settings.copy.connectedToVercelAutomatically_a5d70873'));
+          } else {
+            console.error('Vercel auto-connection failed:', result.error);
+          }
+        } finally {
+          autoConnectInFlight.current = false;
         }
       } else if (connection.user && connection.token) {
         // Fetch stats for existing connection
+        hasInitialized.current = true;
         console.log('Vercel: Fetching stats for existing connection');
         await fetchVercelStats(connection.token);
       } else {
+        // Deliberately latches nothing — see the effect header.
         console.log('Vercel: No auto-connection conditions met');
       }
     };
 
     initializeConnection();
-  }, []); // Empty dependency array to run only once
+
+    /*
+     * Depends on the values that decide WHAT to do. With an empty array a failed
+     * attempt could never be retried even with the latch open, and a token
+     * arriving after mount would never be noticed.
+     */
+  }, [connection.user, connection.token]);
 
   const handleConnect = async (event: React.FormEvent) => {
     event.preventDefault();
