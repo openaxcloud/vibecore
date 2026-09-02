@@ -406,7 +406,7 @@ recibler, supprimer). Vérifier les piles avant toute fermeture.
 
 ---
 
-## 12-bis. Points constatés HORS REMISE — AUDX-159 → AUDX-166
+## 12-bis. Points constatés HORS REMISE — AUDX-159 → AUDX-167
 
 ⚠️ **Ce que cette section prouve : le registre n'est PAS exhaustif du réel.**
 Les 158 lignes ci-dessus couvrent exactement ce que l'audit externe a remis. Les
@@ -428,6 +428,7 @@ Toute nouvelle constatation vient ici, jamais dans les 158.
 | AUDX-164 | **BUG-IDE-010 — l'état de l'IDE n'était jamais restauré, silencieusement** (6 chargements sur 8) | **P0** | **💻 Livré — PR #371 (ouverte)** | ⚠️ **Quatrième instance d'AUDX-161, et la plus coûteuse** : le garde était posé à l'ENTRÉE de l'opération, donc il **déduisait le succès de l'absence de signal d'échec**. L'effet dépendant de `projectFiles`, leur arrivée le rejouait ; le nettoyage posait `cancelled = true` **sans libérer le garde**, la relance sortait sur « déjà restauré » et la réponse en vol sortait sur `cancelled` **sans rien appliquer**. **Mesuré : 6/8 avant, 0/8 après.** ⚠️ **Il produisait aussi de FAUSSES ACCUSATIONS** sur d'autres panneaux — voir AUDX-165. | FE |
 | AUDX-165 | **LEÇON DE DIAGNOSTIC — un symptôme observé dans un composant ne prouve pas que le défaut y réside** | **P1** | NON_COMMENCÉ | Les panneaux **`env`** et **`integrations`** avaient été classés **cassés à tort** : leurs erreurs venaient d'une **cause unique en amont** (AUDX-164). Deux composants sains ont donc été inscrits comme défectueux, et auraient été « corrigés » — c'est-à-dire modifiés sans raison, avec le risque d'y introduire un vrai défaut en cherchant à réparer un symptôme importé. ⚠️ **Conséquence sur ce registre** : un point qui décrit un COMPOSANT plutôt qu'un MÉCANISME est suspect tant que la cause n'est pas remontée. **Règle** : avant d'inscrire un composant comme défectueux, vérifier qu'il est bien la SOURCE — un symptôme partagé par plusieurs surfaces désigne presque toujours un défaut en amont, pas plusieurs défauts en aval. Rejoint AUDX-103 et AUDX-113, à re-vérifier sous cet angle. | FE / GOV |
 | AUDX-166 | **Une résolution de conflit automatique a produit du code cassé, sans aucun signal de git** | **P1** | NON_COMMENCÉ | Git n'a **rien signalé** : pas de marqueur, pas de conflit, un arbre propre. Seule **la relance des tests** l'a révélé. ⚠️ Rejoint le danger déjà consigné de `rerere`, qui peut résoudre un conflit seul **en jetant le travail d'autrui sans marqueur**. **Règle à appliquer sans exception** : *après toute résolution de conflit — automatique, `rerere`, rebase ou merge — relancer les tests concernés avant de pousser.* Un arbre propre n'est pas une preuve ; c'est l'absence d'une preuve. | GOV |
+| AUDX-167 | **Une LENTEUR devenue PANNE — `GET /api/projects/<id>/ide-state` à 572–3 914 ms** | **P0** | **💻 Livré (partiel) — PR #374** | **Mesuré en production** : 572 à **3 914 ms**, **tout côté serveur avant le premier octet**, contre **220 ms** pour `/api/health` sur la même infrastructure. Franchit le **seuil d'abandon de 5 s** du client ⇒ **panneau de conversation vide pour toute la durée de la page**. ⚠️ **La lenteur ne dégrade pas la fonction, elle la SUPPRIME** — d'où une ligne de registre et non un ticket de performance. **Deux faits établis dans le code** (distincts de la mesure) : (a) la route **émettait un ETag et ignorait `If-None-Match`**, donc chaque chargement resérialisait tout ; (b) le blob est **NON BORNÉ** — le `PUT` accepte jusqu'à `API_BODY_LIMIT_BYTES`, **25 Mo**. **Fait (#374)** : GET conditionnel, une revisite coûte un **304 sans corps**. ⚠️ **Ne rend PAS le premier chargement plus rapide** ; supprime le coût **répété**. ⚠️ **Production non profilée** : attribuer les 3 914 ms à une cause unique serait une déduction — le blob non borné reste **une piste à mesurer**. ⚠️ Bornage du blob au `PUT` **volontairement pas fait** : casserait la sauvegarde des états déjà volumineux (règle 19). **Lien** : même symptôme qu'**AUDX-164** (panneau vide) pour une **cause indépendante** — illustration directe d'**AUDX-165**. | BE / FE |
 
 ---
 
@@ -461,7 +462,7 @@ faux positifs comme des faux « corrigés ».
 
 ## Annexe A — table de correspondance énoncé → identifiant
 
-Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — plus **8 lignes hors remise** (§12-bis), qui prouvent que le registre n'est pas exhaustif du réel.
+Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — plus **9 lignes hors remise** (§12-bis), qui prouvent que le registre n'est pas exhaustif du réel.
 
 | Section de la remise | Plage | Nb |
 |---|---|---|
@@ -476,8 +477,8 @@ Contrôle d'exhaustivité : **158 lignes** couvrant la remise, aucune perte — 
 | Parité produit | AUDX-120 → 134 | 15 |
 | Accès externes (hors dépôt) | AUDX-135 → 148 | 14 |
 | Gouvernance | AUDX-149 → 158 | 10 |
-| Points constatés **hors remise** | AUDX-159 → 166 | 8 |
-| **Total** | | **166** |
+| Points constatés **hors remise** | AUDX-159 → 167 | 9 |
+| **Total** | | **167** |
 
 Les lignes **AUDX-034**, **AUDX-035** et **AUDX-082** ont été **ajoutées** au découpage
 littéral de la remise : la première et la deuxième parce que la remise demandait
