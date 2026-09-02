@@ -1989,3 +1989,62 @@ test('admin console applies section 15 reduced motion preference', async ({ page
   await injectUiDetailsFixture(page);
   await expectReducedMotionDetails(page);
 });
+
+test('le voyant d’état du runtime et les compteurs ne sont pas réduits à zéro', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  /*
+   * Balisage repris de BaseChat : le voyant est un `<span>` SANS classe d'icône,
+   * exactement comme les libellés — il tombait donc dans la règle qui les fait
+   * tronquer (`min-width: 0`) et le conteneur flex le réduisait.
+   *
+   * Mesuré sur la page réelle en 1440 : rendu 0×7. Dans le flux, de la bonne
+   * couleur, et invisible. Le voyant qui dit si l'environnement tourne n'a
+   * jamais rien montré.
+   *
+   * La largeur du conteneur est volontairement trop petite pour son contenu :
+   * c'est ce qui déclenche le rétrécissement, et donc ce que le test doit exercer.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body>
+        <div class="bolt-project-statusbar" style="width: 220px; display: flex;">
+          <button type="button" class="bolt-project-statusbar-pill bolt-project-statusbar-workspace">
+            <span class="bolt-project-statusbar-runtime-dot" data-state="running"></span>
+            <span class="bolt-project-statusbar-label">Environnement de travail</span>
+            <strong>en cours d’exécution depuis douze minutes</strong>
+            <span class="bolt-project-statusbar-error-count">3</span>
+            <span class="bolt-project-statusbar-warning-count">7</span>
+          </button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesures = await page.evaluate(() => {
+    const lire = (selecteur: string) => {
+      const element = document.querySelector(selecteur);
+
+      if (!element) {
+        return null;
+      }
+
+      const boite = element.getBoundingClientRect();
+
+      return { largeur: Math.round(boite.width * 10) / 10, hauteur: Math.round(boite.height * 10) / 10 };
+    };
+
+    return {
+      voyant: lire('.bolt-project-statusbar-runtime-dot'),
+      erreurs: lire('.bolt-project-statusbar-error-count'),
+      avertissements: lire('.bolt-project-statusbar-warning-count'),
+    };
+  });
+
+  expect(mesures.voyant, 'le voyant n’est pas dans le document').not.toBeNull();
+  expect(mesures.voyant!.largeur, 'le voyant du runtime est réduit à zéro : invisible').toBeGreaterThanOrEqual(7);
+  expect(mesures.voyant!.hauteur).toBeGreaterThanOrEqual(7);
+  expect(mesures.erreurs!.largeur, 'le compteur d’erreurs est réduit à zéro').toBeGreaterThanOrEqual(16);
+  expect(mesures.avertissements!.largeur, 'le compteur d’avertissements est réduit à zéro').toBeGreaterThanOrEqual(16);
+});
