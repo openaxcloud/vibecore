@@ -1,7 +1,12 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
-import { LEGACY_CONNECTION_STORAGE_KEYS, migrateLegacyTokenToServer } from '~/lib/connections/serverConnections';
+import {
+  CONNECTION_SECRET_FIELDS,
+  LEGACY_CONNECTION_STORAGE_KEYS,
+  migrateLegacyTokenToServer,
+  persistConnectionWithoutSecrets,
+} from '~/lib/connections/serverConnections';
 import {
   formatClientRuntimeResidualCopy,
   getClientRuntimeResidualCopy,
@@ -131,8 +136,11 @@ export const updateVercelConnection = (updates: Partial<VercelConnection>) => {
    * provider through connector-proxy.
    */
   if (typeof window !== 'undefined') {
-    const { token: _omittedToken, ...persistable } = newState;
-    localStorage.setItem('vercel_connection', JSON.stringify(persistable));
+    persistConnectionWithoutSecrets(
+      'vercel_connection',
+      newState as unknown as Record<string, unknown>,
+      CONNECTION_SECRET_FIELDS.vercel,
+    );
   }
 };
 

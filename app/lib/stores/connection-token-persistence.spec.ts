@@ -91,3 +91,64 @@ describe('AUDX-007 no provider store persists its secret', () => {
     expect(localStorage.getItem('vercel_connection')).toContain('someone');
   });
 });
+
+/*
+ * The ratchet, flipped.
+ *
+ * #363 froze a list of five known offenders so the debt could not GROW while the
+ * migration happened. Now that all five are migrated, the assertion becomes the
+ * stronger one: the list must be EMPTY. A store that goes back to writing a
+ * secret — or a NEW provider store that starts out writing one — fails here.
+ *
+ * Source-level, deliberately: the per-store tests above prove the five current
+ * call sites are correct, and this proves nobody adds a sixth.
+ */
+describe('AUDX-007 no store writes a secret to storage at all', () => {
+  it('has zero provider stores persisting a credential field', async () => {
+    const { readdir, readFile } = await import('node:fs/promises');
+    const { dirname, join } = await import('node:path');
+    const { fileURLToPath } = await import('node:url');
+
+    /*
+     * Resolved from THIS FILE, never from process.cwd(): in a git worktree the
+     * cwd-relative path climbs out of the checkout and scans the MAIN working
+     * tree instead — the test would then pass or fail on somebody else's files.
+     */
+    const dir = dirname(fileURLToPath(import.meta.url));
+    const entries = await readdir(dir);
+    const offenders: string[] = [];
+
+    /*
+     * Match a persisted credential FIELD, not the word "token" in prose:
+     * comments are stripped first, and `\btoken\b` declines to match
+     * `token_refresh` because `_` is a word character.
+     */
+    const WRITES_STORAGE = /(?:localStorage|storage)\s*\??\.\s*setItem\s*\(/;
+    const PERSISTS_SECRET = /\b(?:token|credentials|apiKey|anonKey)\b\s*[:,)]/;
+
+    function stripComments(source: string) {
+      return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    }
+
+    for (const entry of entries) {
+      if (!entry.endsWith('.ts') || entry.includes('.spec.')) {
+        continue;
+      }
+
+      const code = stripComments(await readFile(join(dir, entry), 'utf8'));
+
+      /*
+       * A raw setItem is only an offence when the SAME statement carries a
+       * secret field; the stores legitimately still cache their non-secret half.
+       */
+      for (const statement of code.split(';')) {
+        if (WRITES_STORAGE.test(statement) && PERSISTS_SECRET.test(statement)) {
+          offenders.push(entry);
+          break;
+        }
+      }
+    }
+
+    expect(offenders).toEqual([]);
+  });
+});
