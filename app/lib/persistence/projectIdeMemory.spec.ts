@@ -956,6 +956,7 @@ describe('project IDE memory ETag / If-Match', () => {
 
     try {
       const projectId = 'project-lecture-avortee-sans-repli';
+
       let appels = 0;
 
       const fetchMock = vi.fn((_url: unknown, init?: RequestInit) => {
@@ -1000,6 +1001,7 @@ describe('project IDE memory ETag / If-Match', () => {
      * du bruit, et masquerait un vrai refus derrière une attente.
      */
     const projectId = 'project-refus-serveur';
+
     const fetchMock = vi.fn(async () => ({
       ok: false,
       status: 404,
