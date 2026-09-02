@@ -1186,6 +1186,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           runtimeFiles,
           runtimeProcesses,
           runtimePorts,
+
+          /*
+           * R-3 — the Terminal's Connections tab mounts the real
+           * `ProjectPortsPanel`, which needs the persisted primary-port and
+           * public/private state, not just the runtime port list. Without it
+           * the mounted panel would render every port as "public" with no
+           * primary until the next full reload — the toggle would write
+           * correctly while displaying the wrong thing.
+           */
+          portsState: readPortsState(envVars),
           terminalState: readTerminalState(envVars, language),
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
@@ -2870,28 +2880,23 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const workspaceId = dashboard?.workspace?.id ?? projectId;
     const now = new Date().toISOString();
 
-    if (intent === 'add-env') {
-      if (body.isSecret === 'true') {
-        await apiRequest(request, `/projects/${projectId}/secrets`, {
-          method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
-        });
-      } else {
-        await apiRequest(request, `/projects/${projectId}/env-vars`, {
-          method: 'PUT',
-          body: JSON.stringify({ key: body.key, value: body.value ?? '' }),
-        });
-      }
-    } else if (intent === 'delete-env') {
-      await apiRequest(
-        request,
-        body.isSecret === 'true' ? `/projects/${projectId}/secrets` : `/projects/${projectId}/env-vars`,
-        {
-          method: 'DELETE',
-          body: JSON.stringify({ key: body.key }),
-        },
-      );
-    } else if (intent === 'run-script') {
+    /*
+     * R-2 — `add-env` / `delete-env` are GONE from this panel on purpose.
+     *
+     * They were a second writer for `/projects/:id/env-vars`, and a broken one:
+     * they never sent `scope`, and the store defaults an omitted scope to
+     * production (`upsertProjectEnvVar` / `deleteProjectEnvVar`). The terminal
+     * tab listed variables of every scope undifferentiated, then wrote and
+     * deleted only the production row — so deleting a preview-scoped variable
+     * from there removed the production one instead.
+     *
+     * The Environment tab now mounts the real `env` / `secrets` panels, which
+     * post to their own panels below and do carry the scope. Re-adding a
+     * scope-less writer here reintroduces the defect, which is why
+     * `api.projects.$projectId.ide-panel.terminal-env-writes.spec.ts` fails if
+     * this panel ever writes env vars again.
+     */
+    if (intent === 'run-script') {
       const script = body.script ?? '';
 
       const run = await runTerminalCommand(
