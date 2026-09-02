@@ -143,26 +143,6 @@ export const PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS: Record<ProjectEditorToolCa
 };
 
 /**
- * Every catalog entry in category order, aliased tools included. This is the
- * catalog view; the All-tools popup renders `projectEditorToolGridByCategory()`
- * instead, which drops the tools that are only a tab inside another tool.
- */
-export function projectEditorToolsByCategory(): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
-  return PROJECT_EDITOR_TOOL_CATEGORIES.map(
-    (category) =>
-      [
-        category,
-        PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]).filter((tool) => tool.category === category),
-      ] as [ProjectEditorToolCategory, ProjectEditorToolDescriptor[]],
-  ).filter(([, tools]) => tools.length > 0);
-}
-
-/** Every tool in engine order, aliased tools included. */
-export function projectEditorToolList(): ProjectEditorToolDescriptor[] {
-  return PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
-}
-
-/**
  * A tool whose screen is already a tab inside another tool.
  *
  * Domains is the case that named this concept: the exact same
@@ -224,20 +204,62 @@ export function resolveProjectEditorToolOpen(id: ProjectEditorTool): {
   return alias.tool === 'deployments' ? { panel: alias.tool, deployView: alias.view } : { panel: alias.tool };
 }
 
-/** Every tool that gets its own card, in engine order. */
-export function projectEditorToolGridList(): ProjectEditorToolDescriptor[] {
-  return projectEditorToolList().filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id]);
+/**
+ * Which surface is asking for the list.
+ *
+ * `'browse'` is the DEFAULT, and that default is the guard. The previous
+ * consolidation of Domains was undone by RPL-IDE-001.5 simply rebuilding the
+ * tool list "from the shared catalog" — a call site that asked for everything
+ * and got everything, with no test to object. So asking plainly now yields the
+ * DEDUPLICATED list: a future rebuild that does not think about aliases lands
+ * on the correct behaviour by accident, which is the only kind of guard that
+ * survives a refactor nobody reviewed.
+ *
+ * `'search'` is the deliberate exception: a query for "domains" must return a
+ * row, and that row is a shortcut into Deploy → Domains.
+ */
+export type ProjectEditorToolSurface = 'browse' | 'search';
+
+function includesAliasedTools(surface: ProjectEditorToolSurface = 'browse'): boolean {
+  return surface === 'search';
 }
 
-/** Grid cards in category order — what the All-tools popup renders. */
-export function projectEditorToolGridByCategory(): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
-  return projectEditorToolsByCategory()
-    .map(
-      ([category, tools]) =>
-        [category, tools.filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id])] as [
-          ProjectEditorToolCategory,
-          ProjectEditorToolDescriptor[],
-        ],
-    )
-    .filter(([, tools]) => tools.length > 0);
+/**
+ * Every tool in engine order. Aliased tools appear only for `'search'`.
+ *
+ * @param surface defaults to `'browse'` — see `ProjectEditorToolSurface`.
+ */
+export function projectEditorToolList(surface: ProjectEditorToolSurface = 'browse'): ProjectEditorToolDescriptor[] {
+  const all = PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
+
+  return includesAliasedTools(surface) ? all : all.filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id]);
+}
+
+/**
+ * Catalog entries in category order — the order the All-tools popup renders.
+ * Aliased tools appear only for `'search'`; empty categories are dropped.
+ *
+ * @param surface defaults to `'browse'` — see `ProjectEditorToolSurface`.
+ */
+export function projectEditorToolsByCategory(
+  surface: ProjectEditorToolSurface = 'browse',
+): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
+  const tools = projectEditorToolList(surface);
+
+  return PROJECT_EDITOR_TOOL_CATEGORIES.map(
+    (category) =>
+      [category, tools.filter((tool) => tool.category === category)] as [
+        ProjectEditorToolCategory,
+        ProjectEditorToolDescriptor[],
+      ],
+  ).filter(([, categoryTools]) => categoryTools.length > 0);
+}
+
+/**
+ * Every tool the engine knows about, aliases included — the CATALOG view, not a
+ * UI view. Only coverage checks should need it; rendering a tool list from this
+ * is the bug this module exists to prevent.
+ */
+export function projectEditorToolCatalogList(): ProjectEditorToolDescriptor[] {
+  return PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
 }

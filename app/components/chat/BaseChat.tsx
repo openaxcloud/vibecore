@@ -89,7 +89,6 @@ import {
 import {
   PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
   PROJECT_EDITOR_TOOL_SHORTCUTS,
-  projectEditorToolGridByCategory,
   projectEditorToolList,
   projectEditorToolsByCategory,
   resolveProjectEditorToolOpen,
@@ -9145,7 +9144,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * Domains rather than to a second copy of that screen. The BROWSE
            * grid, where the duplicate card was actually visible, drops them.
            */
-          ...projectEditorToolList().map((tool) => {
+          ...projectEditorToolList('search').map((tool) => {
             const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
 
             return {
@@ -13048,7 +13047,7 @@ function IdeTabBar({
    * opens Deploy → Domains, never a second copy of the screen.
    */
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = (
-    normalizedToolQuery ? projectEditorToolsByCategory() : projectEditorToolGridByCategory()
+    normalizedToolQuery ? projectEditorToolsByCategory('search') : projectEditorToolsByCategory()
   ).flatMap(([category, categoryTools]) =>
     categoryTools.map(
       (tool) =>
