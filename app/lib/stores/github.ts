@@ -1,5 +1,6 @@
 import { atom } from 'nanostores';
 import { logStore } from './logs';
+import { CONNECTION_SECRET_FIELDS, persistConnectionWithoutSecrets } from '~/lib/connections/serverConnections';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type { GitHubConnection } from '~/types/GitHub';
 
@@ -65,7 +66,7 @@ export async function initializeGitHubConnection() {
 
     // Store in localStorage for persistence
     if (typeof window !== 'undefined') {
-      localStorage.setItem('github_connection', JSON.stringify(connectionData));
+      persistConnectionWithoutSecrets('github_connection', connectionData, CONNECTION_SECRET_FIELDS.github);
     }
 
     // Update the store
@@ -122,6 +123,6 @@ export const updateGitHubConnection = (updates: Partial<GitHubConnection>) => {
 
   // Persist to localStorage
   if (typeof window !== 'undefined') {
-    localStorage.setItem('github_connection', JSON.stringify(newState));
+    persistConnectionWithoutSecrets('github_connection', newState, CONNECTION_SECRET_FIELDS.github);
   }
 };
