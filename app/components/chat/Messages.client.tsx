@@ -1,6 +1,6 @@
 import type { Message } from 'ai';
 import { Fragment } from 'react';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
 import type { ForwardedRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
@@ -38,6 +38,13 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
+
+    /*
+     * Ligne dont les actions sont dépliées au toucher. Une seule à la fois :
+     * deux barres ouvertes sur un fil long, c'est le bruit qu'on cherchait
+     * justement à supprimer.
+     */
+    const [revealedRowKey, setRevealedRowKey] = useState<string | undefined>(undefined);
     const { i18n } = useTranslation();
     const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
@@ -85,15 +92,48 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                 return <Fragment key={rowKey} />;
               }
 
+              /*
+               * Révélation des actions sur un écran SANS SURVOL.
+               *
+               * Elle reposait uniquement sur `:focus-within` : `tabIndex={-1}`
+               * rendait la ligne focalisable et le toucher la focalisait. Ce
+               * contrat est FRAGILE — il dépend de la façon dont chaque moteur
+               * traite le focus d'un conteneur non interactif au toucher, et
+               * Safari iOS, l'appareil de référence, ne focalise PAS un `<div
+               * tabindex="-1">` sur un simple appui. La barre restait donc
+               * invisible là où elle compte le plus, pendant qu'un test
+               * Chromium la voyait s'ouvrir.
+               *
+               * On rend donc l'intention EXPLICITE : l'appui bascule un
+               * attribut porté par la ligne, et le style s'accroche dessus.
+               * `:focus-within` reste, pour le clavier ; `tabIndex={-1}` reste,
+               * pour que le focus programmatique fonctionne toujours.
+               */
+              const isRevealed = revealedRowKey === rowKey;
+
               return (
                 <div
                   key={rowKey}
                   id={messageId ? `chat-message-${messageId}` : undefined}
                   data-message-id={messageId}
-                  className={classNames('bolt-chat-message-row flex gap-4 py-2 w-full rounded-lg', {
+                  data-actions-revealed={isRevealed ? 'true' : undefined}
+                  onPointerUp={(event) => {
+                    /*
+                     * Un appui SUR une commande (copier, régénérer, un lien…)
+                     * ne doit pas être détourné en « révéler » : la barre est
+                     * déjà ouverte dans ce cas, et l'action doit partir.
+                     */
+                    if ((event.target as HTMLElement)?.closest?.('button, a, input, textarea, select, summary')) {
+                      return;
+                    }
+
+                    setRevealedRowKey((current) => (current === rowKey ? undefined : rowKey));
+                  }}
+                  tabIndex={-1}
+                  className={classNames('bolt-chat-message-row flex gap-4 py-1 w-full rounded-lg', {
                     'bolt-chat-message-row-user': isUserMessage,
                     'bolt-chat-message-row-assistant': !isUserMessage,
-                    'mt-3': !isFirst,
+                    'mt-1': !isFirst,
                   })}
                 >
                   <div className="grid grid-col-1 w-full">

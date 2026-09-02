@@ -249,7 +249,19 @@ describe('remaining interactive chat controls i18n', () => {
 
     expect(screen.getByAltText('Utilisateur')).toBeTruthy();
     expect(screen.getByAltText('Image jointe 1')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Modifier et renvoyer ce message' }).className).toContain('min-h-11');
+
+    /*
+     * L'assertion portait sur `min-h-11`. En Tailwind c'est 2,75rem — 44 px avec
+     * une base de 16, mais la base rem du produit est redéfinie à 14 px sous
+     * 1024 px : la classe rendait 38,5 px. Le test était donc VERT sur une cible
+     * sous le plancher tactile. jsdom n'applique aucune feuille de style, il ne
+     * peut pas mesurer une cible ; il vérifie ici que le bouton porte bien le
+     * crochet que la feuille cible, et la mesure réelle en pixels est faite dans
+     * tests/e2e/agent-message-density.spec.ts.
+     */
+    expect(screen.getByRole('button', { name: 'Modifier et renvoyer ce message' }).className).toContain(
+      'bolt-user-message-edit',
+    );
     expect(screen.getByText('Conservez API_KEY_NAME tel quel')).toBeTruthy();
 
     await act(async () => {
