@@ -3,6 +3,7 @@ import { access, link, mkdir, readFile, readdir, rename, rm, stat, unlink, write
 import { hostname } from 'node:os';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
+import { checkOutboundUrl } from '@vibecore/security';
 import JSZip from 'jszip';
 import { appPublicEnglish } from './app-public-copy.js';
 
@@ -973,6 +974,33 @@ export class GitCliProvider implements GitProvider {
 
     return withProjectLock(projectId, async () => {
       const target = safeProjectPath(projectId);
+
+      /*
+       * AUDX-006 — the clone URL is caller-supplied and reached NO SSRF check.
+       *
+       * `git clone` will happily fetch `http://169.254.169.254/...` (blind SSRF
+       * against cloud metadata from an in-cluster pod) and, worse, `file:///etc`
+       * — a local-filesystem read dressed up as a repository. Restricting to
+       * http/https and refusing private, loopback, link-local and metadata
+       * destinations closes both.
+       *
+       * `allowAnyPublicHost` because the legitimate destination set here is
+       * "any git forge on the internet" and cannot be enumerated — the ADDRESS
+       * checks still apply in full.
+       */
+      const rejection = await checkOutboundUrl(input.repositoryUrl, {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+      });
+
+      if (rejection) {
+        throw Object.assign(new Error(appPublicEnglish('GIT_REMOTE_NOT_ALLOWED')), {
+          statusCode: 400,
+          code: 'GIT_REMOTE_NOT_ALLOWED',
+          rejection,
+        });
+      }
+
       await mkdir(dirname(target), { recursive: true });
 
       try {

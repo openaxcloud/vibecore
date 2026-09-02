@@ -112,6 +112,52 @@ describe('checkOutboundUrl', () => {
   });
 
   /*
+   * allowAnyPublicHost — for callers whose destination set is "the internet"
+   * (git clone from any forge, a customer's SIEM webhook). It waives the host
+   * ALLOWLIST and nothing else: waiving the address checks too would make it a
+   * bypass rather than a mode.
+   */
+  it('still refuses private and metadata addresses under allowAnyPublicHost', async () => {
+    await expect(
+      checkOutboundUrl('http://169.254.169.254/latest/meta-data/', {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+      }),
+    ).resolves.toBe('BLOCKED_ADDRESS');
+
+    await expect(
+      checkOutboundUrl('https://internal.corp/', {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+        resolveHost: async () => ['10.1.2.3'],
+      }),
+    ).resolves.toBe('BLOCKED_ADDRESS');
+  });
+
+  it('refuses a non-http scheme under allowAnyPublicHost (file:// is a local read)', async () => {
+    await expect(
+      checkOutboundUrl('file:///etc/passwd', { allowedHostSuffixes: [], allowAnyPublicHost: true }),
+    ).resolves.toBe('UNSUPPORTED_PROTOCOL');
+  });
+
+  it('allows an arbitrary public forge under allowAnyPublicHost', async () => {
+    await expect(
+      checkOutboundUrl('https://gitlab.example.org/team/repo.git', {
+        allowedHostSuffixes: [],
+        allowAnyPublicHost: true,
+        resolveHost: async () => ['93.184.216.34'],
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  /* An empty allowlist WITHOUT the opt-in must still fail closed. */
+  it('does not let allowAnyPublicHost be reached by forgetting the allowlist', async () => {
+    await expect(checkOutboundUrl('https://anything.example/', { allowedHostSuffixes: [] })).resolves.toBe(
+      'ALLOWLIST_EMPTY',
+    );
+  });
+
+  /*
    * Rule 19: the guard must let ordinary work through, or it gets reverted
    * rather than fixed.
    */

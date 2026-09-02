@@ -561,8 +561,20 @@ export function isBlockedOutboundAddress(address: string): boolean {
 }
 
 export interface OutboundUrlPolicy {
-  /** Host suffixes the caller is willing to reach. MUST be non-empty. */
+  /** Host suffixes the caller is willing to reach. MUST be non-empty unless allowAnyPublicHost. */
   allowedHostSuffixes: readonly string[];
+
+  /*
+   * Opt-in for callers whose legitimate destination set is "the public
+   * internet" and cannot be enumerated — a git clone from an arbitrary forge, a
+   * customer's SIEM webhook. The ADDRESS checks still apply in full: only the
+   * host ALLOWLIST is waived, never the private/loopback/metadata refusal.
+   *
+   * Explicit and greppable on purpose. An EMPTY allowlist still fails closed, so
+   * this can never be reached by forgetting to configure something — it has to
+   * be asked for.
+   */
+  allowAnyPublicHost?: boolean;
 
   /** Injected for tests; defaults to node:dns lookup with all addresses. */
   resolveHost?: (hostname: string) => Promise<string[]>;
@@ -612,7 +624,7 @@ export async function checkOutboundUrl(
    * into an open renderer against internal addresses. It is a configuration
    * error, and configuration errors must fail closed.
    */
-  if (policy.allowedHostSuffixes.length === 0) {
+  if (policy.allowedHostSuffixes.length === 0 && !policy.allowAnyPublicHost) {
     return 'ALLOWLIST_EMPTY';
   }
 
@@ -626,11 +638,13 @@ export async function checkOutboundUrl(
     return 'BLOCKED_ADDRESS';
   }
 
-  const allowed = policy.allowedHostSuffixes.some((suffix) => {
-    const normalized = suffix.trim().toLowerCase().replace(/^\./, '');
+  const allowed =
+    policy.allowAnyPublicHost ||
+    policy.allowedHostSuffixes.some((suffix) => {
+      const normalized = suffix.trim().toLowerCase().replace(/^\./, '');
 
-    return normalized.length > 0 && (hostname === normalized || hostname.endsWith(`.${normalized}`));
-  });
+      return normalized.length > 0 && (hostname === normalized || hostname.endsWith(`.${normalized}`));
+    });
 
   if (!allowed) {
     return 'HOST_NOT_ALLOWED';
