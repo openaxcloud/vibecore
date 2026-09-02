@@ -132,6 +132,7 @@ export const CodeBlock = memo(
           className={classNames(
             styles.CopyButtonContainer,
             'absolute right-[10px] top-[10px] z-10 flex items-center justify-center rounded-md bg-transparent text-lg',
+
             /*
              * Le repli par POINT DE RUPTURE (`sm:`) couvrait le telephone mais
              * pas la TABLETTE tactile : a 768 ou 1024 px, `sm:` s'applique et il

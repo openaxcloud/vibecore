@@ -76,6 +76,7 @@ export async function executerSousLoquet(
   loquet.current = true;
 
   let abandonne = false;
+
   const abandonner = () => {
     abandonne = true;
   };
@@ -91,6 +92,7 @@ export async function executerSousLoquet(
   } catch (erreur) {
     // Le seul comportement qui compte : rendre le loquet.
     loquet.current = false;
+
     surEchec?.(erreur);
 
     return false;

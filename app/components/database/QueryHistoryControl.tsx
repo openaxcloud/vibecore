@@ -79,6 +79,7 @@ export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: Quer
                   onClick={() => onRemove(statement)}
                   className={classNames(
                     'rounded p-1 text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:opacity-100',
+
                     /*
                      * Au doigt, ce bouton SUPPRIMER etait invisible : pas de
                      * survol, et le `focus-visible:` n'arrive qu'apres le

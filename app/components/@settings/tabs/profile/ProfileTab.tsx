@@ -3,9 +3,9 @@ import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { downscaleAvatarDataUrl, isQuotaExceededError } from './avatar-upload';
+import { useCoarsePointer } from '~/lib/hooks/useCoarsePointer';
 import { formatProfileTabCopy, getProfileTabCopy } from '~/lib/i18n/catalogs/profile-tab';
 import { profileStore, updateProfile } from '~/lib/stores/profile';
-import { useCoarsePointer } from '~/lib/hooks/useCoarsePointer';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 
@@ -155,6 +155,7 @@ export default function ProfileTab() {
                   <div
                     className={classNames(
                       'i-ph:camera-plus h-6 w-6 transform text-white transition-all duration-300 ease-out group-hover:scale-110',
+
                       /*
                        * L'indice « on peut changer sa photo » n'apparaissait
                        * qu'au survol : au doigt, rien ne signalait que l'avatar
