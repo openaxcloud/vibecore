@@ -28,7 +28,7 @@ jobs:
     steps:
       - id: auth
         name: Federate GitHub OIDC -> impersonate AUTHORIZED SA (eager token, no key)
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           project_id: ${{ inputs.project_id }}
           workload_identity_provider: projects/${{ inputs.project_number }}/locations/global/workloadIdentityPools/github-pool/providers/github
@@ -41,16 +41,17 @@ jobs:
           EXPECT: ${{ inputs.expect_prefix }}
         run: |
           set -euo pipefail
+          body_file=$(mktemp)
+          trap 'rm -f "$body_file"' EXIT
           echo "NONCE=${{ inputs.nonce }}"
           echo "CREDENTIAL_FILE=$GOOGLE_APPLICATION_CREDENTIALS (external_account/federated, NOT a key)"
           grep -q '"type": "external_account"' "$GOOGLE_APPLICATION_CREDENTIALS" && echo "CREDENTIAL_KIND=external_account (federated, keyless)"
           echo "TOKEN_ACQUIRED_VIA=WIF_impersonation length=${#TOKEN}"
-          CODE=$(curl -s -o /tmp/body -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
+          CODE=$(curl -s -o "$body_file" -w "%{http_code}" -H "Authorization: Bearer $TOKEN" \
             "https://storage.googleapis.com/storage/v1/b/${BUCKET}/o/secret.txt?alt=media")
           echo "READ_HTTP=$CODE"
-          echo "SECRET_CONTENT=$(cat /tmp/body)"
           test "$CODE" = "200" || { echo "FAIL: expected HTTP 200, got $CODE"; exit 1; }
-          case "$(cat /tmp/body)" in
+          case "$(cat "$body_file")" in
             "$EXPECT"*) echo "CONTENT_OK: secret starts with expected prefix" ;;
             *) echo "FAIL: unexpected content"; exit 1 ;;
           esac
@@ -60,7 +61,7 @@ jobs:
       - id: auth
         name: NEGATIVE — try to impersonate an UN-GRANTED SA (eager token must be DENIED)
         continue-on-error: true
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           project_id: ${{ inputs.project_id }}
           workload_identity_provider: projects/${{ inputs.project_number }}/locations/global/workloadIdentityPools/github-pool/providers/github

@@ -77,3 +77,27 @@ ruby -e 'require "yaml"; Dir[".github/workflows/*.{yml,yaml}"].each { |f| YAML.l
 asserts least-privilege permissions for deploy/runtime workflows. Deploy and
 runtime validation workflows must keep `contents: read`, required
 `id-token: write`, and must not request `contents: write`.
+
+## Immutable action references
+
+External GitHub Actions are pinned to immutable 40-character commit SHAs; the
+reviewed release remains in an inline comment for maintainability. The
+regression gate is `scripts/validate-github-actions-pinned.mjs` and it also
+scans composite actions under `.github/actions`.
+
+Twenty-four exact references are temporarily locked as count-bound exceptions:
+fifteen in `e2e.yml`, `electron.yml` and `terraform.yml` while Claude PR #352
+owns those files, plus five in the legacy Cloudflare preview workflow pending
+explicit approval of its external deployment boundary, and four in the
+privileged stable-release workflow pending explicit approval of its automated
+tag/release/force-push boundary. The allowlist fixes the file, action, mutable
+ref and occurrence count, so it cannot hide a new mutable dependency. Strict
+validation remains red until all blockers are removed and every reference is
+pinned.
+
+```bash
+node scripts/validate-github-actions-pinned.mjs --self-test
+node scripts/validate-github-actions-pinned.mjs --allow-temporary-exceptions
+# Expected to fail only on the 24 explicitly recorded temporary references:
+node scripts/validate-github-actions-pinned.mjs
+```

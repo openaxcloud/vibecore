@@ -69,13 +69,18 @@ jobs:
       API_PORT: 3001
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - name: GitHub Actions pinning regression gate
+        run: |
+          node scripts/validate-github-actions-pinned.mjs --self-test
+          node scripts/validate-github-actions-pinned.mjs --allow-temporary-exceptions
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false

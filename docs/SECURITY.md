@@ -68,3 +68,17 @@ Detected events create `AbuseEvent` records, audit entries, and can stop workspa
 - Route package installs through an allowlisted registry proxy where required.
 - Send audit and abuse events to SIEM.
 - Configure backup, restore, retention, and legal hold workflows.
+
+## CI supply chain
+
+- External GitHub Actions must be pinned to a full commit SHA. Mutable tags and
+  branches are rejected by `scripts/validate-github-actions-pinned.mjs`.
+- Composite actions under `.github/actions` are included in the same scan.
+- Human-readable version comments are not trust anchors; the 40-character SHA
+  is the executed identity.
+- WIF proof workflows may assert a secret's expected prefix but must never
+  print the fetched value; temporary response files are private to the runner
+  and removed on exit.
+- Temporary exceptions are exact and count-bound. Strict mode
+  remains red until they are removed, so a partial migration cannot be
+  presented as full supply-chain certification.
