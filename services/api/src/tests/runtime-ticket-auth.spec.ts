@@ -220,6 +220,89 @@ describe('AUDX-004 runtime ticket', () => {
     expect(verifyRuntimeTicket(`${payload}.${'é'.repeat(43)}`)).toBeUndefined();
   });
 
+  /*
+   * AUDX-004 single-use — scoped to UPGRADES, where the ticket travels in a
+   * query string and therefore leaks into access logs, Referer, history and
+   * proxies. A replayed upgrade must be refused.
+   */
+  it('burns an upgrade ticket after its first use', async () => {
+    const { app, store, project, user } = await setup();
+
+    const workspace = await store.createWorkspace({
+      projectId: project.id,
+      name: 'ws',
+      runtimeMode: 'remote-kubernetes',
+    });
+
+    const ticket = createRuntimeTicket({ userId: user.id, projectId: project.id });
+
+    const upgrade = () =>
+      app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${workspace.id}/status`,
+        headers: { authorization: `Bearer ${ticket}`, accept: 'text/event-stream' },
+      });
+
+    const first = await upgrade();
+    expect(first.statusCode).not.toBe(401);
+
+    const replay = await upgrade();
+    expect(replay.statusCode).toBe(401);
+  });
+
+  /*
+   * Rule 19 — the counterpart that decides whether this can ship. The runtime
+   * adapter reuses ONE ticket across every file/port/logs call for its whole
+   * 2-minute life. Burning it per HTTP request would force a mint round-trip
+   * before each one: not a security improvement, a self-inflicted outage on the
+   * IDE's hot path.
+   */
+  it('does NOT burn a ticket used on ordinary HTTP requests', async () => {
+    const { app, store, project, user } = await setup();
+
+    const workspace = await store.createWorkspace({
+      projectId: project.id,
+      name: 'ws',
+      runtimeMode: 'remote-kubernetes',
+    });
+
+    const ticket = createRuntimeTicket({ userId: user.id, projectId: project.id });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${workspace.id}/status`,
+        headers: { authorization: `Bearer ${ticket}` },
+      });
+
+      expect(response.statusCode).not.toBe(401);
+    }
+  });
+
+  /* Two DIFFERENT upgrade tickets must both work — the burn is per ticket. */
+  it('burns per ticket, not per project', async () => {
+    const { app, store, project, user } = await setup();
+
+    const workspace = await store.createWorkspace({
+      projectId: project.id,
+      name: 'ws',
+      runtimeMode: 'remote-kubernetes',
+    });
+
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${workspace.id}/status`,
+        headers: {
+          authorization: `Bearer ${createRuntimeTicket({ userId: user.id, projectId: project.id })}`,
+          accept: 'text/event-stream',
+        },
+      });
+
+      expect(response.statusCode).not.toBe(401);
+    }
+  });
+
   /* A garbage or absent ticket must fail closed, never fall through. */
   it('rejects a non-ticket string', () => {
     expect(verifyRuntimeTicket('session-token')).toBeUndefined();

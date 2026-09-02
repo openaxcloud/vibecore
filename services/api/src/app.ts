@@ -2138,7 +2138,20 @@ function signRuntimeTicketPayload(payload: string) {
 
 export function createRuntimeTicket(input: { userId: string; projectId: string }) {
   const payload = Buffer.from(
-    JSON.stringify({ userId: input.userId, projectId: input.projectId, expiresAt: Date.now() + RUNTIME_TICKET_TTL_MS }),
+    JSON.stringify({
+      userId: input.userId,
+      projectId: input.projectId,
+      expiresAt: Date.now() + RUNTIME_TICKET_TTL_MS,
+
+      /*
+       * AUDX-004 — unique id, so a ticket presented on an UPGRADE can be burned
+       * after its first use. Query-string credentials are the ones that leak:
+       * access logs, Referer headers to third-party origins, browser history,
+       * intermediary proxies. bearerToken() only honours `?token=` for upgrades
+       * precisely because of that, and this makes a leaked one worthless.
+       */
+      jti: randomUUID(),
+    }),
   ).toString('base64url');
 
   return `${RUNTIME_TICKET_PREFIX}${payload}.${signRuntimeTicketPayload(payload)}`;
@@ -2173,13 +2186,14 @@ export function verifyRuntimeTicket(ticket: string) {
       userId?: string;
       projectId?: string;
       expiresAt?: number;
+      jti?: string;
     };
 
     if (!parsed.userId || !parsed.projectId || typeof parsed.expiresAt !== 'number' || parsed.expiresAt < Date.now()) {
       return undefined;
     }
 
-    return parsed as { userId: string; projectId: string; expiresAt: number };
+    return parsed as { userId: string; projectId: string; expiresAt: number; jti?: string };
   } catch {
     return undefined;
   }
@@ -2355,6 +2369,82 @@ async function authenticateCollaborationWebSocketTicket(request: FastifyRequest,
  * block — that exact omission already shipped once on the collaboration WS
  * ticket and had to be fixed. Same shape here, same enforcement.
  */
+/*
+ * AUDX-004 — one-shot consumption for tickets presented on an UPGRADE.
+ *
+ * Scope of the guarantee, stated plainly: single-use is applied where a ticket
+ * travels in a QUERY STRING (WebSocket/SSE upgrades), because that is the form
+ * that leaks — access logs, Referer, history, proxies. It is deliberately NOT
+ * applied to ordinary HTTP requests: the runtime adapter reuses one ticket
+ * across every file/port/logs call for its 2-minute life, and burning it per
+ * request would force a mint round-trip before each one. That is not a security
+ * improvement, it is a self-inflicted outage on the IDE's hot path.
+ *
+ * Backed by Redis so replicas share the burn list. With no REDIS_URL (dev,
+ * single replica) an in-process set is used — honest about being per-process,
+ * and never silently pretending to be cluster-wide.
+ */
+const runtimeTicketBurnedLocally = new Set<string>();
+
+let runtimeTicketRedis: import('ioredis').Redis | undefined;
+let runtimeTicketRedisTried = false;
+
+function runtimeTicketStore(): import('ioredis').Redis | undefined {
+  if (runtimeTicketRedisTried) {
+    return runtimeTicketRedis;
+  }
+
+  runtimeTicketRedisTried = true;
+
+  const url = process.env.REDIS_URL;
+
+  if (!url) {
+    return undefined;
+  }
+
+  try {
+    runtimeTicketRedis = new Redis(url, { maxRetriesPerRequest: 1, lazyConnect: false });
+    runtimeTicketRedis.on('error', () => undefined);
+  } catch {
+    runtimeTicketRedis = undefined;
+  }
+
+  return runtimeTicketRedis;
+}
+
+/**
+ * Burn a ticket id. Returns false when it was already used.
+ *
+ * Fails CLOSED on a Redis error: if we cannot tell whether a ticket was already
+ * spent, treating it as fresh would make the whole one-shot property optional
+ * exactly when the infrastructure is unhealthy — which is when replay matters.
+ * A refused upgrade is recoverable (the client re-mints); a replayed one is not.
+ */
+async function consumeRuntimeTicketId(jti: string, expiresAt: number): Promise<boolean> {
+  const ttlSeconds = Math.max(1, Math.ceil((expiresAt - Date.now()) / 1000));
+  const redis = runtimeTicketStore();
+
+  if (!redis) {
+    if (runtimeTicketBurnedLocally.has(jti)) {
+      return false;
+    }
+
+    runtimeTicketBurnedLocally.add(jti);
+    setTimeout(() => runtimeTicketBurnedLocally.delete(jti), ttlSeconds * 1000).unref?.();
+
+    return true;
+  }
+
+  try {
+    // SET NX is the atomic primitive: it succeeds only for the FIRST caller.
+    const result = await redis.set(`runtime-ticket:${jti}`, '1', 'EX', ttlSeconds, 'NX');
+
+    return result === 'OK';
+  } catch {
+    return false;
+  }
+}
+
 async function authenticateRuntimeTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
   const pathname = new URL(request.url, 'http://vibecore.local').pathname;
 
@@ -2373,6 +2463,21 @@ async function authenticateRuntimeTicket(request: FastifyRequest, reply: Fastify
   if (!payload) {
     authError(reply);
     return 'rejected' as const;
+  }
+
+  /*
+   * One-shot, upgrades only — see consumeRuntimeTicketId for why this is
+   * deliberately not applied to ordinary HTTP requests.
+   */
+  const isUpgradeRequest =
+    request.headers.upgrade?.toLowerCase() === 'websocket' ||
+    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
+
+  if (isUpgradeRequest) {
+    if (!payload.jti || !(await consumeRuntimeTicketId(payload.jti, payload.expiresAt))) {
+      authError(reply);
+      return 'rejected' as const;
+    }
   }
 
   /*
