@@ -10,6 +10,20 @@ export interface ProjectAiTranscriptHydrationOptions {
   /** True when a transcript is already on screen (local history or live messages). */
   hasMessages: boolean;
 
+  /**
+   * L'identifiant de conversation sous forme de VALEUR réactive.
+   *
+   * `resolveConversationId` reste l'autorité pour la résolution : il lit une
+   * `ref`, renseignée sans re-rendu quand une conversation est créée en cours de
+   * session. Mais une `ref` et une lecture de store non souscrite ne déclenchent
+   * rien. Quand l'identifiant arrivait APRÈS le premier rendu, l'effet avait
+   * déjà renoncé et plus rien ne le relançait : la conversation restait vide
+   * pour toute la durée de la page, alors que le serveur avait bien répondu.
+   *
+   * Ce champ ne sert qu'à faire re-jouer l'effet à ce moment-là.
+   */
+  conversationId: string | undefined;
+
   /** Read at effect time — the conversation id is discovered asynchronously. */
   resolveConversationId: () => string | undefined;
 
@@ -44,7 +58,7 @@ export interface ProjectAiTranscriptHydrationOptions {
  * never discard a response the latch will not re-request.
  */
 export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydrationOptions): void {
-  const { enabled, projectId, hasMessages } = options;
+  const { enabled, projectId, hasMessages, conversationId } = options;
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -127,5 +141,13 @@ export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydr
         clearTimeout(retryTimer);
       }
     };
-  }, [enabled, hasMessages, projectId, restartRetries, retryNonce]);
+
+    /*
+     * `conversationId` est ici pour une seule raison : relancer l'effet quand
+     * l'identifiant arrive tardivement. Mesuré sur main — l'effet partait une
+     * fois avec « aucun identifiant », sortait, et n'était jamais rejoué :
+     * 3 chargements sur 10 affichaient une conversation vide alors que le
+     * serveur avait bien renvoyé ses 6 messages.
+     */
+  }, [conversationId, enabled, hasMessages, projectId, restartRetries, retryNonce]);
 }

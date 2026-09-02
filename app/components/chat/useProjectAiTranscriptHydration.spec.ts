@@ -33,6 +33,7 @@ function baseOptions(overrides: Partial<ProjectAiTranscriptHydrationOptions> = {
     enabled: true,
     projectId: 'proj_1',
     hasMessages: false,
+    conversationId: 'conv_1',
     resolveConversationId: () => 'conv_1',
     loadTranscript: vi.fn(async () => transcript),
     applyTranscript: vi.fn(),
@@ -175,5 +176,59 @@ describe('useProjectAiTranscriptHydration', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('hydrate quand l’identifiant de conversation arrive APRÈS le premier rendu', async () => {
+    /*
+     * Le défaut mesuré sur main, le 2026-09-02, avec le serveur sain.
+     *
+     * L'identifiant vient de l'état IDE persisté, chargé de façon asynchrone :
+     * mesuré, le premier `GET /ide-state` répond sans identifiant, le second
+     * avec. Mais l'effet ne dépendait que de `[enabled, hasMessages, projectId,
+     * restartRetries, retryNonce]` et lisait l'identifiant via une `ref` et une
+     * lecture de store non souscrite — deux sources non réactives. Parti une
+     * fois « sans identifiant », il ressortait aussitôt et n'était JAMAIS
+     * rejoué : la conversation restait vide pour toute la durée de la page,
+     * alors que le serveur avait bien renvoyé ses messages.
+     */
+    const loadTranscript = vi.fn(async () => transcript);
+    const applyTranscript = vi.fn();
+
+    // Un porteur mutable : la valeur doit changer ENTRE deux rendus.
+    const etat: { identifiant: string | undefined } = { identifiant: undefined };
+
+    const { rerender } = renderHook(
+      (props: ProjectAiTranscriptHydrationOptions) => useProjectAiTranscriptHydration(props),
+      {
+        initialProps: baseOptions({
+          conversationId: undefined,
+          resolveConversationId: () => etat.identifiant,
+          loadTranscript,
+          applyTranscript,
+        }),
+      },
+    );
+
+    expect(loadTranscript, 'rien ne doit être chargé sans identifiant').not.toHaveBeenCalled();
+
+    // L'identifiant arrive : deuxième réponse de l'état IDE.
+    etat.identifiant = 'conv_1';
+
+    await act(async () => {
+      rerender(
+        baseOptions({
+          conversationId: 'conv_1',
+          resolveConversationId: () => etat.identifiant,
+          loadTranscript,
+          applyTranscript,
+        }),
+      );
+    });
+
+    expect(loadTranscript, 'l’arrivée tardive de l’identifiant ne relance pas l’hydratation').toHaveBeenCalledWith(
+      'proj_1',
+      'conv_1',
+    );
+    expect(applyTranscript, 'la transcription n’est jamais appliquée').toHaveBeenCalledWith(transcript);
   });
 });
