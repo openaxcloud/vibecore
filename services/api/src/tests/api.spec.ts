@@ -5105,6 +5105,59 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     }
   });
 
+  it('BUG-DB-003 — joint le statut de l’instance gérée à la connexion qu’elle alimente', async () => {
+    /*
+     * Mesuré en production le 2026-09-01 : un projet dont l'instance est ACTIVE
+     * affichait « Status unavailable ». La route renvoyait des connexions sans
+     * aucun champ `status`, et `DatabaseWorkbench` ne renseigne `env.status`
+     * que `if (o.status)` — il tombait donc dans sa branche `default`.
+     *
+     * Ce test porte sur le SITE D'APPEL, pas sur le module : c'est la route qui
+     * avait le trou, et un module correct non câblé ne corrige rien.
+     */
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, { email: 'db-status@example.com', organizationName: 'DB Status Org' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'DB Status Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    const instance = await store.createDatabaseInstance({
+      projectId,
+      organizationId: auth.organization.id,
+      retentionDays: 7,
+      environment: 'development',
+    });
+    await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+
+    await app.inject({
+      method: 'PUT',
+      url: `/projects/${projectId}/secrets`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { key: 'DATABASE_URL', value: 'postgres://user:pw@localhost:5432/app' },
+    });
+
+    const databases = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/databases`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+    expect(databases.statusCode).toBe(200);
+
+    const connexion = databases.json().connections.find((c: { key: string }) => c.key === 'DATABASE_URL');
+
+    // Témoin : sans cette connexion, l'assertion suivante passerait à vide.
+    expect(connexion).toBeDefined();
+    expect(connexion.status).toBe('active');
+
+    await app.close();
+  });
+
   it('discovers database connections without exposing secret values', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'database@example.com', organizationName: 'Database Org' });
