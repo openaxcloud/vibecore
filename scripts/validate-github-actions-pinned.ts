@@ -1,7 +1,8 @@
 #!/usr/bin/env -S node --import tsx
 
 import { createHash } from 'node:crypto';
-import { lstatSync, readFileSync, readdirSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -798,22 +799,47 @@ export function scanRepositoryForUnpinnedActions(repositoryRoot: string): Reposi
   const normalizedRoot = resolve(repositoryRoot);
   const workflowsRoot = join(normalizedRoot, '.github', 'workflows');
   const findings: PinningFinding[] = [];
-  const scanned = new Set<string>();
+  const findingKeys = new Set<string>();
+  const scannedFiles = new Set<string>();
+  const scannedModes = new Set<string>();
+
+  function addFindings(candidates: readonly PinningFinding[]): void {
+    for (const finding of candidates) {
+      const key = JSON.stringify([
+        finding.filename,
+        finding.line,
+        finding.location,
+        finding.action,
+        finding.ref,
+        finding.kind,
+        finding.detail,
+        finding.contextFingerprint,
+      ]);
+
+      if (!findingKeys.has(key)) {
+        findingKeys.add(key);
+        findings.push(finding);
+      }
+    }
+  }
 
   function scanFile(filename: string, ancestors: readonly string[], localActionMetadata = false): void {
     const absolute = resolve(filename);
     const repositoryFilename = relative(normalizedRoot, absolute);
+    const scanMode = localActionMetadata ? 'local-action-metadata' : 'workflow';
+    const scanKey = JSON.stringify([repositoryFilename, scanMode]);
 
-    if (scanned.has(repositoryFilename)) {
+    if (scannedModes.has(scanKey)) {
       return;
     }
 
-    scanned.add(repositoryFilename);
+    scannedModes.add(scanKey);
+    scannedFiles.add(repositoryFilename);
 
     const analysis = analyzeGithubActionsYaml(readFileSync(absolute, 'utf8'), repositoryFilename, {
       localActionMetadata,
     });
-    findings.push(...analysis.findings);
+    addFindings(analysis.findings);
 
     for (const reference of analysis.localActions) {
       let descriptor: string;
@@ -821,14 +847,14 @@ export function scanRepositoryForUnpinnedActions(repositoryRoot: string): Reposi
       try {
         descriptor = resolveLocalDescriptor(normalizedRoot, reference);
       } catch (error) {
-        findings.push(unsafeLocalReference(reference, error instanceof Error ? error.message : String(error)));
+        addFindings([unsafeLocalReference(reference, error instanceof Error ? error.message : String(error))]);
         continue;
       }
 
       const descriptorName = relative(normalizedRoot, descriptor);
 
       if (ancestors.includes(descriptorName) || descriptorName === repositoryFilename) {
-        findings.push(unsafeLocalReference(reference, `local action cycle detected through ${descriptorName}`));
+        addFindings([unsafeLocalReference(reference, `local action cycle detected through ${descriptorName}`)]);
         continue;
       }
 
@@ -844,7 +870,7 @@ export function scanRepositoryForUnpinnedActions(repositoryRoot: string): Reposi
     scanFile(workflow, []);
   }
 
-  return { findings, scannedFiles: [...scanned].sort() };
+  return { findings, scannedFiles: [...scannedFiles].sort() };
 }
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -927,6 +953,30 @@ function selfTest(): void {
     localDocker.findings.some((finding) => finding.kind === 'container'),
     'mutable remote image in local Docker action metadata was accepted',
   );
+
+  const workflowTreeFixture = mkdtempSync(join(tmpdir(), 'vibecore-actions-validator-self-test-'));
+
+  try {
+    mkdirSync(join(workflowTreeFixture, '.github', 'workflows', 'a-action'), { recursive: true });
+    writeFileSync(
+      join(workflowTreeFixture, '.github', 'workflows', 'a-action', 'action.yml'),
+      'runs:\n  using: docker\n  image: docker://alpine:latest\n',
+    );
+    writeFileSync(
+      join(workflowTreeFixture, '.github', 'workflows', 'ci.yml'),
+      'jobs:\n  test:\n    steps:\n      - uses: ./.github/workflows/a-action\n',
+    );
+
+    const workflowTreeFindings = scanRepositoryForUnpinnedActions(workflowTreeFixture).findings;
+    assert(
+      workflowTreeFindings.length === 1 &&
+        workflowTreeFindings[0]?.filename === '.github/workflows/a-action/action.yml' &&
+        workflowTreeFindings[0]?.kind === 'container',
+      'workflow-tree action descriptor was not rescanned as local action metadata',
+    );
+  } finally {
+    rmSync(workflowTreeFixture, { force: true, recursive: true });
+  }
 
   const exactFinding: PinningFinding = {
     filename: '.github/workflows/workflow.yml',

@@ -292,6 +292,31 @@ describe('GitHub Actions immutable identity validator', () => {
     expect(scanRepositoryForUnpinnedActions(dockerfileRoot).findings).toEqual([]);
   });
 
+  it('rescans workflow-tree descriptors as local action metadata', () => {
+    const root = repositoryFixture();
+    mkdirSync(join(root, '.github', 'workflows', 'a-action'), { recursive: true });
+    writeFileSync(
+      join(root, '.github', 'workflows', 'a-action', 'action.yml'),
+      'runs:\n  using: docker\n  image: docker://alpine:latest\n',
+    );
+    writeFileSync(
+      join(root, '.github', 'workflows', 'ci.yml'),
+      'jobs:\n  test:\n    steps:\n      - uses: ./.github/workflows/a-action\n',
+    );
+
+    const result = scanRepositoryForUnpinnedActions(root);
+
+    expect(result.scannedFiles).toEqual(['.github/workflows/a-action/action.yml', '.github/workflows/ci.yml']);
+    expect(result.findings).toEqual([
+      expect.objectContaining({
+        filename: '.github/workflows/a-action/action.yml',
+        location: '$["runs"]["image"]',
+        action: 'docker://alpine:latest',
+        kind: 'container',
+      }),
+    ]);
+  });
+
   it('rejects missing, symlinked and cyclic local actions', () => {
     const missingRoot = repositoryFixture();
     writeFileSync(
