@@ -89,10 +89,18 @@ import {
 import {
   PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
   PROJECT_EDITOR_TOOL_SHORTCUTS,
+  projectEditorToolGridByCategory,
   projectEditorToolList,
   projectEditorToolsByCategory,
+  resolveProjectEditorToolOpen,
 } from './project-editor-tool-catalog';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
+import {
+  consumeDeployPanelView,
+  requestDeployPanelView,
+  requestedDeployPanelView,
+  type DeployPanelView,
+} from '~/lib/stores/deploy-panel-view';
 import {
   describeAutoApplyFailure,
   describeSnapshotRestoreFailure,
@@ -5577,9 +5585,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const openWorkspacePanel = useCallback(
       (
-        panel: IdeWorkspacePanel,
+        requestedPanel: IdeWorkspacePanel,
         options: { replaceUrl?: boolean; paneId?: string; filePath?: string; preview?: boolean } = {},
       ) => {
+        /*
+         * An aliased tool names a screen that lives as a tab inside another
+         * tool (`domains` → Deploy → Domains). It stays a valid id everywhere —
+         * `?panel=domains` deep links, layouts persisted before the alias
+         * existed, the mobile Tools sheet — and is redirected HERE, the single
+         * function every desktop door goes through, so no caller has to know.
+         */
+        const opening = resolveProjectEditorToolOpen(requestedPanel as never);
+        const panel = opening.panel as IdeWorkspacePanel;
+
+        if (opening.deployView) {
+          requestDeployPanelView(opening.deployView as DeployPanelView);
+        }
+
         setWorkspaceTabs((currentTabs) => (currentTabs.includes(panel) ? currentTabs : [...currentTabs, panel]));
         setActiveWorkspacePanel(panel);
 
@@ -5774,10 +5796,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           setMobileIdePanel('editor');
           setProjectPanelSearchParam('editor');
         } else {
-          const managementPanel = MOBILE_TOOL_TO_MANAGEMENT_PANEL[normalizedToolId] as IdeManagementPanel | undefined;
+          const requestedPanel = MOBILE_TOOL_TO_MANAGEMENT_PANEL[normalizedToolId] as IdeManagementPanel | undefined;
+
+          /*
+           * Avi's bottom menu and its Tools sheet keep every entry they have —
+           * "Domaines" included. What changes is where it LANDS: an aliased
+           * tool opens its owner on the right tab (Deploy → Domains) instead of
+           * a second copy of the same screen. Resolved here as well as inside
+           * `openWorkspacePanel` so the URL param and the mobile tab id name
+           * the panel that actually opened, not the alias.
+           */
+          const opening = requestedPanel ? resolveProjectEditorToolOpen(requestedPanel as never) : undefined;
+          const managementPanel = opening?.panel as IdeManagementPanel | undefined;
 
           if (managementPanel) {
             openWorkspacePanel(managementPanel, { replaceUrl: false });
+
+            if (opening?.deployView) {
+              requestDeployPanelView(opening.deployView as DeployPanelView);
+            }
+
             setProjectPanelSearchParam(managementPanel);
             setMobileIdePanel('deploy', { activeTabId: managementPanel });
           }
@@ -9100,6 +9138,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * 20 of 29: `studio`, `domains`, `locks`, `overview`, `logs`,
            * `activity`, `collaborators`, `debugger` and `editor` were rendered
            * as panels but could not be reached from here at all.
+           *
+           * Aliased tools (`domains`) stay listed HERE on purpose: this surface
+           * is a search box, and someone typing "domains" must find something.
+           * The row is now a shortcut — `openIdeTool` sends it to Deploy →
+           * Domains rather than to a second copy of that screen. The BROWSE
+           * grid, where the duplicate card was actually visible, drops them.
            */
           ...projectEditorToolList().map((tool) => {
             const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
@@ -12987,23 +13031,37 @@ function IdeTabBar({
    * hand-maintained tuples here that had drifted: `studio` (Agent Studio) and
    * `domains` were rendered as real panels but appeared in no tool list, so they
    * could not be opened from this popup at all.
+   *
+   * `domains` has since gone the other way: its screen is the SAME
+   * `ProjectDomainsPanel` that Deploy → Domains renders, so a card here was a
+   * second door to one screen — and a dead end before the first deployment,
+   * since the CNAME/A instructions only unlock once a deploy is READY. The grid
+   * variant drops aliased tools; `openWorkspacePanel` routes them to their
+   * owner's tab instead.
    */
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> =
-    projectEditorToolsByCategory().flatMap(([category, categoryTools]) =>
-      categoryTools.map(
-        (tool) =>
-          [
-            tool.id as IdeWorkspacePanel | IdeRightPanel,
-            toolDisplayTitle(tool.id, t),
-            t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
-            tool.icon,
-            tool.accent,
-            t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
-          ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
-      ),
-    );
-
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
+
+  /*
+   * Browsing shows the GRID (aliased tools hidden — that is the duplicate card
+   * Avi hit); searching shows everything, because a query for "domains" that
+   * returns nothing is a worse answer than a shortcut row. Either way the row
+   * opens Deploy → Domains, never a second copy of the screen.
+   */
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = (
+    normalizedToolQuery ? projectEditorToolsByCategory() : projectEditorToolGridByCategory()
+  ).flatMap(([category, categoryTools]) =>
+    categoryTools.map(
+      (tool) =>
+        [
+          tool.id as IdeWorkspacePanel | IdeRightPanel,
+          toolDisplayTitle(tool.id, t),
+          t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+          tool.icon,
+          tool.accent,
+          t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
+        ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
+    ),
+  );
 
   const filteredRecentFiles = recentFiles
     .filter((filePath) => !normalizedToolQuery || filePath.toLowerCase().includes(normalizedToolQuery))
@@ -14074,6 +14132,14 @@ function ProjectIdePanelContent({
     );
   }
 
+  /*
+   * `domains` is an aliased tool: every door now opens Deploy → Domains
+   * instead (see `PROJECT_EDITOR_TOOL_ALIASES`). This branch stays for the one
+   * case the alias cannot intercept — a pane layout persisted BEFORE the alias
+   * existed, restored straight into the pane tree without going through
+   * `openWorkspacePanel`. It renders the very same `ProjectDomainsPanel` the
+   * Deploy tab does, so such a tab is stale, never divergent.
+   */
   if (panel === 'domains') {
     return <ProjectDomainsPanel data={data} onSubmit={onSubmit} busy={busy} />;
   }
@@ -23148,7 +23214,28 @@ function ProjectDeploymentsPanel({
     outputDirectory: latestDeployment?.outputDirectory,
   });
 
-  const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
+  const [tab, setTab] = useState<DeployPanelView>(() => consumeDeployPanelView() ?? 'overview');
+
+  /*
+   * A door that opened the aliased `domains` tool asks for the Domains tab
+   * (see `~/lib/stores/deploy-panel-view`). The initial state above covers the
+   * mount case; this covers the panel already being open when the request comes
+   * in. The request is consumed once, so the user's own tab clicks afterwards
+   * are never overridden.
+   */
+  const pendingDeployView = useStore(requestedDeployPanelView);
+
+  useEffect(() => {
+    if (!pendingDeployView) {
+      return;
+    }
+
+    const requested = consumeDeployPanelView();
+
+    if (requested) {
+      setTab(requested);
+    }
+  }, [pendingDeployView]);
 
   // Real Overview data wired from the deployments loader.
   const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
@@ -23334,8 +23421,16 @@ function ProjectDeploymentsPanel({
       {/*
        * Real domains management, consolidated under Deploy (Replit parity): the
        * full ProjectDomainsPanel self-fetches + submits against /orgs/:id/domains
-       * (list / add custom domain / DNS verify / delete). The standalone Domains
-       * panel is removed from the Add-tab selector so this is the single place.
+       * (list / add custom domain / DNS verify / delete).
+       *
+       * This is the single IMPLEMENTATION of the screen. The comment that used
+       * to stand here claimed the standalone entry had been removed, and
+       * RPL-IDE-001.5 put a `domains` card back into the All-tools grid without
+       * a single red test. `domains` is now an alias (see
+       * `PROJECT_EDITOR_TOOL_ALIASES`): it keeps a row in the SEARCH surfaces,
+       * where it acts as a shortcut into this tab, and has no card of its own
+       * in the browse grid. Held by `project-editor-tool-catalog.spec.ts`, not
+       * by this comment.
        */}
       {tab === 'domains' ? <ProjectDomainsPanel projectId={projectId} /> : null}
 

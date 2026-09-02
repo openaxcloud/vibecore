@@ -142,7 +142,11 @@ export const PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS: Record<ProjectEditorToolCa
   configuration: 'baseChatAst.common.configuration',
 };
 
-/** Catalog entries in category order — the order the All-tools popup renders. */
+/**
+ * Every catalog entry in category order, aliased tools included. This is the
+ * catalog view; the All-tools popup renders `projectEditorToolGridByCategory()`
+ * instead, which drops the tools that are only a tab inside another tool.
+ */
 export function projectEditorToolsByCategory(): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
   return PROJECT_EDITOR_TOOL_CATEGORIES.map(
     (category) =>
@@ -153,7 +157,87 @@ export function projectEditorToolsByCategory(): Array<[ProjectEditorToolCategory
   ).filter(([, tools]) => tools.length > 0);
 }
 
-/** Every tool, in engine order. */
+/** Every tool in engine order, aliased tools included. */
 export function projectEditorToolList(): ProjectEditorToolDescriptor[] {
   return PROJECT_EDITOR_TOOLS.map((id) => PROJECT_EDITOR_TOOL_CATALOG[id]);
+}
+
+/**
+ * A tool whose screen is already a tab inside another tool.
+ *
+ * Domains is the case that named this concept: the exact same
+ * `ProjectDomainsPanel` is rendered by the standalone `domains` panel AND by
+ * Deploy → Domains, so the All-tools grid offered two doors to one screen. A
+ * domain is also meaningless without a deployment — the screen itself says the
+ * CNAME/A instructions only unlock after the first successful deploy — so the
+ * standalone card was a dead end for anyone who had not deployed yet.
+ *
+ * Aliased tools stay VALID panel ids on purpose. `?panel=domains` deep links,
+ * layouts persisted before this change and the mobile Tools sheet entry all
+ * keep working; they are canonicalised at open time into `tool` + `view`
+ * instead of being rejected. Only the grid card disappears.
+ */
+export interface ProjectEditorToolAlias {
+  /** The tool that really owns the screen. */
+  tool: ProjectEditorTool;
+
+  /** The sub-tab inside that tool which shows it. */
+  view: string;
+}
+
+export const PROJECT_EDITOR_TOOL_ALIASES: Partial<Record<ProjectEditorTool, ProjectEditorToolAlias>> = {
+  domains: { tool: 'deployments', view: 'domains' },
+};
+
+/** The alias record for `id`, or undefined when the tool owns its own screen. */
+export function projectEditorToolAlias(id: ProjectEditorTool): ProjectEditorToolAlias | undefined {
+  return PROJECT_EDITOR_TOOL_ALIASES[id];
+}
+
+/**
+ * The tool that should actually be opened for `id` — itself for a normal tool,
+ * the alias target for an aliased one. Aliases never chain (guarded by spec).
+ */
+export function resolveProjectEditorTool(id: ProjectEditorTool): ProjectEditorTool {
+  return PROJECT_EDITOR_TOOL_ALIASES[id]?.tool ?? id;
+}
+
+/**
+ * What a door should actually do when the user asks for `id`.
+ *
+ * Every call site (desktop `openWorkspacePanel`, mobile `activateMobileTool`)
+ * funnels its decision through here rather than re-deriving it, because the
+ * expensive failure on this repo is not a wrong table — it is a correct table
+ * that one call site forgot to consult. `deployView` is set only when the owner
+ * is the Deployments panel, which is the one panel that takes a tab request.
+ */
+export function resolveProjectEditorToolOpen(id: ProjectEditorTool): {
+  panel: ProjectEditorTool;
+  deployView?: string;
+} {
+  const alias = PROJECT_EDITOR_TOOL_ALIASES[id];
+
+  if (!alias) {
+    return { panel: id };
+  }
+
+  return alias.tool === 'deployments' ? { panel: alias.tool, deployView: alias.view } : { panel: alias.tool };
+}
+
+/** Every tool that gets its own card, in engine order. */
+export function projectEditorToolGridList(): ProjectEditorToolDescriptor[] {
+  return projectEditorToolList().filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id]);
+}
+
+/** Grid cards in category order — what the All-tools popup renders. */
+export function projectEditorToolGridByCategory(): Array<[ProjectEditorToolCategory, ProjectEditorToolDescriptor[]]> {
+  return projectEditorToolsByCategory()
+    .map(
+      ([category, tools]) =>
+        [category, tools.filter((tool) => !PROJECT_EDITOR_TOOL_ALIASES[tool.id])] as [
+          ProjectEditorToolCategory,
+          ProjectEditorToolDescriptor[],
+        ],
+    )
+    .filter(([, tools]) => tools.length > 0);
 }
