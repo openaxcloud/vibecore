@@ -37,15 +37,27 @@ describe('UNIF-07 — états vides canoniques (lot D)', () => {
     expect(scss).not.toContain('bolt-project-tool-empty');
   });
 
-  it('la note bolt-project-empty-panel est réservée aux statuts/chargements (compte scellé à 13)', () => {
+  it('la note bolt-project-empty-panel est réservée aux statuts/chargements (compte scellé à 11)', () => {
     /*
      * Avant le lot D : 35 occurrences (chaque panneau vide avait sa note grise
      * alignée à gauche). Après : seules restent les notes de statut/erreur,
      * les états de chargement et le hub Terminal (gelé). Toute nouvelle liste
      * vide doit passer par PanelEmptyState, pas par cette classe.
+     *
+     * 13 → 11 (R-2 / R-3) : le hub Terminal a perdu DEUX de ces notes, et il
+     * faut le dire parce que ce hub est gelé sur la référence d'Avi. Son onglet
+     * « Environment » réimplémentait Env vars et Secrets, et son onglet
+     * « Connections » réimplémentait Ports ; les deux montent désormais les
+     * vrais panneaux. Les listes que ces notes couvraient — « aucune variable
+     * d'environnement », « aucun port d'aperçu ouvert » — existent toujours,
+     * rendues par ces panneaux avec le canonique `PanelEmptyState`.
+     *
+     * Le cliquet se resserre donc : deux notes ad hoc en moins, zéro ajoutée.
+     * Le compte reste EXACT et non « au plus 11 » — c'est ce qui empêche une
+     * nouvelle note de reprendre la place libérée.
      */
     const occurrences = baseChatCode.match(/bolt-project-empty-panel/g) ?? [];
-    expect(occurrences).toHaveLength(13);
+    expect(occurrences).toHaveLength(11);
   });
 
   it('BaseChat rend au moins 25 PanelEmptyState (listes vides canoniques)', () => {
