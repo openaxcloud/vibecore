@@ -145,3 +145,49 @@ compte de test, et révoquée dès la preuve faite.
 - Il **ne touche à aucun identifiant d'Avi**.
 - Il **ne certifie rien** par lui-même : il donne l'accès. La preuve reste une
   mesure avant / après sur la même page, avec son environnement consigné.
+
+---
+
+## ⚠️ Une porte qui bloque sur ce qu'elle ne peut pas reconstruire arrête tout
+
+Leçon du 2026-09-03, après **36 heures** sans aucune livraison en production.
+
+La porte de vulnérabilités refuse un déploiement si **une seule** des 8 images
+porte une CVE critique corrigeable. Or deux de ces images sont **hors de portée
+de tout correctif applicatif** :
+
+- **`admin`** n'est pas construit par le chemin continu — son digest est reporté
+  tel quel, indéfiniment (BUG-SEC-002) ;
+- **`screenshotter`** part d'une base tierce (Playwright).
+
+**Conséquence structurelle** : dès qu'une CVE critique apparaît dans l'une
+d'elles, la chaîne se ferme et **rien ne peut la rouvrir** — aucun changement de
+code, aucun `override`, aucune montée de dépendance. Seule une exception le
+peut. La porte finit donc toujours par tout arrêter, et l'exception devient
+inévitable, ce qui est le contraire de l'effet recherché.
+
+### Ce qu'on a fait, et ce que ça vaut
+
+Exception **par image** (`.trivyignore.<service>`), une seule CVE nommée, datée
+d'expiration. Le fichier global reste intact : les six images reconstruites
+demeurent couvertes **par construction, pas par discipline**.
+
+C'est un pansement borné, pas une réparation.
+
+### La bonne cible de fond — ouverte, non engagée
+
+Restreindre la porte aux **vulnérabilités atteignables** plutôt qu'à toute CVE
+critique présente dans une image. Le `tar` embarqué dans npm ne s'exécute
+jamais : le conteneur lance `node` directement. Bloquer une livraison sur du
+code mort produit exactement ce qu'on a vécu — une porte contournée par
+nécessité, donc affaiblie pour de bon.
+
+⚠️ **Deux préalables avant d'y toucher** :
+
+1. Reconstruire `admin` et `screenshotter` (BUG-SEC-002). Sans cela, restreindre
+   la porte ne fait que déplacer le problème.
+2. Comprendre **pourquoi** chaque contrainte existe avant de la changer. Le
+   2026-09-03, j'ai proposé de paralléliser les builds en croyant le découpage
+   accidentel : il protégeait d'un interblocage à 8 Go et garantissait que `web`
+   consomme le `deps` de son propre commit. La justification était écrite en
+   tête du fichier que je mesurais.
