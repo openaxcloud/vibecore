@@ -81,7 +81,21 @@ function bootBrowserWebContainer() {
           workbenchStore.actionAlert.set({
             type: 'preview',
             title,
-            description: clientStoresServicesText('clientRuntime.webcontainer.unknownError'),
+
+            /*
+             * Le type EST connu — on vient de le resoudre juste au-dessus, et
+             * l'emplacement aussi. Afficher « une erreur inconnue » alors qu'on
+             * a le type, l'emplacement, le port et la pile est trompeur : ca
+             * fait lire un defaut de l'application generee comme une panne de
+             * la plateforme. Constate le 2026-09-03 sur une capture d'Avi.
+             *
+             * Meme classe de defaut que « Unknown release type "ops" » sans la
+             * liste des types : nommer le probleme sans donner le moyen d'agir.
+             */
+            description: clientStoresServicesText('clientRuntime.webcontainer.previewErrorAt', {
+              title,
+              location,
+            }),
             content: clientStoresServicesText('clientRuntime.webcontainer.previewErrorDetails', {
               location,
               port: message.port,
