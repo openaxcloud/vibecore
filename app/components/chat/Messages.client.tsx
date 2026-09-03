@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
+import { fautIlMontrerLAgentEnEcriture } from './agent-typing-state';
 import { UserMessage } from './UserMessage';
 import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { forkChat } from '~/lib/persistence/db';
@@ -165,15 +166,38 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               );
             })
           : null}
-        {isStreaming && (
+        {/*
+          L'agent EN TRAIN D'ÉCRIRE, et non un spinner nu.
+
+          Ce qui existait disait « quelque chose tourne » — centré, gros, hors
+          du fil — et restait affiché pendant toute la réponse, y compris quand
+          le texte arrivait déjà. Ici c'est une ligne de fil, à la place du
+          message à venir, qui s'efface dès que les premiers caractères sont
+          lisibles : c'est alors le texte lui-même qui dit que ça avance.
+        */}
+        {fautIlMontrerLAgentEnEcriture({
+          enCours: isStreaming,
+          dernierRole: messages.length ? (messages[messages.length - 1].role as 'user' | 'assistant') : undefined,
+          caracteresDeLAgent: (() => {
+            const dernier = messages[messages.length - 1];
+
+            return dernier && dernier.role === 'assistant' ? (dernier.content ?? '').trim().length : 0;
+          })(),
+        }) ? (
           <div
-            className="i-svg-spinners:3-dots-fade mt-4 w-full text-center text-4xl text-bolt-elements-item-contentAccent"
+            className="bolt-agent-typing"
             role="status"
+            aria-live="polite"
             aria-label={copy['chatResiduals.messages.streaming']}
           >
-            <span className="sr-only">{copy['chatResiduals.messages.streaming']}</span>
+            <span className="bolt-agent-typing-dots" aria-hidden>
+              <span />
+              <span />
+              <span />
+            </span>
+            <span className="bolt-agent-typing-label">{copy['chatResiduals.messages.streaming']}</span>
           </div>
-        )}
+        ) : null}
       </div>
     );
   },
