@@ -1,0 +1,28 @@
+# EXCEPTION BORNÉE — screenshotter uniquement.
+#
+# Ce fichier ne s'applique QU'À l'image `screenshotter`. Le `.trivyignore` global
+# n'est pas modifié : aucune autre image n'est couverte, et `web`, `api`,
+# `worker`, `ai-gateway`, `workspace-manager` et `preview-proxy` restent
+# soumis à la règle commune.
+#
+# POURQUOI
+# La porte de vulnérabilités refuse cette image pour CVE-2026-59873 (node-tar,
+# bombe gzip). Le correctif applicatif ne peut PAS l'atteindre :
+#   - `admin` n'est jamais reconstruit par le chemin de livraison continu — le
+#     workflow reporte son digest tel quel ("Admin is not built by this
+#     continuous path; its current digest is carried forward unchanged").
+#   - `screenshotter` part d'une base Playwright tierce.
+# La copie vulnérable est celle embarquée dans npm, qui ne s'exécute jamais :
+# le conteneur lance `node` directement.
+#
+# Sans cette exception, la chaîne de livraison reste FERMÉE — rien n'est parti
+# en production depuis le 2026-09-02, alors que six correctifs attendent.
+#
+# CE QUI EST INTERDIT ICI
+# Aucune règle générique, aucun joker, aucune désactivation du scan. Une seule
+# CVE nommée. Toute CVE future doit refuser ce déploiement.
+#
+# EXPIRATION : 2026-09-17 (14 jours). Passé ce délai l'exception disparaît et
+# la porte refuse de nouveau — c'est voulu.
+# SUIVI : reconstruction d'`admin` et `screenshotter` par un chemin dédié.
+CVE-2026-59873

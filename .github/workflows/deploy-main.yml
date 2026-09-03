@@ -1049,10 +1049,19 @@ jobs:
             echo "::group::trivy ${service} ${digest}"
             # Two passes so the log is useful: an informational HIGH listing, then the
             # CRITICAL pass that actually decides the gate.
+            # Exception PAR IMAGE, jamais globale. `.trivyignore` reste la
+            # regle commune ; `.trivyignore.<service>` ne s'applique qu'a CETTE
+            # image. C'est ce qui rend impossible qu'une exception ouverte pour
+            # `admin` couvre aussi `web` — le fichier global n'est pas modifie.
+            ignorefile=".trivyignore"
+            if [ -f ".trivyignore.${service}" ]; then
+              ignorefile=".trivyignore.${service}"
+              echo "exception propre a ${service} : ${ignorefile}"
+            fi
             trivy image --quiet --scanners vuln --severity HIGH \
-              --ignore-unfixed --ignorefile .trivyignore "${ref}" || true
+              --ignore-unfixed --ignorefile "${ignorefile}" "${ref}" || true
             if ! trivy image --quiet --scanners vuln --severity CRITICAL \
-                   --ignore-unfixed --ignorefile .trivyignore \
+                   --ignore-unfixed --ignorefile "${ignorefile}" \
                    --exit-code 1 "${ref}"; then
               echo "::error::CRITICAL fixable vulnerability in ${ref}"
               rc=1
