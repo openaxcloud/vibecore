@@ -24,5 +24,9 @@
 #
 # EXPIRATION : 2026-09-17 (14 jours). Passé ce délai l'exception disparaît et
 # la porte refuse de nouveau — c'est voulu.
+# Les deux CVE `esbuild` sont ajoutees ici pour la meme raison que sur les
+# autres images : compilateur jamais execute a l'execution du conteneur.
 # SUIVI : reconstruction d'`admin` et `screenshotter` par un chemin dédié.
 CVE-2026-59873
+CVE-2024-24790
+CVE-2025-68121

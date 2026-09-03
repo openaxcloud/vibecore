@@ -1,0 +1,29 @@
+# EXCEPTION BORNÉE — preview-proxy uniquement.
+#
+# Ce fichier ne s'applique QU'À l'image `preview-proxy`. Le `.trivyignore` global
+# reste intact : toute CVE non nommée ici refuse toujours le déploiement.
+#
+# POURQUOI
+# `esbuild` est un COMPILATEUR. Il s'exécute au build, dans Cloud Build, puis
+# son binaire dort dans l'image sans jamais être invoqué : le conteneur lance
+# `node ./build/server/index.js`. Les CVE ci-dessous visent la bibliothèque
+# standard Go liée à ce binaire dormant.
+#
+# CE QUI A ÉTÉ TENTÉ AVANT D'EN ARRIVER LÀ
+#  - Monter esbuild à 0.27 pour tout l'arbre : CASSE LE BUILD. 93 erreurs
+#    "Transforming destructuring to the configured target environment
+#    (chrome87, safari14, ...) is not supported yet". Corriger la CVE aurait
+#    exigé d'abaisser les cibles navigateur, donc de dégrader le produit.
+#  - Retirer esbuild de l'image : impossible par `pnpm prune --prod`, qui ne
+#    l'élimine pas. Mesuré dans l'image servie 7f5309c684 — TROIS binaires
+#    esbuild y sont présents sans aucun override (0.21.5, 0.27.3, 0.27.7).
+#
+# CE QUI EST INTERDIT ICI
+# Aucune règle générique, aucun joker, aucune désactivation du scan. Deux CVE
+# nommées, rien d'autre. Toute CVE future doit refuser ce déploiement.
+#
+# EXPIRATION : 2026-09-17 (14 jours). Passé ce délai l'exception disparaît et
+# la porte refuse de nouveau — c'est voulu.
+# SUIVI : sortir esbuild de l'image de production (BUG-SEC-003).
+CVE-2024-24790
+CVE-2025-68121
