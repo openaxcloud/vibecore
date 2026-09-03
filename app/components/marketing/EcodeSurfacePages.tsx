@@ -1029,16 +1029,6 @@ export function createProjectDatabaseSurfacePage(projectId: string): EcodeSurfac
   });
 }
 
-export function createProjectPreviewSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `projects/${projectId}/preview`,
-    route: `/projects/${projectId}/preview`,
-    category: 'runtime',
-    icon: MonitorPlay,
-    dynamicCopy: { key: 'projectPreview', values: { projectId } },
-  });
-}
-
 export function createProjectCompatSurfacePage(projectId: string): EcodeSurfacePageDefinition {
   return makeDynamicSurfacePage({
     slug: `project/${projectId}`,
@@ -1046,16 +1036,6 @@ export function createProjectCompatSurfacePage(projectId: string): EcodeSurfaceP
     category: 'builder',
     icon: Boxes,
     dynamicCopy: { key: 'projectCompat', values: { projectId } },
-  });
-}
-
-export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `editor/${editorId}`,
-    route: `/editor/${editorId}`,
-    category: 'builder',
-    icon: FileCode2,
-    dynamicCopy: { key: 'editor', values: { editorId } },
   });
 }
 
