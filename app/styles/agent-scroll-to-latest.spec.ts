@@ -74,10 +74,28 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
     expect(code).not.toMatch(/background:[^;]*(--vc-action-primary|--ecode-accent|--vc-ide-accent-action)/);
   });
 
-  it('porte une flèche ET un libellé visible, pas une icône seule', () => {
+  it('garde son libellé pour l’assistance, même s’il n’est plus affiché', () => {
+    /*
+     * CE TEST A CHANGÉ DE SENS, et il faut le dire.
+     *
+     * Il s'appelait « porte une flèche ET un libellé VISIBLE, pas une icône
+     * seule ». Avi a tranché l'inverse : la pastille large masquait le fil, il
+     * l'a entourée en rouge deux fois. Elle devient un disque de 44px et le
+     * libellé passe hors écran.
+     *
+     * C'est un ARBITRAGE, pas un progrès net. Ce qui est conservé, et ce que ce
+     * test garde désormais : le libellé existe toujours dans le DOM, il reste
+     * traduit, et il donne son nom accessible au bouton. Le masquage est
+     * visuel, pas sémantique.
+     */
     expect(BASE_CHAT).toMatch(/i-ph:arrow-down/);
     expect(BASE_CHAT).toMatch(/bolt-agent-scroll-to-bottom__label/);
     expect(BASE_CHAT).toMatch(/chat\.copy\.scrollToLatest/);
+
+    const regle = INDEX.slice(INDEX.indexOf('.bolt-agent-scroll-to-bottom__label'));
+
+    expect(regle.slice(0, 400), 'le masquage doit être visuel, jamais display:none').toMatch(/clip-path|clip:/);
+    expect(regle.slice(0, 400)).not.toMatch(/display:\s*none/);
   });
 
   it('traduit ce libellé en français ET en anglais', () => {

@@ -7535,8 +7535,13 @@ body :where(.lucide, svg[data-lucide]) {
    * rem à 12px/14px, et tout plancher exprimé en rem y serait dégonflé — c'est
    * la cause unique corrigée par TACTILE-003.
    */
-  min-height: var(--vc-touch-min, 44px);
-  padding-inline: 14px;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+
+  /* Un disque, pas une gélule : plus de remplissage horizontal. */
+  padding-inline: 0;
   border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
   border-radius: 999px;
   /*
@@ -7597,9 +7602,29 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 0 0 auto;
 }
 
+/*
+ * PETIT BOUTON ROND, pas une large pastille posée en travers du fil.
+ *
+ * Avi l'a entourée en rouge deux fois : « elle est large, posée au milieu du
+ * fil, et masque le contenu ». Mesurée avant : 176×44, centrée — près de la
+ * moitié de la largeur d'un iPhone, par-dessus le texte qu'on est en train de
+ * lire.
+ *
+ * Elle devient un disque de 44px. Le libellé reste dans le DOM pour les
+ * lecteurs d'écran et l'infobulle ; il n'occupe plus de place à l'écran.
+ *
+ * ⚠️ C'est un ARBITRAGE, pas un progrès net : le libellé visible avait été
+ * ajouté parce qu'une icône seule n'annonce pas ce qu'elle fait à qui ne la
+ * connaît pas. Avi tranche pour la place ; le nom accessible et l'infobulle
+ * restent, la flèche vers le bas est le pictogramme le plus convenu qui soit.
+ */
 .bolt-agent-scroll-to-bottom__label {
-  /* Pas d'aplat de couleur vive : le libellé prend la couleur du texte. */
-  color: inherit;
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .bolt-project-agent-panel textarea {
