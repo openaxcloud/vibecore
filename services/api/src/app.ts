@@ -33496,7 +33496,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:write');
 
     const body = parse(
-      z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
+      z.object({
+        key: z.string().min(1).max(1024),
+        contentType: z.string().max(255).optional(),
+        /*
+         * AUDX-021 — a caller may declare a SMALLER ceiling than the platform's
+         * and an MD5 to be verified by GCS. Neither can widen the limit: the
+         * service clamps `maxBytes` to OBJECT_UPLOAD_MAX_BYTES.
+         */
+        maxBytes: z.number().int().positive().optional(),
+        contentMd5: z.string().max(64).optional(),
+      }),
       request.body ?? {},
     );
 
