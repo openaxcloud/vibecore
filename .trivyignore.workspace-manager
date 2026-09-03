@@ -25,5 +25,5 @@
 # EXPIRATION : 2026-09-17 (14 jours). Passé ce délai l'exception disparaît et
 # la porte refuse de nouveau — c'est voulu.
 # SUIVI : sortir esbuild de l'image de production (BUG-SEC-003).
-CVE-2024-24790
-CVE-2025-68121
+CVE-2024-24790 exp:2026-09-17
+CVE-2025-68121 exp:2026-09-17

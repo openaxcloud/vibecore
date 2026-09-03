@@ -27,6 +27,6 @@
 # Les deux CVE `esbuild` sont ajoutees ici pour la meme raison que sur les
 # autres images : compilateur jamais execute a l'execution du conteneur.
 # SUIVI : reconstruction d'`admin` et `screenshotter` par un chemin dédié.
-CVE-2026-59873
-CVE-2024-24790
-CVE-2025-68121
+CVE-2026-59873 exp:2026-09-17
+CVE-2024-24790 exp:2026-09-17
+CVE-2025-68121 exp:2026-09-17

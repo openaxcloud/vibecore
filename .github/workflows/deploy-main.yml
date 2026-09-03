@@ -1039,6 +1039,45 @@ jobs:
       # The SBOM is produced in the same loop, while Trivy's analysis of that image is
       # still cached, so the supply-chain record costs one extra pass instead of a
       # second full download.
+      # BUG-SEC-004 — une exception a date fixe ferme la chaine du jour au
+      # lendemain, sans que personne ne l'ait vu venir. Le 2026-09-03, trois
+      # exceptions globales ont echu ensemble : la porte a refuse les 8 images
+      # d'un coup, et il a fallu des heures pour faire le lien, parce que rien
+      # ne dit « cette exception tombe demain ».
+      #
+      # Cette etape ne bloque RIEN : elle previent. Une exception qui echoit
+      # dans les 7 jours doit etre vue AVANT de fermer la livraison.
+      - name: Alerte sur les exceptions de securite proches de l'echeance
+        run: |
+          set -euo pipefail
+          limite=$(date -u -d '+7 days' '+%Y-%m-%d' 2>/dev/null || date -u -v+7d '+%Y-%m-%d')
+          aujourdhui=$(date -u '+%Y-%m-%d')
+          proches=0
+          echues=0
+          {
+            echo "### Exceptions de sécurité — échéances"
+            echo
+            echo "| fichier | CVE | expire le | état |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in .trivyignore .trivyignore.*; do
+            [ -f "$f" ] || continue
+            while read -r cve exp; do
+              case "$exp" in exp:*) d="${exp#exp:}";; *) continue;; esac
+              if [[ "$d" < "$aujourdhui" ]]; then
+                etat="**ÉCHUE**"; echues=$((echues+1))
+                echo "::error::exception ECHUE — $f : $cve a expire le $d. La porte refusera ce deploiement."
+              elif [[ "$d" < "$limite" ]]; then
+                etat="⚠️ sous 7 jours"; proches=$((proches+1))
+                echo "::warning::exception proche de l'echeance — $f : $cve expire le $d. Traiter AVANT cette date, sinon la livraison se fermera."
+              else
+                etat="ok"
+              fi
+              echo "| \`$f\` | $cve | $d | $etat |" >> "$GITHUB_STEP_SUMMARY"
+            done < <(grep -hE '^CVE-' "$f" 2>/dev/null || true)
+          done
+          echo "exceptions echues : $echues, proches de l'echeance : $proches"
+
       - name: Vulnerability gate + SBOM on the exact digests (blocking)
         run: |
           set -euo pipefail
