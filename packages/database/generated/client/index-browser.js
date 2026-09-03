@@ -531,6 +531,13 @@ exports.Prisma.ProjectStorageObjectScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ProjectObjectStorageUsageScalarFieldEnum = {
+  projectId: 'projectId',
+  bytes: 'bytes',
+  objectCount: 'objectCount',
+  measuredAt: 'measuredAt'
+};
+
 exports.Prisma.DeploymentScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -1920,6 +1927,7 @@ exports.Prisma.ModelName = {
   FileSnapshot: 'FileSnapshot',
   ProjectSnapshot: 'ProjectSnapshot',
   ProjectStorageObject: 'ProjectStorageObject',
+  ProjectObjectStorageUsage: 'ProjectObjectStorageUsage',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
   ReleaseManifest: 'ReleaseManifest',

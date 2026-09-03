@@ -356,11 +356,13 @@ import {
 import {
   BUCKET_NOT_PROVISIONED,
   isObjectStorageEnabled,
+  OBJECT_UPLOAD_MAX_BYTES,
   type ObjectStorage,
   ObjectStorageError,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { assertObjectStorageQuota } from './object-storage-quota.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -31174,12 +31176,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /**
-   * Daily object-storage metering sweep (Replit parity — $0.03/GiB-month). Unlike
-   * /internal/metering (per-event, producer-driven), this scans the REAL stored
-   * bytes (ProjectStorageObject.byteLength) for every org and meters one day's
-   * worth of GiB-months so the monthly total accrues across the daily cron. No
-   * producer instrumentation needed — the numbers come straight from what's on
-   * disk. Shadow unless billing credits are fully enabled. Auth = internal secret.
+   * Daily object-storage metering sweep (Replit parity — $0.03/GiB-month).
+   *
+   * ⚠️ AUDX-023 — this comment used to claim the numbers came "straight from
+   * what's on disk". They did not. `ProjectStorageObject.byteLength` is base64
+   * archives held INSIDE PostgreSQL, written only by the snapshot/export path;
+   * the `/projects/:id/object-storage/*` routes write to GCS and never touch
+   * that table. Every byte uploaded through a signed URL was counted by nobody.
+   *
+   * With OBJECT_STORAGE_INVENTORY_ENABLED=true the sweep additionally walks each
+   * project's real GCS bucket (`listAllObjects`, all pages) and persists the
+   * measurement per project so a quota check can read it cheaply.
+   *
+   * ⚠️ The flag defaults OFF on purpose: switching it on starts counting bytes
+   * that were never counted, so metered storage RISES for anyone using object
+   * storage. That is a pricing decision (D-03 = Avi), not an engineering one.
+   * Off, this route behaves exactly as before, to the byte.
+   *
+   * Shadow unless billing credits are fully enabled. Auth = internal secret.
    */
   app.post('/internal/metering/object-storage', async (request, reply) => {
     requireInternalSecret(request);
@@ -31195,6 +31209,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       shadow,
       nowMs: Date.now(),
       daysInPeriod: body.daysInPeriod,
+      ...(process.env.OBJECT_STORAGE_INVENTORY_ENABLED === 'true' && isObjectStorageEnabled()
+        ? { objectStorage: resolveObjectStorage() }
+        : {}),
     });
 
     return { kind: 'object-storage-sweep', shadow, result };
@@ -33343,7 +33360,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? 400
           : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
             ? 404
-            : 422;
+            : /*
+               * AUDX-020 — 507 Insufficient Storage, not 422. The request is
+               * well-formed; the project simply has no room left, and the client
+               * should surface a quota message rather than a validation error.
+               */
+              error.code === 'OBJECT_STORAGE_QUOTA_EXCEEDED'
+              ? 507
+              : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -33511,7 +33535,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveObjectStorage().createUploadUrl(project.id, body));
+      const storage = resolveObjectStorage();
+
+      /*
+       * AUDX-020 — the quota is decided HERE, before the URL exists. Once a
+       * signed URL is handed out it is used directly against GCS: the api is no
+       * longer on the path and can refuse nothing. Minting is the only moment
+       * the ceiling can apply.
+       *
+       * `requestedBytes` is the ceiling actually signed into the URL by
+       * AUDX-021, so the check reasons about the most the holder could upload,
+       * not an optimistic guess.
+       */
+      const requestedBytes = Math.min(body.maxBytes ?? OBJECT_UPLOAD_MAX_BYTES, OBJECT_UPLOAD_MAX_BYTES);
+      await assertObjectStorageQuota(store, storage, {
+        projectId: project.id,
+        requestedBytes,
+        nowMs: Date.now(),
+      });
+
+      return reply.send(await storage.createUploadUrl(project.id, body));
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }

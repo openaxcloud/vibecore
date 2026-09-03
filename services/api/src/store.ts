@@ -1872,6 +1872,32 @@ export interface ApiStore {
    * to their org). Drives the daily object-storage metering sweep (P4).
    */
   aggregateStorageBytesByOrg(): Promise<Array<{ organizationId: string; bytes: number }>>;
+
+  /**
+   * AUDX-023 — every project, with its org, so the object-storage sweep can walk
+   * the REAL GCS buckets. `aggregateStorageBytesByOrg` above sums
+   * `ProjectStorageObject.byteLength`, which is base64 archives held in
+   * PostgreSQL and has nothing to do with the GCS buckets the object-storage
+   * routes write to.
+   */
+  listAllProjectsForStorageInventory(): Promise<Array<{ id: string; organizationId: string }>>;
+
+  /**
+   * Persist a project's measured GCS usage. Written by the daily inventory so a
+   * quota check (AUDX-020) can read a number instead of re-listing the bucket on
+   * every upload-URL request.
+   */
+  recordProjectObjectStorageUsage(input: {
+    projectId: string;
+    bytes: number;
+    objectCount: number;
+    measuredAt: Date;
+  }): Promise<void>;
+
+  /** Last measured GCS usage for a project, or undefined if never inventoried. */
+  getProjectObjectStorageUsage(
+    projectId: string,
+  ): Promise<{ bytes: number; objectCount: number; measuredAt: Date } | undefined>;
   /**
    * Database point-in-time rollback (Phase-1 scaffold, dormant behind
    * DB_ROLLBACK_ENABLED). Read the project's managed-database instance and its
