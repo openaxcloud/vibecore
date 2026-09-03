@@ -2107,3 +2107,53 @@ test('le panneau d’historique tient dans la fenêtre, quel que soit son décal
   expect(mesure!.bas, 'le panneau déborde sous la fenêtre').toBeLessThanOrEqual(mesure!.fenetre);
   expect(mesure!.listeDefile, 'la liste ne défile pas : le reste est inatteignable').toBe(true);
 });
+
+test('la rangée d’onglets mobiles s’arrête sur un onglet, jamais au milieu d’un mot', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+
+  /*
+   * Avi photographie « ontexte » au lieu de « Contexte ».
+   *
+   * Reproduit en 320×568 sur l'application : la rangée d'onglets déborde de
+   * 52 px et, une fois défilée de 26 px, le premier onglet est coupé de 26 px
+   * à gauche — la majuscule disparaît et le libellé devient un mot inconnu.
+   *
+   * Ce test vérifie le RENDU, pas le texte de la feuille : il lit la propriété
+   * calculée sur un élément réellement monté.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-mobile-replit-panel-scroll" style="width: 160px">
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Webview</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Agent</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Déploiements</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Base de données</button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const rangee = document.querySelector('.bolt-mobile-replit-panel-scroll');
+    const onglet = document.querySelector('.bolt-mobile-replit-panel-tab');
+
+    if (!rangee || !onglet) {
+      return null;
+    }
+
+    return {
+      ancrage: getComputedStyle(rangee).scrollSnapType,
+      ancrageOnglet: getComputedStyle(onglet).scrollSnapAlign,
+      deborde: rangee.scrollWidth > rangee.clientWidth,
+    };
+  });
+
+  expect(mesure, 'la rangée n’est pas montée').not.toBeNull();
+  expect(mesure!.deborde, 'sans débordement, le test ne prouve rien').toBe(true);
+  expect(mesure!.ancrage, 'la rangée doit ancrer son défilement').toContain('mandatory');
+  expect(mesure!.ancrageOnglet, 'chaque onglet doit être un point d’arrêt').toContain('start');
+});
