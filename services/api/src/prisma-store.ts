@@ -1603,6 +1603,7 @@ export class PrismaApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey?: string;
   }) {
     const row = await this.prisma.importJob.create({
       data: {
@@ -1611,11 +1612,82 @@ export class PrismaApiStore implements ApiStore {
         provider: input.provider,
         sourceRef: input.sourceRef ?? null,
         expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        idempotencyKey: input.idempotencyKey ?? null,
         state: 'RECEIVED',
       },
     });
 
     return { id: row.id, state: row.state };
+  }
+
+  async findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string) {
+    const row = await this.prisma.importJob.findFirst({
+      where: { organizationId, idempotencyKey },
+      select: { id: true },
+    });
+
+    return row ?? undefined;
+  }
+
+  async putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void> {
+    /*
+     * Replace wholesale, in ONE transaction: a partially-written staging is
+     * indistinguishable from a complete one at commit time, and the commit path
+     * has no way to tell "3 of 5 files" from "3 files".
+     */
+    await this.prisma.$transaction([
+      this.prisma.importStagedFile.deleteMany({ where: { importJobId } }),
+      ...(files.length > 0
+        ? [
+            this.prisma.importStagedFile.createMany({
+              data: files.map((file) => ({
+                importJobId,
+                path: file.path,
+                content: file.content,
+                encoding: file.encoding ?? null,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+  }
+
+  async getImportStagedFiles(importJobId: string) {
+    const rows = await this.prisma.importStagedFile.findMany({
+      where: { importJobId },
+      orderBy: { path: 'asc' },
+      select: { path: true, content: true, encoding: true },
+    });
+
+    /*
+     * `undefined` means NO staging row exists — which the commit path treats as
+     * IMPORT_STAGING_GONE. An empty array is a real, staged-but-empty import and
+     * must stay distinguishable from it: collapsing the two would turn "nothing
+     * was staged" into "an empty import committed successfully".
+     */
+    if (rows.length === 0) {
+      const job = await this.prisma.importJob.findUnique({
+        where: { id: importJobId },
+        select: { stagedFileCount: true, state: true },
+      });
+
+      if (!job || job.state === 'RECEIVED') {
+        return undefined;
+      }
+
+      if (job.stagedFileCount > 0) {
+        return undefined;
+      }
+    }
+
+    return rows.map((row) => ({ path: row.path, content: row.content, encoding: row.encoding ?? undefined }));
+  }
+
+  async deleteImportStagedFiles(importJobId: string): Promise<void> {
+    await this.prisma.importStagedFile.deleteMany({ where: { importJobId } });
   }
 
   async updateImportJob(

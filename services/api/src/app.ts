@@ -20816,10 +20816,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mounted before COMMITTED) and COMPENSATES the credit reservation to zero
    * debit — so an import that never committed is never charged (safety rule 3).
    */
+  /*
+   * AUDX-014 — rebuild this pod's view of a reservation from DURABLE facts.
+   *
+   * `ImportCreditLedger` is in-process and indexes reservations by jobId in a
+   * local Map. A commit or cancel routed to another replica therefore threw
+   * BILLING_RESERVATION_MISSING (settle) or silently released nothing
+   * (compensate) — measured: the commit failed with 409 even once the staging
+   * was shared.
+   *
+   * The reservation is DERIVED, not re-invented: the job row carries the client
+   * idempotency key and the `creditsReserved` marker, and the amount is a pure
+   * function of `stagedFileCount`. `reserve` is idempotent by construction, so
+   * rehydrating on the pod that happens to serve the request re-creates exactly
+   * the reservation the first pod took — never a second one.
+   *
+   * No-op when nothing was reserved, so it stays safe on a job that failed
+   * before reserving.
+   */
+  const rehydrateImportReservation = async (importJobId: string) => {
+    if (importLedger.getByJob(importJobId)) {
+      return;
+    }
+
+    const job = await store.getImportJob(importJobId);
+
+    if (!job || !job.creditsReserved) {
+      return;
+    }
+
+    const key = (job as { idempotencyKey?: string }).idempotencyKey;
+
+    if (!key) {
+      // Job created before durable idempotency existed: nothing to rebuild from.
+      return;
+    }
+
+    importLedger.reserve({
+      key,
+      organizationId: job.organizationId,
+      importJobId,
+      reservedCredits: estimateImportReservation(job.stagedFileCount),
+    });
+  };
+
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
-    importStaging.delete(importJobId); // dispose the staging — target never mounted
-    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
-    await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
+    /*
+     * AUDX-014 — both disposals must reach the SHARED state, not just this pod's.
+     * The staging now lives in the store, and the reservation marker with it:
+     * `importLedger.compensateByJob` only ever knew about reservations taken by
+     * THIS process, so a cancel routed to another replica released nothing and
+     * the credits stayed reserved forever.
+     */
+    await store.deleteImportStagedFiles(importJobId).catch(() => undefined);
+    await rehydrateImportReservation(importJobId).catch(() => undefined);
+    importLedger.compensateByJob(importJobId); // now reachable on any replica
+    await store
+      .updateImportJob(importJobId, { state: terminal, creditsReserved: false, ...(error ? { error } : {}) })
+      .catch(() => undefined);
   };
 
   /*
@@ -20834,8 +20888,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const expired = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
 
     for (const id of expired) {
-      importStaging.delete(id);
+      // AUDX-014 — the staging is shared, so the reap must clear it in the store.
+      await store.deleteImportStagedFiles(id).catch(() => undefined);
       importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
+      await store.updateImportJob(id, { creditsReserved: false }).catch(() => undefined);
     }
 
     return expired;
@@ -20872,7 +20928,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * reservation. In-process index; durable idempotency = UsageReservation follow-up.
      */
     const idemMapKey = `${orgId}:${body.idempotencyKey}`;
-    const existingJobId = importIdemIndex.get(idemMapKey);
+
+    /*
+     * AUDX-014 — the key is looked up in the STORE, not in a per-pod Map. The
+     * in-process index meant a retried create landing on another replica did not
+     * see the key, created a SECOND job and took a SECOND credit reservation —
+     * exactly the double charge the key exists to prevent.
+     */
+    const existingJobId =
+      (await store.findImportJobByIdempotencyKey(orgId, body.idempotencyKey))?.id ?? importIdemIndex.get(idemMapKey);
 
     if (existingJobId) {
       const existing = await store.getImportJob(existingJobId);
@@ -20897,13 +20961,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    const job = await store.createImportJob({
-      organizationId: orgId,
-      actorUserId: request.currentUser?.id,
-      provider: body.provider,
-      sourceRef: body.sourceRef,
-      expiresAt,
-    });
+    /*
+     * The DB carries a UNIQUE (organizationId, idempotencyKey). Two concurrent
+     * creates on two pods therefore cannot both win: the loser gets a unique
+     * violation and replays the winner's job instead of creating a duplicate.
+     */
+    let job: { id: string; state: string };
+
+    try {
+      job = await store.createImportJob({
+        organizationId: orgId,
+        actorUserId: request.currentUser?.id,
+        provider: body.provider,
+        sourceRef: body.sourceRef,
+        expiresAt,
+        idempotencyKey: body.idempotencyKey,
+      });
+    } catch (error) {
+      const raced = await store.findImportJobByIdempotencyKey(orgId, body.idempotencyKey);
+
+      if (!raced) {
+        throw error;
+      }
+
+      const existing = await store.getImportJob(raced.id);
+
+      if (!existing) {
+        throw error;
+      }
+
+      const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+
+      return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+        import: {
+          importJobId: existing.id,
+          state: existing.state,
+          provider: existing.provider,
+          findings: (existing.findings as unknown[]) ?? [],
+          stagedFileCount: existing.stagedFileCount,
+          requiresConsent,
+          replayed: true,
+        },
+      });
+    }
+
     importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
@@ -20930,7 +21031,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       await store.updateImportJob(job.id, { creditsReserved: true });
 
-      // STAGING_ISOLATED — files into the disposable staging, NOT the target.
+      /*
+       * STAGING_ISOLATED — files into the disposable staging, NOT the target.
+       * AUDX-014: written to the SHARED store so a commit routed to another
+       * replica can find them. `stagedFileCount` is advanced only AFTER the
+       * write lands, so a crash between the two can never leave a job claiming
+       * files that were never staged.
+       */
+      await store.putImportStagedFiles(job.id, stagedFiles);
       importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
@@ -21027,7 +21135,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const staged = importStaging.get(importJobId);
+    /*
+     * AUDX-014 — read the SHARED staging first; the in-process Map is only a
+     * same-pod fast path. Pre-fix this read the Map alone and returned 409
+     * IMPORT_STAGING_GONE for roughly half of all imports at 2 replicas.
+     */
+    const staged = (await store.getImportStagedFiles(importJobId)) ?? importStaging.get(importJobId);
+
+    // The settle below needs this pod to know the reservation the create took.
+    await rehydrateImportReservation(importJobId);
 
     if (!staged) {
       throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
@@ -21052,6 +21168,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
+    /*
+     * AUDX-015 — the project this commit mounts, if it gets that far.
+     *
+     * The catch below announced « full rollback — no partial target », but
+     * `cleanupImport` only disposes the staging and compensates the credits: it
+     * never touched the project. A failure AFTER `createProject` (writeFiles on a
+     * full disk, manifest, quota) therefore left an empty project in the
+     * organization that nothing referenced — `targetProjectId` is only written at
+     * COMMITTED — so it was invisible everywhere except to an operator.
+     *
+     * Set only AFTER `createProject` RESOLVES, never before: latching the id at
+     * the start of the call would make the rollback try to delete a project that
+     * was never created.
+     */
+    let mountedProjectId: string | undefined;
 
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
@@ -21123,6 +21255,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       });
 
+      // AUDX-015 — latched only now that the project actually exists.
+      mountedProjectId = project.id;
+
       const written = await projectStorage.writeFiles(
         project.id,
         finalFiles.map((file) => ({ path: file.path, content: file.content })),
@@ -21130,7 +21265,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
       await recordUsage(request, orgId, 'projects.count');
 
-      importStaging.delete(importJobId); // staging disposed after successful commit
+      // Staging disposed after a successful commit — in the store AND locally.
+      await store.deleteImportStagedFiles(importJobId).catch(() => undefined);
+      importStaging.delete(importJobId);
       await advance('COMMITTED', { targetProjectId: project.id });
 
       /*
@@ -21164,11 +21301,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       /*
-       * Failure path: full rollback — no partial target, staging disposed, and the
-       * reservation COMPENSATED (zero debit) via cleanupImport. A failure after
-       * reservation therefore never charges. ROLLING_BACK is the terminal here.
+       * Failure path: full rollback — staging disposed and the reservation
+       * COMPENSATED (zero debit) via cleanupImport, so a failure after reservation
+       * never charges. ROLLING_BACK is the terminal here.
+       *
+       * AUDX-015 — and the target is now actually rolled back. If this commit had
+       * already mounted a project, it is removed: an import that did not commit
+       * must leave nothing behind, which is what « no partial target » claimed all
+       * along. `hardDeleteProject` cascades the project graph.
+       *
+       * The deletion never masks the original error: it is the import failure the
+       * caller needs to see, and a rollback that itself fails must not replace it
+       * with a confusing second one.
        */
       const message = error instanceof Error ? error.message : String(error);
+
+      if (mountedProjectId) {
+        await store.hardDeleteProject(mountedProjectId).catch((rollbackError: unknown) => {
+          request.log?.error?.(
+            { importJobId, projectId: mountedProjectId, err: rollbackError },
+            'import rollback could not remove the mounted project',
+          );
+        });
+        mountedProjectId = undefined;
+      }
+
       await cleanupImport(importJobId, 'ROLLING_BACK', message);
       throw error;
     }

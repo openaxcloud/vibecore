@@ -1531,10 +1531,20 @@ exports.Prisma.ImportJobScalarFieldEnum = {
   stagedFileCount: 'stagedFileCount',
   redactedCount: 'redactedCount',
   creditsReserved: 'creditsReserved',
+  idempotencyKey: 'idempotencyKey',
   error: 'error',
   expiresAt: 'expiresAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ImportStagedFileScalarFieldEnum = {
+  id: 'id',
+  importJobId: 'importJobId',
+  path: 'path',
+  content: 'content',
+  encoding: 'encoding',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.GalleryListingScalarFieldEnum = {
@@ -1998,6 +2008,7 @@ exports.Prisma.ModelName = {
   ProjectCheckpoint: 'ProjectCheckpoint',
   RemixJob: 'RemixJob',
   ImportJob: 'ImportJob',
+  ImportStagedFile: 'ImportStagedFile',
   GalleryListing: 'GalleryListing',
   LedgerAccount: 'LedgerAccount',
   LedgerTransaction: 'LedgerTransaction',
