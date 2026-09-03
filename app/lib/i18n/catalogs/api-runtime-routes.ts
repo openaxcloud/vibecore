@@ -88,6 +88,7 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.deploymentRequired': 'Select a deployment before requesting {action}.',
   'apiRuntime.panel.debugConfigurationRequired': 'Create a launch configuration before starting the debugger.',
   'apiRuntime.panel.domainsOrganizationMissing': 'Link this project to an organization before managing domains.',
+  'apiRuntime.panel.databaseIntentUnsupported': 'The database panel does not support the action “{intent}”.',
   'apiRuntime.panel.unsupportedAiProvider': 'This AI provider is not supported.',
   'apiRuntime.panel.backupSnapshotRequired': 'Select a backup snapshot to restore.',
   'apiRuntime.panel.databaseBackupName': 'Database backup {timestamp}',
@@ -261,6 +262,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.deploymentRequired': 'Sélectionnez un déploiement avant de demander l’action {action}.',
   'apiRuntime.panel.debugConfigurationRequired': 'Créez une configuration de lancement avant de démarrer le débogueur.',
   'apiRuntime.panel.domainsOrganizationMissing': 'Associez ce projet à une organisation avant de gérer les domaines.',
+  'apiRuntime.panel.databaseIntentUnsupported':
+    'Le panneau de base de données ne prend pas en charge l’action « {intent} ».',
   'apiRuntime.panel.unsupportedAiProvider': 'Ce fournisseur d’IA n’est pas pris en charge.',
   'apiRuntime.panel.backupSnapshotRequired': 'Sélectionnez un instantané de sauvegarde à restaurer.',
   'apiRuntime.panel.databaseBackupName': 'Sauvegarde de la base de données {timestamp}',
