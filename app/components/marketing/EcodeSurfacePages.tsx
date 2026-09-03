@@ -1039,16 +1039,6 @@ export function createProjectPreviewSurfacePage(projectId: string): EcodeSurface
   });
 }
 
-export function createProjectCompatSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `project/${projectId}`,
-    route: `/project/${projectId}`,
-    category: 'builder',
-    icon: Boxes,
-    dynamicCopy: { key: 'projectCompat', values: { projectId } },
-  });
-}
-
 export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefinition {
   return makeDynamicSurfacePage({
     slug: `editor/${editorId}`,
