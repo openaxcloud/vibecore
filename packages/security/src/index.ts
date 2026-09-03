@@ -114,30 +114,210 @@ function resolveEncryptionSecret(secret?: string) {
   return resolved;
 }
 
+/*
+ * AUDX-010 — keyed envelope so the corpus can be rotated.
+ *
+ * A `v1.` payload names no key: it can only ever be opened with whatever
+ * `CONFIG_ENCRYPTION_KEY` currently holds, so changing that variable turns every
+ * stored ciphertext into an undecryptable blob. `v2.` carries the id of the key
+ * that sealed it, which is what makes rotation a migration instead of a flag day:
+ * the retired key stays in the keyring for reads while the primary key seals all
+ * new writes, and `reencryptJson` walks the corpus forward.
+ *
+ * The keyring is OPT-IN. With no `CONFIG_ENCRYPTION_KEYS` set, this module emits
+ * `v1` exactly as before — deploying the code changes no bytes. Enable the keyring
+ * only once the code is everywhere, or a pod still running the old build will meet
+ * a `v2` payload it cannot parse.
+ */
+const KEY_ID_PATTERN = /^[A-Za-z0-9_-]{1,64}$/;
+
+function parseKeyring(): Map<string, string> {
+  const raw = process.env.CONFIG_ENCRYPTION_KEYS?.trim();
+
+  if (!raw) {
+    return new Map();
+  }
+
+  let parsed: unknown;
+
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw Object.assign(new Error('CONFIG_ENCRYPTION_KEYS must be a JSON object of keyId -> secret'), {
+      statusCode: 500,
+      code: 'CONFIG_ENCRYPTION_KEYS_INVALID',
+    });
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw Object.assign(new Error('CONFIG_ENCRYPTION_KEYS must be a JSON object of keyId -> secret'), {
+      statusCode: 500,
+      code: 'CONFIG_ENCRYPTION_KEYS_INVALID',
+    });
+  }
+
+  const keyring = new Map<string, string>();
+
+  for (const [keyId, secret] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!KEY_ID_PATTERN.test(keyId)) {
+      throw Object.assign(new Error(`CONFIG_ENCRYPTION_KEYS holds an invalid key id: ${keyId}`), {
+        statusCode: 500,
+        code: 'CONFIG_ENCRYPTION_KEYS_INVALID',
+      });
+    }
+
+    if (typeof secret !== 'string' || secret.length === 0) {
+      throw Object.assign(new Error(`CONFIG_ENCRYPTION_KEYS holds an empty secret for key id: ${keyId}`), {
+        statusCode: 500,
+        code: 'CONFIG_ENCRYPTION_KEYS_INVALID',
+      });
+    }
+
+    keyring.set(keyId, secret);
+  }
+
+  return keyring;
+}
+
+function resolvePrimaryKey(): { keyId: string; secret: string } | undefined {
+  const keyring = parseKeyring();
+
+  if (keyring.size === 0) {
+    return undefined;
+  }
+
+  const primaryKeyId = process.env.CONFIG_ENCRYPTION_PRIMARY_KEY_ID?.trim();
+
+  if (!primaryKeyId) {
+    throw Object.assign(new Error('CONFIG_ENCRYPTION_PRIMARY_KEY_ID is required when CONFIG_ENCRYPTION_KEYS is set'), {
+      statusCode: 500,
+      code: 'CONFIG_ENCRYPTION_PRIMARY_KEY_REQUIRED',
+    });
+  }
+
+  const secret = keyring.get(primaryKeyId);
+
+  if (!secret) {
+    throw Object.assign(
+      new Error(`CONFIG_ENCRYPTION_PRIMARY_KEY_ID=${primaryKeyId} is not present in CONFIG_ENCRYPTION_KEYS`),
+      { statusCode: 500, code: 'CONFIG_ENCRYPTION_PRIMARY_KEY_UNKNOWN' },
+    );
+  }
+
+  return { keyId: primaryKeyId, secret };
+}
+
+/**
+ * Id of the key that sealed a ciphertext, or `undefined` for a legacy `v1`
+ * payload. This is what makes a rotation VERIFIABLE: an operator can count how
+ * much of the corpus still names the retired key instead of assuming the sweep
+ * finished.
+ */
+export function ciphertextKeyId(encrypted: string): string | undefined {
+  const [version, keyId] = encrypted.split('.');
+
+  return version === 'v2' && keyId ? keyId : undefined;
+}
+
 export function encryptJson(value: unknown, secret?: string) {
-  const resolvedSecret = resolveEncryptionSecret(secret);
+  const plaintext = JSON.stringify(value);
+
+  // An explicit secret is a caller-owned key, outside the platform keyring.
+  const primary = secret === undefined ? resolvePrimaryKey() : undefined;
   const iv = randomBytes(12);
-  const cipher = createCipheriv('aes-256-gcm', encryptionKey(resolvedSecret), iv);
-  const ciphertext = Buffer.concat([cipher.update(JSON.stringify(value), 'utf8'), cipher.final()]);
+
+  if (primary) {
+    const cipher = createCipheriv('aes-256-gcm', encryptionKey(primary.secret), iv);
+
+    // The key id is authenticated, not merely prefixed: relabelling a payload
+    // from one key to another must not verify, even if both keys share a secret.
+    cipher.setAAD(Buffer.from(primary.keyId, 'utf8'));
+
+    const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
+    const tag = cipher.getAuthTag();
+
+    return `v2.${primary.keyId}.${iv.toString('base64url')}.${tag.toString('base64url')}.${ciphertext.toString('base64url')}`;
+  }
+
+  const cipher = createCipheriv('aes-256-gcm', encryptionKey(resolveEncryptionSecret(secret)), iv);
+  const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
   const tag = cipher.getAuthTag();
 
   return `v1.${iv.toString('base64url')}.${tag.toString('base64url')}.${ciphertext.toString('base64url')}`;
 }
 
 export function decryptJson<T = unknown>(encrypted: string, secret?: string): T {
-  const resolvedSecret = resolveEncryptionSecret(secret);
-  const [version, iv, tag, ciphertext] = encrypted.split('.');
+  const parts = encrypted.split('.');
+  const version = parts[0];
 
-  if (version !== 'v1' || !iv || !tag || !ciphertext) {
+  let key: Buffer;
+  let iv: string | undefined;
+  let tag: string | undefined;
+  let ciphertext: string | undefined;
+  let aad: Buffer | undefined;
+
+  if (version === 'v2') {
+    const [, keyId, ivPart, tagPart, ciphertextPart] = parts;
+
+    if (!keyId || !ivPart || !tagPart || !ciphertextPart) {
+      throw new Error('Invalid encrypted payload');
+    }
+
+    /*
+     * An explicit secret still wins so a caller holding its own key can read its
+     * own corpus; otherwise the key id is looked up in the keyring. A key id that
+     * is absent fails LOUDLY and names itself — the operator needs to know which
+     * retired key they dropped too early, not a generic auth failure.
+     */
+    const resolved = secret ?? parseKeyring().get(keyId);
+
+    if (!resolved) {
+      throw Object.assign(new Error(`No encryption key available for keyId ${keyId}`), {
+        statusCode: 500,
+        code: 'CONFIG_ENCRYPTION_KEY_UNKNOWN',
+      });
+    }
+
+    key = encryptionKey(resolved);
+    aad = Buffer.from(keyId, 'utf8');
+    iv = ivPart;
+    tag = tagPart;
+    ciphertext = ciphertextPart;
+  } else if (version === 'v1') {
+    const [, ivPart, tagPart, ciphertextPart] = parts;
+
+    if (!ivPart || !tagPart || !ciphertextPart) {
+      throw new Error('Invalid encrypted payload');
+    }
+
+    key = encryptionKey(resolveEncryptionSecret(secret));
+    iv = ivPart;
+    tag = tagPart;
+    ciphertext = ciphertextPart;
+  } else {
     throw new Error('Invalid encrypted payload');
   }
 
-  const decipher = createDecipheriv('aes-256-gcm', encryptionKey(resolvedSecret), Buffer.from(iv, 'base64url'));
+  const decipher = createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64url'));
+
+  if (aad) {
+    decipher.setAAD(aad);
+  }
+
   decipher.setAuthTag(Buffer.from(tag, 'base64url'));
 
   const plaintext = Buffer.concat([decipher.update(Buffer.from(ciphertext, 'base64url')), decipher.final()]);
 
   return JSON.parse(plaintext.toString('utf8')) as T;
+}
+
+/**
+ * Re-seal a ciphertext under the current primary key. Idempotent: a payload
+ * already sealed by the primary key comes back sealed by the same key (fresh
+ * IV). Used by the rotation sweep to walk a column forward one row at a time.
+ */
+export function reencryptJson(encrypted: string): string {
+  return encryptJson(decryptJson(encrypted));
 }
 
 function ipv4ToInt(ip: string) {
