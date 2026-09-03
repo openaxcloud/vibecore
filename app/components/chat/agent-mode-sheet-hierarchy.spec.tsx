@@ -89,3 +89,34 @@ describe('feuille des modes de l’agent — deux niveaux', () => {
     expect(verrouille!.textContent, 'et son libellé reste lisible').toMatch(/\S/);
   });
 });
+
+describe('curseur d’effort', () => {
+  it('rend deux crans, dont un seul actif', () => {
+    /*
+     * La référence Replit montre un curseur de Low à Max. Notre modèle ne
+     * connaît qu'un booléen : on rend fidèlement la FORME avec les deux
+     * positions que le produit possède réellement, plutôt que d'inventer des
+     * états dont personne n'a décidé la valeur.
+     */
+    const feuille = ouvrirLaFeuille();
+    fireEvent.click(within(feuille).getAllByRole('radio')[1]);
+
+    const crans = document.querySelectorAll('.bolt-agent-effort-stop');
+
+    expect(crans.length, 'deux crans, pas un interrupteur').toBe(2);
+
+    const actifs = [...crans].filter((cran) => cran.getAttribute('data-actif') === 'true');
+
+    expect(actifs.length, 'un seul cran actif à la fois').toBe(1);
+  });
+
+  it('porte sa légende, pour qu’on sache ce que valent les crans', () => {
+    const feuille = ouvrirLaFeuille();
+    fireEvent.click(within(feuille).getAllByRole('radio')[1]);
+
+    const legende = document.querySelector('.bolt-agent-effort-legend');
+
+    expect(legende, 'un curseur sans légende ne dit pas ce qu’il règle').toBeTruthy();
+    expect((legende!.textContent ?? '').trim().length).toBeGreaterThan(0);
+  });
+});

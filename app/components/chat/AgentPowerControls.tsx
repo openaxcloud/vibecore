@@ -469,6 +469,28 @@ export function AgentPowerControls({
                       />
                       {copy['chatControls.power.highEffort']}
                     </span>
+                    {/*
+                      Un CURSEUR à deux crans, pas un interrupteur.
+
+                      La référence Replit montre un curseur de Low à Max avec sa
+                      légende. Notre modèle ne connaît qu'un booléen : rendre
+                      quatre crans exigerait d'inventer des états qui n'existent
+                      pas, et de décider ce qu'ils valent — une décision produit.
+
+                      On rend donc fidèlement la FORME de la référence avec les
+                      deux positions que le produit possède réellement. Le
+                      contrôle garde sa sémantique d'interrupteur pour
+                      l'assistance : deux états, c'est ce qu'il est.
+                    */}
+                    <span className="bolt-agent-effort-track" aria-hidden>
+                      <span className="bolt-agent-effort-stop" data-actif={value.highEffort ? 'false' : 'true'} />
+                      <span className="bolt-agent-effort-rail" />
+                      <span className="bolt-agent-effort-stop" data-actif={value.highEffort ? 'true' : 'false'} />
+                    </span>
+                    <span className="bolt-agent-effort-legend" aria-hidden>
+                      <span>{copy['chatControls.power.effortLow']}</span>
+                      <span>{copy['chatControls.power.effortHigh']}</span>
+                    </span>
                     <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
                       {copy['chatControls.power.highEffortDescription']}
                     </span>

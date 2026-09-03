@@ -7560,6 +7560,52 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-secondary);
 }
 
+/*
+ * Curseur d'effort — la FORME de la référence, avec les états que le produit a.
+ *
+ * Replit montre un curseur de Low à Max. Notre modèle ne connaît qu'un booléen :
+ * inventer quatre crans reviendrait à décider ce qu'ils valent, ce qui n'est pas
+ * une décision de style. On rend donc deux crans, honnêtement.
+ */
+.bolt-agent-effort-track {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding-left: 20px;
+  margin-top: 6px;
+  gap: 4px;
+}
+
+.bolt-agent-effort-rail {
+  height: 2px;
+  flex: 1;
+  border-radius: 999px;
+  background: var(--vc-ide-border-visible);
+}
+
+.bolt-agent-effort-stop {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border: 2px solid var(--vc-ide-border-visible);
+  border-radius: 999px;
+  background: var(--vc-ide-bg-panel);
+}
+
+.bolt-agent-effort-stop[data-actif='true'] {
+  border-color: var(--vc-ide-accent-action);
+  background: var(--vc-ide-accent-action);
+}
+
+.bolt-agent-effort-legend {
+  display: flex;
+  justify-content: space-between;
+  padding-left: 20px;
+  margin-top: 2px;
+  color: var(--vc-ide-text-secondary);
+  font-size: var(--vc-composer-caption, 12px);
+}
+
 .bolt-agent-sheet-modes {
   display: flex;
   flex-direction: column;
