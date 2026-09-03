@@ -209,3 +209,78 @@ l'utilisateur confirme à l'aveugle.
 2. **`collaborators`** — ensembles disjoints, donc chaque écran est incomplet.
 3. **`deployments`** — remonter `detect` et `rate-card` dans l'IDE.
 4. **`settings`** — renommer, pas fusionner : ce sont deux écrans légitimes.
+
+---
+
+## Axe 4 — routes hors projet (recensement clos le 2026-09-03)
+
+Le quatrième et dernier axe : les ~180 routes qui ne sont pas sous
+`projects.$projectId.*`. Recherche par grappes de noms, puis lecture de chaque
+grappe suspecte.
+
+### Grappes vérifiées SAINES — à ne pas « corriger »
+
+| Grappe | Chemins | Verdict |
+|---|---|---|
+| Profils publics | `/profile/:username`, `/u/:username`, `/user/:username` | **Non-défaut.** Les trois lancent un 404 honnête, documenté, parce qu'E-Code n'a aucun back-end de profil public. Trois chemins, un comportement, assumé (G26). |
+| Réglages | `/settings`, `/settings/:tab`, `/account-settings`, `/user/settings`, `/workspace-settings` | **Non-défaut.** `/settings` et `/settings/:tab` montent le MÊME `ControlPanel`, l'un avec un onglet présélectionné — le motif d'alias exact recommandé pour BUG-IDE-014. `/user/settings` fait une redirection 301. `/workspace-settings` est un écran distinct. |
+| Projet public | `/$accountSlug/$projectSlug`, `/u/:username/:projectname`, `/$slug` | **Non-défaut.** Résolution réelle ou 404 franc selon le cas ; pas de contenu inventé. |
+
+### Défaut trouvé et corrigé
+
+| Chemin | Défaut | État |
+|---|---|---|
+| **`/project/:id`** | Rendait une page MARKETING « Project Compatibility Overview » décrivant « legacy E-Code project {projectId} » pour n'importe quelle chaîne, publiquement, en **HTTP 200**. Même « fausse brochure » que G26 a corrigée sur les trois routes de profil — **celle-ci a été oubliée**. | ✅ **PR #408** — 301 vers `/projects/:id`, fabrique et 24 clés de copie orphelines retirées, garde anti-redirection-ouverte |
+
+### Dette signalée, non touchée
+
+`createProfileSurfacePage` et `createTeamSurfacePage` restent **orphelines** sur
+`main` : G26 a cessé d'utiliser la première sans la retirer. Elles ne découlent
+pas des changements de cette campagne et n'y sont donc pas mêlées, mais elles
+appartiennent à la dette des composants morts qu'Avi paie ailleurs.
+
+---
+
+## R-8 — le troisième écrivain sans `scope`, réglé
+
+La branche `database` de la route de panneaux finissait par un `else` qui, pour
+tout intent non reconnu, faisait
+`PUT /env-vars { key: body.key || 'DATABASE_URL', value: body.value ?? '' }` —
+soit l'écrasement de la chaîne de connexion par une valeur VIDE, avec `ok: true`.
+
+Inatteignable aujourd'hui (seuls `provision`, `query` et `upsert-secret`
+arrivent là), mais un chemin d'écriture inatteignable reste une arme chargée :
+le premier intent ajouté sans branche l'aurait déclenché. **Échoue désormais en
+400** — ✅ **PR #407**.
+
+⚠️ La première mesure d'atteignabilité était **fausse** : un motif quoté
+(`'upsert-secret'`) manquait les formulaires JSX `value="upsert-secret"` et
+rendait « 0 émetteur » pour des intents vivants. Refaite en chaîne fixe avec
+témoin positif. Sans ce contrôle, je supprimais du code atteignable — règle 14,
+appliquée en situation.
+
+---
+
+## État de la campagne au 2026-09-03
+
+| Point | État |
+|---|---|
+| BUG-IDE-014 — carte Domaines en double | ✅ PR #379 |
+| R-2 — Terminal ↔ Env vars / Secrets (divergence de `scope`) | ✅ PR #384 |
+| R-3 — Terminal ↔ Ports | ✅ PR #384 |
+| R-4 — descriptions identiques | ✅ PR #384 |
+| R-1 — garde du contrôle SAML + mesure des 5 surfaces | ✅ PR #386 (arbitrage produit en attente d'Avi) |
+| R-9 `snapshots` — restauration à deux portées | ✅ PR #397 (message honnête ; consolidation = `BaseChat.tsx`) |
+| R-8 — repli destructeur du panneau base de données | ✅ PR #407 |
+| Axe 4 — `/project/:id` fausse brochure | ✅ PR #408 |
+
+**Reste ouvert, et pourquoi :**
+
+1. **R-1, l'arbitrage** — décision produit d'Avi : l'hébergement sur domaine
+   personnalisé doit-il exister ? Les deux issues sont de gros changements en
+   sens opposés.
+2. **R-9, les consolidations** (`snapshots`, `collaborators`, `deployments`,
+   `settings`) — toutes dans `app/components/chat/BaseChat.tsx`, territoire
+   d'une autre session.
+3. **Fabriques de surface orphelines** — `createProfileSurfacePage`,
+   `createTeamSurfacePage`.
