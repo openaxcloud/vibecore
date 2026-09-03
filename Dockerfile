@@ -117,6 +117,25 @@ COPY --from=prod-deps --chown=node:node /app/build /app/build
 COPY --from=prod-deps --chown=node:node /app/node_modules /app/node_modules
 COPY --from=prod-deps --chown=node:node /app/package.json /app/package.json
 
+# CVE-2026-59873 — `tar` CRITIQUE (bombe gzip) dans le node-tar EMBARQUÉ PAR npm.
+#
+# Mesuré le 2026-09-03 dans l'image réellement servie :
+#   7.5.11  /usr/local/lib/node_modules/npm/node_modules/tar/package.json
+#   7.5.15  /app/node_modules/.pnpm/tar@.../node_modules/tar/package.json
+#
+# La seconde est la nôtre et se corrige par un `override` pnpm. La PREMIÈRE non :
+# elle appartient à l'image de base `node:22-bookworm-slim`, ce n'est pas une
+# dépendance résolue. Elle a bloqué les 7 images à la porte de vulnérabilités et
+# figé toutes les livraisons.
+#
+# npm et corepack ne servent JAMAIS à l'exécution — le conteneur lance `node`
+# directement. Les retirer est un correctif réel, pas un contournement : la
+# vulnérabilité disparaît ET la surface d'attaque diminue. Préféré à une entrée
+# `.trivyignore`, qui aurait affaibli une porte de sécurité pour un outil qui ne
+# s'exécute pas.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+
 # Run as non-root to satisfy podSecurity `runAsNonRoot: true`.
 USER node
 
