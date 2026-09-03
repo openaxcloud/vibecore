@@ -232,3 +232,53 @@ page. La première seule autorise à annoncer une livraison qui n'a aucun effet.
 
 ⚠️ **📦 servi ne vaut pas ✅.** C'est précisément l'écart où deux correctifs se
 sont perdus le 2026-09-02.
+
+## ⚠️ Les portes de FORME — elles arrêtent des livraisons sans défaut
+
+Le 2026-09-03, **trois livraisons** ont été bloquées par la même porte, et
+aucune n'avait le moindre défaut de contenu. L'une d'elles portait le correctif
+qui rouvrait toute la chaîne de déploiement.
+
+### `Validate PR Title` — la règle exacte
+
+Source : `.github/workflows/semantic-pr.yaml` (`amannn/action-semantic-pull-request`).
+
+**Types acceptés — il n'y en a pas d'autres :**
+
+```
+fix   feat   chore   build   ci   perf   docs   refactor   revert   test
+```
+
+⚠️ **`ops`, `design`, `style`, `security` ne sont PAS acceptés.** Pour un
+changement d'infrastructure ou de dimensionnement : `chore`. Pour un
+changement visuel : `fix` ou `feat`.
+
+**Casse du sujet** : `subjectPattern: ^(?![A-Z]).+$` — le sujet **ne doit pas
+commencer par une majuscule**. Cela inclut les acronymes : `CVE-…`, `AUDX-…`,
+`BUG-…` en tête de sujet font échouer la porte. Les déplacer entre parenthèses
+à la fin.
+
+### Les trois cas du jour
+
+| PR | titre refusé | motif | corrigé en |
+|---|---|---|---|
+| #375 | `ops(api): relever la limite…` | type `ops` inconnu | `chore(api): …` |
+| #382 | `design(agent): feuilles ancrées…` | type `design` inconnu | `fix(agent): …` |
+| #374 | `perf(ide): AUDX-167 — …` | sujet commençant par `A` | `perf(ide): ide-state honore … (AUDX-167)` |
+| #391 | `fix(security): CVE-2026-59873 — …` | sujet commençant par `C` | `fix(security): la porte … (CVE-2026-59873)` |
+
+### Le défaut d'outillage, pas seulement le nôtre
+
+Le message d'échec dit *« Unknown release type "ops" »* **sans lister les types
+acceptés**. Il faut ouvrir le journal complet du run pour les trouver — la liste
+y figure, mais sous forme d'un `types:` noyé dans la trace de l'action.
+
+C'est la même classe de défaut que le *« Une erreur inconnue est survenue dans
+l'aperçu »* : **un message qui nomme le problème sans donner le moyen de le
+corriger**. Un contrôle qui refuse pour un motif de forme doit dire, dans son
+message d'échec, ce qu'il attend.
+
+**Règle de méthode** : avant d'ouvrir une PR, vérifier le type dans la liste
+ci-dessus et s'assurer que le sujet commence par une minuscule. Trente secondes
+de vérification contre un cycle de CI complet — et, le 2026-09-03, contre
+plusieurs heures pendant lesquelles Avi ne recevait rien.
