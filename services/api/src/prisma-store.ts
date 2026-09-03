@@ -2837,6 +2837,41 @@ export class PrismaApiStore implements ApiStore {
     return [...byOrg.entries()].map(([organizationId, bytes]) => ({ organizationId, bytes }));
   }
 
+  async listAllProjectsForStorageInventory(): Promise<Array<{ id: string; organizationId: string }>> {
+    return this.prisma.project.findMany({ select: { id: true, organizationId: true }, orderBy: { id: 'asc' } });
+  }
+
+  async recordProjectObjectStorageUsage(input: {
+    projectId: string;
+    bytes: number;
+    objectCount: number;
+    measuredAt: Date;
+  }): Promise<void> {
+    const data = {
+      bytes: BigInt(Math.max(0, Math.trunc(input.bytes))),
+      objectCount: Math.max(0, Math.trunc(input.objectCount)),
+      measuredAt: input.measuredAt,
+    };
+
+    await this.prisma.projectObjectStorageUsage.upsert({
+      where: { projectId: input.projectId },
+      create: { projectId: input.projectId, ...data },
+      update: data,
+    });
+  }
+
+  async getProjectObjectStorageUsage(projectId: string) {
+    const row = await this.prisma.projectObjectStorageUsage.findUnique({ where: { projectId } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    // BigInt -> number: a project bucket past 2^53 bytes (9 PB) is not a case
+    // this platform has; Number() staying exact below that is what matters.
+    return { bytes: Number(row.bytes), objectCount: row.objectCount, measuredAt: row.measuredAt };
+  }
+
   async getDatabaseInstanceByProject(
     projectId: string,
     environment = 'development',

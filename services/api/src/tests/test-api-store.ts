@@ -1798,6 +1798,32 @@ export class TestApiStore implements ApiStore {
     return this.projectStorageObjects.get(key);
   }
 
+  readonly objectStorageUsage = new Map<string, { bytes: number; objectCount: number; measuredAt: Date }>();
+
+  async listAllProjectsForStorageInventory() {
+    return [...this.projects.values()].map((project) => ({
+      id: project.id,
+      organizationId: project.organizationId,
+    }));
+  }
+
+  async recordProjectObjectStorageUsage(input: {
+    projectId: string;
+    bytes: number;
+    objectCount: number;
+    measuredAt: Date;
+  }) {
+    this.objectStorageUsage.set(input.projectId, {
+      bytes: input.bytes,
+      objectCount: input.objectCount,
+      measuredAt: input.measuredAt,
+    });
+  }
+
+  async getProjectObjectStorageUsage(projectId: string) {
+    return this.objectStorageUsage.get(projectId);
+  }
+
   async aggregateStorageBytesByOrg() {
     const byOrg = new Map<string, number>();
 
