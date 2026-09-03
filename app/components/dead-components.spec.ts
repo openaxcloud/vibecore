@@ -38,22 +38,19 @@ const RACINE = join(__dirname);
  * chantier à part, fait à la main, pas un `git rm`. La raison est notée pour
  * chacun, parce qu'un mort non expliqué finit par être pris pour du code vivant.
  */
-const MORTS_CONNUS = [
-  /* typography-closed-scale.spec.ts nomme son chemin ; DeployRemainingComponents le monte. */
-  'deploy/DeploymentTypeSelector',
-
-  /* marketing-exact-legal-blog.spec.tsx importe son catalogue de copie. */
-  'marketing/EcodeExactLegalPages',
-
-  /* marketing-ux-audit.spec.ts lit son chemin pour vérifier l'échelle des h1. */
-  'marketing/ecode-exact/pages/LegalArticle',
-
+const MORTS_CONNUS: string[] = [
   /*
-   * Trois specs nomment son chemin, dont une GARDE délibérée : `pricing.i18n.spec.tsx`
-   * vérifie que le registre ne l'importe PAS. La vraie page est `EcodePricingPage`.
-   * Le supprimer rendrait cette garde trivialement vraie — à décider ensemble.
+   * VIDE, et c'est le but. Les 16 composants morts relevés le 2026-09-01 ont
+   * tous été supprimés, chacun après preuve de mort — aucun import réel depuis
+   * un fichier non-test, témoin positif à l'appui.
+   *
+   * La liste reste ici parce que le cliquet en a besoin : `MORTS_CONNUS` est
+   * l'exemption, et une exemption vide est la bonne valeur par défaut. Y
+   * ajouter une entrée exige une raison ÉCRITE — du code mort qui a l'air
+   * vivant a déjà fait conclure à tort qu'un comportement marchait
+   * (BUG-DB-002 : un commentaire s'appuyait sur le bloc d'erreur de
+   * `DatabasePanel`, jamais rendu).
    */
-  'marketing/ecode-exact/pages/Pricing',
 ];
 
 function fichiers(dir: string, acc: string[] = []): string[] {
