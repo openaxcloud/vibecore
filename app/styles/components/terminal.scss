@@ -111,6 +111,26 @@
   z-index: 40;
   top: calc(100% + 5px);
   display: grid;
+
+  /*
+   * SURF-02 — ces menus bornaient leur LARGEUR (`min(320px, calc(100vw - 24px))`)
+   * mais ni leur hauteur ni leur débordement. Une liste de sessions un peu
+   * longue sortait de l'écran par le bas, sans moyen d'atteindre les dernières
+   * entrées.
+   *
+   * `dvh` et non `vh` : `vh` ignore la barre d'outils mobile rétractable, ce qui
+   * fait passer le panneau SOUS la barre. `dvh` suit la hauteur réellement
+   * visible. La gouttière de 24 px évite que le menu ne colle aux bords et
+   * paraisse tronqué.
+   *
+   * Borner SANS `overflow` ne tronquerait pas moins — cela couperait le
+   * contenu. Les deux vont ensemble.
+   *
+   * Même forme que `~/components/ui/Dropdown`, qui fait référence.
+   */
+  max-height: min(420px, calc(100dvh - 24px));
+  overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
   border-radius: 8px;
   background: color-mix(in srgb, var(--vc-ide-bg-panel, var(--bolt-elements-background-depth-2)), transparent 2%);
