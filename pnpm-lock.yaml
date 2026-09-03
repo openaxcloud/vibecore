@@ -248,9 +248,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.1.4
         version: 1.2.7(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@react-router/fs-routes':
-        specifier: ^7.18.0
-        version: 7.18.0(@react-router/dev@7.18.0(@react-router/serve@7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1)))(typescript@5.8.3)
       '@react-router/node':
         specifier: ^7.18.0
         version: 7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3)
@@ -503,9 +500,6 @@ importers:
       use-debounce:
         specifier: ^10.0.4
         version: 10.0.5(react@18.3.1)
-      vite-plugin-node-polyfills:
-        specifier: ^0.22.0
-        version: 0.22.0(rollup@4.60.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))
       ws:
         specifier: ^8.20.0
         version: 8.20.0
@@ -537,6 +531,9 @@ importers:
       '@react-router/dev':
         specifier: ^7.18.0
         version: 7.18.0(@react-router/serve@7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1))
+      '@react-router/fs-routes':
+        specifier: ^7.18.0
+        version: 7.18.0(@react-router/dev@7.18.0(@react-router/serve@7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1)))(typescript@5.8.3)
       '@testing-library/jest-dom':
         specifier: ^6.6.3
         version: 6.6.3
@@ -663,6 +660,9 @@ importers:
       vite-plugin-copy:
         specifier: ^0.1.6
         version: 0.1.6
+      vite-plugin-node-polyfills:
+        specifier: ^0.22.0
+        version: 0.22.0(rollup@4.60.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))
       vite-plugin-optimize-css-modules:
         specifier: ^1.1.0
         version: 1.2.0(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))
