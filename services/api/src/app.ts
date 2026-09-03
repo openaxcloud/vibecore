@@ -6,7 +6,12 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, sep, resolve } from 'node:path';
 import { Readable } from 'node:stream';
-import { signObjectStorageAccessToken, verifyObjectStorageAccessToken } from '@e-code/sdk';
+import {
+  LEGACY_OBJECT_STORAGE_SCOPES,
+  signObjectStorageAccessToken,
+  verifyObjectStorageAccessToken,
+  type ObjectStorageScope,
+} from '@e-code/sdk';
 import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -498,7 +503,7 @@ declare module 'fastify' {
     apiKeyAuth?: { id: string; scopes: ApiKeyScope[] };
 
     /* A workspace-app object-storage grant (non-user principal scoped to one project). */
-    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string };
+    objectStorageGrant?: { projectId: string; userId?: string; workspaceId?: string; scopes?: ObjectStorageScope[] };
     rawBody?: string;
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
@@ -3496,6 +3501,12 @@ function buildWorkspaceObjectStorage(input: {
       userId: input.userId,
       workspaceId: input.workspaceId,
       expiresAt: Date.now() + ttlMs,
+      /*
+       * AUDX-022 — least privilege. A generated app reads and writes its own
+       * bucket; it has no business deleting objects wholesale or destroying the
+       * bucket. Those verbs stay with an authenticated user session.
+       */
+      scopes: ['read', 'write'],
     },
     secret,
   });
@@ -33353,14 +33364,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const requireObjectStorageProject = async (
     request: FastifyRequest,
     permission: 'projects:read' | 'projects:write',
+    /*
+     * AUDX-022 — what the TOKEN path must carry. `permission` governs the user
+     * session; it says nothing about a workspace token, and this helper used to
+     * ignore it entirely once a grant was present. A read token therefore
+     * authorised deleting every object and destroying the bucket — from inside
+     * a workspace pod, which runs user-authored code.
+     *
+     * Defaults to the verb implied by `permission` so a route that forgets to
+     * pass one is never MORE permissive than the session check it declares.
+     */
+    tokenScope: ObjectStorageScope = permission === 'projects:write' ? 'write' : 'read',
   ) => {
     const projectId = parse(projectParams, request.params).projectId;
 
     /*
-     * A workspace app token already authorizes (read+write) THIS project's
-     * storage — no org membership check; the token's scope IS the authorization.
+     * A workspace app token authorizes THIS project's storage, for the verbs its
+     * `scopes` claim carries — no org membership check beyond that.
      */
     if (request.objectStorageGrant?.projectId === projectId) {
+      const granted = request.objectStorageGrant.scopes ?? LEGACY_OBJECT_STORAGE_SCOPES;
+
+      if (!granted.includes(tokenScope)) {
+        throw Object.assign(new Error(appPublicEnglish('OBJECT_STORAGE_SCOPE_REQUIRED')), {
+          statusCode: 403,
+          code: 'OBJECT_STORAGE_SCOPE_REQUIRED',
+        });
+      }
+
       const project = await store.getProject(projectId);
 
       if (!project) {
@@ -33401,7 +33432,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    /*
+     * AUDX-022 — `write`, deliberately NOT `admin`. ensureBucket is idempotent
+     * provisioning: it creates, it never destroys, and a workspace app enabling
+     * its own storage on first use is a legitimate flow. The destructive verb is
+     * DELETE on this same path, and that one does require `admin`.
+     */
+    const project = await requireObjectStorageProject(request, 'projects:write', 'write');
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -33415,7 +33452,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destroys the whole bucket: `admin` scope, which no workspace
+    // token is minted with. This stays an authenticated-user operation.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'admin');
 
     try {
       return reply.send(await resolveObjectStorage().deleteBucket(project.id));
@@ -33507,7 +33546,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
-    const project = await requireObjectStorageProject(request, 'projects:write');
+    // AUDX-022 — destructive: needs the `delete` scope, not merely `write`.
+    const project = await requireObjectStorageProject(request, 'projects:write', 'delete');
 
     const body = parse(
       z
