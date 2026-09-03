@@ -793,6 +793,23 @@ html:has(.vc-app-shell-grid) body {
   --vc-type-heading-size: 14px;
   --vc-type-heading-compact-size: 13px;
   --vc-type-label-size: 10px;
+
+  /*
+   * ÉCHELLE UNIQUE DE LA ZONE DE SAISIE ET DE SES FEUILLES.
+   *
+   * Avi : « surtout la même taille de police partout en mobile et tablet, à
+   * adapter en fonction du device ». Mesuré avant ce commit dans le composeur :
+   * 14px pour la plupart des libellés, mais 9px pour « Léger / Économique /
+   * Puissance » — trois tailles pour un même rôle, dont une illisible.
+   *
+   * Trois tailles, et trois seulement, comme la référence Replit : le libellé
+   * de ligne, la description secondaire, la légende. Elles sont définies ICI et
+   * nulle part ailleurs, et adaptées par famille d'appareils — pas par
+   * composant.
+   */
+  --vc-composer-text: 14px;
+  --vc-composer-text-secondary: 13px;
+  --vc-composer-caption: 12px;
   --vc-type-line-height: 1.42;
   --vc-type-label-letter-spacing: 0.4px;
   --vc-ui-radius-button: 4px;
@@ -919,6 +936,14 @@ html:has(.vc-app-shell-grid) body {
     --vc-type-heading-size: 13px;
     --vc-type-heading-compact-size: 12px;
     --vc-type-label-size: 9px;
+
+    /*
+     * Mobile et tablette : l'échelle de la référence, 17 / 15 / 13. Le doigt et
+     * le bras ne sont pas la souris et l'écran de bureau.
+     */
+    --vc-composer-text: 17px;
+    --vc-composer-text-secondary: 15px;
+    --vc-composer-caption: 13px;
   }
 }
 
@@ -3808,7 +3833,7 @@ body
 
 body
   :where([role='dialog'], .dialog, .modal, .bolt-project-command-palette, .bolt-web-url-panel)
-  :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']) {
   font-size: var(--vc-type-label-size) !important;
 }
 
@@ -6337,8 +6362,10 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1.45 !important;
 }
 
-.bolt-project-ide-shell :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
-.bolt-project-agent-panel :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+.bolt-project-ide-shell
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']),
+.bolt-project-agent-panel
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']) {
   font-size: var(--vc-type-label-size) !important;
 }
 
@@ -7374,6 +7401,122 @@ body :where(.lucide, svg[data-lucide]) {
  * le pousser, tout en restant dans la colonne de conversation — elle suit donc
  * la largeur du panneau, y compris quand l'IDE est en deux volets.
  */
+/*
+ * L'ÉCHELLE UNIQUE, APPLIQUÉE À LA ZONE DE SAISIE ET À SES FEUILLES.
+ *
+ * Pourquoi ces sélecteurs sont si appuyés : l'IDE pose déjà
+ *   `.bolt-project-ide-shell :where(div, span, p, a, li, …) { font-size: … !important }`
+ * qui impose `--vc-type-interface-size` à presque tout. Mesuré : les libellés
+ * des feuilles étaient rendus à 14px, et « Léger / Économique / Puissance » à
+ * 9px, par une autre règle du même genre. Pour reprendre la main sur un
+ * `!important`, il faut une spécificité supérieure ET un `!important` — d'où
+ * cette forme, qui vise nommément les quatre surfaces du composeur.
+ *
+ * Trois rôles, trois tailles, dans cet ordre : le libellé de ligne, la
+ * description secondaire, la légende. L'ordre compte — à spécificité égale,
+ * c'est la dernière règle qui gagne.
+ *
+ * Le `:not([class*='i-'])` n'est pas décoratif. Une première version sans lui
+ * était à ÉGALITÉ de spécificité (0,2,0) avec
+ * `.bolt-project-chatbox :where(…):not([class*='i-'])`, qui vient plus loin
+ * dans la feuille et gagnait donc par l'ordre : mesuré, les libellés restaient
+ * à 14px. Il porte la spécificité à (0,3,0) — et il exclut les icônes, qui
+ * n'ont rien à faire dans une échelle de TEXTE.
+ */
+.bolt-project-ide-shell
+  .bolt-project-agent-composer
+  :where(div, span, p, a, li, button, label, strong, summary):not([class*='i-']),
+.bolt-project-ide-shell
+  .bolt-chatbox-tools-menu
+  :where(div, span, p, a, li, button, label, strong, summary):not([class*='i-']),
+.bolt-project-ide-shell
+  .bolt-chatbox-mode-menu
+  :where(div, span, p, a, li, button, label, strong, summary):not([class*='i-']),
+.bolt-project-ide-shell
+  .bolt-agent-power-popover
+  :where(div, span, p, a, li, button, label, strong, summary):not([class*='i-']) {
+  font-size: var(--vc-composer-text) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-agent-composer :where(.text-xs, small, [class*='text-xs']),
+.bolt-project-ide-shell .bolt-chatbox-tools-menu :where(.text-xs, small, [class*='text-xs']),
+.bolt-project-ide-shell .bolt-chatbox-mode-menu :where(.text-xs, small, [class*='text-xs']),
+.bolt-project-ide-shell .bolt-agent-power-popover :where(.text-xs, small, [class*='text-xs']) {
+  font-size: var(--vc-composer-text-secondary) !important;
+}
+
+.bolt-project-ide-shell .bolt-project-agent-composer .bolt-composer-caption,
+.bolt-project-ide-shell .bolt-chatbox-tools-menu .bolt-composer-caption,
+.bolt-project-ide-shell .bolt-chatbox-mode-menu .bolt-composer-caption,
+.bolt-project-ide-shell .bolt-agent-power-popover .bolt-composer-caption {
+  font-size: var(--vc-composer-caption) !important;
+}
+
+/*
+ * Le champ de saisie garde son plancher de 16px sous 1024px : c'est lui qui
+ * empêche Safari iOS de zoomer, et aucune échelle ne doit passer devant.
+ */
+
+/*
+ * FEUILLES ANCRÉES EN BAS — la forme de la référence Replit.
+ *
+ * Avant : trois cartes flottantes de 369px de large, posées à 12px du bord
+ * gauche, coins arrondis sur les quatre angles, suspendues au-dessus de la
+ * barre. Mesuré au format iPhone 15 Pro.
+ *
+ * Après : la feuille occupe toute la largeur, s'appuie sur la barre du bas,
+ * n'arrondit que ses coins SUPÉRIEURS, et ne dépasse pas la moitié basse de
+ * l'écran. C'est ce qui la rend lisible d'un pouce et impossible à confondre
+ * avec un panneau flottant.
+ *
+ * Les classes sont nommées une à une, sans `:where()`, à dessein : les règles
+ * d'origine sont en `.bolt-responsive-ide-mobile .bolt-chatbox-…`, soit (0,2,0)
+ * avec `!important`. Mesuré avec un `:where()` — donc (0,1,0) — le bas de la
+ * feuille restait à 571px au lieu de 587 : l'ancienne marge de 16px gagnait.
+ *
+ * La hauteur reste bornée par l'espace RÉELLEMENT utile — barre d'outils du
+ * navigateur et clavier compris (voir visual-viewport-bottom.ts) : une feuille
+ * qui passe sous la barre de Safari est exactement ce qu'Avi photographie.
+ */
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+  right: 0 !important;
+  bottom: calc(
+    var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
+  ) !important;
+  left: 0 !important;
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  max-height: min(
+    calc(0.56 * var(--vc-mobile-espace-utile)),
+    520px,
+    calc(var(--vc-mobile-espace-utile) - var(--mobile-nav-height, 72px) - env(safe-area-inset-bottom, 0px) - 24px)
+  ) !important;
+  border-radius: var(--vc-mobile-sheet-radius) var(--vc-mobile-sheet-radius) 0 0 !important;
+
+  /*
+   * Réserve interne en bas : sans elle, le contenu bute sur l'arête de la
+   * feuille et la dernière ligne est tranchée en deux. Elle défile, donc rien
+   * n'est perdu — mais une ligne coupée par le milieu se lit comme un défaut.
+   */
+  padding-bottom: 16px;
+  transform: none !important;
+
+  /*
+   * Une feuille ancrée doit être OPAQUE : le fil défile juste derrière elle, et
+   * un fond translucide le laisse transparaître à travers les libellés.
+   * (Un garde-fou de `av-ux-12points.spec.ts` vérifie cette propriété en lisant
+   * la feuille de style comme du texte ; il tombe désormais sur ce bloc-ci en
+   * premier, ce qui est bien : la règle qui positionne la feuille est aussi
+   * celle qui doit garantir son opacité.)
+   */
+  background: var(--vc-ide-bg-panel);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
@@ -19977,9 +20120,12 @@ button.bolt-project-statusbar-pill:focus-visible,
   line-height: var(--vc-type-line-height) !important;
 }
 
-.bolt-project-ide-shell :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
-.bolt-project-agent-panel :where(.text-xs, small, [class*='text-xs']):not([class*='i-']),
-.bolt-project-chatbox :where(.text-xs, small, [class*='text-xs']):not([class*='i-']) {
+.bolt-project-ide-shell
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']),
+.bolt-project-agent-panel
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']),
+.bolt-project-chatbox
+  :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']):not([class*='i-']) {
   font-size: var(--vc-type-label-size) !important;
 }
 
