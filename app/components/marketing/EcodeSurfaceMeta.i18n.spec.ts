@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createProjectPreviewSurfacePage, getEcodeSurfacePage, makeEcodeSurfaceMetaTags } from './EcodeSurfacePages';
+import { createProjectImportSurfacePage, getEcodeSurfacePage, makeEcodeSurfaceMetaTags } from './EcodeSurfacePages';
 import { getMarketingSurfaceDynamicPageCopy } from '~/lib/i18n/catalogs/marketing-surface-dynamic';
 import { getMarketingSurfacePageCopy } from '~/lib/i18n/catalogs/marketing-surface-pages';
 
@@ -25,8 +25,19 @@ describe('E-Code surface metadata i18n', () => {
     });
   });
 
+  /*
+   * Ce test garde la MÉTADONNÉE DYNAMIQUE : traduite, et conservant
+   * l'identifiant du projet dans l'URL canonique comme dans les balises.
+   *
+   * Il passait par la fabrique « preview », retirée avec la brochure que
+   * `/projects/:id/preview` servait. Le véhicule change, la garde ne change
+   * pas : `createProjectImportSurfacePage` est la fabrique dynamique qui
+   * SURVIT — elle décrit une source d'import réelle et validée (elle lève un
+   * 404 sur une source inconnue), là où les autres décrivaient des entités
+   * inexistantes.
+   */
   it('localizes dynamic project metadata while preserving the project identifier', () => {
-    const page = createProjectPreviewSurfacePage('project_customer_42');
+    const page = createProjectImportSurfacePage('project_customer_42', 'bolt');
     const french = getMarketingSurfaceDynamicPageCopy('fr', page.dynamicCopy!);
     const tags = makeEcodeSurfaceMetaTags(page, 'fr');
 
@@ -35,7 +46,7 @@ describe('E-Code surface metadata i18n', () => {
     expect(tags).toContainEqual({
       tagName: 'link',
       rel: 'canonical',
-      href: 'https://e-code.ai/projects/project_customer_42/preview',
+      href: 'https://e-code.ai/projects/project_customer_42/import/bolt',
     });
     expect(JSON.stringify(tags)).toContain('project_customer_42');
   });
