@@ -230,6 +230,73 @@ describe('project snapshots i18n', () => {
     expect(screen.queryByText('Restore snapshot')).toBeNull();
   });
 
+  /*
+   * R-9 — restoring a snapshot does NOT do the same thing on both surfaces.
+   *
+   * Measured: `POST /projects/:id/snapshots/:id/restore` restores FILES ONLY —
+   * the API handler never touches the database. The IDE's rollback modal adds a
+   * separate point-in-time restore when its "Database" box is ticked; this page
+   * has no such step and, until this warning, said nothing about it. A user
+   * rolled the code back while the schema and rows stayed ahead of it.
+   *
+   * The dialog must therefore SAY so, in both languages. Rendering is asserted
+   * rather than the catalog, because a key nobody renders warns nobody.
+   */
+  it('warns that a dashboard restore leaves the database untouched', () => {
+    renderPage({
+      project: { id: 'project-1', name: 'Projet client' },
+      data: {
+        snapshots: [
+          {
+            id: 'snapshot/customer-1',
+            label: 'Nightly customer snapshot',
+            kind: 'before-ai-change',
+            byteLength: 1536,
+            createdAt: '2026-08-05T01:00:00.000Z',
+          },
+        ],
+      },
+      snapshotsUnavailable: false,
+      language: 'fr',
+    });
+
+    // The warning belongs to the restore dialog, not to the page at rest.
+    expect(screen.queryByTestId('restore-database-untouched')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restaurer Nightly customer snapshot' }));
+
+    const warning = screen.getByTestId('restore-database-untouched');
+
+    expect(warning.textContent).toContain('base de données');
+    expect(warning.textContent).toContain('seuls les fichiers');
+  });
+
+  it('warns about the database in English too', () => {
+    renderPage({
+      project: { id: 'project-1', name: 'Customer project' },
+      data: {
+        snapshots: [
+          {
+            id: 'snapshot/customer-1',
+            label: 'Nightly customer snapshot',
+            kind: 'before-ai-change',
+            byteLength: 1536,
+            createdAt: '2026-08-05T01:00:00.000Z',
+          },
+        ],
+      },
+      snapshotsUnavailable: false,
+      language: 'en',
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restore Nightly customer snapshot' }));
+
+    const warning = screen.getByTestId('restore-database-untouched');
+
+    expect(warning.textContent).toContain('database is not rolled back');
+    expect(warning.textContent).toContain('only files are restored');
+  });
+
   it('renders a recoverable localized panel and a safe action error', () => {
     renderPage(
       {
