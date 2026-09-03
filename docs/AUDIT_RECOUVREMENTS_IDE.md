@@ -123,7 +123,7 @@ y corrige le défaut d'écriture (dériver l'organisation du projet). Non refait
 |---|---|---|---|
 | **R-1** | 5 surfaces « domaines », 0 consommateur d'hébergement | **à trancher** | décision produit — voir ci-dessus |
 | **R-8** | **Troisième écrivain de variables d'env sans `scope`** : le panneau `database` (`ide-panel.$panel.ts:1979` `delete-env`, et un `PUT` de repli sur `DATABASE_URL`). Même classe que R-2 | moyenne | hors périmètre R-2 ; toucher au câblage `DATABASE_URL` sans mesurer le flux de provisioning serait exactement l'erreur que la règle 1 interdit |
-| **R-9** | **Zone utilisateur ↔ panneaux IDE** : 12 routes `projects.$projectId.*` ont un panneau IDE homonyme, avec des composants entièrement séparés sur les **mêmes** endpoints — `collaborators`, `deployments`, `env`, `secrets`, `snapshots`, `logs`, `database`, `activity`, `git`, `settings`, `preview`, `domains` | **haute** | c'est le plus gros gisement du dépôt et le même axe que R-2 : chaque paire est une divergence en puissance. À traiter paire par paire, en commençant par celles qui **écrivent** (`env`, `secrets`, `collaborators`, `deployments`) |
+| **R-9** | **Zone utilisateur ↔ panneaux IDE** : 12 routes `projects.$projectId.*` ont un panneau IDE homonyme, avec des composants entièrement séparés sur les **mêmes** endpoints | **haute** | **mesuré en détail le 03/09 — voir la section dédiée en fin de document.** 4 divergences réelles (dont `snapshots`, une opération DESTRUCTRICE à deux portées), 5 paires alignées, 1 collision de nom. Les consolidations imposent `BaseChat.tsx`, territoire d'une autre session |
 
 ## Non-défauts établis (à ne pas fusionner)
 
@@ -148,3 +148,64 @@ C'est le précédent sur lequel s'appuie le correctif de BUG-IDE-014.
 ⚠️ **Aucun point de ce document n'est ✅ « Testé live »** : les correctifs sont
 en PR, non mergés, non déployés. La preuve prod datée revient à la session
 « Livraisons + preuves prod ».
+
+---
+
+## R-9 — mesure détaillée des 12 paires « zone utilisateur ↔ panneau IDE »
+
+**Mesuré le 2026-09-03** sur `origin/main` (`7f5309c68`). Pour chaque paire :
+mêmes endpoints ? mêmes capacités ? même portée pour la même action ?
+
+Le résultat n'est pas « le même écran deux fois ». C'est pire et plus utile :
+**aucune paire n'est un sur-ensemble de l'autre**. Chaque écran fait un
+sous-ensemble différent, sous le même nom, sans jamais le dire.
+
+### Divergences réelles
+
+| Paire | Zone utilisateur | Panneau IDE | Conséquence |
+|---|---|---|---|
+| **`snapshots`** ⚠️ | `restore` + **`restore-preview`** (diffstat à blanc avant de confirmer) | `restore` + **restauration de la BASE** en option (`POST /projects/:id/database/restores`) | **Le même bouton « Restaurer » n'a pas la même portée selon l'écran.** Mesuré : `POST /snapshots/:id/restore` ne touche PAS la base (témoin positif : 27 occurrences de « snapshot » dans le handler, 0 de la base). Depuis le tableau de bord, le code recule pendant que le schéma et les données restent en avant. Depuis l'IDE, aucune pré-visualisation avant une opération destructrice. |
+| **`collaborators`** | ajouter / retirer un collaborateur, créer / révoquer un lien de partage | commentaires, permission terminal, partage IA, lien de partage | **Ensembles disjoints.** Impossible d'ajouter un collaborateur depuis l'IDE ; impossible d'accorder une permission terminal depuis le tableau de bord. Deux écrans, un seul nom. |
+| **`deployments`** | `detect` (détection du framework) + `rate-card` (estimation de coût) | ni l'un ni l'autre — la création code en dur `npm run build` / `dist` | Publier depuis l'IDE se fait sans détection ni estimation de coût, silencieusement. |
+| **`settings`** | réglages du **projet** (`PATCH /projects/:id/settings`) | compte et préférences (`/auth/me`, mot de passe, sessions) + env/secrets | **Collision de nom, pas doublon.** L'outil « Settings » de l'IDE n'affiche jamais les réglages du projet ; l'entrée « Settings » du tableau de bord n'affiche jamais le compte. Même classe que R-4. |
+
+### Paires alignées (vérifiées, aucun écart)
+
+| Paire | Vérification |
+|---|---|
+| `env` | les deux envoient `scope` en écriture ET en suppression |
+| `secrets` | `PUT` / `DELETE` `{key, value}` des deux côtés |
+| `logs`, `activity`, `git`, `preview`, `database` | routes de la zone utilisateur en lecture seule — aucune écriture à faire diverger |
+
+### Non-défaut écarté après vérification
+
+L'action de déploiement de l'IDE construit un segment d'URL depuis l'`intent`
+utilisateur (`/deployments/:id/${intent}`). Vérifié : il est filtré par **liste
+blanche** (`cancel | redeploy | rollback`) avant interpolation. **Pas
+d'injection** — mentionné parce que l'écarter demandait de le lire, pas de le
+supposer.
+
+### Ce qui est corrigé, et ce qui ne peut pas l'être ici
+
+Le correctif de fond — un composant, l'autre en alias, comme pour R-2 — impose
+de modifier `app/components/chat/BaseChat.tsx`, où vivent tous les panneaux IDE.
+**Ce fichier est le territoire d'une autre session** et a provoqué des conflits
+toute la journée du 02/09. Les consolidations R-9 sont donc **à faire par la
+session qui tient ce fichier**, pas ici.
+
+Ce qui était corrigeable côté routes l'a été : le tableau de bord **dit
+désormais** que la restauration ne rejoue pas la base. Une opération
+destructrice dont la portée n'est pas annoncée est un piège à données ; le
+message est rendu au niveau du **dialogue**, pas du diffstat — sa propre garde a
+révélé qu'un placement à l'intérieur de la pré-visualisation ne l'affichait
+jamais pendant le chargement ni en cas d'échec, c'est-à-dire précisément quand
+l'utilisateur confirme à l'aveugle.
+
+### Ordre recommandé pour la session qui tient `BaseChat.tsx`
+
+1. **`snapshots`** — le plus urgent avant lancement : deux portées pour une
+   action destructrice. Soit la pré-visualisation passe dans l'IDE et la
+   restauration de base dans le tableau de bord, soit un seul écran survit.
+2. **`collaborators`** — ensembles disjoints, donc chaque écran est incomplet.
+3. **`deployments`** — remonter `detect` et `rate-card` dans l'IDE.
+4. **`settings`** — renommer, pas fusionner : ce sont deux écrans légitimes.
