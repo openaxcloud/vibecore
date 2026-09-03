@@ -3,6 +3,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "validate": "node scripts/validate.mjs"
+    "validate": "node scripts/validate-secret-scoping.mjs && node scripts/validate.mjs"
   }
 }
