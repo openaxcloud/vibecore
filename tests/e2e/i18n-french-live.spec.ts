@@ -126,7 +126,21 @@ const PROJECT_PATHS = [
   '/projects/{projectId}/env',
   '/projects/{projectId}/git',
   '/projects/{projectId}/logs',
-  '/projects/{projectId}/preview',
+
+  /*
+   * `/projects/{projectId}/preview` a quitté cette liste avec la brochure
+   * qu'elle servait.
+   *
+   * Elle rendait une page marketing localisée « Project Preview » — c'est à ce
+   * titre qu'elle était auditée. Cette page décrivait un aperçu qu'elle ne
+   * fournissait pas ; la route redirige désormais (301) vers l'aperçu RÉEL,
+   * `/projects/:id/ide?panel=preview`. Sa copie localisée n'existe donc plus,
+   * et la cible de la redirection — l'IDE — est déjà auditée deux lignes plus
+   * haut.
+   *
+   * Ce n'est pas une perte de couverture : c'est une page en moins à traduire,
+   * parce qu'il y a une page en moins.
+   */
   '/projects/{projectId}/secrets',
   '/projects/{projectId}/settings',
   '/projects/{projectId}/snapshots',
