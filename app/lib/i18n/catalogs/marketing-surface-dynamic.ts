@@ -30,19 +30,6 @@ export const marketingSurfaceDynamicEn = {
   'surfaceDynamic.projectDatabase.related.secretsDescription': 'Store database credentials safely.',
   'surfaceDynamic.projectDatabase.related.preview': 'Project preview',
   'surfaceDynamic.projectDatabase.related.previewDescription': 'Validate database-backed UI.',
-  'surfaceDynamic.projectPreview.title': 'Project Preview',
-  'surfaceDynamic.projectPreview.description':
-    'Preview route for project {projectId}, focused on visual QA, runtime readiness and shareable review.',
-  'surfaceDynamic.projectPreview.highlight.visual': 'Visual QA',
-  'surfaceDynamic.projectPreview.highlight.runtime': 'Runtime readiness',
-  'surfaceDynamic.projectPreview.highlight.routes': 'Route checks',
-  'surfaceDynamic.projectPreview.highlight.share': 'Shareable review',
-  'surfaceDynamic.projectPreview.related.preview': 'Preview',
-  'surfaceDynamic.projectPreview.related.previewDescription': 'Review platform preview behavior.',
-  'surfaceDynamic.projectPreview.related.diagnostics': 'Runtime diagnostics',
-  'surfaceDynamic.projectPreview.related.diagnosticsDescription': 'Inspect runtime blockers.',
-  'surfaceDynamic.projectPreview.related.database': 'Project database',
-  'surfaceDynamic.projectPreview.related.databaseDescription': 'Validate data-backed features.',
   'surfaceDynamic.projectCompat.title': 'Project Compatibility Overview',
   'surfaceDynamic.projectCompat.description':
     'Compatibility route for legacy E-Code project {projectId}, with links into the E-Code project workspace.',
@@ -56,19 +43,6 @@ export const marketingSurfaceDynamicEn = {
   'surfaceDynamic.projectCompat.related.workspaceDescription': 'Open the canonical project route.',
   'surfaceDynamic.projectCompat.related.editor': 'Editor',
   'surfaceDynamic.projectCompat.related.editorDescription': 'Use the imported editor compatibility route.',
-  'surfaceDynamic.editor.title': 'Editor Session',
-  'surfaceDynamic.editor.description':
-    'Editor compatibility route for session {editorId}, preserving the E-Code path into the E-Code IDE flow.',
-  'surfaceDynamic.editor.highlight.files': 'File editor',
-  'surfaceDynamic.editor.highlight.agent': 'Agent context',
-  'surfaceDynamic.editor.highlight.preview': 'Preview panel',
-  'surfaceDynamic.editor.highlight.session': 'Session continuity',
-  'surfaceDynamic.editor.related.new': 'New editor session',
-  'surfaceDynamic.editor.related.newDescription': 'Start a new editor route.',
-  'surfaceDynamic.editor.related.projects': 'Projects',
-  'surfaceDynamic.editor.related.projectsDescription': 'Open the canonical project workspace list.',
-  'surfaceDynamic.editor.related.features': 'Features',
-  'surfaceDynamic.editor.related.featuresDescription': 'Review the imported E-Code IDE capabilities.',
   'surfaceDynamic.teamSettings.title': 'Team Settings',
   'surfaceDynamic.teamSettings.description':
     'Settings route for team {teamId}, including identity, members, billing context and project access.',
@@ -145,20 +119,6 @@ export const marketingSurfaceDynamicFr = {
     'Stockez les identifiants de base de données en sécurité.',
   'surfaceDynamic.projectDatabase.related.preview': 'Aperçu du projet',
   'surfaceDynamic.projectDatabase.related.previewDescription': 'Validez l’interface adossée à la base de données.',
-  'surfaceDynamic.projectPreview.title': 'Aperçu du projet',
-  'surfaceDynamic.projectPreview.description':
-    'Route d’aperçu du projet {projectId}, centrée sur l’assurance qualité visuelle, l’état de l’environnement d’exécution et la revue partageable.',
-  'surfaceDynamic.projectPreview.highlight.visual': 'Assurance qualité visuelle',
-  'surfaceDynamic.projectPreview.highlight.runtime': 'État de l’environnement d’exécution',
-  'surfaceDynamic.projectPreview.highlight.routes': 'Contrôles des routes',
-  'surfaceDynamic.projectPreview.highlight.share': 'Revue partageable',
-  'surfaceDynamic.projectPreview.related.preview': 'Aperçu',
-  'surfaceDynamic.projectPreview.related.previewDescription': 'Consultez le fonctionnement de l’aperçu.',
-  'surfaceDynamic.projectPreview.related.diagnostics': 'Diagnostic de l’environnement d’exécution',
-  'surfaceDynamic.projectPreview.related.diagnosticsDescription':
-    'Identifiez les blocages de l’environnement d’exécution.',
-  'surfaceDynamic.projectPreview.related.database': 'Base de données du projet',
-  'surfaceDynamic.projectPreview.related.databaseDescription': 'Validez les fonctionnalités adossées aux données.',
   'surfaceDynamic.projectCompat.title': 'Vue de compatibilité du projet',
   'surfaceDynamic.projectCompat.description':
     'Route de compatibilité de l’ancien projet E-Code {projectId}, avec des liens vers l’espace de travail E-Code.',
@@ -172,19 +132,6 @@ export const marketingSurfaceDynamicFr = {
   'surfaceDynamic.projectCompat.related.workspaceDescription': 'Ouvrez la route principale du projet.',
   'surfaceDynamic.projectCompat.related.editor': 'Éditeur',
   'surfaceDynamic.projectCompat.related.editorDescription': 'Utilisez la route de compatibilité de l’éditeur.',
-  'surfaceDynamic.editor.title': 'Session de l’éditeur',
-  'surfaceDynamic.editor.description':
-    'Route de compatibilité de la session {editorId}, qui préserve le parcours E-Code vers l’IDE.',
-  'surfaceDynamic.editor.highlight.files': 'Éditeur de fichiers',
-  'surfaceDynamic.editor.highlight.agent': 'Contexte de l’agent',
-  'surfaceDynamic.editor.highlight.preview': 'Panneau d’aperçu',
-  'surfaceDynamic.editor.highlight.session': 'Continuité de la session',
-  'surfaceDynamic.editor.related.new': 'Nouvelle session de l’éditeur',
-  'surfaceDynamic.editor.related.newDescription': 'Démarrez une nouvelle route d’édition.',
-  'surfaceDynamic.editor.related.projects': 'Projets',
-  'surfaceDynamic.editor.related.projectsDescription': 'Ouvrez la liste principale des espaces de travail.',
-  'surfaceDynamic.editor.related.features': 'Fonctionnalités',
-  'surfaceDynamic.editor.related.featuresDescription': 'Découvrez les fonctionnalités de l’IDE E-Code.',
   'surfaceDynamic.teamSettings.title': 'Paramètres de l’équipe',
   'surfaceDynamic.teamSettings.description':
     'Paramètres de l’équipe {teamId} : identité, membres, facturation et accès aux projets.',
@@ -233,9 +180,7 @@ export const marketingSurfaceDynamicFr = {
 export type MarketingSurfaceDynamicKey =
   | 'projectImport'
   | 'projectDatabase'
-  | 'projectPreview'
   | 'projectCompat'
-  | 'editor'
   | 'teamSettings'
   | 'teamWorkspace'
   | 'profile'
@@ -343,34 +288,6 @@ export function getMarketingSurfaceDynamicPageCopy(
           },
         ],
       };
-    case 'projectPreview':
-      return {
-        title: t('surfaceDynamic.projectPreview.title', values),
-        description: t('surfaceDynamic.projectPreview.description', values),
-        highlights: [
-          t('surfaceDynamic.projectPreview.highlight.visual', values),
-          t('surfaceDynamic.projectPreview.highlight.runtime', values),
-          t('surfaceDynamic.projectPreview.highlight.routes', values),
-          t('surfaceDynamic.projectPreview.highlight.share', values),
-        ],
-        relatedRoutes: [
-          {
-            label: t('surfaceDynamic.projectPreview.related.preview', values),
-            to: '/preview',
-            description: t('surfaceDynamic.projectPreview.related.previewDescription', values),
-          },
-          {
-            label: t('surfaceDynamic.projectPreview.related.diagnostics', values),
-            to: '/runtime-diagnostics',
-            description: t('surfaceDynamic.projectPreview.related.diagnosticsDescription', values),
-          },
-          {
-            label: t('surfaceDynamic.projectPreview.related.database', values),
-            to: `/projects/${projectId}/database`,
-            description: t('surfaceDynamic.projectPreview.related.databaseDescription', values),
-          },
-        ],
-      };
     case 'projectCompat':
       return {
         title: t('surfaceDynamic.projectCompat.title', values),
@@ -396,34 +313,6 @@ export function getMarketingSurfaceDynamicPageCopy(
             label: t('surfaceDynamic.projectCompat.related.editor', values),
             to: `/editor/${projectId}`,
             description: t('surfaceDynamic.projectCompat.related.editorDescription', values),
-          },
-        ],
-      };
-    case 'editor':
-      return {
-        title: t('surfaceDynamic.editor.title', values),
-        description: t('surfaceDynamic.editor.description', values),
-        highlights: [
-          t('surfaceDynamic.editor.highlight.files', values),
-          t('surfaceDynamic.editor.highlight.agent', values),
-          t('surfaceDynamic.editor.highlight.preview', values),
-          t('surfaceDynamic.editor.highlight.session', values),
-        ],
-        relatedRoutes: [
-          {
-            label: t('surfaceDynamic.editor.related.new', values),
-            to: '/editor/new',
-            description: t('surfaceDynamic.editor.related.newDescription', values),
-          },
-          {
-            label: t('surfaceDynamic.editor.related.projects', values),
-            to: '/projects',
-            description: t('surfaceDynamic.editor.related.projectsDescription', values),
-          },
-          {
-            label: t('surfaceDynamic.editor.related.features', values),
-            to: '/features',
-            description: t('surfaceDynamic.editor.related.featuresDescription', values),
           },
         ],
       };
