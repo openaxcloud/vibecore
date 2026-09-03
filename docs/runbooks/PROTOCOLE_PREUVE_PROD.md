@@ -145,3 +145,90 @@ compte de test, et révoquée dès la preuve faite.
 - Il **ne touche à aucun identifiant d'Avi**.
 - Il **ne certifie rien** par lui-même : il donne l'accès. La preuve reste une
   mesure avant / après sur la même page, avec son environnement consigné.
+
+---
+
+## Le test décisif : chercher le marqueur dans la RESSOURCE SERVIE
+
+Établi le 2026-09-02, après avoir annoncé deux correctifs comme livrés alors
+qu'Avi ne les voyait pas.
+
+**L'état d'une PR ne prouve rien. Le SHA déployé non plus.** Ce qui prouve, c'est
+le contenu du fichier que le navigateur télécharge réellement.
+
+### La méthode
+
+```bash
+# 1. La page publique, pour lister les ressources empreintées
+curl -s -o /tmp/page.html https://app.e-code.ai/login
+grep -oE '/assets/[A-Za-z0-9_.-]+\.css' /tmp/page.html | sort -u
+
+# 2. Télécharger la ressource SERVIE (pas celle du dépôt)
+curl -s -o /tmp/servi.css https://app.e-code.ai/assets/index-XXXX.css
+
+# 3. Y chercher le marqueur EXACT du correctif
+grep -oE '\.ma-classe[^{]{0,120}\{[^}]{0,260}\}' /tmp/servi.css
+```
+
+Le marqueur doit être une chaîne que **seul** le correctif produit : une
+propriété, une variable, un sélecteur nouveau. Pas un nom de classe qui
+préexistait.
+
+### Le contre-témoin est obligatoire
+
+Chercher un marqueur ABSENT dans la même ressource, pour prouver que la
+recherche discrimine. Le 2026-09-02 : la règle de `#359` était présente mot pour
+mot, et `.bolt-terminal-session-menu` n'avait **ni `max-height` ni `overflow`** —
+cohérent avec `#367` non fusionnée. Sans ce second point, un `grep` qui trouve
+tout ne prouve rien.
+
+---
+
+## ⚠️ « SERVI MAIS INOPÉRANT » — la colonne qui manquait
+
+Deux correctifs sur onze étaient **dans la ressource servie et sans effet**.
+C'est un état distinct de « fusionné » et de « servi », et il n'était nommé nulle
+part.
+
+**Le cas mesuré.** La règle de `#359` était bien servie :
+
+```css
+.bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip=true])
+  { position:sticky; bottom:calc(var(--vc-agent-composer-measured-height, 0px) + 12px) }
+```
+
+Mais dans la page réelle, `--vc-agent-composer-measured-height` valait **(vide)**.
+La variable est **lue 11 fois** dans la feuille et **définie 0 fois** : elle doit
+être posée à l'exécution par du JavaScript qui ne le faisait pas. Toute la règle
+retombait sur son repli `0px`.
+
+**Le CSS était livré, la mesure qui le pilote absente.** Le correctif était
+présent et inopérant — indistinguable, pour l'utilisateur, d'un correctif jamais
+livré.
+
+### Ce qu'il faut mesurer en plus du marqueur
+
+Un correctif qui dépend d'une **variable CSS posée à l'exécution** n'est pas
+prouvé par la présence de sa règle. Il faut lire la valeur **calculée dans la
+page réelle** :
+
+```js
+const root = getComputedStyle(document.documentElement);
+root.getPropertyValue('--ma-variable').trim() || '(vide)';
+```
+
+**Règle** : tout correctif reposant sur une variable d'exécution exige DEUX
+preuves — le marqueur dans la ressource servie, ET la valeur non vide dans la
+page. La première seule autorise à annoncer une livraison qui n'a aucun effet.
+
+### Les quatre états à distinguer dans le suivi
+
+| état | ce que ça veut dire |
+|---|---|
+| 📤 dispatché | envoyé à une session |
+| 💻 codé | fusionné sur `main` |
+| 📦 **servi** | le marqueur est dans la ressource que le navigateur télécharge |
+| ✅ testé live | l'effet est mesuré dans la page réelle |
+
+⚠️ **📦 servi ne vaut pas ✅.** C'est précisément l'écart où deux correctifs se
+sont perdus le 2026-09-02.

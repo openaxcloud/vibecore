@@ -196,12 +196,15 @@ C'est ce qui empêche un défaut corrigé de revenir. Sans référence de test, 
 point reste OUVERT même si la vérification en réel est concluante — seules
 exceptions : un NON-DÉFAUT ou un DOUBLON établi, qui doit le dire explicitement.
 
-**États** — chaque point des 4 fichiers de suivi (`DESIGN_PROGRAM_MASTER`, `BUG_INVENTORY_LIVE`, `PLAN_REMAINING_UNIFIED`, `REPLIT_PARITY`) trace **3 états séparés**, affichés côte à côte par point pour voir précisément où il en est :
+**États** — chaque point des 4 fichiers de suivi (`DESIGN_PROGRAM_MASTER`, `BUG_INVENTORY_LIVE`, `PLAN_REMAINING_UNIFIED`, `REPLIT_PARITY`) trace **4 états séparés**, affichés côte à côte par point pour voir précisément où il en est :
 - 📤 **Dispatché** — envoyé à une session
 - 💻 **Codé** — commité + poussé sur `main`
-- ✅ **Testé live** — vérifié à l'écran + greps, responsive web / tablette / mobile
+- 📦 **Servi** — le marqueur du correctif est dans la ressource que le navigateur télécharge réellement
+- ✅ **Testé live** — l'effet est mesuré dans la page réelle, responsive web / tablette / mobile
 
-Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤 Dispatché et 💻 Codé ne suffisent jamais.
+Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤, 💻 et 📦 ne suffisent jamais.
+
+⚠️ **📦 Servi ne vaut pas ✅ — c'est l'écart « servi mais inopérant ».** Mesuré le 2026-09-02 : 2 correctifs sur 11 étaient dans la ressource servie et **sans aucun effet**. La règle CSS de #359 était présente mot pour mot, mais la variable qu'elle lit (`--vc-agent-composer-measured-height`) valait **(vide)** dans la page — lue 11 fois dans la feuille, définie 0 fois, car posée à l'exécution par du JavaScript qui ne le faisait pas. Le correctif était livré et inopérant, indistinguable pour l'utilisateur d'un correctif jamais livré. **Tout correctif reposant sur une variable d'exécution exige DEUX preuves** : le marqueur dans la ressource servie, ET la valeur non vide lue dans la page. Méthode complète : `docs/runbooks/PROTOCOLE_PREUVE_PROD.md`.
 
 **Règle commune** — Ne passer un point en ✅ QU'APRÈS test réel (vérif live à l'écran + greps de contrôle) — jamais sur « dispatché » ni « codé ». Quand Avi dit « fais-moi le point », TOUJOURS lire d'abord les 4 fichiers de suivi et dire précisément où ça en est.
 
