@@ -1,6 +1,8 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
 import JSZip from 'jszip';
 
+import { resolveProjectEditorToolOpen } from '~/components/chat/project-editor-tool-catalog';
+
 type AuthPayload = { token: string; organization: { id: string } };
 
 const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
@@ -158,10 +160,25 @@ async function assertServicePanelBackend(page: Page, projectId: string, panel: (
 }
 
 async function assertPanelRendered(page: Page, projectId: string, panel: IdePanel) {
+  /*
+   * An ALIASED tool names a screen that lives as a tab inside another tool, so
+   * asking for it lands on its owner: `?panel=domains` opens Deploy on its
+   * Domains tab, because both used to render the very same
+   * `ProjectDomainsPanel` and the grid offered two doors to one screen.
+   *
+   * The expectation is resolved through the app's own alias table rather than a
+   * second copy of it here — a hand-written duplicate in this file would drift
+   * exactly the way the two Domains entries did.
+   */
+  const landingPanel =
+    panel === 'editor' || panel === 'preview' || panel === 'files' || panel === 'search' || panel === 'locks'
+      ? panel
+      : (resolveProjectEditorToolOpen(panel as never).panel as IdePanel);
+
   const expectedUrl =
-    panel === 'editor'
+    landingPanel === 'editor'
       ? new RegExp(`/projects/${escapeRegExp(projectId)}/ide(?:\\?panel=editor)?$`)
-      : new RegExp(`/projects/${escapeRegExp(projectId)}/ide\\?panel=${escapeRegExp(panel)}`);
+      : new RegExp(`/projects/${escapeRegExp(projectId)}/ide\\?panel=${escapeRegExp(landingPanel)}`);
 
   await expect(page).toHaveURL(expectedUrl, { timeout: 45_000 });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 45_000 });
@@ -169,38 +186,38 @@ async function assertPanelRendered(page: Page, projectId: string, panel: IdePane
   await expect(page.getByText(/Missing import in .*does not resolve to a generated or existing file/i)).toHaveCount(0);
   await expect(page.getByText(/AI patch (?:failed|blocked): .*Missing import/i)).toHaveCount(0);
 
-  if (panel === 'editor') {
+  if (landingPanel === 'editor') {
     await expect(page.getByTestId('responsive-code-editor').first()).toBeVisible({ timeout: 45_000 });
     return;
   }
 
-  if (panel === 'preview') {
+  if (landingPanel === 'preview') {
     await expect(page.locator('.bolt-project-webview-tool').first()).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-project-webview-toolbar').first()).toBeVisible({ timeout: 45_000 });
 
     return;
   }
 
-  if (panel === 'files') {
+  if (landingPanel === 'files') {
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-project-files-tool').first()).toBeVisible({ timeout: 45_000 });
 
     return;
   }
 
-  if (panel === 'search') {
+  if (landingPanel === 'search') {
     await expect(page.getByPlaceholder('Search files')).toBeVisible({ timeout: 45_000 });
     await expect(page.getByPlaceholder('Replace')).toBeVisible({ timeout: 45_000 });
 
     return;
   }
 
-  if (panel === 'locks') {
+  if (landingPanel === 'locks') {
     await expect(page.getByText('No locked items found')).toBeVisible({ timeout: 45_000 });
     return;
   }
 
-  if (panel === 'terminal') {
+  if (landingPanel === 'terminal') {
     await assertServicePanelBackend(page, projectId, panel);
     await expect(page.getByRole('region', { name: 'Interactive terminal' })).toBeVisible({ timeout: 45_000 });
 
@@ -209,7 +226,7 @@ async function assertPanelRendered(page: Page, projectId: string, panel: IdePane
 
   await assertServicePanelBackend(page, projectId, panel);
 
-  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
+  const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${landingPanel}"]`).first();
 
   await expect(servicePanel).toBeVisible({ timeout: 45_000 });
   await expect(servicePanel.getByText(/Loading .* from backend/i)).toHaveCount(0, { timeout: 45_000 });
