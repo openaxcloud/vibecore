@@ -41,5 +41,23 @@ describe('vitest.config.ts discovery glob', () => {
     });
 
     expect(stdout).toContain('supabase.account-stability.spec.ts');
-  }, 180_000);
+
+    /*
+     * Budget mesure le 2026-09-03 sur la meme machine, `vitest list` seul :
+     *
+     *   machine au repos ............  47 s,  78 s
+     *   charge moderee ..............  116 s, 126 s, 146 s
+     *   avec un build concurrent ....  181 s, 185 s   <- ROUGE a 180 s
+     *
+     * Le budget de 180 s tombait exactement dans la dispersion de la collecte,
+     * qui parcourt les 297 fichiers de specs du service. Resultat : un rouge qui
+     * ne dit rien du glob et tout de la charge de la machine — observe 3 fois en
+     * une journee, chaque fois vert au re-run.
+     *
+     * L'ASSERTION n'est pas touchee : c'est toujours `stdout` qui doit contenir
+     * le spec hors `src/tests/`. Seule l'horloge change. 600 s laisse de la marge
+     * sans rien masquer — une collecte qui atteindrait 10 minutes serait une
+     * vraie regression, et echouerait toujours.
+     */
+  }, 600_000);
 });
