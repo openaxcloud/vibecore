@@ -356,6 +356,7 @@ import {
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { teardownProjectExternalResources } from './project-teardown.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -24430,21 +24431,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * AUDX-171 — démonter les ressources EXTERNES avant de perdre la ligne.
+     *
+     * Les lignes cascadent ; ce que le projet a créé hors de PostgreSQL, non.
+     * `DatabaseProvisioner.teardown()` existait, promettait dans son commentaire
+     * « no orphaned production database behind », et n'était appelé PAR PERSONNE
+     * — cette route faisait `hardDeleteProject` + un audit, point final. D'où les
+     * bases, seaux et PVC orphelins retrouvés à la main en production.
+     *
+     * Fait AVANT la suppression de la ligne : le nom du PVC vit sur cette ligne,
+     * et une fois la ligne partie la poignée est perdue avec elle.
+     */
+    const teardown = await teardownProjectExternalResources(
+      {
+        databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+      },
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        persistentVolumeClaim: project.persistentVolumeClaim,
+      },
+    );
+
     const deleted = await store.hardDeleteProject(project.id);
 
     /*
      * No recordProjectActivity here: the project's activity rows cascade-deleted
      * with it, so the org-scoped audit log is the durable trace of this action.
+     *
+     * AUDX-171 — le résultat du démontage est porté par CETTE trace, y compris
+     * les échecs. Un démontage partiel doit laisser une trace nommant la
+     * ressource restée en place : c'est ce qui rend une orpheline réconciliable
+     * au lieu de découvrable à la main, des mois plus tard.
      */
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.hard_delete',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { name: project.name },
+      metadata: {
+        name: project.name,
+        externalTeardown: {
+          complete: teardown.complete,
+          outcomes: teardown.outcomes,
+        },
+      },
     });
 
-    return { project: deleted };
+    if (!teardown.complete) {
+      request.log?.error?.(
+        { projectId: project.id, failed: teardown.failed, outcomes: teardown.outcomes },
+        'project hard delete left external resources behind',
+      );
+    }
+
+    return { project: deleted, externalTeardown: { complete: teardown.complete, failed: teardown.failed } };
   });
   app.post('/projects/:projectId/transfer', async (request) => {
     const project = await requireProject(
