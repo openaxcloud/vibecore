@@ -55,7 +55,38 @@ describe('exceptions de sécurité — datées et annoncées', () => {
     expect(cvesActives('.trivyignore')).toEqual([]);
   });
 
-  it('3. le déploiement avertit AVANT l’échéance', () => {
+  it('3. chaque exception porte le nom EXACT d’un service du déploiement', () => {
+    /*
+     * Le nom du fichier doit correspondre a `${service}` tel que la boucle de
+     * scan le lit dans `/tmp/services.json`. Le 2026-09-03, trois exceptions
+     * etaient nommees en tirets — `ai-gateway`, `workspace-manager`,
+     * `preview-proxy` — alors que les services s'appellent `aiGateway`,
+     * `workspaceManager`, `previewProxy`. Elles n'ont JAMAIS ete chargees : le
+     * deploiement a echoue sur ces trois images exactement, pendant que les
+     * cinq autres passaient. Un fichier d'exception mal nomme est silencieux —
+     * il n'echoue pas, il ne fait rien.
+     */
+    const SERVICES = [
+      'admin',
+      'aiGateway',
+      'api',
+      'previewProxy',
+      'screenshotter',
+      'web',
+      'worker',
+      'workspaceAgent',
+      'workspaceManager',
+    ];
+
+    const inconnus = fichiersDException()
+      .filter((f) => f !== '.trivyignore')
+      .map((f) => f.replace('.trivyignore.', ''))
+      .filter((s) => !SERVICES.includes(s));
+
+    expect(inconnus).toEqual([]);
+  });
+
+  it('4. le déploiement avertit AVANT l’échéance', () => {
     const wf = readFileSync(join(RACINE, '.github', 'workflows', 'deploy-main.yml'), 'utf8');
 
     expect(wf).toMatch(/Alerte sur les exceptions de s.curit. proches de l'.ch.ance/);
