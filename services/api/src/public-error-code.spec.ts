@@ -25,13 +25,20 @@ describe('BUG-QA-PRISMA-CODE-LEAK-001 — le code exposé ne trahit pas la persi
     }
   });
 
-  it('MÉCANISME 2 — un 5xx n’expose son code que s’il se déclare public', () => {
-    expect(publicErrorCode({ code: 'DB_POOL_EXHAUSTED', statusCode: 500, hasPublicMessage: false })).toBe(
-      CODE_GENERIQUE,
-    );
-    expect(publicErrorCode({ code: 'DATABASE_PROVISION_UNAVAILABLE', statusCode: 503, hasPublicMessage: true })).toBe(
-      'DATABASE_PROVISION_UNAVAILABLE',
-    );
+  it('MÉCANISME 2 — un code PARLANT sur un 5xx SURVIT', () => {
+    /*
+     * ⚠️ LE TEST QUI MANQUAIT. Ma première version masquait tout code de 5xx
+     * non déclaré public. La CI l'a rattrapée : `credit-packs-billing` attend
+     * `code === 'CREDIT_PACKS_DISABLED'` sur un **503**. Le produit utilise
+     * légitimement des codes parlants sur des 5xx — 503 « fonctionnalité
+     * indisponible » en est le cas normal — et des clients en dépendent.
+     *
+     * Ma contre-garde d'alors ne testait que des 4xx : elle ne POUVAIT pas voir
+     * le trou. Une contre-garde qui n'exerce pas le cas visé ne protège rien.
+     */
+    for (const code of ['CREDIT_PACKS_DISABLED', 'DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']) {
+      expect(publicErrorCode({ code, statusCode: 503, hasPublicMessage: false }), `${code} en 503`).toBe(code);
+    }
   });
 
   it('les 4xx gardent leur code — c’est le contrat de l’API', () => {
