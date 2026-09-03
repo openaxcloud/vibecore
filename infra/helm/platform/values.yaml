@@ -42,6 +42,72 @@ global:
 secrets:
   existingSecret: vibecore-platform-secrets
 
+  # AUDX-012 — per-service secret scoping.
+  #
+  # Every Deployment used to mount the WHOLE platform Secret via `envFrom`:
+  # 31 secrets into 8 services, so `screenshotter` (a headless browser that
+  # renders untrusted user pages) and `previewProxy` both carried
+  # STRIPE_SECRET_KEY, the six AI provider keys, JWT_SECRET, DATABASE_URL,
+  # CONFIG_ENCRYPTION_KEY and BACKUP_ENCRYPTION_KEY.
+  #
+  # A service listed here receives ONLY the keys named. A service NOT listed
+  # keeps the full Secret — that is the deliberate, conservative default, and
+  # it is why `api`, `web` and `admin` are absent: the api resolves OAuth
+  # client secrets DYNAMICALLY (`process.env[`${provider.toUpperCase()}_CLIENT_SECRET`]`,
+  # services/api/src/app.ts:5414-5415), so an allowlist built by grepping
+  # literal names would have silently broken Google and GitHub login.
+  #
+  # Each list below is asserted against the RENDERED manifests by
+  # infra/scripts/validate-secret-scoping.mjs (wired into `pnpm infra:validate`,
+  # itself part of `platform:verify`). That guard fails in two directions: a
+  # scoped service that still mounts the whole Secret, and a secret named in
+  # source the service can REACH — its own src or an imported @vibecore package —
+  # that is missing from its list.
+  #
+  # The second direction matters more than it looks. CONFIG_ENCRYPTION_KEY never
+  # appears literally in services/worker/src: the worker calls `decryptJson` and
+  # it is packages/security that reads the variable. A list derived from the
+  # service directory alone would have dropped that key and broken decryption in
+  # production, which is why the guard follows package imports.
+  #
+  # KNOWN LIMIT, stated rather than papered over: the guard matches secret names
+  # LITERALLY. A secret reached through a computed name is invisible to it — the
+  # api's `process.env[`${provider.toUpperCase()}_CLIENT_SECRET`]` is exactly
+  # that case, and it is why the api is left unscoped instead of allowlisted.
+  # Scoping the api safely needs those dynamic lookups made explicit first.
+  perService:
+    # Reads NONE of the platform secrets. Most exposed service, least trusted.
+    screenshotter: []
+
+    # Only the two shared secrets it uses to authenticate the internal mesh.
+    previewProxy:
+      - PREVIEW_PROXY_SHARED_SECRET
+      - WORKSPACE_MANAGER_SHARED_SECRET
+
+    workspaceManager:
+      - DATABASE_URL
+      - WORKSPACE_AGENT_TOKEN_SECRET
+      - PREVIEW_PROXY_SHARED_SECRET
+      - WORKSPACE_MANAGER_SHARED_SECRET
+
+    worker:
+      - DATABASE_URL
+      - REDIS_URL
+      - CONFIG_ENCRYPTION_KEY
+      - PREVIEW_PROXY_SHARED_SECRET
+      - WORKSPACE_MANAGER_SHARED_SECRET
+
+    aiGateway:
+      - DATABASE_URL
+      - REDIS_URL
+      - CONFIG_ENCRYPTION_KEY
+      - OPENAI_API_KEY
+      - ANTHROPIC_API_KEY
+      - GOOGLE_GEMINI_API_KEY
+      - GOOGLE_GENERATIVE_AI_API_KEY
+      - XAI_API_KEY
+      - MOONSHOT_API_KEY
+
 # Non-secret env values injected via ConfigMap (templates/configmap.yaml).
 # OAuth client IDs/secrets live in the existing Secret; only the public,
 # well-known URLs and the platform admin allowlist go here.

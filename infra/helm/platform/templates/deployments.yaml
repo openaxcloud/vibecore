@@ -119,8 +119,19 @@ spec:
                   - -e
                   - "setTimeout(function(){}, {{ $svc.preStopDrainMs | default 10000 }})"
           envFrom:
+            {{- $perService := $.Values.secrets.perService | default dict }}
+            {{- $isScoped := hasKey $perService $name }}
+            {{- $scoped := default (list) (get $perService $name) }}
+            {{- if not $isScoped }}
+            # AUDX-012 — UNSCOPED: this service receives the whole platform
+            # Secret. Only `api`, `web` and `admin` are meant to land here; the
+            # api reads OAuth client secrets DYNAMICALLY
+            # (process.env[`${provider.toUpperCase()}_CLIENT_SECRET`],
+            # services/api/src/app.ts:5414-5415), so an allowlist derived by
+            # grepping literal names would silently break Google/GitHub login.
             - secretRef:
                 name: {{ $.Values.secrets.existingSecret }}
+            {{- end }}
             # Chart-managed shared secret for api -> ai-gateway auth (wave-29 #30).
             # Mounted on every pod (api sends it, ai-gateway verifies it; others
             # ignore it) so both sides always agree on the value.
@@ -138,6 +149,27 @@ spec:
             - configMapRef:
                 name: {{ include "vibecore-platform.fullname" $ }}-platform-env
           env:
+            {{- if $isScoped }}
+            # AUDX-012 — SCOPED: only the keys this service actually reads are
+            # projected, instead of all 31 platform secrets. Before this, every
+            # pod carried STRIPE_SECRET_KEY, all six AI provider keys, JWT_SECRET,
+            # DATABASE_URL and CONFIG_ENCRYPTION_KEY — including `screenshotter`,
+            # which renders untrusted user pages in a headless browser and reads
+            # none of them.
+            #
+            # `optional: true` matches the tolerance `envFrom` already had: a key
+            # absent from the Secret leaves the variable unset rather than
+            # crash-looping the pod. Making presence mandatory is a separate
+            # concern from scoping and is deliberately not bundled here.
+            {{- range $key := $scoped }}
+            - name: {{ $key }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secrets.existingSecret }}
+                  key: {{ $key }}
+                  optional: true
+            {{- end }}
+            {{- end }}
             - name: NODE_ENV
               value: production
             - name: APP_ENV
