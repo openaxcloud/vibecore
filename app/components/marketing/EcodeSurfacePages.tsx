@@ -1019,16 +1019,6 @@ export function createProjectImportSurfacePage(projectId: string, source: string
   });
 }
 
-export function createProjectDatabaseSurfacePage(projectId: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `projects/${projectId}/database`,
-    route: `/projects/${projectId}/database`,
-    category: 'data',
-    icon: Braces,
-    dynamicCopy: { key: 'projectDatabase', values: { projectId } },
-  });
-}
-
 export function createProjectPreviewSurfacePage(projectId: string): EcodeSurfacePageDefinition {
   return makeDynamicSurfacePage({
     slug: `projects/${projectId}/preview`,
@@ -1056,43 +1046,5 @@ export function createEditorSurfacePage(editorId: string): EcodeSurfacePageDefin
     category: 'builder',
     icon: FileCode2,
     dynamicCopy: { key: 'editor', values: { editorId } },
-  });
-}
-
-export function createTeamSurfacePage(teamId: string, section?: 'settings'): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: section ? `teams/${teamId}/${section}` : `teams/${teamId}`,
-    route: section ? `/teams/${teamId}/${section}` : `/teams/${teamId}`,
-    category: 'team',
-    icon: section === 'settings' ? Settings : Users,
-    dynamicCopy: {
-      key: section === 'settings' ? 'teamSettings' : 'teamWorkspace',
-      values: { teamId },
-    },
-  });
-}
-
-export function createProfileSurfacePage(username?: string): EcodeSurfacePageDefinition {
-  const name = username ?? 'builder';
-
-  return makeDynamicSurfacePage({
-    slug: username ? `profile/${username}` : 'profile',
-    route: username ? `/profile/${username}` : '/profile',
-    category: 'team',
-    icon: Users,
-    dynamicCopy: {
-      key: username ? 'profileNamed' : 'profile',
-      values: { username: name },
-    },
-  });
-}
-
-export function createUserSurfacePage(username: string): EcodeSurfacePageDefinition {
-  return makeDynamicSurfacePage({
-    slug: `user/${username}`,
-    route: `/user/${username}`,
-    category: 'team',
-    icon: Users,
-    dynamicCopy: { key: 'user', values: { username } },
   });
 }
