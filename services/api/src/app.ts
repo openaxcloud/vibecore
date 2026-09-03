@@ -33432,7 +33432,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:read');
 
     const query = parse(
-      z.object({ prefix: z.string().max(1024).optional(), delimiter: z.string().max(8).optional() }),
+      z.object({
+        prefix: z.string().max(1024).optional(),
+        delimiter: z.string().max(8).optional(),
+        // AUDX-024 — continuation token so a bucket past 1 000 objects can be
+        // browsed to the end instead of being silently cut at the first page.
+        pageToken: z.string().max(4096).optional(),
+      }),
       request.query ?? {},
     );
 
