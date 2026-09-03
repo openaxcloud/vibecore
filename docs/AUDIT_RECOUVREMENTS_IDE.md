@@ -273,6 +273,8 @@ appliquée en situation.
 | R-9 `snapshots` — restauration à deux portées | ✅ PR #397 (message honnête ; consolidation = `BaseChat.tsx`) |
 | R-8 — repli destructeur du panneau base de données | ✅ PR #407 |
 | Axe 4 — `/project/:id` fausse brochure | ✅ PR #408 |
+| Axe 4 — `/editor/:id` et `/projects/:id/preview`, mêmes brochures | ✅ PR #423 |
+| Dette — 4 fabriques de surface mortes + 44 clés de copie | ✅ PR #422 |
 
 **Reste ouvert, et pourquoi :**
 
@@ -282,5 +284,69 @@ appliquée en situation.
 2. **R-9, les consolidations** (`snapshots`, `collaborators`, `deployments`,
    `settings`) — toutes dans `app/components/chat/BaseChat.tsx`, territoire
    d'une autre session.
-3. **Fabriques de surface orphelines** — `createProfileSurfacePage`,
-   `createTeamSurfacePage`.
+3. **Les 15 détections `gitleaks`** du checkout partagé
+   `/Users/hb/dev/vibecore` — fichiers NON SUIVIS (`.term-*.mjs`, worktrees
+   imbriqués). Délibérément pas ouverts : lire un fichier signalé comme
+   contenant un secret le ferait entrer dans un transcript, ce que la règle 12
+   interdit. À inspecter par quelqu'un qui peut le faire hors transcript.
+
+---
+
+## La brochure marketing : une classe, six occurrences, trois nettoyages
+
+Le résultat le plus instructif de la campagne, parce qu'il ne vient pas d'une
+duplication d'écran mais de la manière dont un défaut de classe se corrige.
+
+Un même motif — une route à paramètre qui rend une page marketing templatée
+renvoyant le paramètre en écho, publiquement, en HTTP 200, sur un objet qui
+n'existe peut-être pas :
+
+| Occurrence | Ce qu'elle affirmait | Corrigée par |
+|---|---|---|
+| `/u/:username` | profil de constructeur | G26 → 404 honnête |
+| `/user/:username` | idem | G26 → 404 honnête |
+| `/profile/:username` | idem | G26 → 404 honnête |
+| `/project/:id` | « Project Compatibility Overview » | **#408** → 301 vers `/projects/:id` |
+| `/editor/:id` | « Editor Session » | **#423** → 301 vers `/projects/:id/ide` |
+| `/projects/:id/preview` | « Project Preview — visual QA, runtime readiness » | **#423** → 301 vers `?panel=preview` |
+
+**G26 a corrigé trois occurrences sur six et s'est arrêté là.** Les trois
+restantes ont survécu plus d'un an, jusqu'à ce que le recensement des doublons
+les croise par hasard. C'est la règle 7 en négatif : viser la première
+occurrence laisse la classe intacte.
+
+Deux enseignements pour la prochaine fois :
+
+* **la réponse honnête n'est pas toujours la même.** Les routes de profil sont
+  devenues des 404 parce qu'aucun back-end de profil public n'existe ; les trois
+  autres sont devenues des redirections parce que la cible canonique existe.
+  Appliquer mécaniquement le remède de la première occurrence aurait supprimé
+  trois chemins qui marchent ;
+* **une redirection introduit son propre risque.** Chaque correctif de #408 et
+  #423 est gardé contre la redirection ouverte (`../../evil`,
+  `//evil.example.com`, et pour `preview` la forgerie de paramètres de requête) :
+  remplacer une brochure par une redirection ouverte aurait été un défaut pire
+  que celui corrigé.
+
+**Une route explicitement NON traitée** : `/projects/:id/import/:source` échoue
+déjà en 404 sur une source inconnue et son sujet — la source d'import — est réel
+et validé. Elle n'invente pas d'entité. La laisser est un choix, pas un oubli.
+
+---
+
+## Ce que la campagne a réellement produit
+
+L'hypothèse de départ était du rangement : « le même écran est offert deux
+fois ». Elle était fausse, et c'est le résultat.
+
+**La duplication n'était pas le défaut : c'était le symptôme.** Les trois
+trouvailles qui comptent sont toutes venues en cherchant POURQUOI un écran
+existait deux fois :
+
+1. une suppression de variable de scope `preview` qui effaçait celle de
+   `production` (R-2) ;
+2. un repli qui vidait `DATABASE_URL` avec `ok: true` (R-8) ;
+3. six URL publiques décrivant avec assurance des objets inexistants.
+
+Aucune de ces trois n'était visible dans l'énoncé « il y a deux entrées
+Domaines ».
