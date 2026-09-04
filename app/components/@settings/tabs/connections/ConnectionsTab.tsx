@@ -75,7 +75,7 @@ export default function ConnectionsTab() {
                   : `${configuredCount}/${providers.length} providers configured`}
             </p>
           </div>
-          <Link to="/settings/providers" className="text-sm text-purple-500 hover:text-purple-400">
+          <Link to="/settings/providers" className="text-sm text-[var(--vc-ide-accent-action)] hover:opacity-80">
             Open providers
           </Link>
         </div>

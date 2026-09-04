@@ -51,8 +51,8 @@ interface ControlPanelProps {
 const BETA_TABS = new Set<TabType>(['local-providers', 'mcp']);
 
 const BetaLabel = () => (
-  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
-    <span className="text-[10px] font-medium text-purple-600 dark:text-purple-400">BETA</span>
+  <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]">
+    <span className="text-[10px] font-medium text-[var(--vc-ide-accent-action)]">BETA</span>
   </div>
 );
 
@@ -278,22 +278,22 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
               </div>
               <div className="relative z-10 flex flex-col h-full">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-bolt-elements-borderColor">
                   <div className="flex min-w-0 items-center space-x-4">
                     {(activeTab || showTabManagement) && (
                       <button
                         type="button"
                         onClick={handleBack}
                         aria-label="Back"
-                        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-colors duration-150"
+                        className="flex shrink-0 items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] group transition-colors duration-150"
                       >
                         <div
-                          className="i-ph:arrow-left w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors"
+                          className="i-ph:arrow-left w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors"
                           aria-hidden="true"
                         />
                       </button>
                     )}
-                    <DialogTitle className="min-w-0 truncate text-xl font-semibold text-gray-900 dark:text-white">
+                    <DialogTitle className="min-w-0 truncate text-xl font-semibold text-bolt-elements-textPrimary">
                       {showTabManagement ? 'Tab Management' : activeTab ? TAB_LABELS[activeTab] : 'Control Panel'}
                     </DialogTitle>
                   </div>
@@ -309,10 +309,10 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                       type="button"
                       onClick={handleClose}
                       aria-label="Close settings"
-                      className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-purple-500/10 dark:hover:bg-purple-500/20 group transition-all duration-200"
+                      className="flex items-center justify-center w-9 h-9 rounded-full bg-transparent hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] group transition-all duration-200"
                     >
                       <div
-                        className="i-ph:x w-4 h-4 text-gray-500 dark:text-gray-400 group-hover:text-purple-500 transition-colors"
+                        className="i-ph:x w-4 h-4 text-bolt-elements-textTertiary group-hover:text-[var(--vc-ide-accent-action)] transition-colors"
                         aria-hidden="true"
                       />
                     </button>
@@ -327,8 +327,7 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                     'hover:overflow-y-auto',
                     'scrollbar scrollbar-w-2',
                     'scrollbar-track-transparent',
-                    'scrollbar-thumb-[#E5E5E5] hover:scrollbar-thumb-[#CCCCCC]',
-                    'dark:scrollbar-thumb-[#333333] dark:hover:scrollbar-thumb-[#444444]',
+                    'scrollbar-thumb-[var(--vc-ide-border-visible)] hover:scrollbar-thumb-[var(--vc-ide-bg-hover)]',
                     'will-change-scroll',
                     'touch-auto',
                   )}

@@ -63,8 +63,8 @@ export class TabPanelBoundary extends Component<Props, State> {
             onClick={this.handleRetry}
             className={classNames(
               'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium',
-              'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-              'hover:bg-purple-500/20 transition-colors duration-200',
+              'bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)] text-[var(--vc-ide-accent-action)]',
+              'hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent)] transition-colors duration-200',
             )}
           >
             <span className="i-ph:arrow-clockwise h-4 w-4" aria-hidden />

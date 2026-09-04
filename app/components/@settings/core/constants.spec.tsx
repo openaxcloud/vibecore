@@ -20,11 +20,11 @@ describe('TAB_ICONS custom provider icons', () => {
   for (const id of ['gitlab', 'netlify', 'vercel', 'supabase'] as const) {
     it(`forwards className onto the ${id} icon svg`, () => {
       const Icon = TAB_ICONS[id];
-      const { container } = render(<Icon className="w-8 h-8 text-purple-500" />);
+      const { container } = render(<Icon className="w-8 h-8 text-[var(--vc-ide-accent-action)]" />);
 
       const svg = container.querySelector('svg');
       expect(svg).not.toBeNull();
-      expect(svg?.getAttribute('class')).toBe('w-8 h-8 text-purple-500');
+      expect(svg?.getAttribute('class')).toBe('w-8 h-8 text-[var(--vc-ide-accent-action)]');
       expect(svg?.getAttribute('class')).not.toContain('w-4 h-4');
     });
   }

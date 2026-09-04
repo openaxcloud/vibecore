@@ -905,8 +905,8 @@ export default function NetlifyConnection() {
               placeholder="Enter your Netlify API token"
               className={classNames(
                 'w-full px-3 py-2 rounded-lg text-sm',
-                'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                'border border-[#E5E5E5] dark:border-[#333333]',
+                'bg-bolt-elements-background-depth-3',
+                'border border-bolt-elements-borderColor',
                 'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
                 'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
                 'disabled:opacity-50',
@@ -925,7 +925,7 @@ export default function NetlifyConnection() {
             </div>
             {/* Debug info — dev-only (was leaking internal token state into the prod UI). */}
             {import.meta.env?.DEV && (
-              <div className="mt-2 text-xs text-gray-500">
+              <div className="mt-2 text-xs text-bolt-elements-textTertiary">
                 <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
                 <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
                 <p>Debug: Env token: {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}</p>
@@ -937,8 +937,8 @@ export default function NetlifyConnection() {
                 disabled={isConnecting || !tokenInput}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[#303030] text-white',
-                  'hover:bg-[#5E41D0] hover:text-white',
+                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',
                 )}

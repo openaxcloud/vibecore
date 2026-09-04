@@ -56,7 +56,9 @@ export function ConnectionTestIndicator({ testResult, className }: ConnectionTes
         </span>
       </div>
       {testResult.timestamp && (
-        <p className="text-xs text-gray-500 mt-1">{new Date(testResult.timestamp).toLocaleString()}</p>
+        <p className="text-xs text-bolt-elements-textTertiary mt-1">
+          {new Date(testResult.timestamp).toLocaleString()}
+        </p>
       )}
     </motion.div>
   );

@@ -110,7 +110,7 @@ export default function UpdateTab() {
             type="button"
             onClick={checkUpdates}
             disabled={checking}
-            className="rounded-lg bg-purple-500 px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
             {checking ? 'Checking...' : 'Check updates'}
           </button>
@@ -145,7 +145,7 @@ export default function UpdateTab() {
                   href={details.compareUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm font-medium text-purple-500 hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[var(--vc-ide-accent-action)] hover:underline"
                 >
                   Compare changes on the source repository
                   <span aria-hidden="true">↗</span>

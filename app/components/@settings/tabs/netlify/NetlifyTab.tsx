@@ -789,9 +789,9 @@ export default function NetlifyTab() {
                         label: 'Custom Domain',
                         value: customDomain,
                         icon: 'i-ph:globe',
-                        color: 'text-purple-500',
-                        bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-                        textColor: 'text-purple-800 dark:text-purple-400',
+                        color: 'text-[var(--vc-ide-accent-action)]',
+                        bgColor: 'bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_12%,transparent)]',
+                        textColor: 'text-[var(--vc-ide-accent-action)]',
                       },
                       {
                         label: 'Building',
@@ -1303,7 +1303,9 @@ export default function NetlifyTab() {
             </span>
           </div>
           {connectionTest.timestamp && (
-            <p className="text-xs text-gray-500 mt-1">{new Date(connectionTest.timestamp).toLocaleString()}</p>
+            <p className="text-xs text-bolt-elements-textTertiary mt-1">
+              {new Date(connectionTest.timestamp).toLocaleString()}
+            </p>
           )}
         </motion.div>
       )}
@@ -1357,8 +1359,8 @@ export default function NetlifyTab() {
                   placeholder="Enter your Netlify API token"
                   className={classNames(
                     'w-full px-3 py-2 rounded-lg text-sm',
-                    'bg-[#F8F8F8] dark:bg-[#1A1A1A]',
-                    'border border-[#E5E5E5] dark:border-[#333333]',
+                    'bg-bolt-elements-background-depth-3',
+                    'border border-bolt-elements-borderColor',
                     'text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary',
                     'focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive',
                     'disabled:opacity-50',
@@ -1383,8 +1385,8 @@ export default function NetlifyTab() {
                   disabled={isConnecting || !tokenInput}
                   className={classNames(
                     'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                    'bg-[#303030] text-white',
-                    'hover:bg-[#5E41D0] hover:text-white',
+                    'bg-[var(--vc-ide-accent-action)] text-white',
+                    'hover:opacity-90 hover:text-white',
                     'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                     'transform active:scale-95',
                   )}
