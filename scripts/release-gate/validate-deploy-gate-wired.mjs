@@ -37,6 +37,7 @@ export const CHART_VALUES = 'infra/helm/platform/values.yaml';
 export const SIGNING_BUILD_CONFIG = 'infra/cloudbuild/runtime-tier.yaml';
 export const STAGING_WORKFLOW = '.github/workflows/deploy-staging.yml';
 export const AR_RETENTION_WORKFLOW = '.github/workflows/ar-protect-images.yml';
+export const LOCAL_ACTIONS_ROOT = '.github/actions';
 
 /**
  * Parse the deploy workflow's `SERVICES=` line into structured entries.
@@ -121,13 +122,14 @@ export function stripComments(text) {
 /** External GitHub Actions must be immutable commit pins, never movable tags. */
 export function findUnpinnedActionUses(workflow) {
   const problems = [];
-  const source = stripComments(workflow);
-  const pattern = /^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm;
-  let match;
-
-  while ((match = pattern.exec(source)) !== null) {
-    const value = match[1];
-    if (value.startsWith('./') || value.startsWith('docker://')) {
+  for (const value of parseActionUses(workflow)) {
+    if (value.startsWith('./')) {
+      continue;
+    }
+    if (value.startsWith('docker://')) {
+      if (!/@sha256:[0-9a-f]{64}$/.test(value)) {
+        problems.push(value);
+      }
       continue;
     }
     const separator = value.lastIndexOf('@');
@@ -138,6 +140,231 @@ export function findUnpinnedActionUses(workflow) {
   }
 
   return problems;
+}
+
+/** Every executable `uses:` edge, excluding comments. */
+export function parseActionUses(source) {
+  const uses = [];
+  const pattern = /^\s*(?:-\s*)?uses:\s*([^\s#]+).*$/gm;
+  const code = stripComments(source);
+  let match;
+  while ((match = pattern.exec(code)) !== null) {
+    uses.push(match[1]);
+  }
+  return uses;
+}
+
+/** Read the workflow sources named by the release policy. */
+export function loadRequiredWorkflowSources(policy) {
+  return Object.fromEntries(
+    (policy.requiredWorkflows ?? []).map((workflow) => [workflow.path, fs.readFileSync(workflow.path, 'utf8')]),
+  );
+}
+
+/**
+ * Read every repository-local Action definition. Required workflows can delegate to
+ * composites; validating only the first workflow file would leave those transitive
+ * executable dependencies free to move back to tags.
+ */
+export function loadLocalActionSources(root = LOCAL_ACTIONS_ROOT) {
+  const sources = {};
+  if (!fs.existsSync(root)) {
+    return sources;
+  }
+
+  const visit = (directory) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = `${directory}/${entry.name}`;
+      if (entry.isDirectory()) {
+        visit(entryPath);
+      } else if (/^action\.ya?ml$/.test(entry.name)) {
+        sources[entryPath] = fs.readFileSync(entryPath, 'utf8');
+      }
+    }
+  };
+  visit(root);
+  return sources;
+}
+
+function unquoteYamlScalar(value) {
+  const trimmed = value.trim();
+  if (
+    trimmed.length >= 2 &&
+    ((trimmed.startsWith("'") && trimmed.endsWith("'")) ||
+      (trimmed.startsWith('"') && trimmed.endsWith('"')))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+  return trimmed;
+}
+
+function parseInlineYamlList(value) {
+  return value
+    .split(',')
+    .map((entry) => unquoteYamlScalar(entry))
+    .filter(Boolean);
+}
+
+/** Check-run names emitted by a workflow, including simple inline matrix variants. */
+export function parseWorkflowJobNames(workflow) {
+  const { jobs } = parseWorkflowRegions(workflow);
+  const names = new Set();
+
+  for (const [jobId, job] of jobs) {
+    const declared = /^ {4}name:\s*(.+?)\s*$/m.exec(job)?.[1];
+    const baseName = declared ? unquoteYamlScalar(declared) : jobId;
+    const dimensions = [];
+    const matrix = /^ {6}matrix:\s*\n((?:^ {8}.*\n?)*)/m.exec(job)?.[1] ?? '';
+    const dimensionPattern = /^ {8}([A-Za-z0-9_-]+):\s*\[([^\]]+)\]\s*$/gm;
+    let dimension;
+    while ((dimension = dimensionPattern.exec(matrix)) !== null) {
+      if (!['include', 'exclude'].includes(dimension[1])) {
+        dimensions.push({ key: dimension[1], values: parseInlineYamlList(dimension[2]) });
+      }
+    }
+
+    if (dimensions.length === 0 || dimensions.some(({ values }) => values.length === 0)) {
+      names.add(baseName);
+      continue;
+    }
+
+    let combinations = [{}];
+    for (const { key, values } of dimensions) {
+      combinations = combinations.flatMap((combination) =>
+        values.map((value) => ({ ...combination, [key]: value })),
+      );
+    }
+    for (const combination of combinations) {
+      let rendered = baseName;
+      for (const [key, value] of Object.entries(combination)) {
+        rendered = rendered.replaceAll(`\${{ matrix.${key} }}`, value);
+        rendered = rendered.replaceAll(`\${{matrix.${key}}}`, value);
+      }
+      // GitHub appends the matrix values to the configured job name. That suffix is
+      // part of the check-run identity consumed by verify-required-checks.mjs.
+      names.add(`${rendered} (${Object.values(combination).join(', ')})`);
+    }
+  }
+
+  return names;
+}
+
+function resolveLocalActionSource(action, sources) {
+  const relative = action.slice(2).replace(/\/$/, '');
+  const candidates = /\.ya?ml$/.test(relative)
+    ? [relative]
+    : [`${relative}/action.yml`, `${relative}/action.yaml`];
+  return candidates.find((candidate) => Object.hasOwn(sources, candidate)) ?? null;
+}
+
+/**
+ * Validate the immutable `uses:` closure of every workflow that can vote on a
+ * release. The exact-SHA gate is meaningless if a movable Action tag can forge the
+ * verdict for that same SHA in a required workflow or in a composite it invokes.
+ */
+function validateRequiredWorkflowActionClosure(
+  problems,
+  requiredWorkflowSources,
+  localActionSources,
+  workflowPath,
+) {
+  const allSources = { ...requiredWorkflowSources, ...localActionSources };
+  const visited = new Set();
+
+  const visit = (sourcePath, rootWorkflow) => {
+    if (visited.has(sourcePath)) {
+      return;
+    }
+    visited.add(sourcePath);
+    const source = allSources[sourcePath];
+    if (source === undefined) {
+      problems.push(`${rootWorkflow}: executable local dependency '${sourcePath}' is missing from validator inputs`);
+      return;
+    }
+
+    for (const action of parseActionUses(source)) {
+      if (action.startsWith('./')) {
+        const resolved = resolveLocalActionSource(action, allSources);
+        if (!resolved) {
+          problems.push(
+            `${sourcePath}: local action '${action}' required by '${rootWorkflow}' has no action.yml/action.yaml source`,
+          );
+        } else {
+          visit(resolved, rootWorkflow);
+        }
+        continue;
+      }
+      if (findUnpinnedActionUses(`uses: ${action}`).length > 0) {
+        problems.push(
+          `${sourcePath}: external action '${action}' reachable from required workflow '${rootWorkflow}' must be pinned to a full 40-hex commit (or an exact docker sha256 digest)`,
+        );
+      }
+    }
+  };
+
+  visit(workflowPath, workflowPath);
+}
+
+function parsePushBranches(workflow) {
+  const code = stripComments(workflow);
+  const onBlock = /^on:\s*\n((?:^[ \t]+.*\n?)*)/m.exec(code)?.[1] ?? '';
+  const pushBlock = /^ {2}push:\s*\n((?:^ {4,}.*\n?)*)/m.exec(onBlock)?.[1] ?? '';
+  const inline = /^ {4}branches:\s*\[([^\]]*)\]\s*$/m.exec(pushBlock)?.[1];
+  if (inline !== undefined) {
+    return parseInlineYamlList(inline);
+  }
+  const block = /^ {4}branches:\s*\n((?:^ {6}- .*\n?)*)/m.exec(pushBlock)?.[1] ?? '';
+  return [...block.matchAll(/^ {6}-\s*(.+?)\s*$/gm)].map((match) => unquoteYamlScalar(match[1]));
+}
+
+function validateRequiredWorkflowPolicy(problems, policy, requiredWorkflowSources, localActionSources) {
+  for (const workflow of policy.requiredWorkflows ?? []) {
+    const source = requiredWorkflowSources[workflow.path];
+    if (source === undefined) {
+      problems.push(`${POLICY_FILE}: required workflow source '${workflow.path}' is missing from validator inputs`);
+      continue;
+    }
+
+    const declaredName = /^name:\s*(.+?)\s*$/m.exec(stripComments(source))?.[1];
+    if (!declaredName || unquoteYamlScalar(declaredName) !== workflow.displayName) {
+      problems.push(
+        `${workflow.path}: workflow name must remain '${workflow.displayName}' (found '${declaredName ?? '<missing>'}')`,
+      );
+    }
+
+    try {
+      const emittedJobs = parseWorkflowJobNames(source);
+      for (const requiredJob of workflow.requiredJobs ?? []) {
+        if (!emittedJobs.has(requiredJob)) {
+          problems.push(`${workflow.path}: required job '${requiredJob}' is not emitted by the current workflow graph`);
+        }
+      }
+    } catch (error) {
+      problems.push(`${workflow.path}: cannot parse required jobs: ${error.message}`);
+    }
+
+    validateRequiredWorkflowActionClosure(
+      problems,
+      requiredWorkflowSources,
+      localActionSources,
+      workflow.path,
+    );
+  }
+
+  const e2e = (policy.requiredWorkflows ?? []).find((workflow) => workflow.displayName === 'Production E2E');
+  const e2eSource = e2e ? requiredWorkflowSources[e2e.path] : '';
+  if (e2eSource) {
+    if (!parsePushBranches(e2eSource).includes('main')) {
+      problems.push(`${e2e.path}: must run on push to main so the gate can obtain an exact-SHA E2E verdict`);
+    }
+    if (
+      !/^ {2}cancel-in-progress:\s*\$\{\{\s*github\.ref\s*!=\s*['"]refs\/heads\/main['"]\s*\}\}\s*$/m.test(
+        stripComments(e2eSource),
+      )
+    ) {
+      problems.push(`${e2e.path}: main E2E runs must never be cancelled before their exact-SHA verdict exists`);
+    }
+  }
 }
 
 /**
@@ -286,6 +513,8 @@ export function checkGateWiring({
   signingBuildConfig,
   stagingWorkflow,
   arRetentionWorkflow,
+  requiredWorkflowSources = {},
+  localActionSources = {},
 }) {
   const problems = [];
   const { topLevel, jobs } = parseWorkflowRegions(deployWorkflow);
@@ -315,6 +544,11 @@ export function checkGateWiring({
       );
     }
   }
+
+  // Workflows that produce release-gate verdicts are part of the production
+  // supply chain too. Validate both their declared check-run identities and the
+  // complete local-composite `uses:` closure before trusting those verdicts.
+  validateRequiredWorkflowPolicy(problems, policy, requiredWorkflowSources, localActionSources);
 
   validateTrustedWorkflowGraph(problems, BREAK_GLASS_WORKFLOW, breakGlassWorkflow, BREAK_GLASS_WORKFLOW);
   validateTrustedWorkflowGraph(problems, STAGING_WORKFLOW, stagingWorkflow, STAGING_WORKFLOW);
@@ -714,6 +948,20 @@ function selfTest() {
   const signingBuildConfig = fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8');
   const stagingWorkflow = fs.readFileSync(STAGING_WORKFLOW, 'utf8');
   const arRetentionWorkflow = fs.readFileSync(AR_RETENTION_WORKFLOW, 'utf8');
+  const requiredWorkflowSources = loadRequiredWorkflowSources(policy);
+  const localActionSources = loadLocalActionSources();
+  const baseFiles = {
+    deployWorkflow,
+    breakGlassWorkflow,
+    dryRunWorkflow,
+    policy,
+    chartValues,
+    signingBuildConfig,
+    stagingWorkflow,
+    arRetentionWorkflow,
+    requiredWorkflowSources,
+    localActionSources,
+  };
 
   // Prove the validator can actually FAIL — a checker that only ever passes is
   // indistinguishable from no checker at all.
@@ -758,6 +1006,65 @@ function selfTest() {
         signingBuildConfig,
         stagingWorkflow,
         arRetentionWorkflow,
+      }),
+    ],
+    [
+      'required CI workflow Action changed back to a movable tag',
+      () => ({
+        requiredWorkflowSources: {
+          ...requiredWorkflowSources,
+          '.github/workflows/ci.yml': requiredWorkflowSources['.github/workflows/ci.yml'].replace(
+            /actions\/checkout@[0-9a-f]{40}/,
+            'actions/checkout@v4',
+          ),
+        },
+      }),
+    ],
+    [
+      'required workflow transitive composite Action changed back to a movable tag',
+      () => ({
+        localActionSources: {
+          ...localActionSources,
+          '.github/actions/setup-and-build/action.yaml': localActionSources[
+            '.github/actions/setup-and-build/action.yaml'
+          ].replace(/actions\/setup-node@[0-9a-f]{40}/, 'actions/setup-node@v4'),
+        },
+      }),
+    ],
+    [
+      'E2E exact-SHA main push trigger removed',
+      () => ({
+        requiredWorkflowSources: {
+          ...requiredWorkflowSources,
+          '.github/workflows/e2e.yml': requiredWorkflowSources['.github/workflows/e2e.yml'].replace(
+            'branches: [main, stable, product/saas-platform-production]',
+            'branches: [stable, product/saas-platform-production]',
+          ),
+        },
+      }),
+    ],
+    [
+      'E2E exact-SHA main run made cancellable',
+      () => ({
+        requiredWorkflowSources: {
+          ...requiredWorkflowSources,
+          '.github/workflows/e2e.yml': requiredWorkflowSources['.github/workflows/e2e.yml'].replace(
+            "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
+            'cancel-in-progress: true',
+          ),
+        },
+      }),
+    ],
+    [
+      'required CI job renamed without updating the policy',
+      () => ({
+        requiredWorkflowSources: {
+          ...requiredWorkflowSources,
+          '.github/workflows/ci.yml': requiredWorkflowSources['.github/workflows/ci.yml'].replace(
+            'name: Install, test, build, scan',
+            'name: Always green placeholder',
+          ),
+        },
       }),
     ],
     [
@@ -1001,7 +1308,7 @@ function selfTest() {
 
   let failures = 0;
   for (const [label, mutate] of mutations) {
-    const problems = checkGateWiring(mutate());
+    const problems = checkGateWiring({ ...baseFiles, ...mutate() });
     const caught = problems.length > 0;
     console.log(`${caught ? 'ok  ' : 'FAIL'}  detects: ${label}`);
     if (!caught) {
@@ -1009,16 +1316,7 @@ function selfTest() {
     }
   }
 
-  const clean = checkGateWiring({
-    deployWorkflow,
-    breakGlassWorkflow,
-    dryRunWorkflow,
-    policy,
-    chartValues,
-    signingBuildConfig,
-    stagingWorkflow,
-    arRetentionWorkflow,
-  });
+  const clean = checkGateWiring(baseFiles);
   console.log(`${clean.length === 0 ? 'ok  ' : 'FAIL'}  accepts the real, unmutated workflow`);
   if (clean.length > 0) {
     clean.forEach((p) => console.log(`        ${p}`));
@@ -1032,17 +1330,20 @@ function main() {
     return selfTest();
   }
 
+  const policy = JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8'));
   const problems = checkGateWiring({
     deployWorkflow: fs.readFileSync(DEPLOY_WORKFLOW, 'utf8'),
     breakGlassWorkflow: fs.existsSync(BREAK_GLASS_WORKFLOW) ? fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8') : '',
     dryRunWorkflow: fs.existsSync(RELEASE_GATE_DRYRUN_WORKFLOW)
       ? fs.readFileSync(RELEASE_GATE_DRYRUN_WORKFLOW, 'utf8')
       : '',
-    policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
+    policy,
     chartValues: fs.existsSync(CHART_VALUES) ? fs.readFileSync(CHART_VALUES, 'utf8') : null,
     signingBuildConfig: fs.existsSync(SIGNING_BUILD_CONFIG) ? fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8') : null,
     stagingWorkflow: fs.existsSync(STAGING_WORKFLOW) ? fs.readFileSync(STAGING_WORKFLOW, 'utf8') : null,
     arRetentionWorkflow: fs.existsSync(AR_RETENTION_WORKFLOW) ? fs.readFileSync(AR_RETENTION_WORKFLOW, 'utf8') : null,
+    requiredWorkflowSources: loadRequiredWorkflowSources(policy),
+    localActionSources: loadLocalActionSources(),
   });
 
   if (problems.length > 0) {
