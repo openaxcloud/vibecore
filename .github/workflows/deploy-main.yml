@@ -1735,16 +1735,53 @@ jobs:
           #        passait pour un refus (fail-OPEN).
           PROBE="sec9-probe-${GITHUB_RUN_ID}"
           PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
+          PROBE_CMD='code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
           kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
           # curlimages/curl tourne en utilisateur 100:101 ; l'écrire en clair
           # parce que `runAsNonRoot` ne se vérifie pas sur un USER symbolique.
-          OVERRIDES="$(printf '{"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":100,"runAsGroup":101,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"%s","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"cpu":"100m","memory":"64Mi"}}}]}}' "${PROBE}")"
-          kubectl -n "${HELM_NAMESPACE}" run "${PROBE}" \
+          # `--overrides` REMPLACE le tableau `containers`, il ne le fusionne pas.
+          # Tout ce que `kubectl run` aurait posé dessus — l'image, la commande,
+          # les variables — disparaît donc s'il n'est pas répété ici. Mesuré le
+          # 2026-09-04, run 33888221082 :
+          #
+          #   The Pod "sec9-probe-…" is invalid: spec.containers[0].image: Required value
+          #
+          # La sonde mourait en 1,2 s, et son message accusait « l'api déployée »
+          # alors que son propre pod n'avait jamais été admis. Le conteneur est
+          # donc décrit ICI en entier, une seule fois, et construit par python
+          # plutôt qu'assemblé à la main : un JSON imbriqué dans du shell dans du
+          # YAML, c'est trois niveaux d'échappement pour une seule erreur.
+          OVERRIDES="$(PROBE="${PROBE}" PROBE_URL="${PROBE_URL}" PROBE_CMD="${PROBE_CMD}" python3 -c '
+          import json, os
+          print(json.dumps({"spec": {
+              "automountServiceAccountToken": False,
+              "restartPolicy": "Never",
+              "securityContext": {"runAsNonRoot": True, "runAsUser": 100, "runAsGroup": 101,
+                                  "seccompProfile": {"type": "RuntimeDefault"}},
+              "containers": [{
+                  "name": os.environ["PROBE"],
+                  "image": "curlimages/curl:8.10.1",
+                  "command": ["sh", "-c", os.environ["PROBE_CMD"]],
+                  "env": [{"name": "PROBE_URL", "value": os.environ["PROBE_URL"]}],
+                  "securityContext": {"allowPrivilegeEscalation": False,
+                                      "capabilities": {"drop": ["ALL"]}},
+                  "resources": {"requests": {"cpu": "10m", "memory": "16Mi"},
+                                "limits": {"cpu": "100m", "memory": "64Mi"}},
+              }],
+          }}))
+          ')"
+          # La stderr de la creation est CAPTUREE, pas jetee : c'est elle qui
+          # portait « image: Required value » et « violates PodSecurity », les
+          # deux causes reelles des quatre deploiements perdus le 2026-09-04.
+          if ! CREATION="$(kubectl -n "${HELM_NAMESPACE}" run "${PROBE}" \
             --restart=Never --image=curlimages/curl:8.10.1 \
             --labels="app.kubernetes.io/name=sec9-probe,app.kubernetes.io/part-of=vibecore" \
-            --env="PROBE_URL=${PROBE_URL}" \
-            --overrides="${OVERRIDES}" \
-            --command -- sh -c 'code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
+            --overrides="${OVERRIDES}" 2>&1)"; then
+            echo "::error::SONDE NON CREEE — le pod de la sonde n'a pas ete admis par le cluster." >&2
+            echo "::error::l'api n'a donc PAS ete interrogee : ce verdict ne dit rien de l'api." >&2
+            echo "::error::reponse de l'apiserver : ${CREATION}" >&2
+            exit 1
+          fi
 
           PHASE=""
           for _ in $(seq 1 45); do
