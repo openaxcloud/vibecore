@@ -1520,6 +1520,23 @@ jobs:
             --set-string "platformEnv.screenshotterPreviewProxyUrl=http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020"
           )
 
+          # DÉRIVE DES VALEURS — `--reuse-values` ne relit jamais values-prod.yaml.
+          # Un réglage fusionné dans le fichier peut donc n'atteindre jamais la
+          # production, sans erreur ni trace. C'est arrivé : #375 relevait la
+          # limite processeur de l'api de 500m à 2, fusionnée le 2026-09-02,
+          # restée lettre morte jusqu'au 2026-09-04 — deux jours à 12,6 % de
+          # périodes étranglées, en silence.
+          #
+          # Ce contrôle CRIE et ne bloque pas : il ne referme pas les écarts tout
+          # seul, parce que le fichier n'a pas toujours raison contre la
+          # production (un `--set` d'hier peut être le bon réglage d'aujourd'hui).
+          if helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/valeurs-release.json 2>/dev/null; then
+            node scripts/release-gate/detecter-derive-valeurs.mjs \
+              infra/helm/platform/values-prod.yaml /tmp/valeurs-release.json || true
+          else
+            echo "::warning::valeurs de la release illisibles — contrôle de dérive non exécuté"
+          fi
+
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
