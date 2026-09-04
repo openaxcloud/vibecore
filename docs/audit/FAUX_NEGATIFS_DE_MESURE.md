@@ -17,6 +17,14 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 10 | boucle sur les pods | la liste de pods mal découpée n'en parcourait **qu'un sur cinq** | « 0 erreur 5xx » sur 20 % du parc | écrire la liste dans un fichier, compter les lignes, boucler dessus |
 | 11 | lint | le **cache eslint** rendait 81 erreurs là où il y en avait 269 | « mon changement ajoute 188 erreurs » — il n'en ajoutait **aucune** | vider le cache avant toute comparaison avant/après |
 | 12 | test lancé depuis la racine | vitest ne trouve pas les specs de `services/api` depuis la racine | **« No test files found »**, exit 1, lu comme un échec de test | lancer depuis le paquet concerné |
+| 13 | lanceur d'arrière-plan | les scripts lancés en arrière-plan étaient **tués puis relancés** en vol (`etime` du processus node à 44 s alors que la campagne durait depuis 12 min) | **journal vide** et sondes d'état répondant « toujours en cours » | lancer les campagnes longues **au premier plan** avec un `timeout` explicite |
+| 14 | sonde `pgrep -f` sur le nom du script | le motif matchait **le shell qui contenait le texte du script** (heredoc), pas le processus node | **« RUNNING »** pendant des minutes sur un travail **déjà terminé** | ancrer sur `ps -axo command` + `^node <chemin>`, et vérifier que le fichier de sortie grossit |
+| 15 | `tsc --noEmit` | épuisement mémoire de V8, **sortie 134**, avant d'avoir typé les fichiers modifiés | **« 0 erreur »** sur mon changement | `NODE_OPTIONS=--max-old-space-size=8192`, et **témoin obligatoire** : injecter une erreur de type et vérifier qu'elle est rapportée |
+| 16 | durée écoulée estimée au ressenti | aucune mesure : « ~3 h » annoncé pour une construction démarrée depuis **18 minutes** | « c'est bloqué, il faut relancer » au lieu de « c'est en cours, il faut attendre » — **décisions opposées** | soustraire deux horodatages, jamais estimer |
+| 17 | sonde de défilement du panneau Agent | la sonde posait `out.scrolled = true` en dur, puis l'étalait par-dessus le résultat réel (`{...result}`) | **« défilement réussi »** quoi qu'il arrive, y compris quand le conteneur visé n'existait pas | ne jamais nommer un champ de sortie comme une conclusion ; vérifier `scrollTop` APRÈS coup |
+| 18 | sonde de correspondance CSS | sur WebKit, `cssRules` existe sur **toute** règle ; le parcours traitait donc chaque règle comme un conteneur et n'en testait aucune | **« aucune règle ne fixe la taille de cet élément »** — impossible pour un élément affiché (témoin : `anySelectorMatched: 0` sur 290 règles, 11 feuilles) | distinguer les règles groupantes par leur `type`, et **compter les règles parcourues** avant de lire un zéro |
+| 19 | sonde d'état de rebase | `[ -d .git/rebase-merge ]` — dans un **worktree**, l'état vit dans `.git/worktrees/<nom>/rebase-merge` | **« REBASE COMPLETE »** alors que le rebase était arrêté sur un conflit, et qu'un commit semblait perdu | lire `git status`, qui est l'autorité ; `git rev-parse --git-dir` donne le bon répertoire |
+| 20 | le dépôt partagé lui-même | trois remises à zéro du checkout principal dans la journée (bascule de branche par une autre session), sans avertissement | **le travail écrit « existe »** — il est à l'écran, il est dans le fichier — puis il n'existe plus, et rien ne le signale. Entrées 13-17 du registre perdues une fois, huit lignes d'inventaire perdues DEUX fois | **copier tout écrit durable dans un dossier NON SUIVI avant de continuer**, puis le porter en ligne dès que possible. Acquis après trois effacements : la 1ʳᵉ fois j'ai réécrit, la 2ᵉ j'ai copié le code mais pas les documents, la 3ᵉ seule la copie a sauvé le travail |
 
 ## La règle qui en découle
 
@@ -48,3 +56,32 @@ Trois défauts de la journée avaient un garde-fou **qui passait au vert** :
 rassure.** Préférer une énumération dérivée du produit à une liste écrite à la
 main — la sonde dérivée a trouvé **43 défauts** là où la liste manuelle en
 couvrait **3**.
+
+---
+
+## La règle que ces vingt cas imposent
+
+**Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
+encore.**
+
+Ils n'ont pas vingt causes, ils en ont une. Un outil qui **n'a pas mesuré**
+rend le même résultat qu'un outil qui **a mesuré et n'a rien trouvé**. Le
+silence n'est jamais un verdict.
+
+1. **Le témoin positif d'abord.** Faire rendre au moins un résultat connu à la
+   même commande avant de lire un zéro.
+2. **Prouver la vie du processus, pas son apparence.** Sortie qui grossit,
+   horodatage qui avance, code de sortie lu.
+3. **Mesurer les durées, ne jamais les estimer.** « Bloqué » et « en cours »
+   appellent des décisions opposées.
+
+Sur la seule journée du 2026-09-04, leur absence a produit **sept** conclusions
+fausses — dont une annoncée à Avi et qu'il a fallu reprendre.
+
+### Le corollaire, appris à la dure le 2026-09-04
+
+Un outil peut mentir ; **le dépôt aussi**. Sur un checkout partagé entre
+sessions, un fichier écrit n'est pas un fichier conservé. La parade est la même
+que pour les mesures : ne pas croire ce qui est à l'écran, vérifier que ça
+survit. En pratique — copie immédiate dans un dossier non suivi, puis mise en
+ligne. Ce document a lui-même été perdu une fois avant d'être écrit ainsi.
