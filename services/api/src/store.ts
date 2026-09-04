@@ -1551,7 +1551,37 @@ export interface ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    /** AUDX-014 — durable idempotency, unique per (organizationId, key). */
+    idempotencyKey?: string;
   }): Promise<{ id: string; state: string }>;
+
+  /**
+   * AUDX-014 — find a job by its client idempotency key.
+   *
+   * This replaces the in-process `importIdemIndex`, which was per-pod: a retried
+   * create landing on another replica did not see the key and created a SECOND
+   * job with a SECOND credit reservation.
+   */
+  findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string): Promise<{ id: string } | undefined>;
+
+  /**
+   * AUDX-014 — durable, shared import staging.
+   *
+   * Replaces the in-process `importStaging` Map. The import flow is two HTTP
+   * hops and the api runs 2+ replicas with no session affinity, so a commit
+   * routed to another pod found nothing and returned 409 IMPORT_STAGING_GONE.
+   *
+   * Still EPHEMERAL: cleared on every non-committed exit and after a successful
+   * commit. Nothing is written to the target project before COMMITTED.
+   */
+  putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void>;
+  getImportStagedFiles(
+    importJobId: string,
+  ): Promise<Array<{ path: string; content: string; encoding?: string }> | undefined>;
+  deleteImportStagedFiles(importJobId: string): Promise<void>;
   updateImportJob(
     id: string,
     patch: {

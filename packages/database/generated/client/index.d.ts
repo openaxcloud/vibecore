@@ -680,6 +680,29 @@ export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
  */
 export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
 /**
+ * Model ImportStagedFile
+ * AUDX-014 — le staging d'import, DURABLE et partagé entre replicas.
+ * 
+ * Les fichiers mis en scène vivaient dans une `Map` en processus
+ * (`importStaging`). Le flux fait deux sauts HTTP — `POST /imports` puis
+ * `POST /imports/:id/commit` — et l'api tourne à 2 replicas sans affinité de
+ * session (le cookie `vc_upstream` de l'Ingress ne couvre que `/` et
+ * `/runtime` ; l'api est jointe par un Service ClusterIP sans
+ * `sessionAffinity`). Un commit sur l'autre pod ne trouvait rien et renvoyait
+ * `409 IMPORT_STAGING_GONE` : mesuré, ~50 % des imports à 2 replicas, ~83 % à 6.
+ * 
+ * La table reste ÉPHÉMÈRE : elle est vidée à chaque sortie non committée comme
+ * après un commit réussi, et le `onDelete: Cascade` la nettoie si le job
+ * disparaît. Le contrat d'origine tient : rien n'est écrit dans le projet cible
+ * avant COMMITTED.
+ * 
+ * ⚠️ Le contenu est stocké en base, comme le fait déjà `ProjectStorageObject`.
+ * AUDX-031 (« sortir les ZIP/base64 hors de PostgreSQL ») s'appliquera aussi
+ * ici le jour venu ; une `Map` en processus n'était pas une alternative, elle
+ * était le défaut.
+ */
+export type ImportStagedFile = $Result.DefaultSelection<Prisma.$ImportStagedFilePayload>
+/**
  * Model GalleryListing
  * A curated public Gallery listing (TPL-02). Mirrors the CONFIRMED
  * replit.com/gallery surface: a browsable grid of published apps with an
@@ -2324,6 +2347,16 @@ export class PrismaClient<
   get importJob(): Prisma.ImportJobDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.importStagedFile`: Exposes CRUD operations for the **ImportStagedFile** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportStagedFiles
+    * const importStagedFiles = await prisma.importStagedFile.findMany()
+    * ```
+    */
+  get importStagedFile(): Prisma.ImportStagedFileDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.galleryListing`: Exposes CRUD operations for the **GalleryListing** model.
     * Example usage:
     * ```ts
@@ -2980,6 +3013,7 @@ export namespace Prisma {
     ProjectCheckpoint: 'ProjectCheckpoint',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
+    ImportStagedFile: 'ImportStagedFile',
     GalleryListing: 'GalleryListing',
     LedgerAccount: 'LedgerAccount',
     LedgerTransaction: 'LedgerTransaction',
@@ -3006,7 +3040,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
+      modelProps: "user" | "accountLockout" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importStagedFile" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "dBMigrationExecution"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11430,6 +11464,80 @@ export namespace Prisma {
           }
         }
       }
+      ImportStagedFile: {
+        payload: Prisma.$ImportStagedFilePayload<ExtArgs>
+        fields: Prisma.ImportStagedFileFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportStagedFileFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportStagedFileFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          findFirst: {
+            args: Prisma.ImportStagedFileFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportStagedFileFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          findMany: {
+            args: Prisma.ImportStagedFileFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>[]
+          }
+          create: {
+            args: Prisma.ImportStagedFileCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          createMany: {
+            args: Prisma.ImportStagedFileCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportStagedFileCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>[]
+          }
+          delete: {
+            args: Prisma.ImportStagedFileDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          update: {
+            args: Prisma.ImportStagedFileUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportStagedFileDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportStagedFileUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportStagedFileUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportStagedFileUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportStagedFilePayload>
+          }
+          aggregate: {
+            args: Prisma.ImportStagedFileAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportStagedFile>
+          }
+          groupBy: {
+            args: Prisma.ImportStagedFileGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportStagedFileGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportStagedFileCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportStagedFileCountAggregateOutputType> | number
+          }
+        }
+      }
       GalleryListing: {
         payload: Prisma.$GalleryListingPayload<ExtArgs>
         fields: Prisma.GalleryListingFieldRefs
@@ -12466,6 +12574,7 @@ export namespace Prisma {
     projectCheckpoint?: ProjectCheckpointOmit
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
+    importStagedFile?: ImportStagedFileOmit
     galleryListing?: GalleryListingOmit
     ledgerAccount?: LedgerAccountOmit
     ledgerTransaction?: LedgerTransactionOmit
@@ -13975,6 +14084,37 @@ export namespace Prisma {
    */
   export type ScheduledTaskCountOutputTypeCountRunsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ScheduledTaskRunWhereInput
+  }
+
+
+  /**
+   * Count Type ImportJobCountOutputType
+   */
+
+  export type ImportJobCountOutputType = {
+    stagedFiles: number
+  }
+
+  export type ImportJobCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stagedFiles?: boolean | ImportJobCountOutputTypeCountStagedFilesArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * ImportJobCountOutputType without action
+   */
+  export type ImportJobCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJobCountOutputType
+     */
+    select?: ImportJobCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * ImportJobCountOutputType without action
+   */
+  export type ImportJobCountOutputTypeCountStagedFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportStagedFileWhereInput
   }
 
 
@@ -144488,6 +144628,7 @@ export namespace Prisma {
     stagedFileCount: number | null
     redactedCount: number | null
     creditsReserved: boolean | null
+    idempotencyKey: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -144505,6 +144646,7 @@ export namespace Prisma {
     stagedFileCount: number | null
     redactedCount: number | null
     creditsReserved: boolean | null
+    idempotencyKey: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -144524,6 +144666,7 @@ export namespace Prisma {
     stagedFileCount: number
     redactedCount: number
     creditsReserved: number
+    idempotencyKey: number
     error: number
     expiresAt: number
     createdAt: number
@@ -144553,6 +144696,7 @@ export namespace Prisma {
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    idempotencyKey?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -144570,6 +144714,7 @@ export namespace Prisma {
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    idempotencyKey?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -144589,6 +144734,7 @@ export namespace Prisma {
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    idempotencyKey?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -144695,6 +144841,7 @@ export namespace Prisma {
     stagedFileCount: number
     redactedCount: number
     creditsReserved: boolean
+    idempotencyKey: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date
@@ -144733,10 +144880,13 @@ export namespace Prisma {
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    idempotencyKey?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    stagedFiles?: boolean | ImportJob$stagedFilesArgs<ExtArgs>
+    _count?: boolean | ImportJobCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["importJob"]>
 
   export type ImportJobSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -144752,6 +144902,7 @@ export namespace Prisma {
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    idempotencyKey?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
@@ -144771,6 +144922,7 @@ export namespace Prisma {
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    idempotencyKey?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
@@ -144790,17 +144942,26 @@ export namespace Prisma {
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    idempotencyKey?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "idempotencyKey" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+  export type ImportJobInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    stagedFiles?: boolean | ImportJob$stagedFilesArgs<ExtArgs>
+    _count?: boolean | ImportJobCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type ImportJobIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type ImportJobIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $ImportJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ImportJob"
-    objects: {}
+    objects: {
+      stagedFiles: Prisma.$ImportStagedFilePayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       organizationId: string
@@ -144829,6 +144990,18 @@ export namespace Prisma {
        * E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
        */
       creditsReserved: boolean
+      /**
+       * AUDX-014 — clé d'idempotence du client, DURABLE.
+       * 
+       * Elle vivait dans une `Map` en processus (`importIdemIndex`). L'api tourne
+       * à 2 replicas (HPA 6) sans affinité de session : un create rejoué qui
+       * atterrissait sur l'autre pod ne voyait pas la clé et créait un SECOND job
+       * avec une SECONDE réservation de crédits — le double débit que la clé
+       * existe précisément pour empêcher. L'unicité est portée par la base, donc
+       * deux créations concurrentes sur deux pods ne peuvent plus toutes deux
+       * gagner.
+       */
+      idempotencyKey: string | null
       error: string | null
       expiresAt: Date | null
       createdAt: Date
@@ -145227,6 +145400,7 @@ export namespace Prisma {
    */
   export interface Prisma__ImportJobClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    stagedFiles<T extends ImportJob$stagedFilesArgs<ExtArgs> = {}>(args?: Subset<T, ImportJob$stagedFilesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -145268,6 +145442,7 @@ export namespace Prisma {
     readonly stagedFileCount: FieldRef<"ImportJob", 'Int'>
     readonly redactedCount: FieldRef<"ImportJob", 'Int'>
     readonly creditsReserved: FieldRef<"ImportJob", 'Boolean'>
+    readonly idempotencyKey: FieldRef<"ImportJob", 'String'>
     readonly error: FieldRef<"ImportJob", 'String'>
     readonly expiresAt: FieldRef<"ImportJob", 'DateTime'>
     readonly createdAt: FieldRef<"ImportJob", 'DateTime'>
@@ -145289,6 +145464,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where: ImportJobWhereUniqueInput
@@ -145307,6 +145486,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where: ImportJobWhereUniqueInput
@@ -145324,6 +145507,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * Filter, which ImportJob to fetch.
      */
@@ -145373,6 +145560,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where?: ImportJobWhereInput
@@ -145420,6 +145611,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * Filter, which ImportJobs to fetch.
      */
@@ -145469,6 +145664,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * The data needed to create a ImportJob.
      */
     data: XOR<ImportJobCreateInput, ImportJobUncheckedCreateInput>
@@ -145516,6 +145715,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * The data needed to update a ImportJob.
      */
@@ -145583,6 +145786,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * The filter to search for the ImportJob to update in case it exists.
      */
     where: ImportJobWhereUniqueInput
@@ -145609,6 +145816,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter which ImportJob to delete.
      */
     where: ImportJobWhereUniqueInput
@@ -145629,6 +145840,30 @@ export namespace Prisma {
   }
 
   /**
+   * ImportJob.stagedFiles
+   */
+  export type ImportJob$stagedFilesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    where?: ImportStagedFileWhereInput
+    orderBy?: ImportStagedFileOrderByWithRelationInput | ImportStagedFileOrderByWithRelationInput[]
+    cursor?: ImportStagedFileWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportStagedFileScalarFieldEnum | ImportStagedFileScalarFieldEnum[]
+  }
+
+  /**
    * ImportJob without action
    */
   export type ImportJobDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -145640,6 +145875,1086 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ImportStagedFile
+   */
+
+  export type AggregateImportStagedFile = {
+    _count: ImportStagedFileCountAggregateOutputType | null
+    _min: ImportStagedFileMinAggregateOutputType | null
+    _max: ImportStagedFileMaxAggregateOutputType | null
+  }
+
+  export type ImportStagedFileMinAggregateOutputType = {
+    id: string | null
+    importJobId: string | null
+    path: string | null
+    content: string | null
+    encoding: string | null
+    createdAt: Date | null
+  }
+
+  export type ImportStagedFileMaxAggregateOutputType = {
+    id: string | null
+    importJobId: string | null
+    path: string | null
+    content: string | null
+    encoding: string | null
+    createdAt: Date | null
+  }
+
+  export type ImportStagedFileCountAggregateOutputType = {
+    id: number
+    importJobId: number
+    path: number
+    content: number
+    encoding: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ImportStagedFileMinAggregateInputType = {
+    id?: true
+    importJobId?: true
+    path?: true
+    content?: true
+    encoding?: true
+    createdAt?: true
+  }
+
+  export type ImportStagedFileMaxAggregateInputType = {
+    id?: true
+    importJobId?: true
+    path?: true
+    content?: true
+    encoding?: true
+    createdAt?: true
+  }
+
+  export type ImportStagedFileCountAggregateInputType = {
+    id?: true
+    importJobId?: true
+    path?: true
+    content?: true
+    encoding?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ImportStagedFileAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportStagedFile to aggregate.
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportStagedFiles to fetch.
+     */
+    orderBy?: ImportStagedFileOrderByWithRelationInput | ImportStagedFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportStagedFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportStagedFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportStagedFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportStagedFiles
+    **/
+    _count?: true | ImportStagedFileCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportStagedFileMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportStagedFileMaxAggregateInputType
+  }
+
+  export type GetImportStagedFileAggregateType<T extends ImportStagedFileAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportStagedFile]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportStagedFile[P]>
+      : GetScalarType<T[P], AggregateImportStagedFile[P]>
+  }
+
+
+
+
+  export type ImportStagedFileGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportStagedFileWhereInput
+    orderBy?: ImportStagedFileOrderByWithAggregationInput | ImportStagedFileOrderByWithAggregationInput[]
+    by: ImportStagedFileScalarFieldEnum[] | ImportStagedFileScalarFieldEnum
+    having?: ImportStagedFileScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportStagedFileCountAggregateInputType | true
+    _min?: ImportStagedFileMinAggregateInputType
+    _max?: ImportStagedFileMaxAggregateInputType
+  }
+
+  export type ImportStagedFileGroupByOutputType = {
+    id: string
+    importJobId: string
+    path: string
+    content: string
+    encoding: string | null
+    createdAt: Date
+    _count: ImportStagedFileCountAggregateOutputType | null
+    _min: ImportStagedFileMinAggregateOutputType | null
+    _max: ImportStagedFileMaxAggregateOutputType | null
+  }
+
+  type GetImportStagedFileGroupByPayload<T extends ImportStagedFileGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportStagedFileGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportStagedFileGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportStagedFileGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportStagedFileGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportStagedFileSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    importJobId?: boolean
+    path?: boolean
+    content?: boolean
+    encoding?: boolean
+    createdAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importStagedFile"]>
+
+  export type ImportStagedFileSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    importJobId?: boolean
+    path?: boolean
+    content?: boolean
+    encoding?: boolean
+    createdAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importStagedFile"]>
+
+  export type ImportStagedFileSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    importJobId?: boolean
+    path?: boolean
+    content?: boolean
+    encoding?: boolean
+    createdAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importStagedFile"]>
+
+  export type ImportStagedFileSelectScalar = {
+    id?: boolean
+    importJobId?: boolean
+    path?: boolean
+    content?: boolean
+    encoding?: boolean
+    createdAt?: boolean
+  }
+
+  export type ImportStagedFileOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "importJobId" | "path" | "content" | "encoding" | "createdAt", ExtArgs["result"]["importStagedFile"]>
+  export type ImportStagedFileInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+  export type ImportStagedFileIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+  export type ImportStagedFileIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+
+  export type $ImportStagedFilePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportStagedFile"
+    objects: {
+      importJob: Prisma.$ImportJobPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      importJobId: string
+      path: string
+      content: string
+      encoding: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["importStagedFile"]>
+    composites: {}
+  }
+
+  type ImportStagedFileGetPayload<S extends boolean | null | undefined | ImportStagedFileDefaultArgs> = $Result.GetResult<Prisma.$ImportStagedFilePayload, S>
+
+  type ImportStagedFileCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportStagedFileFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportStagedFileCountAggregateInputType | true
+    }
+
+  export interface ImportStagedFileDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportStagedFile'], meta: { name: 'ImportStagedFile' } }
+    /**
+     * Find zero or one ImportStagedFile that matches the filter.
+     * @param {ImportStagedFileFindUniqueArgs} args - Arguments to find a ImportStagedFile
+     * @example
+     * // Get one ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportStagedFileFindUniqueArgs>(args: SelectSubset<T, ImportStagedFileFindUniqueArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportStagedFile that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportStagedFileFindUniqueOrThrowArgs} args - Arguments to find a ImportStagedFile
+     * @example
+     * // Get one ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportStagedFileFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportStagedFileFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportStagedFile that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileFindFirstArgs} args - Arguments to find a ImportStagedFile
+     * @example
+     * // Get one ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportStagedFileFindFirstArgs>(args?: SelectSubset<T, ImportStagedFileFindFirstArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportStagedFile that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileFindFirstOrThrowArgs} args - Arguments to find a ImportStagedFile
+     * @example
+     * // Get one ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportStagedFileFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportStagedFileFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportStagedFiles that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportStagedFiles
+     * const importStagedFiles = await prisma.importStagedFile.findMany()
+     * 
+     * // Get first 10 ImportStagedFiles
+     * const importStagedFiles = await prisma.importStagedFile.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importStagedFileWithIdOnly = await prisma.importStagedFile.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportStagedFileFindManyArgs>(args?: SelectSubset<T, ImportStagedFileFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportStagedFile.
+     * @param {ImportStagedFileCreateArgs} args - Arguments to create a ImportStagedFile.
+     * @example
+     * // Create one ImportStagedFile
+     * const ImportStagedFile = await prisma.importStagedFile.create({
+     *   data: {
+     *     // ... data to create a ImportStagedFile
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportStagedFileCreateArgs>(args: SelectSubset<T, ImportStagedFileCreateArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportStagedFiles.
+     * @param {ImportStagedFileCreateManyArgs} args - Arguments to create many ImportStagedFiles.
+     * @example
+     * // Create many ImportStagedFiles
+     * const importStagedFile = await prisma.importStagedFile.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportStagedFileCreateManyArgs>(args?: SelectSubset<T, ImportStagedFileCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportStagedFiles and returns the data saved in the database.
+     * @param {ImportStagedFileCreateManyAndReturnArgs} args - Arguments to create many ImportStagedFiles.
+     * @example
+     * // Create many ImportStagedFiles
+     * const importStagedFile = await prisma.importStagedFile.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportStagedFiles and only return the `id`
+     * const importStagedFileWithIdOnly = await prisma.importStagedFile.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportStagedFileCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportStagedFileCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportStagedFile.
+     * @param {ImportStagedFileDeleteArgs} args - Arguments to delete one ImportStagedFile.
+     * @example
+     * // Delete one ImportStagedFile
+     * const ImportStagedFile = await prisma.importStagedFile.delete({
+     *   where: {
+     *     // ... filter to delete one ImportStagedFile
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportStagedFileDeleteArgs>(args: SelectSubset<T, ImportStagedFileDeleteArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportStagedFile.
+     * @param {ImportStagedFileUpdateArgs} args - Arguments to update one ImportStagedFile.
+     * @example
+     * // Update one ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportStagedFileUpdateArgs>(args: SelectSubset<T, ImportStagedFileUpdateArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportStagedFiles.
+     * @param {ImportStagedFileDeleteManyArgs} args - Arguments to filter ImportStagedFiles to delete.
+     * @example
+     * // Delete a few ImportStagedFiles
+     * const { count } = await prisma.importStagedFile.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportStagedFileDeleteManyArgs>(args?: SelectSubset<T, ImportStagedFileDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportStagedFiles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportStagedFiles
+     * const importStagedFile = await prisma.importStagedFile.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportStagedFileUpdateManyArgs>(args: SelectSubset<T, ImportStagedFileUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportStagedFiles and returns the data updated in the database.
+     * @param {ImportStagedFileUpdateManyAndReturnArgs} args - Arguments to update many ImportStagedFiles.
+     * @example
+     * // Update many ImportStagedFiles
+     * const importStagedFile = await prisma.importStagedFile.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportStagedFiles and only return the `id`
+     * const importStagedFileWithIdOnly = await prisma.importStagedFile.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportStagedFileUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportStagedFileUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportStagedFile.
+     * @param {ImportStagedFileUpsertArgs} args - Arguments to update or create a ImportStagedFile.
+     * @example
+     * // Update or create a ImportStagedFile
+     * const importStagedFile = await prisma.importStagedFile.upsert({
+     *   create: {
+     *     // ... data to create a ImportStagedFile
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportStagedFile we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportStagedFileUpsertArgs>(args: SelectSubset<T, ImportStagedFileUpsertArgs<ExtArgs>>): Prisma__ImportStagedFileClient<$Result.GetResult<Prisma.$ImportStagedFilePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportStagedFiles.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileCountArgs} args - Arguments to filter ImportStagedFiles to count.
+     * @example
+     * // Count the number of ImportStagedFiles
+     * const count = await prisma.importStagedFile.count({
+     *   where: {
+     *     // ... the filter for the ImportStagedFiles we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportStagedFileCountArgs>(
+      args?: Subset<T, ImportStagedFileCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportStagedFileCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportStagedFile.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportStagedFileAggregateArgs>(args: Subset<T, ImportStagedFileAggregateArgs>): Prisma.PrismaPromise<GetImportStagedFileAggregateType<T>>
+
+    /**
+     * Group by ImportStagedFile.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportStagedFileGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportStagedFileGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportStagedFileGroupByArgs['orderBy'] }
+        : { orderBy?: ImportStagedFileGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportStagedFileGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportStagedFileGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportStagedFile model
+   */
+  readonly fields: ImportStagedFileFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportStagedFile.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportStagedFileClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    importJob<T extends ImportJobDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ImportJobDefaultArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportStagedFile model
+   */
+  interface ImportStagedFileFieldRefs {
+    readonly id: FieldRef<"ImportStagedFile", 'String'>
+    readonly importJobId: FieldRef<"ImportStagedFile", 'String'>
+    readonly path: FieldRef<"ImportStagedFile", 'String'>
+    readonly content: FieldRef<"ImportStagedFile", 'String'>
+    readonly encoding: FieldRef<"ImportStagedFile", 'String'>
+    readonly createdAt: FieldRef<"ImportStagedFile", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportStagedFile findUnique
+   */
+  export type ImportStagedFileFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportStagedFile to fetch.
+     */
+    where: ImportStagedFileWhereUniqueInput
+  }
+
+  /**
+   * ImportStagedFile findUniqueOrThrow
+   */
+  export type ImportStagedFileFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportStagedFile to fetch.
+     */
+    where: ImportStagedFileWhereUniqueInput
+  }
+
+  /**
+   * ImportStagedFile findFirst
+   */
+  export type ImportStagedFileFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportStagedFile to fetch.
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportStagedFiles to fetch.
+     */
+    orderBy?: ImportStagedFileOrderByWithRelationInput | ImportStagedFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportStagedFiles.
+     */
+    cursor?: ImportStagedFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportStagedFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportStagedFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportStagedFiles.
+     */
+    distinct?: ImportStagedFileScalarFieldEnum | ImportStagedFileScalarFieldEnum[]
+  }
+
+  /**
+   * ImportStagedFile findFirstOrThrow
+   */
+  export type ImportStagedFileFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportStagedFile to fetch.
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportStagedFiles to fetch.
+     */
+    orderBy?: ImportStagedFileOrderByWithRelationInput | ImportStagedFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportStagedFiles.
+     */
+    cursor?: ImportStagedFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportStagedFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportStagedFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportStagedFiles.
+     */
+    distinct?: ImportStagedFileScalarFieldEnum | ImportStagedFileScalarFieldEnum[]
+  }
+
+  /**
+   * ImportStagedFile findMany
+   */
+  export type ImportStagedFileFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportStagedFiles to fetch.
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportStagedFiles to fetch.
+     */
+    orderBy?: ImportStagedFileOrderByWithRelationInput | ImportStagedFileOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportStagedFiles.
+     */
+    cursor?: ImportStagedFileWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportStagedFiles from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportStagedFiles.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportStagedFiles.
+     */
+    distinct?: ImportStagedFileScalarFieldEnum | ImportStagedFileScalarFieldEnum[]
+  }
+
+  /**
+   * ImportStagedFile create
+   */
+  export type ImportStagedFileCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ImportStagedFile.
+     */
+    data: XOR<ImportStagedFileCreateInput, ImportStagedFileUncheckedCreateInput>
+  }
+
+  /**
+   * ImportStagedFile createMany
+   */
+  export type ImportStagedFileCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportStagedFiles.
+     */
+    data: ImportStagedFileCreateManyInput | ImportStagedFileCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportStagedFile createManyAndReturn
+   */
+  export type ImportStagedFileCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportStagedFiles.
+     */
+    data: ImportStagedFileCreateManyInput | ImportStagedFileCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportStagedFile update
+   */
+  export type ImportStagedFileUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ImportStagedFile.
+     */
+    data: XOR<ImportStagedFileUpdateInput, ImportStagedFileUncheckedUpdateInput>
+    /**
+     * Choose, which ImportStagedFile to update.
+     */
+    where: ImportStagedFileWhereUniqueInput
+  }
+
+  /**
+   * ImportStagedFile updateMany
+   */
+  export type ImportStagedFileUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportStagedFiles.
+     */
+    data: XOR<ImportStagedFileUpdateManyMutationInput, ImportStagedFileUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportStagedFiles to update
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * Limit how many ImportStagedFiles to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportStagedFile updateManyAndReturn
+   */
+  export type ImportStagedFileUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportStagedFiles.
+     */
+    data: XOR<ImportStagedFileUpdateManyMutationInput, ImportStagedFileUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportStagedFiles to update
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * Limit how many ImportStagedFiles to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportStagedFile upsert
+   */
+  export type ImportStagedFileUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ImportStagedFile to update in case it exists.
+     */
+    where: ImportStagedFileWhereUniqueInput
+    /**
+     * In case the ImportStagedFile found by the `where` argument doesn't exist, create a new ImportStagedFile with this data.
+     */
+    create: XOR<ImportStagedFileCreateInput, ImportStagedFileUncheckedCreateInput>
+    /**
+     * In case the ImportStagedFile was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportStagedFileUpdateInput, ImportStagedFileUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportStagedFile delete
+   */
+  export type ImportStagedFileDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
+    /**
+     * Filter which ImportStagedFile to delete.
+     */
+    where: ImportStagedFileWhereUniqueInput
+  }
+
+  /**
+   * ImportStagedFile deleteMany
+   */
+  export type ImportStagedFileDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportStagedFiles to delete
+     */
+    where?: ImportStagedFileWhereInput
+    /**
+     * Limit how many ImportStagedFiles to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportStagedFile without action
+   */
+  export type ImportStagedFileDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportStagedFile
+     */
+    select?: ImportStagedFileSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportStagedFile
+     */
+    omit?: ImportStagedFileOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportStagedFileInclude<ExtArgs> | null
   }
 
 
@@ -160265,6 +161580,7 @@ export namespace Prisma {
     stagedFileCount: 'stagedFileCount',
     redactedCount: 'redactedCount',
     creditsReserved: 'creditsReserved',
+    idempotencyKey: 'idempotencyKey',
     error: 'error',
     expiresAt: 'expiresAt',
     createdAt: 'createdAt',
@@ -160272,6 +161588,18 @@ export namespace Prisma {
   };
 
   export type ImportJobScalarFieldEnum = (typeof ImportJobScalarFieldEnum)[keyof typeof ImportJobScalarFieldEnum]
+
+
+  export const ImportStagedFileScalarFieldEnum: {
+    id: 'id',
+    importJobId: 'importJobId',
+    path: 'path',
+    content: 'content',
+    encoding: 'encoding',
+    createdAt: 'createdAt'
+  };
+
+  export type ImportStagedFileScalarFieldEnum = (typeof ImportStagedFileScalarFieldEnum)[keyof typeof ImportStagedFileScalarFieldEnum]
 
 
   export const GalleryListingScalarFieldEnum: {
@@ -170092,10 +171420,12 @@ export namespace Prisma {
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    idempotencyKey?: StringNullableFilter<"ImportJob"> | string | null
     error?: StringNullableFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
+    stagedFiles?: ImportStagedFileListRelationFilter
   }
 
   export type ImportJobOrderByWithRelationInput = {
@@ -170111,14 +171441,17 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     error?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    stagedFiles?: ImportStagedFileOrderByRelationAggregateInput
   }
 
   export type ImportJobWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    organizationId_idempotencyKey?: ImportJobOrganizationIdIdempotencyKeyCompoundUniqueInput
     AND?: ImportJobWhereInput | ImportJobWhereInput[]
     OR?: ImportJobWhereInput[]
     NOT?: ImportJobWhereInput | ImportJobWhereInput[]
@@ -170133,11 +171466,13 @@ export namespace Prisma {
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    idempotencyKey?: StringNullableFilter<"ImportJob"> | string | null
     error?: StringNullableFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
-  }, "id">
+    stagedFiles?: ImportStagedFileListRelationFilter
+  }, "id" | "organizationId_idempotencyKey">
 
   export type ImportJobOrderByWithAggregationInput = {
     id?: SortOrder
@@ -170152,6 +171487,7 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     error?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -170179,10 +171515,72 @@ export namespace Prisma {
     stagedFileCount?: IntWithAggregatesFilter<"ImportJob"> | number
     redactedCount?: IntWithAggregatesFilter<"ImportJob"> | number
     creditsReserved?: BoolWithAggregatesFilter<"ImportJob"> | boolean
+    idempotencyKey?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
     error?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
+  }
+
+  export type ImportStagedFileWhereInput = {
+    AND?: ImportStagedFileWhereInput | ImportStagedFileWhereInput[]
+    OR?: ImportStagedFileWhereInput[]
+    NOT?: ImportStagedFileWhereInput | ImportStagedFileWhereInput[]
+    id?: StringFilter<"ImportStagedFile"> | string
+    importJobId?: StringFilter<"ImportStagedFile"> | string
+    path?: StringFilter<"ImportStagedFile"> | string
+    content?: StringFilter<"ImportStagedFile"> | string
+    encoding?: StringNullableFilter<"ImportStagedFile"> | string | null
+    createdAt?: DateTimeFilter<"ImportStagedFile"> | Date | string
+    importJob?: XOR<ImportJobScalarRelationFilter, ImportJobWhereInput>
+  }
+
+  export type ImportStagedFileOrderByWithRelationInput = {
+    id?: SortOrder
+    importJobId?: SortOrder
+    path?: SortOrder
+    content?: SortOrder
+    encoding?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    importJob?: ImportJobOrderByWithRelationInput
+  }
+
+  export type ImportStagedFileWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    importJobId_path?: ImportStagedFileImportJobIdPathCompoundUniqueInput
+    AND?: ImportStagedFileWhereInput | ImportStagedFileWhereInput[]
+    OR?: ImportStagedFileWhereInput[]
+    NOT?: ImportStagedFileWhereInput | ImportStagedFileWhereInput[]
+    importJobId?: StringFilter<"ImportStagedFile"> | string
+    path?: StringFilter<"ImportStagedFile"> | string
+    content?: StringFilter<"ImportStagedFile"> | string
+    encoding?: StringNullableFilter<"ImportStagedFile"> | string | null
+    createdAt?: DateTimeFilter<"ImportStagedFile"> | Date | string
+    importJob?: XOR<ImportJobScalarRelationFilter, ImportJobWhereInput>
+  }, "id" | "importJobId_path">
+
+  export type ImportStagedFileOrderByWithAggregationInput = {
+    id?: SortOrder
+    importJobId?: SortOrder
+    path?: SortOrder
+    content?: SortOrder
+    encoding?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ImportStagedFileCountOrderByAggregateInput
+    _max?: ImportStagedFileMaxOrderByAggregateInput
+    _min?: ImportStagedFileMinOrderByAggregateInput
+  }
+
+  export type ImportStagedFileScalarWhereWithAggregatesInput = {
+    AND?: ImportStagedFileScalarWhereWithAggregatesInput | ImportStagedFileScalarWhereWithAggregatesInput[]
+    OR?: ImportStagedFileScalarWhereWithAggregatesInput[]
+    NOT?: ImportStagedFileScalarWhereWithAggregatesInput | ImportStagedFileScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportStagedFile"> | string
+    importJobId?: StringWithAggregatesFilter<"ImportStagedFile"> | string
+    path?: StringWithAggregatesFilter<"ImportStagedFile"> | string
+    content?: StringWithAggregatesFilter<"ImportStagedFile"> | string
+    encoding?: StringNullableWithAggregatesFilter<"ImportStagedFile"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ImportStagedFile"> | Date | string
   }
 
   export type GalleryListingWhereInput = {
@@ -181259,10 +182657,12 @@ export namespace Prisma {
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    idempotencyKey?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    stagedFiles?: ImportStagedFileCreateNestedManyWithoutImportJobInput
   }
 
   export type ImportJobUncheckedCreateInput = {
@@ -181278,10 +182678,12 @@ export namespace Prisma {
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    idempotencyKey?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    stagedFiles?: ImportStagedFileUncheckedCreateNestedManyWithoutImportJobInput
   }
 
   export type ImportJobUpdateInput = {
@@ -181297,10 +182699,12 @@ export namespace Prisma {
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stagedFiles?: ImportStagedFileUpdateManyWithoutImportJobNestedInput
   }
 
   export type ImportJobUncheckedUpdateInput = {
@@ -181316,10 +182720,12 @@ export namespace Prisma {
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    stagedFiles?: ImportStagedFileUncheckedUpdateManyWithoutImportJobNestedInput
   }
 
   export type ImportJobCreateManyInput = {
@@ -181335,6 +182741,7 @@ export namespace Prisma {
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    idempotencyKey?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -181354,6 +182761,7 @@ export namespace Prisma {
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -181373,10 +182781,73 @@ export namespace Prisma {
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportStagedFileCreateInput = {
+    id?: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+    importJob: ImportJobCreateNestedOneWithoutStagedFilesInput
+  }
+
+  export type ImportStagedFileUncheckedCreateInput = {
+    id?: string
+    importJobId: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ImportStagedFileUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    importJob?: ImportJobUpdateOneRequiredWithoutStagedFilesNestedInput
+  }
+
+  export type ImportStagedFileUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportStagedFileCreateManyInput = {
+    id?: string
+    importJobId: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ImportStagedFileUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportStagedFileUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type GalleryListingCreateInput = {
@@ -188731,6 +190202,21 @@ export namespace Prisma {
     piiMaskedCount?: SortOrder
   }
 
+  export type ImportStagedFileListRelationFilter = {
+    every?: ImportStagedFileWhereInput
+    some?: ImportStagedFileWhereInput
+    none?: ImportStagedFileWhereInput
+  }
+
+  export type ImportStagedFileOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ImportJobOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
   export type ImportJobCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
@@ -188744,6 +190230,7 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    idempotencyKey?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -188766,6 +190253,7 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    idempotencyKey?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -188783,6 +190271,7 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    idempotencyKey?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -188792,6 +190281,43 @@ export namespace Prisma {
   export type ImportJobSumOrderByAggregateInput = {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
+  }
+
+  export type ImportJobScalarRelationFilter = {
+    is?: ImportJobWhereInput
+    isNot?: ImportJobWhereInput
+  }
+
+  export type ImportStagedFileImportJobIdPathCompoundUniqueInput = {
+    importJobId: string
+    path: string
+  }
+
+  export type ImportStagedFileCountOrderByAggregateInput = {
+    id?: SortOrder
+    importJobId?: SortOrder
+    path?: SortOrder
+    content?: SortOrder
+    encoding?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportStagedFileMaxOrderByAggregateInput = {
+    id?: SortOrder
+    importJobId?: SortOrder
+    path?: SortOrder
+    content?: SortOrder
+    encoding?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ImportStagedFileMinOrderByAggregateInput = {
+    id?: SortOrder
+    importJobId?: SortOrder
+    path?: SortOrder
+    content?: SortOrder
+    encoding?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type GalleryListingCountOrderByAggregateInput = {
@@ -196339,6 +197865,62 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentRoutingCardsInput, UserUpdateWithoutAgentRoutingCardsInput>, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
+  }
+
+  export type ImportStagedFileCreateNestedManyWithoutImportJobInput = {
+    create?: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput> | ImportStagedFileCreateWithoutImportJobInput[] | ImportStagedFileUncheckedCreateWithoutImportJobInput[]
+    connectOrCreate?: ImportStagedFileCreateOrConnectWithoutImportJobInput | ImportStagedFileCreateOrConnectWithoutImportJobInput[]
+    createMany?: ImportStagedFileCreateManyImportJobInputEnvelope
+    connect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+  }
+
+  export type ImportStagedFileUncheckedCreateNestedManyWithoutImportJobInput = {
+    create?: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput> | ImportStagedFileCreateWithoutImportJobInput[] | ImportStagedFileUncheckedCreateWithoutImportJobInput[]
+    connectOrCreate?: ImportStagedFileCreateOrConnectWithoutImportJobInput | ImportStagedFileCreateOrConnectWithoutImportJobInput[]
+    createMany?: ImportStagedFileCreateManyImportJobInputEnvelope
+    connect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+  }
+
+  export type ImportStagedFileUpdateManyWithoutImportJobNestedInput = {
+    create?: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput> | ImportStagedFileCreateWithoutImportJobInput[] | ImportStagedFileUncheckedCreateWithoutImportJobInput[]
+    connectOrCreate?: ImportStagedFileCreateOrConnectWithoutImportJobInput | ImportStagedFileCreateOrConnectWithoutImportJobInput[]
+    upsert?: ImportStagedFileUpsertWithWhereUniqueWithoutImportJobInput | ImportStagedFileUpsertWithWhereUniqueWithoutImportJobInput[]
+    createMany?: ImportStagedFileCreateManyImportJobInputEnvelope
+    set?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    disconnect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    delete?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    connect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    update?: ImportStagedFileUpdateWithWhereUniqueWithoutImportJobInput | ImportStagedFileUpdateWithWhereUniqueWithoutImportJobInput[]
+    updateMany?: ImportStagedFileUpdateManyWithWhereWithoutImportJobInput | ImportStagedFileUpdateManyWithWhereWithoutImportJobInput[]
+    deleteMany?: ImportStagedFileScalarWhereInput | ImportStagedFileScalarWhereInput[]
+  }
+
+  export type ImportStagedFileUncheckedUpdateManyWithoutImportJobNestedInput = {
+    create?: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput> | ImportStagedFileCreateWithoutImportJobInput[] | ImportStagedFileUncheckedCreateWithoutImportJobInput[]
+    connectOrCreate?: ImportStagedFileCreateOrConnectWithoutImportJobInput | ImportStagedFileCreateOrConnectWithoutImportJobInput[]
+    upsert?: ImportStagedFileUpsertWithWhereUniqueWithoutImportJobInput | ImportStagedFileUpsertWithWhereUniqueWithoutImportJobInput[]
+    createMany?: ImportStagedFileCreateManyImportJobInputEnvelope
+    set?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    disconnect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    delete?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    connect?: ImportStagedFileWhereUniqueInput | ImportStagedFileWhereUniqueInput[]
+    update?: ImportStagedFileUpdateWithWhereUniqueWithoutImportJobInput | ImportStagedFileUpdateWithWhereUniqueWithoutImportJobInput[]
+    updateMany?: ImportStagedFileUpdateManyWithWhereWithoutImportJobInput | ImportStagedFileUpdateManyWithWhereWithoutImportJobInput[]
+    deleteMany?: ImportStagedFileScalarWhereInput | ImportStagedFileScalarWhereInput[]
+  }
+
+  export type ImportJobCreateNestedOneWithoutStagedFilesInput = {
+    create?: XOR<ImportJobCreateWithoutStagedFilesInput, ImportJobUncheckedCreateWithoutStagedFilesInput>
+    connectOrCreate?: ImportJobCreateOrConnectWithoutStagedFilesInput
+    connect?: ImportJobWhereUniqueInput
+  }
+
+  export type ImportJobUpdateOneRequiredWithoutStagedFilesNestedInput = {
+    create?: XOR<ImportJobCreateWithoutStagedFilesInput, ImportJobUncheckedCreateWithoutStagedFilesInput>
+    connectOrCreate?: ImportJobCreateOrConnectWithoutStagedFilesInput
+    upsert?: ImportJobUpsertWithoutStagedFilesInput
+    connect?: ImportJobWhereUniqueInput
+    update?: XOR<XOR<ImportJobUpdateToOneWithWhereWithoutStagedFilesInput, ImportJobUpdateWithoutStagedFilesInput>, ImportJobUncheckedUpdateWithoutStagedFilesInput>
   }
 
   export type GalleryListingCreatetagsInput = {
@@ -224046,6 +225628,156 @@ export namespace Prisma {
     loginLockout?: AccountLockoutUncheckedUpdateOneWithoutUserNestedInput
   }
 
+  export type ImportStagedFileCreateWithoutImportJobInput = {
+    id?: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ImportStagedFileUncheckedCreateWithoutImportJobInput = {
+    id?: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ImportStagedFileCreateOrConnectWithoutImportJobInput = {
+    where: ImportStagedFileWhereUniqueInput
+    create: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput>
+  }
+
+  export type ImportStagedFileCreateManyImportJobInputEnvelope = {
+    data: ImportStagedFileCreateManyImportJobInput | ImportStagedFileCreateManyImportJobInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type ImportStagedFileUpsertWithWhereUniqueWithoutImportJobInput = {
+    where: ImportStagedFileWhereUniqueInput
+    update: XOR<ImportStagedFileUpdateWithoutImportJobInput, ImportStagedFileUncheckedUpdateWithoutImportJobInput>
+    create: XOR<ImportStagedFileCreateWithoutImportJobInput, ImportStagedFileUncheckedCreateWithoutImportJobInput>
+  }
+
+  export type ImportStagedFileUpdateWithWhereUniqueWithoutImportJobInput = {
+    where: ImportStagedFileWhereUniqueInput
+    data: XOR<ImportStagedFileUpdateWithoutImportJobInput, ImportStagedFileUncheckedUpdateWithoutImportJobInput>
+  }
+
+  export type ImportStagedFileUpdateManyWithWhereWithoutImportJobInput = {
+    where: ImportStagedFileScalarWhereInput
+    data: XOR<ImportStagedFileUpdateManyMutationInput, ImportStagedFileUncheckedUpdateManyWithoutImportJobInput>
+  }
+
+  export type ImportStagedFileScalarWhereInput = {
+    AND?: ImportStagedFileScalarWhereInput | ImportStagedFileScalarWhereInput[]
+    OR?: ImportStagedFileScalarWhereInput[]
+    NOT?: ImportStagedFileScalarWhereInput | ImportStagedFileScalarWhereInput[]
+    id?: StringFilter<"ImportStagedFile"> | string
+    importJobId?: StringFilter<"ImportStagedFile"> | string
+    path?: StringFilter<"ImportStagedFile"> | string
+    content?: StringFilter<"ImportStagedFile"> | string
+    encoding?: StringNullableFilter<"ImportStagedFile"> | string | null
+    createdAt?: DateTimeFilter<"ImportStagedFile"> | Date | string
+  }
+
+  export type ImportJobCreateWithoutStagedFilesInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    idempotencyKey?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobUncheckedCreateWithoutStagedFilesInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    idempotencyKey?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobCreateOrConnectWithoutStagedFilesInput = {
+    where: ImportJobWhereUniqueInput
+    create: XOR<ImportJobCreateWithoutStagedFilesInput, ImportJobUncheckedCreateWithoutStagedFilesInput>
+  }
+
+  export type ImportJobUpsertWithoutStagedFilesInput = {
+    update: XOR<ImportJobUpdateWithoutStagedFilesInput, ImportJobUncheckedUpdateWithoutStagedFilesInput>
+    create: XOR<ImportJobCreateWithoutStagedFilesInput, ImportJobUncheckedCreateWithoutStagedFilesInput>
+    where?: ImportJobWhereInput
+  }
+
+  export type ImportJobUpdateToOneWithWhereWithoutStagedFilesInput = {
+    where?: ImportJobWhereInput
+    data: XOR<ImportJobUpdateWithoutStagedFilesInput, ImportJobUncheckedUpdateWithoutStagedFilesInput>
+  }
+
+  export type ImportJobUpdateWithoutStagedFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobUncheckedUpdateWithoutStagedFilesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ProjectCreateWithoutGalleryListingsInput = {
     id?: string
     name: string
@@ -230204,6 +231936,38 @@ export namespace Prisma {
     computeUnits?: NullableFloatFieldUpdateOperationsInput | number | null
     costCents?: NullableFloatFieldUpdateOperationsInput | number | null
     meteredAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  }
+
+  export type ImportStagedFileCreateManyImportJobInput = {
+    id?: string
+    path: string
+    content: string
+    encoding?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ImportStagedFileUpdateWithoutImportJobInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportStagedFileUncheckedUpdateWithoutImportJobInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportStagedFileUncheckedUpdateManyWithoutImportJobInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    path?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    encoding?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type LedgerEntryCreateManyAccountInput = {

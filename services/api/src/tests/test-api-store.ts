@@ -2535,6 +2535,7 @@ export class TestApiStore implements ApiStore {
       provider: string;
       state: string;
       sourceRef?: string;
+      idempotencyKey?: string;
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;
@@ -2553,6 +2554,7 @@ export class TestApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey?: string;
   }) {
     const row = {
       id: id('import'),
@@ -2560,6 +2562,7 @@ export class TestApiStore implements ApiStore {
       provider: input.provider,
       state: 'RECEIVED',
       sourceRef: input.sourceRef,
+      idempotencyKey: input.idempotencyKey,
       stagedFileCount: 0,
       redactedCount: 0,
       creditsReserved: false,
@@ -2593,6 +2596,41 @@ export class TestApiStore implements ApiStore {
 
   async getImportJob(id: string) {
     return this.importJobs.get(id);
+  }
+
+  /*
+   * AUDX-014 — the durable pieces. Held on the STORE, not on the app instance,
+   * which is the whole point: two `buildApiApp` instances sharing one store are
+   * two pods sharing one PostgreSQL.
+   */
+  readonly importStagedFiles = new Map<string, Array<{ path: string; content: string; encoding?: string }>>();
+
+  async findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string) {
+    for (const row of this.importJobs.values()) {
+      if (row.organizationId === organizationId && row.idempotencyKey === idempotencyKey) {
+        return { id: row.id };
+      }
+    }
+
+    return undefined;
+  }
+
+  async putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ) {
+    this.importStagedFiles.set(
+      importJobId,
+      files.map((file) => ({ ...file })),
+    );
+  }
+
+  async getImportStagedFiles(importJobId: string) {
+    return this.importStagedFiles.get(importJobId);
+  }
+
+  async deleteImportStagedFiles(importJobId: string) {
+    this.importStagedFiles.delete(importJobId);
   }
 
   async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
