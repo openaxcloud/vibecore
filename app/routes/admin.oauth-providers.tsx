@@ -288,7 +288,7 @@ function StatusPill({ enabled, hasSecret }: { enabled: boolean; hasSecret: boole
     <span
       className={`rounded-full px-2 py-0.5 text-xs ${
         enabled && hasSecret
-          ? 'bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]'
+          ? 'bg-[color-mix(in_srgb,var(--status-success-text)_10%,transparent)] text-[var(--status-success-text)]'
           : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
       }`}
     >
@@ -467,7 +467,7 @@ export default function AdminOauthProvidersPage() {
               <span
                 className={`rounded-full px-2 py-0.5 text-xs ${
                   c.enabled
-                    ? 'bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]'
+                    ? 'bg-[color-mix(in_srgb,var(--status-success-text)_10%,transparent)] text-[var(--status-success-text)]'
                     : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
                 }`}
               >
