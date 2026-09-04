@@ -237,6 +237,45 @@ Le compte est cohérent : 96 − 2 (monaco, terminal) + 1 (helper) = **95**. **A
 
 Cumul des deux causes de BUG-PERF-LOAD : `df8eb531` (CodeMirror, 257 Ko, vérifié en prod) + `50f30c5d` (Monaco + xterm, ~654 Ko) ≈ **911 Ko retirés de chaque chargement de page**, sur les 2 113 Ko mesurés au départ.
 
+### BUG-PERF-002 — une ouverture d'IDE émet 95 requêtes API, dont 21 URL en double
+📤 · 💻 · 📦 · ❌ **ouvert** — mesuré le 2026-09-04 sur `753b5ed38d`, iPhone 390, projet réel
+
+C'est la **cause commune** des 4 panneaux marqués 🔧 dans `docs/audit/POINT_PANNEAUX.md`.
+Ils ne rendent pas « une fois sur deux » : ils affichent **tous** leur écran de chargement
+(« Loading overview… ») pendant 9 à 10 s, et la mesure tombait avant ou après. Ni course
+au rendu, ni cache vide : une **rafale**, et un **double montage**.
+
+| grandeur | mesure |
+|---|---:|
+| requêtes API pour **une** ouverture | **95** |
+| URL demandées plusieurs fois | **21** |
+| `[api]/runtime/…/files?path=` | **×11** |
+| `/workspaces/<ws>/ide-state` | **×10** |
+| pic | **47 requêtes en 1 s** |
+| réponse de `/ide-panel/overview` | **4017 ms**, puis **2887 ms** pour la même |
+| contenu visible à | `overview` **10,6 s** · `packages` **9,2 s** · `collaborators` 4,6 s · `integrations` 4,3 s |
+
+La rafale part à 5,3 s, puis **le lot entier est réémis 112 ms plus tard**. Chaque doublon
+coûte une réponse serveur pleine : `/ide-panel/overview` est calculé deux fois.
+
+### BUG-PERF-003 — le plafond de requêtes est par IP, donc partagé par tout un bureau
+📤 · 💻 · 📦 · ❌ **ouvert** — mesuré le 2026-09-04
+
+`services/api/src/app.ts:8980` — `API_RATE_LIMIT_MAX ?? 2000` par minute. **Aucune clé
+`RATE_LIMIT` dans les configmaps de production** : la valeur en vigueur est donc 2000/min.
+
+La clé est l'**adresse IP** : le `keyGenerator` n'élargit le seau que pour un `Bearer`, et
+le navigateur s'authentifie par cookie de session. Tous les utilisateurs derrière une même
+IP publique partagent le compteur.
+
+À 95 requêtes par ouverture (BUG-PERF-002), le plafond tombe à **21 ouvertures d'IDE par
+minute et par IP**. Un utilisateur seul ne l'atteint pas ; **dix personnes dans un même
+bureau l'atteignent à deux ouvertures chacune**. Mon propre harnais l'a déclenché : **53
+réponses 429 sur 144 chargements**.
+
+⚠️ Ordre de correction : **BUG-PERF-002 d'abord**. Relever le plafond sans supprimer les
+doublons ferait de la place au gaspillage.
+
 ### BUG-UX-021 — la pastille de descente est ronde mais toujours posée sur le texte
 📤 dispatché · 💻 codé (#410, `6f65885c6f`) · 📦 servi (`753b5ed38d`) · ❌ **testé live : NON RÉSOLU**
 
