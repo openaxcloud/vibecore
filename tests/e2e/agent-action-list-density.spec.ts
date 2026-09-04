@@ -148,29 +148,69 @@ test.describe('panneau Agent en mobile — liste d’actions, pastille « descen
       const lignes = page.locator('.bolt-action-row');
       await expect(lignes.first()).toBeVisible({ timeout: 120_000 });
       await expect(lignes).toHaveCount(FICHIERS.length, { timeout: 60_000 });
-      await page.waitForTimeout(800);
 
       /*
        * ------------------------------------------------------------------
        * 1. Liste d'actions — lignes serrées, cible tactile conservée.
        * ----------------------------------------------------------------
        */
-      const liste = await page.evaluate(() => {
-        const rows = [...document.querySelectorAll<HTMLElement>('.bolt-action-row')];
-        const boxes = rows.map((r) => r.getBoundingClientRect());
-        const first = rows[0];
-        const bouton = first.querySelector<HTMLElement>('button');
-        const code = first.querySelector<HTMLElement>('code');
-        const pastille = first.querySelector<HTMLElement>('.bolt-action-status');
+      /*
+       * La mesure se refait tant que le fil bouge encore. Sur le portail E2E de
+       * production (commit fafed25) les lignes comptées à 7 avaient DISPARU
+       * 800 ms plus tard : le magasin des artefacts était vidé par un
+       * changement d'adaptateur de runtime après le premier rendu (corrigé dans
+       * `workbenchStore.configureRuntime`). En cas d'échec, le message dit ce
+       * que le DOM contenait — pas seulement « undefined ».
+       */
+      type Mesure = {
+        pas: number[];
+        hauteurs: number[];
+        cible: number;
+        policeCode: string | null;
+        policePastille: string | null;
+      };
 
-        return {
-          pas: boxes.slice(1).map((b, i) => b.top - boxes[i].top),
-          hauteurs: boxes.map((b) => b.height),
-          cible: bouton?.getBoundingClientRect().height ?? 0,
-          policeCode: code ? getComputedStyle(code).fontSize : null,
-          policePastille: pastille ? getComputedStyle(pastille).fontSize : null,
-        };
-      });
+      let liste: Mesure | undefined;
+
+      await expect(async () => {
+        const mesure = await page.evaluate(() => {
+          const rows = [...document.querySelectorAll<HTMLElement>('.bolt-action-row')];
+
+          if (rows.length === 0) {
+            return {
+              vide: {
+                artefacts: document.querySelectorAll('.artifact').length,
+                messages: document.querySelectorAll('.bolt-chat-message-row').length,
+                alerte: document.querySelector('[role="alert"]')?.textContent?.slice(0, 160) ?? null,
+              },
+            };
+          }
+
+          const boxes = rows.map((r) => r.getBoundingClientRect());
+          const first = rows[0];
+          const bouton = first.querySelector<HTMLElement>('button');
+          const code = first.querySelector<HTMLElement>('code');
+          const pastille = first.querySelector<HTMLElement>('.bolt-action-status');
+
+          return {
+            pas: boxes.slice(1).map((b, i) => b.top - boxes[i].top),
+            hauteurs: boxes.map((b) => b.height),
+            cible: bouton?.getBoundingClientRect().height ?? 0,
+            policeCode: code ? getComputedStyle(code).fontSize : null,
+            policePastille: pastille ? getComputedStyle(pastille).fontSize : null,
+          };
+        });
+
+        expect('vide' in mesure, `les lignes d’actions ont disparu du fil : ${JSON.stringify(mesure)}`).toBe(false);
+
+        const posee = mesure as Mesure;
+        expect(posee.hauteurs, 'le fil est encore en train de se poser').toHaveLength(FICHIERS.length);
+        liste = posee;
+      }).toPass({ timeout: 30_000, intervals: [500] });
+
+      if (!liste) {
+        throw new Error('mesure des lignes absente');
+      }
 
       // 47,25 px mesurés avant : le plancher rem de 44px et le space-y-2.5 additionnés.
       for (const pas of liste.pas) {
@@ -235,31 +275,40 @@ test.describe('panneau Agent en mobile — liste d’actions, pastille « descen
        * 2. Pastille « descendre » — juste au-dessus de la zone de saisie.
        * ----------------------------------------------------------------
        */
-      const remonte = await page.evaluate(() => {
-        const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
+      const remonterLeFil = () =>
+        page.evaluate(() => {
+          const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
 
-        const zone = [...(panneau ? panneau.querySelectorAll('*') : [])].find(
-          (element) =>
-            element.scrollHeight > element.clientHeight + 20 &&
-            ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
-        );
+          const zone = [...(panneau ? panneau.querySelectorAll('*') : [])].find(
+            (element) =>
+              element.scrollHeight > element.clientHeight + 20 &&
+              ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
+          );
 
-        if (!zone) {
-          return false;
-        }
+          if (!zone) {
+            return false;
+          }
 
-        const avant = zone.scrollTop;
-        zone.scrollTop = 0;
-        zone.dispatchEvent(new Event('scroll', { bubbles: true }));
+          const avant = zone.scrollTop;
+          zone.scrollTop = 0;
+          zone.dispatchEvent(new Event('scroll', { bubbles: true }));
 
-        return avant > 0 && zone.scrollTop === 0;
-      });
-
-      // Témoin positif : sans défilement réel, « pas de pastille » ne prouverait rien.
-      expect(remonte, 'le fil n’a pas défilé : la mesure ne prouve rien').toBe(true);
+          return avant > 0 && zone.scrollTop === 0;
+        });
 
       const pastille = page.locator('.bolt-agent-scroll-to-bottom');
-      await expect(pastille).toHaveCount(1, { timeout: 5_000 });
+
+      /*
+       * Remonter PUIS attendre la pastille, et recommencer si le fil s'est
+       * recalé en bas entre-temps (un contenu qui finit de se poser le fait).
+       * Témoin positif à chaque tour : sans défilement réel, « pas de
+       * pastille » ne prouverait rien.
+       */
+      await expect(async () => {
+        expect(await remonterLeFil(), 'le fil n’a pas défilé : la mesure ne prouve rien').toBe(true);
+        await page.waitForTimeout(600);
+        await expect(pastille).toHaveCount(1, { timeout: 3_000 });
+      }).toPass({ timeout: 30_000, intervals: [1_000] });
 
       const ecart = await pastille.evaluate((element) => {
         const composer = document.querySelector('.bolt-project-agent-composer');

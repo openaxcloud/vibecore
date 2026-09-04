@@ -387,6 +387,16 @@ export class ActionRunner {
     this.onStartDevServer = onStartDevServer;
   }
 
+  /**
+   * Rebind this runner to a new runtime adapter — same project, new transport
+   * (typically the workspace id becoming known after the first mount). Actions
+   * already recorded keep their state; anything run from now on goes through
+   * the new adapter.
+   */
+  setRuntime(runtime: RuntimeAdapter) {
+    this.#runtime = runtime;
+  }
+
   addAction(data: ActionCallbackData) {
     const { actionId } = data;
 

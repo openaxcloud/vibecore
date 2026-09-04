@@ -804,3 +804,78 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     release();
   });
 });
+
+/*
+ * Le changement d'ADAPTATEUR de runtime ne vide pas les artefacts déjà rendus.
+ *
+ * Mesuré sur le portail E2E de production (commit fafed25) : la liste
+ * « Créer package.json … Terminé » d'un fil rechargé comptait 7 lignes, puis 0
+ * moins d'une seconde après, sans qu'aucun message ne change. Le fournisseur de
+ * runtime reconstruit son adaptateur quand l'identifiant d'espace de travail
+ * devient connu, et `configureRuntime` faisait `artifacts.set({})`. Les builds
+ * de développement le masquaient : `useMessageParser` y refait un reset + une
+ * analyse complète à chaque appel, ce que la production ne fait jamais.
+ */
+describe('WorkbenchStore — un nouveau runtime relie les artefacts, il ne les efface pas', () => {
+  it('garde les artefacts déjà rendus et exécute la suite sur le nouvel adaptateur', async () => {
+    const store = new WorkbenchStore();
+    const artifact = artifactData();
+    const first = fileAction();
+
+    store.addArtifact(artifact);
+    store.addAction(first);
+    store.runAction(first);
+
+    await vi.waitFor(() => {
+      expect(actionStatus(store, 'file-1')).toBe('complete');
+    });
+
+    const nouveau = {
+      ...runtimeAdapterMock,
+      writeFile: vi.fn(async () => undefined),
+      createFile: vi.fn(async () => undefined),
+    };
+
+    store.configureRuntime(nouveau as unknown as typeof runtimeAdapterMock);
+
+    // L'artefact et son action déjà jouée sont toujours là.
+    expect(store.artifacts.get()['artifact-1']).toBeDefined();
+    expect(store.artifactIdList).toEqual(['artifact-1']);
+    expect(actionStatus(store, 'file-1')).toBe('complete');
+
+    // La prochaine action passe par le NOUVEL adaptateur, pas par l'ancien.
+    const ancienEcritures =
+      runtimeAdapterMock.writeFile.mock.calls.length + runtimeAdapterMock.createFile.mock.calls.length;
+    const second: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'assistant-1',
+      actionId: 'file-2',
+      action: { type: 'file', filePath: 'src/next.ts', content: 'export const next = true;\n' },
+    };
+
+    store.addAction(second);
+    store.runAction(second);
+
+    await vi.waitFor(() => {
+      expect(actionStatus(store, 'file-2')).toBe('complete');
+    });
+
+    expect(nouveau.writeFile.mock.calls.length + nouveau.createFile.mock.calls.length).toBeGreaterThan(0);
+    expect(runtimeAdapterMock.writeFile.mock.calls.length + runtimeAdapterMock.createFile.mock.calls.length).toBe(
+      ancienEcritures,
+    );
+  });
+
+  it('efface les artefacts quand c’est le PROJET qui change', () => {
+    const store = new WorkbenchStore();
+
+    store.configureProject('project-a');
+    store.addArtifact(artifactData());
+    expect(store.artifacts.get()['artifact-1']).toBeDefined();
+
+    store.configureProject('project-b');
+
+    expect(store.artifacts.get()).toEqual({});
+    expect(store.artifactIdList).toEqual([]);
+  });
+});

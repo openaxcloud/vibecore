@@ -484,8 +484,27 @@ export class WorkbenchStore {
     this.#previewsStore.setRuntime(runtime);
     this.#filesStore.setRuntime(runtime);
     this.#terminalStore.setRuntime(runtime);
-    this.artifacts.set({});
-    this.artifactIdList = [];
+
+    /*
+     * REBIND the artifacts already on screen, do not wipe them.
+     *
+     * The provider rebuilds its adapter whenever the workspace id changes —
+     * typically once the workspace is created just after the first mount. This
+     * used to `artifacts.set({})`, which blanked every rendered artifact in the
+     * transcript: the « Créer package.json … Terminé » lists vanished from a
+     * conversation that had already been parsed. Dev builds hid it because
+     * `useMessageParser` does a full reset + reparse on every call there
+     * (`import.meta.env.DEV`); production builds never reparse, so the loss was
+     * permanent until the next message. Measured on the production E2E gate,
+     * commit fafed25: rows present, then 0 within 800 ms, no message change.
+     *
+     * Runners keep their recorded actions and simply execute through the new
+     * adapter from now on. A change of PROJECT still wipes — see configureProject.
+     */
+    for (const artifact of Object.values(this.artifacts.get())) {
+      artifact.runner.setRuntime(runtime);
+    }
+
     this.#snapshottedArtifacts.clear();
   }
 
@@ -499,6 +518,10 @@ export class WorkbenchStore {
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
+
+      // Another project's transcript has nothing to do with this one's artifacts.
+      this.artifacts.set({});
+      this.artifactIdList = [];
 
       /*
        * Clear per-project state before (re)hydrating. The workbench is a module
