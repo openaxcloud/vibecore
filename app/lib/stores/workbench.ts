@@ -299,6 +299,9 @@ export class WorkbenchStore {
     hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
 
+  /** Last DEFINED project the artifacts belong to — see configureProject. */
+  #artifactsProjectId: string | undefined;
+
   /*
    * Paths already materialized in the runtime by the streaming sampler.
    *
@@ -518,11 +521,27 @@ export class WorkbenchStore {
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
+    }
 
-      // Another project's transcript has nothing to do with this one's artifacts.
+    /*
+     * Another project's transcript has nothing to do with this one's artifacts —
+     * but ONLY a switch to a DIFFERENT project wipes them. The provider's effect
+     * cleanup calls `configureProject(undefined)` on every re-run (a runtime
+     * rebind, a StrictMode remount) right before binding the SAME project again:
+     * treating that `undefined` hop as a change would wipe the transcript's
+     * artifacts on the exact path `configureRuntime` stopped wiping.
+     */
+    if (projectId && this.#artifactsProjectId && projectId !== this.#artifactsProjectId) {
       this.artifacts.set({});
       this.artifactIdList = [];
+      this.#snapshottedArtifacts.clear();
+    }
 
+    if (projectId) {
+      this.#artifactsProjectId = projectId;
+    }
+
+    if (changed) {
       /*
        * Clear per-project state before (re)hydrating. The workbench is a module
        * singleton, so without this reset project A's pending patch proposals,

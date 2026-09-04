@@ -866,13 +866,35 @@ describe('WorkbenchStore — un nouveau runtime relie les artefacts, il ne les e
     );
   });
 
-  it('efface les artefacts quand c’est le PROJET qui change', () => {
+  it('garde les artefacts sur le saut « projet → undefined → même projet » du nettoyage du fournisseur', () => {
+    /*
+     * C'est le chemin RÉEL d'un changement de runtime : le nettoyage de l'effet
+     * appelle `configureProject(undefined)`, puis le nouveau passage relie le
+     * MÊME projet. Un effacement sur ce saut annulerait le correctif de
+     * `configureRuntime`.
+     */
+    const store = new WorkbenchStore();
+
+    store.configureProject('project-a');
+    store.addArtifact(artifactData());
+
+    store.configureProject(undefined);
+    store.configureRuntime({ ...runtimeAdapterMock } as unknown as typeof runtimeAdapterMock);
+    store.configureProject('project-a');
+
+    expect(store.artifacts.get()['artifact-1']).toBeDefined();
+    expect(store.artifactIdList).toEqual(['artifact-1']);
+  });
+
+  it('efface les artefacts quand c’est un AUTRE projet qui est relié', () => {
     const store = new WorkbenchStore();
 
     store.configureProject('project-a');
     store.addArtifact(artifactData());
     expect(store.artifacts.get()['artifact-1']).toBeDefined();
 
+    // Même saut par `undefined` que le nettoyage du fournisseur, mais vers un autre projet.
+    store.configureProject(undefined);
     store.configureProject('project-b');
 
     expect(store.artifacts.get()).toEqual({});
