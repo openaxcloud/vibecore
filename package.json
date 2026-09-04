@@ -16,7 +16,7 @@
     "platform:test": "pnpm run test",
     "platform:typecheck": "pnpm run typecheck",
     "platform:lint": "pnpm run lint",
-    "platform:verify": "pnpm run platform:no-mocks && pnpm run platform:no-build-tools-in-prod && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate",
+    "platform:verify": "pnpm run platform:no-mocks && pnpm run platform:services-built && pnpm run platform:no-build-tools-in-prod && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate",
     "production:validate": "node scripts/validate-production-enterprise.mjs --strict",
     "production:validate:live": "node scripts/validate-production-enterprise.mjs --strict --live",
     "production:validate:self-test": "node scripts/validate-production-enterprise.mjs --self-test",
@@ -105,7 +105,8 @@
     "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs",
     "parity:validate": "node scripts/parity/validate-registries.mjs",
     "parity:collect": "node scripts/parity/collect-baseline.mjs",
-    "platform:no-build-tools-in-prod": "node scripts/check-no-build-tools-in-prod.mjs"
+    "platform:no-build-tools-in-prod": "node scripts/check-no-build-tools-in-prod.mjs",
+    "platform:services-built": "node scripts/check-every-chart-service-is-built.mjs"
   },
   "engines": {
     "node": ">=18.18.0"
