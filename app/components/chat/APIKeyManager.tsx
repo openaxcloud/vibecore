@@ -1,6 +1,7 @@
 import Cookies from 'js-cookie';
 import React, { useState, useEffect, useCallback } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
+import { RevealButton } from '~/components/ui/RevealButton';
 import type { ProviderInfo } from '~/types/model';
 
 interface APIKeyManagerProps {
@@ -45,6 +46,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
   const [isEditing, setIsEditing] = useState(false);
   const [tempKey, setTempKey] = useState(apiKey);
   const [isEnvKeySet, setIsEnvKeySet] = useState(false);
+  const [keyRevealed, setKeyRevealed] = useState(false);
 
   // Reset states and load saved key when provider changes
   useEffect(() => {
@@ -55,6 +57,7 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
     setTempKey(savedKey);
     setApiKey(savedKey);
     setIsEditing(false);
+    setKeyRevealed(false);
   }, [provider.name]);
 
   const checkEnvApiKey = useCallback(async () => {
@@ -130,26 +133,35 @@ export const APIKeyManager: React.FC<APIKeyManagerProps> = ({ provider, apiKey, 
       <div className="bolt-api-key-manager-actions flex shrink-0 items-center gap-2">
         {isEditing ? (
           <div className="bolt-api-key-editor flex min-w-0 items-center gap-2">
-            <input
-              type="password"
-              value={tempKey}
-              placeholder="Enter API Key"
-              onChange={(e) => setTempKey(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleSave();
-                } else if (e.key === 'Escape') {
-                  setIsEditing(false);
-                }
-              }}
-              aria-label={`${provider?.name ?? ''} API key`.trim()}
-              name="apiKey"
-              autoComplete="off"
-              className="bolt-api-key-input w-full rounded border border-bolt-elements-borderColor px-3 py-1.5 text-sm
-                        bg-bolt-elements-prompt-background text-bolt-elements-textPrimary 
-                        focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
-            />
+            <div className="relative w-full min-w-0">
+              <input
+                type={keyRevealed ? 'text' : 'password'}
+                value={tempKey}
+                placeholder="Enter API Key"
+                onChange={(e) => setTempKey(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSave();
+                  } else if (e.key === 'Escape') {
+                    setIsEditing(false);
+                  }
+                }}
+                aria-label={`${provider?.name ?? ''} API key`.trim()}
+                name="apiKey"
+                autoComplete="off"
+                style={{ fontFamily: 'var(--vc-font-code)' }}
+                className="bolt-api-key-input w-full rounded border border-bolt-elements-borderColor pl-3 pr-11 py-1.5 text-sm
+                          bg-bolt-elements-prompt-background text-bolt-elements-textPrimary
+                          focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+              />
+              <RevealButton
+                revealed={keyRevealed}
+                onToggle={() => setKeyRevealed((current) => !current)}
+                subject="API key"
+                className="absolute right-1 top-1/2 -translate-y-1/2"
+              />
+            </div>
             <IconButton
               onClick={handleSave}
               title="Save API Key"
