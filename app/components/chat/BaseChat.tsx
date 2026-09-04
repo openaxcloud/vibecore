@@ -5676,20 +5676,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info('Aucune conversation à copier');
+        toast.info('No conversation to copy');
         return;
       }
 
       if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-        toast.error('Le presse-papiers est indisponible');
+        toast.error('Clipboard is unavailable');
         return;
       }
 
       try {
         await navigator.clipboard.writeText(conversationTranscript(currentMessages, description));
-        toast.success('Conversation copiée');
+        toast.success('Conversation copied');
       } catch (error) {
-        toast.error(`Copie impossible: ${(error as Error).message}`);
+        toast.error(`Copy failed: ${(error as Error).message}`);
       }
     }, [description, messages]);
 
@@ -5697,25 +5697,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info('Aucun historique à effacer');
+        toast.info('No history to clear');
         return;
       }
 
-      const confirmed = window.confirm("Effacer l'historique de cette conversation ?");
+      const confirmed = window.confirm('Clear the history of this conversation?');
 
       if (!confirmed) {
         return;
       }
 
       resetChat?.();
-      toast.success('Historique effacé');
+      toast.success('History cleared');
     }, [messages, resetChat]);
 
     const exportProjectConversation = useCallback(() => {
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info('Aucune conversation à exporter');
+        toast.info('No conversation to export');
         return;
       }
 
@@ -5741,7 +5741,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
-      toast.success('Conversation exportée');
+      toast.success('Conversation exported');
     }, [description, messages, projectId]);
 
     const startMobileAgentChat = useCallback(() => {
@@ -7132,7 +7132,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item"
-                          aria-label="Copier la conversation"
+                          aria-label="Copy conversation"
                           onClick={() => void copyProjectConversation()}
                         >
                           <Copy size={14} strokeWidth={2} aria-hidden />
@@ -7142,7 +7142,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item"
-                          aria-label="Exporter la conversation"
+                          aria-label="Export conversation"
                           onClick={exportProjectConversation}
                         >
                           <Download size={14} strokeWidth={2} aria-hidden />
@@ -7169,7 +7169,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item bolt-header-overflow-item--danger"
-                          aria-label="Effacer l'historique"
+                          aria-label="Clear history"
                           onClick={clearProjectConversation}
                         >
                           <Trash2 size={14} strokeWidth={2} aria-hidden />
@@ -10993,8 +10993,8 @@ function ProjectWelcomeState({
       <div className="bolt-project-welcome-logo">
         <span className="i-ph:sparkle" aria-hidden />
       </div>
-      <h2>Bienvenue dans votre projet</h2>
-      <p>Ouvrez un outil ou demandez à l'agent de commencer.</p>
+      <h2>Welcome to your project</h2>
+      <p>Open a tool or ask the agent to get started.</p>
       <div className="bolt-project-welcome-grid">
         {shortcuts.map(([icon, label, shortcut, panel]) => (
           <button key={label} type="button" className="bolt-project-welcome-card" onClick={() => onOpenTool?.(panel)}>
@@ -11005,7 +11005,7 @@ function ProjectWelcomeState({
         ))}
       </div>
       <div className="bolt-project-welcome-recents">
-        <span>Récents</span>
+        <span>Recent</span>
         {files.length ? (
           files.map((file) => (
             <button key={file} type="button" onClick={() => onOpenFile?.(file)}>
