@@ -1,6 +1,6 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { projectIdeStateForBrowser } from '~/lib/persistence/ide-state-browser-projection';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
+import { projectIdeStateForBrowser } from '~/lib/persistence/ide-state-browser-projection';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.workspaceId) {

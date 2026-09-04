@@ -78,6 +78,7 @@ export function projectIdeStateForBrowser<T>(payload: T): T {
   }
 
   const projete: Record<string, unknown> = { ...state };
+
   let retire = false;
 
   for (const key of IDE_STATE_SERVER_ONLY_KEYS) {
