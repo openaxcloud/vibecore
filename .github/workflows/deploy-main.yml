@@ -1865,17 +1865,39 @@ jobs:
           # sets armable=false and the phase-2 step below skips. The release stays
           # at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0 and the next deploy that
           # really rebuilds the api re-runs the whole sequence.
+          #
+          # DEUX FORMES d'image, une seule question : « ce digest vient-il du
+          # commit certifié ? ». Le déploiement par digest a rendu la première
+          # forme (`…/api:<sha10>`) impossible à voir ici : le Deployment porte
+          # `…/api@sha256:…`, et le motif `*:<sha10>` ne pouvait plus JAMAIS
+          # correspondre. Mesuré au run 1460 (be197c3) : Helm réussi, rollout
+          # vérifié, sonde SEC-9 verte, puis « SEC-10 … not built from the
+          # certified commit », phase 2 sautée, et la vérification finale
+          # rouge sur un interlock resté à 0. Le manifeste de release SAIT quel
+          # digest ce run a construit et de quel commit : c'est lui qui tranche.
+          CERTIFIED=false
           case "${EXPECTED_IMAGE}" in
-            *:"${SHORT_SHA}")
-              echo "armable=true" >> "$GITHUB_OUTPUT"
-              echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
-              ;;
-            *)
-              echo "armable=false" >> "$GITHUB_OUTPUT"
-              echo "::warning::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}) — the runtime tier was not rebuilt this run, so the running code may predate the activation interlock. NOT arming password activation; the release stays fail-closed at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0. The deploy itself is unaffected."
-              exit 0
+            *:"${SHORT_SHA}") CERTIFIED=true ;;
+            *@sha256:*)
+              if [ -f release-manifest.json ]; then
+                RUNNING_DIGEST="${EXPECTED_IMAGE##*@}"
+                if jq -e --arg digest "${RUNNING_DIGEST}" --arg sha "${SHORT_SHA}" \
+                     '[.services[] | select(.service == "api" and .digest == $digest
+                        and ((.tag == $sha) or ((.sourceSha // "") | startswith($sha))))] | length > 0' \
+                     release-manifest.json > /dev/null; then
+                  CERTIFIED=true
+                fi
+              fi
               ;;
           esac
+          if [ "${CERTIFIED}" = "true" ]; then
+            echo "armable=true" >> "$GITHUB_OUTPUT"
+            echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
+          else
+            echo "armable=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}) — the runtime tier was not rebuilt this run, so the running code may predate the activation interlock. NOT arming password activation; the release stays fail-closed at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0. The deploy itself is unaffected."
+            exit 0
+          fi
           EXPECTED_IMAGE="${EXPECTED_IMAGE}" node scripts/deploy-cache-window.mjs
 
       # ---- P104 / SEC-8 · phase 2: NOW it is safe to arm activation ----------
@@ -1994,6 +2016,16 @@ jobs:
         run: |
           set -euo pipefail
           WANT="${{ steps.cutover.outputs.final_flag }}"
+          # Quand la barrière a tourné mais que SEC-10 a RETENU l'armement, la
+          # phase 2 n'a pas eu lieu par décision, pas par accident : l'interlock
+          # doit alors valoir sa valeur de phase 1 (fermé), et c'est CELA qu'on
+          # vérifie. Attendre « 1 » ici contredisait la barrière — « ne pas
+          # faire échouer le job » — et mettait en rouge un déploiement sain
+          # (run 1460). Le retrait reste signalé, jamais silencieux.
+          if [ "${{ steps.cutover.outputs.barrier }}" = "true" ] && [ "${{ steps.barrier.outputs.armable }}" != "true" ]; then
+            WANT="${{ steps.cutover.outputs.phase1_flag }}"
+            echo "::warning::SEC-10 withheld arming this run — the interlock is expected at its phase-1 value '${WANT}' (fail-closed). Password activation stays unavailable until a deploy certifies the running api."
+          fi
           CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
             -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}')"
           echo "configmap DEPLOYMENT_ACCESS_ACTIVATION_ENABLED='${CM_VALUE}' (expected '${WANT}')"
