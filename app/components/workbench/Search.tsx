@@ -9,6 +9,7 @@ import {
   needsContentHydration,
   toRuntimeRelativePath,
 } from './search-replace';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { WORK_DIR } from '~/utils/constants';
@@ -50,6 +51,7 @@ export function Search() {
   const [searchResults, setSearchResults] = useState<DisplayMatch[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isReplacing, setIsReplacing] = useState(false);
+  const [confirmReplaceAllOpen, setConfirmReplaceAllOpen] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
   const [searchError, setSearchError] = useState<string | undefined>(undefined);
@@ -220,13 +222,7 @@ export function Search() {
     return Object.keys(files).find((candidate) => candidate.endsWith(`/${filePath.replace(/^\/+/, '')}`));
   }, []);
 
-  const replaceAll = useCallback(async () => {
-    if (!searchQuery.trim() || searchResults.length === 0) {
-      return;
-    }
-
-    let matcher: RegExp;
-
+  const buildReplaceMatcher = useCallback((): RegExp | null => {
     try {
       /*
        * Multiline ('m') for regex mode so ^/$ anchors match per-line — matching the
@@ -234,17 +230,32 @@ export function Search() {
        * from what was found.
        */
       const flags = (caseSensitive ? 'g' : 'gi') + (isRegex ? 'm' : '');
-      matcher = new RegExp(isRegex ? searchQuery : searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
+
+      return new RegExp(isRegex ? searchQuery : searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), flags);
     } catch {
+      return null;
+    }
+  }, [caseSensitive, isRegex, searchQuery]);
+
+  /* G5: validate, then confirm via a token-styled dialog instead of window.confirm. */
+  const replaceAll = useCallback(async () => {
+    if (!searchQuery.trim() || searchResults.length === 0) {
+      return;
+    }
+
+    if (!buildReplaceMatcher()) {
       toast.error('Invalid regular expression');
       return;
     }
 
-    const confirmed = window.confirm(
-      `Replace ${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} across ${Object.keys(groupedResults).length} file${Object.keys(groupedResults).length === 1 ? '' : 's'}?`,
-    );
+    setConfirmReplaceAllOpen(true);
+  }, [buildReplaceMatcher, searchQuery, searchResults]);
 
-    if (!confirmed) {
+  const performReplaceAll = useCallback(async () => {
+    const matcher = buildReplaceMatcher();
+
+    if (!matcher) {
+      toast.error('Invalid regular expression');
       return;
     }
 
@@ -349,10 +360,8 @@ export function Search() {
       setIsReplacing(false);
     }
   }, [
-    caseSensitive,
-    groupedResults,
+    buildReplaceMatcher,
     handleSearch,
-    isRegex,
     replaceQuery,
     resolveWorkbenchPath,
     runtimeAdapter,
@@ -368,6 +377,18 @@ export function Search() {
 
   return (
     <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
+      <ConfirmationDialog
+        isOpen={confirmReplaceAllOpen}
+        onClose={() => setConfirmReplaceAllOpen(false)}
+        onConfirm={() => {
+          setConfirmReplaceAllOpen(false);
+          void performReplaceAll();
+        }}
+        title="Replace all matches?"
+        description={`Replace ${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} across ${Object.keys(groupedResults).length} file${Object.keys(groupedResults).length === 1 ? '' : 's'}?`}
+        confirmLabel="Replace all"
+        variant="destructive"
+      />
       {/* Search Bar */}
       <div className="space-y-2 border-b border-bolt-elements-borderColor px-3 py-3">
         <div className="relative flex items-center gap-2">

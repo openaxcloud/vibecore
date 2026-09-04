@@ -5,6 +5,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -495,21 +496,35 @@ function ConfirmSubmit({
   disabled?: boolean;
   block?: boolean;
 }) {
+  // G5: token-styled confirmation dialog instead of window.confirm.
+  const [pendingForm, setPendingForm] = useState<HTMLFormElement | null>(null);
+
   return (
-    <Button
-      type="submit"
-      size="sm"
-      variant="outline"
-      disabled={busy || disabled}
-      className={classNames('gap-2', block ? 'w-full justify-center' : '')}
-      onClick={(event) => {
-        if (!window.confirm(message)) {
-          event.preventDefault();
-        }
-      }}
-    >
-      {children}
-    </Button>
+    <>
+      <Button
+        type="button"
+        size="sm"
+        variant="outline"
+        disabled={busy || disabled}
+        className={classNames('gap-2', block ? 'w-full justify-center' : '')}
+        onClick={(event) => setPendingForm(event.currentTarget.form)}
+      >
+        {children}
+      </Button>
+      <ConfirmationDialog
+        isOpen={pendingForm !== null}
+        onClose={() => setPendingForm(null)}
+        onConfirm={() => {
+          const form = pendingForm;
+          setPendingForm(null);
+          form?.requestSubmit();
+        }}
+        title="Restore database?"
+        description={message}
+        confirmLabel="Restore"
+        variant="destructive"
+      />
+    </>
   );
 }
 

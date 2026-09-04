@@ -18,6 +18,8 @@ import { forwardRef, memo, useCallback, useEffect, useRef, useState } from 'reac
 import type { ForwardedRef, MutableRefObject } from 'react';
 import { toast } from 'react-toastify';
 
+import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { InputDialog } from '~/components/ui/InputDialog';
 import type { BranchedConversation, BranchNode } from '~/lib/chat/chat-branches';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 
@@ -110,6 +112,8 @@ export const ConversationBranchesMenu = memo(
   forwardRef<HTMLDivElement, ConversationBranchesMenuProps>(({ projectId, className }, forwardedRef) => {
     const { conversations, tree, switchTo, rename, remove } = useProjectChatBranches(projectId);
     const [isOpen, setIsOpen] = useState(false);
+    const [renameTarget, setRenameTarget] = useState<{ id: string; title?: string } | null>(null);
+    const [removeTarget, setRemoveTarget] = useState<string | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
     const setContainerRef = useCallback(
@@ -167,23 +171,21 @@ export const ConversationBranchesMenu = memo(
       [switchTo],
     );
 
-    const handleRename = useCallback(
-      async (conversationId: string, currentTitle: string | undefined) => {
-        const next = window.prompt('Rename branch', currentTitle ?? '');
+    const handleRename = useCallback((conversationId: string, currentTitle: string | undefined) => {
+      setRenameTarget({ id: conversationId, title: currentTitle });
+    }, []);
 
-        if (next === null) {
-          return;
-        }
+    const performRename = useCallback(
+      async (value: string) => {
+        const target = renameTarget;
+        setRenameTarget(null);
 
-        const trimmed = next.trim();
-
-        if (!trimmed) {
-          toast.error('Title cannot be empty');
+        if (!target) {
           return;
         }
 
         try {
-          await rename(conversationId, trimmed);
+          await rename(target.id, value.trim());
         } catch (error) {
           /*
            * Surface the failure: the rename was optimistic, so without this the
@@ -192,30 +194,32 @@ export const ConversationBranchesMenu = memo(
           toast.error(error instanceof Error ? `Could not rename branch: ${error.message}` : 'Could not rename branch');
         }
       },
-      [rename],
+      [rename, renameTarget],
     );
 
-    const handleRemove = useCallback(
-      async (conversationId: string) => {
-        const confirmed = window.confirm('Delete this branch and any sub-branches?');
+    const handleRemove = useCallback((conversationId: string) => {
+      setRemoveTarget(conversationId);
+    }, []);
 
-        if (!confirmed) {
-          return;
-        }
+    const performRemove = useCallback(async () => {
+      const target = removeTarget;
+      setRemoveTarget(null);
 
-        try {
-          await remove(conversationId);
-          toast.success('Branch deleted');
-        } catch (error) {
-          toast.error(
-            error instanceof Error
-              ? `Could not delete branch — changes were not saved: ${error.message}`
-              : 'Could not delete branch — changes were not saved',
-          );
-        }
-      },
-      [remove],
-    );
+      if (!target) {
+        return;
+      }
+
+      try {
+        await remove(target);
+        toast.success('Branch deleted');
+      } catch (error) {
+        toast.error(
+          error instanceof Error
+            ? `Could not delete branch — changes were not saved: ${error.message}`
+            : 'Could not delete branch — changes were not saved',
+        );
+      }
+    }, [remove, removeTarget]);
 
     if (conversations.length === 0) {
       return null;
@@ -252,6 +256,25 @@ export const ConversationBranchesMenu = memo(
             </ol>
           </div>
         ) : null}
+        <InputDialog
+          isOpen={renameTarget !== null}
+          onClose={() => setRenameTarget(null)}
+          onSubmit={(value) => void performRename(value)}
+          title="Rename branch"
+          label="Branch title"
+          initialValue={renameTarget?.title ?? ''}
+          confirmLabel="Rename"
+          validate={(value) => (value.trim() ? undefined : 'Title cannot be empty')}
+        />
+        <ConfirmationDialog
+          isOpen={removeTarget !== null}
+          onClose={() => setRemoveTarget(null)}
+          onConfirm={() => void performRemove()}
+          title="Delete this branch?"
+          description="The branch and any sub-branches are deleted. This cannot be undone."
+          confirmLabel="Delete branch"
+          variant="destructive"
+        />
       </div>
     );
   }),

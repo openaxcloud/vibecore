@@ -21,6 +21,7 @@ import { GitMergeEditor } from '~/components/git/GitMergeEditor';
 import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPanel';
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -457,6 +458,9 @@ export function GitTab({ projectId }: GitTabProps) {
 
   // Discard confirmation target: a single file path, or 'all' for every change.
   const [discardConfirm, setDiscardConfirm] = useState<{ all: boolean; path?: string } | null>(null);
+
+  // G5: disconnect-remote confirmation dialog (token-styled, not window.confirm).
+  const [confirmDisconnectRemote, setConfirmDisconnectRemote] = useState(false);
 
   // Name typed into the detached-HEAD banner's "New branch from here" input.
   const [detachedNewBranch, setDetachedNewBranch] = useState('');
@@ -1237,15 +1241,7 @@ export function GitTab({ projectId }: GitTabProps) {
                   type="button"
                   data-testid="git-disconnect-remote"
                   disabled={busy}
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        'Disconnect this Git remote from the project? Your files and local history stay; only the remote link is removed.',
-                      )
-                    ) {
-                      void runIntent('remove-remote');
-                    }
-                  }}
+                  onClick={() => setConfirmDisconnectRemote(true)}
                   title="Disconnect remote"
                   className="inline-flex h-7 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-red-500 disabled:opacity-50"
                 >
@@ -1269,6 +1265,19 @@ export function GitTab({ projectId }: GitTabProps) {
             </span>
           </div>
         ) : null}
+
+        <ConfirmationDialog
+          isOpen={confirmDisconnectRemote}
+          onClose={() => setConfirmDisconnectRemote(false)}
+          onConfirm={() => {
+            setConfirmDisconnectRemote(false);
+            void runIntent('remove-remote');
+          }}
+          title="Disconnect this Git remote?"
+          description="Your files and local history stay; only the remote link is removed from the project."
+          confirmLabel="Disconnect"
+          variant="destructive"
+        />
 
         {discardConfirm ? (
           <div

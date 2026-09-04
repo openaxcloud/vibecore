@@ -1,6 +1,8 @@
 import { KeyRound, RefreshCw, Trash2 } from 'lucide-react';
-import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
+import { useState } from 'react';
+import { Form, useActionData, useLoaderData, useNavigation, useSubmit } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -142,7 +144,9 @@ export default function ScimTokenSettingsPage() {
   const { orgId, scimTokens } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionData | undefined;
   const navigation = useNavigation();
+  const submit = useSubmit();
   const busy = navigation.state !== 'idle';
+  const [tokenPendingRevoke, setTokenPendingRevoke] = useState<{ id: string; name: string } | null>(null);
 
   return (
     <EnterpriseFormPage
@@ -242,13 +246,8 @@ export default function ScimTokenSettingsPage() {
                     <Form
                       method="post"
                       onSubmit={(event) => {
-                        if (
-                          !window.confirm(
-                            `Revoke SCIM token "${token.name}"? Your identity provider will immediately lose provisioning access. This cannot be undone.`,
-                          )
-                        ) {
-                          event.preventDefault();
-                        }
+                        event.preventDefault();
+                        setTokenPendingRevoke({ id: token.id, name: token.name });
                       }}
                     >
                       <input type="hidden" name="orgId" value={orgId} />
@@ -270,6 +269,22 @@ export default function ScimTokenSettingsPage() {
           </ul>
         )}
       </section>
+      <ConfirmationDialog
+        isOpen={tokenPendingRevoke !== null}
+        onClose={() => setTokenPendingRevoke(null)}
+        onConfirm={() => {
+          const pending = tokenPendingRevoke;
+          setTokenPendingRevoke(null);
+
+          if (pending) {
+            submit({ orgId: orgId ?? '', intent: 'revoke', tokenId: pending.id }, { method: 'post' });
+          }
+        }}
+        title={`Revoke SCIM token "${tokenPendingRevoke?.name ?? ''}"?`}
+        description="Your identity provider will immediately lose provisioning access. This cannot be undone."
+        confirmLabel="Revoke token"
+        variant="destructive"
+      />
     </EnterpriseFormPage>
   );
 }

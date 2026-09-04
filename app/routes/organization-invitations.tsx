@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -147,6 +149,8 @@ function formatDate(value: string) {
 export default function OrganizationInvitationsPage() {
   const { forbidden, orgId, invitations, roles } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const submit = useSubmit();
+  const [invitePendingExpire, setInvitePendingExpire] = useState<{ id: string; email: string } | null>(null);
 
   if (forbidden) {
     return (
@@ -247,9 +251,8 @@ export default function OrganizationInvitationsPage() {
                       method="post"
                       onSubmit={(event) => {
                         // Destructive: confirm before revoking the invite link.
-                        if (!window.confirm(`Expire the invitation for ${invite.email}? The link stops working.`)) {
-                          event.preventDefault();
-                        }
+                        event.preventDefault();
+                        setInvitePendingExpire({ id: invite.id, email: invite.email });
                       }}
                     >
                       <input type="hidden" name="intent" value="expire" />
@@ -270,6 +273,22 @@ export default function OrganizationInvitationsPage() {
           )}
         </section>
       </div>
+      <ConfirmationDialog
+        isOpen={invitePendingExpire !== null}
+        onClose={() => setInvitePendingExpire(null)}
+        onConfirm={() => {
+          const pending = invitePendingExpire;
+          setInvitePendingExpire(null);
+
+          if (pending) {
+            submit({ intent: 'expire', orgId: orgId ?? '', inviteId: pending.id }, { method: 'post' });
+          }
+        }}
+        title={`Expire the invitation for ${invitePendingExpire?.email ?? ''}?`}
+        description="The invite link stops working immediately."
+        confirmLabel="Expire invitation"
+        variant="destructive"
+      />
     </AppShell>
   );
 }

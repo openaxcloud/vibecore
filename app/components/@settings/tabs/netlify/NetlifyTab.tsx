@@ -8,6 +8,7 @@ import { ConnectorApiKeyConnectButton } from '~/components/@settings/shared/conn
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import { classNames } from '~/utils/classNames';
@@ -51,6 +52,7 @@ export default function NetlifyTab() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionTest, setConnectionTest] = useState<ConnectionTestResult | null>(null);
+  const [pendingSiteAction, setPendingSiteAction] = useState<{ siteId: string; action: SiteAction } | null>(null);
 
   // Connection testing function
   const testConnection = async () => {
@@ -992,9 +994,8 @@ export default function NetlifyTab() {
                                         e.stopPropagation();
 
                                         if (action.requiresConfirmation) {
-                                          if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
-                                            return;
-                                          }
+                                          setPendingSiteAction({ siteId: site.id, action });
+                                          return;
                                         }
 
                                         setIsActionLoading(true);
@@ -1227,6 +1228,26 @@ export default function NetlifyTab() {
 
   return (
     <div className="space-y-6">
+      <ConfirmationDialog
+        isOpen={pendingSiteAction !== null}
+        onClose={() => setPendingSiteAction(null)}
+        onConfirm={() => {
+          const pending = pendingSiteAction;
+          setPendingSiteAction(null);
+
+          if (pending) {
+            void (async () => {
+              setIsActionLoading(true);
+              await pending.action.action(pending.siteId);
+              setIsActionLoading(false);
+            })();
+          }
+        }}
+        title={`${pendingSiteAction?.action.name ?? 'Run this action'}?`}
+        description={`Are you sure you want to ${pendingSiteAction?.action.name.toLowerCase() ?? 'run this action'}?`}
+        confirmLabel={pendingSiteAction?.action.name ?? 'Confirm'}
+        variant="destructive"
+      />
       {/* Header */}
       <motion.div
         className="flex items-center justify-between gap-2"

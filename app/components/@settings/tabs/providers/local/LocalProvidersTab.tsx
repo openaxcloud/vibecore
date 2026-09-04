@@ -11,6 +11,7 @@ import { getActiveMonitorTargets } from './health-monitoring';
 import { OLLAMA_API_URL } from './types';
 import { Button } from '~/components/ui/Button';
 import { Card, CardContent, CardHeader } from '~/components/ui/Card';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { Switch } from '~/components/ui/Switch';
 import { useToast } from '~/components/ui/use-toast';
 import { useLocalModelHealth } from '~/lib/hooks/useLocalModelHealth';
@@ -32,6 +33,7 @@ export default function LocalProvidersTab() {
   const [lmStudioModels, setLMStudioModels] = useState<LMStudioModel[]>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isLoadingLMStudioModels, setIsLoadingLMStudioModels] = useState(false);
+  const [modelPendingDelete, setModelPendingDelete] = useState<string | null>(null);
   const { toast } = useToast();
   const { startMonitoring, stopMonitoring } = useLocalModelHealth();
 
@@ -279,11 +281,11 @@ export default function LocalProvidersTab() {
     }
   };
 
-  const handleDeleteOllamaModel = async (modelName: string) => {
-    if (!window.confirm(`Are you sure you want to delete ${modelName}?`)) {
-      return;
-    }
+  const handleDeleteOllamaModel = (modelName: string) => {
+    setModelPendingDelete(modelName);
+  };
 
+  const performDeleteOllamaModel = async (modelName: string) => {
     try {
       const response = await fetch(`${ollamaBaseUrl}/api/delete`, {
         method: 'DELETE',
@@ -322,6 +324,22 @@ export default function LocalProvidersTab() {
   return (
     <ErrorBoundary>
       <div className="space-y-6">
+        <ConfirmationDialog
+          isOpen={modelPendingDelete !== null}
+          onClose={() => setModelPendingDelete(null)}
+          onConfirm={() => {
+            const modelName = modelPendingDelete;
+            setModelPendingDelete(null);
+
+            if (modelName) {
+              void performDeleteOllamaModel(modelName);
+            }
+          }}
+          title={`Delete ${modelPendingDelete ?? 'this model'}?`}
+          description="The model is removed from your local Ollama installation."
+          confirmLabel="Delete model"
+          variant="destructive"
+        />
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
           <div className="flex items-center gap-4">

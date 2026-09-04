@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '~/components/ui/Collapsible';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { netlifyConnection, updateNetlifyConnection, initializeNetlifyConnection } from '~/lib/stores/netlify';
 import type { NetlifySite, NetlifyDeploy, NetlifyBuild, NetlifyUser } from '~/types/netlify';
 import { classNames } from '~/utils/classNames';
@@ -66,6 +67,7 @@ export default function NetlifyConnection() {
   const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [activeSiteIndex, setActiveSiteIndex] = useState(0);
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [pendingSiteAction, setPendingSiteAction] = useState<{ siteId: string; action: SiteAction } | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   // Add site actions
@@ -673,9 +675,8 @@ export default function NetlifyConnection() {
                                         e.stopPropagation();
 
                                         if (action.requiresConfirmation) {
-                                          if (!confirm(`Are you sure you want to ${action.name.toLowerCase()}?`)) {
-                                            return;
-                                          }
+                                          setPendingSiteAction({ siteId: site.id, action });
+                                          return;
                                         }
 
                                         setIsActionLoading(true);
@@ -879,6 +880,26 @@ export default function NetlifyConnection() {
 
   return (
     <div className="space-y-6 bg-bolt-elements-background dark:bg-bolt-elements-background border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor rounded-lg">
+      <ConfirmationDialog
+        isOpen={pendingSiteAction !== null}
+        onClose={() => setPendingSiteAction(null)}
+        onConfirm={() => {
+          const pending = pendingSiteAction;
+          setPendingSiteAction(null);
+
+          if (pending) {
+            void (async () => {
+              setIsActionLoading(true);
+              await pending.action.action(pending.siteId);
+              setIsActionLoading(false);
+            })();
+          }
+        }}
+        title={`${pendingSiteAction?.action.name ?? 'Run this action'}?`}
+        description={`Are you sure you want to ${pendingSiteAction?.action.name.toLowerCase() ?? 'run this action'}?`}
+        confirmLabel={pendingSiteAction?.action.name ?? 'Confirm'}
+        variant="destructive"
+      />
       <div className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

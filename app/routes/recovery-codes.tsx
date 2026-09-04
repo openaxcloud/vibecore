@@ -1,5 +1,7 @@
-import { Form, useActionData, useLoaderData } from 'react-router';
+import { useState } from 'react';
+import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
 import {
   apiErrorMessage,
   apiRequest,
@@ -57,6 +59,8 @@ const LOW_REMAINING_THRESHOLD = 3;
 
 export default function RecoveryCodesPage() {
   const loaderData = useLoaderData<typeof loader>() as { status: RecoveryCodesStatus | null };
+  const submit = useSubmit();
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
 
   const actionData = useActionData<typeof action>() as
     | { status?: string; error?: string; codes?: string[] }
@@ -111,17 +115,24 @@ export default function RecoveryCodesPage() {
       <Form
         method="post"
         onSubmit={(event) => {
-          if (
-            !window.confirm(
-              'Generating new recovery codes permanently invalidates all of your existing codes. Continue?',
-            )
-          ) {
-            event.preventDefault();
-          }
+          event.preventDefault();
+          setConfirmRegenerate(true);
         }}
       >
         <PrimaryButton>Generate recovery codes</PrimaryButton>
       </Form>
+      <ConfirmationDialog
+        isOpen={confirmRegenerate}
+        onClose={() => setConfirmRegenerate(false)}
+        onConfirm={() => {
+          setConfirmRegenerate(false);
+          submit({}, { method: 'post' });
+        }}
+        title="Generate new recovery codes?"
+        description="Generating new recovery codes permanently invalidates all of your existing codes."
+        confirmLabel="Generate codes"
+        variant="destructive"
+      />
       {actionData?.codes ? (
         <pre className="mt-6 rounded-md border border-bolt-elements-borderColor p-3 text-xs text-bolt-elements-textPrimary">
           {actionData.codes.join('\n')}

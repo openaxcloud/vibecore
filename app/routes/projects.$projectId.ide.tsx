@@ -41,6 +41,8 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
+import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -831,65 +833,108 @@ function ProjectMenuAction({
 }) {
   const [busy, setBusy] = useState(false);
 
-  return (
-    <button
-      type="button"
-      disabled={busy}
-      className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)] disabled:opacity-60"
-      onClick={async () => {
-        if (intent === 'delete' && !window.confirm(`Delete ${projectName}?`)) {
+  // G5: delete confirm / rename prompt now use token-styled dialogs.
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [renameOpen, setRenameOpen] = useState(false);
+
+  const runAction = async (name?: string) => {
+    setBusy(true);
+
+    try {
+      const form = new FormData();
+      form.set('intent', intent);
+      form.set('projectName', projectName);
+
+      if (intent === 'rename') {
+        if (!name) {
+          setBusy(false);
           return;
         }
 
-        setBusy(true);
+        form.set('name', name);
+      }
 
-        try {
-          const form = new FormData();
-          form.set('intent', intent);
-          form.set('projectName', projectName);
+      const response = await fetch(action, { method: 'POST', body: form, credentials: 'include' });
+
+      const result = (await response.json().catch(() => ({}))) as {
+        project?: { project?: { id?: string }; id?: string };
+        error?: string;
+      };
+
+      if (!response.ok) {
+        /*
+         * Don't silently swallow quota/permission/server errors — the action
+         * would otherwise appear to do nothing. Surface the reason.
+         */
+        window.alert(result.error ?? `Could not ${intent} this project. Please try again.`);
+      } else if (intent === 'delete') {
+        window.location.href = '/projects';
+      } else if (intent === 'duplicate' || intent === 'fork') {
+        const nextProjectId = result.project?.project?.id ?? result.project?.id;
+
+        if (nextProjectId) {
+          window.location.href = `/projects/${nextProjectId}/ide`;
+        }
+      } else if (intent === 'rename') {
+        window.location.reload();
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={busy}
+        className="flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[12px] text-[var(--vc-ide-text-primary)] hover:bg-[var(--vc-ide-bg-hover)] disabled:opacity-60"
+        onClick={() => {
+          if (intent === 'delete') {
+            setConfirmDeleteOpen(true);
+            return;
+          }
 
           if (intent === 'rename') {
-            const name = window.prompt('New project name', projectName);
-
-            if (!name) {
-              setBusy(false);
-              return;
-            }
-
-            form.set('name', name);
+            setRenameOpen(true);
+            return;
           }
 
-          const response = await fetch(action, { method: 'POST', body: form, credentials: 'include' });
-
-          const result = (await response.json().catch(() => ({}))) as {
-            project?: { project?: { id?: string }; id?: string };
-            error?: string;
-          };
-
-          if (!response.ok) {
-            /*
-             * Don't silently swallow quota/permission/server errors — the action
-             * would otherwise appear to do nothing. Surface the reason.
-             */
-            window.alert(result.error ?? `Could not ${intent} this project. Please try again.`);
-          } else if (intent === 'delete') {
-            window.location.href = '/projects';
-          } else if (intent === 'duplicate' || intent === 'fork') {
-            const nextProjectId = result.project?.project?.id ?? result.project?.id;
-
-            if (nextProjectId) {
-              window.location.href = `/projects/${nextProjectId}/ide`;
-            }
-          } else if (intent === 'rename') {
-            window.location.reload();
-          }
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      {icon}
-      <span>{busy ? 'Working...' : children}</span>
-    </button>
+          void runAction();
+        }}
+      >
+        {icon}
+        <span>{busy ? 'Working...' : children}</span>
+      </button>
+      {intent === 'delete' ? (
+        <ConfirmationDialog
+          isOpen={confirmDeleteOpen}
+          onClose={() => setConfirmDeleteOpen(false)}
+          onConfirm={() => {
+            setConfirmDeleteOpen(false);
+            void runAction();
+          }}
+          title={`Delete ${projectName}?`}
+          description="The project and its workspace data are deleted. This cannot be undone."
+          confirmLabel="Delete project"
+          variant="destructive"
+        />
+      ) : null}
+      {intent === 'rename' ? (
+        <InputDialog
+          isOpen={renameOpen}
+          onClose={() => setRenameOpen(false)}
+          onSubmit={(value) => {
+            setRenameOpen(false);
+            void runAction(value.trim());
+          }}
+          title="Rename project"
+          label="New project name"
+          initialValue={projectName}
+          confirmLabel="Rename"
+          validate={(value) => (value.trim() ? undefined : 'Enter a project name')}
+        />
+      ) : null}
+    </>
   );
 }
