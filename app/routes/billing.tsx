@@ -647,7 +647,7 @@ export default function BillingPage() {
                       type="submit"
                       disabled={submitting || !credits.creditsEnabled}
                       aria-label={`Buy ${dollars(pack.creditCents)} credit pack for ${dollars(pack.priceCents)}`}
-                      className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--ecode-accent,#F26207)] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex flex-col items-start gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 text-left transition-colors hover:border-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span className="text-base font-semibold text-bolt-elements-textPrimary">
                         {dollars(pack.creditCents)}
@@ -662,7 +662,7 @@ export default function BillingPage() {
                           <>Pay {dollars(pack.priceCents)}</>
                         )}
                       </span>
-                      <span className="mt-1 text-[11px] font-medium text-[var(--ecode-accent,#F26207)]">
+                      <span className="mt-1 text-[11px] font-medium text-[var(--vc-ide-accent-action)]">
                         {submittingPackId === pack.id ? 'Redirecting…' : 'Buy credits'}
                       </span>
                     </button>

@@ -133,7 +133,7 @@ export default function UsagePage() {
                 <li key={category.key} className="flex flex-col gap-1">
                   <div className="flex items-baseline justify-between gap-2 text-sm">
                     <span className="flex items-center gap-2 text-bolt-elements-textPrimary">
-                      <Icon className="h-4 w-4 text-[var(--ecode-accent,#F26207)]" />
+                      <Icon className="h-4 w-4 text-[var(--vc-ide-accent-action)]" />
                       {category.label}
                     </span>
                     <span className="text-bolt-elements-textSecondary">
@@ -143,7 +143,7 @@ export default function UsagePage() {
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-3">
                     <div
-                      className="h-full rounded-full bg-[var(--ecode-accent,#F26207)]"
+                      className="h-full rounded-full bg-[var(--vc-ide-accent-action)]"
                       style={{ width: `${Math.min(100, pct)}%` }}
                     />
                   </div>

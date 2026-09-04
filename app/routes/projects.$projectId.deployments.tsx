@@ -435,7 +435,7 @@ export default function ProjectDeploymentsPage() {
   );
 }
 
-/** Republish/Adjust/Security action buttons — Replit-measured 32px/r6/13.3px; primary = orange. */
+/** Republish/Adjust/Security action buttons — Replit-measured 32px/r6/13.3px; primary = action blue. */
 function DeployActionButton({
   primary,
   children,
@@ -450,7 +450,7 @@ function DeployActionButton({
           ? 'font-semibold text-white hover:opacity-90'
           : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
       )}
-      style={primary ? { background: 'var(--ecode-accent, #F26207)' } : undefined}
+      style={primary ? { background: 'var(--vc-ide-accent-action)' } : undefined}
     >
       {children}
     </button>
@@ -486,7 +486,7 @@ function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
               href={deployment.url}
               target="_blank"
               rel="noreferrer"
-              className="truncate text-[var(--ecode-accent,#F26207)] hover:underline"
+              className="truncate text-[var(--vc-ide-accent-action)] hover:underline"
             >
               {deployment.url}
             </a>
