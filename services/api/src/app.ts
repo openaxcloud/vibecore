@@ -169,6 +169,32 @@ import {
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import {
+  FileHistoryError,
+  captureFileDeletion,
+  captureFileVersion,
+  deleteTextFileWithHistory,
+  getFileHistoryVersion,
+  listFileHistory,
+  restoreFileVersion,
+  recordFileHistoryWatchContinuity,
+  renameTextFileWithHistory,
+  toPublicFileVersion,
+  writeTextFileWithHistory,
+} from './file-history.js';
+import { auditGithubSkillBundle } from './agent-skill-audit.js';
+import { decodeAgentSkillAuditEventCursor, encodeAgentSkillAuditEventCursor } from './agent-skill-audit-pagination.js';
+import {
+  installVerifiedAgentSkill,
+  removeAgentSkillInstallation,
+  type AgentSkillWorkspaceAdapter,
+} from './agent-skill-artifact-service.js';
+import {
+  AGENT_SKILL_RUNTIME_POLICY_MAX_RECORDS,
+  buildAgentSkillRuntimePolicies,
+} from './agent-skill-runtime-policy.js';
+import { findOpenSkillCatalogEntry, OPEN_SKILL_CATALOG } from './open-skill-catalog.js';
+import { fetchGithubSkillBundle } from './skill-source-github.js';
+import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
   verifyIntegrationOauthState,
@@ -239,6 +265,7 @@ import {
 } from './scheduled-tasks.js';
 import {
   decodeFileContent,
+  encodeFileBuffer,
   filesFromZip,
   filesFromZipBase64,
   GitCliProvider,
@@ -251,12 +278,10 @@ import {
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
-import { isKnownSkill, resolveProjectSkills, resolveSkill } from './skills-catalog.js';
-import { fetchSkillRepoInstructions } from './skills-github-fetch.js';
-import { SKILL_REPO_CATALOG, findRepoEntry, normalizeOwnerRepo } from './skills-repo-catalog.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
 import {
   API_KEY_SCOPES,
+  type AgentSkillArtifactWithBundleRecord,
   type ApiKeyScope,
   type ApiStore,
   type CollaborationPresenceRecord,
@@ -643,29 +668,39 @@ const agentPatchProposalParams = z.object({
   proposalId: z.string().min(1),
 });
 
-const skillParams = z.object({
-  projectId: z.string().min(1),
-  skillId: z.string().min(1).max(64),
-});
-
-/** F#27 installable GitHub-repo skills. */
-const installedSkillScope = z.enum(['project', 'workspace']);
 const skillCatalogQuery = z.object({ q: z.string().max(120).optional() });
-const skillInstalledQuery = z.object({ scope: installedSkillScope.default('project') });
+const agentSkillArtifactParams = projectParams.extend({ artifactId: z.string().min(1).max(256) });
+const agentSkillImportBody = z
+  .object({
+    catalogId: z.string().min(1).max(400).optional(),
+    ownerRepo: z.string().min(1).max(220).optional(),
+    skillPath: z.string().min(1).max(512).optional(),
+    ref: z.string().min(1).max(200).optional(),
+    workspaceId: z.string().min(1).max(256),
+  })
+  .superRefine((value, context) => {
+    if (!value.catalogId && (!value.ownerRepo || !value.skillPath)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Choose a catalog entry or provide ownerRepo and skillPath.',
+      });
+    }
+  });
+const agentSkillDecisionBody = z.object({
+  digest: z.string().regex(/^[a-f0-9]{64}$/),
+  workspaceId: z.string().min(1).max(256),
+  reason: z.string().trim().min(3).max(1000),
+  acknowledgedUntrustedContent: z.boolean().optional(),
+});
+const agentSkillWorkspaceQuery = z.object({ workspaceId: z.string().min(1).max(256) });
+const agentSkillArtifactDetailQuery = agentSkillWorkspaceQuery.extend({
+  eventLimit: z.coerce.number().int().min(1).max(200).default(100),
+  eventCursor: z.string().min(1).max(1024).optional(),
+});
 
-const skillInstallBody = z.object({
-  ownerRepo: z.string().min(1).max(220),
-  scope: installedSkillScope.default('project'),
-});
-const skillUninstallBody = z.object({
-  ownerRepo: z.string().min(1).max(220),
-  scope: installedSkillScope.default('project'),
-});
-const skillToggleBody = z.object({
-  ownerRepo: z.string().min(1).max(220),
-  scope: installedSkillScope.default('project'),
-  enabled: z.boolean(),
-});
+const AGENT_SKILL_RUNTIME_MAX_FILES = 512;
+const AGENT_SKILL_RUNTIME_MAX_BYTES = 10 * 1024 * 1024;
+const AGENT_SKILL_RUNTIME_READ_CONCURRENCY = 8;
 
 /** P2d: which database environment a provision/read targets (default development). */
 const databaseEnvironmentQuery = z.object({
@@ -1185,6 +1220,25 @@ const runtimeFileCreateSchema = runtimeFileWriteSchema
   .partial({ content: true })
   .extend({ path: z.string().min(1), directory: z.boolean().optional() });
 
+const fileHistorySourceSchema = z.enum(['editor', 'agent', 'terminal', 'import', 'external', 'system']);
+const fileHistoryWorkspaceIdSchema = z.string().min(1).max(256);
+const fileHistoryPathSchema = z.string().min(1).max(4096);
+const fileHistoryOperationIdSchema = z.string().min(1).max(180);
+const fileHistoryVersionIdSchema = z.string().min(1).max(256);
+const fileHistoryVersionParams = projectParams.extend({ versionId: fileHistoryVersionIdSchema });
+const fileHistoryListQuerySchema = z.object({
+  workspaceId: fileHistoryWorkspaceIdSchema,
+  path: fileHistoryPathSchema,
+  cursor: z.string().min(1).max(512).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+});
+const fileHistoryDetailQuerySchema = z.object({ workspaceId: fileHistoryWorkspaceIdSchema });
+const fileHistoryRestoreSchema = z.object({
+  workspaceId: fileHistoryWorkspaceIdSchema,
+  expectedLatestVersionId: fileHistoryVersionIdSchema,
+  operationId: fileHistoryOperationIdSchema,
+});
+
 const runtimeFileMoveSchema = z.object({ path: z.string().min(1), newPath: z.string().min(1) });
 
 const runtimeSearchSchema = z.object({
@@ -1571,6 +1625,26 @@ const aiToolParams = projectParams.extend({ toolName: z.enum(aiToolNames) });
 
 function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
+}
+
+function firstRequestHeader(value: string | string[] | undefined): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value;
+  return raw?.trim() || undefined;
+}
+
+function fileHistoryOperationIdFromRequest(request: FastifyRequest): string {
+  return (
+    firstRequestHeader(request.headers['x-file-history-operation-id']) ??
+    firstRequestHeader(request.headers['idempotency-key']) ??
+    randomUUID()
+  );
+}
+
+function fileHistorySourceFromRequest(request: FastifyRequest): z.infer<typeof fileHistorySourceSchema> {
+  const source = firstRequestHeader(request.headers['x-file-history-source']);
+  const parsed = fileHistorySourceSchema.safeParse(source);
+
+  return parsed.success ? parsed.data : 'editor';
 }
 
 function aiTranscriptMessageId(conversationId: string, clientId: string) {
@@ -7700,6 +7774,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const metrics = options.metricsRegistry ?? createPrometheusRegistry();
   const sentry = createSentryReporter({ environment: process.env.NODE_ENV, release: process.env.SENTRY_RELEASE });
   const localRuntimeProcesses = new Map<string, Map<string, LocalRuntimeProcess>>();
+  const localRuntimeWorkspaceInitializations = new Map<string, Promise<string>>();
 
   /*
    * In production the API runs behind a load balancer / ingress
@@ -7960,6 +8035,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply.code(statusCode).send({
       error: statusCode >= 500 ? (error.publicMessage ?? 'Internal server error') : error.message,
       code: (error as Error & { code?: string }).code ?? 'API_ERROR',
+      ...(error instanceof FileHistoryError ? (error.details ?? {}) : {}),
     });
   });
 
@@ -12498,6 +12574,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw Object.assign(new Error(`Workspace agent request failed: ${response.status}`), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
+          // Preserve the upstream status for narrowly-scoped internal recovery
+          // (for example, a File History baseline read treats ENOENT as no
+          // baseline). It is not exposed to clients by the global error shape.
+          agentStatus: response.status,
         });
       }
 
@@ -12672,10 +12752,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   };
 
-  const agentFileRead = async (workspaceId: string, path: string) => {
+  const agentFileRead = async (workspaceId: string, path: string, options: { noFollow?: boolean } = {}) => {
     return agentRequest<{ content: string; encoding?: 'utf8' | 'base64' }>(
       workspaceId,
-      `/files/read?path=${encodeURIComponent(path)}`,
+      `/files/read?path=${encodeURIComponent(path)}${options.noFollow ? '&noFollow=1' : ''}`,
     );
   };
 
@@ -13009,6 +13089,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
 
+  const authorizeFileHistoryWorkspace = async (
+    request: FastifyRequest,
+    project: ProjectRecord,
+    workspaceId: string,
+    permission: PermissionKey,
+  ) => {
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, permission);
+
+    if (authorized.projectId !== project.id) {
+      throw Object.assign(new Error('File History workspace was not found'), {
+        statusCode: 404,
+        code: 'FILE_HISTORY_WORKSPACE_NOT_FOUND',
+      });
+    }
+
+    const workspace = await store.getWorkspace(authorized.workspaceId);
+
+    return {
+      authorized,
+      // workspaceKey is the durable tenant/project/runtime scope and remains
+      // valid after an ephemeral Workspace row is reclaimed.
+      workspaceKey: authorized.workspaceId,
+      workspaceId: workspace?.id,
+    };
+  };
+
+  const readAgentFileForHistory = async (
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    path: string,
+  ) => {
+    try {
+      return await agentFileRead(authorized.workspaceId, path);
+    } catch (error) {
+      const agentStatus = (error as { agentStatus?: number } | undefined)?.agentStatus;
+
+      if (agentStatus === 400 || agentStatus === 404 || agentStatus === 413) {
+        return undefined;
+      }
+
+      if (shouldUseLocalRuntimeFallback(error)) {
+        return readLocalRuntimeFile(authorized, path);
+      }
+
+      throw error;
+    }
+  };
+
   const ensureRuntimeWorkspaceRecord = async (workspaceId: string, project: ProjectRecord) => {
     const existing = await store.getWorkspace(workspaceId);
 
@@ -13104,7 +13231,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return target;
   };
 
-  const ensureLocalRuntimeWorkspace = async (authorized: {
+  const ensureLocalRuntimeWorkspace = (authorized: {
     workspaceId: string;
     projectId: string;
     organizationId?: string;
@@ -13116,18 +13243,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const root = localRuntimeRoot(authorized.workspaceId);
-    await mkdir(root, { recursive: true });
+    const existing = localRuntimeWorkspaceInitializations.get(authorized.workspaceId);
 
-    const files = await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId);
-
-    for (const file of files) {
-      const target = localRuntimeFilePath(root, file.path);
-      await mkdir(dirname(target), { recursive: true });
-      await writeFile(target, file.content, 'utf8');
+    if (existing) {
+      return existing;
     }
 
-    return root;
+    const initialization = (async () => {
+      const root = localRuntimeRoot(authorized.workspaceId);
+      await mkdir(root, { recursive: true });
+
+      const files = await listProjectFilesIncludingIdeState(store, projectStorage, authorized.projectId);
+
+      for (const file of files) {
+        const target = localRuntimeFilePath(root, file.path);
+        await mkdir(dirname(target), { recursive: true });
+        await writeFile(target, decodeFileContent(file.content, file.encoding));
+      }
+
+      return root;
+    })();
+
+    localRuntimeWorkspaceInitializations.set(authorized.workspaceId, initialization);
+
+    return initialization.catch((error) => {
+      localRuntimeWorkspaceInitializations.delete(authorized.workspaceId);
+      throw error;
+    });
+  };
+
+  const readLocalRuntimeFile = async (
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    path: string,
+  ) => {
+    const root = await ensureLocalRuntimeWorkspace(authorized);
+    const target = localRuntimeFilePath(root, path);
+
+    try {
+      return encodeFileBuffer(await readFile(target));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') {
+        return undefined;
+      }
+
+      throw error;
+    }
+  };
+
+  const writeLocalRuntimeFile = async (
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    file: { path: string; content: string; encoding?: FileEncoding },
+  ) => {
+    const root = await ensureLocalRuntimeWorkspace(authorized);
+    const target = localRuntimeFilePath(root, file.path);
+    await mkdir(dirname(target), { recursive: true });
+    await writeFile(target, decodeFileContent(file.content, file.encoding));
+  };
+
+  const writeRuntimeFileWithFallback = async (
+    request: FastifyRequest,
+    authorized: { workspaceId: string; projectId: string; organizationId?: string },
+    file: { path: string; content: string; encoding?: FileEncoding },
+  ) => {
+    try {
+      await agentMutateEnsuring(request, authorized, '/files/write', {
+        method: 'POST',
+        body: JSON.stringify(file),
+      });
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      await writeLocalRuntimeFile(authorized, file);
+    }
   };
 
   const localRuntimeProcessMap = (workspaceId: string) => {
@@ -14158,15 +14347,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } else if (toolName === 'read_file') {
       output = { path, content: await agentFileContent(workspaceId, path ?? '.') };
     } else if (toolName === 'write_file') {
-      await agentRequest(workspaceId, '/files/write', {
-        method: 'POST',
-        body: JSON.stringify({ path, content: input.content ?? '' }),
+      if (!path) {
+        throw Object.assign(new Error('A file path is required'), {
+          statusCode: 400,
+          code: 'AI_TOOL_PATH_REQUIRED',
+        });
+      }
+
+      const workspace = await store.getWorkspace(workspaceId);
+      await writeTextFileWithHistory(store, {
+        projectId: project.id,
+        workspaceKey: workspaceId,
+        workspaceId: workspace?.id,
+        path,
+        content: input.content ?? '',
+        source: 'agent',
+        actorUserId: request.currentUser!.id,
+        operationId: `ai-write:${randomUUID()}`,
+        readCurrent: () =>
+          readAgentFileForHistory({ workspaceId, projectId: project.id, organizationId: project.organizationId }, path),
+        writeCurrent: () =>
+          agentMutateEnsuring(
+            request,
+            { workspaceId, projectId: project.id, organizationId: project.organizationId },
+            '/files/write',
+            { method: 'POST', body: JSON.stringify({ path, content: input.content ?? '' }) },
+          ),
       });
       output = { path, written: true };
     } else if (toolName === 'create_file') {
-      await agentRequest(workspaceId, '/files/create', {
-        method: 'POST',
-        body: JSON.stringify({ path, content: input.content ?? '' }),
+      if (!path) {
+        throw Object.assign(new Error('A file path is required'), {
+          statusCode: 400,
+          code: 'AI_TOOL_PATH_REQUIRED',
+        });
+      }
+
+      const workspace = await store.getWorkspace(workspaceId);
+      await writeTextFileWithHistory(store, {
+        projectId: project.id,
+        workspaceKey: workspaceId,
+        workspaceId: workspace?.id,
+        path,
+        content: input.content ?? '',
+        operation: 'create',
+        source: 'agent',
+        actorUserId: request.currentUser!.id,
+        operationId: `ai-create:${randomUUID()}`,
+        readCurrent: async () => undefined,
+        writeCurrent: () =>
+          agentMutateEnsuring(
+            request,
+            { workspaceId, projectId: project.id, organizationId: project.organizationId },
+            '/files/create',
+            { method: 'POST', body: JSON.stringify({ path, content: input.content ?? '' }) },
+          ),
       });
       output = { path, created: true };
     } else if (toolName === 'delete_file') {
@@ -14888,7 +15123,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const file = await agentFileRead(authorized.workspaceId, path);
+    let file: { content: string; encoding?: FileEncoding } | undefined;
+
+    try {
+      file = await agentFileRead(authorized.workspaceId, path);
+    } catch (error) {
+      if (!shouldUseLocalRuntimeFallback(error)) {
+        throw error;
+      }
+
+      file = await readLocalRuntimeFile(authorized, path);
+    }
+
+    if (!file) {
+      throw Object.assign(new Error('File not found'), { statusCode: 404, code: 'ENOENT' });
+    }
 
     return { path, content: file.content, encoding: file.encoding };
   });
@@ -14896,7 +15145,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+    const workspace = await store.getWorkspace(authorized.workspaceId);
+    await writeTextFileWithHistory(store, {
+      projectId: authorized.projectId,
+      workspaceKey: authorized.workspaceId,
+      workspaceId: workspace?.id,
+      path: body.path,
+      content: body.content,
+      encoding: body.encoding,
+      source: fileHistorySourceFromRequest(request),
+      actorUserId: request.currentUser!.id,
+      operationId: fileHistoryOperationIdFromRequest(request),
+      readCurrent: () => readAgentFileForHistory(authorized, body.path),
+      writeCurrent: () => writeRuntimeFileWithFallback(request, authorized, body),
+    });
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',
@@ -14910,7 +15172,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
+    const writeCurrent = () =>
+      agentMutateEnsuring(request, authorized, '/files/create', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+
+    if (body.directory) {
+      await writeCurrent();
+    } else {
+      const workspace = await store.getWorkspace(authorized.workspaceId);
+      await writeTextFileWithHistory(store, {
+        projectId: authorized.projectId,
+        workspaceKey: authorized.workspaceId,
+        workspaceId: workspace?.id,
+        path: body.path,
+        content: body.content ?? '',
+        encoding: body.encoding,
+        operation: 'create',
+        source: fileHistorySourceFromRequest(request),
+        actorUserId: request.currentUser!.id,
+        operationId: fileHistoryOperationIdFromRequest(request),
+        readCurrent: async () => undefined,
+        writeCurrent,
+      });
+    }
+    await audit(request, store, {
+      organizationId: authorized.organizationId,
+      action: 'runtime.file.create',
+      resourceType: body.directory ? 'workspaceDirectory' : 'workspaceFile',
+      resourceId: body.path,
+    });
 
     return reply.code(204).send();
   });
@@ -14929,7 +15221,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const { path } = parse(z.object({ path: z.string().min(1) }), request.query);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/files/delete', { method: 'POST', body: JSON.stringify({ path }) });
+    const workspace = await store.getWorkspace(authorized.workspaceId);
+    await deleteTextFileWithHistory(store, {
+      projectId: authorized.projectId,
+      workspaceKey: authorized.workspaceId,
+      workspaceId: workspace?.id,
+      path,
+      source: fileHistorySourceFromRequest(request),
+      actorUserId: request.currentUser!.id,
+      operationId: fileHistoryOperationIdFromRequest(request),
+      readCurrent: () => readAgentFileForHistory(authorized, path),
+      deleteCurrent: () =>
+        agentMutateEnsuring(request, authorized, '/files/delete', {
+          method: 'POST',
+          body: JSON.stringify({ path }),
+        }),
+    });
 
     return reply.code(204).send();
   });
@@ -14937,9 +15244,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileMoveSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentRequest(authorized.workspaceId, '/files/rename', {
-      method: 'POST',
-      body: JSON.stringify({ from: body.path, to: body.newPath }),
+    const workspace = await store.getWorkspace(authorized.workspaceId);
+    await renameTextFileWithHistory(store, {
+      projectId: authorized.projectId,
+      workspaceKey: authorized.workspaceId,
+      workspaceId: workspace?.id,
+      fromPath: body.path,
+      toPath: body.newPath,
+      source: fileHistorySourceFromRequest(request),
+      actorUserId: request.currentUser!.id,
+      operationId: fileHistoryOperationIdFromRequest(request),
+      readSource: () => readAgentFileForHistory(authorized, body.path),
+      readDestination: () => readAgentFileForHistory(authorized, body.newPath),
+      renameCurrent: () =>
+        agentMutateEnsuring(request, authorized, '/files/rename', {
+          method: 'POST',
+          body: JSON.stringify({ from: body.path, to: body.newPath }),
+        }),
     });
 
     return reply.code(204).send();
@@ -15564,6 +15885,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     workspaceId: string,
     agentPath: string,
     wrapMessages = true,
+    onUpstreamMessage?: (data: string) => void | Promise<void>,
+    onUpstreamHookFailure?: (reason: 'relay_overflow' | 'capture_failure') => void | Promise<void>,
   ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
@@ -15575,8 +15898,72 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const pendingMessages: string[] = [];
+    const upstreamHookQueue: Array<{ data: string; bytes: number }> = [];
+    const MAX_UPSTREAM_HOOK_MESSAGES = 20_000;
+    const MAX_UPSTREAM_HOOK_BYTES = 256 * 1024 * 1024;
 
     let upstreamOpened = false;
+    let upstreamHookQueueHead = 0;
+    let upstreamHookQueueBytes = 0;
+    let upstreamHookRunning = false;
+
+    const drainUpstreamHookQueue = async () => {
+      if (!onUpstreamMessage || upstreamHookRunning) {
+        return;
+      }
+
+      upstreamHookRunning = true;
+
+      try {
+        while (upstreamHookQueueHead < upstreamHookQueue.length) {
+          const queued = upstreamHookQueue[upstreamHookQueueHead++]!;
+          upstreamHookQueueBytes -= queued.bytes;
+
+          try {
+            /* Serial execution preserves same-file event order without delaying relay. */
+            await onUpstreamMessage(queued.data);
+          } catch (error) {
+            /*
+             * Side effects such as File History capture must never interrupt the
+             * live runtime stream. Log metadata/errors only; the raw file body is
+             * deliberately absent from this diagnostic.
+             */
+            app.log.warn({ err: error, workspaceId, agentPath }, 'runtime socket message hook failed');
+            await Promise.resolve(onUpstreamHookFailure?.('capture_failure')).catch(() => undefined);
+          }
+        }
+      } finally {
+        upstreamHookQueue.splice(0, upstreamHookQueueHead);
+        upstreamHookQueueHead = 0;
+        upstreamHookRunning = false;
+
+        if (upstreamHookQueue.length > 0) {
+          void drainUpstreamHookQueue();
+        }
+      }
+    };
+
+    const enqueueUpstreamHook = (data: string) => {
+      if (!onUpstreamMessage) {
+        return;
+      }
+
+      const bytes = Buffer.byteLength(data);
+      const queuedMessages = upstreamHookQueue.length - upstreamHookQueueHead;
+
+      if (queuedMessages >= MAX_UPSTREAM_HOOK_MESSAGES || upstreamHookQueueBytes + bytes > MAX_UPSTREAM_HOOK_BYTES) {
+        app.log.warn(
+          { workspaceId, agentPath, queuedMessages, queuedBytes: upstreamHookQueueBytes },
+          'runtime socket message hook backlog limit reached',
+        );
+        void Promise.resolve(onUpstreamHookFailure?.('relay_overflow')).catch(() => undefined);
+        return;
+      }
+
+      upstreamHookQueue.push({ data, bytes });
+      upstreamHookQueueBytes += bytes;
+      void drainUpstreamHookQueue();
+    };
 
     upstream.addEventListener('open', () => {
       upstreamOpened = true;
@@ -15604,6 +15991,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               })
             : data,
         );
+        enqueueUpstreamHook(data);
       } catch (error) {
         app.log.warn({ err: error }, 'runtime socket relay failed');
       }
@@ -15928,95 +16316,122 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/files/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const client = normalizeRuntimeApiWebSocket(socket);
+    const workspace = await store.getWorkspace(authorized.workspaceId);
 
-    /*
-     * The workspace agent does not expose a native file-watch stream, so we
-     * keep the socket open, poll its file tree on an interval, and diff
-     * successive snapshots into the FileChange events the runtime client
-     * expects. Tree snapshots only reveal structural changes, so we emit
-     * create/delete transitions (content edits to existing files are not
-     * visible from the tree alone).
-     */
-    const flattenTree = (nodes: AgentNode[], acc = new Map<string, AgentNode['type']>()) => {
-      for (const node of nodes) {
-        acc.set(node.path, node.type);
+    const watchEventSchema = z.object({
+      eventId: z.string().min(1).max(180),
+      sessionId: z.string().min(1).max(180),
+      path: z.string().min(1).max(4096),
+      type: z.enum(['create', 'update', 'delete']),
+      timestamp: z.string().optional(),
+      sequence: z.number().int().nonnegative().optional(),
+      content: z.string().optional(),
+      binary: z.boolean().optional(),
+      journal: z
+        .object({
+          truncated: z.boolean(),
+          droppedEvents: z.number().int().nonnegative(),
+          oldestSequence: z.number().int().nonnegative().optional(),
+          latestSequence: z.number().int().nonnegative().optional(),
+          connectionTruncated: z.boolean(),
+        })
+        .optional(),
+      snapshot: z
+        .object({
+          files: z.number().int().nonnegative(),
+          bytes: z.number().int().nonnegative(),
+          truncated: z.boolean(),
+        })
+        .optional(),
+    });
+    let watchSessionId: string | undefined;
 
-        if (node.children?.length) {
-          flattenTree(node.children, acc);
-        }
-      }
-
-      return acc;
-    };
-
-    const snapshotTree = async () =>
-      flattenTree(await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree'));
-
-    const emit = (path: string, type: 'create' | 'update' | 'delete') =>
-      client.send(
-        JSON.stringify({
-          path,
-          type,
-          timestamp: new Date().toISOString(),
-          metadata: { workspaceId: authorized.workspaceId },
-        }),
-      );
-
-    let previous = new Map<string, AgentNode['type']>();
-
-    try {
-      previous = await snapshotTree();
-    } catch {
-      // Agent not reachable yet; start from an empty baseline and let the poll catch up.
-    }
-
-    // Initial signal so the client refreshes its tree on connect.
-    emit('.', 'update');
-
-    const interval = setInterval(() => {
-      void (async () => {
-        let current: Map<string, AgentNode['type']>;
+    await proxyRuntimeSocket(
+      socket,
+      authorized.workspaceId,
+      '/files/watch',
+      false,
+      async (data) => {
+        let decoded: unknown;
 
         try {
-          current = await snapshotTree();
+          decoded = JSON.parse(data);
         } catch {
-          return; // transient agent error; retry on the next tick
+          return;
         }
 
-        for (const path of current.keys()) {
-          if (!previous.has(path)) {
-            emit(path, 'create');
+        const parsedEvent = watchEventSchema.safeParse(decoded);
+
+        if (!parsedEvent.success) {
+          return;
+        }
+
+        const event = parsedEvent.data;
+        watchSessionId = event.sessionId;
+
+        if (event.path === '.') {
+          await recordFileHistoryWatchContinuity(store, {
+            projectId: authorized.projectId,
+            workspaceKey: authorized.workspaceId,
+            sessionId: event.sessionId,
+            droppedEvents: event.journal?.droppedEvents,
+            snapshotTruncated: event.snapshot?.truncated,
+            connectionTruncated: event.journal?.connectionTruncated,
+            lastSequence: event.journal?.latestSequence ?? event.sequence,
+            reconciledAt: event.timestamp,
+          });
+          return;
+        }
+
+        try {
+          if (event.type === 'delete') {
+            await captureFileDeletion(store, {
+              projectId: authorized.projectId,
+              workspaceKey: authorized.workspaceId,
+              workspaceId: workspace?.id,
+              path: event.path,
+              source: 'external',
+              operationId: `watch:${event.eventId}`,
+            });
+          } else if (event.binary !== true && event.content !== undefined) {
+            await captureFileVersion(store, {
+              projectId: authorized.projectId,
+              workspaceKey: authorized.workspaceId,
+              workspaceId: workspace?.id,
+              path: event.path,
+              content: event.content,
+              encoding: 'utf8',
+              source: 'external',
+              operation: event.type === 'create' ? 'create' : 'write',
+
+              /*
+               * Stable per upstream event; content-hash dedupe also protects
+               * concurrent browser watchers observing the same physical write.
+               */
+              operationId: `watch:${event.eventId}`,
+            });
           }
-        }
-
-        for (const path of previous.keys()) {
-          if (!current.has(path)) {
-            emit(path, 'delete');
+        } catch (error) {
+          if (
+            error instanceof FileHistoryError &&
+            ['FILE_HISTORY_UNSUPPORTED', 'FILE_HISTORY_TOO_LARGE', 'FILE_HISTORY_PATH_INVALID'].includes(error.code)
+          ) {
+            return;
           }
+
+          throw error;
         }
-
-        previous = current;
-      })().catch(() => {
-        /*
-         * emit()'s client.send can throw synchronously on a closing socket;
-         * swallow so it never becomes an unhandled rejection (matches the
-         * logs/ports watchers). The onClose handler clears the interval.
-         */
-      });
-    }, 2000);
-
-    /*
-     * Native WS ping so an idle (no structural changes) socket survives the LB
-     * idle timeout — the 2s poll only emits frames on create/delete transitions.
-     */
-    const keepAlive = setInterval(() => client.ping(), 15_000);
-    (keepAlive as unknown as { unref?: () => void }).unref?.();
-
-    client.onClose(() => {
-      clearInterval(interval);
-      clearInterval(keepAlive);
-    });
+      },
+      async (reason) => {
+        await recordFileHistoryWatchContinuity(store, {
+          projectId: authorized.projectId,
+          workspaceKey: authorized.workspaceId,
+          sessionId: watchSessionId ?? `relay:${authorized.workspaceId}`,
+          connectionTruncated: reason === 'relay_overflow',
+          reason,
+        });
+      },
+    );
   });
   app.get('/api/runtime/workspaces/:workspaceId/ports/watch', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -18863,7 +19278,195 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { record };
   });
 
-  /* -------- Skills registry (builtin catalog + per-project enable/disable) -------- */
+  /* -------- Open-standard Agent Skills: quarantine, audit, review, install -------- */
+  const agentSkillWorkspaceAdapter = (
+    request: FastifyRequest,
+    authorized: Awaited<ReturnType<typeof authorizeRuntimeWorkspace>>,
+  ): AgentSkillWorkspaceAdapter => {
+    const isMissing = (error: unknown) => {
+      const candidate = error as { statusCode?: number; agentStatus?: number; code?: string } | undefined;
+      return candidate?.statusCode === 404 || candidate?.agentStatus === 404 || candidate?.code === 'ENOENT';
+    };
+
+    const listFiles = async (root: string) => {
+      try {
+        const nodes = await agentRequest<AgentNode[]>(
+          authorized.workspaceId,
+          `/files/tree?path=${encodeURIComponent(root)}&noFollow=1`,
+        );
+
+        return flattenRuntimeFiles(nodes)
+          .map((node) => node.path)
+          .filter((path) => path === root || path.startsWith(`${root}/`))
+          .sort();
+      } catch (error) {
+        if (isMissing(error)) return [];
+        throw error;
+      }
+    };
+
+    return {
+      listFiles,
+      async readFile(path) {
+        try {
+          const file = await agentFileRead(authorized.workspaceId, path, { noFollow: true });
+          return { content: file.content, encoding: file.encoding ?? 'utf8' };
+        } catch (error) {
+          if (isMissing(error)) return undefined;
+          throw error;
+        }
+      },
+      writeFile: (file) =>
+        agentMutateEnsuring(request, authorized, '/files/write', {
+          method: 'POST',
+          body: JSON.stringify(file),
+        }),
+      async deleteTree(root) {
+        try {
+          await agentRequest(authorized.workspaceId, '/files/delete', {
+            method: 'POST',
+            body: JSON.stringify({ path: root }),
+          });
+        } catch (error) {
+          if (!isMissing(error)) throw error;
+        }
+      },
+    };
+  };
+
+  const agentSkillRuntimePolicies = (
+    projectId: string,
+    workspaceKey: string,
+    records: Parameters<typeof buildAgentSkillRuntimePolicies>[0]['records'],
+  ) =>
+    buildAgentSkillRuntimePolicies({
+      projectId,
+      workspaceKey,
+      records,
+      loadArtifact: (artifactId) => store.getAgentSkillArtifact(projectId, artifactId),
+    });
+
+  const readAgentSkillRuntimeSnapshot = async (workspace: AgentSkillWorkspaceAdapter) => {
+    const paths = [
+      ...(await workspace.listFiles('.agents/skills')),
+      ...(await workspace.listFiles('.agents/.vibecore/managed-skills')),
+    ]
+      .filter((path) => path.startsWith('.agents/skills/') || path.startsWith('.agents/.vibecore/managed-skills/'))
+      .filter((path, index, values) => values.indexOf(path) === index)
+      .sort();
+
+    if (paths.length > AGENT_SKILL_RUNTIME_MAX_FILES) {
+      throw Object.assign(new Error('The Agent Skills runtime snapshot contains too many files.'), {
+        statusCode: 413,
+        code: 'AGENT_SKILL_RUNTIME_SNAPSHOT_TOO_LARGE',
+      });
+    }
+
+    const files: Record<string, { type: 'file'; content: string; isBinary: boolean; size: number }> = {};
+    let totalBytes = 0;
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(AGENT_SKILL_RUNTIME_READ_CONCURRENCY, paths.length) }, async () => {
+      while (cursor < paths.length) {
+        const path = paths[cursor++];
+        const file = path ? await workspace.readFile(path) : undefined;
+
+        if (!path || !file) continue;
+
+        const bytes = Buffer.from(file.content, file.encoding === 'base64' ? 'base64' : 'utf8');
+        let isBinary = bytes.includes(0);
+        let content = file.content;
+
+        if (!isBinary) {
+          try {
+            content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+          } catch {
+            isBinary = true;
+          }
+        }
+
+        if (isBinary) {
+          content = bytes.toString('base64');
+        }
+
+        totalBytes += bytes.byteLength;
+
+        if (totalBytes > AGENT_SKILL_RUNTIME_MAX_BYTES) {
+          throw Object.assign(new Error('The Agent Skills runtime snapshot is too large.'), {
+            statusCode: 413,
+            code: 'AGENT_SKILL_RUNTIME_SNAPSHOT_TOO_LARGE',
+          });
+        }
+
+        files[path] = {
+          type: 'file',
+          content,
+          isBinary,
+          size: bytes.byteLength,
+        };
+      }
+    });
+
+    await Promise.all(workers);
+
+    return files;
+  };
+
+  const agentSkillReviewFiles = (artifact: AgentSkillArtifactWithBundleRecord) =>
+    artifact.bundle.map((file) => {
+      const bytes = Buffer.from(file.contentBase64, 'base64');
+      let content: string | undefined;
+      let binary = bytes.includes(0);
+
+      if (!binary) {
+        try {
+          content = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+          binary = true;
+        }
+      }
+
+      return {
+        path: file.path,
+        mode: file.mode,
+        byteLength: bytes.byteLength,
+        sha256: createHash('sha256').update(bytes).digest('hex'),
+        binary,
+        ...(!binary && content !== undefined ? { content } : {}),
+      };
+    });
+
+  const agentSkillArtifactOr404 = async (projectId: string, artifactId: string) => {
+    const artifact = await store.getAgentSkillArtifact(projectId, artifactId);
+
+    if (!artifact) {
+      throw Object.assign(new Error('Agent Skill artifact not found'), {
+        statusCode: 404,
+        code: 'AGENT_SKILL_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    return artifact;
+  };
+
+  const publicAgentSkillArtifact = (artifact: Awaited<ReturnType<typeof agentSkillArtifactOr404>>) => {
+    const { bundle: _bundle, ...publicArtifact } = artifact;
+    return publicArtifact;
+  };
+
+  const requireAgentSkillWorkspace = (
+    artifact: Awaited<ReturnType<typeof agentSkillArtifactOr404>>,
+    workspaceKey: string,
+  ) => {
+    if (artifact.workspaceKey !== workspaceKey) {
+      throw Object.assign(new Error('Agent Skill artifact was not found in this workspace.'), {
+        statusCode: 404,
+        code: 'AGENT_SKILL_ARTIFACT_NOT_FOUND',
+      });
+    }
+
+    return artifact;
+  };
+
   app.get('/projects/:projectId/skills', async (request) => {
     const project = await requireProject(
       request,
@@ -18871,61 +19474,52 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
+    const query = parse(agentSkillWorkspaceQuery, request.query ?? {});
+    const workspaceKey = (await authorizeFileHistoryWorkspace(request, project, query.workspaceId, 'workspaces:read'))
+      .workspaceKey;
 
-    return { skills: resolveProjectSkills(await store.listProjectSkillOverrides(project.id)) };
+    const artifacts = await store.listAgentSkillArtifacts(project.id, workspaceKey);
+    const runtimePolicies = await agentSkillRuntimePolicies(project.id, workspaceKey, artifacts);
+    const runtimeApprovals = runtimePolicies.filter((policy) => policy.auditStatus === 'approved' && policy.enabled);
+
+    return {
+      artifacts,
+      runtimeApprovals,
+      runtimePolicies,
+      standard: {
+        specification: 'https://agentskills.io/specification',
+        directory: '.agents/skills/<name>/SKILL.md',
+        disclosure: ['metadata', 'activation', 'resource'],
+      },
+    };
   });
 
-  const setSkillEnabled = async (request: FastifyRequest, reply: FastifyReply, enabled: boolean) => {
-    const { projectId, skillId } = parse(skillParams, request.params);
-    const project = await requireProject(request, store, projectId, 'projects:write');
+  app.get('/projects/:projectId/skills/runtime-context', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const query = parse(agentSkillWorkspaceQuery, request.query ?? {});
+    const scope = await authorizeFileHistoryWorkspace(request, project, query.workspaceId, 'workspaces:read');
+    const policyRecords = await store.listAgentSkillRuntimePolicyRecords(project.id, scope.workspaceKey, {
+      take: AGENT_SKILL_RUNTIME_POLICY_MAX_RECORDS + 1,
+    });
+    const workspace = agentSkillWorkspaceAdapter(request, scope.authorized);
+    const [runtimePolicies, files] = await Promise.all([
+      agentSkillRuntimePolicies(project.id, scope.workspaceKey, policyRecords),
+      readAgentSkillRuntimeSnapshot(workspace),
+    ]);
 
-    if (!isKnownSkill(skillId)) {
-      return reply.code(404).send({ error: 'Unknown skill', code: 'SKILL_NOT_FOUND' });
-    }
+    return {
+      projectId: project.id,
+      workspaceKey: scope.workspaceKey,
+      runtimePolicies,
+      files,
+    };
+  });
 
-    await store.setProjectSkillEnabled({ projectId: project.id, skillId, enabled });
-
-    return reply.send({ skill: resolveSkill(skillId, await store.listProjectSkillOverrides(project.id)) });
-  };
-
-  app.post('/projects/:projectId/skills/:skillId/enable', (request, reply) => setSkillEnabled(request, reply, true));
-  app.post('/projects/:projectId/skills/:skillId/disable', (request, reply) => setSkillEnabled(request, reply, false));
-
-  /* -------- Installable GitHub-repo skills (F#27) -------- */
-
-  /**
-   * Resolve the storage target for a scope. 'project' => projectId; 'workspace'
-   * => the project's (first) workspace id, mirroring how other project routes
-   * pick the workspace. Throws a typed 409 when a workspace-scoped op has no
-   * workspace yet.
-   */
-  const resolveSkillScopeId = async (
-    scope: 'project' | 'workspace',
-    project: { id: string },
-    reply: FastifyReply,
-  ): Promise<string | undefined> => {
-    if (scope === 'project') {
-      return project.id;
-    }
-
-    const workspace = (await store.listWorkspaces(project.id).catch(() => []))[0] ?? null;
-
-    if (!workspace) {
-      reply.code(409).send({
-        error: 'This project has no workspace yet. Open the project once, then install workspace-scoped skills.',
-        code: 'SKILL_NO_WORKSPACE',
-      });
-
-      return undefined;
-    }
-
-    return workspace.id;
-  };
-
-  /*
-   * Community catalog: curated public skill repos + live install counts + whether
-   * installed in this project or its workspace. Optional ?q= filters name/desc/repo.
-   */
   app.get('/projects/:projectId/skills/catalog', async (request) => {
     const project = await requireProject(
       request,
@@ -18933,223 +19527,508 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:read',
     );
-
-    const { q } = parse(skillCatalogQuery, request.query);
-
-    const [counts, projectInstalls, workspaceScopeId] = await Promise.all([
-      store.countInstallsByRepo(),
-      store.listInstalledSkills('project', project.id),
-      (async () => (await store.listWorkspaces(project.id).catch(() => []))[0]?.id ?? null)(),
-    ]);
-
-    const workspaceInstalls = workspaceScopeId ? await store.listInstalledSkills('workspace', workspaceScopeId) : [];
-
-    const projectSet = new Set(projectInstalls.map((row) => row.ownerRepo));
-    const workspaceSet = new Set(workspaceInstalls.map((row) => row.ownerRepo));
-
+    const { q, workspaceId } = parse(skillCatalogQuery.merge(agentSkillWorkspaceQuery), request.query ?? {});
+    const workspaceKey = (await authorizeFileHistoryWorkspace(request, project, workspaceId, 'workspaces:read'))
+      .workspaceKey;
+    const artifacts = await store.listAgentSkillArtifacts(project.id, workspaceKey);
     const needle = q?.trim().toLowerCase();
-
-    const entries = SKILL_REPO_CATALOG.filter((entry) => {
-      if (!needle) {
-        return true;
-      }
-
-      return (
-        entry.name.toLowerCase().includes(needle) ||
-        entry.description.toLowerCase().includes(needle) ||
-        entry.ownerRepo.toLowerCase().includes(needle) ||
-        entry.category.toLowerCase().includes(needle)
+    const entries = OPEN_SKILL_CATALOG.filter((entry) => {
+      if (!needle) return true;
+      return [entry.name, entry.description, entry.ownerRepo, entry.skillPath, entry.category].some((value) =>
+        value.toLowerCase().includes(needle),
       );
-    }).map((entry) => ({
-      ownerRepo: entry.ownerRepo,
-      name: entry.name,
-      description: entry.description,
-      category: entry.category,
-      homepageUrl: entry.homepageUrl,
-      installCount: counts[entry.ownerRepo] ?? 0,
-      installedInProject: projectSet.has(entry.ownerRepo),
-      installedInWorkspace: workspaceSet.has(entry.ownerRepo),
-    }));
+    }).map((entry) => {
+      const latestArtifact = artifacts.find(
+        (artifact) => artifact.ownerRepo === entry.ownerRepo && artifact.skillPath === entry.skillPath,
+      );
 
-    return { entries, hasWorkspace: workspaceScopeId !== null };
-  });
-
-  // Installed skills for a scope (project or the project's workspace).
-  app.get('/projects/:projectId/skills/installed', async (request, reply) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:read',
-    );
-
-    const scope = parse(skillInstalledQuery, request.query).scope ?? 'project';
-
-    const scopeId = await resolveSkillScopeId(scope, project, reply);
-
-    if (scopeId === undefined) {
-      return reply; // 409 already sent
-    }
-
-    return reply.send({ scope, skills: await store.listInstalledSkills(scope, scopeId) });
-  });
-
-  /*
-   * Install a public GitHub-repo skill: validate owner/repo, fetch instructions
-   * server-side (SSRF-guarded to raw.githubusercontent.com), persist the row.
-   */
-  app.post('/projects/:projectId/skills/install', async (request, reply) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
-    );
-
-    const body = parse(skillInstallBody, request.body);
-    const scope = body.scope ?? 'project';
-
-    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
-
-    if (!ownerRepo) {
-      return reply.code(400).send({
-        error: 'ownerRepo must be a valid "owner/repo" GitHub slug',
-        code: 'SKILL_REPO_INVALID',
-      });
-    }
-
-    const scopeId = await resolveSkillScopeId(scope, project, reply);
-
-    if (scopeId === undefined) {
-      return reply; // 409 already sent
-    }
-
-    const already = (await store.listInstalledSkills(scope, scopeId)).some((row) => row.ownerRepo === ownerRepo);
-
-    if (already) {
-      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
-    }
-
-    const catalogEntry = findRepoEntry(ownerRepo);
-    const fetched = await fetchSkillRepoInstructions(ownerRepo);
-
-    let instructions: string;
-    let note: string | undefined;
-
-    if (fetched.ok) {
-      instructions = fetched.instructions;
-    } else if (catalogEntry) {
-      // Public curated repo we couldn't read right now — fall back to our summary.
-      instructions = catalogEntry.description;
-      note =
-        fetched.reason === 'private_or_missing'
-          ? 'No SKILL.md/AGENTS.md/README.md found in the repo; using the catalog summary.'
-          : 'The repo could not be reached right now; using the catalog summary.';
-    } else if (fetched.reason === 'private_or_missing') {
-      return reply.code(404).send({
-        error: `'${ownerRepo}' has no public SKILL.md/AGENTS.md/README.md — it may be private or not exist.`,
-        code: 'SKILL_REPO_PRIVATE',
-      });
-    } else {
-      return reply.code(502).send({
-        error: `Could not reach GitHub to read '${ownerRepo}'. Try again shortly.`,
-        code: 'SKILL_REPO_UNREACHABLE',
-      });
-    }
-
-    const name = catalogEntry?.name ?? ownerRepo.split('/')[1];
-    const description = catalogEntry?.description ?? `Installed from ${ownerRepo}`;
-    const homepageUrl = catalogEntry?.homepageUrl ?? `https://github.com/${ownerRepo}`;
-    const userId = request.currentUser?.id ?? null;
-
-    const { record, created } = await store.installSkill({
-      scope,
-      scopeId,
-      ownerRepo,
-      name,
-      description,
-      instructions,
-      homepageUrl,
-      installedByUserId: userId,
+      return {
+        ...entry,
+        artifact: latestArtifact,
+        requiresAudit: true,
+      };
     });
 
-    if (!created) {
-      // Lost a race with a concurrent install of the same repo.
-      return reply.code(409).send({ error: `'${ownerRepo}' is already installed`, code: 'SKILL_ALREADY_INSTALLED' });
-    }
-
-    return reply.code(201).send({ skill: record, source: fetched.ok ? fetched.source : null, note });
+    return { entries };
   });
 
-  // Uninstall a GitHub-repo skill from a scope.
-  app.delete('/projects/:projectId/skills/installed', async (request, reply) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
+  app.post(
+    '/projects/:projectId/skills/import',
+    {
+      config: {
+        rateLimit: {
+          max: Number(process.env.AGENT_SKILL_IMPORT_RATE_LIMIT_MAX ?? 5),
+          timeWindow: '1 minute',
+        },
+      },
+    },
+    async (request, reply) => {
+      const project = await requireProject(
+        request,
+        store,
+        parse(projectParams, request.params).projectId,
+        'projects:write',
+      );
+      const body = parse(agentSkillImportBody, request.body ?? {});
+      const catalog = body.catalogId ? findOpenSkillCatalogEntry(body.catalogId) : undefined;
+
+      if (body.catalogId && !catalog) {
+        return reply.code(404).send({ error: 'Catalog skill not found', code: 'AGENT_SKILL_CATALOG_NOT_FOUND' });
+      }
+
+      const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+      const ownerRepo = catalog?.ownerRepo ?? body.ownerRepo!;
+      const skillPath = catalog?.skillPath ?? body.skillPath!;
+      const requestedRef = catalog?.ref ?? body.ref ?? 'HEAD';
+
+      /*
+       * Custom sources are intentionally fetched without credentials: a project
+       * writer must never be able to use a broad server token as an oracle for a
+       * private repository. The dedicated audit token is allowed only for the
+       * fixed, reviewed public catalog and must itself be public-read-only.
+       */
+      const importAbortController = new AbortController();
+      const abortImport = () => importAbortController.abort();
+      const abortDisconnectedImport = () => {
+        if (!reply.raw.writableFinished) abortImport();
+      };
+
+      if (request.raw.aborted) importAbortController.abort();
+      else request.raw.once('aborted', abortImport);
+      reply.raw.once('close', abortDisconnectedImport);
+
+      const bundle = await fetchGithubSkillBundle(
+        { ownerRepo, skillPath, ref: requestedRef },
+        {
+          githubToken: catalog ? process.env.GITHUB_SKILLS_AUDIT_TOKEN : undefined,
+          signal: importAbortController.signal,
+        },
+      ).finally(() => {
+        request.raw.off('aborted', abortImport);
+        reply.raw.off('close', abortDisconnectedImport);
+      });
+      const audited = auditGithubSkillBundle(bundle);
+      const fallbackName = skillPath.split('/').at(-1) ?? 'invalid-skill';
+      const metadata = audited.report.metadata;
+      const result = await store.createAgentSkillArtifact({
+        projectId: project.id,
+        workspaceKey: scope.workspaceKey,
+        ownerRepo: bundle.ownerRepo,
+        skillPath: bundle.skillPath,
+        requestedRef,
+        commitSha: bundle.commitSha,
+        digest: bundle.digest,
+        sourceUrl: bundle.sourceUrl,
+        name: audited.name ?? fallbackName,
+        description: audited.description ?? 'Invalid Agent Skill awaiting review.',
+        license: metadata?.license,
+        compatibility: metadata?.compatibility,
+        declaredAllowedTools: metadata?.allowedTools,
+        bundle: bundle.files,
+        auditStatus: audited.status,
+        auditReport: audited.report,
+        importedByUserId: request.currentUser!.id,
+      });
+
+      if (result.created) {
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'agent_skill.import',
+          resourceType: 'agentSkillArtifact',
+          resourceId: result.record.id,
+          metadata: {
+            ownerRepo: bundle.ownerRepo,
+            skillPath: bundle.skillPath,
+            commitSha: bundle.commitSha,
+            digest: bundle.digest,
+            auditStatus: audited.status,
+            workspaceId: scope.workspaceKey,
+          },
+        });
+      }
+
+      return reply.code(result.created ? 201 : 200).send({
+        artifact: result.record,
+        created: result.created,
+      });
+    },
+  );
+
+  app.get('/projects/:projectId/skills/artifacts/:artifactId', async (request) => {
+    const { projectId, artifactId } = parse(agentSkillArtifactParams, request.params);
+    const project = await requireProject(request, store, projectId, 'projects:read');
+    const { workspaceId, eventLimit, eventCursor } = parse(agentSkillArtifactDetailQuery, request.query ?? {});
+    const scope = await authorizeFileHistoryWorkspace(request, project, workspaceId, 'workspaces:read');
+    const artifact = requireAgentSkillWorkspace(
+      await agentSkillArtifactOr404(project.id, artifactId),
+      scope.workspaceKey,
     );
+    const reviewFiles = agentSkillReviewFiles(artifact);
+    const skillMarkdown = reviewFiles.find((file) => file.path === 'SKILL.md')?.content;
+    const eventPage = await store.listAgentSkillAuditEvents(project.id, artifact.id, {
+      limit: eventLimit,
+      ...(eventCursor ? { cursor: decodeAgentSkillAuditEventCursor(eventCursor) } : {}),
+    });
 
-    const body = parse(skillUninstallBody, request.body);
-    const scope = body.scope ?? 'project';
-
-    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
-
-    if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
-    }
-
-    const scopeId = await resolveSkillScopeId(scope, project, reply);
-
-    if (scopeId === undefined) {
-      return reply; // 409 already sent
-    }
-
-    const removed = await store.uninstallSkill(scope, scopeId, ownerRepo);
-
-    if (!removed) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
-    }
-
-    return reply.send({ removed: true, ownerRepo, scope });
+    return {
+      artifact: publicAgentSkillArtifact(artifact),
+      skillMarkdown,
+      reviewFiles,
+      events: eventPage.events,
+      ...(eventPage.nextCursor ? { nextEventCursor: encodeAgentSkillAuditEventCursor(eventPage.nextCursor) } : {}),
+    };
   });
 
-  // Enable/disable an installed GitHub-repo skill without uninstalling it.
-  app.patch('/projects/:projectId/skills/installed', async (request, reply) => {
-    const project = await requireProject(
-      request,
-      store,
-      parse(projectParams, request.params).projectId,
-      'projects:write',
+  app.post('/projects/:projectId/skills/artifacts/:artifactId/approve', async (request, reply) => {
+    const { projectId, artifactId } = parse(agentSkillArtifactParams, request.params);
+    const body = parse(agentSkillDecisionBody, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    await requireOrg(request, store, project.organizationId, 'security:manage');
+    const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+    const lockArtifact = requireAgentSkillWorkspace(
+      await agentSkillArtifactOr404(project.id, artifactId),
+      scope.workspaceKey,
     );
 
-    const body = parse(skillToggleBody, request.body);
-    const scope = body.scope ?? 'project';
+    return store.withSerializedMutation(
+      `agent-skill:${project.id}:${scope.workspaceKey}:${lockArtifact.name}`,
+      async () => {
+        const artifact = requireAgentSkillWorkspace(
+          await agentSkillArtifactOr404(project.id, artifactId),
+          scope.workspaceKey,
+        );
 
-    const ownerRepo = normalizeOwnerRepo(body.ownerRepo);
+        if (artifact.digest !== body.digest) {
+          return reply.code(409).send({
+            error: 'The reviewed digest no longer matches this artifact.',
+            code: 'AGENT_SKILL_DIGEST_CONFLICT',
+          });
+        }
 
-    if (!ownerRepo) {
-      return reply.code(400).send({ error: 'ownerRepo must be a valid "owner/repo" slug', code: 'SKILL_REPO_INVALID' });
-    }
+        if (artifact.auditStatus === 'blocked') {
+          return reply.code(422).send({
+            error: 'This artifact has blocking specification or security findings and cannot be approved.',
+            code: 'AGENT_SKILL_AUDIT_BLOCKED',
+          });
+        }
 
-    const scopeId = await resolveSkillScopeId(scope, project, reply);
+        if (body.acknowledgedUntrustedContent !== true) {
+          return reply.code(422).send({
+            error: 'Approval requires explicit acknowledgement that every untrusted text resource was reviewed.',
+            code: 'AGENT_SKILL_REVIEW_ACKNOWLEDGEMENT_REQUIRED',
+          });
+        }
 
-    if (scopeId === undefined) {
-      return reply; // 409 already sent
-    }
+        if (artifact.auditStatus !== 'quarantined' && artifact.auditStatus !== 'approved') {
+          return reply.code(409).send({
+            error: 'This artifact is not awaiting approval.',
+            code: 'AGENT_SKILL_STATE_CONFLICT',
+          });
+        }
 
-    const updated = await store.setInstalledSkillEnabled({
-      scope,
-      scopeId,
-      ownerRepo,
-      enabled: body.enabled,
+        const workspace = agentSkillWorkspaceAdapter(request, scope.authorized);
+
+        if (artifact.auditStatus === 'approved') {
+          if (!artifact.enabled) {
+            return reply.code(409).send({
+              error: 'This artifact is approved but disabled; use the enable action.',
+              code: 'AGENT_SKILL_STATE_CONFLICT',
+            });
+          }
+
+          await installVerifiedAgentSkill(artifact, workspace);
+          return reply.send({ artifact: publicAgentSkillArtifact(artifact), idempotent: true });
+        }
+
+        const installation = await installVerifiedAgentSkill(artifact, workspace);
+        let updated;
+
+        try {
+          updated = await store.transitionAgentSkillArtifact({
+            projectId: project.id,
+            artifactId: artifact.id,
+            expectedWorkspaceKey: scope.workspaceKey,
+            digest: artifact.digest,
+            expectedStatuses: ['quarantined'],
+            status: 'approved',
+            enabled: true,
+            installedPath: installation.installPath,
+            actorUserId: request.currentUser!.id,
+            reason: body.reason,
+            action: 'approved',
+            eventMetadata: {
+              workspaceId: scope.workspaceKey,
+              digest: artifact.digest,
+              acknowledgedUntrustedContent: true,
+              reviewedFileCount: artifact.bundle.length,
+            },
+          });
+        } catch (error) {
+          if (!installation.alreadyInstalled) {
+            await removeAgentSkillInstallation(artifact, workspace).catch((rollbackError) => {
+              request.log.error({ err: rollbackError, artifactId: artifact.id }, 'Agent Skill rollback failed closed');
+            });
+          }
+          throw error;
+        }
+
+        if (!updated) {
+          const current = await store.getAgentSkillArtifact(project.id, artifact.id);
+
+          if (current?.auditStatus === 'approved' && current.digest === artifact.digest) {
+            return reply.send({ artifact: publicAgentSkillArtifact(current), idempotent: true });
+          }
+
+          if (!installation.alreadyInstalled) {
+            await removeAgentSkillInstallation(artifact, workspace).catch((rollbackError) => {
+              request.log.error({ err: rollbackError, artifactId: artifact.id }, 'Agent Skill rollback failed closed');
+            });
+          }
+          return reply.code(409).send({
+            error: 'The artifact changed state while it was being approved.',
+            code: 'AGENT_SKILL_STATE_CONFLICT',
+          });
+        }
+
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'agent_skill.approve',
+          resourceType: 'agentSkillArtifact',
+          resourceId: artifact.id,
+          metadata: {
+            workspaceId: scope.workspaceKey,
+            digest: artifact.digest,
+            acknowledgedUntrustedContent: true,
+            reviewedFileCount: artifact.bundle.length,
+          },
+        });
+
+        return reply.send({ artifact: updated, idempotent: installation.alreadyInstalled });
+      },
+    );
+  });
+
+  app.post('/projects/:projectId/skills/artifacts/:artifactId/reject', async (request, reply) => {
+    const { projectId, artifactId } = parse(agentSkillArtifactParams, request.params);
+    const body = parse(agentSkillDecisionBody, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    await requireOrg(request, store, project.organizationId, 'security:manage');
+    const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+    const artifact = requireAgentSkillWorkspace(
+      await agentSkillArtifactOr404(project.id, artifactId),
+      scope.workspaceKey,
+    );
+    const updated = await store.transitionAgentSkillArtifact({
+      projectId: project.id,
+      artifactId: artifact.id,
+      expectedWorkspaceKey: scope.workspaceKey,
+      digest: body.digest,
+      expectedStatuses: ['quarantined', 'blocked'],
+      status: 'blocked',
+      enabled: false,
+      actorUserId: request.currentUser!.id,
+      reason: body.reason,
+      action: 'rejected',
     });
 
     if (!updated) {
-      return reply.code(404).send({ error: `'${ownerRepo}' is not installed`, code: 'SKILL_NOT_INSTALLED' });
+      return reply.code(409).send({ error: 'Artifact state or digest changed.', code: 'AGENT_SKILL_STATE_CONFLICT' });
     }
 
-    return reply.send({ skill: updated });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'agent_skill.reject',
+      resourceType: 'agentSkillArtifact',
+      resourceId: artifact.id,
+      metadata: { workspaceId: scope.workspaceKey, digest: artifact.digest },
+    });
+
+    return reply.send({ artifact: updated });
+  });
+
+  const setApprovedAgentSkillEnabled = async (request: FastifyRequest, reply: FastifyReply, enabled: boolean) => {
+    const { projectId, artifactId } = parse(agentSkillArtifactParams, request.params);
+    const body = parse(agentSkillDecisionBody, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    await requireOrg(request, store, project.organizationId, 'security:manage');
+    const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+    const lockArtifact = requireAgentSkillWorkspace(
+      await agentSkillArtifactOr404(project.id, artifactId),
+      scope.workspaceKey,
+    );
+
+    return store.withSerializedMutation(
+      `agent-skill:${project.id}:${scope.workspaceKey}:${lockArtifact.name}`,
+      async () => {
+        const artifact = requireAgentSkillWorkspace(
+          await agentSkillArtifactOr404(project.id, artifactId),
+          scope.workspaceKey,
+        );
+
+        if (artifact.auditStatus !== 'approved' || artifact.digest !== body.digest) {
+          return reply
+            .code(409)
+            .send({ error: 'Only this exact approved digest can be toggled.', code: 'AGENT_SKILL_STATE_CONFLICT' });
+        }
+
+        const workspace = agentSkillWorkspaceAdapter(request, scope.authorized);
+
+        if (artifact.enabled === enabled) {
+          if (enabled) await installVerifiedAgentSkill(artifact, workspace);
+          return reply.send({ artifact: publicAgentSkillArtifact(artifact), idempotent: true });
+        }
+
+        const installPath = enabled
+          ? (await installVerifiedAgentSkill(artifact, workspace)).installPath
+          : await removeAgentSkillInstallation(artifact, workspace);
+
+        const restorePreviousInstallation = async () => {
+          if (artifact.enabled) {
+            await installVerifiedAgentSkill(artifact, workspace);
+          } else {
+            await removeAgentSkillInstallation(artifact, workspace);
+          }
+        };
+        let updated;
+
+        try {
+          updated = await store.transitionAgentSkillArtifact({
+            projectId: project.id,
+            artifactId: artifact.id,
+            expectedWorkspaceKey: scope.workspaceKey,
+            digest: artifact.digest,
+            expectedStatuses: ['approved'],
+            expectedEnabled: artifact.enabled,
+            status: 'approved',
+            enabled,
+            installedPath: enabled ? installPath : null,
+            actorUserId: request.currentUser!.id,
+            reason: body.reason,
+            action: enabled ? 'enabled' : 'disabled',
+            eventMetadata: { workspaceId: scope.workspaceKey, digest: artifact.digest },
+          });
+        } catch (error) {
+          await restorePreviousInstallation().catch(() => undefined);
+          throw error;
+        }
+
+        if (!updated) {
+          const current = await store.getAgentSkillArtifact(project.id, artifact.id);
+
+          if (
+            current?.auditStatus === 'approved' &&
+            current.digest === artifact.digest &&
+            current.enabled === enabled
+          ) {
+            return reply.send({ artifact: publicAgentSkillArtifact(current), idempotent: true });
+          }
+
+          await restorePreviousInstallation().catch(() => undefined);
+          return reply.code(409).send({ error: 'Artifact state changed.', code: 'AGENT_SKILL_STATE_CONFLICT' });
+        }
+
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: enabled ? 'agent_skill.enable' : 'agent_skill.disable',
+          resourceType: 'agentSkillArtifact',
+          resourceId: artifact.id,
+          metadata: { workspaceId: scope.workspaceKey, digest: artifact.digest },
+        });
+
+        return reply.send({ artifact: updated });
+      },
+    );
+  };
+
+  app.post('/projects/:projectId/skills/artifacts/:artifactId/enable', (request, reply) =>
+    setApprovedAgentSkillEnabled(request, reply, true),
+  );
+  app.post('/projects/:projectId/skills/artifacts/:artifactId/disable', (request, reply) =>
+    setApprovedAgentSkillEnabled(request, reply, false),
+  );
+
+  app.post('/projects/:projectId/skills/artifacts/:artifactId/revoke', async (request, reply) => {
+    const { projectId, artifactId } = parse(agentSkillArtifactParams, request.params);
+    const body = parse(agentSkillDecisionBody, request.body ?? {});
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    await requireOrg(request, store, project.organizationId, 'security:manage');
+    const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+    const lockArtifact = requireAgentSkillWorkspace(
+      await agentSkillArtifactOr404(project.id, artifactId),
+      scope.workspaceKey,
+    );
+
+    return store.withSerializedMutation(
+      `agent-skill:${project.id}:${scope.workspaceKey}:${lockArtifact.name}`,
+      async () => {
+        const artifact = requireAgentSkillWorkspace(
+          await agentSkillArtifactOr404(project.id, artifactId),
+          scope.workspaceKey,
+        );
+
+        if (artifact.digest !== body.digest) {
+          return reply.code(409).send({ error: 'Artifact digest changed.', code: 'AGENT_SKILL_DIGEST_CONFLICT' });
+        }
+
+        if (artifact.auditStatus === 'revoked') {
+          return reply.send({ artifact: publicAgentSkillArtifact(artifact), idempotent: true });
+        }
+
+        if (artifact.auditStatus !== 'approved') {
+          return reply.code(409).send({
+            error: 'Only an approved Agent Skill can be revoked.',
+            code: 'AGENT_SKILL_STATE_CONFLICT',
+          });
+        }
+
+        const workspace = agentSkillWorkspaceAdapter(request, scope.authorized);
+        if (artifact.enabled) await removeAgentSkillInstallation(artifact, workspace);
+
+        let updated;
+
+        try {
+          updated = await store.transitionAgentSkillArtifact({
+            projectId: project.id,
+            artifactId: artifact.id,
+            expectedWorkspaceKey: scope.workspaceKey,
+            digest: artifact.digest,
+            expectedStatuses: ['approved'],
+            expectedEnabled: artifact.enabled,
+            status: 'revoked',
+            enabled: false,
+            installedPath: null,
+            actorUserId: request.currentUser!.id,
+            reason: body.reason,
+            action: 'revoked',
+            eventMetadata: { workspaceId: scope.workspaceKey, digest: artifact.digest },
+          });
+        } catch (error) {
+          if (artifact.enabled) await installVerifiedAgentSkill(artifact, workspace).catch(() => undefined);
+          throw error;
+        }
+
+        if (!updated) {
+          const current = await store.getAgentSkillArtifact(project.id, artifact.id);
+
+          if (current?.auditStatus === 'revoked' && current.digest === artifact.digest) {
+            return reply.send({ artifact: publicAgentSkillArtifact(current), idempotent: true });
+          }
+
+          if (artifact.enabled) await installVerifiedAgentSkill(artifact, workspace).catch(() => undefined);
+          return reply.code(409).send({ error: 'Artifact state changed.', code: 'AGENT_SKILL_STATE_CONFLICT' });
+        }
+
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'agent_skill.revoke',
+          resourceType: 'agentSkillArtifact',
+          resourceId: artifact.id,
+          metadata: { workspaceId: scope.workspaceKey, digest: artifact.digest },
+        });
+
+        return reply.send({ artifact: updated });
+      },
+    );
   });
 
   app.get('/projects/:projectId/settings', async (request) => ({
@@ -19221,6 +20100,67 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
+  });
+  app.get('/projects/:projectId/file-history', async (request) => {
+    const { projectId } = parse(projectParams, request.params);
+    const query = parse(fileHistoryListQuerySchema, request.query);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    const scope = await authorizeFileHistoryWorkspace(request, project, query.workspaceId, 'workspaces:read');
+
+    return listFileHistory(store, {
+      projectId: project.id,
+      workspaceKey: scope.workspaceKey,
+      path: query.path,
+      cursor: query.cursor,
+      limit: query.limit,
+    });
+  });
+  app.get('/projects/:projectId/file-history/:versionId', async (request) => {
+    const { projectId, versionId } = parse(fileHistoryVersionParams, request.params);
+    const query = parse(fileHistoryDetailQuerySchema, request.query);
+    const project = await requireProject(request, store, projectId, 'workspaces:read');
+    const scope = await authorizeFileHistoryWorkspace(request, project, query.workspaceId, 'workspaces:read');
+
+    return getFileHistoryVersion(store, {
+      projectId: project.id,
+      workspaceKey: scope.workspaceKey,
+      versionId,
+    });
+  });
+  app.post('/projects/:projectId/file-history/:versionId/restore', async (request, reply) => {
+    const { projectId, versionId } = parse(fileHistoryVersionParams, request.params);
+    const body = parse(fileHistoryRestoreSchema, request.body);
+    const project = await requireProject(request, store, projectId, 'workspaces:write');
+    const scope = await authorizeFileHistoryWorkspace(request, project, body.workspaceId, 'workspaces:write');
+    const result = await restoreFileVersion(store, {
+      projectId: project.id,
+      workspaceKey: scope.workspaceKey,
+      workspaceId: scope.workspaceId,
+      versionId,
+      expectedLatestVersionId: body.expectedLatestVersionId,
+      operationId: body.operationId,
+      actorUserId: request.currentUser!.id,
+      writeFile: (file) => writeRuntimeFileWithFallback(request, scope.authorized, file),
+    });
+
+    if (result.created) {
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'file_history.restore',
+        resourceType: 'workspaceFileVersion',
+        resourceId: result.version.id,
+        metadata: {
+          workspaceId: scope.workspaceKey,
+          path: result.version.path,
+          restoredFromVersionId: result.version.restoredFromVersionId,
+        },
+      });
+    }
+
+    return reply.code(result.created ? 201 : 200).send({
+      version: toPublicFileVersion(result.version),
+      restored: true,
+    });
   });
   app.post('/projects/:projectId/files/import/zip', async (request) => {
     const project = await requireProject(
@@ -27738,9 +28678,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * runtime + boot script. serverImage set ⇒ no bootCommand, no APP_SRC_*.
        */
       let serverImage: string | undefined;
-      let imageBuildInfo:
-        | { imageUri: string; imageSizeBytes?: number; buildId?: string; buildMs?: number }
-        | undefined;
+      let imageBuildInfo: { imageUri: string; imageSizeBytes?: number; buildId?: string; buildMs?: number } | undefined;
       let serverEnv: Record<string, string> = { DEPLOY_ID: queued.id, PORT: String(serverPort), ...body.envVars };
 
       if (process.env.SERVER_DEPLOY_USE_PROBE === 'true') {
@@ -27925,9 +28863,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       timestamp: nowIso(),
                       level: 'info',
                       message: `Server deploy: image ready ${imageUri}${
-                        buildResult.imageSizeBytes
-                          ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)`
-                          : ''
+                        buildResult.imageSizeBytes ? ` (${Math.round(buildResult.imageSizeBytes / 1_000_000)} MB)` : ''
                       } in ${Math.round(buildResult.durationMs / 1000)}s`,
                     });
 

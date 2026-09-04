@@ -108,10 +108,10 @@ export function themeIsDark() {
 }
 
 /*
- * Default to light (matches Replit's IDE). Users who toggle persist their choice
- * in localStorage, which takes precedence over this default.
+ * E-Code is dark-first. An explicit light or system preference still takes
+ * precedence and is persisted across every surface.
  */
-export const DEFAULT_THEME: Theme = 'light';
+export const DEFAULT_THEME: Theme = 'dark';
 
 export const themeStore = atom<Theme>(initStore());
 
@@ -125,13 +125,13 @@ export const themePreferenceStore = atom<ThemePreference>(initPreference());
 
 function initPreference(): ThemePreference {
   if (import.meta.env.SSR) {
-    return 'system';
+    return DEFAULT_THEME;
   }
 
   try {
     return resolveThemePreference({ cookie: readThemeCookie(), stored: localStorage.getItem(kTheme) });
   } catch {
-    return 'system';
+    return DEFAULT_THEME;
   }
 }
 
@@ -145,9 +145,9 @@ export function isThemePreference(value: string | null | undefined): value is Th
 
 /**
  * Resolve the stored *preference* (`light | dark | system`) from the shared
- * cookie / per-origin localStorage. Defaults to `system` when nothing is stored,
- * which matches the existing "follow the OS when there's no explicit choice"
- * behaviour — so it does not change what an unconfigured visitor already sees.
+ * cookie / per-origin localStorage. E-Code is dark-first, so an unconfigured
+ * visitor gets dark; following the OS remains available as an explicit `system`
+ * choice.
  */
 export function resolveThemePreference(opts: { cookie?: string | null; stored?: string | null }): ThemePreference {
   if (isThemePreference(opts.cookie)) {
@@ -158,7 +158,7 @@ export function resolveThemePreference(opts: { cookie?: string | null; stored?: 
     return opts.stored;
   }
 
-  return 'system';
+  return DEFAULT_THEME;
 }
 
 /** Collapse a preference to the concrete theme that gets applied to the DOM. */
@@ -182,7 +182,7 @@ export function resolveAppliedTheme(preference: ThemePreference, prefersDarkSche
  *      visitors who toggled before the cookie existed.
  *   3. The server-seeded `data-theme` attribute already on <html>.
  *   4. The OS-level `prefers-color-scheme` media query.
- *   5. DEFAULT_THEME (light).
+ *   5. DEFAULT_THEME (dark).
  *
  * Marketing routes no longer force light: the shared preference governs every
  * surface, so picking dark on e-code.ai keeps the app + IDE dark too.

@@ -155,6 +155,95 @@ export interface ProjectStorageObjectRecord {
   createdAt: string;
 }
 
+export type FileVersionOperation = 'baseline' | 'create' | 'write' | 'delete' | 'rename' | 'restore';
+
+export type FileVersionSource = 'editor' | 'agent' | 'terminal' | 'import' | 'external' | 'system';
+
+/** Metadata-only projection used by File History timelines. File bodies are
+ * deliberately absent so listing hundreds of versions stays bounded. */
+export interface FileVersionRecord {
+  id: string;
+  projectId: string;
+  workspaceKey: string;
+  workspaceId?: string;
+  path: string;
+  /** Stable identity of one file across path renames. */
+  lineageId: string;
+  operation: FileVersionOperation;
+  source: FileVersionSource;
+  actorUserId?: string;
+  operationId: string;
+  previousVersionId?: string;
+  restoredFromVersionId?: string;
+  renamedFromPath?: string;
+  /** A deletion marker retains the last readable body but is not a live file. */
+  tombstone: boolean;
+  /** Monotonic database sequence, serialized as a decimal string for JSON. */
+  sequence: string;
+  contentHash: string;
+  encoding: 'utf8';
+  byteLength: number;
+  createdAt: string;
+}
+
+export interface FileVersionContentRecord extends FileVersionRecord {
+  /** Exact persisted body. Kept base64 in storage so byte accounting/checksums
+   * remain unambiguous; the File History service exposes decoded UTF-8. */
+  contentBase64: string;
+}
+
+export interface FileVersionCursor {
+  sequence: string;
+}
+
+export interface AppendFileVersionInput {
+  projectId: string;
+  workspaceKey: string;
+  workspaceId?: string;
+  path: string;
+  lineageId: string;
+  operation: FileVersionOperation;
+  source: FileVersionSource;
+  actorUserId?: string;
+  operationId: string;
+  previousVersionId?: string;
+  restoredFromVersionId?: string;
+  renamedFromPath?: string;
+  tombstone?: boolean;
+  contentHash: string;
+  contentBase64: string;
+  encoding: 'utf8';
+  byteLength: number;
+}
+
+export interface FileHistoryWatchStateRecord {
+  projectId: string;
+  workspaceKey: string;
+  sessionId: string;
+  complete: boolean;
+  reasons: string[];
+  droppedEvents: number;
+  snapshotTruncated: boolean;
+  connectionTruncated: boolean;
+  lastSequence?: string;
+  reconciledAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertFileHistoryWatchStateInput {
+  projectId: string;
+  workspaceKey: string;
+  sessionId: string;
+  complete: boolean;
+  reasons: string[];
+  droppedEvents: number;
+  snapshotTruncated: boolean;
+  connectionTruncated: boolean;
+  lastSequence?: string;
+  reconciledAt: string;
+}
+
 /** Managed Postgres database for a project (Replit "Database" tab). Phase-1
  *  scaffold for point-in-time rollback — see database-rollback-service.ts. */
 export interface DatabaseInstanceRecord {
@@ -936,41 +1025,143 @@ export interface ConsensusRecordDetail extends ConsensusRecordSummary {
   consolidated: ConsensusConsolidated | null;
 }
 
-/** A per-project Skills override row (absent => the skill is at its catalog default). */
-export interface ProjectSkillOverrideRecord {
-  skillId: string;
-  enabled: boolean;
-  updatedAt: string;
+export type AgentSkillArtifactStatus = 'quarantined' | 'blocked' | 'approved' | 'revoked';
+
+export interface AgentSkillStoredFile {
+  path: string;
+  contentBase64: string;
+  byteLength: number;
+  mode: '100644' | '100755';
 }
 
-/** Scope target for an installed GitHub-repo skill (F#27). */
-export type InstalledSkillScope = 'project' | 'workspace';
-
-/** An installed GitHub-repo skill row (F#27). */
-export interface InstalledSkillRecord {
+export interface AgentSkillArtifactRecord {
   id: string;
-  scope: InstalledSkillScope;
-  scopeId: string;
+  projectId: string;
+  workspaceKey: string;
   ownerRepo: string;
+  skillPath: string;
+  requestedRef: string;
+  commitSha: string;
+  digest: string;
+  sourceUrl: string;
   name: string;
   description: string;
-  instructions: string;
-  homepageUrl: string | null;
+  license?: string;
+  compatibility?: string;
+  declaredAllowedTools?: string;
+  auditStatus: AgentSkillArtifactStatus;
+  auditReport: unknown;
   enabled: boolean;
-  installedByUserId: string | null;
+  installedPath?: string | null;
+  importedByUserId?: string;
+  reviewedByUserId?: string;
+  reviewedAt?: string;
+  reviewReason?: string;
+  revokedAt?: string;
   createdAt: string;
   updatedAt: string;
 }
 
-export interface InstallSkillInput {
-  scope: InstalledSkillScope;
-  scopeId: string;
+export interface AgentSkillArtifactWithBundleRecord extends AgentSkillArtifactRecord {
+  bundle: AgentSkillStoredFile[];
+}
+
+/** Minimal, bundle-free row used to build bounded runtime policies. */
+export interface AgentSkillRuntimePolicyRecord {
+  id: string;
+  projectId: string;
+  workspaceKey: string;
+  name: string;
+  digest: string;
+  commitSha: string;
+  auditStatus: AgentSkillArtifactStatus;
+  enabled: boolean;
+  updatedAt: string;
+}
+
+export interface CreateAgentSkillArtifactInput {
+  projectId: string;
+  workspaceKey: string;
   ownerRepo: string;
+  skillPath: string;
+  requestedRef: string;
+  commitSha: string;
+  digest: string;
+  sourceUrl: string;
   name: string;
   description: string;
-  instructions: string;
-  homepageUrl?: string | null;
-  installedByUserId?: string | null;
+  license?: string;
+  compatibility?: string;
+  declaredAllowedTools?: string;
+  bundle: AgentSkillStoredFile[];
+  auditStatus: Extract<AgentSkillArtifactStatus, 'quarantined' | 'blocked'>;
+  auditReport: unknown;
+  importedByUserId?: string;
+}
+
+export interface AgentSkillAuditEventRecord {
+  id: string;
+  artifactId: string;
+  action: string;
+  fromStatus?: string;
+  toStatus: string;
+  actorUserId?: string;
+  reason?: string;
+  metadata?: unknown;
+  createdAt: string;
+}
+
+/**
+ * Stable keyset for the append-only Agent Skill audit trail.
+ *
+ * Events are ordered by `(createdAt DESC, id DESC)`. The id tie-breaker is
+ * required because several lifecycle transitions can share the same database
+ * timestamp; a timestamp-only cursor would otherwise skip or duplicate rows.
+ */
+export interface AgentSkillAuditEventCursor {
+  createdAt: string;
+  id: string;
+}
+
+export interface AgentSkillAuditEventPageOptions {
+  limit?: number;
+  cursor?: AgentSkillAuditEventCursor;
+}
+
+export interface AgentSkillAuditEventPage {
+  events: AgentSkillAuditEventRecord[];
+  nextCursor?: AgentSkillAuditEventCursor;
+}
+
+export const DEFAULT_AGENT_SKILL_AUDIT_EVENT_PAGE_SIZE = 100;
+export const MAX_AGENT_SKILL_AUDIT_EVENT_PAGE_SIZE = 200;
+
+export function agentSkillAuditEventPageSize(limit?: number): number {
+  const resolved = limit ?? DEFAULT_AGENT_SKILL_AUDIT_EVENT_PAGE_SIZE;
+
+  if (!Number.isInteger(resolved) || resolved < 1 || resolved > MAX_AGENT_SKILL_AUDIT_EVENT_PAGE_SIZE) {
+    throw new RangeError(
+      `Agent Skill audit event page size must be an integer between 1 and ${MAX_AGENT_SKILL_AUDIT_EVENT_PAGE_SIZE}.`,
+    );
+  }
+
+  return resolved;
+}
+
+export interface TransitionAgentSkillArtifactInput {
+  projectId: string;
+  artifactId: string;
+  digest: string;
+  expectedWorkspaceKey: string;
+  expectedStatuses: AgentSkillArtifactStatus[];
+  expectedEnabled?: boolean;
+  status: AgentSkillArtifactStatus;
+  enabled: boolean;
+  installedPath?: string | null;
+  actorUserId?: string;
+  reason?: string;
+  action: 'approved' | 'rejected' | 'revoked' | 'enabled' | 'disabled';
+  eventMetadata?: unknown;
 }
 
 export interface BillingCustomerRecord {
@@ -1095,6 +1286,7 @@ export interface ApiStore {
    * callback should be short (it runs while the lock is held).
    */
   withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  withSerializedMutations<T>(keys: readonly string[], fn: () => Promise<T>): Promise<T>;
   createUser(input: {
     email: string;
     name?: string;
@@ -1402,31 +1594,23 @@ export interface ApiStore {
    */
   listConsensusRecords(projectId: string, options?: { take?: number }): Promise<ConsensusRecordSummary[]>;
   getConsensusRecordDetail(projectId: string, runId: string): Promise<ConsensusRecordDetail | undefined>;
-  /** Sparse per-project enable/disable overrides for the builtin Skills catalog. */
-  listProjectSkillOverrides(projectId: string): Promise<ProjectSkillOverrideRecord[]>;
-  setProjectSkillEnabled(input: {
-    projectId: string;
-    skillId: string;
-    enabled: boolean;
-  }): Promise<ProjectSkillOverrideRecord>;
-  /** Installed GitHub-repo skills for a scope target (F#27), newest first. */
-  listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]>;
-  /**
-   * Install (or return the existing) GitHub-repo skill for a scope target.
-   * `created` is false when a row for (scope, scopeId, ownerRepo) already existed.
-   */
-  installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }>;
-  /** Uninstall a GitHub-repo skill; resolves true when a row was removed. */
-  uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean>;
-  /** Toggle an installed skill's enabled flag; undefined when no such row. */
-  setInstalledSkillEnabled(input: {
-    scope: InstalledSkillScope;
-    scopeId: string;
-    ownerRepo: string;
-    enabled: boolean;
-  }): Promise<InstalledSkillRecord | undefined>;
-  /** Live install counts per `owner/repo` across all scopes (for the catalog). */
-  countInstallsByRepo(): Promise<Record<string, number>>;
+  /** Immutable open-standard Agent Skill artifacts and append-only review trail. */
+  listAgentSkillArtifacts(projectId: string, workspaceKey?: string): Promise<AgentSkillArtifactRecord[]>;
+  listAgentSkillRuntimePolicyRecords(
+    projectId: string,
+    workspaceKey: string,
+    options?: { take?: number },
+  ): Promise<AgentSkillRuntimePolicyRecord[]>;
+  getAgentSkillArtifact(projectId: string, artifactId: string): Promise<AgentSkillArtifactWithBundleRecord | undefined>;
+  createAgentSkillArtifact(
+    input: CreateAgentSkillArtifactInput,
+  ): Promise<{ record: AgentSkillArtifactRecord; created: boolean }>;
+  transitionAgentSkillArtifact(input: TransitionAgentSkillArtifactInput): Promise<AgentSkillArtifactRecord | undefined>;
+  listAgentSkillAuditEvents(
+    projectId: string,
+    artifactId: string,
+    options?: AgentSkillAuditEventPageOptions,
+  ): Promise<AgentSkillAuditEventPage>;
   createWorkspace(input: {
     id?: string;
     projectId: string;
@@ -1471,6 +1655,35 @@ export interface ApiStore {
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
   listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
+  /** Atomically connect-or-create an immutable content blob and append one
+   * version. Replaying an operationId returns the existing row. */
+  appendFileVersion(input: AppendFileVersionInput): Promise<{ version: FileVersionRecord; created: boolean }>;
+  findFileVersionByOperation(
+    projectId: string,
+    workspaceKey: string,
+    operationId: string,
+  ): Promise<FileVersionRecord | undefined>;
+  getFileVersion(
+    projectId: string,
+    workspaceKey: string,
+    versionId: string,
+  ): Promise<FileVersionContentRecord | undefined>;
+  getLatestFileVersion(projectId: string, workspaceKey: string, path: string): Promise<FileVersionRecord | undefined>;
+  getLatestFileVersionByLineage(
+    projectId: string,
+    workspaceKey: string,
+    lineageId: string,
+  ): Promise<FileVersionRecord | undefined>;
+  listFileVersions(input: {
+    projectId: string;
+    workspaceKey: string;
+    lineageId: string;
+    take: number;
+    cursor?: FileVersionCursor;
+  }): Promise<FileVersionRecord[]>;
+  countFileVersions(projectId: string, workspaceKey: string, lineageId: string): Promise<number>;
+  getFileHistoryWatchState(projectId: string, workspaceKey: string): Promise<FileHistoryWatchStateRecord | undefined>;
+  upsertFileHistoryWatchState(input: UpsertFileHistoryWatchStateInput): Promise<FileHistoryWatchStateRecord>;
   putProjectStorageObject(input: {
     projectId?: string;
     key: string;

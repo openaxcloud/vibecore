@@ -748,6 +748,7 @@ export const Workbench = memo(
                 <div className="relative flex-1 overflow-hidden">
                   <View initial={{ x: '0%' }} animate={{ x: activeWorkbenchView === 'code' ? '0%' : '-100%' }}>
                     <EditorPanel
+                      projectId={projectId}
                       editorDocument={currentDocument}
                       isStreaming={isStreaming}
                       selectedFile={selectedFile}

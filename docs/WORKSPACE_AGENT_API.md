@@ -10,14 +10,22 @@ Retourne l'état de l'agent et le workspace root configuré.
 
 ## Files
 
-- `GET /files/tree`
-- `GET /files/read?path=<path>`
+- `GET /files/tree?path=<path>&noFollow=1`
+- `GET /files/read?path=<path>&noFollow=1`
 - `POST /files/write` avec `{ "path": "...", "content": "..." }`
 - `POST /files/create` avec `{ "path": "...", "content": "...", "directory": false }`
 - `POST /files/delete` avec `{ "path": "..." }`
 - `POST /files/rename` avec `{ "from": "...", "to": "..." }`
 
 Tous les chemins sont résolus sous `/workspace`; les traversals hors workspace sont rejetés.
+
+`noFollow=1` est le contrat obligatoire pour les snapshots de sécurité (notamment
+Agent Skills). L'énumération entière échoue si elle rencontre un lien symbolique. La lecture rejette un
+lien final ou dans n'importe quel composant parent, ouvre le fichier régulier avec
+`O_NOFOLLOW`, vérifie l'identité device/inode de la chaîne avant/après l'ouverture,
+lit via le descripteur avec une limite stricte, puis rejette toute mutation
+concurrente. Une erreur annule le snapshot complet; le client ne doit jamais
+retomber silencieusement sur une lecture qui suit les liens.
 
 ## Patch
 

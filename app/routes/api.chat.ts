@@ -49,7 +49,11 @@ import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.se
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
-import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
+import {
+  excludeAgentSkillFilesFromContext,
+  mergeProjectSkillTools,
+  retrieveSkillsForAgentContext,
+} from '~/lib/.server/llm/project-skills';
 import { retrieveProjectRulesContext } from '~/lib/.server/llm/project-rules';
 import type { ContextAnnotation, ProgressAnnotation } from '~/types/context';
 import { classifyStreamError } from '~/types/context';
@@ -128,6 +132,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files: any;
     promptId?: string;
     projectId?: string;
+    workspaceId?: string;
     contextOptimization: boolean;
     chatMode: 'discuss' | 'build';
     designScheme?: DesignScheme;
@@ -191,6 +196,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     files,
     promptId,
     projectId,
+    workspaceId,
     contextOptimization,
     supabase,
     chatMode,
@@ -600,7 +606,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           return;
         }
 
-        const filePaths = getFilePaths(files || {});
+        /* Skill bodies/resources may enter the model only through the local loaders. */
+        const contextCandidateFiles = excludeAgentSkillFilesFromContext(files as FileMap | undefined);
+        const filePaths = getFilePaths(contextCandidateFiles || {});
 
         let filteredFiles: FileMap | undefined = undefined;
         let summary: string | undefined = undefined;
@@ -623,11 +631,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         /*
-         * Project Skills → agent context. Enabled skills (managed in the IDE
-         * "Skills" panel) are injected into the system prompt so toggling a skill
-         * actually changes agent behaviour. Fails open to "no skills".
+         * Open Agent Skills progressive disclosure: discovery reads the exact
+         * `.agents/skills/<name>/SKILL.md` layout, while the startup prompt gets
+         * metadata only. Bodies/resources remain behind local loader tools.
          */
-        const projectSkills = await retrieveSkillsForAgentContext(request, { projectId });
+        const projectSkills = await retrieveSkillsForAgentContext(request, {
+          projectId,
+          workspaceId,
+          files: files as FileMap | undefined,
+        });
 
         /*
          * Project rules → agent context (AGENTS.md / .cursorrules / .cursor/rules).
@@ -1122,7 +1134,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 messages: [...processedMessages],
                 env: context.cloudflare?.env,
                 apiKeys,
-                files,
+                files: contextCandidateFiles ?? {},
                 providerSettings,
                 promptId,
                 contextOptimization,
@@ -1184,7 +1196,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const options: StreamingOptions = {
           supabaseConnection: supabase,
           toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
+          tools: mergeProjectSkillTools(mcpService.toolsWithoutExecute, projectSkills?.tools ?? {}),
           maxSteps: resolvedMaxSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing

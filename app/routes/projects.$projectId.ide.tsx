@@ -164,6 +164,7 @@ export default function ProjectIdeRoute() {
                       forceWorkbench
                       projectIdeMode
                       projectId={projectId}
+                      workspaceId={currentWorkspaceId}
                       projectUrl={projectUrl}
                       initialIdePanels={initialIdePanels}
                     />

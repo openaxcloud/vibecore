@@ -1,9 +1,21 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
-import { createReadStream, existsSync, readFileSync } from 'node:fs';
-import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { constants as fsConstants, createReadStream, existsSync, readFileSync, type Dirent } from 'node:fs';
+import {
+  lstat,
+  mkdir,
+  open,
+  readdir,
+  readFile,
+  readlink,
+  realpath,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
-import { basename, dirname, join, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
 import { StringDecoder } from 'node:string_decoder';
 import websocket from '@fastify/websocket';
@@ -11,6 +23,7 @@ import { createPrometheusRegistry } from '@vibecore/observability';
 import { normalizeShellCommandArgs } from '@vibecore/runtime-contract';
 import { detectCommandAbuse, requireProductionSecret } from '@vibecore/security';
 import { verifyAgentToken } from '@vibecore/workspace-sdk';
+import { watch, type FSWatcher } from 'chokidar';
 import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
@@ -25,6 +38,14 @@ export interface WorkspaceAgentOptions {
   maxOutputBytes?: number;
   commandTimeoutMs?: number;
   maxProcesses?: number;
+  fileWatchUsePolling?: boolean;
+  fileWatchInitialMaxFiles?: number;
+  fileWatchInitialMaxBytes?: number;
+  fileWatchJournalMaxEvents?: number;
+  fileWatchJournalMaxBytes?: number;
+
+  /** Test-only escape hatch; production agents always leave this enabled. */
+  fileWatchEnabled?: boolean;
 
   /*
    * Running-process registry. Defaults to a fresh Map; injectable so tests can
@@ -55,6 +76,9 @@ const safePathString = z
   .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), { message: 'Path contains control characters' });
 
 const filePathSchema = z.object({ path: safePathString });
+const noFollowQueryFlag = z.enum(['1', 'true']).optional();
+const fileReadQuerySchema = filePathSchema.extend({ noFollow: noFollowQueryFlag });
+const fileTreeQuerySchema = z.object({ path: safePathString.optional(), noFollow: noFollowQueryFlag });
 
 // `encoding` lets callers send binary files as base64; absent = utf8 text.
 const writeSchema = z.object({
@@ -519,6 +543,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const maxOutputBytes = options.maxOutputBytes ?? numericEnv(process.env.WORKSPACE_MAX_OUTPUT_BYTES, 1024 * 1024);
   const commandTimeoutMs = options.commandTimeoutMs ?? numericEnv(process.env.WORKSPACE_COMMAND_TIMEOUT_MS, 30_000);
 
+  const fileWatchInitialMaxFiles =
+    options.fileWatchInitialMaxFiles ?? numericEnv(process.env.WORKSPACE_FILE_WATCH_INITIAL_MAX_FILES, 10_000);
+  const fileWatchInitialMaxBytes =
+    options.fileWatchInitialMaxBytes ??
+    numericEnv(process.env.WORKSPACE_FILE_WATCH_INITIAL_MAX_BYTES, 128 * 1024 * 1024);
+  const fileWatchJournalMaxEvents =
+    options.fileWatchJournalMaxEvents ?? numericEnv(process.env.WORKSPACE_FILE_WATCH_JOURNAL_MAX_EVENTS, 10_000);
+  const fileWatchJournalMaxBytes =
+    options.fileWatchJournalMaxBytes ??
+    numericEnv(process.env.WORKSPACE_FILE_WATCH_JOURNAL_MAX_BYTES, 128 * 1024 * 1024);
+
   /*
    * Streamed commands (dev servers etc.) legitimately run long, but must still
    * be bounded so a never-exiting child can't pin a maxProcesses slot forever
@@ -526,6 +561,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    */
   const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
+
+  const fileWatchUsePolling =
+    options.fileWatchUsePolling ?? String(process.env.WORKSPACE_FILE_WATCH_USE_POLLING).toLowerCase() === 'true';
+
+  const fileWatchEnabled = options.fileWatchEnabled ?? process.env.NODE_ENV !== 'test';
+
   const processes = options.processes ?? new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
 
@@ -553,6 +594,34 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    * writes. Size comfortably above maxFileBytes to account for JSON overhead.
    */
   const app = Fastify({ logger: false, bodyLimit: maxFileBytes * 2 + 64 * 1024 });
+
+  const fileWatchHub = createWorkspaceFileWatchHub({
+    root,
+    maxFileBytes,
+    initialMaxFiles: fileWatchInitialMaxFiles,
+    initialMaxBytes: fileWatchInitialMaxBytes,
+    journalMaxEvents: fileWatchJournalMaxEvents,
+    journalMaxBytes: fileWatchJournalMaxBytes,
+    usePolling: fileWatchUsePolling,
+    logger: {
+      warn: (bindings, message) => app.log.warn(bindings, message),
+    },
+  });
+
+  /*
+   * The watcher belongs to the workspace-agent process, not to a browser socket.
+   * Starting it before the server accepts traffic preserves terminal/Git changes
+   * while every IDE client is disconnected; /files/watch only subscribes/replays.
+   */
+  if (fileWatchEnabled) {
+    app.addHook('onReady', async () => {
+      await fileWatchHub.start();
+    });
+  }
+
+  app.addHook('onClose', async () => {
+    await fileWatchHub.close();
+  });
 
   /*
    * Catch-all parser so the preview proxy can forward binary/multipart/other
@@ -585,14 +654,16 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * than silently fall open. Dev/local (no WORKSPACE_ID) stays lenient.
      */
     if (!workspaceId && process.env.NODE_ENV === 'production') {
-      return reply.code(503).send({ error: 'workspace identity not configured' });
+      reply.code(503).send({ error: 'workspace identity not configured' });
+      return;
     }
 
     const token = readBearerToken(request);
     const verified = token ? verifyAgentToken(token, tokenSecret, workspaceId) : false;
 
     if (!verified) {
-      return reply.code(401).send({ error: 'unauthorized' });
+      reply.code(401).send({ error: 'unauthorized' });
+      return;
     }
   });
 
@@ -604,7 +675,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * always returning the full root tree). resolveWorkspacePath enforces that the
      * target stays inside the workspace root.
      */
-    const requestedPath = (request.query as { path?: unknown }).path;
+    const { path: requestedPath, noFollow } = fileTreeQuerySchema.parse(request.query ?? {});
 
     let start = root;
 
@@ -624,11 +695,21 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * Map fs errors to proper status (a ?path pointing at a file → ENOTDIR → 400,
      * a removed path → ENOENT → 404) instead of an opaque 500/502.
      */
-    return await listTree(root, start).catch(rethrowFsError);
+    return await listTree(root, start, { rejectSymbolicLinks: noFollow !== undefined }).catch(rethrowFsError);
   });
   app.get('/files/read', async (request) => {
-    const { path } = filePathSchema.parse(request.query);
+    const { path, noFollow } = fileReadQuerySchema.parse(request.query);
     const safePath = resolveWorkspacePath(root, path);
+
+    if (noFollow !== undefined) {
+      const { buffer, size } = await readRegularFileNoFollow(root, safePath, maxFileBytes).catch(rethrowFsError);
+
+      if (isBinaryBuffer(buffer)) {
+        return { path, content: buffer.toString('base64'), encoding: 'base64' as const, size };
+      }
+
+      return { path, content: buffer.toString('utf8'), encoding: 'utf8' as const, size };
+    }
 
     /*
      * Resolve symlinks and re-check containment so a link inside the workspace
@@ -1032,6 +1113,27 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.register(async (terminalApp) => {
     await terminalApp.register(websocket);
+
+    /*
+     * Native workspace file events. The API used to approximate this with a
+     * two-second /files/tree poll, which could only see creates/deletes and
+     * completely missed edits performed by terminals, patch tools, Git, formatters
+     * and dev-server code generators. The process-lifetime hub below keeps one
+     * canonical stream even while every IDE client is disconnected.
+     */
+    terminalApp.get('/files/watch', { websocket: true }, (rawSocket) => {
+      const socket = normalizeWebSocket(rawSocket);
+
+      const unsubscribe = fileWatchHub.subscribe((event) => {
+        try {
+          socket.send(JSON.stringify(event));
+        } catch {
+          // Socket teardown can race a replay/snapshot send.
+        }
+      });
+
+      socket.onClose(unsubscribe);
+    });
     terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
 
@@ -1239,7 +1341,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
              * Do a no-op attach/detach to arm the grace timer; the session is then
              * reaped after the grace window if nobody reattaches.
              */
-            const detachImmediately = created.attach(() => {});
+            const detachImmediately = created.attach(() => undefined);
             detachImmediately();
 
             return;
@@ -1540,6 +1642,13 @@ function rethrowFsError(error: unknown): never {
     throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
   }
 
+  if (code === 'ELOOP') {
+    throw Object.assign(new Error('Symbolic links are not allowed for this read'), {
+      statusCode: 400,
+      code: 'SYMLINK_DISALLOWED',
+    });
+  }
+
   /*
    * Disk full / quota exceeded must surface as a distinct, actionable status —
    * otherwise an uncoded 500 bubbles up as a generic WORKSPACE_AGENT_REQUEST_FAILED
@@ -1637,6 +1746,176 @@ async function assertRealPathContained(root: string, safePath: string): Promise<
     }
 
     probe = parent;
+  }
+}
+
+interface NoSymlinkPathEntry {
+  path: string;
+  dev: bigint;
+  ino: bigint;
+  isDirectory: boolean;
+  isFile: boolean;
+}
+
+/*
+ * Capture every user-controlled component below the canonical workspace root
+ * with lstat(), which never follows symlinks. Keeping dev+ino lets the caller
+ * prove that the chain did not get swapped between validation and use.
+ */
+async function captureNoSymlinkPathChain(root: string, safePath: string): Promise<NoSymlinkPathEntry[]> {
+  const lexicalRoot = resolve(root);
+  const requestedRelativePath = relative(lexicalRoot, safePath);
+
+  if (requestedRelativePath === '..' || requestedRelativePath.startsWith(`..${sep}`)) {
+    throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
+  }
+
+  const realRoot = await canonicalRoot(root);
+  const components = requestedRelativePath.split(sep).filter(Boolean);
+  const entries: NoSymlinkPathEntry[] = [];
+  let cursor = realRoot;
+
+  for (const [index, component] of components.entries()) {
+    cursor = join(cursor, component);
+    const entry = await lstat(cursor, { bigint: true });
+
+    if (entry.isSymbolicLink()) {
+      throw Object.assign(new Error('Symbolic links are not allowed for this read'), {
+        statusCode: 400,
+        code: 'SYMLINK_DISALLOWED',
+      });
+    }
+
+    if (index < components.length - 1 && !entry.isDirectory()) {
+      throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
+    }
+
+    entries.push({
+      path: cursor,
+      dev: entry.dev,
+      ino: entry.ino,
+      isDirectory: entry.isDirectory(),
+      isFile: entry.isFile(),
+    });
+  }
+
+  return entries;
+}
+
+function sameNoSymlinkPathChain(before: NoSymlinkPathEntry[], after: NoSymlinkPathEntry[]): boolean {
+  return (
+    before.length === after.length &&
+    before.every(
+      (entry, index) =>
+        entry.path === after[index]?.path &&
+        entry.dev === after[index]?.dev &&
+        entry.ino === after[index]?.ino &&
+        entry.isDirectory === after[index]?.isDirectory &&
+        entry.isFile === after[index]?.isFile,
+    )
+  );
+}
+
+async function readBoundedFileHandle(handle: Awaited<ReturnType<typeof open>>, maxFileBytes: number): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  let totalBytes = 0;
+
+  for (;;) {
+    const chunk = Buffer.allocUnsafe(Math.min(64 * 1024, maxFileBytes + 1 - totalBytes));
+    const { bytesRead } = await handle.read(chunk, 0, chunk.byteLength, null);
+
+    if (bytesRead === 0) break;
+
+    totalBytes += bytesRead;
+
+    if (totalBytes > maxFileBytes) {
+      throw Object.assign(new Error('File is too large to read'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
+    }
+
+    chunks.push(chunk.subarray(0, bytesRead));
+  }
+
+  return Buffer.concat(chunks, totalBytes);
+}
+
+/*
+ * Security-sensitive read used by Agent Skills snapshots. It deliberately
+ * rejects every symlink in the chain. The final file is opened with
+ * O_NOFOLLOW, then the complete lstat chain and the opened descriptor inode are
+ * re-verified before any bytes are returned. Reads happen from that descriptor,
+ * not the path, and are size-bounded even if a concurrent writer grows the file.
+ * A metadata change during the read is treated as stale and fails closed.
+ */
+async function readRegularFileNoFollow(
+  root: string,
+  safePath: string,
+  maxFileBytes: number,
+): Promise<{ buffer: Buffer; size: number }> {
+  if (typeof fsConstants.O_NOFOLLOW !== 'number') {
+    throw Object.assign(new Error('No-follow file reads are unavailable on this platform'), {
+      statusCode: 503,
+      code: 'NOFOLLOW_UNAVAILABLE',
+    });
+  }
+
+  const before = await captureNoSymlinkPathChain(root, safePath);
+  const finalBefore = before.at(-1);
+
+  if (!finalBefore?.isFile) {
+    throw Object.assign(new Error(finalBefore?.isDirectory ? 'Path is a directory' : 'Path is not a regular file'), {
+      statusCode: 400,
+      code: finalBefore?.isDirectory ? 'EISDIR' : 'EINVAL',
+    });
+  }
+
+  const realRoot = await canonicalRoot(root);
+  const canonicalPath = resolve(realRoot, relative(resolve(root), safePath));
+  const handle = await open(canonicalPath, fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK);
+
+  try {
+    const openedBefore = await handle.stat({ bigint: true });
+
+    if (!openedBefore.isFile()) {
+      throw Object.assign(new Error('Path is not a regular file'), { statusCode: 400, code: 'EINVAL' });
+    }
+
+    if (openedBefore.size > BigInt(maxFileBytes)) {
+      throw Object.assign(new Error('File is too large to read'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
+    }
+
+    const afterOpen = await captureNoSymlinkPathChain(root, safePath);
+    const finalAfterOpen = afterOpen.at(-1);
+
+    if (
+      !sameNoSymlinkPathChain(before, afterOpen) ||
+      finalAfterOpen?.dev !== openedBefore.dev ||
+      finalAfterOpen?.ino !== openedBefore.ino
+    ) {
+      throw Object.assign(new Error('File path changed during secure read'), {
+        statusCode: 409,
+        code: 'FILE_CHANGED_DURING_READ',
+      });
+    }
+
+    const buffer = await readBoundedFileHandle(handle, maxFileBytes);
+    const openedAfter = await handle.stat({ bigint: true });
+
+    if (
+      openedAfter.dev !== openedBefore.dev ||
+      openedAfter.ino !== openedBefore.ino ||
+      openedAfter.size !== openedBefore.size ||
+      openedAfter.mtimeNs !== openedBefore.mtimeNs ||
+      openedAfter.ctimeNs !== openedBefore.ctimeNs
+    ) {
+      throw Object.assign(new Error('File changed during secure read'), {
+        statusCode: 409,
+        code: 'FILE_CHANGED_DURING_READ',
+      });
+    }
+
+    return { buffer, size: Number(openedAfter.size) };
+  } finally {
+    await handle.close();
   }
 }
 
@@ -1773,6 +2052,7 @@ const TREE_MAX_ENTRIES = 20_000;
 async function listTree(
   root: string,
   current: string,
+  options: { rejectSymbolicLinks?: boolean } = {},
   depth = 0,
   budget: { count: number } = { count: 0 },
 ): Promise<{ path: string; type: 'file' | 'directory'; children?: unknown[] }[]> {
@@ -1784,10 +2064,36 @@ async function listTree(
     return [];
   }
 
+  const chainBefore = options.rejectSymbolicLinks ? await captureNoSymlinkPathChain(root, current) : undefined;
+  const currentEntry = chainBefore?.at(-1);
+
+  if (current !== root && currentEntry && !currentEntry.isDirectory) {
+    throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
+  }
+
   const entries = await readdir(current, { withFileTypes: true });
+
+  if (chainBefore) {
+    const chainAfter = await captureNoSymlinkPathChain(root, current);
+
+    if (!sameNoSymlinkPathChain(chainBefore, chainAfter)) {
+      throw Object.assign(new Error('Directory path changed during secure enumeration'), {
+        statusCode: 409,
+        code: 'FILE_CHANGED_DURING_READ',
+      });
+    }
+  }
+
   const nodes = [];
 
   for (const entry of entries) {
+    if (options.rejectSymbolicLinks && entry.isSymbolicLink()) {
+      throw Object.assign(new Error('Symbolic links are not allowed in this tree'), {
+        statusCode: 400,
+        code: 'SYMLINK_DISALLOWED',
+      });
+    }
+
     /*
      * Skip heavy/derived dirs (node_modules, .git, dist, …) — they balloon the
      * tree and are never useful in the file explorer.
@@ -1813,7 +2119,7 @@ async function listTree(
        * Only recurse into REAL directories (not symlinked ones) to avoid following
        * a symlink loop off-tree or into an ignored target.
        */
-      children: entry.isDirectory() ? await listTree(root, fullPath, depth + 1, budget) : undefined,
+      children: entry.isDirectory() ? await listTree(root, fullPath, options, depth + 1, budget) : undefined,
     });
   }
 
@@ -1827,6 +2133,659 @@ async function listTree(
  * and waste hundreds of MB reading files that the build reproduces anyway.
  */
 const SNAPSHOT_IGNORED_DIRS = new Set(['node_modules', '.git', '.vite', '.next', '.cache', 'dist', '.turbo']);
+const FILE_WATCH_IGNORED_DIRS = new Set([...SNAPSHOT_IGNORED_DIRS, '.history', '.vibecore-workspaces', 'coverage']);
+
+type WorkspaceWatchEventType = 'create' | 'update' | 'delete';
+type PendingWorkspaceWatchEvent = 'create-file' | 'update-file' | 'create-directory' | 'delete';
+
+interface WorkspaceWatchFrame {
+  eventId: string;
+  sessionId: string;
+  path: string;
+  type: WorkspaceWatchEventType;
+  timestamp: string;
+  sequence?: number;
+  content?: string;
+  binary?: boolean;
+  replay?: boolean;
+  initial?: boolean;
+  reconciliation?: boolean;
+  journal?: {
+    truncated: boolean;
+    droppedEvents: number;
+    oldestSequence?: number;
+    latestSequence?: number;
+    connectionTruncated: boolean;
+  };
+  snapshot?: {
+    files: number;
+    bytes: number;
+    truncated: boolean;
+  };
+}
+
+interface WorkspaceWatchJournalEntry {
+  frame: WorkspaceWatchFrame & { sequence: number };
+  bytes: number;
+}
+
+interface WorkspaceWatchSubscriber {
+  send: (frame: WorkspaceWatchFrame) => void;
+  buffering: boolean;
+  closed: boolean;
+  pending: WorkspaceWatchJournalEntry[];
+  pendingBytes: number;
+  pendingPaths: Set<string>;
+  droppedEvents: number;
+}
+
+interface WorkspaceFileWatchHubOptions {
+  root: string;
+  maxFileBytes: number;
+  initialMaxFiles: number;
+  initialMaxBytes: number;
+  journalMaxEvents: number;
+  journalMaxBytes: number;
+  usePolling: boolean;
+  logger: {
+    warn: (bindings: Record<string, unknown>, message: string) => void;
+  };
+}
+
+/**
+ * Process-lifetime workspace watcher with a bounded replay journal.
+ *
+ * The hub is deliberately independent from WebSocket subscribers. Terminal,
+ * Git, formatter and agent writes continue entering the journal with one stable
+ * event id while every browser is offline. A subscriber receives the retained
+ * timeline first, then a bounded filesystem reconciliation snapshot, then live
+ * events. The ordering prevents reconciliation from hiding intermediate edits.
+ */
+function createWorkspaceFileWatchHub(options: WorkspaceFileWatchHubOptions) {
+  const rootPath = resolve(options.root);
+  const rootRealPath = canonicalRoot(rootPath);
+  const sessionId = randomUUID();
+  const journalMaxEvents = Math.max(1, Math.floor(options.journalMaxEvents));
+  const journalMaxBytes = Math.max(1, Math.floor(options.journalMaxBytes));
+  const initialMaxFiles = Math.max(1, Math.floor(options.initialMaxFiles));
+  const initialMaxBytes = Math.max(1, Math.floor(options.initialMaxBytes));
+  const pending = new Map<string, PendingWorkspaceWatchEvent>();
+  const subscribers = new Set<WorkspaceWatchSubscriber>();
+  const journal: WorkspaceWatchJournalEntry[] = [];
+  const MAX_PENDING_WATCH_PATHS = 10_000;
+
+  let watcher: FSWatcher | undefined;
+  let startPromise: Promise<void> | undefined;
+  let closed = false;
+  let draining = false;
+  let sequence = 0;
+  let journalHead = 0;
+  let journalBytes = 0;
+  let journalDroppedEvents = 0;
+
+  const relativeWatchPath = (watchedPath: string) => {
+    const absolutePath = isAbsolute(watchedPath) ? resolve(watchedPath) : resolve(rootPath, watchedPath);
+    const relativePath = relative(rootPath, absolutePath);
+
+    if (!relativePath) {
+      return '.';
+    }
+
+    if (relativePath === '..' || relativePath.startsWith(`..${sep}`)) {
+      return undefined;
+    }
+
+    return relativePath.split(sep).join('/');
+  };
+
+  const ignored = (watchedPath: string) => {
+    const path = relativeWatchPath(watchedPath);
+
+    if (!path) {
+      return true;
+    }
+
+    if (path === '.') {
+      return false;
+    }
+
+    return path.split('/').some((segment) => FILE_WATCH_IGNORED_DIRS.has(segment));
+  };
+
+  const compactJournal = () => {
+    if (journalHead > 1024 && journalHead * 2 >= journal.length) {
+      journal.splice(0, journalHead);
+      journalHead = 0;
+    }
+  };
+
+  const activeJournalLength = () => journal.length - journalHead;
+
+  const trimJournal = () => {
+    while (activeJournalLength() > journalMaxEvents || journalBytes > journalMaxBytes) {
+      const removed = journal[journalHead++];
+
+      if (!removed) {
+        break;
+      }
+
+      journalBytes -= removed.bytes;
+      journalDroppedEvents += 1;
+    }
+
+    compactJournal();
+  };
+
+  const rebuildPendingPaths = (subscriber: WorkspaceWatchSubscriber) => {
+    subscriber.pendingPaths.clear();
+
+    for (const entry of subscriber.pending) {
+      subscriber.pendingPaths.add(entry.frame.path);
+    }
+  };
+
+  const bufferForSubscriber = (subscriber: WorkspaceWatchSubscriber, entry: WorkspaceWatchJournalEntry) => {
+    subscriber.pending.push(entry);
+    subscriber.pendingBytes += entry.bytes;
+    subscriber.pendingPaths.add(entry.frame.path);
+
+    while (subscriber.pending.length > journalMaxEvents || subscriber.pendingBytes > journalMaxBytes) {
+      const removed = subscriber.pending.shift();
+
+      if (!removed) {
+        break;
+      }
+
+      subscriber.pendingBytes -= removed.bytes;
+      subscriber.droppedEvents += 1;
+    }
+
+    if (subscriber.droppedEvents > 0) {
+      rebuildPendingPaths(subscriber);
+    }
+  };
+
+  const sendToSubscriber = (subscriber: WorkspaceWatchSubscriber, frame: WorkspaceWatchFrame) => {
+    if (subscriber.closed) {
+      return;
+    }
+
+    try {
+      subscriber.send(frame);
+    } catch (error) {
+      subscriber.closed = true;
+      subscribers.delete(subscriber);
+      options.logger.warn({ err: error }, 'workspace file-watch subscriber send failed');
+    }
+  };
+
+  const publish = (
+    input: Omit<WorkspaceWatchFrame, 'eventId' | 'sessionId' | 'sequence' | 'timestamp'> & { timestamp?: string },
+  ) => {
+    const frame: WorkspaceWatchFrame & { sequence: number } = {
+      ...input,
+      eventId: randomUUID(),
+      sessionId,
+      sequence: ++sequence,
+      timestamp: input.timestamp ?? new Date().toISOString(),
+    };
+
+    const entry = { frame, bytes: Buffer.byteLength(JSON.stringify(frame)) };
+
+    journal.push(entry);
+    journalBytes += entry.bytes;
+    trimJournal();
+
+    for (const subscriber of subscribers) {
+      if (subscriber.buffering) {
+        bufferForSubscriber(subscriber, entry);
+      } else {
+        sendToSubscriber(subscriber, frame);
+      }
+    }
+  };
+
+  const readWorkspaceFile = async (path: string) => {
+    const lexicalPath = resolveWorkspacePath(rootPath, path);
+    const lexicalStat = await lstat(lexicalPath);
+
+    if (lexicalStat.isSymbolicLink()) {
+      return undefined;
+    }
+
+    const [realRoot, realFile] = await Promise.all([rootRealPath, realpath(lexicalPath)]);
+    const realRelativePath = relative(realRoot, realFile);
+
+    if (realRelativePath === '..' || realRelativePath.startsWith(`..${sep}`)) {
+      return undefined;
+    }
+
+    const fileStat = await stat(realFile);
+
+    if (!fileStat.isFile() || fileStat.size > options.maxFileBytes) {
+      return undefined;
+    }
+
+    const buffer = await readFile(realFile);
+
+    if (buffer.byteLength > options.maxFileBytes) {
+      return undefined;
+    }
+
+    return { buffer, binary: isBinaryBuffer(buffer) };
+  };
+
+  const publishPath = async (path: string, pendingEvent: PendingWorkspaceWatchEvent) => {
+    if (pendingEvent === 'delete') {
+      publish({ path, type: 'delete' });
+      return;
+    }
+
+    if (pendingEvent === 'create-directory') {
+      publish({ path, type: 'create' });
+      return;
+    }
+
+    try {
+      const read = await readWorkspaceFile(path);
+
+      if (!read) {
+        return;
+      }
+
+      publish({
+        path,
+        type: pendingEvent === 'create-file' ? 'create' : 'update',
+        content: read.buffer.toString(read.binary ? 'base64' : 'utf8'),
+        binary: read.binary,
+      });
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException | undefined)?.code;
+
+      if (code === 'ENOENT' || code === 'ENOTDIR') {
+        publish({ path, type: 'delete' });
+        return;
+      }
+
+      options.logger.warn({ err: error, path }, 'workspace file-watch read failed');
+    }
+  };
+
+  const drain = async () => {
+    if (draining) {
+      return;
+    }
+
+    draining = true;
+
+    try {
+      while (!closed && pending.size > 0) {
+        const next = pending.entries().next().value as [string, PendingWorkspaceWatchEvent] | undefined;
+
+        if (!next) {
+          break;
+        }
+
+        const [path, event] = next;
+        pending.delete(path);
+        await publishPath(path, event);
+      }
+    } finally {
+      draining = false;
+
+      if (!closed && pending.size > 0) {
+        void drain();
+      }
+    }
+  };
+
+  const enqueue = (watchedPath: string, next: PendingWorkspaceWatchEvent) => {
+    const path = relativeWatchPath(watchedPath);
+
+    if (!path || path === '.' || ignored(watchedPath)) {
+      return;
+    }
+
+    const current = pending.get(path);
+
+    const merged: PendingWorkspaceWatchEvent =
+      next === 'delete' ? 'delete' : current === 'create-file' && next === 'update-file' ? 'create-file' : next;
+
+    if (!current && pending.size >= MAX_PENDING_WATCH_PATHS) {
+      journalDroppedEvents += 1;
+      options.logger.warn({ pending: pending.size }, 'workspace file-watch processing backlog limit reached');
+
+      return;
+    }
+
+    pending.set(path, merged);
+    void drain();
+  };
+
+  const flushSubscriberPending = (subscriber: WorkspaceWatchSubscriber) => {
+    const pendingEntries = subscriber.pending.splice(0);
+    subscriber.pendingBytes = 0;
+    subscriber.pendingPaths.clear();
+
+    for (const entry of pendingEntries) {
+      sendToSubscriber(subscriber, entry.frame);
+    }
+  };
+
+  const snapshotPathTouched = (subscriber: WorkspaceWatchSubscriber, path: string) => {
+    for (const touchedPath of subscriber.pendingPaths) {
+      if (touchedPath === path || touchedPath.startsWith(`${path}/`) || path.startsWith(`${touchedPath}/`)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const streamReconciliationSnapshot = async (subscriber: WorkspaceWatchSubscriber) => {
+    const budget = {
+      files: 0,
+      bytes: 0,
+      entries: 0,
+      truncated: false,
+      maxEntries: Math.max(100, initialMaxFiles * 2),
+    };
+
+    const walk = async (current: string): Promise<void> => {
+      if (subscriber.closed || budget.truncated) {
+        return;
+      }
+
+      let entries: Dirent<string>[];
+
+      try {
+        entries = await readdir(current, { withFileTypes: true });
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code;
+
+        if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+          options.logger.warn({ err: error }, 'workspace file-watch snapshot read failed');
+        }
+
+        return;
+      }
+
+      entries.sort((left, right) => left.name.localeCompare(right.name));
+
+      for (const entry of entries) {
+        if (subscriber.closed) {
+          return;
+        }
+
+        if (budget.entries >= budget.maxEntries) {
+          budget.truncated = true;
+          return;
+        }
+
+        const fullPath = resolve(current, entry.name);
+        const path = relative(rootPath, fullPath).split(sep).join('/');
+
+        if (entry.isDirectory()) {
+          if (FILE_WATCH_IGNORED_DIRS.has(entry.name)) {
+            continue;
+          }
+
+          budget.entries += 1;
+
+          if (!snapshotPathTouched(subscriber, path)) {
+            sendToSubscriber(subscriber, {
+              eventId: randomUUID(),
+              sessionId,
+              path,
+              type: 'create',
+              initial: true,
+              reconciliation: true,
+              timestamp: new Date().toISOString(),
+            });
+          }
+
+          await walk(fullPath);
+          continue;
+        }
+
+        if (!entry.isFile()) {
+          continue;
+        }
+
+        if (budget.files >= initialMaxFiles) {
+          budget.truncated = true;
+          return;
+        }
+
+        try {
+          const read = await readWorkspaceFile(path);
+
+          if (!read) {
+            budget.truncated = true;
+            continue;
+          }
+
+          if (budget.bytes + read.buffer.byteLength > initialMaxBytes) {
+            budget.truncated = true;
+            return;
+          }
+
+          budget.files += 1;
+          budget.bytes += read.buffer.byteLength;
+          budget.entries += 1;
+
+          if (!snapshotPathTouched(subscriber, path)) {
+            sendToSubscriber(subscriber, {
+              eventId: randomUUID(),
+              sessionId,
+              path,
+              type: 'create',
+              content: read.buffer.toString(read.binary ? 'base64' : 'utf8'),
+              binary: read.binary,
+              initial: true,
+              reconciliation: true,
+              timestamp: new Date().toISOString(),
+            });
+          }
+        } catch (error) {
+          const code = (error as NodeJS.ErrnoException | undefined)?.code;
+
+          if (code !== 'ENOENT' && code !== 'ENOTDIR') {
+            options.logger.warn({ err: error, path }, 'workspace file-watch snapshot file failed');
+          }
+        }
+      }
+    };
+
+    await walk(rootPath);
+
+    return budget;
+  };
+
+  const initializeSubscriber = async (subscriber: WorkspaceWatchSubscriber) => {
+    const retainedHistory = journal.slice(journalHead);
+
+    for (const entry of retainedHistory) {
+      sendToSubscriber(subscriber, { ...entry.frame, replay: true });
+    }
+
+    /* Deliver events produced while the retained journal was synchronously replayed. */
+    flushSubscriberPending(subscriber);
+
+    const snapshot = await streamReconciliationSnapshot(subscriber);
+
+    if (subscriber.closed) {
+      return;
+    }
+
+    const activeJournal = journal.slice(journalHead);
+
+    sendToSubscriber(subscriber, {
+      eventId: randomUUID(),
+      sessionId,
+      path: '.',
+      type: 'update',
+      journal: {
+        truncated: journalDroppedEvents > 0,
+        droppedEvents: journalDroppedEvents,
+        oldestSequence: activeJournal[0]?.frame.sequence,
+        latestSequence: activeJournal.at(-1)?.frame.sequence,
+        connectionTruncated: subscriber.droppedEvents > 0,
+      },
+      snapshot: {
+        files: snapshot.files,
+        bytes: snapshot.bytes,
+        truncated: snapshot.truncated,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
+    /*
+     * Snapshot paths touched during the async walk were skipped, so flushing the
+     * buffered journal now preserves their exact intermediate order and final state.
+     */
+    subscriber.buffering = false;
+    flushSubscriberPending(subscriber);
+  };
+
+  const attachWatcher = async (usePolling: boolean): Promise<void> => {
+    await new Promise<void>((resolveReady) => {
+      let settled = false;
+      let fallbackStarted = false;
+
+      const settle = () => {
+        if (!settled) {
+          settled = true;
+          resolveReady();
+        }
+      };
+
+      const candidate = watch(rootPath, {
+        persistent: true,
+        ignoreInitial: true,
+        followSymlinks: false,
+        usePolling,
+        interval: 100,
+        binaryInterval: 250,
+        ignored,
+        atomic: true,
+        awaitWriteFinish: { stabilityThreshold: 150, pollInterval: 25 },
+        ignorePermissionErrors: true,
+      });
+      watcher = candidate;
+      candidate.on('add', (path) => enqueue(path, 'create-file'));
+      candidate.on('change', (path) => enqueue(path, 'update-file'));
+      candidate.on('addDir', (path) => enqueue(path, 'create-directory'));
+      candidate.on('unlink', (path) => enqueue(path, 'delete'));
+      candidate.on('unlinkDir', (path) => enqueue(path, 'delete'));
+      candidate.on('ready', settle);
+      candidate.on('error', (error) => {
+        const code = (error as NodeJS.ErrnoException | undefined)?.code;
+        const canFallback = !usePolling && ['EMFILE', 'ENFILE', 'ENOSPC'].includes(code ?? '');
+
+        options.logger.warn(
+          { err: error, fallbackToPolling: canFallback && !fallbackStarted },
+          'workspace global file-watch failed',
+        );
+
+        if (canFallback && !fallbackStarted && !closed) {
+          fallbackStarted = true;
+
+          /*
+           * Switching backends has a small observation gap; surface that the
+           * retained timeline may be incomplete and let reconciliation heal state.
+           */
+          journalDroppedEvents += 1;
+
+          const startFallback = async () => {
+            await candidate.close().catch((closeError) => {
+              options.logger.warn({ err: closeError }, 'workspace native file-watch close failed');
+            });
+
+            if (!closed) {
+              await attachWatcher(true);
+            }
+          };
+          const fallback = startFallback().catch((fallbackError) => {
+            options.logger.warn({ err: fallbackError }, 'workspace polling file-watch fallback failed');
+          });
+
+          if (settled) {
+            void fallback;
+          } else {
+            void fallback.finally(settle);
+          }
+
+          return;
+        }
+
+        settle();
+      });
+    });
+  };
+
+  const start = async () => {
+    if (startPromise) {
+      return startPromise;
+    }
+
+    startPromise = (async () => {
+      await mkdir(rootPath, { recursive: true });
+
+      if (closed) {
+        return;
+      }
+
+      await attachWatcher(options.usePolling);
+    })();
+
+    return startPromise;
+  };
+
+  const subscribe = (send: (frame: WorkspaceWatchFrame) => void) => {
+    const subscriber: WorkspaceWatchSubscriber = {
+      send,
+      buffering: true,
+      closed: false,
+      pending: [],
+      pendingBytes: 0,
+      pendingPaths: new Set(),
+      droppedEvents: 0,
+    };
+
+    subscribers.add(subscriber);
+    void initializeSubscriber(subscriber).catch((error) => {
+      options.logger.warn({ err: error }, 'workspace file-watch subscriber initialization failed');
+      subscriber.buffering = false;
+      flushSubscriberPending(subscriber);
+    });
+
+    return () => {
+      subscriber.closed = true;
+      subscriber.pending.length = 0;
+      subscriber.pendingPaths.clear();
+      subscriber.pendingBytes = 0;
+      subscribers.delete(subscriber);
+    };
+  };
+
+  const close = async () => {
+    closed = true;
+    pending.clear();
+
+    for (const subscriber of subscribers) {
+      subscriber.closed = true;
+      subscriber.pending.length = 0;
+      subscriber.pendingPaths.clear();
+    }
+
+    subscribers.clear();
+    await watcher?.close();
+    watcher = undefined;
+  };
+
+  return { start, subscribe, close };
+}
 
 async function listSnapshotFiles(
   root: string,
@@ -2026,8 +2985,8 @@ async function runCommand(
    * becomes an uncaughtException that crashes the whole agent (and every other
    * session). The ChildProcess 'error'/'exit' handlers don't cover stream errors.
    */
-  child.stdout.on('error', () => {});
-  child.stderr.on('error', () => {});
+  child.stdout.on('error', () => undefined);
+  child.stderr.on('error', () => undefined);
 
   return new Promise((resolvePromise) => {
     /*
@@ -2252,8 +3211,8 @@ async function runCommandStream(
   child.stderr.on('data', (chunk) => send('stderr', chunk));
 
   // See runCommand: swallow stream-level errors so a pipe read fault can't crash the agent.
-  child.stdout.on('error', () => {});
-  child.stderr.on('error', () => {});
+  child.stdout.on('error', () => undefined);
+  child.stderr.on('error', () => undefined);
   child.on('close', () => {
     flushDecoders();
 

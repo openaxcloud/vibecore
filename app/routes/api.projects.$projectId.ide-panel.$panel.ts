@@ -1175,30 +1175,34 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   if (panel === 'skills') {
     /*
-     * Skills panel (F#27): builtin catalog toggles PLUS the installable
-     * GitHub-repo catalog and the project- and workspace-scoped installed skills.
-     * Each source fails open so one 5xx never blanks the whole panel. The
-     * workspace-scoped installed list 409s (SKILL_NO_WORKSPACE) until the project
-     * has a workspace — degrade that to an empty list.
+     * Open-standard Agent Skills panel. The catalog is browse-only: every
+     * external folder is resolved to an immutable commit, scanned, and stored
+     * as a quarantined artifact before it can be reviewed. Keep this loader
+     * strict so a failed audit/catalog read becomes an explicit retryable panel
+     * state instead of silently presenting an incomplete security surface.
      */
     try {
-      const [skillsResp, catalogResp, installedProjectResp, installedWorkspaceResp] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/skills`).catch(() => ({ skills: [] })),
-        apiRequest(request, `/projects/${projectId}/skills/catalog`).catch(() => ({
-          entries: [],
-          hasWorkspace: false,
-        })),
-        apiRequest(request, `/projects/${projectId}/skills/installed?scope=project`).catch(() => ({ skills: [] })),
-        apiRequest(request, `/projects/${projectId}/skills/installed?scope=workspace`).catch(() => ({ skills: [] })),
+      const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
+      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
+
+      const workspaceQuery = workspaceCtx.selectedWorkspaceId
+        ? `?workspaceId=${encodeURIComponent(workspaceCtx.selectedWorkspaceId)}`
+        : '';
+
+      const [skillsResp, catalogResp] = await Promise.all([
+        apiRequest(request, `/projects/${projectId}/skills${workspaceQuery}`),
+        apiRequest(request, `/projects/${projectId}/skills/catalog${workspaceQuery}`),
       ]);
 
       return json(
         panelEnvelope(panel, project.project, {
-          skills: (skillsResp as any)?.skills ?? [],
+          artifacts: (skillsResp as any)?.artifacts ?? [],
+          standard: (skillsResp as any)?.standard ?? null,
           catalog: (catalogResp as any)?.entries ?? [],
-          hasWorkspace: Boolean((catalogResp as any)?.hasWorkspace),
-          installedProject: (installedProjectResp as any)?.skills ?? [],
-          installedWorkspace: (installedWorkspaceResp as any)?.skills ?? [],
+          workspaceId: workspaceCtx.selectedWorkspaceId,
+          workspaces: workspaceCtx.workspaceList,
+          primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
+          selectedWorkspaceId: workspaceCtx.selectedWorkspaceId,
         }),
       );
     } catch (error) {
@@ -1648,7 +1652,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       if (intent === 'preferences') {
         state.preferences = {
           ...state.preferences,
-          theme: body.theme === 'light' ? 'light' : body.theme === 'system' ? 'system' : 'dark',
+          theme: body.theme === 'light' ? 'light' : body.theme === 'dark' ? 'dark' : 'system',
           keyboardMode: body.keyboardMode === 'true',
           creditAlertThreshold: Number(body.creditAlertThreshold) || state.preferences.creditAlertThreshold,
         };
@@ -1971,61 +1975,103 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     }
   } else if (panel === 'skills') {
     /*
-     * F#27: installable GitHub-repo skills. `install`/`uninstall`/
-     * `enable-installed`/`disable-installed` operate on the InstalledSkill store
-     * (project- or workspace-scoped); the legacy `enable`/`disable` intents still
-     * toggle the builtin catalog. Errors bubble as the API's status/code so the
-     * panel can surface a clear message (e.g. SKILL_REPO_PRIVATE, SKILL_NO_WORKSPACE).
+     * Open Agent Skills review workflow. Approval and lifecycle writes bind the
+     * human decision to the exact SHA-256 digest shown in the UI; workspace
+     * writes are never inferred from a repo name or a mutable Git ref.
      */
-    if (['install', 'uninstall', 'enable-installed', 'disable-installed'].includes(intent)) {
-      const ownerRepo = (body.ownerRepo ?? '').trim();
-      const scope = body.scope === 'workspace' ? 'workspace' : 'project';
+    const required = (field: string, message = `${field} is required`) => {
+      const rawValue = body[field];
+      const value = typeof rawValue === 'string' ? rawValue.trim() : '';
 
-      if (!ownerRepo) {
-        throw json({ error: 'ownerRepo is required' }, { status: 400 });
+      if (!value) {
+        throw json({ error: message }, { status: 400 });
       }
 
-      if (intent === 'install') {
-        const result = await apiRequest(request, `/projects/${projectId}/skills/install`, {
-          method: 'POST',
-          body: JSON.stringify({ ownerRepo, scope }),
-        });
+      return value;
+    };
 
-        return json({ ok: true, ...(result as any) });
-      }
+    if (intent === 'import-catalog') {
+      const catalogId = required('catalogId');
+      const workspaceId = required('workspaceId', 'A project workspace is required for this import');
 
-      if (intent === 'uninstall') {
-        const result = await apiRequest(request, `/projects/${projectId}/skills/installed`, {
-          method: 'DELETE',
-          body: JSON.stringify({ ownerRepo, scope }),
-        });
-
-        return json({ ok: true, ...(result as any) });
-      }
-
-      const result = await apiRequest(request, `/projects/${projectId}/skills/installed`, {
-        method: 'PATCH',
-        body: JSON.stringify({ ownerRepo, scope, enabled: intent === 'enable-installed' }),
+      const result = await apiRequest(request, `/projects/${projectId}/skills/import`, {
+        method: 'POST',
+        body: JSON.stringify({ catalogId, workspaceId }),
       });
 
       return json({ ok: true, ...(result as any) });
     }
 
-    // Per-project skills registry: enable/disable toggles over the builtin catalog.
-    const skillId = (body.skillId ?? '').trim();
+    if (intent === 'import-custom') {
+      const ownerRepo = required('ownerRepo');
+      const skillPath = required('skillPath');
+      const workspaceId = required('workspaceId', 'A project workspace is required for this import');
+      const ref = typeof body.ref === 'string' ? body.ref.trim() : '';
 
-    if (!skillId) {
-      throw json({ error: 'skillId is required' }, { status: 400 });
+      const result = await apiRequest(request, `/projects/${projectId}/skills/import`, {
+        method: 'POST',
+        body: JSON.stringify({ ownerRepo, skillPath, workspaceId, ...(ref ? { ref } : {}) }),
+      });
+
+      return json({ ok: true, ...(result as any) });
     }
 
-    const action = intent === 'disable' ? 'disable' : 'enable';
+    const artifactId = required('artifactId');
+    const encodedArtifactId = encodeURIComponent(artifactId);
 
-    const result = await apiRequest(request, `/projects/${projectId}/skills/${encodeURIComponent(skillId)}/${action}`, {
+    if (intent === 'inspect') {
+      const workspaceId = required('workspaceId', 'A project workspace is required to inspect this artifact');
+      const eventCursor = typeof body.eventCursor === 'string' ? body.eventCursor.trim() : '';
+
+      if (eventCursor.length > 1024) {
+        throw json({ error: 'Audit event cursor is invalid' }, { status: 400 });
+      }
+
+      const detail = await apiRequest(
+        request,
+        `/projects/${projectId}/skills/artifacts/${encodedArtifactId}?workspaceId=${encodeURIComponent(workspaceId)}${
+          eventCursor ? `&eventCursor=${encodeURIComponent(eventCursor)}` : ''
+        }`,
+      );
+
+      return json({ ok: true, detail });
+    }
+
+    if (!['approve', 'reject', 'enable', 'disable', 'revoke'].includes(intent)) {
+      throw json({ error: 'Unsupported Agent Skill action' }, { status: 400 });
+    }
+
+    const digest = required('digest');
+    const reason = required('reason', 'A review reason is required');
+
+    if (!/^[a-f0-9]{64}$/.test(digest)) {
+      throw json({ error: 'digest must be a lowercase SHA-256 value' }, { status: 400 });
+    }
+
+    if (reason.length < 3) {
+      throw json({ error: 'The review reason must contain at least 3 characters' }, { status: 400 });
+    }
+
+    const decisionBody: Record<string, string | boolean> = {
+      digest,
+      reason,
+      workspaceId: required('workspaceId', 'A project workspace is required for this action'),
+    };
+
+    if (intent === 'approve') {
+      if (body.acknowledgedUntrustedContent !== 'true') {
+        throw json({ error: 'Review acknowledgement is required before approval' }, { status: 400 });
+      }
+
+      decisionBody.acknowledgedUntrustedContent = true;
+    }
+
+    const result = await apiRequest(request, `/projects/${projectId}/skills/artifacts/${encodedArtifactId}/${intent}`, {
       method: 'POST',
-      body: JSON.stringify({}),
+      body: JSON.stringify(decisionBody),
     });
 
-    return json({ ok: true, rowId: skillId, ...(result as any) });
+    return json({ ok: true, ...(result as any) });
   } else if (panel === 'packages') {
     const [packages, envVars] = await Promise.all([
       apiRequest<any>(request, `/projects/${projectId}/packages`),
@@ -3038,10 +3084,10 @@ const SETTINGS_BYOK_SECRET_KEY_MAP: Record<string, string> = {
   openrouter: 'OPENROUTER_API_KEY',
 };
 
-function defaultIdeSettingsState() {
+export function defaultIdeSettingsState() {
   return {
     preferences: {
-      theme: 'dark',
+      theme: 'system',
       keyboardMode: false,
       creditAlertThreshold: 80,
     },
@@ -3083,7 +3129,7 @@ function readIdeSettingsState(envVarsResponse: unknown) {
   }
 }
 
-function normalizeIdeSettingsState(input: any) {
+export function normalizeIdeSettingsState(input: any) {
   const fallback = defaultIdeSettingsState();
   const notifications = { ...fallback.notifications, ...(input?.notifications ?? {}) };
   const aiCredentials = { ...fallback.aiCredentials, ...(input?.aiCredentials ?? {}) };
@@ -3107,7 +3153,9 @@ function normalizeIdeSettingsState(input: any) {
 
   return {
     preferences: {
-      theme: ['dark', 'light', 'system'].includes(input?.preferences?.theme) ? input.preferences.theme : 'dark',
+      theme: ['dark', 'light', 'system'].includes(input?.preferences?.theme)
+        ? input.preferences.theme
+        : fallback.preferences.theme,
       keyboardMode: Boolean(input?.preferences?.keyboardMode),
       creditAlertThreshold: Number(input?.preferences?.creditAlertThreshold) || 80,
     },

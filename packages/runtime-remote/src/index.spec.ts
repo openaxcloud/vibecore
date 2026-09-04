@@ -239,6 +239,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
   it('retries an idempotent file write through a transient api 5xx so a pod rollout does not silently drop generated files', async () => {
     let writeAttempts = 0;
+    const historyOperationIds: Array<string | null> = [];
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
@@ -260,6 +261,9 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
       if (url.endsWith('/files/write')) {
         writeAttempts += 1;
+        const headers = new Headers(init?.headers);
+        historyOperationIds.push(headers.get('x-file-history-operation-id'));
+        expect(headers.get('x-file-history-source')).toBe('editor');
 
         /*
          * First attempt hits a draining/starting api pod during a rollout → 502.
@@ -283,6 +287,8 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
     expect(writeAttempts).toBe(2); // failed once (502), retried, succeeded — file not lost
+    expect(historyOperationIds[0]).toBeTruthy();
+    expect(historyOperationIds[1]).toBe(historyOperationIds[0]);
   });
 
   it('re-provisions a GC-reaped workspace (stale ws-id) on WORKSPACE_AGENT_REQUEST_FAILED, then retries — no ENOTFOUND loop', async () => {
@@ -588,6 +594,44 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
       expect(FakeWebSocket.instances.length).toBe(16);
 
       stop();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the file-history watch reconnecting beyond the generic cap so replay can eventually reconcile it', async () => {
+    vi.useFakeTimers();
+
+    try {
+      FakeWebSocket.instances = [];
+      FakeWebSocket.failNextOpenCount = 0;
+
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'https://runtime.example.com',
+        authToken: 'token-history-replay',
+        workspaceId: 'ws-1',
+        fetchImpl: createFetchMock() as typeof fetch,
+        WebSocketImpl: FakeWebSocket,
+      });
+
+      const stop = await adapter.watchFiles(['.'], () => {});
+      let observed = FakeWebSocket.instances.length;
+      FakeWebSocket.instances.at(-1)!.close(1006);
+
+      for (let index = 0; index < 240 && observed <= 16; index += 1) {
+        await vi.advanceTimersByTimeAsync(2_000);
+
+        if (FakeWebSocket.instances.length > observed) {
+          observed = FakeWebSocket.instances.length;
+          FakeWebSocket.instances.at(-1)!.close(1006);
+        }
+      }
+
+      expect(FakeWebSocket.instances.length).toBeGreaterThan(16);
+      stop();
+      const stoppedAt = FakeWebSocket.instances.length;
+      await vi.advanceTimersByTimeAsync(120_000);
+      expect(FakeWebSocket.instances).toHaveLength(stoppedAt);
     } finally {
       vi.useRealTimers();
     }

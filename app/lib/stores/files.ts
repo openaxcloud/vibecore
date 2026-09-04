@@ -699,6 +699,37 @@ export class FilesStore {
   }
 
   /**
+   * Adopt content that has already been committed by an authoritative server
+   * operation (for example append-only File History restore).
+   *
+   * This updates the browser baseline without calling runtime.writeFile again.
+   * A second write here would create a duplicate revision and could overwrite a
+   * collaborator's newer content between the restore response and local sync.
+   */
+  adoptPersistedFileContent(filePath: string, content: string): boolean {
+    const currentFile = this.getFile(filePath);
+
+    if (!currentFile || currentFile.isBinary) {
+      return false;
+    }
+
+    if (currentFile.content === content) {
+      return true;
+    }
+
+    if (!this.#modifiedFiles.has(filePath)) {
+      this.#modifiedFiles.set(filePath, currentFile.content);
+    }
+
+    this.files.setKey(filePath, {
+      ...currentFile,
+      content,
+    });
+
+    return true;
+  }
+
+  /**
    * Get any file or folder from the file system
    * @param path Path to the file or folder
    * @returns The file or folder, or undefined if it doesn't exist

@@ -2,7 +2,7 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
-import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import { DEFAULT_ENV_VAR_SCOPE, agentSkillAuditEventPageSize } from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -88,9 +88,19 @@ import type {
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
-  InstalledSkillRecord,
-  InstalledSkillScope,
-  InstallSkillInput,
+  AppendFileVersionInput,
+  FileVersionContentRecord,
+  FileVersionRecord,
+  FileHistoryWatchStateRecord,
+  UpsertFileHistoryWatchStateInput,
+  AgentSkillArtifactRecord,
+  AgentSkillArtifactWithBundleRecord,
+  AgentSkillRuntimePolicyRecord,
+  AgentSkillAuditEventRecord,
+  AgentSkillAuditEventPage,
+  AgentSkillAuditEventPageOptions,
+  CreateAgentSkillArtifactInput,
+  TransitionAgentSkillArtifactInput,
 } from '../store.js';
 
 function id(prefix: string) {
@@ -99,6 +109,11 @@ function id(prefix: string) {
 
 function now() {
   return new Date().toISOString();
+}
+
+function withoutFileVersionContent(version: FileVersionContentRecord): FileVersionRecord {
+  const { contentBase64: _contentBase64, ...metadata } = version;
+  return metadata;
 }
 
 function slugify(value: string) {
@@ -118,6 +133,13 @@ export class TestApiStore implements ApiStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
   readonly projectStorageObjects = new Map<string, ProjectStorageObjectRecord>();
+  readonly fileHistoryBlobs = new Map<
+    string,
+    { id: string; projectId: string; contentHash: string; contentBase64: string; encoding: 'utf8'; byteLength: number }
+  >();
+  readonly fileVersions = new Map<string, FileVersionContentRecord>();
+  readonly fileHistoryWatchStates = new Map<string, FileHistoryWatchStateRecord>();
+  #fileVersionSequence = 0n;
   readonly databaseInstances = new Map<string, DatabaseInstanceRecord>();
   readonly databaseSnapshots = new Map<string, DatabaseSnapshotRecord>();
   readonly databaseRestores = new Map<string, DatabaseRestoreRecord>();
@@ -201,6 +223,11 @@ export class TestApiStore implements ApiStore {
   }
 
   async withSerializedMutation<T>(_key: string, fn: () => Promise<T>): Promise<T> {
+    // Single-process test store — no cross-pod lock needed; just run the section.
+    return fn();
+  }
+
+  async withSerializedMutations<T>(_keys: readonly string[], fn: () => Promise<T>): Promise<T> {
     // Single-process test store — no cross-pod lock needed; just run the section.
     return fn();
   }
@@ -1319,93 +1346,201 @@ export class TestApiStore implements ApiStore {
     };
   }
 
-  readonly projectSkillOverrides = new Map<string, { skillId: string; enabled: boolean; updatedAt: string }>();
+  readonly agentSkillArtifacts = new Map<string, AgentSkillArtifactWithBundleRecord>();
+  readonly agentSkillAuditEvents: AgentSkillAuditEventRecord[] = [];
 
-  async listProjectSkillOverrides(projectId: string) {
-    return [...this.projectSkillOverrides.entries()]
-      .filter(([key]) => key.startsWith(`${projectId}:`))
-      .map(([, row]) => row);
+  async listAgentSkillArtifacts(projectId: string, workspaceKey?: string): Promise<AgentSkillArtifactRecord[]> {
+    return [...this.agentSkillArtifacts.values()]
+      .filter(
+        (artifact) =>
+          artifact.projectId === projectId && (workspaceKey === undefined || artifact.workspaceKey === workspaceKey),
+      )
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+      .map(({ bundle: _bundle, ...artifact }) => artifact);
   }
 
-  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
-    const record = { skillId: input.skillId, enabled: input.enabled, updatedAt: new Date().toISOString() };
-    this.projectSkillOverrides.set(`${input.projectId}:${input.skillId}`, record);
-
-    return record;
+  async listAgentSkillRuntimePolicyRecords(
+    projectId: string,
+    workspaceKey: string,
+    options?: { take?: number },
+  ): Promise<AgentSkillRuntimePolicyRecord[]> {
+    return [...this.agentSkillArtifacts.values()]
+      .filter((artifact) => artifact.projectId === projectId && artifact.workspaceKey === workspaceKey)
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt) || right.id.localeCompare(left.id))
+      .slice(0, Math.min(Math.max(options?.take ?? 4_097, 1), 10_001))
+      .map((artifact) => ({
+        id: artifact.id,
+        projectId: artifact.projectId,
+        workspaceKey: artifact.workspaceKey,
+        name: artifact.name,
+        digest: artifact.digest,
+        commitSha: artifact.commitSha,
+        auditStatus: artifact.auditStatus,
+        enabled: artifact.enabled,
+        updatedAt: artifact.updatedAt,
+      }));
   }
 
-  readonly installedSkills = new Map<string, InstalledSkillRecord>();
+  async getAgentSkillArtifact(
+    projectId: string,
+    artifactId: string,
+  ): Promise<AgentSkillArtifactWithBundleRecord | undefined> {
+    const artifact = this.agentSkillArtifacts.get(artifactId);
 
-  #installedSkillKey(scope: InstalledSkillScope, scopeId: string, ownerRepo: string) {
-    return `${scope}:${scopeId}:${ownerRepo}`;
+    return artifact?.projectId === projectId
+      ? { ...artifact, bundle: artifact.bundle.map((file) => ({ ...file })) }
+      : undefined;
   }
 
-  async listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]> {
-    return [...this.installedSkills.values()]
-      .filter((row) => row.scope === scope && row.scopeId === scopeId)
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }
-
-  async installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }> {
-    const key = this.#installedSkillKey(input.scope, input.scopeId, input.ownerRepo);
-    const existing = this.installedSkills.get(key);
+  async createAgentSkillArtifact(
+    input: CreateAgentSkillArtifactInput,
+  ): Promise<{ record: AgentSkillArtifactRecord; created: boolean }> {
+    const existing = [...this.agentSkillArtifacts.values()].find(
+      (artifact) =>
+        artifact.projectId === input.projectId &&
+        artifact.workspaceKey === input.workspaceKey &&
+        artifact.ownerRepo === input.ownerRepo &&
+        artifact.skillPath === input.skillPath &&
+        artifact.digest === input.digest,
+    );
 
     if (existing) {
-      return { record: existing, created: false };
+      const { bundle: _bundle, ...record } = existing;
+      return { record, created: false };
     }
 
-    const now = new Date().toISOString();
-    const record: InstalledSkillRecord = {
-      id: id('iskill'),
-      scope: input.scope,
-      scopeId: input.scopeId,
+    const timestamp = now();
+
+    const artifact: AgentSkillArtifactWithBundleRecord = {
+      id: id('agent_skill'),
+      projectId: input.projectId,
+      workspaceKey: input.workspaceKey,
       ownerRepo: input.ownerRepo,
+      skillPath: input.skillPath,
+      requestedRef: input.requestedRef,
+      commitSha: input.commitSha,
+      digest: input.digest,
+      sourceUrl: input.sourceUrl,
       name: input.name,
       description: input.description,
-      instructions: input.instructions,
-      homepageUrl: input.homepageUrl ?? null,
-      enabled: true,
-      installedByUserId: input.installedByUserId ?? null,
-      createdAt: now,
-      updatedAt: now,
+      license: input.license,
+      compatibility: input.compatibility,
+      declaredAllowedTools: input.declaredAllowedTools,
+      bundle: input.bundle.map((file) => ({ ...file })),
+      auditStatus: input.auditStatus,
+      auditReport: input.auditReport,
+      enabled: false,
+      importedByUserId: input.importedByUserId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
+    this.agentSkillArtifacts.set(artifact.id, artifact);
+    this.agentSkillAuditEvents.push({
+      id: id('skill_audit'),
+      artifactId: artifact.id,
+      action: 'imported',
+      toStatus: artifact.auditStatus,
+      actorUserId: input.importedByUserId,
+      metadata: {
+        ownerRepo: artifact.ownerRepo,
+        workspaceKey: artifact.workspaceKey,
+        skillPath: artifact.skillPath,
+        commitSha: artifact.commitSha,
+        digest: artifact.digest,
+      },
+      createdAt: timestamp,
+    });
 
-    this.installedSkills.set(key, record);
+    const { bundle: _bundle, ...record } = artifact;
 
     return { record, created: true };
   }
 
-  async uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean> {
-    return this.installedSkills.delete(this.#installedSkillKey(scope, scopeId, ownerRepo));
-  }
+  async transitionAgentSkillArtifact(
+    input: TransitionAgentSkillArtifactInput,
+  ): Promise<AgentSkillArtifactRecord | undefined> {
+    const existing = this.agentSkillArtifacts.get(input.artifactId);
 
-  async setInstalledSkillEnabled(input: {
-    scope: InstalledSkillScope;
-    scopeId: string;
-    ownerRepo: string;
-    enabled: boolean;
-  }): Promise<InstalledSkillRecord | undefined> {
-    const key = this.#installedSkillKey(input.scope, input.scopeId, input.ownerRepo);
-    const existing = this.installedSkills.get(key);
-
-    if (!existing) {
+    if (
+      !existing ||
+      existing.projectId !== input.projectId ||
+      existing.workspaceKey !== input.expectedWorkspaceKey ||
+      existing.digest !== input.digest ||
+      !input.expectedStatuses.includes(existing.auditStatus) ||
+      (input.expectedEnabled !== undefined && existing.enabled !== input.expectedEnabled)
+    ) {
       return undefined;
     }
 
-    const updated: InstalledSkillRecord = { ...existing, enabled: input.enabled, updatedAt: new Date().toISOString() };
-    this.installedSkills.set(key, updated);
+    const timestamp = now();
+    const isReviewDecision = ['approved', 'rejected', 'revoked'].includes(input.action);
 
-    return updated;
+    const updated: AgentSkillArtifactWithBundleRecord = {
+      ...existing,
+      auditStatus: input.status,
+      enabled: input.enabled,
+      ...(input.installedPath !== undefined ? { installedPath: input.installedPath } : {}),
+      ...(isReviewDecision
+        ? {
+            reviewedByUserId: input.actorUserId,
+            reviewedAt: timestamp,
+            reviewReason: input.reason,
+          }
+        : {}),
+      ...(input.status === 'revoked' ? { revokedAt: timestamp } : {}),
+      updatedAt: timestamp,
+    };
+    this.agentSkillArtifacts.set(updated.id, updated);
+    this.agentSkillAuditEvents.push({
+      id: id('skill_audit'),
+      artifactId: existing.id,
+      action: input.action,
+      fromStatus: existing.auditStatus,
+      toStatus: input.status,
+      actorUserId: input.actorUserId,
+      reason: input.reason,
+      metadata: input.eventMetadata,
+      createdAt: timestamp,
+    });
+
+    const { bundle: _bundle, ...record } = updated;
+
+    return record;
   }
 
-  async countInstallsByRepo(): Promise<Record<string, number>> {
-    const counts: Record<string, number> = {};
+  async listAgentSkillAuditEvents(
+    projectId: string,
+    artifactId: string,
+    options: AgentSkillAuditEventPageOptions = {},
+  ): Promise<AgentSkillAuditEventPage> {
+    const artifact = this.agentSkillArtifacts.get(artifactId);
 
-    for (const row of this.installedSkills.values()) {
-      counts[row.ownerRepo] = (counts[row.ownerRepo] ?? 0) + 1;
+    if (!artifact || artifact.projectId !== projectId) {
+      return { events: [] };
     }
 
-    return counts;
+    const limit = agentSkillAuditEventPageSize(options.limit);
+    const matching = this.agentSkillAuditEvents
+      .filter((event) => event.artifactId === artifactId)
+      .filter(
+        (event) =>
+          !options.cursor ||
+          event.createdAt < options.cursor.createdAt ||
+          (event.createdAt === options.cursor.createdAt && event.id < options.cursor.id),
+      )
+      .sort((left, right) => {
+        const timestampOrder = right.createdAt.localeCompare(left.createdAt);
+        return timestampOrder !== 0 ? timestampOrder : right.id.localeCompare(left.id);
+      });
+    const events = matching.slice(0, limit);
+    const lastEvent = events.at(-1);
+
+    return {
+      events,
+      ...(matching.length > limit && lastEvent
+        ? { nextCursor: { createdAt: lastEvent.createdAt, id: lastEvent.id } }
+        : {}),
+    };
   }
 
   async createWorkspace(input: {
@@ -1516,6 +1651,138 @@ export class TestApiStore implements ApiStore {
 
   async listSnapshots(projectId: string) {
     return [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId);
+  }
+
+  async appendFileVersion(input: AppendFileVersionInput) {
+    const existing = await this.findFileVersionByOperation(input.projectId, input.workspaceKey, input.operationId);
+
+    if (existing) {
+      return { version: existing, created: false };
+    }
+
+    const blobKey = `${input.projectId}:${input.contentHash}`;
+    let blob = this.fileHistoryBlobs.get(blobKey);
+
+    if (!blob) {
+      blob = {
+        id: id('file_blob'),
+        projectId: input.projectId,
+        contentHash: input.contentHash,
+        contentBase64: input.contentBase64,
+        encoding: input.encoding,
+        byteLength: input.byteLength,
+      };
+      this.fileHistoryBlobs.set(blobKey, blob);
+    }
+
+    const version: FileVersionContentRecord = {
+      id: id('file_version'),
+      projectId: input.projectId,
+      workspaceKey: input.workspaceKey,
+      workspaceId: input.workspaceId,
+      path: input.path,
+      lineageId: input.lineageId,
+      operation: input.operation,
+      source: input.source,
+      actorUserId: input.actorUserId,
+      operationId: input.operationId,
+      previousVersionId: input.previousVersionId,
+      restoredFromVersionId: input.restoredFromVersionId,
+      renamedFromPath: input.renamedFromPath,
+      tombstone: input.tombstone ?? false,
+      sequence: String(++this.#fileVersionSequence),
+      contentHash: blob.contentHash,
+      contentBase64: blob.contentBase64,
+      encoding: blob.encoding,
+      byteLength: blob.byteLength,
+      createdAt: now(),
+    };
+    this.fileVersions.set(version.id, version);
+
+    return { version: withoutFileVersionContent(version), created: true };
+  }
+
+  async findFileVersionByOperation(projectId: string, workspaceKey: string, operationId: string) {
+    const version = [...this.fileVersions.values()].find(
+      (candidate) =>
+        candidate.projectId === projectId &&
+        candidate.workspaceKey === workspaceKey &&
+        candidate.operationId === operationId,
+    );
+
+    return version ? withoutFileVersionContent(version) : undefined;
+  }
+
+  async getFileVersion(projectId: string, workspaceKey: string, versionId: string) {
+    const version = this.fileVersions.get(versionId);
+
+    return version?.projectId === projectId && version.workspaceKey === workspaceKey ? { ...version } : undefined;
+  }
+
+  async getLatestFileVersion(projectId: string, workspaceKey: string, path: string) {
+    const version = [...this.fileVersions.values()]
+      .filter(
+        (candidate) =>
+          candidate.projectId === projectId && candidate.workspaceKey === workspaceKey && candidate.path === path,
+      )
+      .sort((left, right) => Number(BigInt(right.sequence) - BigInt(left.sequence)))[0];
+    return version ? withoutFileVersionContent(version) : undefined;
+  }
+
+  async getLatestFileVersionByLineage(projectId: string, workspaceKey: string, lineageId: string) {
+    const version = this.#matchingFileVersions(projectId, workspaceKey, lineageId)[0];
+    return version ? withoutFileVersionContent(version) : undefined;
+  }
+
+  async listFileVersions(input: {
+    projectId: string;
+    workspaceKey: string;
+    lineageId: string;
+    take: number;
+    cursor?: { sequence: string };
+  }) {
+    const versions = this.#matchingFileVersions(input.projectId, input.workspaceKey, input.lineageId).filter(
+      (version) => {
+        if (!input.cursor) {
+          return true;
+        }
+
+        return BigInt(version.sequence) < BigInt(input.cursor.sequence);
+      },
+    );
+
+    return versions.slice(0, Math.min(Math.max(input.take, 1), 200)).map(withoutFileVersionContent);
+  }
+
+  async countFileVersions(projectId: string, workspaceKey: string, lineageId: string) {
+    return this.#matchingFileVersions(projectId, workspaceKey, lineageId).length;
+  }
+
+  #matchingFileVersions(projectId: string, workspaceKey: string, lineageId: string) {
+    return [...this.fileVersions.values()]
+      .filter(
+        (version) =>
+          version.projectId === projectId && version.workspaceKey === workspaceKey && version.lineageId === lineageId,
+      )
+      .sort((left, right) => Number(BigInt(right.sequence) - BigInt(left.sequence)));
+  }
+
+  async getFileHistoryWatchState(projectId: string, workspaceKey: string) {
+    return this.fileHistoryWatchStates.get(`${projectId}:${workspaceKey}`);
+  }
+
+  async upsertFileHistoryWatchState(input: UpsertFileHistoryWatchStateInput) {
+    const key = `${input.projectId}:${input.workspaceKey}`;
+    const existing = this.fileHistoryWatchStates.get(key);
+    const timestamp = now();
+    const state: FileHistoryWatchStateRecord = {
+      ...input,
+      createdAt: existing?.createdAt ?? timestamp,
+      updatedAt: timestamp,
+    };
+    this.fileHistoryWatchStates.set(key, state);
+
+    return state;
   }
 
   async putProjectStorageObject(input: {

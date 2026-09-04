@@ -16,6 +16,7 @@
     "@vibecore/runtime-contract": "workspace:*",
     "@vibecore/security": "workspace:*",
     "@vibecore/workspace-sdk": "workspace:*",
+    "chokidar": "^4.0.3",
     "fastify": "^5.8.5",
     "ws": "^8.18.0",
     "zod": "^3.24.1"

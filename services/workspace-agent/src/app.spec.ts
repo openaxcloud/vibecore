@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -341,6 +341,62 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ code: 'ENOENT' });
   });
 
+  it('rejects symlinks in no-follow trees and rejects final or ancestor symlinks on reads', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+    const skillRoot = join(root, '.agents', 'skills', 'safe-review');
+    const realSkillRoot = join(root, 'real-skill');
+    await mkdir(join(skillRoot, 'references'), { recursive: true });
+    await mkdir(realSkillRoot, { recursive: true });
+    await writeFile(join(skillRoot, 'SKILL.md'), '---\nname: safe-review\ndescription: Safe review.\n---\n');
+    await writeFile(join(root, '.env'), 'TOP_SECRET=must-not-leak');
+    await writeFile(join(realSkillRoot, 'resource.md'), 'safe resource');
+    const tree = await app.inject({
+      method: 'GET',
+      url: '/files/tree?path=.agents%2Fskills&noFollow=1',
+      headers,
+    });
+    expect(tree.statusCode).toBe(200);
+    expect(JSON.stringify(tree.json())).toContain('.agents/skills/safe-review/SKILL.md');
+
+    const regular = await app.inject({
+      method: 'GET',
+      url: '/files/read?path=.agents%2Fskills%2Fsafe-review%2FSKILL.md&noFollow=1',
+      headers,
+    });
+    expect(regular.statusCode).toBe(200);
+    expect(regular.json().content).toContain('name: safe-review');
+
+    await symlink(join(root, '.env'), join(skillRoot, 'references', 'secret.md'));
+    await symlink(realSkillRoot, join(root, 'linked-skill'));
+
+    const linkedTree = await app.inject({
+      method: 'GET',
+      url: '/files/tree?path=.agents%2Fskills&noFollow=1',
+      headers,
+    });
+    expect(linkedTree.statusCode).toBe(400);
+    expect(linkedTree.json()).toMatchObject({ code: 'SYMLINK_DISALLOWED' });
+    expect(linkedTree.body).not.toContain('must-not-leak');
+
+    const finalSymlink = await app.inject({
+      method: 'GET',
+      url: '/files/read?path=.agents%2Fskills%2Fsafe-review%2Freferences%2Fsecret.md&noFollow=1',
+      headers,
+    });
+    expect(finalSymlink.statusCode).toBe(400);
+    expect(finalSymlink.json()).toMatchObject({ code: 'SYMLINK_DISALLOWED' });
+    expect(finalSymlink.body).not.toContain('must-not-leak');
+
+    const ancestorSymlink = await app.inject({
+      method: 'GET',
+      url: '/files/read?path=linked-skill%2Fresource.md&noFollow=1',
+      headers,
+    });
+    expect(ancestorSymlink.statusCode).toBe(400);
+    expect(ancestorSymlink.json()).toMatchObject({ code: 'SYMLINK_DISALLOWED' });
+  });
+
   it('blocks path traversal', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
 
@@ -610,6 +666,7 @@ describe('workspace-agent', () => {
     const withEntry =
       '<!DOCTYPE html><html><head><title>App</title></head>' +
       '<body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body></html>';
+
     const servedB = injectPreviewHmrShim(ensureViteEntryScript(withEntry, root, exists));
     expect(servedB).toContain('data-ecode-hmr-shim'); // our injection added
     // Exactly ONE entry script — never stripped, never duplicated.
@@ -693,6 +750,366 @@ describe('workspace-agent', () => {
     expect(response.body).toContain('active_workspaces');
     expect(response.body).toContain('terminal_sessions');
   });
+
+  it('streams native create, content update, binary and delete events while excluding generated trees', async () => {
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      tokenSecret,
+      workspaceId,
+      fileWatchEnabled: true,
+
+      /*
+       * CI can run alongside several watcher-heavy suites and exhaust the host's
+       * per-process fs-watch handles. Exercise the same chokidar event contract
+       * through its supported polling backend deterministically.
+       */
+      fileWatchUsePolling: true,
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const frames: Array<{
+      eventId?: string;
+      sessionId?: string;
+      path?: string;
+      type?: string;
+      content?: string;
+      binary?: boolean;
+    }> = [];
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/files/watch?token=${encodeURIComponent(token)}`);
+    socket.addEventListener('message', (event) => frames.push(JSON.parse(String(event.data))));
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('file-watch WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      /*
+       * `ready` proves chokidar completed its initial scan; mutations after this
+       * point cannot be mistaken for ignored initial entries.
+       */
+      await expect
+        .poll(() => frames.find((frame) => frame.path === '.'), { timeout: 5_000 })
+        .toMatchObject({
+          type: 'update',
+          eventId: expect.any(String),
+          sessionId: expect.any(String),
+        });
+
+      const watcherSessionId = frames.find((frame) => frame.path === '.')?.sessionId;
+
+      await mkdir(join(root, 'src'), { recursive: true });
+      await writeFile(join(root, 'src', 'watch.ts'), 'export const value = 1;\n');
+
+      await expect
+        .poll(
+          () => frames.find((frame) => frame.path === 'src/watch.ts' && frame.content === 'export const value = 1;\n'),
+          { timeout: 5_000 },
+        )
+        .toMatchObject({
+          type: 'create',
+          binary: false,
+          eventId: expect.any(String),
+          sessionId: watcherSessionId,
+        });
+
+      await writeFile(join(root, 'src', 'watch.ts'), 'export const value = 2;\n');
+
+      await expect
+        .poll(
+          () => frames.find((frame) => frame.path === 'src/watch.ts' && frame.content === 'export const value = 2;\n'),
+          { timeout: 5_000 },
+        )
+        .toMatchObject({ type: 'update', binary: false });
+
+      const binary = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0xff, 0x01]);
+      await writeFile(join(root, 'src', 'asset.bin'), binary);
+
+      await expect
+        .poll(() => frames.find((frame) => frame.path === 'src/asset.bin'), { timeout: 5_000 })
+        .toMatchObject({ type: 'create', binary: true, content: binary.toString('base64') });
+
+      const beforeIgnoredWrite = frames.length;
+      await mkdir(join(root, 'node_modules', 'ignored'), { recursive: true });
+      await writeFile(join(root, 'node_modules', 'ignored', 'index.js'), 'must not stream');
+      await new Promise((resolve) => setTimeout(resolve, 350));
+      expect(frames.slice(beforeIgnoredWrite).some((frame) => frame.path?.includes('node_modules'))).toBe(false);
+
+      await rm(join(root, 'src', 'watch.ts'));
+      await expect
+        .poll(() => frames.find((frame) => frame.path === 'src/watch.ts' && frame.type === 'delete'), {
+          timeout: 5_000,
+        })
+        .toMatchObject({ eventId: expect.any(String), sessionId: watcherSessionId });
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  }, 15_000);
+
+  it('resynchronizes bounded current contents after a disconnect so offline terminal writes are not lost', async () => {
+    await mkdir(join(root, 'src'), { recursive: true });
+    await writeFile(join(root, 'src', 'offline.ts'), 'export const state = "before";\n');
+
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      tokenSecret,
+      workspaceId,
+      fileWatchEnabled: true,
+      fileWatchUsePolling: true,
+      fileWatchInitialMaxFiles: 10,
+      fileWatchInitialMaxBytes: 1024,
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const connect = async () => {
+      const frames: Array<{
+        eventId?: string;
+        sessionId?: string;
+        sequence?: number;
+        path?: string;
+        content?: string;
+        initial?: boolean;
+        reconciliation?: boolean;
+        replay?: boolean;
+        snapshot?: { files?: number; bytes?: number; truncated?: boolean };
+      }> = [];
+
+      const socket = new WebSocket(`ws://127.0.0.1:${address.port}/files/watch?token=${encodeURIComponent(token)}`);
+      socket.addEventListener('message', (event) => frames.push(JSON.parse(String(event.data))));
+
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('file-watch WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      return { frames, socket };
+    };
+
+    let activeSocket: WebSocket | undefined;
+
+    try {
+      const first = await connect();
+      activeSocket = first.socket;
+
+      await expect
+        .poll(() => first.frames.find((frame) => frame.path === 'src/offline.ts'), { timeout: 5_000 })
+        .toMatchObject({ content: 'export const state = "before";\n', initial: true });
+      await expect
+        .poll(() => first.frames.find((frame) => frame.path === '.')?.snapshot, { timeout: 5_000 })
+        .toMatchObject({ files: 1, truncated: false });
+
+      const firstClosed = new Promise<void>((resolve) =>
+        first.socket.addEventListener('close', () => resolve(), { once: true }),
+      );
+      first.socket.close();
+      await firstClosed;
+      activeSocket = undefined;
+
+      /*
+       * Both writes happen with no watch socket attached. The global agent
+       * watcher must retain the intermediate A value, not merely reconcile B.
+       * Leave enough time for awaitWriteFinish to emit each stable mutation.
+       */
+      await writeFile(join(root, 'src', 'offline.ts'), 'A');
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      await writeFile(join(root, 'src', 'offline.ts'), 'B');
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const reconnected = await connect();
+      activeSocket = reconnected.socket;
+
+      await expect
+        .poll(
+          () =>
+            reconnected.frames
+              .filter((frame) => frame.path === 'src/offline.ts' && frame.replay)
+              .map((frame) => frame.content),
+          { timeout: 5_000 },
+        )
+        .toEqual(['A', 'B']);
+      await expect
+        .poll(
+          () =>
+            reconnected.frames.find(
+              (frame) => frame.path === 'src/offline.ts' && frame.initial && frame.reconciliation,
+            ),
+          { timeout: 5_000 },
+        )
+        .toMatchObject({ content: 'B' });
+
+      const firstReplay = reconnected.frames.filter((frame) => frame.path === 'src/offline.ts' && frame.replay);
+      const stableIdentities = firstReplay.map((frame) => ({ eventId: frame.eventId, sequence: frame.sequence }));
+
+      const secondClosed = new Promise<void>((resolve) =>
+        reconnected.socket.addEventListener('close', () => resolve(), { once: true }),
+      );
+      reconnected.socket.close();
+      await secondClosed;
+      activeSocket = undefined;
+
+      const replayedAgain = await connect();
+      activeSocket = replayedAgain.socket;
+
+      await expect
+        .poll(() => replayedAgain.frames.filter((frame) => frame.path === 'src/offline.ts' && frame.replay).length, {
+          timeout: 5_000,
+        })
+        .toBe(2);
+      expect(
+        replayedAgain.frames
+          .filter((frame) => frame.path === 'src/offline.ts' && frame.replay)
+          .map((frame) => ({ eventId: frame.eventId, sequence: frame.sequence })),
+      ).toEqual(stableIdentities);
+      expect(
+        new Set([...first.frames, ...reconnected.frames, ...replayedAgain.frames].map((frame) => frame.sessionId)),
+      ).toEqual(new Set([first.frames.find((frame) => frame.path === '.')?.sessionId]));
+    } finally {
+      activeSocket?.close();
+      await app.close();
+    }
+  }, 15_000);
+
+  it('marks an initial reconnect snapshot truncated when its configured file bound is reached', async () => {
+    await mkdir(join(root, 'src'), { recursive: true });
+    await writeFile(join(root, 'src', 'a.ts'), 'a');
+    await writeFile(join(root, 'src', 'b.ts'), 'b');
+
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      tokenSecret,
+      workspaceId,
+      fileWatchEnabled: true,
+      fileWatchUsePolling: true,
+      fileWatchInitialMaxFiles: 1,
+      fileWatchInitialMaxBytes: 1024,
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const frames: Array<{
+      path?: string;
+      initial?: boolean;
+      snapshot?: { files?: number; bytes?: number; truncated?: boolean };
+    }> = [];
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/files/watch?token=${encodeURIComponent(token)}`);
+    socket.addEventListener('message', (event) => frames.push(JSON.parse(String(event.data))));
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('file-watch WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      await expect
+        .poll(() => frames.find((frame) => frame.path === '.')?.snapshot, { timeout: 5_000 })
+        .toMatchObject({ files: 1, bytes: 1, truncated: true });
+      expect(frames.filter((frame) => frame.path?.endsWith('.ts') && frame.initial)).toHaveLength(1);
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  });
+
+  it('bounds the offline journal and signals truncation while reconciling the latest file state', async () => {
+    await mkdir(join(root, 'src'), { recursive: true });
+
+    const app = buildWorkspaceAgentApp({
+      workspaceRoot: root,
+      tokenSecret,
+      workspaceId,
+      fileWatchEnabled: true,
+      fileWatchUsePolling: true,
+      fileWatchInitialMaxFiles: 10,
+      fileWatchInitialMaxBytes: 1024,
+      fileWatchJournalMaxEvents: 1,
+      fileWatchJournalMaxBytes: 1024,
+    });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    /* No browser has connected: both writes are observed by the agent-global watcher. */
+    await writeFile(join(root, 'src', 'journal-a.ts'), 'A');
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    await writeFile(join(root, 'src', 'journal-b.ts'), 'B');
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const frames: Array<{
+      path?: string;
+      content?: string;
+      replay?: boolean;
+      initial?: boolean;
+      reconciliation?: boolean;
+      journal?: {
+        truncated?: boolean;
+        droppedEvents?: number;
+        oldestSequence?: number;
+        latestSequence?: number;
+        connectionTruncated?: boolean;
+      };
+    }> = [];
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/files/watch?token=${encodeURIComponent(token)}`);
+    socket.addEventListener('message', (event) => frames.push(JSON.parse(String(event.data))));
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('file-watch WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      await expect
+        .poll(() => frames.find((frame) => frame.path === '.')?.journal, { timeout: 5_000 })
+        .toMatchObject({
+          truncated: true,
+          droppedEvents: 1,
+          oldestSequence: 2,
+          latestSequence: 2,
+          connectionTruncated: false,
+        });
+      expect(
+        frames.filter((frame) => frame.path === 'src/journal-b.ts' && frame.replay).map((frame) => frame.content),
+      ).toEqual(['B']);
+      expect(
+        frames.find((frame) => frame.path === 'src/journal-b.ts' && frame.initial && frame.reconciliation)?.content,
+      ).toBe('B');
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  }, 15_000);
 
   it('streams terminal WebSocket input and command output', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });

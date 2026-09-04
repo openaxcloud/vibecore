@@ -777,6 +777,7 @@ function ThemeSwitcher() {
       size="sm"
       className="h-8 gap-2"
       data-testid="button-theme-toggle"
+      aria-label={label}
       onClick={handleThemeToggle}
     >
       <Icon className="h-4 w-4" />

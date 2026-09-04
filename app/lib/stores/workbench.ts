@@ -1917,6 +1917,34 @@ export class WorkbenchStore {
     this.#emitFileApplied(filePath, 'user');
   }
 
+  /**
+   * Adopt a server-persisted file revision without issuing another save.
+   * File History restore is append-only on the API; saving the same body again
+   * from the browser would incorrectly create a second revision. Pending
+   * autosave is cancelled first so an older editor buffer cannot race the
+   * restored content after this method returns.
+   */
+  adoptPersistedFileContent(filePath: string, content: string): boolean {
+    const pendingAutosave = this.#autosaveTimers.get(filePath);
+
+    if (pendingAutosave) {
+      clearTimeout(pendingAutosave);
+      this.#autosaveTimers.delete(filePath);
+    }
+
+    if (!this.#filesStore.adoptPersistedFileContent(filePath, content)) {
+      return false;
+    }
+
+    this.#editorStore.adoptPersistedFileContent(filePath, content);
+
+    const nextUnsavedFiles = new Set(this.unsavedFiles.get());
+    nextUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(nextUnsavedFiles);
+
+    return true;
+  }
+
   async saveCurrentDocument() {
     const currentDocument = this.currentDocument.get();
 

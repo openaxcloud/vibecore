@@ -118,4 +118,24 @@ export class EditorStore {
       });
     }
   }
+
+  /**
+   * Replace an editor buffer with content that the server has already
+   * persisted. Unlike updateFile, this is allowed to mirror an authoritative
+   * restore while a stale local lock flag is clearing; it never writes to disk.
+   */
+  adoptPersistedFileContent(filePath: string, content: string): boolean {
+    const documentState = this.documents.get()[filePath];
+
+    if (!documentState || documentState.isBinary) {
+      return false;
+    }
+
+    this.documents.setKey(filePath, {
+      ...documentState,
+      value: content,
+    });
+
+    return true;
+  }
 }

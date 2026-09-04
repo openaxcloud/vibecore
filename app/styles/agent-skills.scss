@@ -1,0 +1,1602 @@
+.vc-agent-skills {
+  --skill-line: color-mix(in srgb, var(--vc-ide-border-visible) 78%, transparent);
+  --skill-muted-line: color-mix(in srgb, var(--vc-ide-border-subtle) 82%, transparent);
+  --skill-safe: #36c98f;
+  --skill-warn: #e9a84c;
+  --skill-risk: #ee6f73;
+  min-width: 0;
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-sans, 'IBM Plex Sans', sans-serif);
+  container-type: inline-size;
+}
+
+.vc-agent-skills button,
+.vc-agent-skills input,
+.vc-agent-skills textarea {
+  font: inherit;
+}
+
+.vc-agent-skills button:focus-visible,
+.vc-agent-skills input:focus-visible,
+.vc-agent-skills textarea:focus-visible,
+.vc-agent-skills a:focus-visible,
+.vc-agent-skills summary:focus-visible,
+.vc-agent-skills pre:focus-visible {
+  outline: 2px solid var(--vc-ide-focus-ring);
+  outline-offset: 2px;
+}
+
+.vc-agent-skills-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid var(--skill-line);
+  border-radius: 12px 12px 0 0;
+  background:
+    linear-gradient(115deg, color-mix(in srgb, var(--vc-ide-accent-action) 11%, transparent), transparent 42%),
+    repeating-linear-gradient(90deg, transparent 0 39px, color-mix(in srgb, var(--skill-line) 18%, transparent) 40px),
+    var(--vc-ide-bg-elevated);
+}
+
+.vc-agent-skills-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.vc-agent-skills-heading-mark,
+.vc-agent-skill-card-icon {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 42%, var(--skill-line));
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 13%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-accent-action);
+}
+
+.vc-agent-skills-heading-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  box-shadow: inset 0 1px rgb(255 255 255 / 7%);
+  font-size: 21px;
+}
+
+.vc-agent-skills-heading h2,
+.vc-agent-skill-detail h3,
+.vc-agent-skill-decision h3,
+.vc-agent-skill-custom-import h3,
+.vc-agent-skills-empty h3,
+.vc-agent-skill-catalog-card h3 {
+  margin: 0;
+  font-weight: 650;
+}
+
+.vc-agent-skills-heading h2 {
+  margin-top: 2px;
+  font-size: 18px;
+  letter-spacing: -0.015em;
+}
+
+.vc-agent-skills-heading p,
+.vc-agent-skill-custom-import p,
+.vc-agent-skills-empty p,
+.vc-agent-skills-catalog-intro p,
+.vc-agent-skill-catalog-card > p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.vc-agent-skill-eyebrow {
+  display: block;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 10px;
+  font-weight: 680;
+  letter-spacing: 0.105em;
+  line-height: 14px;
+  text-transform: uppercase;
+}
+
+.vc-agent-skills-spec-link {
+  display: inline-flex;
+  min-height: 34px;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--skill-line);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  font-weight: 620;
+  text-decoration: none;
+}
+
+.vc-agent-skills-spec-link:hover {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 50%, var(--skill-line));
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-agent-skills-standard-strip {
+  display: flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 12px;
+  border: solid var(--skill-line);
+  border-width: 0 1px 1px;
+  background: color-mix(in srgb, var(--vc-ide-bg-base) 72%, var(--vc-ide-bg-panel));
+  color: var(--vc-ide-text-tertiary);
+  font-size: 10px;
+}
+
+.vc-agent-skills-standard-strip code,
+.vc-agent-skill-card-meta code,
+.vc-agent-skill-chain code,
+.vc-agent-skill-detail-scroll pre,
+.vc-agent-skill-catalog-card code,
+.vc-agent-skill-decision code,
+.vc-agent-skill-finding code,
+.vc-agent-skill-diagnostics code,
+.vc-agent-skill-section-heading > code,
+.vc-agent-skill-blocking-codes code,
+.vc-agent-skill-inventory code {
+  font-family: var(--vc-font-code, 'IBM Plex Mono', monospace);
+}
+
+.vc-agent-skills-standard-strip > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: color-mix(in srgb, var(--skill-safe) 80%, var(--vc-ide-text-secondary));
+}
+
+.vc-agent-skills-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 9px 0 8px;
+  border-bottom: 1px solid var(--skill-muted-line);
+}
+
+.vc-agent-skills-tabs button {
+  position: relative;
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.vc-agent-skills-tabs button:hover,
+.vc-agent-skills-tabs button[aria-current='page'] {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-agent-skills-tabs button[aria-current='page']::after {
+  position: absolute;
+  right: 9px;
+  bottom: -9px;
+  left: 9px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--vc-ide-accent-action);
+  content: '';
+}
+
+.vc-agent-skills-tabs button > span {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 10px;
+  font-size: 10px;
+}
+
+.vc-agent-skills-tabs button em {
+  padding: 2px 6px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--skill-warn) 15%, transparent);
+  color: var(--skill-warn);
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.vc-agent-skills-live:empty {
+  display: none;
+}
+
+.vc-agent-skills-alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--skill-safe) 38%, var(--skill-line));
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--skill-safe) 8%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+}
+
+.vc-agent-skills-alert[data-tone='error'] {
+  border-color: color-mix(in srgb, var(--skill-risk) 48%, var(--skill-line));
+  background: color-mix(in srgb, var(--skill-risk) 9%, var(--vc-ide-bg-card));
+}
+
+.vc-agent-skills-alert > span {
+  color: var(--skill-safe);
+  font-size: 16px;
+}
+
+.vc-agent-skills-alert[data-tone='error'] > span {
+  color: var(--skill-risk);
+}
+
+.vc-agent-skills-alert p {
+  margin: 0;
+}
+
+.vc-agent-skills-alert button,
+.vc-agent-skills-icon-button {
+  display: inline-grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--vc-ide-text-tertiary);
+  cursor: pointer;
+}
+
+.vc-agent-skills-alert button:hover,
+.vc-agent-skills-icon-button:hover {
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-agent-skills-review-layout {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(380px, 1.35fr);
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.vc-agent-skills-review-layout[data-detail='closed'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.vc-agent-skills-artifacts {
+  min-width: 0;
+}
+
+.vc-agent-skills-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.vc-agent-skills-metrics > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto 1fr;
+  column-gap: 8px;
+  align-items: center;
+  padding: 9px;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+}
+
+.vc-agent-skills-metrics > div > span {
+  grid-row: 1 / 3;
+  color: var(--vc-ide-accent-action);
+  font-size: 17px;
+}
+
+.vc-agent-skills-metrics strong {
+  font-family: var(--vc-font-code, monospace);
+  font-size: 14px;
+}
+
+.vc-agent-skills-metrics small {
+  overflow: hidden;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skills-card-list {
+  display: grid;
+  gap: 7px;
+}
+
+.vc-agent-skill-card {
+  min-width: 0;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 9px;
+  background: var(--vc-ide-bg-card);
+  overflow: hidden;
+  transition:
+    border-color 130ms ease,
+    transform 130ms ease;
+}
+
+.vc-agent-skill-card:hover,
+.vc-agent-skill-card[data-selected='true'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action) 55%, var(--skill-line));
+}
+
+.vc-agent-skill-card:hover {
+  transform: translateY(-1px);
+}
+
+.vc-agent-skill-card-main {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.vc-agent-skill-card-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+}
+
+.vc-agent-skill-card-icon[data-status='blocked'],
+.vc-agent-skill-card-icon[data-status='revoked'] {
+  border-color: color-mix(in srgb, var(--skill-risk) 48%, var(--skill-line));
+  background: color-mix(in srgb, var(--skill-risk) 10%, var(--vc-ide-bg-card));
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-card-copy,
+.vc-agent-skill-card-title-row {
+  min-width: 0;
+}
+
+.vc-agent-skill-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vc-agent-skill-card-title-row strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 640;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skill-card-description {
+  display: -webkit-box;
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 15px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.vc-agent-skill-card-meta {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  margin-top: 6px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-card-meta code {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skill-risk-count {
+  color: var(--skill-risk);
+  font-weight: 650;
+}
+
+.vc-agent-skill-status {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--skill-warn) 35%, var(--skill-line));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--skill-warn) 8%, transparent);
+  color: var(--skill-warn);
+  font-size: 9px;
+  font-weight: 680;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.vc-agent-skill-status > span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.vc-agent-skill-status[data-status='approved'] {
+  border-color: color-mix(in srgb, var(--skill-safe) 38%, var(--skill-line));
+  background: color-mix(in srgb, var(--skill-safe) 8%, transparent);
+  color: var(--skill-safe);
+}
+
+.vc-agent-skill-status[data-status='blocked'],
+.vc-agent-skill-status[data-status='revoked'] {
+  border-color: color-mix(in srgb, var(--skill-risk) 38%, var(--skill-line));
+  background: color-mix(in srgb, var(--skill-risk) 8%, transparent);
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-status[data-status='disabled'] {
+  border-color: var(--skill-line);
+  background: transparent;
+  color: var(--vc-ide-text-tertiary);
+}
+
+.vc-agent-skill-detail {
+  position: sticky;
+  top: 0;
+  display: grid;
+  min-width: 0;
+  max-height: min(72vh, 780px);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-self: start;
+  border: 1px solid var(--skill-line);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-elevated);
+  box-shadow: 0 16px 38px rgb(0 0 0 / 18%);
+  overflow: hidden;
+}
+
+.vc-agent-skill-detail-header {
+  display: flex;
+  min-width: 0;
+  min-height: 58px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--skill-muted-line);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--vc-ide-accent-action) 9%, transparent), transparent 48%);
+}
+
+.vc-agent-skill-detail-header h3 {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skill-detail-scroll {
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.vc-agent-skill-chain,
+.vc-agent-skill-audit-summary,
+.vc-agent-skill-source-review,
+.vc-agent-skill-events {
+  padding: 13px;
+  border-bottom: 1px solid var(--skill-muted-line);
+}
+
+.vc-agent-skill-chain-heading,
+.vc-agent-skill-section-heading {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.vc-agent-skill-chain-heading > span:last-child,
+.vc-agent-skill-section-heading > code {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-chain dl,
+.vc-agent-skill-catalog-card dl,
+.vc-agent-skill-decision dl {
+  display: grid;
+  gap: 0;
+  margin: 10px 0 0;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.vc-agent-skill-chain dl > div,
+.vc-agent-skill-catalog-card dl > div,
+.vc-agent-skill-decision dl > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(90px, 0.35fr) minmax(0, 1fr);
+  gap: 8px;
+  padding: 7px 8px;
+  background: color-mix(in srgb, var(--vc-ide-bg-base) 58%, transparent);
+}
+
+.vc-agent-skill-chain dl > div + div,
+.vc-agent-skill-catalog-card dl > div + div,
+.vc-agent-skill-decision dl > div + div {
+  border-top: 1px solid var(--skill-muted-line);
+}
+
+.vc-agent-skill-chain dt,
+.vc-agent-skill-chain dd,
+.vc-agent-skill-catalog-card dt,
+.vc-agent-skill-catalog-card dd,
+.vc-agent-skill-decision dt,
+.vc-agent-skill-decision dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.vc-agent-skill-chain dt,
+.vc-agent-skill-catalog-card dt,
+.vc-agent-skill-decision dt {
+  color: var(--vc-ide-text-tertiary);
+}
+
+.vc-agent-skill-chain dd,
+.vc-agent-skill-catalog-card dd,
+.vc-agent-skill-decision dd {
+  overflow-wrap: anywhere;
+  color: var(--vc-ide-text-secondary);
+}
+
+.vc-agent-skill-chain dd code,
+.vc-agent-skill-decision dd code {
+  font-size: 9px;
+}
+
+.vc-agent-skill-chain a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--vc-ide-accent-action);
+  text-decoration: none;
+}
+
+.vc-agent-skill-tool-note,
+.vc-agent-skill-blocker {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 9px 0 0;
+  padding: 7px 8px;
+  border-left: 2px solid var(--vc-ide-accent-action);
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 7%, transparent);
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.vc-agent-skill-blocker {
+  border-color: var(--skill-risk);
+  background: color-mix(in srgb, var(--skill-risk) 8%, transparent);
+  color: color-mix(in srgb, var(--skill-risk) 80%, var(--vc-ide-text-primary));
+}
+
+.vc-agent-skill-section-heading h4 {
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-weight: 640;
+}
+
+.vc-agent-skill-audit-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.vc-agent-skill-audit-metrics span {
+  display: grid;
+  gap: 2px;
+  padding: 7px;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 6px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 8px;
+  text-transform: uppercase;
+}
+
+.vc-agent-skill-audit-metrics strong {
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-code, monospace);
+  font-size: 11px;
+  text-transform: none;
+}
+
+.vc-agent-skill-blocking-codes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 9px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-blocking-codes code {
+  padding: 3px 5px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--skill-risk) 10%, var(--vc-ide-bg-card));
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-findings,
+.vc-agent-skill-diagnostics,
+.vc-agent-skill-inventory ul,
+.vc-agent-skill-events ol {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.vc-agent-skill-findings,
+.vc-agent-skill-diagnostics {
+  display: grid;
+  gap: 6px;
+}
+
+.vc-agent-skill-finding {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid color-mix(in srgb, var(--skill-warn) 30%, var(--skill-line));
+  border-left: 3px solid var(--skill-warn);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--skill-warn) 5%, var(--vc-ide-bg-card));
+}
+
+.vc-agent-skill-finding[data-severity='high'],
+.vc-agent-skill-finding[data-severity='critical'] {
+  border-color: color-mix(in srgb, var(--skill-risk) 34%, var(--skill-line));
+  border-left-color: var(--skill-risk);
+  background: color-mix(in srgb, var(--skill-risk) 5%, var(--vc-ide-bg-card));
+}
+
+.vc-agent-skill-finding > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.vc-agent-skill-severity {
+  color: var(--skill-warn);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+[data-severity='high'] > div .vc-agent-skill-severity,
+[data-severity='critical'] > div .vc-agent-skill-severity {
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-finding code,
+.vc-agent-skill-finding > span {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-finding strong {
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.vc-agent-skill-finding pre {
+  max-height: 90px;
+  margin: 2px 0 0;
+  padding: 6px;
+  border-radius: 4px;
+  background: var(--vc-ide-bg-base);
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+  line-height: 14px;
+  white-space: pre-wrap;
+  overflow: auto;
+}
+
+.vc-agent-skill-diagnostics li {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 7px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--skill-warn) 6%, transparent);
+  color: var(--skill-warn);
+  font-size: 11px;
+}
+
+.vc-agent-skill-diagnostics li[data-severity='error'] {
+  background: color-mix(in srgb, var(--skill-risk) 6%, transparent);
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-diagnostics li div {
+  display: grid;
+  gap: 2px;
+}
+
+.vc-agent-skill-diagnostics li span:last-child {
+  color: var(--vc-ide-text-secondary);
+  font-size: 9px;
+  line-height: 14px;
+}
+
+.vc-agent-skill-source-review > p {
+  margin: 7px 0 9px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.vc-agent-skill-untrusted,
+.vc-agent-skill-audit-required {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--skill-warn);
+  font-size: 9px;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.vc-agent-skill-review-files {
+  display: grid;
+  gap: 7px;
+}
+
+.vc-agent-skill-review-files details {
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 6px;
+  background: var(--vc-ide-bg-base);
+  overflow: hidden;
+}
+
+.vc-agent-skill-review-files summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 8px 10px;
+  color: var(--vc-ide-text-secondary);
+  cursor: pointer;
+  font-size: 9px;
+}
+
+.vc-agent-skill-review-files summary code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skill-review-files summary span,
+.vc-agent-skill-review-file-digest {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 8px;
+}
+
+.vc-agent-skill-review-file-digest {
+  padding: 7px 10px;
+  border-top: 1px solid var(--skill-muted-line);
+  overflow-wrap: anywhere;
+}
+
+.vc-agent-skill-review-files pre {
+  max-height: 360px;
+  margin: 0;
+  padding: 11px;
+  border-top: 1px solid var(--skill-muted-line);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--skill-warn) 28%, transparent) 2px, transparent 2px),
+    var(--vc-ide-bg-base);
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 17px;
+  white-space: pre-wrap;
+  overflow: auto;
+  overflow-wrap: anywhere;
+  tab-size: 2;
+}
+
+.vc-agent-skill-source-missing {
+  padding: 16px;
+  border: 1px dashed var(--skill-line);
+  border-radius: 6px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 10px;
+  text-align: center;
+}
+
+.vc-agent-skill-inventory {
+  border-bottom: 1px solid var(--skill-muted-line);
+}
+
+.vc-agent-skill-inventory summary {
+  padding: 11px 13px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  font-weight: 620;
+  cursor: pointer;
+}
+
+.vc-agent-skill-inventory ul {
+  padding: 0 13px 11px;
+}
+
+.vc-agent-skill-inventory li {
+  display: flex;
+  min-width: 0;
+  justify-content: space-between;
+  gap: 9px;
+  padding: 5px 0;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-inventory li code {
+  overflow: hidden;
+  color: var(--vc-ide-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-agent-skill-events ol {
+  display: grid;
+}
+
+.vc-agent-skill-events li {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 7px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+}
+
+.vc-agent-skill-events li > span {
+  position: relative;
+  width: 7px;
+  height: 7px;
+  margin-top: 4px;
+  border: 2px solid var(--vc-ide-accent-action);
+  border-radius: 50%;
+}
+
+.vc-agent-skill-events li:not(:last-child) > span::after {
+  position: absolute;
+  top: 6px;
+  left: 1px;
+  width: 1px;
+  height: calc(100% + 28px);
+  background: var(--skill-line);
+  content: '';
+}
+
+.vc-agent-skill-events li + li {
+  margin-top: 10px;
+}
+
+.vc-agent-skill-events li div {
+  display: grid;
+  gap: 2px;
+}
+
+.vc-agent-skill-events small,
+.vc-agent-skill-events > p {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-events p {
+  margin: 2px 0 0;
+  line-height: 14px;
+}
+
+.vc-agent-skill-events .vc-agent-skill-events-more {
+  width: 100%;
+  margin-top: 11px;
+}
+
+.vc-agent-skill-detail-actions {
+  display: flex;
+  min-height: 56px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  padding: 9px 12px;
+  border-top: 1px solid var(--skill-muted-line);
+  background: color-mix(in srgb, var(--vc-ide-bg-base) 38%, var(--vc-ide-bg-elevated));
+}
+
+.vc-agent-skill-action-note {
+  flex: 1 1 180px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+  line-height: 14px;
+}
+
+.vc-agent-skills-primary,
+.vc-agent-skills-secondary,
+.vc-agent-skills-destructive {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 11px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    filter 130ms ease,
+    border-color 130ms ease,
+    background-color 130ms ease;
+}
+
+.vc-agent-skills-primary {
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 78%, white 8%);
+  background: var(--vc-ide-accent-action);
+  box-shadow: inset 0 1px rgb(255 255 255 / 12%);
+  color: white;
+}
+
+.vc-agent-skills-primary:hover:not(:disabled),
+.vc-agent-skills-destructive:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.vc-agent-skills-secondary {
+  border: 1px solid var(--skill-line);
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+}
+
+.vc-agent-skills-secondary:hover:not(:disabled) {
+  border-color: var(--vc-ide-border-visible);
+  background: var(--vc-ide-bg-card-hover);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-agent-skills-danger {
+  color: var(--skill-risk);
+}
+
+.vc-agent-skills-destructive {
+  border: 1px solid color-mix(in srgb, var(--skill-risk) 75%, white 5%);
+  background: color-mix(in srgb, var(--skill-risk) 84%, #8d1d27);
+  color: white;
+}
+
+.vc-agent-skills-primary:disabled,
+.vc-agent-skills-secondary:disabled,
+.vc-agent-skills-destructive:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.vc-agent-skill-detail-skeleton {
+  display: grid;
+  min-height: 340px;
+  align-content: start;
+  gap: 10px;
+  padding: 15px;
+}
+
+.vc-agent-skill-detail-skeleton span {
+  height: 24px;
+  border-radius: 5px;
+  background: linear-gradient(90deg, var(--vc-ide-bg-card), var(--vc-ide-bg-hover), var(--vc-ide-bg-card));
+  background-size: 220% 100%;
+  animation: vc-agent-skill-shimmer 1.4s ease-in-out infinite;
+}
+
+.vc-agent-skill-detail-skeleton span:nth-child(2) {
+  height: 120px;
+}
+.vc-agent-skill-detail-skeleton span:nth-child(3) {
+  width: 72%;
+}
+.vc-agent-skill-detail-skeleton span:nth-child(4) {
+  height: 150px;
+}
+
+.vc-agent-skill-detail-error {
+  min-height: 260px;
+  place-items: center;
+  align-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.vc-agent-skill-detail-error > span {
+  color: var(--skill-warn);
+  font-size: 28px;
+}
+
+.vc-agent-skill-detail-error h3 {
+  margin-top: 8px;
+  font-size: 14px;
+}
+.vc-agent-skill-detail-error p {
+  max-width: 360px;
+  margin: 5px 0 12px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  line-height: 15px;
+}
+.vc-agent-skill-detail-error > div {
+  display: flex;
+  gap: 7px;
+}
+
+.vc-agent-skills-empty {
+  display: flex;
+  min-height: 230px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 30px;
+  border: 1px dashed var(--skill-line);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--vc-ide-bg-card) 58%, transparent);
+  text-align: center;
+}
+
+.vc-agent-skills-empty > span {
+  margin-bottom: 9px;
+  color: var(--vc-ide-accent-action);
+  font-size: 29px;
+}
+
+.vc-agent-skills-empty h3 {
+  font-size: 13px;
+}
+.vc-agent-skills-empty p {
+  max-width: 390px;
+  margin-bottom: 12px;
+}
+
+.vc-agent-skills-catalog {
+  margin-top: 12px;
+}
+
+.vc-agent-skills-catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vc-agent-skills-search {
+  position: relative;
+  display: flex;
+  min-width: 220px;
+  max-width: 520px;
+  flex: 1;
+  align-items: center;
+}
+
+.vc-agent-skills-search > span:first-child {
+  position: absolute;
+  left: 10px;
+  z-index: 1;
+  color: var(--vc-ide-text-tertiary);
+}
+
+.vc-agent-skills-search input,
+.vc-agent-skill-custom-import input,
+.vc-agent-skill-decision textarea {
+  width: 100%;
+  border: 1px solid var(--skill-line);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-agent-skills-search input {
+  height: 36px;
+  padding: 0 10px 0 32px;
+  font-size: 11px;
+}
+
+.vc-agent-skills-search input::placeholder,
+.vc-agent-skill-custom-import input::placeholder,
+.vc-agent-skill-decision textarea::placeholder {
+  color: var(--vc-ide-text-tertiary);
+}
+
+.vc-agent-skill-custom-import {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) repeat(3, minmax(130px, 1fr)) auto;
+  align-items: end;
+  gap: 9px;
+  margin-top: 10px;
+  padding: 13px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 35%, var(--skill-line));
+  border-radius: 9px;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--vc-ide-accent-action) 7%, var(--vc-ide-bg-elevated)),
+    var(--vc-ide-bg-elevated)
+  );
+}
+
+.vc-agent-skill-custom-import h3 {
+  margin-top: 2px;
+  font-size: 13px;
+}
+.vc-agent-skill-custom-import p {
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.vc-agent-skill-custom-import label,
+.vc-agent-skill-decision label {
+  display: grid;
+  gap: 5px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.vc-agent-skill-custom-import label > span {
+  color: var(--vc-ide-text-tertiary);
+  font-weight: 400;
+}
+
+.vc-agent-skill-custom-import input {
+  height: 34px;
+  padding: 0 9px;
+  font-size: 10px;
+}
+
+.vc-agent-skills-catalog-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 14px 0 9px;
+}
+
+.vc-agent-skills-catalog-intro > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.vc-agent-skills-catalog-intro > div > span {
+  color: var(--vc-ide-accent-action);
+  font-size: 20px;
+}
+
+.vc-agent-skills-catalog-intro strong {
+  font-size: 11px;
+}
+.vc-agent-skills-catalog-intro p {
+  margin-top: 1px;
+  font-size: 9px;
+  line-height: 13px;
+}
+.vc-agent-skills-catalog-intro > span {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+  text-transform: uppercase;
+}
+
+.vc-agent-skills-catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
+  gap: 8px;
+}
+
+.vc-agent-skill-catalog-card {
+  display: flex;
+  min-width: 0;
+  min-height: 260px;
+  flex-direction: column;
+  padding: 13px;
+  border: 1px solid var(--skill-muted-line);
+  border-radius: 9px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--vc-ide-accent-action) 5%, transparent), transparent 45%),
+    var(--vc-ide-bg-card);
+}
+
+.vc-agent-skill-catalog-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--vc-ide-accent-action);
+}
+
+.vc-agent-skill-catalog-card-top > span:first-child {
+  font-size: 22px;
+}
+.vc-agent-skill-catalog-card-top > span:last-child {
+  color: var(--vc-ide-text-tertiary);
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.vc-agent-skill-catalog-card h3 {
+  margin-top: 8px;
+  font-size: 14px;
+}
+.vc-agent-skill-catalog-card > p {
+  min-height: 38px;
+}
+.vc-agent-skill-catalog-card dl {
+  margin-top: 11px;
+}
+.vc-agent-skill-catalog-card dl > div {
+  grid-template-columns: 68px minmax(0, 1fr);
+  padding: 5px 7px;
+}
+
+.vc-agent-skill-catalog-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.vc-agent-skill-decision {
+  position: fixed;
+  z-index: 500;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.vc-agent-skill-decision-backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(3 6 12 / 76%);
+  cursor: default;
+  backdrop-filter: blur(5px);
+}
+
+.vc-agent-skill-decision > form {
+  position: relative;
+  display: grid;
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 36px);
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 12px;
+  background: var(--vc-ide-bg-elevated);
+  box-shadow: 0 28px 80px rgb(0 0 0 / 48%);
+  overflow: auto;
+}
+
+.vc-agent-skill-decision-mark {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-action) 45%, var(--skill-line));
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--vc-ide-accent-action) 11%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-accent-action);
+  font-size: 20px;
+}
+
+.vc-agent-skill-decision-mark[data-destructive='true'] {
+  border-color: color-mix(in srgb, var(--skill-risk) 48%, var(--skill-line));
+  background: color-mix(in srgb, var(--skill-risk) 10%, var(--vc-ide-bg-card));
+  color: var(--skill-risk);
+}
+
+.vc-agent-skill-decision h3 {
+  margin-top: 2px;
+  font-size: 16px;
+}
+.vc-agent-skill-decision > form > div:nth-child(3) > p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 11px;
+  line-height: 17px;
+}
+.vc-agent-skill-decision dl {
+  margin: 0;
+}
+.vc-agent-skill-decision textarea {
+  min-height: 82px;
+  padding: 9px;
+  font-size: 11px;
+  line-height: 16px;
+  resize: vertical;
+}
+.vc-agent-skill-field-help {
+  margin-top: -8px;
+  color: var(--vc-ide-text-tertiary);
+  font-size: 9px;
+}
+
+.vc-agent-skill-decision .vc-agent-skill-review-acknowledgement {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--skill-warn) 45%, var(--skill-line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--skill-warn) 8%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-text-secondary);
+  font-weight: 500;
+  line-height: 16px;
+}
+
+.vc-agent-skill-review-acknowledgement input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--vc-ide-accent-action);
+}
+
+.vc-agent-skill-decision-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin: 0;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--skill-risk) 52%, var(--skill-line));
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--skill-risk) 10%, var(--vc-ide-bg-card));
+  color: var(--vc-ide-text-primary);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.vc-agent-skill-decision-error > span {
+  flex: 0 0 auto;
+  color: var(--skill-risk);
+  font-size: 16px;
+}
+
+.vc-agent-skill-decision-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+@keyframes vc-agent-skill-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@container (max-width: 840px) {
+  .vc-agent-skills-review-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vc-agent-skill-detail {
+    position: relative;
+    max-height: none;
+  }
+
+  .vc-agent-skill-detail-scroll {
+    max-height: 70vh;
+  }
+
+  .vc-agent-skill-custom-import {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vc-agent-skill-custom-import > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+@container (max-width: 560px) {
+  .vc-agent-skills-header,
+  .vc-agent-skills-catalog-toolbar,
+  .vc-agent-skills-catalog-intro {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vc-agent-skills-spec-link {
+    align-self: flex-start;
+  }
+
+  .vc-agent-skills-standard-strip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vc-agent-skills-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vc-agent-skills-tabs button {
+    justify-content: center;
+  }
+
+  .vc-agent-skills-tabs button em {
+    display: none;
+  }
+
+  .vc-agent-skills-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .vc-agent-skills-metrics > div {
+    min-height: 48px;
+  }
+
+  .vc-agent-skill-card-main {
+    align-items: start;
+  }
+
+  .vc-agent-skill-card-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vc-agent-skill-chain-heading,
+  .vc-agent-skill-section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .vc-agent-skill-chain dl > div,
+  .vc-agent-skill-decision dl > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .vc-agent-skill-audit-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .vc-agent-skill-detail-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vc-agent-skill-detail-actions button,
+  .vc-agent-skills-catalog-toolbar > button,
+  .vc-agent-skill-custom-import > button {
+    min-height: 44px;
+  }
+
+  .vc-agent-skills-search {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .vc-agent-skills-search input {
+    height: 44px;
+  }
+
+  .vc-agent-skill-custom-import {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .vc-agent-skill-custom-import > div:first-child {
+    grid-column: auto;
+  }
+
+  .vc-agent-skill-custom-import input {
+    height: 44px;
+  }
+
+  .vc-agent-skill-catalog-card-foot {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vc-agent-skill-catalog-card-foot button {
+    min-height: 44px;
+  }
+
+  .vc-agent-skill-decision-buttons {
+    flex-direction: column-reverse;
+  }
+
+  .vc-agent-skill-decision-buttons button {
+    min-height: 44px;
+  }
+}
+
+@media (pointer: coarse) {
+  .vc-agent-skills button:not(.vc-agent-skill-decision-backdrop),
+  .vc-agent-skills a,
+  .vc-agent-skills input,
+  .vc-agent-skills summary {
+    min-height: 44px;
+  }
+
+  .vc-agent-skills-alert button,
+  .vc-agent-skills-icon-button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-agent-skill-card,
+  .vc-agent-skills-primary,
+  .vc-agent-skills-secondary,
+  .vc-agent-skills-destructive {
+    transition: none;
+  }
+
+  .vc-agent-skill-detail-skeleton span {
+    animation: none;
+  }
+}

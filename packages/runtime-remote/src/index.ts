@@ -51,6 +51,14 @@ export interface WebSocketLike {
   removeEventListener?(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
 }
 
+function createFileMutationOperationId(): string {
+  if (typeof globalThis.crypto?.randomUUID === 'function') {
+    return globalThis.crypto.randomUUID();
+  }
+
+  return `runtime-file-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly mode = 'remote-kubernetes' as const;
   readonly capabilities: RuntimeCapability[] = [
@@ -340,7 +348,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      */
     await this.#request(
       `/workspaces/${this.#requireWorkspaceId()}/files/write`,
-      { method: 'PUT', body: JSON.stringify({ path, content }) },
+      {
+        method: 'PUT',
+        headers: {
+          'x-file-history-operation-id': createFileMutationOperationId(),
+          'x-file-history-source': 'editor',
+        },
+        body: JSON.stringify({ path, content }),
+      },
       { retryIdempotentWrite: true },
     );
   }
@@ -348,7 +363,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async createFile(path: string, content = ''): Promise<void> {
     await this.#request(
       `/workspaces/${this.#requireWorkspaceId()}/files`,
-      { method: 'POST', body: JSON.stringify({ path, content }) },
+      {
+        method: 'POST',
+        headers: {
+          'x-file-history-operation-id': createFileMutationOperationId(),
+          'x-file-history-source': 'editor',
+        },
+        body: JSON.stringify({ path, content }),
+      },
       { retryIdempotentWrite: true },
     );
   }
@@ -364,7 +386,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async deleteFile(path: string): Promise<void> {
     await this.#request(
       `/workspaces/${this.#requireWorkspaceId()}/files?path=${encodeURIComponent(path)}`,
-      { method: 'DELETE' },
+      {
+        method: 'DELETE',
+        headers: {
+          'x-file-history-operation-id': createFileMutationOperationId(),
+          'x-file-history-source': 'editor',
+        },
+      },
       { retryIdempotentWrite: true },
     );
   }
@@ -374,10 +402,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async moveFile(path: string, newPath: string): Promise<void> {
-    await this.#request(`/workspaces/${this.#requireWorkspaceId()}/files/move`, {
-      method: 'POST',
-      body: JSON.stringify({ path, newPath }),
-    });
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/files/move`,
+      {
+        method: 'POST',
+        headers: {
+          'x-file-history-operation-id': createFileMutationOperationId(),
+          'x-file-history-source': 'editor',
+        },
+        body: JSON.stringify({ path, newPath }),
+      },
+      { retryIdempotentWrite: true },
+    );
   }
 
   async searchFiles(query: string, options: FileSearchOptions = {}): Promise<FileSearchMatch[]> {
@@ -388,8 +424,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async watchFiles(paths: string[], onChange: (change: FileChange) => void): Promise<() => void> {
-    return this.#watchSocket(`/workspaces/${this.#requireWorkspaceId()}/files/watch`, { paths }, (event) =>
-      onChange(JSON.parse(event.data) as FileChange),
+    return this.#watchSocket(
+      `/workspaces/${this.#requireWorkspaceId()}/files/watch`,
+      { paths },
+      (event) => onChange(JSON.parse(event.data) as FileChange),
+      {
+        /*
+         * File History capture is backed by the server-side replay journal. The
+         * browser must therefore keep attempting to reattach after a long outage
+         * so it eventually receives the journal/reconciliation continuity frame;
+         * abandoning after 15 attempts would leave the IDE silently stale.
+         */
+        maxReconnects: Number.POSITIVE_INFINITY,
+      },
     );
   }
 

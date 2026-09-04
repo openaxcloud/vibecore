@@ -5,12 +5,26 @@ import {
   buildGitSshPullScript,
   buildGitSshPushScript,
   buildSshConnectScript,
+  defaultIdeSettingsState,
   ephemeralSshKeyPrelude,
   isSshGitUrl,
+  normalizeIdeSettingsState,
   scopeDeploymentsForWorkspace,
   selectSshConnectionForOrigin,
   sshHostFromGitUrl,
 } from './api.projects.$projectId.ide-panel.$panel';
+
+describe('IDE settings theme contract', () => {
+  it('inherits the global dark-first preference for a new project', () => {
+    expect(defaultIdeSettingsState().preferences.theme).toBe('system');
+    expect(normalizeIdeSettingsState({ preferences: {} }).preferences.theme).toBe('system');
+  });
+
+  it('preserves an explicit project theme', () => {
+    expect(normalizeIdeSettingsState({ preferences: { theme: 'light' } }).preferences.theme).toBe('light');
+    expect(normalizeIdeSettingsState({ preferences: { theme: 'dark' } }).preferences.theme).toBe('dark');
+  });
+});
 
 describe('scopeDeploymentsForWorkspace', () => {
   const deployments = [

@@ -1,5 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const constrainedChromiumLaunchOptions =
+  process.env.PLAYWRIGHT_CHROMIUM_SINGLE_PROCESS === 'true' ? { args: ['--single-process', '--no-zygote'] } : undefined;
+
 const webServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER
   ? undefined
   : [
@@ -26,6 +29,7 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',
+    launchOptions: constrainedChromiumLaunchOptions,
     trace: 'on-first-retry',
   },
   webServer,

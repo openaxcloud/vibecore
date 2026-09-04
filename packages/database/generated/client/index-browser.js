@@ -307,28 +307,45 @@ exports.Prisma.AgentRepairEventScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.ProjectSkillScalarFieldEnum = {
+exports.Prisma.AgentSkillArtifactScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
-  skillId: 'skillId',
+  workspaceKey: 'workspaceKey',
+  ownerRepo: 'ownerRepo',
+  skillPath: 'skillPath',
+  requestedRef: 'requestedRef',
+  commitSha: 'commitSha',
+  digest: 'digest',
+  sourceUrl: 'sourceUrl',
+  name: 'name',
+  description: 'description',
+  license: 'license',
+  compatibility: 'compatibility',
+  declaredAllowedTools: 'declaredAllowedTools',
+  bundle: 'bundle',
+  auditStatus: 'auditStatus',
+  auditReport: 'auditReport',
   enabled: 'enabled',
+  installedPath: 'installedPath',
+  importedByUserId: 'importedByUserId',
+  reviewedByUserId: 'reviewedByUserId',
+  reviewedAt: 'reviewedAt',
+  reviewReason: 'reviewReason',
+  revokedAt: 'revokedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.InstalledSkillScalarFieldEnum = {
+exports.Prisma.AgentSkillAuditEventScalarFieldEnum = {
   id: 'id',
-  scope: 'scope',
-  scopeId: 'scopeId',
-  ownerRepo: 'ownerRepo',
-  name: 'name',
-  description: 'description',
-  instructions: 'instructions',
-  homepageUrl: 'homepageUrl',
-  enabled: 'enabled',
-  installedByUserId: 'installedByUserId',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  artifactId: 'artifactId',
+  action: 'action',
+  fromStatus: 'fromStatus',
+  toStatus: 'toStatus',
+  actorUserId: 'actorUserId',
+  reason: 'reason',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ProjectEnvironmentScalarFieldEnum = {
@@ -463,15 +480,49 @@ exports.Prisma.WorkspacePortScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.FileSnapshotScalarFieldEnum = {
+exports.Prisma.FileHistoryBlobScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
+  contentHash: 'contentHash',
+  contentBase64: 'contentBase64',
+  encoding: 'encoding',
+  byteLength: 'byteLength',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FileVersionScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  workspaceKey: 'workspaceKey',
   workspaceId: 'workspaceId',
   path: 'path',
-  contentHash: 'contentHash',
-  sizeBytes: 'sizeBytes',
-  metadata: 'metadata',
+  lineageId: 'lineageId',
+  blobId: 'blobId',
+  operation: 'operation',
+  source: 'source',
+  actorUserId: 'actorUserId',
+  operationId: 'operationId',
+  previousVersionId: 'previousVersionId',
+  restoredFromVersionId: 'restoredFromVersionId',
+  renamedFromPath: 'renamedFromPath',
+  tombstone: 'tombstone',
+  sequence: 'sequence',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.FileHistoryWatchStateScalarFieldEnum = {
+  projectId: 'projectId',
+  workspaceKey: 'workspaceKey',
+  sessionId: 'sessionId',
+  complete: 'complete',
+  reasons: 'reasons',
+  droppedEvents: 'droppedEvents',
+  snapshotTruncated: 'snapshotTruncated',
+  connectionTruncated: 'connectionTruncated',
+  lastSequence: 'lastSequence',
+  reconciledAt: 'reconciledAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ProjectSnapshotScalarFieldEnum = {
@@ -1336,6 +1387,51 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.ScheduledTaskScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  kind: 'kind',
+  name: 'name',
+  command: 'command',
+  workflowId: 'workflowId',
+  cron: 'cron',
+  timezone: 'timezone',
+  machineSize: 'machineSize',
+  enabled: 'enabled',
+  timeoutSeconds: 'timeoutSeconds',
+  concurrency: 'concurrency',
+  maxRetries: 'maxRetries',
+  notifyOnFailure: 'notifyOnFailure',
+  lastRunAt: 'lastRunAt',
+  lastStatus: 'lastStatus',
+  nextRunAt: 'nextRunAt',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ScheduledTaskRunScalarFieldEnum = {
+  id: 'id',
+  taskId: 'taskId',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  status: 'status',
+  trigger: 'trigger',
+  attempt: 'attempt',
+  scheduledFor: 'scheduledFor',
+  startedAt: 'startedAt',
+  finishedAt: 'finishedAt',
+  durationMs: 'durationMs',
+  exitCode: 'exitCode',
+  logs: 'logs',
+  error: 'error',
+  machineSize: 'machineSize',
+  computeUnits: 'computeUnits',
+  costCents: 'costCents',
+  meteredAt: 'meteredAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -1483,6 +1579,20 @@ exports.DatabaseRestoreStatus = exports.$Enums.DatabaseRestoreStatus = {
   FAILED: 'FAILED'
 };
 
+exports.ScheduledTaskKind = exports.$Enums.ScheduledTaskKind = {
+  WORKFLOW: 'WORKFLOW',
+  DEPLOYMENT: 'DEPLOYMENT'
+};
+
+exports.ScheduledTaskRunStatus = exports.$Enums.ScheduledTaskRunStatus = {
+  RUNNING: 'RUNNING',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+  TIMED_OUT: 'TIMED_OUT',
+  SKIPPED: 'SKIPPED',
+  CANCELED: 'CANCELED'
+};
+
 exports.Prisma.ModelName = {
   User: 'User',
   Account: 'Account',
@@ -1500,8 +1610,8 @@ exports.Prisma.ModelName = {
   ProjectIdeState: 'ProjectIdeState',
   AgentPatchProposal: 'AgentPatchProposal',
   AgentRepairEvent: 'AgentRepairEvent',
-  ProjectSkill: 'ProjectSkill',
-  InstalledSkill: 'InstalledSkill',
+  AgentSkillArtifact: 'AgentSkillArtifact',
+  AgentSkillAuditEvent: 'AgentSkillAuditEvent',
   ProjectEnvironment: 'ProjectEnvironment',
   ProjectSecret: 'ProjectSecret',
   ProjectEnvVar: 'ProjectEnvVar',
@@ -1515,7 +1625,9 @@ exports.Prisma.ModelName = {
   WorkspaceIdeState: 'WorkspaceIdeState',
   WorkspaceSession: 'WorkspaceSession',
   WorkspacePort: 'WorkspacePort',
-  FileSnapshot: 'FileSnapshot',
+  FileHistoryBlob: 'FileHistoryBlob',
+  FileVersion: 'FileVersion',
+  FileHistoryWatchState: 'FileHistoryWatchState',
   ProjectSnapshot: 'ProjectSnapshot',
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
@@ -1586,7 +1698,9 @@ exports.Prisma.ModelName = {
   ModelConfig: 'ModelConfig',
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
-  DatabaseRestore: 'DatabaseRestore'
+  DatabaseRestore: 'DatabaseRestore',
+  ScheduledTask: 'ScheduledTask',
+  ScheduledTaskRun: 'ScheduledTaskRun'
 };
 
 /**

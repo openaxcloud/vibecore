@@ -12,18 +12,33 @@ function keyBody(publicKeyLine: string): string {
   return publicKeyLine.split(' ')[1];
 }
 
-function hasSshKeygen(): boolean {
-  try {
-    execFileSync('ssh-keygen', ['-A', '-f', '/nonexistent-probe'], { stdio: 'ignore' });
+let sshKeygenUsable: boolean | undefined;
 
-    return true;
-  } catch (error) {
-    /*
-     * Any spawn (ENOENT) failure means the binary is absent; a non-zero exit
-     * from the probe still proves the binary exists.
-     */
-    return (error as NodeJS.ErrnoException).code !== 'ENOENT';
+function hasSshKeygen(): boolean {
+  if (sshKeygenUsable !== undefined) {
+    return sshKeygenUsable;
   }
+
+  const dir = mkdtempSync(join(tmpdir(), 'vibecore-ssh-probe-'));
+
+  try {
+    /*
+     * Probe a real key operation instead of only checking whether the binary
+     * exists. Some minimal containers expose `ssh-keygen` but have no passwd
+     * entry for the current uid, making every useful invocation fail.
+     */
+    execFileSync('ssh-keygen', ['-q', '-t', 'ed25519', '-N', '', '-f', join(dir, 'probe')], {
+      stdio: 'ignore',
+    });
+
+    sshKeygenUsable = true;
+  } catch {
+    sshKeygenUsable = false;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+
+  return sshKeygenUsable;
 }
 
 describe('generateSshKeyPair', () => {

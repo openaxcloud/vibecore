@@ -1,13 +1,62 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   describeAutoApplyFailure,
   describeSnapshotRestoreFailure,
   isPanelAuthError,
+  isProjectPanelRequestTimeout,
   panelAuthRedirectTarget,
+  ProjectPanelRequestGate,
   shouldAutoLoadDatabaseSchema,
   shouldSuppressAutoApplyFailureToast,
   type AutoApplyProposalSnapshot,
+  waitForProjectPanelRetry,
 } from './base-chat-panels';
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+describe('ProjectPanelRequestGate', () => {
+  it('aborts an in-flight request when Retry starts a replacement and keeps the replacement current', () => {
+    const gate = new ProjectPanelRequestGate();
+    const first = gate.begin(15_000);
+    const second = gate.begin(15_000);
+
+    expect(first.signal.aborted).toBe(true);
+    expect(first.signal.reason).toMatchObject({ name: 'AbortError' });
+    expect(second.signal.aborted).toBe(false);
+    expect(gate.isCurrent(first)).toBe(false);
+    expect(gate.isCurrent(second)).toBe(true);
+    expect(gate.complete(first)).toBe(false);
+    expect(gate.active).toBe(true);
+    expect(gate.complete(second)).toBe(true);
+    expect(gate.active).toBe(false);
+  });
+
+  it('times out the active request and identifies the timeout reason', async () => {
+    vi.useFakeTimers();
+
+    const gate = new ProjectPanelRequestGate();
+    const request = gate.begin(15_000);
+
+    await vi.advanceTimersByTimeAsync(15_000);
+
+    expect(request.signal.aborted).toBe(true);
+    expect(isProjectPanelRequestTimeout(request.signal)).toBe(true);
+  });
+
+  it('cancels retry backoff immediately when the request is replaced', async () => {
+    vi.useFakeTimers();
+
+    const gate = new ProjectPanelRequestGate();
+    const request = gate.begin(15_000);
+    const waiting = waitForProjectPanelRetry(5_000, request.signal);
+
+    gate.begin(15_000);
+
+    await expect(waiting).rejects.toMatchObject({ name: 'AbortError' });
+  });
+});
 
 describe('isPanelAuthError', () => {
   it('flags the PANEL_AUTH error code regardless of status', () => {

@@ -36,8 +36,11 @@ import {
   describeAutoApplyFailure,
   describeSnapshotRestoreFailure,
   isPanelAuthError,
+  isProjectPanelRequestTimeout,
   panelAuthRedirectTarget,
+  ProjectPanelRequestGate,
   shouldSuppressAutoApplyFailureToast,
+  waitForProjectPanelRetry,
 } from './base-chat-panels';
 
 import { getApiKeysFromCookies } from './APIKeyManager';
@@ -77,6 +80,8 @@ import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
+import { AgentSkillsPanel } from '~/components/agent-skills/AgentSkillsPanel';
+import { FileHistoryOverlay } from '~/components/file-history';
 import {
   PROJECT_AGENT_PANEL_MIN_WIDTH,
   clampProjectAgentPanelWidth,
@@ -86,7 +91,12 @@ import {
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
+import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import {
+  applyProjectThemePreference,
+  isProjectThemePreference,
+  type ProjectThemePreference,
+} from '~/lib/project-theme-preference';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -176,52 +186,6 @@ const PROJECT_IDE_GUIDED_TOUR_STORAGE_KEY = 'vibecore-project-ide-guided-tour-v1
 const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_IDE_STATE_RESTORE_FALLBACK_MS = 6_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
-type ProjectThemePreference = Theme | 'system';
-
-function isProjectThemePreference(preference: unknown): preference is ProjectThemePreference {
-  return preference === 'dark' || preference === 'light' || preference === 'system';
-}
-
-function resolveProjectThemePreference(preference: unknown): Theme {
-  if (!isProjectThemePreference(preference)) {
-    return DEFAULT_THEME;
-  }
-
-  if (preference === 'dark' || preference === 'light') {
-    return preference;
-  }
-
-  /*
-   * 'system' / unset → respect the user's persisted toggle if they have one, else
-   * the app default (light, matching Replit). We intentionally do NOT follow the OS
-   * color-scheme: it made the IDE dark on dark-mode machines and persisted that to
-   * bolt_theme, flipping the whole app to dark and overriding both the light default
-   * and an explicit light toggle.
-   */
-  if (typeof localStorage !== 'undefined') {
-    const persisted = localStorage.getItem(kTheme);
-
-    if (persisted === 'dark' || persisted === 'light') {
-      return persisted;
-    }
-  }
-
-  return DEFAULT_THEME;
-}
-
-function applyProjectThemePreference(preference: unknown): Theme {
-  const resolvedTheme = resolveProjectThemePreference(preference);
-
-  themeStore.set(resolvedTheme);
-
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(kTheme, resolvedTheme);
-  }
-
-  applyThemeToDocument(resolvedTheme);
-
-  return resolvedTheme;
-}
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
   Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
@@ -4990,6 +4954,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       workbenchStore.saveCurrentDocument().catch(handleSaveError);
     }, [handleSaveError]);
 
+    const onFileHistoryRestored = useCallback((filePath: string, content: string) => {
+      if (!workbenchStore.adoptPersistedFileContent(filePath, content)) {
+        throw new Error('The restored file could not be adopted by the active editor.');
+      }
+
+      workbenchStore.refreshAllPreviews();
+    }, []);
+
     /*
      * Audit v3 (M): save a specific tab's file. The per-tab dirty-dot save
      * button used the generic `onProjectEditorSave`, which always saves the
@@ -6709,7 +6681,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (panel === 'editor') {
           return (
             <div
-              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
+              className="bolt-project-editor-tool vc-file-history-host min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
@@ -6771,6 +6743,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onOpenFile={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
               )}
+              <FileHistoryOverlay
+                projectId={projectId}
+                workspaceId={currentWorkspaceId}
+                filePath={currentDocument?.filePath}
+                isBinary={currentDocument?.isBinary}
+                restoreDisabled={
+                  currentDocument
+                    ? projectFiles[currentDocument.filePath]?.type === 'file' &&
+                      Boolean(projectFiles[currentDocument.filePath]?.isLocked)
+                    : false
+                }
+                restoreDisabledReason="Unlock this file before restoring an earlier version."
+                onRestoredContent={onFileHistoryRestored}
+              />
             </div>
           );
         }
@@ -6868,6 +6854,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         editorProjectFiles,
         initialIdePanels,
         layout,
+        currentWorkspaceId,
+        onFileHistoryRestored,
         onProjectEditorSave,
         openIdeTool,
         openProjectFile,
@@ -9059,6 +9047,7 @@ function ProjectIdeGuidedTour({
 
 const PROJECT_PANEL_FETCH_MAX_ATTEMPTS = 3;
 const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
+const PROJECT_PANEL_FETCH_TIMEOUT_MS = 15_000;
 
 /*
  * How long the initial panel fetch may run before we surface a manual Retry
@@ -9167,7 +9156,12 @@ function ProjectIdeServicePanel({
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
   const [createdShareLink, setCreatedShareLink] = useState<string | undefined>();
   const [refreshLabelNow, setRefreshLabelNow] = useState(() => new Date());
-  const loadingPanelRef = useRef(false);
+  const panelRequestGateRef = useRef<ProjectPanelRequestGate>();
+
+  if (!panelRequestGateRef.current) {
+    panelRequestGateRef.current = new ProjectPanelRequestGate();
+  }
+
   const panelActionsRef = useRef<HTMLDivElement | null>(null);
 
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
@@ -9209,15 +9203,19 @@ function ProjectIdeServicePanel({
           return response;
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(response, attempt)));
+        await waitForProjectPanelRetry(projectPanelFetchRetryDelay(response, attempt), init?.signal);
       } catch (error) {
         lastNetworkError = error;
+
+        if (init?.signal?.aborted) {
+          throw error;
+        }
 
         if (!shouldRetryProjectPanelNetworkError(method, attempt)) {
           throw error;
         }
 
-        await new Promise((resolve) => window.setTimeout(resolve, projectPanelFetchRetryDelay(undefined, attempt)));
+        await waitForProjectPanelRetry(projectPanelFetchRetryDelay(undefined, attempt), init?.signal);
       }
     }
 
@@ -9225,19 +9223,23 @@ function ProjectIdeServicePanel({
   }, []);
 
   const loadPanel = useCallback(
-    async (options?: { silent?: boolean }) => {
+    async (options?: { silent?: boolean; restart?: boolean }) => {
       if (!projectId) {
         return;
       }
 
-      if (loadingPanelRef.current) {
+      const requestGate = panelRequestGateRef.current!;
+
+      if (requestGate.active && !options?.restart) {
         return;
       }
 
-      loadingPanelRef.current = true;
+      const controller = requestGate.begin(PROJECT_PANEL_FETCH_TIMEOUT_MS);
 
       if (!options?.silent) {
         setBusy(true);
+      } else {
+        setBusy(false);
       }
 
       setError(undefined);
@@ -9245,11 +9247,16 @@ function ProjectIdeServicePanel({
       try {
         const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
           headers: { accept: 'application/json' },
+          signal: controller.signal,
         });
         const result = (await response.json()) as {
           error?: { code: string; message: string; retryable: boolean } | string;
           status?: 'ok' | 'empty' | 'error';
         };
+
+        if (!requestGate.isCurrent(controller) || controller.signal.aborted) {
+          return;
+        }
 
         const errorCode = typeof result.error === 'object' ? result.error?.code : undefined;
 
@@ -9285,15 +9292,25 @@ function ProjectIdeServicePanel({
           writeProjectPanelCache(`${projectId}:${panel}`, { payload: result, lastLoadedAt: loadedAt });
         }
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
+        if (!requestGate.isCurrent(controller)) {
+          return;
+        }
+
+        if (controller.signal.aborted && !isProjectPanelRequestTimeout(controller.signal)) {
+          return;
+        }
+
+        if (isProjectPanelRequestTimeout(controller.signal)) {
+          setError('This panel took too long to respond. Retry to start a fresh request.');
+        } else {
+          setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
+        }
 
         if (!options?.silent) {
           setPayload(undefined);
         }
       } finally {
-        loadingPanelRef.current = false;
-
-        if (!options?.silent) {
+        if (requestGate.complete(controller) && !options?.silent) {
           setBusy(false);
         }
       }
@@ -9316,8 +9333,15 @@ function ProjectIdeServicePanel({
       setLastLoadedAt(new Date().toISOString());
     }
 
-    void loadPanel({ silent: seeded });
+    void loadPanel({ silent: seeded, restart: true });
   }, [initialPayload, loadPanel, panel, projectId]);
+
+  useEffect(
+    () => () => {
+      panelRequestGateRef.current?.abort();
+    },
+    [],
+  );
 
   /*
    * Only surface a manual Retry once the initial load has been stuck past
@@ -9622,7 +9646,7 @@ function ProjectIdeServicePanel({
                 <button
                   type="button"
                   className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  onClick={() => void loadPanel()}
+                  onClick={() => void loadPanel({ restart: true })}
                 >
                   Retry
                 </button>
@@ -11530,7 +11554,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'skills') {
-    return <ProjectSkillsPanel projectId={projectId} data={data} busy={busy} reload={reload} />;
+    return <AgentSkillsPanel projectId={projectId} data={data} busy={busy} reload={reload} />;
   }
 
   if (panel === 'ports') {
@@ -12722,7 +12746,7 @@ function ProjectSettingsPanel({
 
       if (intent === 'preferences') {
         const themePreference = formData.get('theme');
-        pendingThemePreferenceRef.current = isProjectThemePreference(themePreference) ? themePreference : DEFAULT_THEME;
+        pendingThemePreferenceRef.current = isProjectThemePreference(themePreference) ? themePreference : 'system';
       }
 
       settingsNoticeRef.current = message;
@@ -14608,535 +14632,6 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           </>
         )}
       </section>
-    </div>
-  );
-}
-
-interface ProjectSkill {
-  id: string;
-  name: string;
-  description?: string;
-  category?: string;
-  enabled?: boolean;
-  source?: string;
-  updatedAt?: string | null;
-}
-
-/** A curated community catalog entry (F#27). */
-interface SkillCatalogEntry {
-  ownerRepo: string;
-  name: string;
-  description: string;
-  category: string;
-  homepageUrl: string;
-  installCount: number;
-  installedInProject: boolean;
-  installedInWorkspace: boolean;
-}
-
-/** An installed GitHub-repo skill row (F#27). */
-interface InstalledSkill {
-  id: string;
-  ownerRepo: string;
-  name: string;
-  description: string;
-  instructions: string;
-  homepageUrl?: string | null;
-  enabled: boolean;
-  scope: string;
-}
-
-/*
- * Per-project agent Skills registry (F#27). Three tabs:
- *  - Project   — builtin catalog toggles (ProjectSkill overrides) + project-scoped
- *                installed GitHub-repo skills.
- *  - Workspace — installed GitHub-repo skills scoped to the project's workspace.
- *  - Community — the curated public skill-repo catalog: browse, search, install,
- *                and open a chevron detail with the fetched instructions.
- * Every write goes through the ide-panel proxy (/projects/:id/ide-panel/skills)
- * which relays to the real, additive, unflagged backend.
- */
-type SkillsTab = 'project' | 'workspace' | 'community';
-type SkillInstallScope = 'project' | 'workspace';
-
-function ProjectSkillsPanel({
-  projectId,
-  data,
-  busy,
-  reload,
-}: {
-  projectId?: string;
-  data: any;
-  busy: boolean;
-  reload?: () => void | Promise<void>;
-}) {
-  const skills = (data?.skills ?? []) as ProjectSkill[];
-  const catalog = (data?.catalog ?? []) as SkillCatalogEntry[];
-  const installedProject = (data?.installedProject ?? []) as InstalledSkill[];
-  const installedWorkspace = (data?.installedWorkspace ?? []) as InstalledSkill[];
-  const hasWorkspace = Boolean(data?.hasWorkspace);
-
-  const [tab, setTab] = useState<SkillsTab>('project');
-  const [pending, setPending] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [note, setNote] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
-  const [communityScope, setCommunityScope] = useState<SkillInstallScope>('project');
-  const [expanded, setExpanded] = useState<string | null>(null);
-  const [confirming, setConfirming] = useState<string | null>(null);
-
-  const submit = useCallback(
-    async (fields: Record<string, string>, key: string) => {
-      if (!projectId) {
-        return false;
-      }
-
-      setPending(key);
-      setError(null);
-      setNote(null);
-
-      try {
-        const form = new FormData();
-
-        for (const [name, value] of Object.entries(fields)) {
-          form.append(name, value);
-        }
-
-        const response = await fetch(`/api/projects/${projectId}/ide-panel/skills`, { method: 'POST', body: form });
-        const result = (await response.json().catch(() => ({}))) as { error?: string; note?: string };
-
-        if (!response.ok) {
-          throw new Error(result.error ?? 'Unable to update skills.');
-        }
-
-        if (result.note) {
-          setNote(result.note);
-        }
-
-        await reload?.();
-
-        return true;
-      } catch (actionError) {
-        setError(actionError instanceof Error ? actionError.message : 'Unable to update skills.');
-
-        return false;
-      } finally {
-        setPending(null);
-      }
-    },
-    [projectId, reload],
-  );
-
-  const toggleBuiltin = useCallback(
-    (skill: ProjectSkill) =>
-      submit({ intent: skill.enabled ? 'disable' : 'enable', skillId: skill.id }, `b:${skill.id}`),
-    [submit],
-  );
-
-  const installFromCatalog = useCallback(
-    (ownerRepo: string, scope: SkillInstallScope) => submit({ intent: 'install', ownerRepo, scope }, `i:${ownerRepo}`),
-    [submit],
-  );
-
-  const uninstall = useCallback(
-    async (ownerRepo: string, scope: SkillInstallScope) => {
-      const ok = await submit({ intent: 'uninstall', ownerRepo, scope }, `u:${scope}:${ownerRepo}`);
-
-      if (ok) {
-        setConfirming(null);
-      }
-    },
-    [submit],
-  );
-
-  const toggleInstalled = useCallback(
-    (skill: InstalledSkill, scope: SkillInstallScope) =>
-      submit(
-        { intent: skill.enabled ? 'disable-installed' : 'enable-installed', ownerRepo: skill.ownerRepo, scope },
-        `t:${scope}:${skill.ownerRepo}`,
-      ),
-    [submit],
-  );
-
-  const needle = query.trim().toLowerCase();
-
-  const filteredCatalog = needle
-    ? catalog.filter(
-        (entry) =>
-          entry.name.toLowerCase().includes(needle) ||
-          entry.description.toLowerCase().includes(needle) ||
-          entry.ownerRepo.toLowerCase().includes(needle) ||
-          entry.category.toLowerCase().includes(needle),
-      )
-    : catalog;
-
-  const tabs: Array<{ id: SkillsTab; label: string; count: number }> = [
-    { id: 'project', label: 'Project', count: skills.filter((s) => s.enabled).length + installedProject.length },
-    { id: 'workspace', label: 'Workspace', count: installedWorkspace.length },
-    { id: 'community', label: 'Community', count: catalog.length },
-  ];
-
-  const tabButtonClass = (active: boolean) =>
-    `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-      active
-        ? 'bg-[var(--vc-ide-accent-action)] text-white'
-        : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
-    }`;
-
-  return (
-    <div className="bolt-project-managed-panel bolt-project-skills-panel">
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-bolt-elements-borderColor pb-3">
-        {tabs.map((entry) => (
-          <button
-            key={entry.id}
-            type="button"
-            onClick={() => setTab(entry.id)}
-            className={tabButtonClass(tab === entry.id)}
-            aria-pressed={tab === entry.id}
-          >
-            {entry.label}
-            <span className="ml-1.5 opacity-70">{entry.count}</span>
-          </button>
-        ))}
-      </div>
-
-      {error ? (
-        <p
-          className="mt-3 rounded-md border border-[var(--vc-ide-accent-error)]/40 px-3 py-2 text-xs text-[var(--status-error-text)]"
-          role="status"
-        >
-          {error}
-        </p>
-      ) : null}
-      {note ? (
-        <p className="mt-3 text-xs text-bolt-elements-textSecondary" role="status">
-          {note}
-        </p>
-      ) : null}
-
-      {tab === 'project' ? (
-        <section className="mt-3 grid gap-4">
-          <div className="grid gap-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              Builtin skills
-            </h4>
-            <p className="text-xs text-bolt-elements-textSecondary">
-              Toggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.
-            </p>
-            {skills.length ? (
-              skills.map((skill) => (
-                <div
-                  key={skill.id}
-                  className="flex items-center justify-between gap-3 rounded-md border border-bolt-elements-borderColor px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
-                    {skill.description ? (
-                      <span className="block text-xs text-bolt-elements-textSecondary">{skill.description}</span>
-                    ) : null}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void toggleBuiltin(skill)}
-                    disabled={busy || pending === `b:${skill.id}`}
-                    className={`shrink-0 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
-                      skill.enabled
-                        ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
-                    }`}
-                    aria-pressed={Boolean(skill.enabled)}
-                  >
-                    {pending === `b:${skill.id}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
-              ))
-            ) : (
-              <div className="bolt-project-empty-panel">No builtin skills are available.</div>
-            )}
-          </div>
-
-          <InstalledSkillsList
-            title="Installed from GitHub (project)"
-            emptyLabel="No project-scoped skills installed yet. Browse the Community tab to add some."
-            skills={installedProject}
-            scope="project"
-            busy={busy}
-            pending={pending}
-            expanded={expanded}
-            confirming={confirming}
-            onExpand={setExpanded}
-            onConfirm={setConfirming}
-            onToggle={toggleInstalled}
-            onUninstall={uninstall}
-          />
-        </section>
-      ) : null}
-
-      {tab === 'workspace' ? (
-        <section className="mt-3 grid gap-4">
-          {!hasWorkspace ? (
-            <div className="bolt-project-empty-panel">
-              This project has no workspace yet. Open the project once, then install workspace-scoped skills.
-            </div>
-          ) : (
-            <InstalledSkillsList
-              title="Installed from GitHub (workspace)"
-              emptyLabel="No workspace-scoped skills installed yet."
-              skills={installedWorkspace}
-              scope="workspace"
-              busy={busy}
-              pending={pending}
-              expanded={expanded}
-              confirming={confirming}
-              onExpand={setExpanded}
-              onConfirm={setConfirming}
-              onToggle={toggleInstalled}
-              onUninstall={uninstall}
-            />
-          )}
-        </section>
-      ) : null}
-
-      {tab === 'community' ? (
-        <section className="mt-3 grid gap-3">
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search skills by name, repo, or category"
-            className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:outline-none"
-          />
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
-            <span>Install to:</span>
-            {(['project', 'workspace'] as SkillInstallScope[]).map((scope) => (
-              <button
-                key={scope}
-                type="button"
-                onClick={() => setCommunityScope(scope)}
-                disabled={scope === 'workspace' && !hasWorkspace}
-                className={`rounded-md border px-2.5 py-1 font-medium capitalize transition-colors disabled:opacity-50 ${
-                  communityScope === scope
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
-                    : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
-                }`}
-              >
-                {scope}
-              </button>
-            ))}
-          </div>
-
-          {filteredCatalog.length ? (
-            filteredCatalog.map((entry) => {
-              const installed = communityScope === 'project' ? entry.installedInProject : entry.installedInWorkspace;
-
-              const isExpanded = expanded === `c:${entry.ownerRepo}`;
-
-              return (
-                <div key={entry.ownerRepo} className="rounded-md border border-bolt-elements-borderColor px-3 py-2.5">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setExpanded(isExpanded ? null : `c:${entry.ownerRepo}`)}
-                      className="flex min-w-0 flex-1 items-start gap-2 text-left"
-                      aria-expanded={isExpanded}
-                    >
-                      <span
-                        className={`i-ph:caret-right mt-0.5 shrink-0 text-bolt-elements-textSecondary transition-transform ${
-                          isExpanded ? 'rotate-90' : ''
-                        }`}
-                      />
-                      <span className="min-w-0">
-                        <strong className="block truncate text-sm text-bolt-elements-textPrimary">{entry.name}</strong>
-                        <span className="block truncate text-xs text-bolt-elements-textTertiary">
-                          {entry.ownerRepo}
-                        </span>
-                        <span className="mt-0.5 block text-xs text-bolt-elements-textSecondary">
-                          {entry.description}
-                        </span>
-                        <span className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-bolt-elements-textTertiary">
-                          <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize">
-                            {entry.category}
-                          </span>
-                          <span>
-                            {entry.installCount} install{entry.installCount === 1 ? '' : 's'}
-                          </span>
-                        </span>
-                      </span>
-                    </button>
-
-                    {installed ? (
-                      <button
-                        type="button"
-                        onClick={() => void uninstall(entry.ownerRepo, communityScope)}
-                        disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
-                      >
-                        {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : 'Uninstall'}
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => void installFromCatalog(entry.ownerRepo, communityScope)}
-                        disabled={busy || pending === `i:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                      >
-                        {pending === `i:${entry.ownerRepo}` ? 'Installing…' : 'Install'}
-                      </button>
-                    )}
-                  </div>
-
-                  {isExpanded ? (
-                    <div className="mt-2 border-t border-bolt-elements-borderColor pt-2 text-xs text-bolt-elements-textSecondary">
-                      <a
-                        href={entry.homepageUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[var(--vc-ide-accent-action)] hover:underline"
-                      >
-                        <span className="i-ph:github-logo" />
-                        {entry.homepageUrl.replace(/^https?:\/\//, '')}
-                      </a>
-                    </div>
-                  ) : null}
-                </div>
-              );
-            })
-          ) : (
-            <div className="bolt-project-empty-panel">No community skills match “{query}”.</div>
-          )}
-        </section>
-      ) : null}
-    </div>
-  );
-}
-
-/** Shared list of installed GitHub-repo skills with toggle + confirm-uninstall + chevron detail. */
-function InstalledSkillsList({
-  title,
-  emptyLabel,
-  skills,
-  scope,
-  busy,
-  pending,
-  expanded,
-  confirming,
-  onExpand,
-  onConfirm,
-  onToggle,
-  onUninstall,
-}: {
-  title: string;
-  emptyLabel: string;
-  skills: InstalledSkill[];
-  scope: SkillInstallScope;
-  busy: boolean;
-  pending: string | null;
-  expanded: string | null;
-  confirming: string | null;
-  onExpand: (key: string | null) => void;
-  onConfirm: (key: string | null) => void;
-  onToggle: (skill: InstalledSkill, scope: SkillInstallScope) => void | Promise<unknown>;
-  onUninstall: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
-}) {
-  return (
-    <div className="grid gap-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">{title}</h4>
-      {skills.length ? (
-        skills.map((skill) => {
-          const rowKey = `${scope}:${skill.ownerRepo}`;
-          const isExpanded = expanded === `s:${rowKey}`;
-          const isConfirming = confirming === rowKey;
-
-          return (
-            <div key={skill.id} className="rounded-md border border-bolt-elements-borderColor px-3 py-2.5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={() => onExpand(isExpanded ? null : `s:${rowKey}`)}
-                  className="flex min-w-0 flex-1 items-start gap-2 text-left"
-                  aria-expanded={isExpanded}
-                >
-                  <span
-                    className={`i-ph:caret-right mt-0.5 shrink-0 text-bolt-elements-textSecondary transition-transform ${
-                      isExpanded ? 'rotate-90' : ''
-                    }`}
-                  />
-                  <span className="min-w-0">
-                    <strong className="block truncate text-sm text-bolt-elements-textPrimary">{skill.name}</strong>
-                    <span className="block truncate text-xs text-bolt-elements-textTertiary">{skill.ownerRepo}</span>
-                  </span>
-                </button>
-
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => void onToggle(skill, scope)}
-                    disabled={busy || pending === `t:${rowKey}`}
-                    className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-60 ${
-                      skill.enabled
-                        ? 'border-bolt-elements-focus bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
-                        : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
-                    }`}
-                    aria-pressed={skill.enabled}
-                  >
-                    {pending === `t:${rowKey}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
-                  </button>
-
-                  {isConfirming ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => void onUninstall(skill.ownerRepo, scope)}
-                        disabled={busy || pending === `u:${rowKey}`}
-                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                      >
-                        {pending === `u:${rowKey}` ? '…' : 'Confirm'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onConfirm(null)}
-                        className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => onConfirm(rowKey)}
-                      className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10"
-                    >
-                      Uninstall
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {isExpanded ? (
-                <div className="mt-2 border-t border-bolt-elements-borderColor pt-2">
-                  {skill.homepageUrl ? (
-                    <a
-                      href={skill.homepageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mb-1 inline-flex items-center gap-1 text-xs text-[var(--vc-ide-accent-action)] hover:underline"
-                    >
-                      <span className="i-ph:github-logo" />
-                      {skill.homepageUrl.replace(/^https?:\/\//, '')}
-                    </a>
-                  ) : null}
-                  <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-bolt-elements-background-depth-2 p-2 text-xs text-bolt-elements-textSecondary">
-                    {skill.instructions}
-                  </pre>
-                </div>
-              ) : null}
-            </div>
-          );
-        })
-      ) : (
-        <div className="bolt-project-empty-panel">{emptyLabel}</div>
-      )}
     </div>
   );
 }
@@ -19897,7 +19392,7 @@ function ProjectDeploymentsPanel({
                     </a>
                     <button
                       type="button"
-                      onClick={() => void navigator.clipboard?.writeText(deployment.url).catch(() => {})}
+                      onClick={() => void navigator.clipboard?.writeText(deployment.url).catch(() => undefined)}
                     >
                       Copy link
                     </button>

@@ -1,11 +1,12 @@
 # IDE Backend Contracts (hand-off to the IDE session)
 
-> Audit date: 2026-06-29. Source of truth verified against live prod + code at
-> `680529bc`. "EXPOSED" = a real backend endpoint exists today. "GAP" = not yet
+> Audit date: 2026-07-15. Source of truth verified against the current codebase.
+> "EXPOSED" = a real backend endpoint exists today. "GAP" = not yet
 > implemented; spec is provided so the IDE session can build UI against a frozen
 > contract while the backend lands.
 >
 > Two layers per panel:
+>
 > - **IDE proxy** (what the IDE actually calls): Remix route
 >   `POST /api/projects/:projectId/ide-panel/:panel` — form-encoded body with an
 >   `intent` field. Returns JSON. File:
@@ -26,7 +27,7 @@ wrapped in a single `BEGIN…COMMIT` (ROLLBACK on any error).
   (`services/api/src/app.ts` `runDatabaseQuery()`), guarded by `requireProject(…, 'projects:write')`.
 - **Response:**
   ```json
-  { "result": { "columns": ["id","note"], "rows": [{"id":1,"note":"x"}], "rowCount": 1 } }
+  { "result": { "columns": ["id", "note"], "rows": [{ "id": 1, "note": "x" }], "rowCount": 1 } }
   ```
   BigInts serialized as strings. Errors → `{ "error": "<pg message>" }`.
 - **Proof:** api image deployed at `a0a34eb6`. Live project Postgres
@@ -56,16 +57,33 @@ env key `VIBECORE_WORKFLOWS_STATE`.
   | `run-workflow` | `{ workflowId }` |
 - **Workflow shape:**
   ```json
-  { "id": 0, "projectId": null, "name": "", "executionMode": "sequential",
-    "isRunButton": false, "isGenerated": false, "isSystem": false, "enabled": true,
-    "createdAt": "ISO", "updatedAt": "ISO", "lastRunAt": "ISO?", "lastRunStatus": "?",
-    "tasks": [{ "id": 0, "orderIndex": 0, "taskType": "shell", "command": "", "targetWorkflowId": null }] }
+  {
+    "id": 0,
+    "projectId": null,
+    "name": "",
+    "executionMode": "sequential",
+    "isRunButton": false,
+    "isGenerated": false,
+    "isSystem": false,
+    "enabled": true,
+    "createdAt": "ISO",
+    "updatedAt": "ISO",
+    "lastRunAt": "ISO?",
+    "lastRunStatus": "?",
+    "tasks": [{ "id": 0, "orderIndex": 0, "taskType": "shell", "command": "", "targetWorkflowId": null }]
+  }
   ```
 - **Run shape (logs streamed inline as an array):**
   ```json
-  { "id": "uuid", "workflowId": 0, "workflowName": "", "status": "running|skipped|failed|succeeded",
-    "startedAt": "ISO", "finishedAt": "ISO?",
-    "logs": [{ "level": "info|error", "message": "", "timestamp": "ISO" }] }
+  {
+    "id": "uuid",
+    "workflowId": 0,
+    "workflowName": "",
+    "status": "running|skipped|failed|succeeded",
+    "startedAt": "ISO",
+    "finishedAt": "ISO?",
+    "logs": [{ "level": "info|error", "message": "", "timestamp": "ISO" }]
+  }
   ```
   `runs` retains the last 25.
 - **Note for IDE:** logs are returned with the run object (poll the run), not a long-lived
@@ -87,16 +105,34 @@ the workspace. State persisted as project env key `VIBECORE_SECURITY_STATE`.
   | `hide-vulnerability` / `unhide-vulnerability` | `{ vulnerabilityId }` |
 - **Scan record:**
   ```json
-  { "id": "uuid", "scanType": "full", "scanner": "<profile>", "status": "completed|failed",
-    "startedAt": "ISO", "completedAt": "ISO", "summary": "N finding(s)", "exitCode": 0,
-    "counts": { "critical":0,"high":0,"moderate":0,"low":0,"info":0 },
-    "sources": { "npm-audit": true, "sast": true, "secrets": true } }
+  {
+    "id": "uuid",
+    "scanType": "full",
+    "scanner": "<profile>",
+    "status": "completed|failed",
+    "startedAt": "ISO",
+    "completedAt": "ISO",
+    "summary": "N finding(s)",
+    "exitCode": 0,
+    "counts": { "critical": 0, "high": 0, "moderate": 0, "low": 0, "info": 0 },
+    "sources": { "npm-audit": true, "sast": true, "secrets": true }
+  }
   ```
 - **Vulnerability:**
   ```json
-  { "id": "npm:…|sast:…", "packageName": "", "title": "", "severity": "critical|high|moderate|low|info",
-    "status": "open|fixed|ignored", "hidden": false, "source": "npm-audit|sast|secrets|workspace-runtime",
-    "details": "", "recommendation": "?", "createdAt": "ISO", "updatedAt": "ISO" }
+  {
+    "id": "npm:…|sast:…",
+    "packageName": "",
+    "title": "",
+    "severity": "critical|high|moderate|low|info",
+    "status": "open|fixed|ignored",
+    "hidden": false,
+    "source": "npm-audit|sast|secrets|workspace-runtime",
+    "details": "",
+    "recommendation": "?",
+    "createdAt": "ISO",
+    "updatedAt": "ISO"
+  }
   ```
 - Scans retain last 20; scheduled scans auto-fire when due.
 
@@ -126,11 +162,11 @@ The command materializes it to an ephemeral `0600` temp file (`mktemp`, `umask
 077`), uses it, and `trap`-deletes it on exit:
 
 - `connect-ssh`: `ssh -i <ephemeral> -o IdentitiesOnly=yes -o BatchMode=yes -o
-  StrictHostKeyChecking=accept-new … 'echo vibecore-ssh-connected'` —
+StrictHostKeyChecking=accept-new … 'echo vibecore-ssh-connected'` —
   `IdentitiesOnly=yes` offers ONLY this connection's key (no default-identity
   leak across tenants).
 - `git-ssh`: `GIT_SSH_COMMAND="ssh -i <ephemeral> …" git ls-remote --heads
-  <repoUrl>` — read-only access proof; `repoUrl` must be an SSH git URL
+<repoUrl>` — read-only access proof; `repoUrl` must be an SSH git URL
   (`git@host:path` or `ssh://…`), https is rejected to force the SSH path.
 
 Isolation is **guaranteed by construction**: each pod only carries its own
@@ -173,8 +209,8 @@ now built and **proven against a real OpenSSH origin**.
   whose `host` matches the origin host; if none matches but exactly **one** key exists
   it is used (unambiguous); otherwise the op errors asking the user to disambiguate.
 - **Push semantics:** `fetch origin <branch>` → `update-ref`+`symbolic-ref`+`reset
-  --mixed` to base on the remote tip **without disturbing the working tree** → `git
-  add -A` (working tree is the source of truth, like Replit) → commit if changed →
+--mixed` to base on the remote tip **without disturbing the working tree** → `git
+add -A` (working tree is the source of truth, like Replit) → commit if changed →
   `git push origin HEAD:<branch>`. First push to a new branch creates it.
 - **Pull semantics:** `fetch` → `merge --ff-only` (fresh tree → materialize remote);
   a genuine divergence exits non-zero with an actionable message.
@@ -210,12 +246,24 @@ present `node_modules/`/`.env`).
 start — a key added mid-session needs a workspace restart (prelude exits `97` with an
 actionable message). And `git add -A` makes the remote match the pod working tree
 exactly (Replit container semantics; same `--all` behavior as the api-pod path).
+
 - **Connection shape** (keygen adds `publicKey`, `fingerprint`, `keyType`):
   ```json
-  { "id": "uuid", "name": "", "host": "", "port": 22, "username": "",
-    "status": "connected|connecting|disconnected", "createdAt": "ISO",
-    "updatedAt": "ISO?", "lastCheckedAt": "ISO?", "lastError": "?",
-    "publicKey": "ssh-ed25519 AAAA… comment", "fingerprint": "SHA256:…", "keyType": "ed25519|rsa" }
+  {
+    "id": "uuid",
+    "name": "",
+    "host": "",
+    "port": 22,
+    "username": "",
+    "status": "connected|connecting|disconnected",
+    "createdAt": "ISO",
+    "updatedAt": "ISO?",
+    "lastCheckedAt": "ISO?",
+    "lastError": "?",
+    "publicKey": "ssh-ed25519 AAAA… comment",
+    "fingerprint": "SHA256:…",
+    "keyType": "ed25519|rsa"
+  }
   ```
 - **`generate-keypair` (IMPLEMENTED):** server mints the pair with `node:crypto` (no external
   dep), defaults to ed25519 (3072-bit for rsa). Private key stored encrypted and **never
@@ -230,8 +278,9 @@ exactly (Replit container semantics; same `--all` behavior as the api-pod path).
 
 Real `@google-cloud/storage` backend, bucket-per-project, V4 signed URLs, lifecycle.
 Shipped on branch `feat/object-storage-gcs` @`2ded58b3` (`services/api/src/object-storage.ts`
-+ routes in `app.ts`; 21 unit tests). **Dormant** until `OBJECT_STORAGE_ENABLED=true`
-(every route 404s while off). Auth = api pod Workload Identity (ADC).
+
+- routes in `app.ts`; 21 unit tests). **Dormant** until `OBJECT_STORAGE_ENABLED=true`
+  (every route 404s while off). Auth = api pod Workload Identity (ADC).
 
 **Live-proven 2026-06-29** (real GCS, project `vibecore-495216`): bucket create in `EU`
 with uniform bucket-level access + `tmp/` lifecycle rule (age 7), object upload, list
@@ -239,6 +288,7 @@ with `/` delimiter (folders), move (copy+delete), download bytes, single delete,
 delete-prefix — all green. Unit tests (21) + api typecheck clean.
 
 **Live-enable (needs Avi — prod IAM/security, blocked from automation):**
+
 1. Grant GSA `vibecore-prod-platform@…` `roles/storage.admin` (today it has only
    `secretmanager.secretAccessor`).
 2. Give the api pod that identity — pick one:
@@ -270,47 +320,80 @@ delete-prefix — all green. Unit tests (21) + api typecheck clean.
 
 ---
 
-## 5. Skills registry — IMPLEMENTED ✅ (builtin catalog + per-project toggles)
+## 5. Open-standard Agent Skills — IMPLEMENTED ✅ (workspace-scoped + audited)
 
-Real, additive backend. The catalog is a static code-owned list
-(`services/api/src/skills-catalog.ts`, 10 builtin skills); per-project state is a
-sparse `ProjectSkill` override table (migration `0048_project_skills`). The list
-endpoint is a pure merge of catalog defaults with the project's overrides. No
-feature flag — inert until the IDE calls it (no existing behaviour touched).
+Skills follow the open [Agent Skills specification](https://agentskills.io/specification):
+one folder at `.agents/skills/<name>/` whose entry point is `SKILL.md`. This is the
+sole supported Skills contract; the former proprietary builtin registry has been
+removed rather than retained as a compatibility layer.
+
+An imported GitHub folder is resolved to an immutable commit SHA, hashed, statically
+audited, and persisted as an immutable `AgentSkillArtifact` bundle (migration
+`0071_agent_skill_audit`). It is quarantined until a `security:manage` reviewer reads
+the complete text bundle and approves that exact digest. Every lifecycle transition
+adds an immutable `AgentSkillAuditEvent`; the history uses keyset pagination ordered
+by `(createdAt DESC, id DESC)` so tied timestamps cannot create gaps.
 
 - **IDE proxy:** `GET/POST /api/projects/:projectId/ide-panel/skills`
-- **Internal API** (`requireProject` read on GET, write on toggles):
-  | method | route | body | response |
-  |---|---|---|---|
-  | GET | `/projects/:id/skills` | — | `{ skills: [Skill] }` (full catalog, resolved) |
-  | POST | `/projects/:id/skills/:skillId/enable` | `{}` | `{ skill: Skill }` |
-  | POST | `/projects/:id/skills/:skillId/disable` | `{}` | `{ skill: Skill }` |
-- **Skill shape:**
-  ```json
-  { "id": "code-review", "name": "Code Review", "description": "…", "category": "quality",
-    "enabled": true, "source": "builtin", "updatedAt": "ISO"|null }
-  ```
-  `updatedAt` is `null` while the skill sits at its catalog default (no override row).
-- Unknown `skillId` → `404 { code: "SKILL_NOT_FOUND" }`. Builtin slugs are stable
-  identifiers (never rename once shipped).
-- Proof: 6 catalog/resolver unit tests + 5 route tests (list/enable/disable/404/401),
-  api production typecheck clean.
+  - GET query: `workspaceId` (the proxy resolves the primary workspace when omitted).
+  - POST form intents: `import-catalog`, `import-custom`, `inspect`, `approve`,
+    `reject`, `enable`, `disable`, `revoke`. Every intent carries `workspaceId`;
+    lifecycle writes also carry the exact lowercase SHA-256 `digest` and a `reason`.
+- **Internal API:** all routes authorize the project and the exact workspace server-side.
+
+  | method | route                                                | body / query                                                                      | response                                                                            |
+  | ------ | ---------------------------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+  | GET    | `/projects/:id/skills`                               | `?workspaceId=`                                                                   | `{ artifacts, runtimeApprovals, runtimePolicies, standard }`                        |
+  | GET    | `/projects/:id/skills/runtime-context`               | `?workspaceId=`                                                                   | `{ projectId, workspaceKey, runtimePolicies, files }` (server-side agent bootstrap) |
+  | GET    | `/projects/:id/skills/catalog`                       | `?workspaceId=&q=`                                                                | `{ entries }`; browse-only, every install still goes through audit                  |
+  | POST   | `/projects/:id/skills/import`                        | `{ workspaceId, catalogId }` **or** `{ workspaceId, ownerRepo, skillPath, ref? }` | `{ artifact, created }` (`201` new, `200` idempotent)                               |
+  | GET    | `/projects/:id/skills/artifacts/:artifactId`         | `?workspaceId=&eventLimit=&eventCursor=`                                          | `{ artifact, reviewFiles, events, nextEventCursor? }`                               |
+  | POST   | `/projects/:id/skills/artifacts/:artifactId/approve` | `{ workspaceId, digest, reason, acknowledgedUntrustedContent:true }`              | `{ artifact, idempotent }`                                                          |
+  | POST   | `/projects/:id/skills/artifacts/:artifactId/reject`  | `{ workspaceId, digest, reason }`                                                 | `{ artifact }`                                                                      |
+  | POST   | `/projects/:id/skills/artifacts/:artifactId/enable`  | `{ workspaceId, digest, reason }`                                                 | `{ artifact, idempotent }`                                                          |
+  | POST   | `/projects/:id/skills/artifacts/:artifactId/disable` | `{ workspaceId, digest, reason }`                                                 | `{ artifact, idempotent }`                                                          |
+  | POST   | `/projects/:id/skills/artifacts/:artifactId/revoke`  | `{ workspaceId, digest, reason }`                                                 | `{ artifact }`                                                                      |
+
+`eventLimit` is `1..200` (default `100`). `eventCursor` is opaque; invalid or
+unsupported cursors return `400 AGENT_SKILL_AUDIT_CURSOR_INVALID`. Continue until
+`nextEventCursor` is absent to retrieve the complete append-only audit trail.
+
+Security invariants:
+
+- custom imports are public GitHub reads with no server credential; only the fixed
+  catalog may use the dedicated public-read-only `GITHUB_SKILLS_AUDIT_TOKEN`;
+- approval is blocked by specification/security findings and requires explicit
+  acknowledgement of all untrusted text resources; binary files are retained in
+  inventory evidence but make an external artifact ineligible for approval;
+- installation writes the audited bytes to `.agents/skills/<name>` plus a managed
+  sidecar manifest. Missing/stale markers or disabled/revoked policies fail closed;
+- the runtime snapshot calls workspace-agent tree/read with `noFollow=1`; final or
+  ancestor symlinks and concurrent path swaps fail the complete Skills context closed;
+- runtime policy history is canonicalized to one entry per exact name. Inactive
+  states are metadata-only tombstones (no bundle N+1); only the unique
+  `approved+enabled` entry loads a bounded path/length/SHA-256 manifest. Limits are
+  4,096 history rows, 512 names, 512 active manifest files total, and 10 MiB of
+  active skill+marker bytes, with overflow or
+  conflicting active rows rejected;
+- model disclosure is progressive: the ordinary system prompt receives only skill
+  name/description/location. Full instructions and text resources enter context only
+  through the local `activate_skill` and `read_skill_resource` tools.
 
 ---
 
 ## Status summary
 
-| # | Capability | Status | Proof / gap |
-|---|---|---|---|
-| 0 | SQL read/write | EXPOSED ✅ | live RW proof 2026-06-29; api@a0a34eb6 |
-| 1 | Workflows | EXPOSED ✅ | real exec via runtime; logs per-run (no SSE) |
-| 2 | Security scanner | EXPOSED ✅ | npm audit + secret/SAST grep in workspace |
-| 3 | SSH store/test/keygen + git-over-SSH | EXPOSED ✅ | real **key-based** ssh test + `git-ssh` (`git ls-remote`) run in the per-tenant workspace pod with an ephemeral key (key value never in args/logs); server keygen; 14 tests (6 keygen incl. OpenSSH interop + 8 builders). GAP: shared-api-pod `GitCliProvider` push/pull not key-wired (gated, see §3) |
-| 4 | Object Storage GCS | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4) |
-| 5 | Skills registry | IMPLEMENTED ✅ | `ProjectSkill` table (`0048`) + builtin catalog; 11 tests; additive/unflagged |
-| 6 | Free-tier DB (shared-pg-0) | CODE DONE ✅ | admin-SQL tenant provisioning (role+db+isolation) live-proven vs real Postgres; 22 tests; Helm template gated; activation needs Avi (cluster bootstrap + manager deploy + `DB_SHARED_TENANT_SECRET`) |
-| 7 | Hibernation (workspace) | IMPLEMENTED ✅ | GC reconciler: sleep on idle + orphan-RUNNING reconcile + wake-on-reopen (`manager.ts`); needs ws-manager deploy to go live |
-| 8 | Deploy publish (P2d) | IMPLEMENTED ✅ | `POST /deployments/:id/publish` promotes a READY preview → linked production deployment (`parentDeploymentId`, `0049`) **and** provisions a separate **production database** (env-scoped `db-<id>-prod` / `proj_<id>_prod`, `DatabaseInstance.environment`, migration `0050`); 35 tests + live dev/prod **DB isolation** proof on real Postgres. `GET/POST /database` accept `environment` → `PROD_DATABASE_URL`. Gated by `DB_ROLLBACK_ENABLED`; prod env dormant until publish |
+| #   | Capability                           | Status         | Proof / gap                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --- | ------------------------------------ | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 0   | SQL read/write                       | EXPOSED ✅     | live RW proof 2026-06-29; api@a0a34eb6                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 1   | Workflows                            | EXPOSED ✅     | real exec via runtime; logs per-run (no SSE)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| 2   | Security scanner                     | EXPOSED ✅     | npm audit + secret/SAST grep in workspace                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 3   | SSH store/test/keygen + git-over-SSH | EXPOSED ✅     | real **key-based** ssh test + `git-ssh` (`git ls-remote`) run in the per-tenant workspace pod with an ephemeral key (key value never in args/logs); server keygen; 14 tests (6 keygen incl. OpenSSH interop + 8 builders). GAP: shared-api-pod `GitCliProvider` push/pull not key-wired (gated, see §3)                                                                                                                                                                          |
+| 4   | Object Storage GCS                   | IMPLEMENTED ✅ | merged on `main`, flag-gated; GCS mechanism live-proven 2026-06-29; live-enable = GSA storage role + WI/key wiring + flag (see §4)                                                                                                                                                                                                                                                                                                                                               |
+| 5   | Open-standard Agent Skills           | IMPLEMENTED ✅ | `.agents/skills/<name>/SKILL.md`; immutable digest-pinned artifacts, full-bundle audit, workspace isolation, keyset audit trail, progressive disclosure                                                                                                                                                                                                                                                                                                                          |
+| 6   | Free-tier DB (shared-pg-0)           | CODE DONE ✅   | admin-SQL tenant provisioning (role+db+isolation) live-proven vs real Postgres; 22 tests; Helm template gated; activation needs Avi (cluster bootstrap + manager deploy + `DB_SHARED_TENANT_SECRET`)                                                                                                                                                                                                                                                                             |
+| 7   | Hibernation (workspace)              | IMPLEMENTED ✅ | GC reconciler: sleep on idle + orphan-RUNNING reconcile + wake-on-reopen (`manager.ts`); needs ws-manager deploy to go live                                                                                                                                                                                                                                                                                                                                                      |
+| 8   | Deploy publish (P2d)                 | IMPLEMENTED ✅ | `POST /deployments/:id/publish` promotes a READY preview → linked production deployment (`parentDeploymentId`, `0049`) **and** provisions a separate **production database** (env-scoped `db-<id>-prod` / `proj_<id>_prod`, `DatabaseInstance.environment`, migration `0050`); 35 tests + live dev/prod **DB isolation** proof on real Postgres. `GET/POST /database` accept `environment` → `PROD_DATABASE_URL`. Gated by `DB_ROLLBACK_ENABLED`; prod env dormant until publish |
 
 **P2d dev/prod database split** (`database-provisioner.ts`): every project has a
 `development` DB (its workspace DB, un-suffixed = backward compatible) and, once
@@ -355,13 +438,13 @@ Additive/unflagged — inert until the IDE records/reads it.
 
 All IDE-testable runtime paths are wired backend-side:
 
-| capability | wired at | how |
-|---|---|---|
-| Secrets/Env → runtime | `app.ts` `/api/runtime/workspaces` → `managerRequest('/workspaces/start', {allowedSecrets,allowedSecretKeys})` → `k8s-client workspacePod` `secretKeyRef` | secrets land in a k8s Secret, mounted as pod env |
-| Packages installed | `/api/runtime/workspaces/:id/commands` → agent `/commands/run` | real `npm/pnpm/yarn install` runs in the pod |
-| Workflows executed | `ide-panel.$panel.ts runWorkflowTasks` → `/commands` (`sh -lc`) | real commands, logs captured in `VIBECORE_WORKFLOWS_STATE` |
-| Skills → agent | `app/lib/.server/llm/project-skills.ts retrieveSkillsForAgentContext` → `api.chat.ts streamText({ system: …skillsContext })` | enabled skills become a `<project_skills>` system-prompt block |
-| MCP → agent | `app/lib/.server/mcp/load-config.server.ts` → `api.chat.ts mcpService.toolsWithoutExecute` | installed MCP servers become agent tools per chat request |
+| capability            | wired at                                                                                                                                                  | how                                                                                                                                                 |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secrets/Env → runtime | `app.ts` `/api/runtime/workspaces` → `managerRequest('/workspaces/start', {allowedSecrets,allowedSecretKeys})` → `k8s-client workspacePod` `secretKeyRef` | secrets land in a k8s Secret, mounted as pod env                                                                                                    |
+| Packages installed    | `/api/runtime/workspaces/:id/commands` → agent `/commands/run`                                                                                            | real `npm/pnpm/yarn install` runs in the pod                                                                                                        |
+| Workflows executed    | `ide-panel.$panel.ts runWorkflowTasks` → `/commands` (`sh -lc`)                                                                                           | real commands, logs captured in `VIBECORE_WORKFLOWS_STATE`                                                                                          |
+| Skills → agent        | `app/lib/.server/llm/project-skills.ts retrieveSkillsForAgentContext` → `api.chat.ts streamText({ system: …skillsContext, tools })`                       | only metadata enters `<available_skills>`; `activate_skill` lazily loads `SKILL.md`, then `read_skill_resource` exposes one validated text resource |
+| MCP → agent           | `app/lib/.server/mcp/load-config.server.ts` → `api.chat.ts mcpService.toolsWithoutExecute`                                                                | installed MCP servers become agent tools per chat request                                                                                           |
 
 ---
 
@@ -382,6 +465,7 @@ check — so a workspace app reaches ONLY its own project bucket. Token for anot
 project / wrong secret / absent → 401.
 
 **SDK surface** (`packages/sdk`, `@e-code/sdk`):
+
 ```ts
 import { ObjectStorageClient, Client } from '@e-code/sdk';
 
@@ -398,10 +482,11 @@ await storage.deletePrefix({ prefix: 'avatars/' });
 
 // unified, Replit-style (storage + db + secrets):
 const client = new Client();
-client.database.url;            // injected DATABASE_URL (dev)
-client.database.productionUrl;  // injected PROD_DATABASE_URL
+client.database.url; // injected DATABASE_URL (dev)
+client.database.productionUrl; // injected PROD_DATABASE_URL
 client.secrets.get('STRIPE_KEY'); // any injected project secret/env var
 ```
+
 - Methods: `ensureBucket`, `listObjects`, `getUploadUrl`, `getDownloadUrl`,
   `move`, `delete`, `deletePrefix`, plus `upload`/`download` convenience (bytes go
   straight to the V4 signed URL, never through the api). Errors throw

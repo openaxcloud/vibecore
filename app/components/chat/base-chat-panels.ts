@@ -5,6 +5,90 @@
  * component.
  */
 
+const PANEL_REQUEST_REPLACED_MESSAGE = 'IDE panel request replaced by a newer request.';
+const PANEL_REQUEST_TIMEOUT_MESSAGE = 'IDE panel request timed out.';
+
+/**
+ * Owns the single active panel request. `begin` always aborts the prior request,
+ * which makes a user-initiated Retry a real restart rather than a no-op gate.
+ */
+export class ProjectPanelRequestGate {
+  #controller: AbortController | undefined;
+  #timeout: ReturnType<typeof setTimeout> | undefined;
+
+  get active(): boolean {
+    return Boolean(this.#controller && !this.#controller.signal.aborted);
+  }
+
+  begin(timeoutMs: number): AbortController {
+    this.abort(new DOMException(PANEL_REQUEST_REPLACED_MESSAGE, 'AbortError'));
+
+    const controller = new AbortController();
+    this.#controller = controller;
+    this.#timeout = globalThis.setTimeout(() => {
+      controller.abort(new DOMException(PANEL_REQUEST_TIMEOUT_MESSAGE, 'TimeoutError'));
+    }, timeoutMs);
+
+    return controller;
+  }
+
+  isCurrent(controller: AbortController): boolean {
+    return this.#controller === controller;
+  }
+
+  complete(controller: AbortController): boolean {
+    if (!this.isCurrent(controller)) {
+      return false;
+    }
+
+    this.#clearTimeout();
+    this.#controller = undefined;
+
+    return true;
+  }
+
+  abort(reason: unknown = new DOMException(PANEL_REQUEST_REPLACED_MESSAGE, 'AbortError')): void {
+    this.#clearTimeout();
+    this.#controller?.abort(reason);
+    this.#controller = undefined;
+  }
+
+  #clearTimeout(): void {
+    if (this.#timeout !== undefined) {
+      globalThis.clearTimeout(this.#timeout);
+      this.#timeout = undefined;
+    }
+  }
+}
+
+export function isProjectPanelRequestTimeout(signal: AbortSignal): boolean {
+  const reason = signal.reason;
+
+  return reason instanceof DOMException && reason.name === 'TimeoutError';
+}
+
+/** Backoff that stops immediately when Retry, navigation, timeout, or unmount aborts the request. */
+export function waitForProjectPanelRetry(delayMs: number, signal: AbortSignal | null | undefined): Promise<void> {
+  if (signal?.aborted) {
+    return Promise.reject(signal.reason);
+  }
+
+  return new Promise((resolve, reject) => {
+    const timer = globalThis.setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort);
+      resolve();
+    }, delayMs);
+
+    const onAbort = () => {
+      globalThis.clearTimeout(timer);
+      signal?.removeEventListener('abort', onAbort);
+      reject(signal?.reason);
+    };
+
+    signal?.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
 /**
  * A mid-session backend 401 surfaces as code 'PANEL_AUTH' on the panel envelope
  * (the API never redirects /api/* requests). Either the coded error or a raw 401

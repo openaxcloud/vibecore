@@ -188,12 +188,14 @@ export function Chat({
   forceWorkbench = false,
   projectIdeMode = false,
   projectId,
+  workspaceId,
   projectUrl,
   initialIdePanels,
 }: {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  workspaceId?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, unknown>;
 }) {
@@ -223,6 +225,7 @@ export function Chat({
       forceWorkbench={forceWorkbench}
       projectIdeMode={projectIdeMode}
       projectId={projectId}
+      workspaceId={workspaceId}
       projectUrl={projectUrl}
       initialIdePanels={initialIdePanels}
       description={title}
@@ -257,6 +260,7 @@ interface ChatProps {
   forceWorkbench?: boolean;
   projectIdeMode?: boolean;
   projectId?: string;
+  workspaceId?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, unknown>;
   initialMessages: Message[];
@@ -271,6 +275,7 @@ export const ChatImpl = memo(
     forceWorkbench = false,
     projectIdeMode = false,
     projectId,
+    workspaceId,
     projectUrl,
     initialIdePanels,
     description,
@@ -607,6 +612,7 @@ export const ChatImpl = memo(
       contextOptimization: contextOptimizationEnabled,
       chatMode,
       projectId,
+      workspaceId,
       designScheme,
       supabase: {
         isConnected: supabaseConn.isConnected,

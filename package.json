@@ -171,6 +171,7 @@
     "@types/react-beautiful-dnd": "^13.1.8",
     "@uiw/codemirror-theme-vscode": "^4.23.6",
     "@unocss/reset": "^0.61.9",
+    "@vibecore/agent-skills": "workspace:*",
     "@vibecore/editor": "workspace:^",
     "@vibecore/runtime-contract": "workspace:*",
     "@vibecore/runtime-remote": "workspace:*",

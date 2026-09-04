@@ -29,14 +29,19 @@ describe('resolveInitialTheme (shared source of truth)', () => {
     expect(resolveInitialTheme({ cookie: null, stored: null, attribute: 'dark' })).toBe('dark');
   });
 
-  it('honors prefers-color-scheme only when no explicit choice exists', () => {
-    expect(resolveInitialTheme({ cookie: null, stored: null, attribute: null, prefersDark: true })).toBe('dark');
-    expect(resolveInitialTheme({ cookie: null, stored: null, attribute: null, prefersDark: false })).toBe('light');
+  it('uses the OS for an explicit system choice', () => {
+    expect(resolveInitialTheme({ cookie: 'system', attribute: null, prefersDark: true })).toBe('dark');
+    expect(resolveInitialTheme({ stored: 'system', attribute: null, prefersDark: false })).toBe('light');
   });
 
-  it('defaults to light when nothing is available', () => {
-    expect(resolveInitialTheme({})).toBe('light');
-    expect(resolveInitialTheme({ cookie: '', stored: 'bogus', attribute: 'nope', prefersDark: false })).toBe('light');
+  it('uses the dark-first default when no preference or server seed exists', () => {
+    expect(resolveInitialTheme({ cookie: null, stored: null, attribute: null, prefersDark: true })).toBe('dark');
+    expect(resolveInitialTheme({ cookie: null, stored: null, attribute: null, prefersDark: false })).toBe('dark');
+  });
+
+  it('defaults to dark when nothing is available', () => {
+    expect(resolveInitialTheme({})).toBe('dark');
+    expect(resolveInitialTheme({ cookie: '', stored: 'bogus', attribute: 'nope', prefersDark: false })).toBe('dark');
   });
 });
 
@@ -48,9 +53,9 @@ describe('resolveThemePreference', () => {
     expect(resolveThemePreference({ cookie: 'bogus', stored: 'system' })).toBe('system');
   });
 
-  it('defaults to `system` when nothing valid is stored', () => {
-    expect(resolveThemePreference({})).toBe('system');
-    expect(resolveThemePreference({ cookie: 'nope', stored: '' })).toBe('system');
+  it('defaults to dark when nothing valid is stored', () => {
+    expect(resolveThemePreference({})).toBe('dark');
+    expect(resolveThemePreference({ cookie: 'nope', stored: '' })).toBe('dark');
   });
 });
 

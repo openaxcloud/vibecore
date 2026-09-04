@@ -15,10 +15,12 @@ import {
   type OnSaveCallback as OnEditorSave,
   type OnScrollCallback as OnEditorScroll,
 } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { FileHistoryOverlay } from '~/components/file-history';
 import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { toast } from '~/components/ui/use-toast';
+import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import type { FileMap } from '~/lib/stores/files';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -29,6 +31,7 @@ import { renderLogger } from '~/utils/logger';
 import { isMobile } from '~/utils/mobile';
 
 interface EditorPanelProps {
+  projectId?: string;
   files?: FileMap;
   unsavedFiles?: Set<string>;
   editorDocument?: EditorDocument;
@@ -49,6 +52,7 @@ const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 export const EditorPanel = memo(
   ({
+    projectId,
     files,
     unsavedFiles,
     editorDocument,
@@ -63,6 +67,7 @@ export const EditorPanel = memo(
     renderLogger.trace('EditorPanel');
 
     const theme = useStore(themeStore);
+    const currentWorkspaceId = useCurrentWorkspaceId();
     const showTerminal = useStore(workbenchStore.showTerminal);
     const layout = useResponsiveLayout();
     const useMobilePanelLayout = layout.isMobile || layout.isTablet;
@@ -257,7 +262,10 @@ export const EditorPanel = memo(
             }}
           />
         )}
-        <div className="h-full flex-1 overflow-hidden modern-scrollbar" data-testid="responsive-code-editor">
+        <div
+          className="vc-file-history-host h-full flex-1 overflow-hidden modern-scrollbar"
+          data-testid="responsive-code-editor"
+        >
           {isLargeFile && (
             <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
               Large file mode: rich editor features are reduced to keep typing and scrolling responsive.
@@ -318,6 +326,21 @@ export const EditorPanel = memo(
               {editorDocument?.isBinary ? 'Binary files can’t be previewed in the editor.' : 'No file selected.'}
             </div>
           )}
+          <FileHistoryOverlay
+            projectId={projectId}
+            workspaceId={currentWorkspaceId}
+            filePath={editorDocument?.filePath}
+            isBinary={editorDocument?.isBinary}
+            restoreDisabled={isCurrentFileLocked}
+            restoreDisabledReason="Unlock this file before restoring an earlier version."
+            onRestoredContent={(filePath, content) => {
+              if (!workbenchStore.adoptPersistedFileContent(filePath, content)) {
+                throw new Error('The restored file could not be adopted by the active editor.');
+              }
+
+              workbenchStore.refreshAllPreviews();
+            }}
+          />
         </div>
       </div>
     );

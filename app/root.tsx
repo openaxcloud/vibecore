@@ -280,11 +280,10 @@ const inlineThemeCode = stripIndents`
     /*
      * Unified precedence (must mirror resolveInitialTheme in
      * app/lib/stores/theme.ts): read the stored PREFERENCE (light|dark|system)
-     * from the shared cookie, else per-origin localStorage; an explicit
-     * light/dark applies as-is, system (or nothing stored) follows the OS
-     * prefers-color-scheme. Marketing routes no longer force light — the shared
-     * preference governs every surface so the theme stays the same across
-     * e-code.ai, app.e-code.ai and the IDE.
+     * from the shared cookie, else per-origin localStorage. Explicit light/dark
+     * applies as-is and system follows the OS. With no stored preference,
+     * E-Code uses its dark-first default. Marketing routes use the same shared
+     * preference as the app and IDE.
      */
     function asPreference(value) {
       return value === 'light' || value === 'dark' || value === 'system' ? value : null;
@@ -296,9 +295,10 @@ const inlineThemeCode = stripIndents`
 
     if (preference === 'light' || preference === 'dark') {
       theme = preference;
-    } else {
-      // system preference (or nothing stored) follows the OS.
+    } else if (preference === 'system') {
       theme = prefersDarkScheme() ? 'dark' : 'light';
+    } else {
+      theme = 'dark';
     }
 
     const root = document.querySelector('html');

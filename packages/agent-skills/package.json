@@ -1,0 +1,20 @@
+{
+  "name": "@vibecore/agent-skills",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "test": "vitest --run --config vitest.config.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "pnpm run typecheck"
+  },
+  "dependencies": {
+    "yaml": "^2.8.4"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.6"
+  }
+}

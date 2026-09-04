@@ -326,6 +326,13 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
      */
     const retryAfter = response.headers.get('retry-after');
 
+    const latestVersionId =
+      typeof payload === 'object' &&
+      payload &&
+      typeof (payload as { latestVersionId?: unknown }).latestVersionId === 'string'
+        ? (payload as { latestVersionId: string }).latestVersionId
+        : undefined;
+
     throw jsonResponse(
       {
         ok: false,
@@ -334,6 +341,7 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
             ? ((payload as { error?: string }).error ?? 'Request failed')
             : String(payload),
         code: payloadCode,
+        ...(latestVersionId ? { latestVersionId } : {}),
       },
       { status: response.status, headers: retryAfter ? { 'retry-after': retryAfter } : undefined },
     );

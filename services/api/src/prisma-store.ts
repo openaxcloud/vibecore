@@ -4,7 +4,8 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import { validateAgentSkillArtifactTransition } from './agent-skill-artifact-service.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, agentSkillAuditEventPageSize } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -88,9 +89,17 @@ import type {
   WorkspaceRecord,
   QuotaOverrideRecord,
   AdminAuditLogRecord,
-  InstalledSkillRecord,
-  InstalledSkillScope,
-  InstallSkillInput,
+  AppendFileVersionInput,
+  FileVersionContentRecord,
+  FileVersionRecord,
+  AgentSkillArtifactRecord,
+  AgentSkillArtifactWithBundleRecord,
+  AgentSkillRuntimePolicyRecord,
+  AgentSkillAuditEventPage,
+  AgentSkillAuditEventPageOptions,
+  AgentSkillArtifactStatus,
+  CreateAgentSkillArtifactInput,
+  TransitionAgentSkillArtifactInput,
 } from './store.js';
 
 function now() {
@@ -100,6 +109,105 @@ function now() {
 function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
 }
+
+function toPrismaJson(value: unknown): Prisma.InputJsonValue {
+  return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function parseAgentSkillArtifactStatus(value: string): AgentSkillArtifactStatus {
+  if (value === 'quarantined' || value === 'blocked' || value === 'approved' || value === 'revoked') {
+    return value;
+  }
+
+  throw Object.assign(new Error('Stored Agent Skill artifact has an invalid audit status'), {
+    code: 'AGENT_SKILL_ARTIFACT_CORRUPT',
+  });
+}
+
+function parseStoredAgentSkillFiles(value: Prisma.JsonValue): AgentSkillArtifactWithBundleRecord['bundle'] {
+  if (!Array.isArray(value)) {
+    throw Object.assign(new Error('Stored Agent Skill bundle is invalid'), {
+      code: 'AGENT_SKILL_ARTIFACT_CORRUPT',
+    });
+  }
+
+  const seen = new Set<string>();
+
+  return value.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw Object.assign(new Error('Stored Agent Skill bundle entry is invalid'), {
+        code: 'AGENT_SKILL_ARTIFACT_CORRUPT',
+      });
+    }
+
+    const path = entry.path;
+    const contentBase64 = entry.contentBase64;
+    const byteLength = entry.byteLength;
+    const mode = entry.mode;
+
+    if (
+      typeof path !== 'string' ||
+      !path ||
+      path.startsWith('/') ||
+      path.includes('\\') ||
+      path.split('/').some((part) => !part || part === '.' || part === '..') ||
+      seen.has(path) ||
+      typeof contentBase64 !== 'string' ||
+      typeof byteLength !== 'number' ||
+      !Number.isSafeInteger(byteLength) ||
+      byteLength < 0 ||
+      (mode !== '100644' && mode !== '100755') ||
+      Buffer.from(contentBase64, 'base64').byteLength !== byteLength ||
+      Buffer.from(contentBase64, 'base64').toString('base64') !== contentBase64
+    ) {
+      throw Object.assign(new Error('Stored Agent Skill bundle failed integrity validation'), {
+        code: 'AGENT_SKILL_ARTIFACT_CORRUPT',
+      });
+    }
+
+    seen.add(path);
+
+    return { path, contentBase64, byteLength, mode };
+  });
+}
+
+const fileVersionMetadataSelect = {
+  id: true,
+  projectId: true,
+  workspaceKey: true,
+  workspaceId: true,
+  path: true,
+  lineageId: true,
+  operation: true,
+  source: true,
+  actorUserId: true,
+  operationId: true,
+  previousVersionId: true,
+  restoredFromVersionId: true,
+  renamedFromPath: true,
+  tombstone: true,
+  sequence: true,
+  createdAt: true,
+  blob: {
+    select: {
+      contentHash: true,
+      encoding: true,
+      byteLength: true,
+    },
+  },
+} as const;
+
+const fileVersionContentSelect = {
+  ...fileVersionMetadataSelect,
+  blob: {
+    select: {
+      contentHash: true,
+      contentBase64: true,
+      encoding: true,
+      byteLength: true,
+    },
+  },
+} as const;
 
 type PrismaKnownRequestError = Error & { readonly code: string };
 
@@ -235,11 +343,23 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    return this.withSerializedMutations([key], fn);
+  }
+
+  async withSerializedMutations<T>(keys: readonly string[], fn: () => Promise<T>): Promise<T> {
+    const orderedKeys = [...new Set(keys)].sort();
+
+    if (orderedKeys.length === 0) {
+      return fn();
+    }
+
     /*
-     * Hold a transaction-scoped advisory lock for the duration of `fn`. A second
-     * caller with the same key blocks on pg_advisory_xact_lock until this
+     * Hold transaction-scoped advisory locks for the duration of `fn`. A second
+     * caller with any matching key blocks on pg_advisory_xact_lock until this
      * transaction commits, so the wrapped check-then-mutate runs serially across
-     * all pods. `fn`'s own queries use the MAIN pooled client and observe
+     * all pods. Sort multi-path keys to prevent lock-order deadlocks, and acquire
+     * them in one transaction so concurrent renames cannot exhaust the lock pool
+     * with nested transactions. `fn`'s own queries use the MAIN pooled client and observe
      * committed state because the prior holder commits before the lock is granted.
      *
      * The lock transaction runs on a SMALL DEDICATED pool, not the main query
@@ -248,9 +368,12 @@ export class PrismaApiStore implements ApiStore {
      * advisory lock — starving the lock holder's fn() of a connection and
      * deadlocking the pool. Isolating lock-wait connections keeps the main pool
      * free for fn() (only one fn runs at a time, so it needs just one connection).
-     */
+    */
     return this.lockClient.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
+      for (const key of orderedKeys) {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
+      }
+
       return fn();
     });
   }
@@ -1721,132 +1844,322 @@ export class PrismaApiStore implements ApiStore {
     return row ? mapConsensusRecordDetail(row) : undefined;
   }
 
-  async listProjectSkillOverrides(projectId: string) {
-    return (
-      await this.prisma.projectSkill.findMany({
-        where: { projectId },
-        select: { skillId: true, enabled: true, updatedAt: true },
-      })
-    ).map((row) => ({ skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() }));
-  }
-
-  async setProjectSkillEnabled(input: { projectId: string; skillId: string; enabled: boolean }) {
-    const row = await this.prisma.projectSkill.upsert({
-      where: { projectId_skillId: { projectId: input.projectId, skillId: input.skillId } },
-      create: { projectId: input.projectId, skillId: input.skillId, enabled: input.enabled },
-      update: { enabled: input.enabled },
-      select: { skillId: true, enabled: true, updatedAt: true },
+  async listAgentSkillArtifacts(projectId: string, workspaceKey?: string): Promise<AgentSkillArtifactRecord[]> {
+    const rows = await this.prisma.agentSkillArtifact.findMany({
+      where: { projectId, ...(workspaceKey !== undefined ? { workspaceKey } : {}) },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
     });
 
-    return { skillId: row.skillId, enabled: row.enabled, updatedAt: row.updatedAt.toISOString() };
+    return rows.map((row) => this.#toAgentSkillArtifact(row));
   }
 
-  async listInstalledSkills(scope: InstalledSkillScope, scopeId: string): Promise<InstalledSkillRecord[]> {
-    const rows = await this.prisma.installedSkill.findMany({
-      where: { scope, scopeId },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return rows.map((row) => this.#toInstalledSkill(row));
-  }
-
-  async installSkill(input: InstallSkillInput): Promise<{ record: InstalledSkillRecord; created: boolean }> {
-    const existing = await this.prisma.installedSkill.findUnique({
-      where: {
-        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
+  async listAgentSkillRuntimePolicyRecords(
+    projectId: string,
+    workspaceKey: string,
+    options?: { take?: number },
+  ): Promise<AgentSkillRuntimePolicyRecord[]> {
+    const rows = await this.prisma.agentSkillArtifact.findMany({
+      where: { projectId, workspaceKey },
+      orderBy: [{ updatedAt: 'desc' }, { id: 'desc' }],
+      take: Math.min(Math.max(options?.take ?? 4_097, 1), 10_001),
+      select: {
+        id: true,
+        projectId: true,
+        workspaceKey: true,
+        name: true,
+        digest: true,
+        commitSha: true,
+        auditStatus: true,
+        enabled: true,
+        updatedAt: true,
       },
     });
 
-    if (existing) {
-      return { record: this.#toInstalledSkill(existing), created: false };
-    }
-
-    const created = await this.prisma.installedSkill.create({
-      data: {
-        scope: input.scope,
-        scopeId: input.scopeId,
-        ownerRepo: input.ownerRepo,
-        name: input.name,
-        description: input.description,
-        instructions: input.instructions,
-        homepageUrl: input.homepageUrl ?? null,
-        installedByUserId: input.installedByUserId ?? null,
-      },
-    });
-
-    return { record: this.#toInstalledSkill(created), created: true };
+    return rows.map((row) => ({
+      id: row.id,
+      projectId: row.projectId,
+      workspaceKey: row.workspaceKey,
+      name: row.name,
+      digest: row.digest,
+      commitSha: row.commitSha,
+      auditStatus: parseAgentSkillArtifactStatus(row.auditStatus),
+      enabled: row.enabled,
+      updatedAt: row.updatedAt.toISOString(),
+    }));
   }
 
-  async uninstallSkill(scope: InstalledSkillScope, scopeId: string, ownerRepo: string): Promise<boolean> {
-    const result = await this.prisma.installedSkill.deleteMany({ where: { scope, scopeId, ownerRepo } });
+  async getAgentSkillArtifact(
+    projectId: string,
+    artifactId: string,
+  ): Promise<AgentSkillArtifactWithBundleRecord | undefined> {
+    const row = await this.prisma.agentSkillArtifact.findFirst({ where: { id: artifactId, projectId } });
 
-    return result.count > 0;
-  }
-
-  async setInstalledSkillEnabled(input: {
-    scope: InstalledSkillScope;
-    scopeId: string;
-    ownerRepo: string;
-    enabled: boolean;
-  }): Promise<InstalledSkillRecord | undefined> {
-    const result = await this.prisma.installedSkill.updateMany({
-      where: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
-      data: { enabled: input.enabled },
-    });
-
-    if (result.count === 0) {
+    if (!row) {
       return undefined;
     }
 
-    const row = await this.prisma.installedSkill.findUnique({
-      where: {
-        scope_scopeId_ownerRepo: { scope: input.scope, scopeId: input.scopeId, ownerRepo: input.ownerRepo },
-      },
-    });
-
-    return row ? this.#toInstalledSkill(row) : undefined;
+    return {
+      ...this.#toAgentSkillArtifact(row),
+      bundle: parseStoredAgentSkillFiles(row.bundle),
+    };
   }
 
-  async countInstallsByRepo(): Promise<Record<string, number>> {
-    const grouped = await this.prisma.installedSkill.groupBy({
-      by: ['ownerRepo'],
-      _count: { _all: true },
+  async createAgentSkillArtifact(
+    input: CreateAgentSkillArtifactInput,
+  ): Promise<{ record: AgentSkillArtifactRecord; created: boolean }> {
+    const key = {
+      projectId: input.projectId,
+      workspaceKey: input.workspaceKey,
+      ownerRepo: input.ownerRepo,
+      skillPath: input.skillPath,
+      digest: input.digest,
+    };
+    const existing = await this.prisma.agentSkillArtifact.findUnique({
+      where: { projectId_workspaceKey_ownerRepo_skillPath_digest: key },
     });
 
-    const counts: Record<string, number> = {};
-
-    for (const row of grouped) {
-      counts[row.ownerRepo] = row._count._all;
+    if (existing) {
+      return { record: this.#toAgentSkillArtifact(existing), created: false };
     }
 
-    return counts;
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const artifact = await tx.agentSkillArtifact.create({
+          data: {
+            projectId: input.projectId,
+            workspaceKey: input.workspaceKey,
+            ownerRepo: input.ownerRepo,
+            skillPath: input.skillPath,
+            requestedRef: input.requestedRef,
+            commitSha: input.commitSha,
+            digest: input.digest,
+            sourceUrl: input.sourceUrl,
+            name: input.name,
+            description: input.description,
+            license: input.license,
+            compatibility: input.compatibility,
+            declaredAllowedTools: input.declaredAllowedTools,
+            bundle: toPrismaJson(input.bundle),
+            auditStatus: input.auditStatus,
+            auditReport: toPrismaJson(input.auditReport),
+            importedByUserId: input.importedByUserId,
+          },
+        });
+
+        await tx.agentSkillAuditEvent.create({
+          data: {
+            artifactId: artifact.id,
+            action: 'imported',
+            toStatus: artifact.auditStatus,
+            actorUserId: input.importedByUserId,
+            metadata: toPrismaJson({
+              ownerRepo: input.ownerRepo,
+              workspaceKey: input.workspaceKey,
+              skillPath: input.skillPath,
+              commitSha: input.commitSha,
+              digest: input.digest,
+            }),
+          },
+        });
+
+        return artifact;
+      });
+
+      return { record: this.#toAgentSkillArtifact(created), created: true };
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+        throw error;
+      }
+
+      const raced = await this.prisma.agentSkillArtifact.findUnique({
+        where: { projectId_workspaceKey_ownerRepo_skillPath_digest: key },
+      });
+
+      if (!raced) {
+        throw error;
+      }
+
+      return { record: this.#toAgentSkillArtifact(raced), created: false };
+    }
   }
 
-  #toInstalledSkill(row: {
+  async transitionAgentSkillArtifact(
+    input: TransitionAgentSkillArtifactInput,
+  ): Promise<AgentSkillArtifactRecord | undefined> {
+    validateAgentSkillArtifactTransition(input);
+
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.agentSkillArtifact.findFirst({
+        where: {
+          id: input.artifactId,
+          projectId: input.projectId,
+          workspaceKey: input.expectedWorkspaceKey,
+          digest: input.digest,
+          auditStatus: { in: input.expectedStatuses },
+          ...(input.expectedEnabled !== undefined ? { enabled: input.expectedEnabled } : {}),
+        },
+      });
+
+      if (!existing) {
+        return undefined;
+      }
+
+      if (
+        (input.action === 'approved' || input.action === 'enabled') &&
+        input.installedPath !== `.agents/skills/${existing.name}`
+      ) {
+        throw Object.assign(new Error('The installed Agent Skill path does not match its audited name.'), {
+          code: 'AGENT_SKILL_STATE_INVALID',
+          statusCode: 422,
+        });
+      }
+
+      const isReviewDecision = ['approved', 'rejected', 'revoked'].includes(input.action);
+      const reviewedAt = isReviewDecision ? new Date() : undefined;
+
+      const transition = await tx.agentSkillArtifact.updateMany({
+        where: {
+          id: existing.id,
+          projectId: input.projectId,
+          workspaceKey: input.expectedWorkspaceKey,
+          digest: input.digest,
+          auditStatus: { in: input.expectedStatuses },
+          ...(input.expectedEnabled !== undefined ? { enabled: input.expectedEnabled } : {}),
+        },
+        data: {
+          auditStatus: input.status,
+          enabled: input.enabled,
+          ...(input.installedPath !== undefined ? { installedPath: input.installedPath } : {}),
+          ...(isReviewDecision
+            ? {
+                reviewedByUserId: input.actorUserId,
+                reviewedAt,
+                reviewReason: input.reason,
+              }
+            : {}),
+          ...(input.status === 'revoked' ? { revokedAt: reviewedAt ?? new Date() } : {}),
+        },
+      });
+
+      if (transition.count !== 1) {
+        return undefined;
+      }
+
+      const updated = await tx.agentSkillArtifact.findUniqueOrThrow({ where: { id: existing.id } });
+
+      await tx.agentSkillAuditEvent.create({
+        data: {
+          artifactId: existing.id,
+          action: input.action,
+          fromStatus: existing.auditStatus,
+          toStatus: input.status,
+          actorUserId: input.actorUserId,
+          reason: input.reason,
+          ...(input.eventMetadata !== undefined ? { metadata: toPrismaJson(input.eventMetadata) } : {}),
+        },
+      });
+
+      return this.#toAgentSkillArtifact(updated);
+    });
+  }
+
+  async listAgentSkillAuditEvents(
+    projectId: string,
+    artifactId: string,
+    options: AgentSkillAuditEventPageOptions = {},
+  ): Promise<AgentSkillAuditEventPage> {
+    const limit = agentSkillAuditEventPageSize(options.limit);
+    const cursorDate = options.cursor ? new Date(options.cursor.createdAt) : undefined;
+
+    if (cursorDate && Number.isNaN(cursorDate.getTime())) {
+      throw new RangeError('Agent Skill audit event cursor createdAt must be a valid timestamp.');
+    }
+
+    const rows = await this.prisma.agentSkillAuditEvent.findMany({
+      where: {
+        artifactId,
+        artifact: { projectId },
+        ...(options.cursor && cursorDate
+          ? {
+              OR: [{ createdAt: { lt: cursorDate } }, { createdAt: cursorDate, id: { lt: options.cursor.id } }],
+            }
+          : {}),
+      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    });
+
+    const events = rows.slice(0, limit).map((row) => ({
+      id: row.id,
+      artifactId: row.artifactId,
+      action: row.action,
+      fromStatus: row.fromStatus ?? undefined,
+      toStatus: row.toStatus,
+      actorUserId: row.actorUserId ?? undefined,
+      reason: row.reason ?? undefined,
+      metadata: row.metadata ?? undefined,
+      createdAt: row.createdAt.toISOString(),
+    }));
+
+    const lastEvent = events.at(-1);
+
+    return {
+      events,
+      ...(rows.length > limit && lastEvent ? { nextCursor: { createdAt: lastEvent.createdAt, id: lastEvent.id } } : {}),
+    };
+  }
+
+  #toAgentSkillArtifact(row: {
     id: string;
-    scope: string;
-    scopeId: string;
+    projectId: string;
+    workspaceKey: string;
     ownerRepo: string;
+    skillPath: string;
+    requestedRef: string;
+    commitSha: string;
+    digest: string;
+    sourceUrl: string;
     name: string;
     description: string;
-    instructions: string;
-    homepageUrl: string | null;
+    license: string | null;
+    compatibility: string | null;
+    declaredAllowedTools: string | null;
+    auditStatus: string;
+    auditReport: Prisma.JsonValue;
     enabled: boolean;
-    installedByUserId: string | null;
+    installedPath: string | null;
+    importedByUserId: string | null;
+    reviewedByUserId: string | null;
+    reviewedAt: Date | null;
+    reviewReason: string | null;
+    revokedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
-  }): InstalledSkillRecord {
+  }): AgentSkillArtifactRecord {
     return {
       id: row.id,
-      scope: row.scope as InstalledSkillScope,
-      scopeId: row.scopeId,
+      projectId: row.projectId,
+      workspaceKey: row.workspaceKey,
       ownerRepo: row.ownerRepo,
+      skillPath: row.skillPath,
+      requestedRef: row.requestedRef,
+      commitSha: row.commitSha,
+      digest: row.digest,
+      sourceUrl: row.sourceUrl,
       name: row.name,
       description: row.description,
-      instructions: row.instructions,
-      homepageUrl: row.homepageUrl,
+      license: row.license ?? undefined,
+      compatibility: row.compatibility ?? undefined,
+      declaredAllowedTools: row.declaredAllowedTools ?? undefined,
+      auditStatus: parseAgentSkillArtifactStatus(row.auditStatus),
+      auditReport: row.auditReport,
       enabled: row.enabled,
-      installedByUserId: row.installedByUserId,
+      installedPath: row.installedPath ?? undefined,
+      importedByUserId: row.importedByUserId ?? undefined,
+      reviewedByUserId: row.reviewedByUserId ?? undefined,
+      reviewedAt: row.reviewedAt?.toISOString(),
+      reviewReason: row.reviewReason ?? undefined,
+      revokedAt: row.revokedAt?.toISOString(),
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     };
@@ -2006,6 +2319,195 @@ export class PrismaApiStore implements ApiStore {
     return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
       mapSnapshot,
     );
+  }
+
+  async appendFileVersion(input: AppendFileVersionInput) {
+    const unique = {
+      projectId: input.projectId,
+      workspaceKey: input.workspaceKey,
+      operationId: input.operationId,
+    };
+
+    const existing = await this.prisma.fileVersion.findUnique({
+      where: { projectId_workspaceKey_operationId: unique },
+      select: fileVersionMetadataSelect,
+    });
+
+    if (existing) {
+      return { version: mapFileVersion(existing), created: false };
+    }
+
+    try {
+      const version = await this.prisma.$transaction(async (tx) => {
+        /*
+         * Re-check inside the transaction. The unique operation index remains the
+         * final authority for a concurrent retry in another API replica.
+         */
+        const raced = await tx.fileVersion.findUnique({
+          where: { projectId_workspaceKey_operationId: unique },
+          select: fileVersionMetadataSelect,
+        });
+
+        if (raced) {
+          return { row: raced, created: false };
+        }
+
+        const blob = await tx.fileHistoryBlob.upsert({
+          where: {
+            projectId_contentHash: {
+              projectId: input.projectId,
+              contentHash: input.contentHash,
+            },
+          },
+          create: {
+            projectId: input.projectId,
+            contentHash: input.contentHash,
+            contentBase64: input.contentBase64,
+            encoding: input.encoding,
+            byteLength: input.byteLength,
+          },
+          // Content-addressed blobs are immutable. A conflict connects to the
+          // existing row without rewriting its body or creation timestamp.
+          update: {},
+          select: { id: true },
+        });
+
+        const row = await tx.fileVersion.create({
+          data: {
+            projectId: input.projectId,
+            workspaceKey: input.workspaceKey,
+            workspaceId: input.workspaceId,
+            path: input.path,
+            lineageId: input.lineageId,
+            blobId: blob.id,
+            operation: input.operation,
+            source: input.source,
+            actorUserId: input.actorUserId,
+            operationId: input.operationId,
+            previousVersionId: input.previousVersionId,
+            restoredFromVersionId: input.restoredFromVersionId,
+            renamedFromPath: input.renamedFromPath,
+            tombstone: input.tombstone ?? false,
+          },
+          select: fileVersionMetadataSelect,
+        });
+
+        return { row, created: true };
+      });
+
+      return { version: mapFileVersion(version.row), created: version.created };
+    } catch (error) {
+      /*
+       * A replica can win the unique operationId race after our in-transaction
+       * re-check. Resolve that expected P2002 as an idempotent replay; every
+       * other DB failure remains observable.
+       */
+      if (isPrismaKnownRequestError(error) && error.code === 'P2002') {
+        const raced = await this.prisma.fileVersion.findUnique({
+          where: { projectId_workspaceKey_operationId: unique },
+          select: fileVersionMetadataSelect,
+        });
+
+        if (raced) {
+          return { version: mapFileVersion(raced), created: false };
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  async findFileVersionByOperation(projectId: string, workspaceKey: string, operationId: string) {
+    const version = await this.prisma.fileVersion.findUnique({
+      where: { projectId_workspaceKey_operationId: { projectId, workspaceKey, operationId } },
+      select: fileVersionMetadataSelect,
+    });
+
+    return version ? mapFileVersion(version) : undefined;
+  }
+
+  async getFileVersion(projectId: string, workspaceKey: string, versionId: string) {
+    const version = await this.prisma.fileVersion.findFirst({
+      where: { id: versionId, projectId, workspaceKey },
+      select: fileVersionContentSelect,
+    });
+
+    return version ? mapFileVersionContent(version) : undefined;
+  }
+
+  async getLatestFileVersion(projectId: string, workspaceKey: string, path: string) {
+    const version = await this.prisma.fileVersion.findFirst({
+      where: { projectId, workspaceKey, path },
+      orderBy: { sequence: 'desc' },
+      select: fileVersionMetadataSelect,
+    });
+
+    return version ? mapFileVersion(version) : undefined;
+  }
+
+  async getLatestFileVersionByLineage(projectId: string, workspaceKey: string, lineageId: string) {
+    const version = await this.prisma.fileVersion.findFirst({
+      where: { projectId, workspaceKey, lineageId },
+      orderBy: { sequence: 'desc' },
+      select: fileVersionMetadataSelect,
+    });
+
+    return version ? mapFileVersion(version) : undefined;
+  }
+
+  async listFileVersions(input: {
+    projectId: string;
+    workspaceKey: string;
+    lineageId: string;
+    take: number;
+    cursor?: { sequence: string };
+  }) {
+    const cursorSequence = input.cursor ? BigInt(input.cursor.sequence) : undefined;
+    const versions = await this.prisma.fileVersion.findMany({
+      where: {
+        projectId: input.projectId,
+        workspaceKey: input.workspaceKey,
+        lineageId: input.lineageId,
+        ...(cursorSequence !== undefined ? { sequence: { lt: cursorSequence } } : {}),
+      },
+      orderBy: { sequence: 'desc' },
+      take: Math.min(Math.max(input.take, 1), 200),
+      select: fileVersionMetadataSelect,
+    });
+
+    return versions.map(mapFileVersion);
+  }
+
+  async countFileVersions(projectId: string, workspaceKey: string, lineageId: string) {
+    return this.prisma.fileVersion.count({ where: { projectId, workspaceKey, lineageId } });
+  }
+
+  async getFileHistoryWatchState(projectId: string, workspaceKey: string) {
+    const state = await this.prisma.fileHistoryWatchState.findUnique({
+      where: { projectId_workspaceKey: { projectId, workspaceKey } },
+    });
+
+    return state ? mapFileHistoryWatchState(state) : undefined;
+  }
+
+  async upsertFileHistoryWatchState(input: import('./store.js').UpsertFileHistoryWatchStateInput) {
+    const data = {
+      sessionId: input.sessionId,
+      complete: input.complete,
+      reasons: input.reasons,
+      droppedEvents: input.droppedEvents,
+      snapshotTruncated: input.snapshotTruncated,
+      connectionTruncated: input.connectionTruncated,
+      lastSequence: input.lastSequence ? BigInt(input.lastSequence) : null,
+      reconciledAt: new Date(input.reconciledAt),
+    };
+    const state = await this.prisma.fileHistoryWatchState.upsert({
+      where: { projectId_workspaceKey: { projectId: input.projectId, workspaceKey: input.workspaceKey } },
+      create: { projectId: input.projectId, workspaceKey: input.workspaceKey, ...data },
+      update: data,
+    });
+
+    return mapFileHistoryWatchState(state);
   }
 
   async putProjectStorageObject(input: {
@@ -5222,6 +5724,58 @@ function mapProjectStorageObject(object: any): ProjectStorageObjectRecord {
     byteLength: object.byteLength,
     contentHash: object.contentHash,
     createdAt: toIso(object.createdAt)!,
+  };
+}
+
+function mapFileVersion(row: any): FileVersionRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    workspaceKey: row.workspaceKey,
+    workspaceId: row.workspaceId ?? undefined,
+    path: row.path,
+    lineageId: row.lineageId,
+    operation: row.operation,
+    source: row.source,
+    actorUserId: row.actorUserId ?? undefined,
+    operationId: row.operationId,
+    previousVersionId: row.previousVersionId ?? undefined,
+    restoredFromVersionId: row.restoredFromVersionId ?? undefined,
+    renamedFromPath: row.renamedFromPath ?? undefined,
+    tombstone: row.tombstone,
+    sequence: String(row.sequence),
+    contentHash: row.blob.contentHash,
+    encoding: row.blob.encoding,
+    byteLength: row.blob.byteLength,
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function mapFileHistoryWatchState(row: any): import('./store.js').FileHistoryWatchStateRecord {
+  const reasons = Array.isArray(row.reasons)
+    ? row.reasons.filter((value: unknown): value is string => typeof value === 'string')
+    : [];
+
+  return {
+    projectId: row.projectId,
+    workspaceKey: row.workspaceKey,
+    sessionId: row.sessionId,
+    complete: row.complete,
+    reasons,
+    droppedEvents: row.droppedEvents,
+    snapshotTruncated: row.snapshotTruncated,
+    connectionTruncated: row.connectionTruncated,
+    lastSequence: row.lastSequence == null ? undefined : String(row.lastSequence),
+    reconciledAt: toIso(row.reconciledAt)!,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapFileVersionContent(row: any): FileVersionContentRecord {
+  return {
+    ...mapFileVersion(row),
+    contentBase64: row.blob.contentBase64,
   };
 }
 
