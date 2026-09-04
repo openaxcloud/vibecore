@@ -2157,3 +2157,53 @@ test('la rangée d’onglets mobiles s’arrête sur un onglet, jamais au milieu
   expect(mesure!.ancrage, 'la rangée doit ancrer son défilement').toContain('mandatory');
   expect(mesure!.ancrageOnglet, 'chaque onglet doit être un point d’arrêt').toContain('start');
 });
+
+test('aucun libellé du panneau Agent sous le plancher de l’échelle', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 390, height: 664 });
+
+  /*
+   * Mesuré en production, format iPhone 13 : « 0 messages », « README.md » et
+   * « Focused on README.md » étaient rendus à 9px — les premiers libellés qu'on
+   * voit en ouvrant le panneau.
+   *
+   * LA CAUSE N'EST PAS celle de #388. Ce n'est pas une variante de bureau
+   * attrapée en mobile : ce sont des `<small>`, et la règle d'étiquettes de
+   * l'IDE leur impose `--vc-type-label-size`. #382 avait couvert la zone de
+   * saisie ; l'en-tête et la carte d'état étaient hors de son périmètre.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-project-ide-shell bolt-responsive-ide bolt-responsive-ide-mobile">
+          <div class="bolt-mobile-ecode-header-title"><strong>Agent</strong><small>0 messages</small></div>
+          <div class="bolt-mobile-agent-start-state">
+            <div class="bolt-mobile-agent-start-card">
+              <span><strong>Agent prêt</strong><small>Centré sur README.md</small></span>
+            </div>
+          </div>
+          <div class="bolt-mobile-agent-context-bar"><small>README.md</small></div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const tailles = await page.evaluate(() => {
+    const petits: string[] = [];
+
+    for (const element of document.querySelectorAll('small, .text-xs')) {
+      const taille = Math.round(parseFloat(getComputedStyle(element).fontSize) * 10) / 10;
+
+      if (taille < 13) {
+        petits.push(`« ${(element.textContent ?? '').trim()} » à ${taille}px`);
+      }
+    }
+
+    return { petits, mesures: document.querySelectorAll('small').length };
+  });
+
+  expect(tailles.mesures, 'aucun libellé monté : le test ne prouverait rien').toBeGreaterThanOrEqual(3);
+  expect(tailles.petits, tailles.petits.join(' ; ')).toEqual([]);
+});
