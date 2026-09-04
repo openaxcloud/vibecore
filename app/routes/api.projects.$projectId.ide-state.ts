@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { projectIdeStateForBrowser } from '~/lib/persistence/ide-state-browser-projection';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { forwardIdeStatePut } from '~/lib/persistence/ide-state-proxy.server';
 
@@ -9,7 +10,13 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`);
 
-  return json(payload);
+  /*
+   * BUG-IDE-STATE-007 — le navigateur ne reçoit que ce qu'il lit. `files` est le
+   * magasin de contenu du SERVEUR (3,72 Mio sur un projet de 401 fichiers, contre
+   * 17 octets d'état réel) ; le type client ne le déclare même pas. Voir
+   * `ide-state-browser-projection.ts`. Le PUT, lui, n'est PAS projeté.
+   */
+  return json(projectIdeStateForBrowser(payload));
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
