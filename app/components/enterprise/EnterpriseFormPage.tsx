@@ -1,6 +1,7 @@
 import type React from 'react';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
+import { classNames } from '~/utils/classNames';
 
 interface EnterpriseFormPageProps {
   title: string;
@@ -22,19 +23,23 @@ interface EnterpriseFormPageProps {
  */
 export function EnterpriseFormPage({ title, description, children, status, error }: EnterpriseFormPageProps) {
   return (
-    <AppShell title={title} description={description}>
+    <AppShell title={title} description={description} serverSync={false}>
       <div className="w-full max-w-3xl">
-        <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-6">
+        <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           {status ? (
             <p
               role="status"
-              className="mb-4 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textSecondary"
+              aria-live="polite"
+              className="mb-4 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]"
             >
               {status}
             </p>
           ) : null}
           {error ? (
-            <p role="alert" className="mb-4 rounded-md border border-red-500/40 px-3 py-2 text-sm text-red-500">
+            <p
+              role="alert"
+              className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
+            >
               {error}
             </p>
           ) : null}
@@ -81,11 +86,19 @@ export function TextField(props: {
   );
 }
 
-export function PrimaryButton({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+/*
+ * Fusionne le `className` reçu au lieu de l'écraser : l'attribut littéral placé
+ * après le spread annulait silencieusement tout `className` passé par
+ * l'appelant (ex. `w-full` du formulaire d'invitation à 390px).
+ */
+export function PrimaryButton({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
       {...props}
-      className="min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60"
+      className={classNames(
+        'min-h-[44px] rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text disabled:cursor-not-allowed disabled:opacity-60',
+        className,
+      )}
     >
       {children}
     </button>

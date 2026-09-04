@@ -71,7 +71,7 @@ steps:
     args:
       - -c
       - |
-        for img in deps web admin api worker ai-gateway workspace-manager preview-proxy; do
+        for img in deps web admin api worker ai-gateway workspace-manager preview-proxy screenshotter; do
           docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:latest || true
         done
 
@@ -211,6 +211,30 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
       - .
 
+  # screenshotter (P11 auto thumbnails). Diverges from the other node services
+  # only in its runtime base (Playwright/Chromium) via a dedicated Dockerfile;
+  # the build stage still reuses the shared deps image. Deliberately serialized
+  # AFTER build-preview-proxy (not fanned out) so peak parallelism stays at the
+  # proven seven builds — an eighth concurrent build risks the same 8 GiB OOM
+  # that forced the 2026-05-20 rewrite. Mirrors infra/cloudbuild/runtime-tier.yaml
+  # (the CD path), which already builds this image.
+  - id: build-screenshotter
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-preview-proxy']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/screenshotter.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
+      - --build-arg=PACKAGE_FILTER=@vibecore/screenshotter
+      - --build-arg=START_CMD=node dist/server.js
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest
+      - .
+
   # ---- 4. vulnerability scan (non-blocking) ----
   # Runs after every service build is pushed. `allowFailure: true` keeps the
   # pipeline green when the scanner is unavailable or finds CVEs — surfacing
@@ -226,13 +250,14 @@ steps:
       - build-ai-gateway
       - build-workspace-manager
       - build-preview-proxy
+      - build-screenshotter
     allowFailure: true
     entrypoint: bash
     args:
       - -c
       - |
         set -u
-        for img in web admin api worker ai-gateway workspace-manager preview-proxy; do
+        for img in web admin api worker ai-gateway workspace-manager preview-proxy screenshotter; do
           echo "::: scanning $img:${_SHORT_SHA}"
           gcloud artifacts docker images scan \
             "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/$img:${_SHORT_SHA}" \
@@ -258,3 +283,5 @@ images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-manager:latest
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:${_SHORT_SHA}
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/preview-proxy:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/screenshotter:latest

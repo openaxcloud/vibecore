@@ -52,7 +52,18 @@ describe('SCR-010 — espacement entre les colonnes du pied de page', () => {
     expect(classes).toMatch(/\blg:grid-cols-4\b/);
   });
 
-  it('ne touche pas aux cibles tactiles de 44px des liens', () => {
-    expect(SOURCE).toMatch(/min-h-11 min-w-11 items-center/);
+  /*
+   * AV-UX point 11 (25/08) — Avi : « titres encore trop espacés » malgré
+   * SCR-009/010. Le pas d'une ligne de lien était 52px (44px + space-y-2).
+   * Désormais : 44px en tactile (space-y-0), 32px au bureau (lg:min-h-8,
+   * au-dessus du minimum WCAG 2.2 de 24px).
+   */
+  it('garde les cibles tactiles de 44px en mobile/tablette, resserre à 32px au bureau', () => {
+    expect(SOURCE).toMatch(/min-h-11 min-w-11 lg:min-h-8 items-center/);
+  });
+
+  it('supprime la marge décorative entre lignes de liens (la rangée espace déjà)', () => {
+    expect(SOURCE).toMatch(/<ul role="list" className="mt-2 space-y-0 text-\[13px\]">/);
+    expect(SOURCE).not.toMatch(/space-y-2 text-\[13px\]/);
   });
 });

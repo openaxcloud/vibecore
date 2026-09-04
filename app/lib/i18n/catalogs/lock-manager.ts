@@ -1,6 +1,7 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
 export const lockManagerEn = {
+  'lockManager.panel.title': 'Locks',
   'lockManager.search.placeholder': 'Search…',
   'lockManager.search.ariaLabel': 'Search locked items',
   'lockManager.filter.ariaLabel': 'Filter locked items by type',
@@ -29,6 +30,7 @@ export type LockManagerKey = keyof typeof lockManagerEn;
 export type LockManagerCopy = Readonly<Record<LockManagerKey, string>>;
 
 export const lockManagerFr: LockManagerCopy = {
+  'lockManager.panel.title': 'Verrous',
   'lockManager.search.placeholder': 'Rechercher…',
   'lockManager.search.ariaLabel': 'Rechercher dans les éléments verrouillés',
   'lockManager.filter.ariaLabel': 'Filtrer les éléments verrouillés par type',

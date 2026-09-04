@@ -18,9 +18,10 @@ import { createI18nInstance } from '~/lib/i18n/runtime';
  * chaîne ne doit jamais produire l'étiquette de secours anglaise.
  */
 describe('étiquette accessible des compteurs de diagnostics', () => {
+  // Formulations humanisées au lot UNIF-07 (fin de « project errors » façon jargon).
   const cas = [
-    ['fr', { un: '1 erreur du projet', plusieurs: '4 erreurs du projet' }],
-    ['en', { un: '1 project error', plusieurs: '4 project errors' }],
+    ['fr', { un: '1 erreur dans ce projet', plusieurs: '4 erreurs dans ce projet' }],
+    ['en', { un: '1 error in this project', plusieurs: '4 errors in this project' }],
   ] as const;
 
   for (const [langue, attendus] of cas) {

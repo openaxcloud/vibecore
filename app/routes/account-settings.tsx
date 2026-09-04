@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { data as json, NavLink, Outlet, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { data as json, NavLink, Outlet, useLocation, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { getAccountSettingsLayoutCopy } from '~/lib/i18n/catalogs/account-data';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
@@ -52,6 +52,7 @@ const TABS = [
 export default function AccountSettingsLayout() {
   const { i18n } = useTranslation();
   const copy = getAccountSettingsLayoutCopy(i18n.resolvedLanguage ?? i18n.language);
+  const location = useLocation();
 
   return (
     <AppShell title={copy.shell.title} description={copy.shell.description}>
@@ -60,12 +61,14 @@ export default function AccountSettingsLayout() {
         aria-label={copy.tabs.ariaLabel}
         className="mb-6 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-bolt-elements-borderColor"
       >
+        {/* role="tab" sans état est incomplet : l'onglet actif est annoncé via aria-selected. */}
         {TABS.map(([to, copyKey, end]) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             role="tab"
+            aria-selected={end ? location.pathname === to : location.pathname.startsWith(to)}
             className={({ isActive }) =>
               classNames(
                 'relative -mb-px inline-flex min-h-[44px] shrink-0 items-center whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',

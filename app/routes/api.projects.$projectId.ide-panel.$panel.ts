@@ -21,7 +21,12 @@ import {
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
-import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
+import {
+  extractGrepMatchLines,
+  isGrepMatchLine,
+  isSecurityScheduleDue,
+  vulnerabilitiesFromSecretScan,
+} from '~/lib/ide-panel-security';
 import {
   computeNextRunFromCron,
   defaultWorkflowSchedule,
@@ -4633,34 +4638,56 @@ async function runSecurityScan(
 
   const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
 
+  /*
+   * BUG-SEC-SCANNER-PHANTOM-FINDING: `2>/dev/null` keeps grep's own error/usage
+   * text (unsupported option on BusyBox grep, permission errors, …) out of the
+   * captured output — the runtime merges stdout+stderr — so tool noise can never
+   * be parsed into findings. A failed sub-command is logged and skipped instead
+   * of being reported as vulnerabilities (extractGrepMatchLines is the second
+   * line of defence for anything that still slips through on stdout).
+   */
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
+      "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git 2>/dev/null | head -50 || true",
       copy['apiRuntime.panel.securitySecretScan'],
       now,
       language,
     );
-    findings.push(
-      ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
-        ...finding,
-        title: copy['apiRuntime.panel.securitySecretFinding'],
-        recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
-      })),
-    );
+
+    if (secretRun.status !== 'succeeded') {
+      console.error(
+        `Security secret scan command failed (exit ${secretRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(
+        ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
+          ...finding,
+          title: copy['apiRuntime.panel.securitySecretFinding'],
+          recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
+        })),
+      );
+    }
   }
 
   if (runSastScan) {
     const sastRun = await runTerminalCommand(
       request,
       workspaceId,
-      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
+      "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build 2>/dev/null | head -80 || true",
       copy['apiRuntime.panel.securityStaticScan'],
       now,
       language,
     );
-    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+
+    if (sastRun.status !== 'succeeded') {
+      console.error(
+        `Security static scan command failed (exit ${sastRun.exitCode}); output ignored, not reported as findings`,
+      );
+    } else {
+      findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+    }
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
@@ -4776,56 +4803,70 @@ function normalizeSecurityState(input: any, language?: string | null) {
         }))
       : fallback.scans,
     vulnerabilities: Array.isArray(input?.vulnerabilities)
-      ? input.vulnerabilities.map((vulnerability: any) => ({
-          id: String(vulnerability.id || randomUUID()),
-          packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
-          title: String(
-            vulnerability.title === `${vulnerability.packageName} dependency advisory`
-              ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
-                  name: vulnerability.packageName,
-                })
-              : localizedSecurityText(
-                  localizedSecurityText(
+      ? input.vulnerabilities
+          .map((vulnerability: any) => ({
+            id: String(vulnerability.id || randomUUID()),
+            packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
+            title: String(
+              vulnerability.title === `${vulnerability.packageName} dependency advisory`
+                ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
+                    name: vulnerability.packageName,
+                  })
+                : localizedSecurityText(
                     localizedSecurityText(
-                      localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
-                      'apiRuntime.panel.securityCommandFinding',
+                      localizedSecurityText(
+                        localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
+                        'apiRuntime.panel.securityCommandFinding',
+                      ),
+                      'apiRuntime.panel.securityDomFinding',
                     ),
-                    'apiRuntime.panel.securityDomFinding',
-                  ),
-                  'apiRuntime.panel.securityReviewFinding',
-                ) ||
-                  vulnerability.packageName ||
-                  copy['apiRuntime.panel.securityFinding'],
-          ),
-          severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
-            ? vulnerability.severity
-            : 'info',
-          status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
-          hidden: Boolean(vulnerability.hidden),
-          source: String(vulnerability.source || 'workspace-runtime'),
-          details: String(vulnerability.details || ''),
-          recommendation: vulnerability.recommendation
-            ? String(
-                localizedSecurityText(
+                    'apiRuntime.panel.securityReviewFinding',
+                  ) ||
+                    vulnerability.packageName ||
+                    copy['apiRuntime.panel.securityFinding'],
+            ),
+            severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
+              ? vulnerability.severity
+              : 'info',
+            status: ['open', 'fixed', 'ignored'].includes(vulnerability.status) ? vulnerability.status : 'open',
+            hidden: Boolean(vulnerability.hidden),
+            source: String(vulnerability.source || 'workspace-runtime'),
+            details: String(vulnerability.details || ''),
+            recommendation: vulnerability.recommendation
+              ? String(
                   localizedSecurityText(
                     localizedSecurityText(
                       localizedSecurityText(
-                        localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
-                        'apiRuntime.panel.securityUpdateRemediation',
+                        localizedSecurityText(
+                          localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
+                          'apiRuntime.panel.securityUpdateRemediation',
+                        ),
+                        'apiRuntime.panel.securityPinRemediation',
                       ),
-                      'apiRuntime.panel.securityPinRemediation',
+                      'apiRuntime.panel.securityCommandAdvice',
                     ),
-                    'apiRuntime.panel.securityCommandAdvice',
+                    vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
+                      ? 'apiRuntime.panel.securityDomAdvice'
+                      : 'apiRuntime.panel.securityReviewAdvice',
                   ),
-                  vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
-                    ? 'apiRuntime.panel.securityDomAdvice'
-                    : 'apiRuntime.panel.securityReviewAdvice',
-                ),
-              )
-            : undefined,
-          createdAt: vulnerability.createdAt,
-          updatedAt: vulnerability.updatedAt,
-        }))
+                )
+              : undefined,
+            createdAt: vulnerability.createdAt,
+            updatedAt: vulnerability.updatedAt,
+          }))
+          /*
+           * BUG-SEC-SCANNER-PHANTOM-FINDING: earlier scans persisted grep's own
+           * error/usage text ("Usage: grep [-HhnlLoqvsrRiwFE] …") as findings.
+           * Grep-based findings (sast / secret-scan) always carry a
+           * `path:lineno:` details prefix; anything else in the stored state is
+           * scanner noise — drop it on read so the panel is clean immediately,
+           * without waiting for a rescan.
+           */
+          .filter(
+            (vulnerability: any) =>
+              !['sast', 'secret-scan'].includes(vulnerability.source) ||
+              isGrepMatchLine(String(vulnerability.details ?? '')),
+          )
       : fallback.vulnerabilities,
   };
 }
@@ -4865,10 +4906,7 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, langu
 function vulnerabilitiesFromSastOutput(output: string, timestamp: string, language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
-  return output
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean)
+  return extractGrepMatchLines(output)
     .slice(0, 80)
     .map((line, index) => {
       const isCommandExecution = /\b(child_process|exec\(|spawn\(|new Function\(|eval\()/i.test(line);

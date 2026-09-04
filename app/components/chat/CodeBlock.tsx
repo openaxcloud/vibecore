@@ -120,7 +120,7 @@ export const CodeBlock = memo(
       <div className={classNames('relative group text-left', className)}>
         {languageLabel && (
           <span
-            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
+            className="absolute top-[10px] left-[12px] z-10 select-none rounded text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary opacity-70 group-hover:opacity-100"
             aria-hidden
           >
             {languageLabel}

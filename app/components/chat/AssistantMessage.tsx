@@ -378,7 +378,7 @@ export const AssistantMessage = memo(
                                 {memory.tags.map((tag) => (
                                   <span
                                     key={tag}
-                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[10px] text-bolt-elements-textSecondary"
+                                    className="rounded border border-bolt-elements-borderColor px-1 py-0.5 text-[11px] text-bolt-elements-textSecondary"
                                   >
                                     {tag}
                                   </span>
@@ -413,7 +413,7 @@ export const AssistantMessage = memo(
                         {agentRules.files.map((path) => (
                           <span
                             key={path}
-                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium text-bolt-elements-textSecondary"
+                            className="rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] font-medium text-bolt-elements-textSecondary"
                           >
                             {path}
                           </span>
@@ -457,15 +457,15 @@ export const AssistantMessage = memo(
                               <span
                                 className={
                                   agentExecution.consensus.outcome === 'ACCEPTED'
-                                    ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                                    ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
                                     : agentExecution.consensus.outcome === 'REJECTED'
-                                      ? 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
-                                      : 'whitespace-nowrap text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                                      ? 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-red-500/10 text-[var(--status-error-text)]'
+                                      : 'whitespace-nowrap text-[11px] font-medium px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-600 dark:text-amber-400'
                                 }
                               >
                                 {localizeAssistantEnum(copy, 'outcome', agentExecution.consensus.outcome)}
                               </span>
-                              <span className="text-[10px] text-bolt-elements-textTertiary">
+                              <span className="text-[11px] text-bolt-elements-textTertiary">
                                 {text(
                                   selectAssistantMessagePlural(
                                     copy,
@@ -520,11 +520,11 @@ export const AssistantMessage = memo(
                                       }
                                       aria-label={localizeAssistantEnum(copy, 'decision', vote.decision)}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
                                       [{localizeAssistantEnum(copy, 'voteType', vote.type)}]
                                     </span>{' '}
                                     {vote.claim}{' '}
-                                    <span className="text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="text-[11px] text-bolt-elements-textTertiary">
                                       ({vote.supporters.length}/{vote.supporters.length + vote.dissenters.length})
                                     </span>
                                   </li>
@@ -563,7 +563,7 @@ export const AssistantMessage = memo(
                                         severity: localizeAssistantEnum(copy, 'severity', conflict.severity),
                                       })}
                                     />
-                                    <span className="font-mono text-[10px] text-bolt-elements-textTertiary">
+                                    <span className="font-mono text-[11px] text-bolt-elements-textTertiary">
                                       [{localizeAssistantEnum(copy, 'conflictType', conflict.type)}]
                                     </span>{' '}
                                     {conflict.description}
@@ -732,7 +732,7 @@ export const AssistantMessage = memo(
                           ) : (
                             <span className="mt-[1px] shrink-0 text-bolt-elements-textTertiary">{index + 1}.</span>
                           )}
-                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
+                          <span className="rounded bg-bolt-elements-background-depth-2 px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-item-contentAccent">
                             {localizeAssistantEnum(copy, 'role', task.roleId)}
                           </span>
                           <span className="min-w-0 flex-1 break-words text-bolt-elements-textSecondary">

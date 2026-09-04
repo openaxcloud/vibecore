@@ -243,7 +243,7 @@ export default function AccountDataPage() {
           <p
             role="status"
             aria-live="polite"
-            className="rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-bolt-elements-textSecondary"
+            className="rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-3 py-2 text-sm text-[var(--status-success-text)]"
           >
             {copy.success.cancellation}
           </p>
@@ -306,7 +306,7 @@ export default function AccountDataPage() {
                     variant="outline"
                     disabled={busy}
                     aria-busy={busy}
-                    className="w-full gap-1.5 sm:w-auto"
+                    className="min-h-[44px] w-full gap-1.5 whitespace-normal sm:w-auto"
                   >
                     <Undo2 className="h-4 w-4" aria-hidden />
                     {busy ? copy.status.cancelling : copy.status.cancelRequest}
@@ -481,7 +481,7 @@ export default function AccountDataPage() {
                     value={confirmValue}
                     onChange={(event) => setConfirmValue(event.target.value)}
                     placeholder={email}
-                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none"
+                    className="mt-1 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-[16px] text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm"
                   />
                 </div>
 

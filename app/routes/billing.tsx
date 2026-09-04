@@ -5,6 +5,7 @@ import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { ActivityList, AppShell, LinkButton, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
   apiRequest,
   firstOrganization,
@@ -511,6 +512,22 @@ export default function BillingPage() {
           : t('billing.common.noLimit'),
       detail: t(creditsUnavailable ? 'billing.mobile.limitUnavailable' : 'billing.mobile.payg'),
     },
+
+    /*
+     * Parité mobile/desktop : ces valeurs n'existaient qu'à travers les
+     * StatGrid `hidden sm:block` — invisibles sous 640px alors qu'aucun
+     * substitut ne les reprenait dans ce résumé.
+     */
+    {
+      label: t('billing.stats.creditPacks'),
+      value: creditsUnavailable ? t('billing.common.unavailable') : money(credits.packBalanceCents),
+      detail: t('billing.stats.packsDetail'),
+    },
+    {
+      label: t('billing.stats.usageEvents'),
+      value: formatBillingNumber(billing.usage.length, language),
+      detail: t('billing.stats.usageEventsDetail'),
+    },
   ];
 
   return (
@@ -546,15 +563,28 @@ export default function BillingPage() {
             </div>
             <Link
               to="/payment-method"
-              className="inline-flex h-[44px] shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              className="inline-flex min-h-[44px] shrink-0 items-center justify-center rounded-md bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
               {t('billing.alert.updatePayment')}
             </Link>
           </div>
         ) : null}
-        {billingAccessLimited || actionError ? (
+        {/*
+          Deux bandeaux distincts : une erreur d'action est une ERREUR (tokens
+          error), l'accès limité un avertissement — et l'un ne doit plus
+          écraser l'autre quand les deux surviennent.
+        */}
+        {actionError ? (
+          <div
+            role="alert"
+            className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-sm text-[var(--status-error-text)]"
+          >
+            {actionError}
+          </div>
+        ) : null}
+        {billingAccessLimited ? (
           <div className="rounded-lg border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] p-4 text-sm text-[var(--status-warning-text)]">
-            {actionError ?? t('billing.alert.accessLimited')}
+            {t('billing.alert.accessLimited')}
           </div>
         ) : null}
         <dl className="grid grid-cols-2 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 sm:hidden">
@@ -562,7 +592,7 @@ export default function BillingPage() {
             <div
               key={item.label}
               className={`min-w-0 p-4 ${index % 2 === 0 ? 'border-r border-bolt-elements-borderColor' : ''} ${
-                index < 2 ? 'border-b border-bolt-elements-borderColor' : ''
+                index < mobileFinancialSummary.length - 2 ? 'border-b border-bolt-elements-borderColor' : ''
               }`}
             >
               <dt className="text-xs text-bolt-elements-textSecondary">{item.label}</dt>
@@ -581,7 +611,7 @@ export default function BillingPage() {
         <div className="hidden sm:block">
           <StatGrid stats={overviewStats} />
         </div>
-        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+        <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <div className="mb-4 flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
               <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('billing.credits.title')}</h2>
@@ -797,27 +827,26 @@ export default function BillingPage() {
                 <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
                   {t('billing.checkpoints.title')}
                 </h3>
-                <ActivityList
-                  items={
-                    credits.checkpoints.length
-                      ? credits.checkpoints.slice(0, 8).map((cp) => ({
-                          title: `${money(cp.creditCents)} — ${billingDisplayLabel(cp.buildTier, language)}${
-                            cp.highPowerModel ? ` · ${t('billing.label.highPowerModel')}` : ''
-                          }${cp.extendedThinking ? ` · ${t('billing.label.extendedThinking')}` : ''}${
-                            cp.turboMode ? ` · ${t('billing.label.turbo')}` : ''
-                          }`,
-                          detail: `${billingDisplayLabel(cp.status, language)} · ${dateTime(cp.startedAt)}`,
-                          icon: TrendingUp,
-                        }))
-                      : [
-                          {
-                            title: t('billing.checkpoints.emptyTitle'),
-                            detail: t('billing.checkpoints.emptyDescription'),
-                            icon: TrendingUp,
-                          },
-                        ]
-                  }
-                />
+                {credits.checkpoints.length ? (
+                  <ActivityList
+                    items={credits.checkpoints.slice(0, 8).map((cp) => ({
+                      title: `${money(cp.creditCents)} — ${billingDisplayLabel(cp.buildTier, language)}${
+                        cp.highPowerModel ? ` · ${t('billing.label.highPowerModel')}` : ''
+                      }${cp.extendedThinking ? ` · ${t('billing.label.extendedThinking')}` : ''}${
+                        cp.turboMode ? ` · ${t('billing.label.turbo')}` : ''
+                      }`,
+                      detail: `${billingDisplayLabel(cp.status, language)} · ${dateTime(cp.startedAt)}`,
+                      icon: TrendingUp,
+                    }))}
+                  />
+                ) : (
+                  <EmptyState
+                    variant="compact"
+                    icon={TrendingUp}
+                    title={t('billing.checkpoints.emptyTitle')}
+                    description={t('billing.checkpoints.emptyDescription')}
+                  />
+                )}
               </div>
             </>
           )}
@@ -853,25 +882,24 @@ export default function BillingPage() {
             </Form>
           </div>
         ) : null}
-        <ActivityList
-          items={
-            billing.usage.length
-              ? billing.usage.slice(0, 8).map((event) => ({
-                  title: billingDisplayLabel(event.type, language),
-                  detail: `${formatBillingNumber(event.quantity, language)} · ${
-                    event.createdAt ? dateTime(event.createdAt) : t('billing.common.recorded')
-                  }`,
-                  icon: TrendingUp,
-                }))
-              : [
-                  {
-                    title: t('billing.activity.emptyTitle'),
-                    detail: t('billing.activity.emptyDescription'),
-                    icon: TrendingUp,
-                  },
-                ]
-          }
-        />
+        {billing.usage.length ? (
+          <ActivityList
+            items={billing.usage.slice(0, 8).map((event) => ({
+              title: billingDisplayLabel(event.type, language),
+              detail: `${formatBillingNumber(event.quantity, language)} · ${
+                event.createdAt ? dateTime(event.createdAt) : t('billing.common.recorded')
+              }`,
+              icon: TrendingUp,
+            }))}
+          />
+        ) : (
+          <EmptyState
+            variant="compact"
+            icon={TrendingUp}
+            title={t('billing.activity.emptyTitle')}
+            description={t('billing.activity.emptyDescription')}
+          />
+        )}
       </div>
     </AppShell>
   );

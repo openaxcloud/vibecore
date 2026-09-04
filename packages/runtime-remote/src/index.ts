@@ -18,6 +18,14 @@ import {
   type WorkspaceSession,
   type WorkspaceStatus,
 } from '@vibecore/runtime-contract';
+import {
+  initialTerminalReconnectState,
+  onTerminalConnectionOpened,
+  onTerminalConnectionStable,
+  onTerminalFrame,
+  onTerminalReconnectScheduled,
+  onTerminalReconnected,
+} from './terminal-reconnect.js';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;
@@ -591,16 +599,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
-    let reconnectAttempts = 0;
     let stableTimer: ReturnType<typeof setTimeout> | undefined;
     let heartbeatTimer: ReturnType<typeof setInterval> | undefined;
     let halted = false;
 
     /*
-     * True once the terminal has delivered a real frame — gates the
-     * "[terminal reconnected]" notice so cold-start retries don't spam it.
+     * Reconnect/announce policy (pure, unit-tested in terminal-reconnect.ts):
+     * bounds the flap, latches the "[terminal reconnected]" notice, and only
+     * lets a connection that actually DELIVERED a frame reset the backoff — an
+     * open-but-mute socket cycling every ~10–30s used to reset the budget each
+     * time and spam "[terminal reconnected]" forever.
      */
-    let everWorked = false;
+    let reconnectState = initialTerminalReconnectState();
 
     /*
      * Consecutive WORKSPACE_NOT_STARTED responses; a COLD-STARTING workspace may
@@ -672,7 +682,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
        * isn't started. The workspace may be COLD-STARTING (agent not ready for a few
        * seconds) or genuinely STOPPED, so retry a bounded number of times (the socket
        * close drives the retry) before halting with a clear "click Run" message —
-       * without the "[terminal reconnected]" spam (gated on everWorked in reconnect()).
+       * without the "[terminal reconnected]" spam (gated on the reconnect policy's
+       * everWorked in reconnect()).
        */
       if (
         (parsed as { type?: string }).type === 'error' &&
@@ -688,7 +699,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       }
 
       // A real frame means the terminal is live — reset the not-started budget.
-      everWorked = true;
+      reconnectState = onTerminalFrame(reconnectState);
       notStartedCount = 0;
       queue.push(parsed);
     };
@@ -700,10 +711,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       /*
        * Bound the reconnect: a workspace that stays unreachable (crashed/stopped
        * mid-session, network gone) must not flap forever. The stableTimer resets
-       * reconnectAttempts once a connection holds for ~5s, so an occasional drop on
-       * a healthy terminal never trips this — only a sustained failure does.
+       * the attempt budget once a connection holds for ~5s AND has delivered a
+       * real frame, so an occasional drop on a healthy terminal never trips this
+       * — only a sustained failure (or an open-but-mute flap) does.
        */
-      if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+      if (reconnectState.attempts >= MAX_RECONNECT_ATTEMPTS) {
         haltReconnect('\r\n\x1b[33m[terminal disconnected — reload or click Run to reconnect]\x1b[0m\r\n');
         return;
       }
@@ -713,8 +725,8 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         stableTimer = undefined;
       }
 
-      const delay = Math.min(1000 * 2 ** reconnectAttempts, 10_000);
-      reconnectAttempts += 1;
+      const delay = Math.min(1000 * 2 ** reconnectState.attempts, 10_000);
+      reconnectState = onTerminalReconnectScheduled(reconnectState);
       reconnectTimer = setTimeout(() => {
         reconnectTimer = undefined;
         void reconnect();
@@ -754,10 +766,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       nextSocket.addEventListener('error', scheduleReconnect);
       nextSocket.addEventListener('close', scheduleReconnect);
 
+      reconnectState = onTerminalConnectionOpened(reconnectState);
+
       /*
-       * Only treat the connection as healthy (and reset the backoff) once it has stayed
-       * open for a few seconds. Resetting immediately turns a server that accepts then
-       * drops the socket into a tight 1s flap that never backs off.
+       * Only treat the connection as healthy (and reset the backoff) once it has
+       * stayed open for a few seconds AND actually delivered a frame. Resetting
+       * immediately turns a server that accepts then drops the socket into a
+       * tight 1s flap that never backs off; resetting on a mute-but-open socket
+       * let an accept-then-idle-kill cycle flap (and announce) forever.
        */
       if (stableTimer) {
         clearTimeout(stableTimer);
@@ -765,7 +781,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
       stableTimer = setTimeout(() => {
         stableTimer = undefined;
-        reconnectAttempts = 0;
+        reconnectState = onTerminalConnectionStable(reconnectState);
       }, 5_000);
     };
     const reconnect = async () => {
@@ -799,9 +815,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         /*
          * Only announce a reconnect once the terminal has actually worked — so a
          * cold-starting workspace's retries (which open the client↔API socket but
-         * then get WORKSPACE_NOT_STARTED) don't spam "[terminal reconnected]".
+         * then get WORKSPACE_NOT_STARTED) don't spam "[terminal reconnected]" —
+         * and at most ONCE until real output flows again, so a reconnect cycle
+         * that never yields a frame doesn't scroll the notice in a loop.
          */
-        if (everWorked) {
+        const announced = onTerminalReconnected(reconnectState);
+        reconnectState = announced.state;
+
+        if (announced.announce) {
           queue.push({ type: 'stdout', data: '\r\n[terminal reconnected]\r\n', timestamp: now() });
         }
       } catch {

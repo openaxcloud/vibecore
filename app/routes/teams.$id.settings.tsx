@@ -53,9 +53,14 @@ export default function TeamSettingsRoute() {
     >
       <div className="flex flex-col gap-6">
         <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs text-bolt-elements-textSecondary">
-          {formatTeamAccessLogCopy(copy['teamAccessLog.settings.banner'], { team: data.teamId })}{' '}
+          {formatTeamAccessLogCopy(copy['teamAccessLog.settings.banner'], { team: data.teamId })}
+          {/*
+            Lien sorti de la phrase : un inline-flex de 44px au milieu d'une
+            ligne text-xs gonflait la line-box de ~28px et cassait le rythme
+            typographique du bandeau.
+          */}
           <Link
-            className="inline-flex min-h-[44px] max-w-full items-center break-words underline hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+            className="mt-1 flex min-h-[44px] w-fit max-w-full items-center break-words underline hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             to={`/teams/${data.teamId}`}
           >
             {copy['teamAccessLog.settings.openFullLog']}

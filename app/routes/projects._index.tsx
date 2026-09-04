@@ -23,6 +23,7 @@ import { userAreaEn, userAreaFr, type UserAreaTranslationKey } from '~/lib/i18n/
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
+import { classNames } from '~/utils/classNames';
 import { projectIdePath } from '~/utils/project-url';
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => [
@@ -237,7 +238,7 @@ export default function ProjectsPage() {
         )
       ) : (
         <>
-          <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+          <div className="mb-5 flex flex-col gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <SearchInput
                 value={query}
@@ -246,10 +247,20 @@ export default function ProjectsPage() {
                 placeholder={t('projects.search')}
                 aria-label={t('projects.search')}
                 containerClassName="min-w-0 flex-1"
+                className="min-h-[44px]"
               />
               <div className="flex gap-2">
+                {/*
+                 * La bascule grille/liste doit montrer visuellement le mode
+                 * actif (aria-pressed seul ne suffit pas aux voyants).
+                 */}
                 <button
-                  className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  className={classNames(
+                    'flex h-[44px] w-[44px] items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                    view === 'grid'
+                      ? 'border-[var(--vc-ide-accent-action)] bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_12%,transparent)] text-[var(--vc-ide-accent-action)]'
+                      : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+                  )}
                   aria-label={t('projects.gridView')}
                   aria-pressed={view === 'grid'}
                   onClick={() => setView('grid')}
@@ -257,7 +268,12 @@ export default function ProjectsPage() {
                   <Grid2X2 className="h-4 w-4" aria-hidden />
                 </button>
                 <button
-                  className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
+                  className={classNames(
+                    'flex h-[44px] w-[44px] items-center justify-center rounded-md border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                    view === 'list'
+                      ? 'border-[var(--vc-ide-accent-action)] bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_12%,transparent)] text-[var(--vc-ide-accent-action)]'
+                      : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
+                  )}
                   aria-label={t('projects.listView')}
                   aria-pressed={view === 'list'}
                   onClick={() => setView('list')}
@@ -273,6 +289,7 @@ export default function ProjectsPage() {
                   label={t(filter.labelKey)}
                   active={statusFilter === filter.id}
                   onClick={() => setStatusFilter(filter.id)}
+                  className="min-h-[44px]"
                 />
               ))}
             </div>
@@ -328,15 +345,11 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             {renaming ? (
-              <ProjectRenameForm
-                project={project}
-                onDone={() => setRenaming(false)}
-                className="h-7 max-w-xs text-sm font-semibold"
-              />
+              <ProjectRenameForm project={project} onDone={() => setRenaming(false)} className="max-w-xs" />
             ) : (
-              <h2 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
+              <h3 className="min-w-0 truncate text-sm font-semibold" title={project.name}>
                 {project.name}
-              </h2>
+              </h3>
             )}
             <ProjectStatusPill project={project} />
           </div>

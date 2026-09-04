@@ -249,6 +249,11 @@ services:
     # server.ts binds SCREENSHOTTER_PORT ?? PORT ?? 3030.
     port: 3030
     replicas: 1
+    # Cap the HPA (templates/hpa.yaml would otherwise default to 5): render
+    # concurrency is held via SCREENSHOTTER_MAX_CONCURRENCY in the pod, not by
+    # fanning out Chromium replicas. Chart-default (not values-prod-only) so the
+    # cap also applies under CD's `helm upgrade --reuse-values`.
+    maxReplicas: 2
     path: ''
     readOnlyRootFilesystem: false
     # Chromium is memory-hungry; give /tmp headroom for its shm/profile writes.

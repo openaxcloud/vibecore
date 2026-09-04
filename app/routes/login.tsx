@@ -394,7 +394,7 @@ export default function LoginPage() {
             {AUTH_HERO_STATS.map((item) => (
               <div key={item.value} className="vc-auth-mobile-stat rounded-lg px-3 py-3 text-center">
                 <div className="text-[16px] font-bold">{item.value}</div>
-                <div className="mt-1 text-[10px]">{t(item.labelKey)}</div>
+                <div className="mt-1 text-[11px]">{t(item.labelKey)}</div>
               </div>
             ))}
           </div>
@@ -456,7 +456,10 @@ export default function LoginPage() {
           <label className="block">
             <span className="mb-2 flex items-center justify-between">
               <span className="vc-auth-label text-[13px] font-medium">{t('auth.common.password')}</span>
-              <Link to="/forgot-password" className="vc-auth-link text-[12px] font-semibold hover:underline">
+              <Link
+                to="/forgot-password"
+                className="vc-auth-link inline-flex min-h-11 items-center text-[12px] font-semibold hover:underline"
+              >
                 {t('auth.login.forgotPassword')}
               </Link>
             </span>
@@ -474,7 +477,7 @@ export default function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword((value) => !value)}
-                className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
+                className="vc-auth-input-action absolute right-1 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-md transition-colors lg:right-2 lg:h-8 lg:w-8"
                 aria-label={showPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -520,7 +523,7 @@ export default function LoginPage() {
         {mfaRequired ? <input type="hidden" name="password" value={loginActionData?.password ?? ''} /> : null}
 
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <label className="vc-auth-checkbox-label flex min-h-9 cursor-pointer items-center gap-2 text-[12px]">
+          <label className="vc-auth-checkbox-label flex min-h-11 cursor-pointer items-center gap-2 text-[12px]">
             <input
               type="checkbox"
               name="rememberMe"

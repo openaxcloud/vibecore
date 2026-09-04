@@ -499,7 +499,7 @@ export default function Pricing() {
                 className={`inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'yearly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
               >
                 Yearly
-                <Badge className="ml-1 sm:ml-2 text-[10px] sm:text-[11px] bg-[var(--vc-action-primary-strong)] text-white border-0">
+                <Badge className="ml-1 sm:ml-2 text-[11px] bg-[var(--vc-action-primary-strong)] text-white border-0">
                   Save 20%
                 </Badge>
               </button>
@@ -710,7 +710,7 @@ export default function Pricing() {
           </div>
 
           <div className="lg:hidden text-center mb-4">
-            <Badge variant="outline" className="text-[10px] text-[var(--ecode-text-muted)] animate-pulse">
+            <Badge variant="outline" className="text-[11px] text-[var(--ecode-text-muted)] animate-pulse">
               <ChevronRight className="h-3 w-3 mr-1" />
               Swipe left to compare all plans
             </Badge>

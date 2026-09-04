@@ -5,6 +5,7 @@ import {
   MAX_PREVIEW_LOAD_RETRIES,
   decidePreviewLoadOutcome,
   shouldAutoRunPreview,
+  shouldHoldPreviewLoadingOverlay,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
 } from './preview-frame-recovery';
@@ -65,6 +66,70 @@ describe('decidePreviewLoadOutcome', () => {
     expect(decision.treatAsRendered).toBe(true);
     expect(decision.scheduleReload).toBe(false);
     expect(decision.nextAttempt).toBe(MAX_PREVIEW_LOAD_RETRIES);
+  });
+
+  /*
+   * BUG-UX-PREVIEW-OVERLAY-LAG (live 24/08): the aggregate `ready` stays false
+   * on reopen (manager status lags, client beacon reflects the previous page)
+   * while the port genuinely serves 200s. Every real render was discarded as a
+   * "502 holding page" and reloaded — the overlay never dropped.
+   */
+  it('trusts a load when the server reports the port SERVING, even while the aggregate ready is still false', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 2, ready: false, serving: true, erroredLoad: false });
+
+    expect(decision.treatAsRendered).toBe(true);
+    expect(decision.scheduleReload).toBe(false);
+    expect(decision.nextAttempt).toBe(0);
+  });
+
+  it('still retries a frame ERROR even while the port reports serving (network-level failure, nothing rendered)', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 0, ready: false, serving: true, erroredLoad: true });
+
+    expect(decision.treatAsRendered).toBe(false);
+    expect(decision.scheduleReload).toBe(true);
+  });
+
+  it('keeps distrusting a not-ready load when serving is unknown (the original 502 race is unchanged)', () => {
+    const decision = decidePreviewLoadOutcome({ attempt: 0, ready: false, serving: undefined, erroredLoad: false });
+
+    expect(decision.treatAsRendered).toBe(false);
+    expect(decision.scheduleReload).toBe(true);
+  });
+});
+
+describe('shouldHoldPreviewLoadingOverlay (BUG-UX-PREVIEW-OVERLAY-LAG)', () => {
+  const base = {
+    hasActivePreview: true,
+    hasIframeUrl: true,
+    frameLoaded: true,
+    loadedUrlMatches: true,
+  };
+
+  it('drops the overlay once the frame loaded and the port is SERVING, even while the aggregate ready is still false', () => {
+    // The measured live state: URL renders the app in a plain tab, overlay still said "Starting".
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: true })).toBe(false);
+  });
+
+  it('keeps the overlay while the frame has not loaded the current URL yet', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true, serving: true, frameLoaded: false })).toBe(true);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true, serving: true, loadedUrlMatches: false })).toBe(
+      true,
+    );
+  });
+
+  it('keeps the overlay over a loaded frame only when the port is not-ready AND not serving (the real 502 page)', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: undefined })).toBe(true);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: false, serving: false })).toBe(true);
+  });
+
+  it('drops the overlay for a loaded frame with a ready (or unknown) port', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: true })).toBe(false);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, ready: undefined })).toBe(false);
+  });
+
+  it('never shows without an active preview or iframe URL', () => {
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, hasActivePreview: false, ready: false })).toBe(false);
+    expect(shouldHoldPreviewLoadingOverlay({ ...base, hasIframeUrl: false, ready: false })).toBe(false);
   });
 });
 

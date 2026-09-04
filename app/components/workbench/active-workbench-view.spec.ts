@@ -55,6 +55,23 @@ describe('resolveActiveWorkbenchView', () => {
       ).toBe('diff');
     });
 
+    /*
+     * Regression (AV-UX point 5): after the agent modifies a file the store
+     * force-sets currentView to 'diff'. Opening the Shell/Terminal tab (or
+     * files/search) must still show its own surface, never the sticky diff.
+     */
+    it('never shows the sticky diff on non-editor panels (terminal shows the terminal)', () => {
+      for (const panel of ['terminal', 'files', 'search', 'locks', 'deploy'] as const) {
+        expect(
+          resolveActiveWorkbenchView({
+            useMobileWorkbench: true,
+            mobilePanel: panel,
+            selectedView: 'diff',
+          }),
+        ).toBe('code');
+      }
+    });
+
     it('keeps preview priority over a stale diff selection', () => {
       expect(
         resolveActiveWorkbenchView({

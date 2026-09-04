@@ -424,7 +424,7 @@ export default function AiAgent() {
                             alt={`${reel.title} — ${reel.description}`}
                             loading="lazy"
                           />
-                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white">
+                          <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
                             <Sparkles className="h-3 w-3" /> {reel.label}
                           </span>
                         </div>

@@ -27,6 +27,7 @@ import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeS
 import {
   beginPreviewFrameReload,
   decidePreviewLoadOutcome,
+  shouldHoldPreviewLoadingOverlay,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
   MAX_PREVIEW_BOOT_ATTEMPTS,
@@ -836,11 +837,21 @@ export const Preview = memo(
           .slice(-4),
       [workspaceLogs],
     );
-    const shouldShowPreviewLoadingOverlay = Boolean(
-      activePreview &&
-        iframeUrl &&
-        (activePreview.ready === false || !previewFrameLoaded || loadedPreviewUrl !== iframeUrl),
-    );
+
+    /*
+     * BUG-UX-PREVIEW-OVERLAY-LAG: `serving` (HTTP answers + live process, the
+     * server-side probe) beats a lagging aggregate `ready`, so the overlay
+     * drops as soon as the port actually serves and the frame has loaded —
+     * instead of sitting on "Starting dev server" over a rendered app.
+     */
+    const shouldShowPreviewLoadingOverlay = shouldHoldPreviewLoadingOverlay({
+      hasActivePreview: Boolean(activePreview),
+      hasIframeUrl: Boolean(iframeUrl),
+      ready: activePreview?.ready,
+      serving: activePreview?.serving,
+      frameLoaded: previewFrameLoaded,
+      loadedUrlMatches: loadedPreviewUrl === iframeUrl,
+    });
 
     /*
      * Reopen resume vs cold rebuild. When the workspace pod is genuinely running
@@ -2300,6 +2311,7 @@ export const Preview = memo(
         const decision = decidePreviewLoadOutcome({
           attempt: previewLoadRetryRef.current,
           ready: activePreview?.ready,
+          serving: activePreview?.serving,
           erroredLoad: false,
         });
         previewLoadRetryRef.current = decision.nextAttempt;
@@ -2350,7 +2362,7 @@ export const Preview = memo(
         setIsStartingPreview(false);
         setPreviewStatus(t('idePanels.preview.rendered'));
       },
-      [activePreview?.ready, reloadPreview, visiblePreviewUrl, t],
+      [activePreview?.ready, activePreview?.serving, reloadPreview, visiblePreviewUrl, t],
     );
 
     const handlePreviewFrameError = useCallback(() => {
@@ -2364,6 +2376,7 @@ export const Preview = memo(
       const decision = decidePreviewLoadOutcome({
         attempt: previewLoadRetryRef.current,
         ready: activePreview?.ready,
+        serving: activePreview?.serving,
         erroredLoad: true,
       });
       previewLoadRetryRef.current = decision.nextAttempt;
@@ -2384,7 +2397,7 @@ export const Preview = memo(
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
       }
-    }, [activePreview?.ready, reloadPreview, t]);
+    }, [activePreview?.ready, activePreview?.serving, reloadPreview, t]);
 
     const previewViewportWidth = isDeviceModeOn
       ? showDeviceFrameInPreview

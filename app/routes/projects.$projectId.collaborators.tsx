@@ -366,7 +366,7 @@ function InviteLinkList({ links }: { links: InviteLink[] }) {
             </div>
             <span
               className={classNames(
-                'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide',
+                'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide',
                 status.tone === 'active'
                   ? 'text-[var(--status-success-text)]'
                   : status.tone === 'expired'

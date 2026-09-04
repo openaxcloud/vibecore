@@ -134,7 +134,8 @@ export default function Subprocessors() {
       <section className="border-b bg-gradient-to-b from-muted/30 to-background">
         <div className="container-responsive py-20">
           <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold mb-6" data-testid="heading-subprocessors">
+            {/* Échelle h1 de la famille légale (Terms/Privacy/DPA) : text-responsive-2xl, pas 60px. */}
+            <h1 className="break-words text-responsive-2xl font-bold mb-6" data-testid="heading-subprocessors">
               {copy.title}
             </h1>
             <p className="text-xl text-muted-foreground mb-8">{copy.description}</p>

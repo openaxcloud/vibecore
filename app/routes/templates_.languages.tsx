@@ -181,7 +181,7 @@ function TemplatesLanguagesLoadingState({ language }: { language: string }) {
         {Array.from({ length: 8 }, (_, index) => (
           <div
             key={index}
-            className="h-16 animate-pulse rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] motion-reduce:animate-none"
+            className="h-14 animate-pulse rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] motion-reduce:animate-none"
           />
         ))}
       </div>

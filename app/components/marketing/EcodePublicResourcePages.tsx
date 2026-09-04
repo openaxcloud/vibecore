@@ -344,7 +344,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                   type="button"
                   onClick={() => setQuery('')}
                   aria-label={copy.clearSearch}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
+                  className="absolute right-1 top-1/2 inline-flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-full text-[var(--ecode-text-muted)] transition hover:text-[var(--ecode-text)]"
                 >
                   <X className="h-4 w-4" aria-hidden />
                 </button>
@@ -558,7 +558,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                     type="button"
                     onClick={() => setActiveCategory(category.id)}
                     className={classNames(
-                      'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+                      'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
                       activeCategory === category.id
                         ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
                         : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
@@ -811,7 +811,7 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
       aria-pressed={active}
       onClick={onClick}
       className={classNames(
-        'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
+        'inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
         active
           ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',

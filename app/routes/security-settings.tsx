@@ -137,7 +137,7 @@ export default function SecuritySettingsPage() {
         </div>
 
         <section className="mt-8 min-w-0">
-          <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
             {copy['securitySettings.enterprise.title']}
           </h2>
           <p className="mt-1 break-words text-sm leading-relaxed text-bolt-elements-textSecondary">

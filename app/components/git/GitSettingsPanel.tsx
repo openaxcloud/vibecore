@@ -417,7 +417,7 @@ function SshKeysSection({
                       {key.name || key.host || copy['gitSettings.ssh.keyFallback']}
                     </span>
                     {key.keyType ? (
-                      <span className="rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
+                      <span className="rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-bolt-elements-textTertiary">
                         {key.keyType}
                       </span>
                     ) : null}

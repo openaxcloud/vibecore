@@ -384,7 +384,17 @@ export class PreviewsStore {
     }
 
     previewInfo.ready = ready ?? type === 'open';
-    previewInfo.serving = serving;
+
+    /*
+     * `serving` only rides on the /ports POLL (the API's aggregate route); the
+     * ports/watch stream never carries it. Overwriting with `undefined` on every
+     * watch push (every 5s) erased the poll's "this port answers HTTP with a
+     * live process" signal right after it arrived — which re-armed the boot
+     * overlay against a serving app (BUG-UX-PREVIEW-OVERLAY-LAG). Keep the last
+     * known value on events that don't state one; an explicit false still
+     * applies, and a dead port leaves via its 'close' event / poll prune.
+     */
+    previewInfo.serving = serving ?? previewInfo.serving;
     previewInfo.baseUrl = url;
 
     this.previews.set([...previews]);

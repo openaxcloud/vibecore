@@ -22,6 +22,13 @@ interface FilterChipProps {
   /** Optional icon to display before the label */
   icon?: string;
 
+  /**
+   * Disables the toggle button (clickable chips only). Used by scoped toggles
+   * whose target does not exist yet (e.g. Skills "Install to: Workspace"
+   * without a workspace).
+   */
+  disabled?: boolean;
+
   /** Additional class name */
   className?: string;
 }
@@ -40,7 +47,16 @@ const variants = {
  * buttons (aria-pressed) with the app's blue action accent when active, per
  * docs/DESIGN_ACCENTS.md.
  */
-export function FilterChip({ label, value, onClick, onRemove, active = false, icon, className }: FilterChipProps) {
+export function FilterChip({
+  label,
+  value,
+  onClick,
+  onRemove,
+  active = false,
+  icon,
+  disabled,
+  className,
+}: FilterChipProps) {
   const { i18n } = useTranslation();
   const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
 
@@ -100,6 +116,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         type="button"
         aria-pressed={active}
         onClick={onClick}
+        disabled={disabled}
         initial="initial"
         animate="animate"
         exit="exit"
@@ -108,6 +125,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
         className={classNames(
           chipClasses,
           'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+          'disabled:cursor-not-allowed disabled:opacity-50',
         )}
         style={activeBackground}
       >
