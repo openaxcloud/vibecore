@@ -40,6 +40,13 @@ vi.mock('~/components/ui/ColorSchemeDialog', () => ({
 }));
 vi.mock('~/components/workbench/ExpoQrModal', () => ({ ExpoQrModal: () => null }));
 
+/*
+ * The mic button feature-detects the Web Speech API and hides itself when it
+ * is absent (e.g. Firefox). jsdom has neither constructor, so stub one before
+ * any render — the detection caches once per module load.
+ */
+(window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition = class {};
+
 type ChatBoxTestProps = React.ComponentProps<typeof ChatBox>;
 
 const baseProps: ChatBoxTestProps = {
