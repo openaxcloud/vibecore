@@ -108,7 +108,6 @@ export function HistoryItem({
       if (selectionMode) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Item clicked in selection mode:', item.id);
         onToggleSelection?.(item.id);
       }
     },
@@ -116,7 +115,6 @@ export function HistoryItem({
   );
 
   const handleCheckboxChange = useCallback(() => {
-    console.log('Checkbox changed for item:', item.id);
     onToggleSelection?.(item.id);
   }, [item.id, onToggleSelection]);
 
@@ -124,7 +122,6 @@ export function HistoryItem({
     (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
       event.preventDefault();
       event.stopPropagation();
-      console.log('Delete button clicked for item:', item.id);
 
       if (onDelete) {
         onDelete(event as unknown as React.UIEvent);
@@ -136,8 +133,8 @@ export function HistoryItem({
   return (
     <div
       className={classNames(
-        'group rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50/80 dark:hover:bg-gray-800/30 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
-        { 'text-gray-900 dark:text-white bg-gray-50/80 dark:bg-gray-800/30': isActiveChat },
+        'group rounded-lg text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
+        { 'text-bolt-elements-item-contentAccent bg-bolt-elements-item-backgroundAccent': isActiveChat },
         { 'cursor-pointer': selectionMode },
       )}
       onClick={selectionMode ? handleItemClick : undefined}
@@ -157,7 +154,7 @@ export function HistoryItem({
         <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2">
           <input
             type="text"
-            className="flex-1 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-800 focus:outline-none focus:ring-1 focus:ring-purple-500/50"
+            className="flex-1 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary rounded-md px-3 py-1.5 text-sm border border-bolt-elements-borderColor focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus"
             autoFocus
             value={currentDescription}
             onChange={handleChange}
@@ -168,7 +165,7 @@ export function HistoryItem({
             type="button"
             aria-label="Save name"
             title="Save name"
-            className="i-ph:check h-4 w-4 text-gray-500 hover:text-purple-500 transition-colors"
+            className="i-ph:check h-4 w-4 text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors"
             onMouseDown={handleSubmit}
           />
         </form>
@@ -188,7 +185,7 @@ export function HistoryItem({
           >
             <div
               className={classNames(
-                'flex items-center gap-2.5 text-gray-400 dark:text-gray-500 transition-opacity group-hover:opacity-100 focus-within:opacity-100',
+                'flex items-center gap-2.5 text-bolt-elements-textTertiary transition-opacity group-hover:opacity-100 focus-within:opacity-100',
                 isCoarsePointer ? 'opacity-100' : 'opacity-0',
               )}
             >
@@ -221,7 +218,7 @@ export function HistoryItem({
               <ChatActionButton
                 toolTipContent="Delete"
                 icon="i-ph:trash h-4 w-4"
-                className="hover:text-red-500 dark:hover:text-red-400"
+                className="hover:text-[var(--status-error-text)]"
                 onClick={handleDeleteClick}
               />
             </div>
@@ -255,7 +252,7 @@ const ChatActionButton = forwardRef(
           type="button"
           aria-label={toolTipContent}
           title={toolTipContent}
-          className={`text-gray-400 dark:text-gray-500 hover:text-purple-500 dark:hover:text-purple-400 transition-colors ${icon} ${className ? className : ''}`}
+          className={`text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors ${icon} ${className ? className : ''}`}
           onClick={onClick}
         />
       </WithTooltip>
