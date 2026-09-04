@@ -1987,7 +1987,31 @@ jobs:
       - name: Verify the activation interlock state (SEC-8)
         run: |
           set -euo pipefail
-          WANT="${{ steps.cutover.outputs.final_flag }}"
+          # `final_flag` est l'INTENTION, figée par l'étape `cutover` AVANT que la
+          # barrière ne s'exécute. Or SEC-10 peut décider, après elle, de ne pas
+          # armer l'activation — et il a raison de le faire : quand le tier
+          # runtime n'a pas été reconstruit, l'api tourne peut-être un code
+          # antérieur au verrou.
+          #
+          # Mesuré le 2026-09-04, run 33897444294 :
+          #
+          #   SEC-10: … NOT arming password activation; the release stays
+          #   fail-closed at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0.
+          #   The deploy itself is unaffected.
+          #
+          # La porte comparait quand même l'état réel (0, volontaire et sûr) à
+          # l'intention périmée (1) et rendait le déploiement rouge. Un contrôle
+          # juste, au verdict faux, parce qu'il ignorait la décision d'un autre.
+          #
+          # L'attendu suit donc ce qui s'est REELLEMENT passé : si la barrière a
+          # tourné sans armer, l'état attendu est celui de la phase 1.
+          if [ "${{ steps.cutover.outputs.barrier }}" = 'true' ] \
+             && [ "${{ steps.barrier.outputs.armable }}" != 'true' ]; then
+            WANT="${{ steps.cutover.outputs.phase1_flag }}"
+            echo "barriere non armante — l'etat attendu est celui de la phase 1 ('${WANT}')"
+          else
+            WANT="${{ steps.cutover.outputs.final_flag }}"
+          fi
           CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
             -o jsonpath='{.data.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED}')"
           echo "configmap DEPLOYMENT_ACCESS_ACTIVATION_ENABLED='${CM_VALUE}' (expected '${WANT}')"
