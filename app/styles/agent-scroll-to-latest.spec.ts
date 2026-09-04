@@ -32,11 +32,34 @@ function pillCode(): string {
 }
 
 describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
-  it('est centrée horizontalement, pas collée à un bord', () => {
+  it('est hors de la colonne de lecture, sans être collée au bord', () => {
+    /*
+     * CE TEST A CHANGÉ DE SENS, et il faut le dire.
+     *
+     * Il exigeait « centrée horizontalement, pas collée à un bord ». Mesuré en
+     * production sur un fil réel (BUG-UX-021) : centrée, la pastille était
+     * posée à 100 % sur du texte — elle mangeait « comme le nom du projet » en
+     * plein mot. Rétrécir n'y changeait rien : c'est sa POSITION qui était
+     * fautive.
+     *
+     * Ce qui est conservé de l'exigence d'origine : elle ne doit pas être
+     * collée au bord. Ce qui change : elle n'est plus au milieu du texte, et
+     * une gouttière est réservée pendant qu'elle est visible — c'est cette
+     * réserve, pas la marge, qui garantit qu'aucune ligne ne passe dessous.
+     */
     const code = pillCode();
 
-    expect(code).toMatch(/margin-inline:\s*auto/);
-    expect(code).not.toMatch(/margin-left:\s*auto/);
+    expect(code, 'la pastille est de nouveau centrée sur la colonne de texte').not.toMatch(/margin-inline:\s*auto/);
+    expect(code, 'elle doit être poussée hors de la colonne').toMatch(/margin-inline-start:\s*auto/);
+
+    const marge = /margin-inline-end:\s*(\d+)px/.exec(code);
+
+    expect(marge, 'aucune marge déclarée : elle serait collée au bord').toBeTruthy();
+    expect(Number(marge![1]), 'trop près du bord pour ne pas paraître accidentelle').toBeGreaterThanOrEqual(8);
+
+    expect(INDEX, 'aucune gouttière réservée : le texte passerait sous la pastille').toMatch(
+      /:has\(\.bolt-agent-scroll-to-bottom\)[\s\S]{0,160}padding-inline-end/,
+    );
   });
 
   it('respecte le plancher tactile, exprimé en PIXELS', () => {
