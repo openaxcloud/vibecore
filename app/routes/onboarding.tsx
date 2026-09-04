@@ -1,47 +1,12 @@
-import { CheckCircle2, Github, Sparkles, Users } from 'lucide-react';
-import type { MetaFunction } from 'react-router';
-import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { redirect } from 'react-router';
 
-export const meta: MetaFunction = () => [{ title: 'Onboarding - E-Code' }];
-
-export default function OnboardingPage() {
-  return (
-    <AppShell title="Onboarding" description="Set up your organization, first project, runtime and billing guardrails.">
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <ActivityList
-          items={[
-            {
-              title: 'Create your first project',
-              detail: 'Start from a template, prompt, GitHub repository or zip upload.',
-              icon: Sparkles,
-            },
-            {
-              title: 'Invite teammates',
-              detail: 'Add members with backend-enforced RBAC before sharing workspaces.',
-              icon: Users,
-            },
-            {
-              title: 'Connect GitHub',
-              detail: 'Import repositories, push changes and create pull requests from projects.',
-              icon: Github,
-            },
-            {
-              title: 'Review quotas',
-              detail: 'Confirm runtime, AI and storage limits before heavy usage.',
-              icon: CheckCircle2,
-            },
-          ]}
-        />
-        <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
-          <h2 className="font-semibold">Recommended next step</h2>
-          <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-            Create a persistent project and open it in the E-Code IDE.
-          </p>
-          <div className="mt-5">
-            <LinkButton to="/projects/new">Create project</LinkButton>
-          </div>
-        </div>
-      </div>
-    </AppShell>
-  );
+/*
+ * Legacy onboarding surface. The page used to render a static checklist
+ * (create project / invite / connect GitHub / review quotas) with no live
+ * state; the dashboard's "Get set up" card now covers the same steps with
+ * real backend signals. Nothing links here anymore, but the route is kept as
+ * a redirect so old bookmarks and external links don't 404.
+ */
+export function loader() {
+  return redirect('/dashboard');
 }
