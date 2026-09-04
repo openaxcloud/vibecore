@@ -37,14 +37,29 @@ function etapeSonde() {
   throw new Error('étape « Runtime probe » introuvable dans deploy-main.yml');
 }
 
-/** Le script que le pod jetable exécute, tel qu'il est écrit dans l'étape. */
-function scriptEmbarque() {
+/** Le manifeste du pod jetable, tel qu'il est écrit dans l'étape, marqueurs remplacés. */
+function manifeste() {
   const run = etapeSonde().run;
-  const correspondance = run.match(/--command -- sh -c '([\s\S]*?)'\n/);
+  const bloc = run.match(/<<'MANIFEST'[^\n]*\n([\s\S]*?)\n\s*MANIFEST\n/)?.[1];
 
-  expect(correspondance, 'le script embarqué du pod est introuvable').not.toBeNull();
+  expect(bloc, 'le manifeste du pod est introuvable').toBeDefined();
 
-  return correspondance[1];
+  /*
+   * Le bloc `run: |` est déjà désindenté par l'analyse YAML du workflow :
+   * le manifeste commence en colonne 0, il ne reste que les marqueurs.
+   */
+  const texte = bloc.replace(/__PROBE__/g, 'sec9-probe-test').replace(/__PROBE_URL__/g, 'http://api.test/access');
+
+  return parse(texte);
+}
+
+/** Le script que le pod jetable exécute. */
+function scriptEmbarque() {
+  const conteneur = manifeste().spec.containers[0];
+
+  expect(conteneur.command).toEqual(['sh', '-c']);
+
+  return conteneur.args[0];
 }
 
 function verdict(url) {
@@ -70,38 +85,42 @@ function verdict(url) {
 }
 
 describe('SEC-9 — forme de l’étape', () => {
-  it('ne s’attache jamais au pod : ni --rm ni -i, et rien vers /dev/null sur kubectl', () => {
+  it('ne s’attache jamais au pod et ne masque rien : création par manifeste, pas de --rm -i, rien vers /dev/null sur kubectl', () => {
     const run = etapeSonde().run;
-    const commandeRun = run.match(/kubectl -n "\$\{HELM_NAMESPACE\}" run [\s\S]*?--command/)?.[0] ?? '';
 
-    expect(commandeRun, 'la commande kubectl run est introuvable').not.toBe('');
-    expect(commandeRun).not.toMatch(/--rm/);
-    expect(commandeRun).not.toMatch(/\s-i\s/);
+    expect(run).toMatch(/kubectl -n "\$\{HELM_NAMESPACE\}" create -f -/);
+    expect(run).not.toMatch(/kubectl[^\n]*\s--rm\b/);
+    expect(run).not.toMatch(/kubectl[^\n]*\s-i\s/);
+    expect(run).not.toMatch(/kubectl[^\n]*--overrides/);
     expect(run).not.toMatch(/kubectl[^\n]*2>\/dev\/null/);
   });
 
-  it('crée un pod conforme à PodSecurity « restricted » — ce que le namespace exige et refusait', () => {
+  it('décrit un pod COMPLET — image, commande, URL — et conforme à PodSecurity « restricted »', () => {
     /*
-     * Mesuré au run 1456, stderr enfin visible : « violates PodSecurity
-     * "restricted:latest" » — quatre exigences nommées par l'apiserver. Sans
-     * elles, le pod n'existe jamais et la sonde tombe avant la première
-     * requête, quel que soit le reste de l'étape.
+     * Deux mesures successives derrière ce test. Run 1456 : « violates
+     * PodSecurity "restricted:latest" », quatre exigences nommées par
+     * l'apiserver. Run 1457, corrigé par `--overrides` : « spec.containers[0]
+     * .image: Required value » — un merge patch REMPLACE la liste des
+     * conteneurs, l'image et la commande avaient disparu. D'où un manifeste
+     * entier, et un test qui vérifie les deux faces : ce que le pod EST et ce
+     * que la politique EXIGE.
      */
-    const run = etapeSonde().run;
-    const printf = run.match(/OVERRIDES="\$\(printf '(\{.*?\})' "\$\{PROBE\}"\)"/)?.[1];
+    const pod = manifeste();
+    const conteneur = pod.spec.containers[0];
 
-    expect(printf, 'les overrides de securityContext sont introuvables').toBeDefined();
+    expect(pod.kind).toBe('Pod');
+    expect(pod.metadata.name).toBe('sec9-probe-test');
+    expect(conteneur.image).toMatch(/^curlimages\/curl:\d/);
+    expect(conteneur.command).toEqual(['sh', '-c']);
+    expect(conteneur.args).toHaveLength(1);
+    expect(conteneur.env).toEqual([{ name: 'PROBE_URL', value: 'http://api.test/access' }]);
 
-    const overrides = JSON.parse(printf.replace('%s', 'probe'));
-    const pod = overrides.spec.securityContext;
-    const conteneur = overrides.spec.containers[0].securityContext;
-
-    expect(pod.runAsNonRoot).toBe(true);
-    expect(typeof pod.runAsUser).toBe('number');
-    expect(pod.seccompProfile.type).toBe('RuntimeDefault');
-    expect(conteneur.allowPrivilegeEscalation).toBe(false);
-    expect(conteneur.capabilities.drop).toEqual(['ALL']);
-    expect(run).toMatch(/--overrides="\$\{OVERRIDES\}"/);
+    expect(pod.spec.securityContext.runAsNonRoot).toBe(true);
+    expect(typeof pod.spec.securityContext.runAsUser).toBe('number');
+    expect(pod.spec.securityContext.seccompProfile.type).toBe('RuntimeDefault');
+    expect(conteneur.securityContext.allowPrivilegeEscalation).toBe(false);
+    expect(conteneur.securityContext.capabilities.drop).toEqual(['ALL']);
+    expect(pod.spec.restartPolicy).toBe('Never');
   });
 
   it('lit le verdict dans l’état terminé du pod, par un GET, et supprime le pod', () => {

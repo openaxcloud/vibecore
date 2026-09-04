@@ -1721,9 +1721,9 @@ jobs:
           # sain. (Une première réécriture attribuait le refus à l'attache
           # websocket de `--rm -i` : c'était une déduction, pas une mesure.)
           #
-          # Le pod porte donc exactement ce que la politique exige, via
-          # `--overrides` ; et l'on ne s'attache toujours pas : créer le pod,
-          # lire son état par un GET, le supprimer.
+          # Le pod porte donc exactement ce que la politique exige, dans son
+          # manifeste ; et l'on ne s'attache toujours pas : créer le pod, lire
+          # son état par un GET, le supprimer.
           #
           # Le VERDICT voyage dans le code de sortie du pod (lisible par un GET
           # sur `status`), pas dans ses journaux ni dans une attache :
@@ -1736,15 +1736,58 @@ jobs:
           PROBE="sec9-probe-${GITHUB_RUN_ID}"
           PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
           kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
+          # MANIFESTE COMPLET, pas `kubectl run` avec des surcharges JSON : elles
+          # forment un merge patch, et une liste `containers` y REMPLACE la liste
+          # générée — le conteneur n'avait plus ni image ni commande. Mesuré au
+          # run 1457 : « spec.containers[0].image: Required value ». Le manifeste
+          # dit tout ce que le pod est, et ce que PodSecurity « restricted » exige.
+          #
           # curlimages/curl tourne en utilisateur 100:101 ; l'écrire en clair
           # parce que `runAsNonRoot` ne se vérifie pas sur un USER symbolique.
-          OVERRIDES="$(printf '{"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":100,"runAsGroup":101,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"%s","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"cpu":"100m","memory":"64Mi"}}}]}}' "${PROBE}")"
-          kubectl -n "${HELM_NAMESPACE}" run "${PROBE}" \
-            --restart=Never --image=curlimages/curl:8.10.1 \
-            --labels="app.kubernetes.io/name=sec9-probe,app.kubernetes.io/part-of=vibecore" \
-            --env="PROBE_URL=${PROBE_URL}" \
-            --overrides="${OVERRIDES}" \
-            --command -- sh -c 'code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
+          # Heredoc CITÉ : rien ne s'expanse côté runner, le script du pod garde
+          # ses `$`. Les deux valeurs du runner entrent par des marqueurs.
+          sed -e "s|__PROBE__|${PROBE}|g" -e "s|__PROBE_URL__|${PROBE_URL}|g" <<'MANIFEST' | kubectl -n "${HELM_NAMESPACE}" create -f -
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: __PROBE__
+            labels:
+              app.kubernetes.io/name: sec9-probe
+              app.kubernetes.io/part-of: vibecore
+          spec:
+            restartPolicy: Never
+            automountServiceAccountToken: false
+            securityContext:
+              runAsNonRoot: true
+              runAsUser: 100
+              runAsGroup: 101
+              seccompProfile:
+                type: RuntimeDefault
+            containers:
+              - name: probe
+                image: curlimages/curl:8.10.1
+                env:
+                  - name: PROBE_URL
+                    value: "__PROBE_URL__"
+                command: ["sh", "-c"]
+                args:
+                  - |
+                    code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d '{"mode":"password","password":"sec9-probe-not-a-real-password"}' || true)"
+                    echo "http ${code:-none}"
+                    printf "%s" "$code" > /dev/termination-log 2>/dev/null || true
+                    case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac
+                securityContext:
+                  allowPrivilegeEscalation: false
+                  capabilities:
+                    drop: ["ALL"]
+                resources:
+                  requests:
+                    cpu: 10m
+                    memory: 16Mi
+                  limits:
+                    cpu: 100m
+                    memory: 64Mi
+          MANIFEST
 
           PHASE=""
           for _ in $(seq 1 45); do
