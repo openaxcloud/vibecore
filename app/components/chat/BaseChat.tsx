@@ -17424,7 +17424,7 @@ function ProjectSkillsPanel({
   const tabButtonClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
       active
-        ? 'bg-[var(--vc-ide-accent-action)] text-white'
+        ? 'bg-[var(--vc-ide-accent-action)] text-[var(--vc-ide-on-accent-action)]'
         : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
     }`;
 
@@ -17892,7 +17892,7 @@ function InstalledSkillsList({
                         type="button"
                         onClick={() => void onUninstall(skill.ownerRepo, scope)}
                         disabled={busy || pending === `u:${rowKey}`}
-                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-on-accent-error)] transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {pending === `u:${rowKey}` ? '…' : t('chat.copy.confirm_04a21221')}
                       </button>

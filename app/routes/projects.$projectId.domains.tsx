@@ -418,7 +418,7 @@ function StepHeader({ index, title, done }: { index: number; title: string; done
         className={
           done
             ? 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-bolt-elements-icon-success text-xs font-semibold text-white'
-            : 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--vc-ide-accent-action)] text-xs font-semibold text-white'
+            : 'flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--vc-ide-accent-action)] text-xs font-semibold text-[var(--vc-ide-on-accent-action)]'
         }
         aria-hidden
       >

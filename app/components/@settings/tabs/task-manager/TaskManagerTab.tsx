@@ -83,7 +83,7 @@ export default function TaskManagerTab() {
         <button
           type="button"
           onClick={clearVolatileData}
-          className="min-h-11 rounded-lg bg-[var(--vc-ide-accent-action)] px-4 py-2 text-sm font-medium whitespace-normal text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="min-h-11 rounded-lg bg-[var(--vc-ide-accent-action)] px-4 py-2 text-sm font-medium whitespace-normal text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)] focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={items.length === 0}
         >
           {copy['settingsStatus.task.clear']}
