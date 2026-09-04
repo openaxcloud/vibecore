@@ -32,7 +32,7 @@ export const Switch = memo(
         className={classNames(
           'relative h-6 w-11 cursor-pointer rounded-full bg-bolt-elements-button-primary-background',
           'transition-colors duration-200 ease-in-out',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2',
+          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'data-[state=checked]:bg-bolt-elements-item-contentAccent',
           className,

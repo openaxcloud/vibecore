@@ -17,7 +17,7 @@ const STATUS_COLORS: Record<StatusType, string> = {
   warning: 'bg-yellow-500',
   busy: 'bg-red-500',
   info: 'bg-blue-500',
-  loading: 'bg-purple-500',
+  loading: 'bg-bolt-elements-item-contentAccent',
 };
 
 // Size class mapping
@@ -58,7 +58,7 @@ interface StatusIndicatorProps {
  */
 export function StatusIndicator({ status, size = 'md', pulse = false, label, className }: StatusIndicatorProps) {
   // Get the color class for the status
-  const colorClass = STATUS_COLORS[status] || 'bg-gray-500';
+  const colorClass = STATUS_COLORS[status] || 'bg-bolt-elements-textTertiary';
 
   // Get the size class for the indicator
   const sizeClass = SIZE_CLASSES[size];
