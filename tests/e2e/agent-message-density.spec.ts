@@ -118,8 +118,20 @@ async function measureRows(page: Page) {
 
     const footers = [...document.querySelectorAll('.bolt-assistant-message-footer')];
 
+    /*
+     * Diagnostic de la dernière ligne : sa barre reste dépliée par
+     * `:last-child`, donc tout frère rendu APRÈS elle (indicateur de
+     * flux, sentinelle) la replie. Rouge en CI (E2E 1339, 3/3) sans qu'on
+     * puisse lire pourquoi : on le note ici, dans le message d'échec.
+     */
+    const lastRow = rows.at(-1) ?? null;
+    const trailing = lastRow?.nextElementSibling ?? null;
+
     return {
       rowCount: rows.length,
+      lastRowIsLastChild: lastRow ? lastRow.parentElement?.lastElementChild === lastRow : null,
+      trailing: trailing ? `${trailing.tagName.toLowerCase()}.${[...trailing.classList].join('.')}` : null,
+      statusCount: lastRow?.parentElement?.querySelectorAll('[role="status"]').length ?? null,
       maxGap: gaps.length ? Math.max(...gaps) : null,
       bandeaux: document.querySelectorAll('.bolt-assistant-message-mobile-head').length,
       footerCount: footers.length,
@@ -214,7 +226,12 @@ test.describe('densité des messages — pointeur grossier', () => {
       atRest.footerHeights.slice(0, -1).every((height) => height === 0),
       'actions dépliées au repos',
     ).toBe(true);
-    expect(atRest.footerHeights.at(-1), 'la dernière réponse n’expose pas ses actions').toBeGreaterThan(0);
+    expect(
+      atRest.footerHeights.at(-1),
+      `la dernière réponse n’expose pas ses actions — lignes ${atRest.rowCount}, barres ${atRest.footerCount}, ` +
+        `dernière ligne :last-child=${atRest.lastRowIsLastChild}, frère suivant=${atRest.trailing}, ` +
+        `indicateurs de flux=${atRest.statusCount}`,
+    ).toBeGreaterThan(0);
 
     /*
      * On vise la PROSE du message, pas le centre géométrique de la ligne : une
