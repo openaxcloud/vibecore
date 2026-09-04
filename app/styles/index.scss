@@ -1406,6 +1406,41 @@ body
   line-height: var(--vc-type-line-height) !important;
 }
 
+/*
+ * LIBELLE-9PX-001 — `label`, `legend` et `th` rendaient 9px sur mobile.
+ *
+ * La regle juste au-dessus vise des etiquettes DECORATIVES en capitales, mais
+ * elle liste aussi les elements SEMANTIQUES. Mesure a 390px, base rem 14px :
+ *
+ *   - 96 `<th>` portent du texte DIRECT (en-tetes de tableaux : Heure, Acteur,
+ *     Action, Cible, IP du journal d'acces, colonnes des tickets). Tous a 9px.
+ *   - `!important` BAT la taille ecrite par l'auteur : un
+ *     `<label className="text-[12px]">` rend 9px, pas 12.
+ *   - Sur 105 `<label>` porteurs d'une classe, 2 SEULEMENT demandent
+ *     `uppercase`. Les 103 autres subissent un traitement non choisi.
+ *
+ * Certains endroits y echappent par accident en imbriquant un `<span>` qui pose
+ * sa propre taille (les champs d'authentification font ca) — ce qui masquait le
+ * defaut la ou on regardait le plus.
+ *
+ * PLANCHER, PAS SUPPRESSION : le micro-libelle en capitales est un parti pris de
+ * densite, le casser changerait le bureau. Plancher lisible sous 1024px pour les
+ * seuls elements SEMANTIQUES, en PIXELS — seule unite que la base rem (12/14px)
+ * ne peut pas deformer. Une etiquette qui demande `uppercase` garde son
+ * traitement.
+ *
+ * ⚠️ PLACE ICI VOLONTAIREMENT, JUSTE APRES la regle decorative. Les deux ont la
+ * meme specificite (`body` + `:where(...)` qui ne compte pas) et portent toutes
+ * deux `!important` : c'est donc l'ORDRE SOURCE qui tranche. Place plus haut
+ * dans la feuille, ce plancher etait ecrase et ne servait a RIEN — verifie en
+ * lisant la feuille compilee, pas en le supposant.
+ */
+@media (max-width: 1024px) {
+  body :where(label, legend, th) {
+    font-size: var(--vc-type-heading-compact-size, 12px) !important;
+  }
+}
+
 body :where(button, [role='button'], .btn, .button, summary) {
   position: relative;
   border-radius: var(--vc-ui-radius-button);
