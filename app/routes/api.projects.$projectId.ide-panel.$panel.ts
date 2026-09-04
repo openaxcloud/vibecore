@@ -821,9 +821,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
   if (panel === 'packages') {
     try {
       const requestedWorkspaceId = url.searchParams.get('workspaceId') ?? undefined;
-      const workspaceCtx = await resolvePanelWorkspace(request, projectId, requestedWorkspaceId);
 
-      const [packages, envVars] = await Promise.all([
+      /*
+       * BUG-PANEL-PERF-004 — `resolvePanelWorkspace` used to be awaited BEFORE
+       * this fan-out, which cost a serial hop for nothing: neither `/packages`
+       * nor `/env-vars` takes anything from `workspaceCtx` (it is read only
+       * when the envelope below is built). Joining the fan-out removes one of
+       * the three sequential hops this panel paid on every open.
+       */
+      const [workspaceCtx, packages, envVars] = await Promise.all([
+        resolvePanelWorkspace(request, projectId, requestedWorkspaceId),
         apiRequest(request, `/projects/${projectId}/packages`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
       ]);

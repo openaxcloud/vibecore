@@ -239,6 +239,8 @@ import {
   type IdeRightPanel,
   type IdeWorkspacePanel,
 } from '~/lib/ide/panel-registry';
+import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
+import { resolvePendingSelectedFile } from '~/lib/ide/pending-selected-file';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -3477,6 +3479,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
+
+    /*
+     * BUG-PANEL-PERF-004 — miroir de la carte des fichiers COURANTE, lisible
+     * depuis une réponse asynchrone (même forme que `paneTreeRef` plus bas).
+     *
+     * L'effet de restauration ne lit `projectFiles` que pour décider
+     * « je restaure le fichier tout de suite » ou « je le diffère ». Le mettre
+     * dans ses dépendances le faisait REJOUER à chaque vague de chargement de
+     * fichiers — et chaque rejeu relançait `getProjectIdeMemory`, donc une
+     * requête réseau de plus (aucune mise en commun des requêtes en vol), en
+     * plus de ré-appliquer TOUTE la restauration par-dessus ce que
+     * l'utilisateur venait éventuellement de changer.
+     *
+     * Le cas « les fichiers ne sont pas encore là » est déjà couvert, et mieux,
+     * par `pendingProjectSelectedFile` + l'effet qui le consomme.
+     */
+    const projectFilesRef = useRef(projectFiles);
+
+    projectFilesRef.current = projectFiles;
+
     const runtimePreviews = useStore(workbenchStore.previews);
     const runtimeWorkspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
@@ -5167,7 +5189,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           if (ui?.selectedFile) {
-            if (projectFiles[ui.selectedFile]?.type === 'file') {
+            if (projectFilesRef.current[ui.selectedFile]?.type === 'file') {
               workbenchStore.setSelectedFile(ui.selectedFile);
               pendingProjectSelectedFile.current = undefined;
             } else {
@@ -5216,19 +5238,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         gardeDeRestauration.current.liberer(jeton);
         window.clearTimeout(restoreFallbackTimer);
       };
-    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
+    }, [activeProjectPanel, projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
 
-      const resolvedPendingFile =
-        pendingSelectedFile && projectFiles[pendingSelectedFile]?.type === 'file'
-          ? pendingSelectedFile
-          : pendingSelectedFile
-            ? Object.keys(projectFiles).find(
-                (filePath) => projectFiles[filePath]?.type === 'file' && filePath.endsWith(pendingSelectedFile),
-              )
-            : undefined;
+      const resolvedPendingFile = resolvePendingSelectedFile(projectFiles, pendingSelectedFile);
 
       if (!projectIdeMode || !pendingSelectedFile || !resolvedPendingFile) {
         return;
@@ -10772,41 +10787,6 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
  * appears when the load is genuinely stuck (e.g. the workspace is still booting).
  */
 const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
-
-/*
- * In-memory cache of the last successful payload per `${projectId}:${panel}`.
- * Panels are keyed by panel name in the workbench, so switching tabs unmounts
- * and remounts ProjectIdeServicePanel — without this, returning to a tab would
- * re-flash the loading skeleton every time. Seeding from this cache lets a
- * revisited tab render its previous content immediately while it refreshes
- * silently in the background. Bounded so it can't grow without limit.
- */
-const PROJECT_PANEL_CACHE_MAX = 60;
-const projectPanelPayloadCache = new Map<string, { payload: any; lastLoadedAt: string }>();
-
-function readProjectPanelCache(key: string | undefined) {
-  return key ? projectPanelPayloadCache.get(key) : undefined;
-}
-
-function writeProjectPanelCache(key: string | undefined, entry: { payload: any; lastLoadedAt: string }) {
-  if (!key) {
-    return;
-  }
-
-  // Refresh insertion order (Map preserves it) so the oldest key evicts first.
-  projectPanelPayloadCache.delete(key);
-  projectPanelPayloadCache.set(key, entry);
-
-  while (projectPanelPayloadCache.size > PROJECT_PANEL_CACHE_MAX) {
-    const oldest = projectPanelPayloadCache.keys().next().value;
-
-    if (oldest === undefined) {
-      break;
-    }
-
-    projectPanelPayloadCache.delete(oldest);
-  }
-}
 
 function projectPanelFetchMethod(init?: RequestInit) {
   return (init?.method ?? 'GET').toUpperCase();
