@@ -1,5 +1,6 @@
 /* eslint-disable import/order */
 import { Octokit, type RestEndpointMethodTypes } from '@octokit/rest';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 import type { CommandEvent, CommandRequest, RuntimeAdapter, WorkspaceSession } from '@vibecore/runtime-contract';
 import fileSaver from 'file-saver';
 import Cookies from 'js-cookie';
@@ -217,6 +218,15 @@ function workspaceLogLines(event: CommandEvent | string) {
       return normalizedLine.length > 0 && !WORKSPACE_LOG_NOISE_PATTERNS.some((pattern) => pattern.test(normalizedLine));
     });
 }
+
+/*
+ * Portée MODULE et non instance : le magasin est un singleton, mais la clé est
+ * l'identifiant de projet — ce qu'on mutualise, c'est un téléchargement pour un
+ * projet donné, pas pour un objet donné.
+ */
+const PROJECT_ARCHIVE_COOLDOWN_MS = 30_000;
+
+const projectStorageFilesInFlight = createSingleFlight<boolean>({ cooldownMs: PROJECT_ARCHIVE_COOLDOWN_MS });
 
 export class WorkbenchStore {
   #runtime: RuntimeAdapter = getRuntimeAdapter();
@@ -683,6 +693,18 @@ export class WorkbenchStore {
     this.#dropResolvedMissingImportFailures();
   }
 
+  /*
+   * BUG-PANEL-ZIP-005 — cette méthode télécharge l'archive ENTIÈRE du projet
+   * (5,07 Mio décodés sur un projet de 401 fichiers, mesuré en production).
+   * Elle est appelée depuis deux chemins qui partent en même temps à froid :
+   * l'hydratation prévue par `ProjectWorkspaceProvider`, et le repli de
+   * `loadRuntimeFiles` — lequel ne voit aucun fichier PRÉCISÉMENT parce que la
+   * première est encore en vol. Mesuré : 14 ms d'écart, deux téléchargements
+   * complets. Ce n'est pas une reprise après échec, c'est une course.
+   *
+   * La déduplication par clé de projet fait qu'un seul téléchargement part et
+   * que tous les appelants reçoivent son résultat.
+   */
   async loadProjectStorageFiles() {
     const projectId = this.#projectId;
 
@@ -690,6 +712,10 @@ export class WorkbenchStore {
       return false;
     }
 
+    return projectStorageFilesInFlight.run(projectId, () => this.#loadProjectStorageFilesUncoalesced(projectId));
+  }
+
+  async #loadProjectStorageFilesUncoalesced(projectId: string) {
     const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/export/zip`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
