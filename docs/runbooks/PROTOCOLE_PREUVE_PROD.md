@@ -145,3 +145,69 @@ compte de test, et révoquée dès la preuve faite.
 - Il **ne touche à aucun identifiant d'Avi**.
 - Il **ne certifie rien** par lui-même : il donne l'accès. La preuve reste une
   mesure avant / après sur la même page, avec son environnement consigné.
+
+---
+
+## Deux pièges qui ont coûté une journée entière — 2026-09-04
+
+### 1. Un correctif dans l'urgence sur du code échappé à plusieurs niveaux doit RECONSTRUIRE l'objet, jamais rafistoler la chaîne
+
+**C'est la règle. Elle a coûté un déploiement entier.**
+
+La sonde SEC-9 crée un pod jetable pour interroger l'`api`. Deux cassures successives, et **la seconde est née du correctif de la première** :
+
+```
+pods "sec9-probe-…" is forbidden: violates PodSecurity "restricted":
+  allowPrivilegeEscalation != false, unrestricted capabilities,
+  runAsNonRoot != true, seccompProfile
+```
+
+Correctif posé : ajouter un `--overrides` portant le `securityContext`. Écrit à la main, en JSON, dans une chaîne shell, dans du YAML — trois niveaux d'échappement. Résultat au déploiement suivant :
+
+```
+The Pod "sec9-probe-…" is invalid: spec.containers[0].image: Required value
+```
+
+**`--overrides` REMPLACE le tableau `containers`, il ne le fusionne pas.** L'image passée à `kubectl run` disparaissait. Le correctif avait introduit son propre défaut, dans la même journée, sur la même ligne.
+
+**Ce qu'il faut faire à la place** : décrire l'objet en entier et le laisser sérialiser par un outil — un manifeste YAML complet passé à `kubectl create -f -`, ou un `json.dumps()` construit par `python3`. Jamais un JSON assemblé à la main dans une chaîne shell.
+
+Le test qui distingue les deux : *« si je dois compter mes antislashs, je suis dans le piège. »*
+
+### 2. Le pré-commit lance le lint sur les fichiers NON SUIVIS des autres sessions
+
+Dans un dépôt à sessions multiples, le checkout principal contient en permanence le travail en cours d'autrui. Le hook de pré-commit lance `eslint` sur **tout l'arbre**, y compris les fichiers `??` que vous n'avez pas écrits.
+
+Mesuré le 2026-09-04 : un commit ne touchant qu'un fichier YAML a été refusé pour
+`multiline-comment-style` dans `app/lib/ide/panel-payload-cache.spec.ts` — un test RED
+qu'une autre session était en train d'écrire, **non suivi**, donc invisible dans
+`git status --porcelain | grep -v '^??'`.
+
+**Ce qu'il ne faut pas faire** : `--no-verify`, ni corriger le fichier d'autrui, ni le supprimer.
+
+**Ce qu'il faut faire** : écarter le fichier le temps du commit, puis le remettre — et **prouver qu'il est revenu à l'identique par une empreinte avant/après** :
+
+```bash
+AV=$(shasum -a 256 "$F" | cut -d' ' -f1)
+mv "$F" "$SCRATCH/ecarte"          # on ne le lit pas, on ne le modifie pas
+git commit …                        # le hook tourne pour de bon
+mv "$SCRATCH/ecarte" "$F"
+[ "$AV" = "$(shasum -a 256 "$F" | cut -d' ' -f1)" ] || echo "ECART — alerter"
+```
+
+Alternative plus propre quand elle marche : commiter depuis un worktree neuf. Elle échoue
+souvent pour une autre raison (`node_modules` des services non liés, client Prisma absent,
+mémoire insuffisante sur `services/api`) — auquel cas revenir à la méthode ci-dessus.
+
+### 3. Un contrôle qui échoue doit dire s'il a seulement pu s'exécuter
+
+Les deux cassures de la sonde affichaient le même message :
+
+> `PHASE-1 PROBE INCONCLUSIVE — no HTTP status from the deployed api`
+
+**L'`api` n'avait jamais été interrogée.** Le pod de la sonde n'était pas né. Le message
+accusait la cible à la place du contrôle, et a envoyé chercher le défaut dans le code livré
+pendant des heures. Quatre déploiements sains ont été annulés sur ce malentendu.
+
+Tout contrôle fail-closed doit distinguer, dans son message, **« j'ai mesuré et je refuse »**
+de **« je n'ai pas pu mesurer »**, et imprimer la réponse brute de ce qu'il a interrogé.
