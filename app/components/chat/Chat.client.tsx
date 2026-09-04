@@ -49,6 +49,7 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
+import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
 import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
 import {
@@ -967,6 +968,31 @@ export const ChatImpl = memo(
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
     }, []);
+
+    /*
+     * Afficher une transcription arrivée APRÈS le montage.
+     *
+     * ⚠️ Cet effet DOIT dépendre de `initialMessages` et de `messages`. Une
+     * première version de ce correctif était posée dans un effet à dépendances
+     * vides : elle ne s'exécutait qu'au montage, c'est-à-dire précisément quand
+     * la transcription n'est pas encore là. C'est le défaut que ce correctif
+     * répare, reproduit dans le correctif lui-même.
+     */
+    useEffect(() => {
+      if (
+        !fautIlAdopterLaTranscriptionRestauree({
+          modeProjet: projectIdeMode,
+          messagesRestaures: initialMessages.length,
+          messagesAffiches: messages.length,
+        })
+      ) {
+        return;
+      }
+
+      setMessages(initialMessages);
+      latestMessagesRef.current = initialMessages;
+      setChatStarted(true);
+    }, [initialMessages, messages.length, projectIdeMode, setMessages]);
 
     useEffect(() => {
       processSampledMessages({
