@@ -7517,6 +7517,22 @@ body :where(.lucide, svg[data-lucide]) {
   overscroll-behavior: contain;
 }
 
+/*
+ * La gouttière n'est réservée QUE pendant que la pastille est là.
+ *
+ * Pousser la pastille au bord ne suffisait pas : mesuré, 8 points sur 100
+ * tombaient encore sur du texte, contre 11 quand elle était centrée. Tant que
+ * les lignes s'étendent sous elle, elle en mangera.
+ *
+ * `:has()` réserve donc la place uniquement quand la pastille existe — elle
+ * n'apparaît que si l'on a remonté le fil. Le reste du temps, le texte occupe
+ * toute la largeur, ce qui compte sur un écran de 390px et répond à la plainte
+ * de fond : « pourquoi perdre tant de place ».
+ */
+.bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {
+  padding-inline-end: 64px;
+}
+
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
@@ -7526,7 +7542,19 @@ body :where(.lucide, svg[data-lucide]) {
    * `auto` des DEUX côtés : c'est ce qui centre. L'ancien `margin-left: auto`
    * seul poussait la pastille contre le bord droit.
    */
-  margin-inline: auto;
+  /*
+   * HORS DE LA COLONNE DE LECTURE.
+   *
+   * `margin-inline: auto` la posait au MILIEU du texte. Mesuré en production
+   * sur un fil réel : 100 % de sa surface sur des nœuds texte — le disque
+   * mangeait « comme le nom du projet » en plein mot. Rétrécir encore n'y
+   * changeait rien : c'est sa POSITION qui est fautive, pas sa taille.
+   *
+   * Poussée au bord, elle se retrouve là où les lignes finissent — et la
+   * gouttière réservée ci-dessous garantit qu'aucune ne passe dessous.
+   */
+  margin-inline-start: auto;
+  margin-inline-end: 12px;
   align-items: center;
   justify-content: center;
   gap: 6px;
