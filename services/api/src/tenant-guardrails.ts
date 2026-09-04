@@ -311,6 +311,57 @@ export function deriveReputationTier(signals: ReputationSignals): ReputationTier
 /* Admission decision                                                          */
 /* -------------------------------------------------------------------------- */
 
+/*
+ * RESTAURÉ. Ces trois symboles étaient importés par app.ts (`import {
+ * type TenantActionContext, assertTenantActionContext,
+ * tenantGuardrailUsageType } from './tenant-guardrails.js'`) mais leur
+ * définition avait disparu du module lors d'une fusion : la branche ne
+ * démarrait plus du tout, l'API échouant au chargement sur
+ * « does not provide an export named 'assertTenantActionContext' ».
+ * Repris tels quels depuis 958dcafa9, sans modification.
+ */
+/**
+ * Dedicated immutable attempt ledger. Do not reuse commercial quota keys:
+ * failed deployments and deleted/restored projects must still consume the
+ * anti-abuse burst wall even when they no longer count toward plan capacity.
+ */
+export function tenantGuardrailUsageType(action: GuardedAction): `tenant.guardrail.${GuardedAction}` {
+  return `tenant.guardrail.${action}`;
+}
+
+export type TenantActionContext =
+  | Readonly<{ action: 'project.create' }>
+  | Readonly<{
+      action: 'deployment.create';
+      provider: string;
+      vcpu: number;
+      artifactSizeMb: number;
+      timeoutSeconds: number;
+    }>
+  | Readonly<{
+      action: 'workspace.start';
+      cpuMillicores: number;
+      ramMb: number;
+      storageGb: number;
+    }>;
+
+/**
+ * The API boundary must always supply a matching action context. Keeping this
+ * as a separate assertion makes omission a deterministic 503 instead of silently
+ * skipping provider/resource ceilings after a future call-site is added.
+ */
+export function assertTenantActionContext(
+  action: GuardedAction,
+  context: TenantActionContext | undefined,
+): asserts context is TenantActionContext {
+  if (!context || context.action !== action) {
+    throw Object.assign(new Error(), {
+      statusCode: 503,
+      code: 'TENANT_GUARDRAIL_CONTEXT_INVALID',
+    });
+  }
+}
+
 export type TenantAdmissionCode =
   | 'BILLING_ACCOUNT_REQUIRED'
   | 'BILLING_ACCOUNT_DELINQUENT'
