@@ -17,6 +17,7 @@ import {
 } from '~/lib/chat/composer-send-guard';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
+import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
@@ -156,33 +157,6 @@ type ProjectAiConversationResponse = {
     id?: string;
   };
 };
-
-function projectAiTranscriptMessages(messages: Message[]) {
-  return messages
-    .filter((message) => !message.annotations?.includes('no-store'))
-    .map((message, index) => {
-      const role = String(message.role);
-
-      if (role !== 'system' && role !== 'user' && role !== 'assistant' && role !== 'tool') {
-        return undefined;
-      }
-
-      return {
-        clientId: message.id || `${role}:${index}:${message.content.slice(0, 80)}`,
-        role,
-        content: message.content ?? '',
-      };
-    })
-    .filter(
-      (
-        message,
-      ): message is {
-        clientId: string;
-        role: 'system' | 'user' | 'assistant' | 'tool';
-        content: string;
-      } => Boolean(message),
-    );
-}
 
 export function Chat({
   forceWorkbench = false,
