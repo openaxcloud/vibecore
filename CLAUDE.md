@@ -176,6 +176,38 @@ généraux : ce sont des pièges qui ont déjà coûté.
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
 
+### Une interaction tactile se vérifie sur le moteur de l'appareil cible
+
+**Un vert Chromium ne prouve rien pour iOS.** Nos tests tournent sur Chromium ;
+Avi est sur Safari iOS. Les deux moteurs ne traitent pas le toucher de la même
+façon, et l'écart est silencieux : le test passe, l'utilisateur ne voit rien.
+
+Cas mesuré le 2026-09-01, panneau Agent. La barre d'actions d'un message se
+révélait via `:focus-within` sur une ligne rendue focalisable par
+`tabIndex={-1}`. **Chromium focalise un conteneur non interactif au toucher ;
+Safari iOS ne le fait pas.** La barre était donc morte sur l'iPhone d'Avi
+pendant qu'un test Chromium la voyait s'ouvrir — un vert sur une surface qui
+n'a pas le problème, la pire espèce de faux vert.
+
+En pratique :
+
+1. **Ne jamais faire dépendre une révélation tactile d'un effet de bord du
+   focus.** Le focus d'un élément non interactif au toucher n'est pas un contrat
+   entre moteurs. Poser un attribut explicite depuis le gestionnaire d'événement,
+   et accrocher le style dessus ; `:hover` et `:focus-within` restent pour la
+   souris et le clavier, jamais comme chemin unique.
+2. **Écrire l'assertion qui distingue les deux mondes.** Retirer le focus après
+   le geste et vérifier que l'état tient : c'est ce qui attrape le cas Safari.
+   Un test qui se contente de « après le tap, c'est visible » passe sur Chromium
+   par la voie du focus et ne dit rien d'iOS.
+3. **Quand le moteur réel est disponible, l'utiliser.** `npx playwright install
+   webkit` puis un projet `webkit` avec un profil iPhone. À défaut, dire
+   explicitement que la vérification n'a pas eu lieu sur le moteur cible — ne
+   jamais présenter un vert Chromium comme une preuve pour iOS.
+4. **Toute révélation au survol est suspecte par défaut.** `hover` n'existe pas
+   au doigt : si une action n'est atteignable QUE par `:hover`, elle est
+   inatteignable sur mobile. Vérifier qu'un chemin tactile existe.
+
 
 ## Suivi (règle permanente)
 Fichiers de suivi : `DESIGN_PROGRAM_MASTER.md` (points design — source de vérité unique ; specs détaillées dans `DESIGN_BATCH_*_SPEC.md`, état par point dans `DESIGN_AUDIT_LIVE.md`), `BUG_INVENTORY_LIVE.md` (bugs), `PLAN_REMAINING_UNIFIED.md` (plan), `REPLIT_PARITY.md` (parité Replit, fonctionnelle ET pixel).
