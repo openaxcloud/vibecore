@@ -282,6 +282,11 @@ export type AiToolCall = $Result.DefaultSelection<Prisma.$AiToolCallPayload>
  */
 export type AiTokenUsage = $Result.DefaultSelection<Prisma.$AiTokenUsagePayload>
 /**
+ * Model AiMessageFeedback
+ * 
+ */
+export type AiMessageFeedback = $Result.DefaultSelection<Prisma.$AiMessageFeedbackPayload>
+/**
  * Model AiCostLedger
  * 
  */
@@ -1386,6 +1391,16 @@ export class PrismaClient<
   get aiTokenUsage(): Prisma.AiTokenUsageDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.aiMessageFeedback`: Exposes CRUD operations for the **AiMessageFeedback** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AiMessageFeedbacks
+    * const aiMessageFeedbacks = await prisma.aiMessageFeedback.findMany()
+    * ```
+    */
+  get aiMessageFeedback(): Prisma.AiMessageFeedbackDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.aiCostLedger`: Exposes CRUD operations for the **AiCostLedger** model.
     * Example usage:
     * ```ts
@@ -2318,6 +2333,7 @@ export namespace Prisma {
     AiMessage: 'AiMessage',
     AiToolCall: 'AiToolCall',
     AiTokenUsage: 'AiTokenUsage',
+    AiMessageFeedback: 'AiMessageFeedback',
     AiCostLedger: 'AiCostLedger',
     AbuseEvent: 'AbuseEvent',
     SupportTicket: 'SupportTicket',
@@ -2378,7 +2394,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "auditLog" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6066,6 +6082,80 @@ export namespace Prisma {
           }
         }
       }
+      AiMessageFeedback: {
+        payload: Prisma.$AiMessageFeedbackPayload<ExtArgs>
+        fields: Prisma.AiMessageFeedbackFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AiMessageFeedbackFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AiMessageFeedbackFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          findFirst: {
+            args: Prisma.AiMessageFeedbackFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AiMessageFeedbackFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          findMany: {
+            args: Prisma.AiMessageFeedbackFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+          }
+          create: {
+            args: Prisma.AiMessageFeedbackCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          createMany: {
+            args: Prisma.AiMessageFeedbackCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AiMessageFeedbackCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+          }
+          delete: {
+            args: Prisma.AiMessageFeedbackDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          update: {
+            args: Prisma.AiMessageFeedbackUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          deleteMany: {
+            args: Prisma.AiMessageFeedbackDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AiMessageFeedbackUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AiMessageFeedbackUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>[]
+          }
+          upsert: {
+            args: Prisma.AiMessageFeedbackUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiMessageFeedbackPayload>
+          }
+          aggregate: {
+            args: Prisma.AiMessageFeedbackAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAiMessageFeedback>
+          }
+          groupBy: {
+            args: Prisma.AiMessageFeedbackGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AiMessageFeedbackGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AiMessageFeedbackCountArgs<ExtArgs>
+            result: $Utils.Optional<AiMessageFeedbackCountAggregateOutputType> | number
+          }
+        }
+      }
       AiCostLedger: {
         payload: Prisma.$AiCostLedgerPayload<ExtArgs>
         fields: Prisma.AiCostLedgerFieldRefs
@@ -9554,6 +9644,7 @@ export namespace Prisma {
     aiMessage?: AiMessageOmit
     aiToolCall?: AiToolCallOmit
     aiTokenUsage?: AiTokenUsageOmit
+    aiMessageFeedback?: AiMessageFeedbackOmit
     aiCostLedger?: AiCostLedgerOmit
     abuseEvent?: AbuseEventOmit
     supportTicket?: SupportTicketOmit
@@ -9707,6 +9798,7 @@ export namespace Prisma {
     configuredOauthAppOverrides: number
     integrationFeatureRequests: number
     notifications: number
+    aiMessageFeedback: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9738,6 +9830,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: boolean | UserCountOutputTypeCountConfiguredOauthAppOverridesArgs
     integrationFeatureRequests?: boolean | UserCountOutputTypeCountIntegrationFeatureRequestsArgs
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
+    aiMessageFeedback?: boolean | UserCountOutputTypeCountAiMessageFeedbackArgs
   }
 
   // Custom InputTypes
@@ -9945,6 +10038,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountNotificationsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: NotificationWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountAiMessageFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiMessageFeedbackWhereInput
   }
 
 
@@ -11213,6 +11313,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: boolean | User$configuredOauthAppOverridesArgs<ExtArgs>
     integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
+    aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -11298,6 +11399,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: boolean | User$configuredOauthAppOverridesArgs<ExtArgs>
     integrationFeatureRequests?: boolean | User$integrationFeatureRequestsArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
+    aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -11335,6 +11437,7 @@ export namespace Prisma {
       configuredOauthAppOverrides: Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>[]
       integrationFeatureRequests: Prisma.$IntegrationFeatureRequestPayload<ExtArgs>[]
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
+      aiMessageFeedback: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -11774,6 +11877,7 @@ export namespace Prisma {
     configuredOauthAppOverrides<T extends User$configuredOauthAppOverridesArgs<ExtArgs> = {}>(args?: Subset<T, User$configuredOauthAppOverridesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$OrganizationOAuthAppOverridePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     integrationFeatureRequests<T extends User$integrationFeatureRequestsArgs<ExtArgs> = {}>(args?: Subset<T, User$integrationFeatureRequestsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$IntegrationFeatureRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    aiMessageFeedback<T extends User$aiMessageFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, User$aiMessageFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12898,6 +13002,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: NotificationScalarFieldEnum | NotificationScalarFieldEnum[]
+  }
+
+  /**
+   * User.aiMessageFeedback
+   */
+  export type User$aiMessageFeedbackArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    where?: AiMessageFeedbackWhereInput
+    orderBy?: AiMessageFeedbackOrderByWithRelationInput | AiMessageFeedbackOrderByWithRelationInput[]
+    cursor?: AiMessageFeedbackWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: AiMessageFeedbackScalarFieldEnum | AiMessageFeedbackScalarFieldEnum[]
   }
 
   /**
@@ -69226,6 +69354,1095 @@ export namespace Prisma {
 
 
   /**
+   * Model AiMessageFeedback
+   */
+
+  export type AggregateAiMessageFeedback = {
+    _count: AiMessageFeedbackCountAggregateOutputType | null
+    _min: AiMessageFeedbackMinAggregateOutputType | null
+    _max: AiMessageFeedbackMaxAggregateOutputType | null
+  }
+
+  export type AiMessageFeedbackMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    messageId: string | null
+    chatId: string | null
+    vote: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiMessageFeedbackMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    messageId: string | null
+    chatId: string | null
+    vote: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiMessageFeedbackCountAggregateOutputType = {
+    id: number
+    userId: number
+    messageId: number
+    chatId: number
+    vote: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AiMessageFeedbackMinAggregateInputType = {
+    id?: true
+    userId?: true
+    messageId?: true
+    chatId?: true
+    vote?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiMessageFeedbackMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    messageId?: true
+    chatId?: true
+    vote?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiMessageFeedbackCountAggregateInputType = {
+    id?: true
+    userId?: true
+    messageId?: true
+    chatId?: true
+    vote?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AiMessageFeedbackAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiMessageFeedback to aggregate.
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiMessageFeedbacks to fetch.
+     */
+    orderBy?: AiMessageFeedbackOrderByWithRelationInput | AiMessageFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AiMessageFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiMessageFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiMessageFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AiMessageFeedbacks
+    **/
+    _count?: true | AiMessageFeedbackCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AiMessageFeedbackMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AiMessageFeedbackMaxAggregateInputType
+  }
+
+  export type GetAiMessageFeedbackAggregateType<T extends AiMessageFeedbackAggregateArgs> = {
+        [P in keyof T & keyof AggregateAiMessageFeedback]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAiMessageFeedback[P]>
+      : GetScalarType<T[P], AggregateAiMessageFeedback[P]>
+  }
+
+
+
+
+  export type AiMessageFeedbackGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiMessageFeedbackWhereInput
+    orderBy?: AiMessageFeedbackOrderByWithAggregationInput | AiMessageFeedbackOrderByWithAggregationInput[]
+    by: AiMessageFeedbackScalarFieldEnum[] | AiMessageFeedbackScalarFieldEnum
+    having?: AiMessageFeedbackScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AiMessageFeedbackCountAggregateInputType | true
+    _min?: AiMessageFeedbackMinAggregateInputType
+    _max?: AiMessageFeedbackMaxAggregateInputType
+  }
+
+  export type AiMessageFeedbackGroupByOutputType = {
+    id: string
+    userId: string
+    messageId: string
+    chatId: string | null
+    vote: string
+    createdAt: Date
+    updatedAt: Date
+    _count: AiMessageFeedbackCountAggregateOutputType | null
+    _min: AiMessageFeedbackMinAggregateOutputType | null
+    _max: AiMessageFeedbackMaxAggregateOutputType | null
+  }
+
+  type GetAiMessageFeedbackGroupByPayload<T extends AiMessageFeedbackGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AiMessageFeedbackGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AiMessageFeedbackGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AiMessageFeedbackGroupByOutputType[P]>
+            : GetScalarType<T[P], AiMessageFeedbackGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AiMessageFeedbackSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    messageId?: boolean
+    chatId?: boolean
+    vote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aiMessageFeedback"]>
+
+  export type AiMessageFeedbackSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    messageId?: boolean
+    chatId?: boolean
+    vote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aiMessageFeedback"]>
+
+  export type AiMessageFeedbackSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    messageId?: boolean
+    chatId?: boolean
+    vote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["aiMessageFeedback"]>
+
+  export type AiMessageFeedbackSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    messageId?: boolean
+    chatId?: boolean
+    vote?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AiMessageFeedbackOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "messageId" | "chatId" | "vote" | "createdAt" | "updatedAt", ExtArgs["result"]["aiMessageFeedback"]>
+  export type AiMessageFeedbackInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AiMessageFeedbackIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type AiMessageFeedbackIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $AiMessageFeedbackPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AiMessageFeedback"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      messageId: string
+      chatId: string | null
+      vote: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aiMessageFeedback"]>
+    composites: {}
+  }
+
+  type AiMessageFeedbackGetPayload<S extends boolean | null | undefined | AiMessageFeedbackDefaultArgs> = $Result.GetResult<Prisma.$AiMessageFeedbackPayload, S>
+
+  type AiMessageFeedbackCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AiMessageFeedbackFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AiMessageFeedbackCountAggregateInputType | true
+    }
+
+  export interface AiMessageFeedbackDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AiMessageFeedback'], meta: { name: 'AiMessageFeedback' } }
+    /**
+     * Find zero or one AiMessageFeedback that matches the filter.
+     * @param {AiMessageFeedbackFindUniqueArgs} args - Arguments to find a AiMessageFeedback
+     * @example
+     * // Get one AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AiMessageFeedbackFindUniqueArgs>(args: SelectSubset<T, AiMessageFeedbackFindUniqueArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AiMessageFeedback that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AiMessageFeedbackFindUniqueOrThrowArgs} args - Arguments to find a AiMessageFeedback
+     * @example
+     * // Get one AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AiMessageFeedbackFindUniqueOrThrowArgs>(args: SelectSubset<T, AiMessageFeedbackFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiMessageFeedback that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackFindFirstArgs} args - Arguments to find a AiMessageFeedback
+     * @example
+     * // Get one AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AiMessageFeedbackFindFirstArgs>(args?: SelectSubset<T, AiMessageFeedbackFindFirstArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiMessageFeedback that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackFindFirstOrThrowArgs} args - Arguments to find a AiMessageFeedback
+     * @example
+     * // Get one AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AiMessageFeedbackFindFirstOrThrowArgs>(args?: SelectSubset<T, AiMessageFeedbackFindFirstOrThrowArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AiMessageFeedbacks that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AiMessageFeedbacks
+     * const aiMessageFeedbacks = await prisma.aiMessageFeedback.findMany()
+     * 
+     * // Get first 10 AiMessageFeedbacks
+     * const aiMessageFeedbacks = await prisma.aiMessageFeedback.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AiMessageFeedbackFindManyArgs>(args?: SelectSubset<T, AiMessageFeedbackFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AiMessageFeedback.
+     * @param {AiMessageFeedbackCreateArgs} args - Arguments to create a AiMessageFeedback.
+     * @example
+     * // Create one AiMessageFeedback
+     * const AiMessageFeedback = await prisma.aiMessageFeedback.create({
+     *   data: {
+     *     // ... data to create a AiMessageFeedback
+     *   }
+     * })
+     * 
+     */
+    create<T extends AiMessageFeedbackCreateArgs>(args: SelectSubset<T, AiMessageFeedbackCreateArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AiMessageFeedbacks.
+     * @param {AiMessageFeedbackCreateManyArgs} args - Arguments to create many AiMessageFeedbacks.
+     * @example
+     * // Create many AiMessageFeedbacks
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AiMessageFeedbackCreateManyArgs>(args?: SelectSubset<T, AiMessageFeedbackCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AiMessageFeedbacks and returns the data saved in the database.
+     * @param {AiMessageFeedbackCreateManyAndReturnArgs} args - Arguments to create many AiMessageFeedbacks.
+     * @example
+     * // Create many AiMessageFeedbacks
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AiMessageFeedbacks and only return the `id`
+     * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AiMessageFeedbackCreateManyAndReturnArgs>(args?: SelectSubset<T, AiMessageFeedbackCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AiMessageFeedback.
+     * @param {AiMessageFeedbackDeleteArgs} args - Arguments to delete one AiMessageFeedback.
+     * @example
+     * // Delete one AiMessageFeedback
+     * const AiMessageFeedback = await prisma.aiMessageFeedback.delete({
+     *   where: {
+     *     // ... filter to delete one AiMessageFeedback
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AiMessageFeedbackDeleteArgs>(args: SelectSubset<T, AiMessageFeedbackDeleteArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AiMessageFeedback.
+     * @param {AiMessageFeedbackUpdateArgs} args - Arguments to update one AiMessageFeedback.
+     * @example
+     * // Update one AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AiMessageFeedbackUpdateArgs>(args: SelectSubset<T, AiMessageFeedbackUpdateArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AiMessageFeedbacks.
+     * @param {AiMessageFeedbackDeleteManyArgs} args - Arguments to filter AiMessageFeedbacks to delete.
+     * @example
+     * // Delete a few AiMessageFeedbacks
+     * const { count } = await prisma.aiMessageFeedback.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AiMessageFeedbackDeleteManyArgs>(args?: SelectSubset<T, AiMessageFeedbackDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiMessageFeedbacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AiMessageFeedbacks
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AiMessageFeedbackUpdateManyArgs>(args: SelectSubset<T, AiMessageFeedbackUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiMessageFeedbacks and returns the data updated in the database.
+     * @param {AiMessageFeedbackUpdateManyAndReturnArgs} args - Arguments to update many AiMessageFeedbacks.
+     * @example
+     * // Update many AiMessageFeedbacks
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AiMessageFeedbacks and only return the `id`
+     * const aiMessageFeedbackWithIdOnly = await prisma.aiMessageFeedback.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AiMessageFeedbackUpdateManyAndReturnArgs>(args: SelectSubset<T, AiMessageFeedbackUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AiMessageFeedback.
+     * @param {AiMessageFeedbackUpsertArgs} args - Arguments to update or create a AiMessageFeedback.
+     * @example
+     * // Update or create a AiMessageFeedback
+     * const aiMessageFeedback = await prisma.aiMessageFeedback.upsert({
+     *   create: {
+     *     // ... data to create a AiMessageFeedback
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AiMessageFeedback we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AiMessageFeedbackUpsertArgs>(args: SelectSubset<T, AiMessageFeedbackUpsertArgs<ExtArgs>>): Prisma__AiMessageFeedbackClient<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AiMessageFeedbacks.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackCountArgs} args - Arguments to filter AiMessageFeedbacks to count.
+     * @example
+     * // Count the number of AiMessageFeedbacks
+     * const count = await prisma.aiMessageFeedback.count({
+     *   where: {
+     *     // ... the filter for the AiMessageFeedbacks we want to count
+     *   }
+     * })
+    **/
+    count<T extends AiMessageFeedbackCountArgs>(
+      args?: Subset<T, AiMessageFeedbackCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AiMessageFeedbackCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AiMessageFeedback.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AiMessageFeedbackAggregateArgs>(args: Subset<T, AiMessageFeedbackAggregateArgs>): Prisma.PrismaPromise<GetAiMessageFeedbackAggregateType<T>>
+
+    /**
+     * Group by AiMessageFeedback.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiMessageFeedbackGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AiMessageFeedbackGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AiMessageFeedbackGroupByArgs['orderBy'] }
+        : { orderBy?: AiMessageFeedbackGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AiMessageFeedbackGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAiMessageFeedbackGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AiMessageFeedback model
+   */
+  readonly fields: AiMessageFeedbackFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AiMessageFeedback.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AiMessageFeedbackClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AiMessageFeedback model
+   */
+  interface AiMessageFeedbackFieldRefs {
+    readonly id: FieldRef<"AiMessageFeedback", 'String'>
+    readonly userId: FieldRef<"AiMessageFeedback", 'String'>
+    readonly messageId: FieldRef<"AiMessageFeedback", 'String'>
+    readonly chatId: FieldRef<"AiMessageFeedback", 'String'>
+    readonly vote: FieldRef<"AiMessageFeedback", 'String'>
+    readonly createdAt: FieldRef<"AiMessageFeedback", 'DateTime'>
+    readonly updatedAt: FieldRef<"AiMessageFeedback", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AiMessageFeedback findUnique
+   */
+  export type AiMessageFeedbackFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which AiMessageFeedback to fetch.
+     */
+    where: AiMessageFeedbackWhereUniqueInput
+  }
+
+  /**
+   * AiMessageFeedback findUniqueOrThrow
+   */
+  export type AiMessageFeedbackFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which AiMessageFeedback to fetch.
+     */
+    where: AiMessageFeedbackWhereUniqueInput
+  }
+
+  /**
+   * AiMessageFeedback findFirst
+   */
+  export type AiMessageFeedbackFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which AiMessageFeedback to fetch.
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiMessageFeedbacks to fetch.
+     */
+    orderBy?: AiMessageFeedbackOrderByWithRelationInput | AiMessageFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiMessageFeedbacks.
+     */
+    cursor?: AiMessageFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiMessageFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiMessageFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiMessageFeedbacks.
+     */
+    distinct?: AiMessageFeedbackScalarFieldEnum | AiMessageFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * AiMessageFeedback findFirstOrThrow
+   */
+  export type AiMessageFeedbackFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which AiMessageFeedback to fetch.
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiMessageFeedbacks to fetch.
+     */
+    orderBy?: AiMessageFeedbackOrderByWithRelationInput | AiMessageFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiMessageFeedbacks.
+     */
+    cursor?: AiMessageFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiMessageFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiMessageFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiMessageFeedbacks.
+     */
+    distinct?: AiMessageFeedbackScalarFieldEnum | AiMessageFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * AiMessageFeedback findMany
+   */
+  export type AiMessageFeedbackFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter, which AiMessageFeedbacks to fetch.
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiMessageFeedbacks to fetch.
+     */
+    orderBy?: AiMessageFeedbackOrderByWithRelationInput | AiMessageFeedbackOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AiMessageFeedbacks.
+     */
+    cursor?: AiMessageFeedbackWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiMessageFeedbacks from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiMessageFeedbacks.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiMessageFeedbacks.
+     */
+    distinct?: AiMessageFeedbackScalarFieldEnum | AiMessageFeedbackScalarFieldEnum[]
+  }
+
+  /**
+   * AiMessageFeedback create
+   */
+  export type AiMessageFeedbackCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * The data needed to create a AiMessageFeedback.
+     */
+    data: XOR<AiMessageFeedbackCreateInput, AiMessageFeedbackUncheckedCreateInput>
+  }
+
+  /**
+   * AiMessageFeedback createMany
+   */
+  export type AiMessageFeedbackCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AiMessageFeedbacks.
+     */
+    data: AiMessageFeedbackCreateManyInput | AiMessageFeedbackCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiMessageFeedback createManyAndReturn
+   */
+  export type AiMessageFeedbackCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * The data used to create many AiMessageFeedbacks.
+     */
+    data: AiMessageFeedbackCreateManyInput | AiMessageFeedbackCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AiMessageFeedback update
+   */
+  export type AiMessageFeedbackUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * The data needed to update a AiMessageFeedback.
+     */
+    data: XOR<AiMessageFeedbackUpdateInput, AiMessageFeedbackUncheckedUpdateInput>
+    /**
+     * Choose, which AiMessageFeedback to update.
+     */
+    where: AiMessageFeedbackWhereUniqueInput
+  }
+
+  /**
+   * AiMessageFeedback updateMany
+   */
+  export type AiMessageFeedbackUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AiMessageFeedbacks.
+     */
+    data: XOR<AiMessageFeedbackUpdateManyMutationInput, AiMessageFeedbackUncheckedUpdateManyInput>
+    /**
+     * Filter which AiMessageFeedbacks to update
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * Limit how many AiMessageFeedbacks to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiMessageFeedback updateManyAndReturn
+   */
+  export type AiMessageFeedbackUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * The data used to update AiMessageFeedbacks.
+     */
+    data: XOR<AiMessageFeedbackUpdateManyMutationInput, AiMessageFeedbackUncheckedUpdateManyInput>
+    /**
+     * Filter which AiMessageFeedbacks to update
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * Limit how many AiMessageFeedbacks to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * AiMessageFeedback upsert
+   */
+  export type AiMessageFeedbackUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * The filter to search for the AiMessageFeedback to update in case it exists.
+     */
+    where: AiMessageFeedbackWhereUniqueInput
+    /**
+     * In case the AiMessageFeedback found by the `where` argument doesn't exist, create a new AiMessageFeedback with this data.
+     */
+    create: XOR<AiMessageFeedbackCreateInput, AiMessageFeedbackUncheckedCreateInput>
+    /**
+     * In case the AiMessageFeedback was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AiMessageFeedbackUpdateInput, AiMessageFeedbackUncheckedUpdateInput>
+  }
+
+  /**
+   * AiMessageFeedback delete
+   */
+  export type AiMessageFeedbackDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+    /**
+     * Filter which AiMessageFeedback to delete.
+     */
+    where: AiMessageFeedbackWhereUniqueInput
+  }
+
+  /**
+   * AiMessageFeedback deleteMany
+   */
+  export type AiMessageFeedbackDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiMessageFeedbacks to delete
+     */
+    where?: AiMessageFeedbackWhereInput
+    /**
+     * Limit how many AiMessageFeedbacks to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiMessageFeedback without action
+   */
+  export type AiMessageFeedbackDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiMessageFeedback
+     */
+    select?: AiMessageFeedbackSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiMessageFeedback
+     */
+    omit?: AiMessageFeedbackOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: AiMessageFeedbackInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model AiCostLedger
    */
 
@@ -121049,6 +122266,19 @@ export namespace Prisma {
   export type AiTokenUsageScalarFieldEnum = (typeof AiTokenUsageScalarFieldEnum)[keyof typeof AiTokenUsageScalarFieldEnum]
 
 
+  export const AiMessageFeedbackScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    messageId: 'messageId',
+    chatId: 'chatId',
+    vote: 'vote',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AiMessageFeedbackScalarFieldEnum = (typeof AiMessageFeedbackScalarFieldEnum)[keyof typeof AiMessageFeedbackScalarFieldEnum]
+
+
   export const AiCostLedgerScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
@@ -122149,6 +123379,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     notifications?: NotificationListRelationFilter
+    aiMessageFeedback?: AiMessageFeedbackListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -122195,6 +123426,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideOrderByRelationAggregateInput
     integrationFeatureRequests?: IntegrationFeatureRequestOrderByRelationAggregateInput
     notifications?: NotificationOrderByRelationAggregateInput
+    aiMessageFeedback?: AiMessageFeedbackOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -122244,6 +123476,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideListRelationFilter
     integrationFeatureRequests?: IntegrationFeatureRequestListRelationFilter
     notifications?: NotificationListRelationFilter
+    aiMessageFeedback?: AiMessageFeedbackListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -125979,6 +127212,72 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"AiTokenUsage"> | Date | string
   }
 
+  export type AiMessageFeedbackWhereInput = {
+    AND?: AiMessageFeedbackWhereInput | AiMessageFeedbackWhereInput[]
+    OR?: AiMessageFeedbackWhereInput[]
+    NOT?: AiMessageFeedbackWhereInput | AiMessageFeedbackWhereInput[]
+    id?: StringFilter<"AiMessageFeedback"> | string
+    userId?: StringFilter<"AiMessageFeedback"> | string
+    messageId?: StringFilter<"AiMessageFeedback"> | string
+    chatId?: StringNullableFilter<"AiMessageFeedback"> | string | null
+    vote?: StringFilter<"AiMessageFeedback"> | string
+    createdAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }
+
+  export type AiMessageFeedbackOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    messageId?: SortOrder
+    chatId?: SortOrderInput | SortOrder
+    vote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type AiMessageFeedbackWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_messageId?: AiMessageFeedbackUserIdMessageIdCompoundUniqueInput
+    AND?: AiMessageFeedbackWhereInput | AiMessageFeedbackWhereInput[]
+    OR?: AiMessageFeedbackWhereInput[]
+    NOT?: AiMessageFeedbackWhereInput | AiMessageFeedbackWhereInput[]
+    userId?: StringFilter<"AiMessageFeedback"> | string
+    messageId?: StringFilter<"AiMessageFeedback"> | string
+    chatId?: StringNullableFilter<"AiMessageFeedback"> | string | null
+    vote?: StringFilter<"AiMessageFeedback"> | string
+    createdAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+  }, "id" | "userId_messageId">
+
+  export type AiMessageFeedbackOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    messageId?: SortOrder
+    chatId?: SortOrderInput | SortOrder
+    vote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AiMessageFeedbackCountOrderByAggregateInput
+    _max?: AiMessageFeedbackMaxOrderByAggregateInput
+    _min?: AiMessageFeedbackMinOrderByAggregateInput
+  }
+
+  export type AiMessageFeedbackScalarWhereWithAggregatesInput = {
+    AND?: AiMessageFeedbackScalarWhereWithAggregatesInput | AiMessageFeedbackScalarWhereWithAggregatesInput[]
+    OR?: AiMessageFeedbackScalarWhereWithAggregatesInput[]
+    NOT?: AiMessageFeedbackScalarWhereWithAggregatesInput | AiMessageFeedbackScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AiMessageFeedback"> | string
+    userId?: StringWithAggregatesFilter<"AiMessageFeedback"> | string
+    messageId?: StringWithAggregatesFilter<"AiMessageFeedback"> | string
+    chatId?: StringNullableWithAggregatesFilter<"AiMessageFeedback"> | string | null
+    vote?: StringWithAggregatesFilter<"AiMessageFeedback"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AiMessageFeedback"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AiMessageFeedback"> | Date | string
+  }
+
   export type AiCostLedgerWhereInput = {
     AND?: AiCostLedgerWhereInput | AiCostLedgerWhereInput[]
     OR?: AiCostLedgerWhereInput[]
@@ -129650,6 +130949,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -129696,6 +130996,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -129742,6 +131043,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -129788,6 +131090,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -133717,6 +135020,75 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     estimatedCostCents?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackCreateInput = {
+    id?: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutAiMessageFeedbackInput
+  }
+
+  export type AiMessageFeedbackUncheckedCreateInput = {
+    id?: string
+    userId: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiMessageFeedbackUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput
+  }
+
+  export type AiMessageFeedbackUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackCreateManyInput = {
+    id?: string
+    userId: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiMessageFeedbackUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type AiCostLedgerCreateInput = {
@@ -137991,6 +139363,12 @@ export namespace Prisma {
     none?: NotificationWhereInput
   }
 
+  export type AiMessageFeedbackListRelationFilter = {
+    every?: AiMessageFeedbackWhereInput
+    some?: AiMessageFeedbackWhereInput
+    none?: AiMessageFeedbackWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -138105,6 +139483,10 @@ export namespace Prisma {
   }
 
   export type NotificationOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type AiMessageFeedbackOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -140654,6 +142036,41 @@ export namespace Prisma {
     estimatedCostCents?: SortOrder
   }
 
+  export type AiMessageFeedbackUserIdMessageIdCompoundUniqueInput = {
+    userId: string
+    messageId: string
+  }
+
+  export type AiMessageFeedbackCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    messageId?: SortOrder
+    chatId?: SortOrder
+    vote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiMessageFeedbackMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    messageId?: SortOrder
+    chatId?: SortOrder
+    vote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiMessageFeedbackMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    messageId?: SortOrder
+    chatId?: SortOrder
+    vote?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
   export type AiCostLedgerCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
@@ -143043,6 +144460,13 @@ export namespace Prisma {
     connect?: NotificationWhereUniqueInput | NotificationWhereUniqueInput[]
   }
 
+  export type AiMessageFeedbackCreateNestedManyWithoutUserInput = {
+    create?: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput> | AiMessageFeedbackCreateWithoutUserInput[] | AiMessageFeedbackUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AiMessageFeedbackCreateOrConnectWithoutUserInput | AiMessageFeedbackCreateOrConnectWithoutUserInput[]
+    createMany?: AiMessageFeedbackCreateManyUserInputEnvelope
+    connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -143240,6 +144664,13 @@ export namespace Prisma {
     connectOrCreate?: NotificationCreateOrConnectWithoutUserInput | NotificationCreateOrConnectWithoutUserInput[]
     createMany?: NotificationCreateManyUserInputEnvelope
     connect?: NotificationWhereUniqueInput | NotificationWhereUniqueInput[]
+  }
+
+  export type AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput> | AiMessageFeedbackCreateWithoutUserInput[] | AiMessageFeedbackUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AiMessageFeedbackCreateOrConnectWithoutUserInput | AiMessageFeedbackCreateOrConnectWithoutUserInput[]
+    createMany?: AiMessageFeedbackCreateManyUserInputEnvelope
+    connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -143660,6 +145091,20 @@ export namespace Prisma {
     deleteMany?: NotificationScalarWhereInput | NotificationScalarWhereInput[]
   }
 
+  export type AiMessageFeedbackUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput> | AiMessageFeedbackCreateWithoutUserInput[] | AiMessageFeedbackUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AiMessageFeedbackCreateOrConnectWithoutUserInput | AiMessageFeedbackCreateOrConnectWithoutUserInput[]
+    upsert?: AiMessageFeedbackUpsertWithWhereUniqueWithoutUserInput | AiMessageFeedbackUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AiMessageFeedbackCreateManyUserInputEnvelope
+    set?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    disconnect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    delete?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    update?: AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput | AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AiMessageFeedbackUpdateManyWithWhereWithoutUserInput | AiMessageFeedbackUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -144056,6 +145501,20 @@ export namespace Prisma {
     update?: NotificationUpdateWithWhereUniqueWithoutUserInput | NotificationUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: NotificationUpdateManyWithWhereWithoutUserInput | NotificationUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: NotificationScalarWhereInput | NotificationScalarWhereInput[]
+  }
+
+  export type AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput> | AiMessageFeedbackCreateWithoutUserInput[] | AiMessageFeedbackUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: AiMessageFeedbackCreateOrConnectWithoutUserInput | AiMessageFeedbackCreateOrConnectWithoutUserInput[]
+    upsert?: AiMessageFeedbackUpsertWithWhereUniqueWithoutUserInput | AiMessageFeedbackUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: AiMessageFeedbackCreateManyUserInputEnvelope
+    set?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    disconnect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    delete?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    connect?: AiMessageFeedbackWhereUniqueInput | AiMessageFeedbackWhereUniqueInput[]
+    update?: AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput | AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: AiMessageFeedbackUpdateManyWithWhereWithoutUserInput | AiMessageFeedbackUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -147805,6 +149264,20 @@ export namespace Prisma {
     update?: XOR<XOR<AiMessageUpdateToOneWithWhereWithoutTokenUsageInput, AiMessageUpdateWithoutTokenUsageInput>, AiMessageUncheckedUpdateWithoutTokenUsageInput>
   }
 
+  export type UserCreateNestedOneWithoutAiMessageFeedbackInput = {
+    create?: XOR<UserCreateWithoutAiMessageFeedbackInput, UserUncheckedCreateWithoutAiMessageFeedbackInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAiMessageFeedbackInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutAiMessageFeedbackNestedInput = {
+    create?: XOR<UserCreateWithoutAiMessageFeedbackInput, UserUncheckedCreateWithoutAiMessageFeedbackInput>
+    connectOrCreate?: UserCreateOrConnectWithoutAiMessageFeedbackInput
+    upsert?: UserUpsertWithoutAiMessageFeedbackInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAiMessageFeedbackInput, UserUpdateWithoutAiMessageFeedbackInput>, UserUncheckedUpdateWithoutAiMessageFeedbackInput>
+  }
+
   export type OrganizationCreateNestedOneWithoutAiCostLedgerInput = {
     create?: XOR<OrganizationCreateWithoutAiCostLedgerInput, OrganizationUncheckedCreateWithoutAiCostLedgerInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutAiCostLedgerInput
@@ -150412,6 +151885,34 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type AiMessageFeedbackCreateWithoutUserInput = {
+    id?: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiMessageFeedbackUncheckedCreateWithoutUserInput = {
+    id?: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiMessageFeedbackCreateOrConnectWithoutUserInput = {
+    where: AiMessageFeedbackWhereUniqueInput
+    create: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput>
+  }
+
+  export type AiMessageFeedbackCreateManyUserInputEnvelope = {
+    data: AiMessageFeedbackCreateManyUserInput | AiMessageFeedbackCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -151296,6 +152797,35 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Notification"> | Date | string
   }
 
+  export type AiMessageFeedbackUpsertWithWhereUniqueWithoutUserInput = {
+    where: AiMessageFeedbackWhereUniqueInput
+    update: XOR<AiMessageFeedbackUpdateWithoutUserInput, AiMessageFeedbackUncheckedUpdateWithoutUserInput>
+    create: XOR<AiMessageFeedbackCreateWithoutUserInput, AiMessageFeedbackUncheckedCreateWithoutUserInput>
+  }
+
+  export type AiMessageFeedbackUpdateWithWhereUniqueWithoutUserInput = {
+    where: AiMessageFeedbackWhereUniqueInput
+    data: XOR<AiMessageFeedbackUpdateWithoutUserInput, AiMessageFeedbackUncheckedUpdateWithoutUserInput>
+  }
+
+  export type AiMessageFeedbackUpdateManyWithWhereWithoutUserInput = {
+    where: AiMessageFeedbackScalarWhereInput
+    data: XOR<AiMessageFeedbackUpdateManyMutationInput, AiMessageFeedbackUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type AiMessageFeedbackScalarWhereInput = {
+    AND?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
+    OR?: AiMessageFeedbackScalarWhereInput[]
+    NOT?: AiMessageFeedbackScalarWhereInput | AiMessageFeedbackScalarWhereInput[]
+    id?: StringFilter<"AiMessageFeedback"> | string
+    userId?: StringFilter<"AiMessageFeedback"> | string
+    messageId?: StringFilter<"AiMessageFeedback"> | string
+    chatId?: StringNullableFilter<"AiMessageFeedback"> | string | null
+    vote?: StringFilter<"AiMessageFeedback"> | string
+    createdAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+    updatedAt?: DateTimeFilter<"AiMessageFeedback"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -151339,6 +152869,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -151384,6 +152915,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -151445,6 +152977,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -151490,6 +153023,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -151535,6 +153069,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -151580,6 +153115,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -151641,6 +153177,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -151686,6 +153223,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -153715,6 +155253,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -153760,6 +155299,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -153937,6 +155477,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -153982,6 +155523,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -155978,6 +157520,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -156023,6 +157566,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -156084,6 +157628,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -156129,6 +157674,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -156522,6 +158068,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -156567,6 +158114,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -156796,6 +158344,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -156841,6 +158390,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -157147,6 +158697,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -157192,6 +158743,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -157340,6 +158892,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -157385,6 +158938,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -158519,6 +160073,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -158564,6 +160119,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -158712,6 +160268,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -158757,6 +160314,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -158883,6 +160441,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -158928,6 +160487,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -159076,6 +160636,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -159121,6 +160682,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -159247,6 +160809,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -159292,6 +160855,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -159440,6 +161004,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -159485,6 +161050,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -159611,6 +161177,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -159656,6 +161223,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -159804,6 +161372,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -159849,6 +161418,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -159975,6 +161545,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -160020,6 +161591,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -160168,6 +161740,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -160213,6 +161786,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -161545,6 +163119,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -161590,6 +163165,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -161738,6 +163314,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -161783,6 +163360,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -162369,6 +163947,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -162414,6 +163993,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -162568,6 +164148,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -162613,6 +164194,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -162658,6 +164240,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -162703,6 +164286,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -162764,6 +164348,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -162809,6 +164394,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -164141,6 +165727,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -164186,6 +165773,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -164362,6 +165950,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -164407,6 +165996,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -164696,6 +166286,206 @@ export namespace Prisma {
     content?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     toolCalls?: AiToolCallUncheckedUpdateManyWithoutMessageNestedInput
+  }
+
+  export type UserCreateWithoutAiMessageFeedbackInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutAiMessageFeedbackInput, UserUncheckedCreateWithoutAiMessageFeedbackInput>
+  }
+
+  export type UserUpsertWithoutAiMessageFeedbackInput = {
+    update: XOR<UserUpdateWithoutAiMessageFeedbackInput, UserUncheckedUpdateWithoutAiMessageFeedbackInput>
+    create: XOR<UserCreateWithoutAiMessageFeedbackInput, UserUncheckedCreateWithoutAiMessageFeedbackInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutAiMessageFeedbackInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutAiMessageFeedbackInput, UserUncheckedUpdateWithoutAiMessageFeedbackInput>
+  }
+
+  export type UserUpdateWithoutAiMessageFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -165188,6 +166978,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -165233,6 +167024,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -165387,6 +167179,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -165432,6 +167225,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutFeatureFlagsInput = {
@@ -165657,6 +167451,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -165702,6 +167497,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -165763,6 +167559,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -165808,6 +167605,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -165853,6 +167651,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -165898,6 +167697,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -165959,6 +167759,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -166004,6 +167805,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -166049,6 +167851,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -166094,6 +167897,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -166155,6 +167959,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -166200,6 +168005,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -167412,6 +169218,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -167457,6 +169264,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -167611,6 +169419,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -167656,6 +169465,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -167701,6 +169511,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -167746,6 +169557,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -167807,6 +169619,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -167852,6 +169665,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -167994,6 +169808,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -168039,6 +169854,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -168242,6 +170058,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -168287,6 +170104,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -168425,6 +170243,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -168470,6 +170289,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -168531,6 +170351,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -168576,6 +170397,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -168692,6 +170514,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -168737,6 +170560,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -168958,6 +170782,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -169003,6 +170828,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -169301,6 +171127,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -169346,6 +171173,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -169494,6 +171322,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -169539,6 +171368,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -169803,6 +171633,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -169848,6 +171679,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -170055,6 +171887,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -170100,6 +171933,7 @@ export namespace Prisma {
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -170232,6 +172066,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -170277,6 +172112,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -170489,6 +172325,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -170534,6 +172371,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -170887,6 +172725,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -170932,6 +172771,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -170993,6 +172833,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -171038,6 +172879,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -171083,6 +172925,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -171128,6 +172971,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -171276,6 +173120,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -171321,6 +173166,7 @@ export namespace Prisma {
     linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
     configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -173136,6 +174982,15 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type AiMessageFeedbackCreateManyUserInput = {
+    id?: string
+    messageId: string
+    chatId?: string | null
+    vote: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type AccountUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
     provider?: StringFieldUpdateOperationsInput | string
@@ -174055,6 +175910,33 @@ export namespace Prisma {
     metadata?: NullableJsonNullValueInput | InputJsonValue
     readAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiMessageFeedbackUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    messageId?: StringFieldUpdateOperationsInput | string
+    chatId?: NullableStringFieldUpdateOperationsInput | string | null
+    vote?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type OrganizationMemberCreateManyOrganizationInput = {

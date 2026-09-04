@@ -17,6 +17,8 @@ import type {
   AiConversationRecord,
   AiMessageRecord,
   IntegrationFeatureRequestRecord,
+  AiMessageFeedbackRecord,
+  AiMessageFeedbackVote,
   NotificationRecord,
   AiTokenUsageRecord,
   AiToolCallRecord,
@@ -124,6 +126,8 @@ export class TestApiStore implements ApiStore {
   readonly featureFlags = new Map<string, FeatureFlagRecord>();
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
   readonly integrationFeatureRequests = new Map<string, IntegrationFeatureRequestRecord>();
+  // Keyed `${userId}:${messageId}` — mirrors the prisma @@unique([userId, messageId]).
+  readonly aiMessageFeedback = new Map<string, AiMessageFeedbackRecord>();
   readonly systemSettings = new Map<string, SystemSettingRecord>();
   readonly emailVerifications = new Map<
     string,
@@ -1721,6 +1725,34 @@ export class TestApiStore implements ApiStore {
     requests.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0));
 
     return requests.slice(0, filter.take ?? 200);
+  }
+
+  async upsertAiMessageFeedback(input: {
+    userId: string;
+    messageId: string;
+    vote: AiMessageFeedbackVote;
+    chatId?: string;
+  }) {
+    const key = `${input.userId}:${input.messageId}`;
+    const existing = this.aiMessageFeedback.get(key);
+
+    const record: AiMessageFeedbackRecord = {
+      id: existing?.id ?? id('msgfb'),
+      userId: input.userId,
+      messageId: input.messageId,
+      // Prisma skips an undefined chatId on update, keeping the stored one.
+      chatId: input.chatId ?? existing?.chatId,
+      vote: input.vote,
+      createdAt: existing?.createdAt ?? now(),
+      updatedAt: now(),
+    };
+    this.aiMessageFeedback.set(key, record);
+
+    return record;
+  }
+
+  async deleteAiMessageFeedback(input: { userId: string; messageId: string }) {
+    return this.aiMessageFeedback.delete(`${input.userId}:${input.messageId}`);
   }
 
   async setSystemSetting(input: { key: string; value?: unknown }) {

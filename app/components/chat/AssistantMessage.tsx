@@ -26,11 +26,13 @@ import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
+import { chatId } from '~/lib/persistence/useChatHistory';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
 import type { ProviderInfo } from '~/types/model';
 import { WORK_DIR } from '~/utils/constants';
+import { createScopedLogger } from '~/utils/logger';
 
 export interface AssistantMessageProps {
   content: string;
@@ -790,6 +792,33 @@ export const AssistantMessage = memo(
 
 type Feedback = 'up' | 'down' | null;
 
+const feedbackLogger = createScopedLogger('AssistantMessageFeedback');
+
+/*
+ * Fire-and-forget: a vote must never block or break the chat UI, so the
+ * request outcome is only logged. The API keeps one vote per (user, message);
+ * `vote: null` retracts a previously recorded vote (the thumb toggled off).
+ */
+function sendFeedbackVote(messageId: string, vote: Feedback) {
+  if (typeof fetch === 'undefined') {
+    return;
+  }
+
+  fetch('/api/ai/message-feedback', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messageId, vote, chatId: chatId.get() }),
+  })
+    .then((response) => {
+      if (!response.ok) {
+        feedbackLogger.warn(`Message feedback request failed with status ${response.status}`);
+      }
+    })
+    .catch((error) => {
+      feedbackLogger.warn('Message feedback request failed', error);
+    });
+}
+
 function AssistantMessageFooter({
   content,
   messageId,
@@ -804,19 +833,23 @@ function AssistantMessageFooter({
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [copied, setCopied] = useState(false);
 
-  const storageKey = messageId ? `vibecore:msg-feedback:${messageId}` : undefined;
+  const storageKey = messageId ? `ecode:feedback:${messageId}` : undefined;
+  const legacyStorageKey = messageId ? `vibecore:msg-feedback:${messageId}` : undefined;
 
   useEffect(() => {
     if (!storageKey || typeof window === 'undefined') {
       return;
     }
 
-    const stored = window.localStorage.getItem(storageKey);
+    // Fall back to the pre-rebrand key so older local votes stay highlighted.
+    const stored =
+      window.localStorage.getItem(storageKey) ??
+      (legacyStorageKey ? window.localStorage.getItem(legacyStorageKey) : null);
 
     if (stored === 'up' || stored === 'down') {
       setFeedback(stored);
     }
-  }, [storageKey]);
+  }, [storageKey, legacyStorageKey]);
 
   const persistFeedback = useCallback(
     (next: Feedback) => {
@@ -829,17 +862,30 @@ function AssistantMessageFooter({
       } else {
         window.localStorage.removeItem(storageKey);
       }
+
+      // Clear the pre-rebrand key so it can't resurrect a retracted vote on mount.
+      if (legacyStorageKey) {
+        window.localStorage.removeItem(legacyStorageKey);
+      }
     },
-    [storageKey],
+    [storageKey, legacyStorageKey],
   );
 
+  /*
+   * The double-vote guard is the localStorage entry: a stored vote renders the
+   * thumb active on mount and a repeat click retracts instead of re-voting.
+   * The side effects live outside the state updater so React StrictMode's
+   * double-invoked updaters can't fire the POST twice.
+   */
   const toggleFeedback = (value: Exclude<Feedback, null>) => {
-    setFeedback((current) => {
-      const next = current === value ? null : value;
-      persistFeedback(next);
+    const next = feedback === value ? null : value;
 
-      return next;
-    });
+    setFeedback(next);
+    persistFeedback(next);
+
+    if (messageId) {
+      sendFeedbackVote(messageId, next);
+    }
   };
 
   const copyMarkdown = useCallback(async () => {
