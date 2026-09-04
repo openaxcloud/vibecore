@@ -34,7 +34,14 @@ metadata:
     "helm.sh/hook-weight": "-10"
     "helm.sh/hook-delete-policy": before-hook-creation
 spec:
-  activeDeadlineSeconds: 600
+  # 300 et non 600 : le `helm upgrade` qui attend ce hook a un budget de 10 min.
+  # À 600 s, le hook et Helm expiraient ENSEMBLE — Helm rendait « context
+  # deadline exceeded » et son rollback atomique emportait le Job avant que
+  # quiconque lise pourquoi. Mesuré le 2026-09-04 (run 1453) : premier rollout
+  # portant la migration 0086, 10 min de silence, rien à lire. À 300 s, un hook
+  # qui bloque échoue en premier, en nommant sa cause, et Helm rapporte l'échec
+  # du hook au lieu du sien.
+  activeDeadlineSeconds: 300
   backoffLimit: 1
   ttlSecondsAfterFinished: 86400
   template:
@@ -78,6 +85,21 @@ spec:
               PRISMA_BIN=$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")
               echo "db dir:     $DB_DIR"
               echo "prisma bin: $PRISMA_BIN"
+              # Un verrou tenu ailleurs (transaction d'import ouverte, session
+              # « idle in transaction ») fait attendre un ALTER TABLE sans limite :
+              # le hook se taisait jusqu'au délai. `lock_timeout` transforme
+              # l'attente en erreur Postgres NOMMÉE (55P03, « canceling statement
+              # due to lock timeout »). Mesuré en local : échec en 7 s contre un
+              # blocage sans fin, et `migrate deploy` accepte bien le paramètre
+              # `options` de l'URL (connexion et migrations inchangées sans verrou).
+              # L'URL n'est jamais affichée : elle porte le mot de passe.
+              case "$DATABASE_URL" in
+                *options=*) ;;
+                *\?*) DATABASE_URL="${DATABASE_URL}&options=-c%20lock_timeout%3D60000" ;;
+                *)     DATABASE_URL="${DATABASE_URL}?options=-c%20lock_timeout%3D60000" ;;
+              esac
+              export DATABASE_URL
+              echo "lock_timeout: 60s (un verrou tenu ailleurs fait échouer la migration au lieu de la bloquer)"
               node "$PRISMA_BIN" migrate deploy
           envFrom:
             - secretRef:

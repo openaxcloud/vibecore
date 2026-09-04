@@ -1707,28 +1707,61 @@ jobs:
           echo "probing pod ${POD}"
 
           # Probe from INSIDE the cluster via a throwaway pod: the api Service is
-          # not reachable from the runner, and `kubectl exec` is denied to the CI
-          # identity through Connect Gateway (see the D2 step's note).
-          CODE="$(kubectl -n "${HELM_NAMESPACE}" run "sec9-probe-${GITHUB_RUN_ID}" \
-            --rm -i --restart=Never --quiet \
-            --image=curlimages/curl:8.10.1 \
-            --command -- curl -s -o /dev/null -w '%{http_code}' -m 15 -X POST \
-            "http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access" \
-            -H 'content-type: application/json' \
-            -d '{"mode":"password","password":"sec9-probe-not-a-real-password"}' 2>/dev/null | tr -dc '0-9')"
+          # not reachable from the runner.
+          #
+          # SANS `--rm -i` : l'attache au conteneur est un websocket, et c'est
+          # précisément ce que le Connect Gateway refuse à l'identité CI — la
+          # même cause que `kubectl exec` (voir la note de l'étape D2). Mesuré
+          # le 2026-09-04, run 1436 : l'étape sortait en erreur SANS code HTTP,
+          # stderr masquée par `2>/dev/null`, et le rollback suivait sur un
+          # rollout sain. Tout ce que fait cette version passe par des GET/POST
+          # ordinaires : créer le pod, lire son état, le supprimer.
+          #
+          # Le VERDICT voyage dans le code de sortie du pod (lisible par un GET
+          # sur `status`), pas dans ses journaux ni dans une attache :
+          #   0  → l'api a répondu autre chose que 2xx (refus : attendu)
+          #   20 → l'api a répondu 2xx (activation acceptée : DÉFAUT)
+          #   30 → aucun code HTTP (api injoignable : inconclusif, fail-closed).
+          #        curl rend « 000 » quand la connexion échoue : c'est un « aucun
+          #        code », pas un refus — mesuré, sans ce cas l'api injoignable
+          #        passait pour un refus (fail-OPEN).
+          PROBE="sec9-probe-${GITHUB_RUN_ID}"
+          PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
+          kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
+          kubectl -n "${HELM_NAMESPACE}" run "${PROBE}" \
+            --restart=Never --image=curlimages/curl:8.10.1 \
+            --labels="app.kubernetes.io/name=sec9-probe,app.kubernetes.io/part-of=vibecore" \
+            --env="PROBE_URL=${PROBE_URL}" \
+            --command -- sh -c 'code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
 
-          echo "deployed api answered HTTP ${CODE} to an activation attempt during phase 1"
-          case "${CODE}" in
-            2*)
+          PHASE=""
+          for _ in $(seq 1 45); do
+            PHASE="$(kubectl -n "${HELM_NAMESPACE}" get pod "${PROBE}" -o jsonpath='{.status.phase}')"
+            case "${PHASE}" in Succeeded|Failed) break ;; esac
+            sleep 2
+          done
+          STATUS_JSON="$(kubectl -n "${HELM_NAMESPACE}" get pod "${PROBE}" -o jsonpath='{.status.containerStatuses[0].state.terminated}')"
+          EXIT_CODE="$(printf '%s' "${STATUS_JSON}" | jq -r '.exitCode // empty')"
+          CODE="$(printf '%s' "${STATUS_JSON}" | jq -r '.message // empty' | tr -dc '0-9')"
+          echo "probe pod phase=${PHASE:-unknown} exit=${EXIT_CODE:-none} http=${CODE:-none}"
+          if [ -z "${EXIT_CODE}" ]; then
+            # Jamais terminé (image non tirée, pod non ordonnancé, …) : dire POURQUOI.
+            kubectl -n "${HELM_NAMESPACE}" describe pod "${PROBE}" | tail -n 25 || true
+          fi
+          kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=false \
+            || echo "::warning::probe pod ${PROBE} could not be deleted — clean it up by hand"
+
+          case "${EXIT_CODE}" in
+            0)
+              echo "ok — deployed api refuses activation (HTTP ${CODE:-non-2xx}) while the interlock is closed"
+              ;;
+            20)
               echo "::error::PHASE-1 PROBE FAILED — the deployed api answered ${CODE} to an activation request while the interlock is supposed to be CLOSED. Not arming activation." >&2
               exit 1
               ;;
-            '')
-              echo "::error::PHASE-1 PROBE INCONCLUSIVE — no HTTP status from the deployed api. Refusing to arm activation (fail-closed)." >&2
-              exit 1
-              ;;
             *)
-              echo "ok — deployed api refuses activation (HTTP ${CODE}) while the interlock is closed"
+              echo "::error::PHASE-1 PROBE INCONCLUSIVE — no HTTP status from the deployed api (probe exit ${EXIT_CODE:-none}, phase ${PHASE:-unknown}). Refusing to arm activation (fail-closed)." >&2
+              exit 1
               ;;
           esac
 
