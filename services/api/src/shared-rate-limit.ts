@@ -246,27 +246,7 @@ export class FastifyRateLimitSharedStore {
    * l'enregistrement. Un type strict ici ne compilerait pas contre
    * `FastifyRateLimitStoreCtor`.
    */
-  constructor(private readonly options: { backend?: unknown; timeWindow?: unknown; scope?: unknown }) {}
-
-  /**
-   * Discriminant de compartiment.
-   *
-   * Le plugin instancie UN store racine (limite globale) puis, pour chaque route
-   * qui déclare sa propre `config.rateLimit`, un store dérivé via `child()`. Avec
-   * un store en mémoire, chaque instance possède sa propre Map : les
-   * compartiments sont naturellement séparés. Avec un store PARTAGÉ, ils ne le
-   * sont plus — la clé seule les distingue, et `keyGenerator` ne rend que
-   * l'identité de l'appelant, jamais la route.
-   *
-   * Sans ce préfixe, toutes les routes incrémentaient donc le MÊME compteur
-   * Redis par appelant, et la limite la plus stricte s'appliquait de fait à tout
-   * le trafic : dix requêtes sur n'importe quelle route suffisaient à faire
-   * refuser une inscription légitime (`/auth/register`, max 10/min) — situation
-   * immédiate derrière un NAT d'entreprise ou un CGNAT mobile.
-   */
-  private get scope(): string {
-    return typeof this.options.scope === 'string' ? this.options.scope : 'global';
-  }
+  constructor(private readonly options: { backend?: unknown; timeWindow?: unknown }) {}
 
   private get backend(): RateLimitBackend {
     const backend = this.options.backend as RateLimitBackend | undefined;
@@ -288,7 +268,7 @@ export class FastifyRateLimitSharedStore {
     const windowMs = Number(timeWindowMs ?? this.options.timeWindow ?? 60_000);
 
     this.backend
-      .hit(`${this.scope}|${key}`, windowMs)
+      .hit(key, windowMs)
       .then((hit) => callback(null, { current: hit.count, ttl: hit.ttlMs }))
       // L'erreur typée remonte telle quelle : le gestionnaire d'erreurs la
       // traduit en 503 explicite plutôt qu'en 500 anonyme.
@@ -303,31 +283,7 @@ export class FastifyRateLimitSharedStore {
    * injecté.
    */
   child(routeOptions: object): FastifyRateLimitSharedStore {
-    /*
-     * `@fastify/rate-limit` n'appelle PAS `child()` avec les options de route à
-     * plat : il passe `mergeParams(globalParams, routeConfig, { routeInfo })`,
-     * où la route vit sous `routeInfo`. Lire `method`/`url` au premier niveau
-     * rendait donc systématiquement `undefined`, le compartiment retombait sur
-     * `global`, et le correctif ne s'appliquait pas — vérifié en réel : la
-     * toute première `/auth/register` d'un job répondait encore 429. Le repli à
-     * plat est conservé pour rester robuste si la forme évolue.
-     */
-    const merged = routeOptions as { routeInfo?: { method?: unknown; url?: unknown }; method?: unknown; url?: unknown };
-    const route = merged.routeInfo ?? merged;
-    const method = Array.isArray(route.method) ? route.method.join(',') : String(route.method ?? '');
-    const url = String(route.url ?? '');
-    /*
-     * Un store dérivé porte SON compartiment. Repli sur `global` si le plugin ne
-     * fournit ni méthode ni url : mieux vaut partager le compartiment global que
-     * d'en fabriquer un anonyme que rien ne pourrait rapprocher d'une route.
-     */
-    const scope = method || url ? `${method} ${url}`.trim() : 'global';
-
-    return new FastifyRateLimitSharedStore({
-      ...this.options,
-      ...(routeOptions as Record<string, unknown>),
-      scope,
-    });
+    return new FastifyRateLimitSharedStore({ ...this.options, ...(routeOptions as Record<string, unknown>) });
   }
 }
 

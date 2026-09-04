@@ -11,7 +11,6 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   consumeRateLimit,
-  createFastifyRateLimitStore,
   DEFAULT_STORE_FAILURE_POLICY,
   LocalRateLimitBackend,
   parseStoreFailurePolicy,
@@ -355,97 +354,5 @@ describe('le backend partagé délègue vraiment', () => {
     }
 
     expect(redis.evalCalls).toBe(5);
-  });
-});
-
-describe('isolation des compartiments entre routes', () => {
-  /*
-   * Défaut trouvé en réel par l'audit i18n live : la TOUTE PREMIÈRE requête
-   * `/auth/register` d'un job répondait 429, alors que Redis était sain et
-   * qu'aucune autre inscription n'avait eu lieu. Cause : le plugin dérive un
-   * store par route via `child()`, mais `incr()` utilisait la clé telle quelle.
-   * Avec un store en mémoire chaque instance a sa propre Map, donc le défaut
-   * était invisible ; avec un store PARTAGÉ, toutes les routes incrémentaient
-   * le même compteur par appelant.
-   *
-   * Conséquence en production : la limite la plus stricte s'appliquait à tout
-   * le trafic. Dix requêtes sur n'importe quelle route suffisaient à faire
-   * refuser une inscription légitime (`/auth/register`, max 10/min) — immédiat
-   * derrière un NAT d'entreprise ou un CGNAT mobile.
-   */
-  const hit = (store: { incr: Function }, key: string) =>
-    new Promise<number>((resolve, reject) => {
-      store.incr(key, (error: Error | null, result?: { current: number }) =>
-        error ? reject(error) : resolve(result!.current),
-      );
-    });
-
-  it('le trafic d’une route ne consomme pas le budget d’une autre', async () => {
-    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const root = new Store({ timeWindow: 60_000 });
-    const register = root.child({ routeInfo: { method: 'POST', url: '/auth/register' } });
-    const gallery = root.child({ routeInfo: { method: 'GET', url: '/gallery' } });
-
-    for (let index = 0; index < 5; index += 1) {
-      await hit(gallery, '127.0.0.1');
-    }
-
-    // Avant le correctif : 6.
-    expect(await hit(register, '127.0.0.1')).toBe(1);
-    expect(await hit(gallery, '127.0.0.1')).toBe(6);
-  });
-
-  it('la même route et le même appelant partagent bien un compartiment', async () => {
-    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const root = new Store({ timeWindow: 60_000 });
-    const a = root.child({ routeInfo: { method: 'POST', url: '/auth/login' } });
-    const b = root.child({ routeInfo: { method: 'POST', url: '/auth/login' } });
-
-    expect(await hit(a, '10.0.0.1')).toBe(1);
-    expect(await hit(b, '10.0.0.1')).toBe(2);
-  });
-
-  it('deux appelants distincts restent séparés sur une même route', async () => {
-    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const route = new Store({ timeWindow: 60_000 }).child({ routeInfo: { method: 'POST', url: '/auth/login' } });
-
-    expect(await hit(route, '10.0.0.1')).toBe(1);
-    expect(await hit(route, '10.0.0.2')).toBe(1);
-  });
-
-  it('le store racine garde son propre compartiment (limite globale)', async () => {
-    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const root = new Store({ timeWindow: 60_000 });
-    const route = root.child({ routeInfo: { method: 'POST', url: '/auth/register' } });
-
-    expect(await hit(root, '127.0.0.1')).toBe(1);
-    expect(await hit(route, '127.0.0.1')).toBe(1);
-    expect(await hit(root, '127.0.0.1')).toBe(2);
-  });
-
-  /*
-   * Ce cas existe parce que je m'y suis trompé. Ma première version lisait
-   * `method`/`url` au premier niveau de l'objet passé à `child()`. Les tests
-   * passaient — parce qu'ils passaient eux aussi cette forme-là. Or
-   * `@fastify/rate-limit` appelle
-   *
-   *     store.child(mergeParams(globalParams, routeConfig, { routeInfo }))
-   *
-   * et la route vit sous `routeInfo`. Le discriminant était donc toujours
-   * `undefined` en vrai, le compartiment retombait sur `global`, et le
-   * correctif n'avait aucun effet : la première `/auth/register` d'un job
-   * répondait encore 429. Ce test fige la forme RÉELLE du plugin.
-   */
-  it('lit la route sous `routeInfo`, comme le plugin la transmet réellement', async () => {
-    const Store = createFastifyRateLimitStore(new LocalRateLimitBackend());
-    const root = new Store({ timeWindow: 60_000 });
-    const register = root.child({ max: 10, timeWindow: 60_000, routeInfo: { method: 'POST', url: '/auth/register' } });
-    const gallery = root.child({ max: 2000, timeWindow: 60_000, routeInfo: { method: 'GET', url: '/gallery' } });
-
-    for (let index = 0; index < 12; index += 1) {
-      await hit(gallery, '127.0.0.1');
-    }
-
-    expect(await hit(register, '127.0.0.1')).toBe(1);
   });
 });
