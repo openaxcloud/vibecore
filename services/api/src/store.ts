@@ -1114,6 +1114,99 @@ export interface AppImageBuildOperationRecord extends AppImageBuildProviderIdent
   cancellationProof?: AppImageBuildCancellationProof | { terminal: true; providerSubmissionAbsent: true };
 }
 
+export type ProviderDeployHookIntentKind = 'CREATE' | 'REDEPLOY';
+export type ProviderDeployHookPhase = 'PREPARED' | 'DISPATCHING' | 'IDENTIFIED' | 'TERMINAL' | 'MANUAL_RECOVERY';
+export type ProviderDeployHookProvider =
+  | 'vercel'
+  | 'netlify'
+  | 'github-pages'
+  | 'cloudflare-pages'
+  | 'google-cloud-run'
+  | 'docker';
+export type ProviderDeployHookTargetSnapshot = Record<string, string>;
+
+/**
+ * Durable provider-hook intent. No release token, provider credential, or hook
+ * URL is persisted or participates in identity. `preparedAt` is the stable
+ * PostgreSQL timestamp used in every replayed provider request body.
+ */
+export interface ProviderDeployHookOperationRecord {
+  id: string;
+  projectId: string;
+  deploymentId: string;
+  organizationId: string;
+  ownershipEpoch: number;
+  actorUserId?: string;
+  intentKind: ProviderDeployHookIntentKind;
+  provider: ProviderDeployHookProvider;
+  publishRegion?: string;
+  projectManifestDigest: string;
+  targetBindingId: string;
+  providerTargetHash: string;
+  providerTargetSnapshot: ProviderDeployHookTargetSnapshot;
+  providerTargetDedicated: boolean;
+  operationTag: string;
+  intentHash: string;
+  phase: ProviderDeployHookPhase;
+  dispatchAttempts: number;
+  providerBuildId?: string;
+  providerUrl?: string;
+  outcomeStatus?: 'ACCEPTED' | 'REJECTED' | 'CANCELED';
+  providerTerminalStatus?: 'READY' | 'FAILED' | 'CANCELED' | 'REJECTED';
+  lastHttpStatus?: number;
+  lastErrorCode?: string;
+  lastErrorMessage?: string;
+  manualRecoveryReason?: string;
+  preparedAt: string;
+  dispatchCommittedAt?: string;
+  identifiedAt?: string;
+  terminalAt?: string;
+  manualRecoveryAt?: string;
+  decommissionedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProviderDeployHookAttemptRecord {
+  operationId: string;
+  attemptNumber: 1;
+  attemptId: string;
+  requestId?: string;
+  state: Exclude<ProviderDeployHookPhase, 'PREPARED'>;
+  httpStatus?: number;
+  providerBuildId?: string;
+  providerUrl?: string;
+  providerTerminalStatus?: 'READY' | 'FAILED' | 'CANCELED' | 'REJECTED';
+  errorCode?: string;
+  errorMessage?: string;
+  dispatchStartedAt: string;
+  settledAt?: string;
+}
+
+export interface ProviderDeployHookIdentityRecoveryObservation {
+  resolution: 'EXACT_IDENTITY';
+  provider: ProviderDeployHookProvider;
+  providerBuildId: string;
+  providerState: 'building' | 'ready' | 'failed';
+  providerUrl?: string;
+  operationTag: string;
+  identityKind:
+    | 'DEDICATED_VERCEL_TARGET'
+    | 'NETLIFY_TRIGGER_TITLE'
+    | 'GITHUB_WORKFLOW_RUN_NAME'
+    | 'DEDICATED_CLOUDFLARE_TARGET'
+    | 'CLOUD_BUILD_SUBSTITUTION';
+  providerTarget: Record<string, string>;
+  providerTargetHash: string;
+}
+
+export type ProviderDeployHookRecoveryObservation = ProviderDeployHookIdentityRecoveryObservation;
+
+export interface ProviderDeployHookRecoveryResult {
+  operation: ProviderDeployHookOperationRecord;
+  auditLogId: string;
+}
+
 export type RegistryMutationKind = 'APP_IMAGE_BUILD' | 'TRUSTED_IMAGE_SIGNING' | 'IMAGE_PROMOTION' | 'PROJECT_ERASURE';
 
 export interface RegistryMutationIntent {
@@ -2462,6 +2555,136 @@ export interface ApiStore {
     promotionReferences: unknown;
     releaseFence: ProjectReleaseFence;
   }): Promise<void>;
+
+  /** Prepare or replay one immutable external hook intent under the exact release fence. */
+  prepareProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    actorUserId?: string;
+    intentKind: ProviderDeployHookIntentKind;
+    provider: ProviderDeployHookProvider;
+    publishRegion?: string;
+    projectManifestDigest: string;
+    providerTargetHash: string;
+    providerTargetSnapshot: ProviderDeployHookTargetSnapshot;
+    providerTargetDedicated: boolean;
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord>;
+
+  /** Atomically append attempt #1 and commit DISPATCHING before the provider POST. */
+  beginProviderDeployHookDispatch(input: {
+    operationId: string;
+    projectId: string;
+    requestId?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt?: ProviderDeployHookAttemptRecord;
+    shouldDispatch: boolean;
+  }>;
+
+  /**
+   * Persist the exact provider response after POST. This is intentionally
+   * independent from the release fence: losing A after the provider responds
+   * must not discard a durable build id. Exact tenant/operation/attempt ids are
+   * revalidated and this observation never mutates Deployment or release state.
+   */
+  recordProviderDeployHookOutcome(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    phase: 'IDENTIFIED' | 'TERMINAL' | 'MANUAL_RECOVERY';
+    outcomeStatus?: 'ACCEPTED' | 'REJECTED';
+    providerTerminalStatus?: 'READY' | 'FAILED' | 'CANCELED' | 'REJECTED';
+    providerBuildId?: string;
+    providerUrl?: string;
+    httpStatus?: number;
+    errorCode?: string;
+    errorMessage?: string;
+    manualRecoveryReason?: string;
+  }): Promise<ProviderDeployHookOperationRecord>;
+
+  /**
+   * Resolve the immutable provider identity under current tenant authority.
+   * This read deliberately does not acquire a release fence: provider
+   * observation must still converge after the project manifest has advanced.
+   */
+  getProviderDeployHookReconciliationTarget(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt: ProviderDeployHookAttemptRecord;
+  } | undefined>;
+
+  /**
+   * Record an exact live provider terminal observation independently from the
+   * release fence. The immutable operation, attempt and provider build ids are
+   * all matched before the monotone IDENTIFIED -> TERMINAL transition.
+   */
+  recordProviderDeployHookTerminalObservation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    providerTerminalStatus: 'READY' | 'FAILED' | 'CANCELED';
+    providerUrl?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }): Promise<ProviderDeployHookOperationRecord>;
+
+  /** Freeze an IDENTIFIED build whose exact GET cannot prove the stable tag/target. */
+  recordProviderDeployHookReconciliationFailure(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    errorCode: string;
+    errorMessage: string;
+    manualRecoveryReason: string;
+  }): Promise<ProviderDeployHookOperationRecord>;
+
+  /** Platform-admin recovery after a server-side exact provider GET. */
+  getProviderDeployHookRecoveryCandidate(input: {
+    operationId: string;
+    operatorUserId: string;
+  }): Promise<{ operation: ProviderDeployHookOperationRecord; databaseNow: string } | undefined>;
+
+  recoverProviderDeployHook(input: {
+    operationId: string;
+    operatorUserId: string;
+    ipAddress?: string;
+    providerBuildId?: string;
+    observation: ProviderDeployHookRecoveryObservation;
+  }): Promise<ProviderDeployHookRecoveryResult>;
+
+  /** Fenced replay/read used by verify-first recovery and deterministic tests. */
+  getProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord | undefined>;
+
+  listProviderDeployHookAttempts(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookAttemptRecord[]>;
   /** Platform-operator recovery. Creates and links the immutable AuditLog row atomically. */
   resolveAmbiguousRegistryMutation(input: {
     operationId: string;

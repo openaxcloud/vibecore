@@ -174,6 +174,10 @@ import {
   projectPermanentDeletionRequestHash,
 } from './project-permanent-deletion.js';
 import {
+  assertProviderDeployHooksTerminalForProjectDeletion,
+  finalizeProviderDeployHooksForProjectDeletion,
+} from './provider-deploy-hook-finalizer.js';
+import {
   captureProjectDatabaseErasurePlan,
   checkpointProjectDatabaseErasure,
   persistLegacyProjectDatabaseAuthorities,
@@ -242,6 +246,12 @@ import type {
   AiToolCallRecord,
   AgentCheckpointRecord,
   AppImageBuildOperationRecord,
+  ProviderDeployHookAttemptRecord,
+  ProviderDeployHookIntentKind,
+  ProviderDeployHookOperationRecord,
+  ProviderDeployHookProvider,
+  ProviderDeployHookRecoveryObservation,
+  ProviderDeployHookRecoveryResult,
   BillingCustomerRecord,
   BillingPlanRecord,
   CheckpointStatus,
@@ -4327,6 +4337,988 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     });
   }
 
+  async prepareProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    actorUserId?: string;
+    intentKind: ProviderDeployHookIntentKind;
+    provider: ProviderDeployHookProvider;
+    publishRegion?: string;
+    projectManifestDigest: string;
+    providerTargetHash: string;
+    providerTargetSnapshot: Record<string, string>;
+    providerTargetDedicated: boolean;
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    if (
+      !/^provider-deploy-hook:[A-Za-z0-9_-]{8,160}$/u.test(input.operationId) ||
+      !/^ecode-deploy-[a-f0-9]{40}$/u.test(input.operationTag) ||
+      !/^sha256:[a-f0-9]{64}$/u.test(input.intentHash) ||
+      !/^sha256:[a-f0-9]{64}$/u.test(input.providerTargetHash) ||
+      !providerDeployHookTargetSnapshotValid(input.providerTargetSnapshot) ||
+      Object.values(input.providerTargetSnapshot).includes('unconfigured') ||
+      !PROJECT_MANIFEST_DIGEST_PATTERN.test(input.projectManifestDigest) ||
+      !['CREATE', 'REDEPLOY'].includes(input.intentKind) ||
+      !['vercel', 'netlify', 'github-pages', 'cloudflare-pages', 'google-cloud-run', 'docker'].includes(
+        input.provider,
+      ) ||
+      (['vercel', 'cloudflare-pages'].includes(input.provider) && !input.providerTargetDedicated)
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROVIDER_DEPLOY_HOOK_INTENT_INVALID',
+        statusCode: 400,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>(Prisma.sql`
+        SELECT "organizationId", "ownershipEpoch"
+        FROM "Project"
+        WHERE "id" = ${input.projectId}
+          AND "permanentDeletionStartedAt" IS NULL
+        FOR UPDATE
+      `);
+      const deployments = await tx.$queryRaw<Array<{ provider: string }>>(Prisma.sql`
+        SELECT "provider"
+        FROM "Deployment"
+        WHERE "id" = ${input.deploymentId}
+          AND "projectId" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const project = projects[0];
+      const deployment = deployments[0];
+
+      if (
+        !project ||
+        !deployment ||
+        project.organizationId !== input.releaseFence.expectedOrganizationId ||
+        deployment.provider !== input.provider
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      const bindingLockKeys = [
+        `provider-deploy-hook-project:${input.projectId}:${input.provider}`,
+        `provider-deploy-hook-target:${input.provider}:${input.providerTargetHash}`,
+      ].sort();
+      for (const lockKey of bindingLockKeys) {
+        await tx.$queryRaw<Array<{ locked: null }>>(Prisma.sql`
+          SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0)) AS "locked"
+        `);
+      }
+      const bindingRows = await tx.$queryRaw<ProviderDeployHookTargetBindingRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookTargetBinding"
+        WHERE ("provider" = ${input.provider} AND "targetHash" = ${input.providerTargetHash})
+           OR ("projectId" = ${input.projectId} AND "provider" = ${input.provider})
+        ORDER BY "id"
+        FOR UPDATE
+      `);
+      let binding = bindingRows[0];
+      if (bindingRows.length > 1 || (binding && !providerDeployHookTargetBindingMatches(binding, input))) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_TARGET_BINDING_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      if (!binding) {
+        const insertedBindings = await tx.$queryRaw<ProviderDeployHookTargetBindingRow[]>(Prisma.sql`
+          INSERT INTO "ProviderDeployHookTargetBinding" (
+            "id", "projectId", "provider", "targetHash", "targetSnapshot", "dedicated", "createdAt"
+          ) VALUES (
+            ${randomUUID()}, ${input.projectId}, ${input.provider}, ${input.providerTargetHash},
+            ${JSON.stringify(input.providerTargetSnapshot)}::jsonb, ${input.providerTargetDedicated}, clock_timestamp()
+          )
+          RETURNING *
+        `);
+        binding = insertedBindings[0];
+      }
+      if (!binding) throw new Error('PROVIDER_DEPLOY_HOOK_TARGET_BINDING_MISSING');
+
+      const existingRows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+           OR "deploymentId" = ${input.deploymentId}
+        FOR UPDATE
+      `);
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.id !== input.operationId ||
+          existing.projectId !== input.projectId ||
+          existing.deploymentId !== input.deploymentId ||
+          existing.organizationId !== project.organizationId ||
+          Number(existing.ownershipEpoch) !== Number(project.ownershipEpoch) ||
+          (existing.actorUserId ?? undefined) !== input.actorUserId ||
+          existing.intentKind !== input.intentKind ||
+          existing.provider !== input.provider ||
+          (existing.publishRegion ?? undefined) !== input.publishRegion ||
+          existing.projectManifestDigest !== input.projectManifestDigest ||
+          existing.targetBindingId !== binding.id ||
+          existing.providerTargetHash !== input.providerTargetHash ||
+          !providerDeployHookTargetSnapshotEqual(existing.providerTargetSnapshot, input.providerTargetSnapshot) ||
+          existing.providerTargetDedicated !== input.providerTargetDedicated ||
+          existing.operationTag !== input.operationTag ||
+          existing.intentHash !== input.intentHash
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+            code: 'PROVIDER_DEPLOY_HOOK_INTENT_CONFLICT',
+            statusCode: 409,
+          });
+        }
+        return mapProviderDeployHookOperation(existing);
+      }
+
+      const activeTargetRows = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT "id"
+        FROM "ProviderDeployHookOperation"
+        WHERE "targetBindingId" = ${binding.id}
+          AND "phase" <> 'TERMINAL'
+        FOR UPDATE
+      `);
+      if (activeTargetRows.length > 0) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_TARGET_BUSY',
+          statusCode: 409,
+        });
+      }
+
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        INSERT INTO "ProviderDeployHookOperation" (
+          "id", "projectId", "deploymentId", "organizationId", "ownershipEpoch", "actorUserId",
+          "intentKind", "provider", "publishRegion", "projectManifestDigest", "targetBindingId",
+          "providerTargetHash", "providerTargetSnapshot", "providerTargetDedicated", "operationTag", "intentHash",
+          "preparedAt", "createdAt", "updatedAt"
+        ) VALUES (
+          ${input.operationId}, ${input.projectId}, ${input.deploymentId}, ${project.organizationId},
+          ${project.ownershipEpoch}, ${input.actorUserId ?? null}, ${input.intentKind}, ${input.provider},
+          ${input.publishRegion ?? null}, ${input.projectManifestDigest}, ${binding.id},
+          ${input.providerTargetHash}, ${JSON.stringify(input.providerTargetSnapshot)}::jsonb,
+          ${input.providerTargetDedicated}, ${input.operationTag}, ${input.intentHash},
+          clock_timestamp(), clock_timestamp(), clock_timestamp()
+        )
+        RETURNING *
+      `);
+      return mapProviderDeployHookOperation(rows[0]!);
+    });
+  }
+
+  async beginProviderDeployHookDispatch(input: {
+    operationId: string;
+    projectId: string;
+    requestId?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt?: ProviderDeployHookAttemptRecord;
+    shouldDispatch: boolean;
+  }> {
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT * FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      if (!row || row.organizationId !== input.releaseFence.expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST',
+          statusCode: 409,
+        });
+      }
+
+      if (row.phase !== 'PREPARED') {
+        const attempts = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+          SELECT * FROM "ProviderDeployHookAttempt"
+          WHERE "operationId" = ${input.operationId}
+          ORDER BY "attemptNumber"
+        `);
+        return {
+          operation: mapProviderDeployHookOperation(row),
+          ...(attempts[0] ? { attempt: mapProviderDeployHookAttempt(attempts[0]) } : {}),
+          shouldDispatch: false,
+        };
+      }
+
+      const attemptId = randomUUID();
+      const attemptRows = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        INSERT INTO "ProviderDeployHookAttempt" (
+          "operationId", "attemptNumber", "attemptId", "requestId", "state", "dispatchStartedAt"
+        ) VALUES (
+          ${input.operationId}, 1, ${attemptId}, ${input.requestId ?? null}, 'DISPATCHING', clock_timestamp()
+        )
+        RETURNING *
+      `);
+      const updatedRows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        UPDATE "ProviderDeployHookOperation"
+        SET "phase" = 'DISPATCHING',
+            "dispatchAttempts" = 1,
+            "dispatchCommittedAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "phase" = 'PREPARED'
+          AND "dispatchAttempts" = 0
+        RETURNING *
+      `);
+      if (updatedRows.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_PHASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return {
+        operation: mapProviderDeployHookOperation(updatedRows[0]!),
+        attempt: mapProviderDeployHookAttempt(attemptRows[0]!),
+        shouldDispatch: true,
+      };
+    });
+  }
+
+  async recordProviderDeployHookOutcome(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    phase: 'IDENTIFIED' | 'TERMINAL' | 'MANUAL_RECOVERY';
+    outcomeStatus?: 'ACCEPTED' | 'REJECTED';
+    providerTerminalStatus?: 'READY' | 'FAILED' | 'CANCELED' | 'REJECTED';
+    providerBuildId?: string;
+    providerUrl?: string;
+    httpStatus?: number;
+    errorCode?: string;
+    errorMessage?: string;
+    manualRecoveryReason?: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    const shapeValid =
+      (input.phase === 'IDENTIFIED' &&
+        input.outcomeStatus === 'ACCEPTED' &&
+        Boolean(input.providerBuildId) &&
+        !input.providerTerminalStatus &&
+        !input.manualRecoveryReason) ||
+      (input.phase === 'TERMINAL' &&
+        input.outcomeStatus === 'REJECTED' &&
+        input.providerTerminalStatus === 'REJECTED' &&
+        !input.providerBuildId &&
+        !input.manualRecoveryReason) ||
+      (input.phase === 'MANUAL_RECOVERY' &&
+        !input.outcomeStatus &&
+        !input.providerTerminalStatus &&
+        Boolean(input.manualRecoveryReason));
+    if (
+      !shapeValid ||
+      (input.httpStatus !== undefined &&
+        (!Number.isInteger(input.httpStatus) || input.httpStatus < 100 || input.httpStatus > 599))
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROVIDER_DEPLOY_HOOK_OUTCOME_INVALID',
+        statusCode: 400,
+      });
+    }
+
+    const errorMessage = input.errorMessage?.slice(0, 500);
+    return this.prisma.$transaction(async (tx) => {
+      const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>(Prisma.sql`
+        SELECT "organizationId", "ownershipEpoch"
+        FROM "Project"
+        WHERE "id" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const deployments = await tx.$queryRaw<Array<{ provider: string }>>(Prisma.sql`
+        SELECT "provider"
+        FROM "Deployment"
+        WHERE "id" = ${input.deploymentId}
+          AND "projectId" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT * FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "deploymentId" = ${input.deploymentId}
+        FOR UPDATE
+      `);
+      const attempts = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        SELECT * FROM "ProviderDeployHookAttempt"
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+        FOR UPDATE
+      `);
+      const project = projects[0];
+      const deployment = deployments[0];
+      const row = rows[0];
+      const attempt = attempts[0];
+      if (
+        !project ||
+        !deployment ||
+        !row ||
+        !attempt ||
+        project.organizationId !== input.expectedOrganizationId ||
+        row.organizationId !== input.expectedOrganizationId ||
+        Number(row.ownershipEpoch) !== Number(project.ownershipEpoch) ||
+        deployment.provider !== input.provider ||
+        row.provider !== input.provider ||
+        attempt.attemptId !== input.attemptId
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST',
+          statusCode: 409,
+        });
+      }
+      const expectedSourcePhase = 'DISPATCHING';
+      if (row.phase !== expectedSourcePhase) {
+        const replay = mapProviderDeployHookOperation(row);
+        const same =
+          replay.phase === input.phase &&
+          replay.outcomeStatus === input.outcomeStatus &&
+          replay.providerTerminalStatus === input.providerTerminalStatus &&
+          replay.providerBuildId === input.providerBuildId &&
+          replay.providerUrl === input.providerUrl &&
+          replay.lastHttpStatus === input.httpStatus &&
+          replay.lastErrorCode === input.errorCode &&
+          replay.lastErrorMessage === errorMessage &&
+          replay.manualRecoveryReason === input.manualRecoveryReason;
+        if (same) return replay;
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_OUTCOME_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const attemptChanged = await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProviderDeployHookAttempt"
+        SET "state" = ${input.phase},
+            "httpStatus" = COALESCE(${input.httpStatus ?? null}, "httpStatus"),
+            "providerBuildId" = COALESCE(${input.providerBuildId ?? null}, "providerBuildId"),
+            "providerUrl" = COALESCE(${input.providerUrl ?? null}, "providerUrl"),
+            "providerTerminalStatus" = COALESCE(${input.providerTerminalStatus ?? null}, "providerTerminalStatus"),
+            "errorCode" = COALESCE(${input.errorCode ?? null}, "errorCode"),
+            "errorMessage" = COALESCE(${errorMessage ?? null}, "errorMessage"),
+            "settledAt" = COALESCE("settledAt", clock_timestamp())
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+          AND "attemptId" = ${input.attemptId}
+          AND "state" = ${expectedSourcePhase}
+      `);
+      if (attemptChanged !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_ATTEMPT_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const updated = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        UPDATE "ProviderDeployHookOperation"
+        SET "phase" = ${input.phase},
+            "providerBuildId" = COALESCE(${input.providerBuildId ?? null}, "providerBuildId"),
+            "providerUrl" = COALESCE(${input.providerUrl ?? null}, "providerUrl"),
+            "outcomeStatus" = COALESCE(${input.outcomeStatus ?? null}, "outcomeStatus"),
+            "providerTerminalStatus" = COALESCE(${input.providerTerminalStatus ?? null}, "providerTerminalStatus"),
+            "lastHttpStatus" = COALESCE(${input.httpStatus ?? null}, "lastHttpStatus"),
+            "lastErrorCode" = COALESCE(${input.errorCode ?? null}, "lastErrorCode"),
+            "lastErrorMessage" = COALESCE(${errorMessage ?? null}, "lastErrorMessage"),
+            "manualRecoveryReason" = COALESCE(${input.manualRecoveryReason ?? null}, "manualRecoveryReason"),
+            "identifiedAt" = CASE WHEN ${input.phase} = 'IDENTIFIED' THEN clock_timestamp() ELSE "identifiedAt" END,
+            "terminalAt" = CASE WHEN ${input.phase} = 'TERMINAL' THEN clock_timestamp() ELSE NULL END,
+            "manualRecoveryAt" = CASE WHEN ${input.phase} = 'MANUAL_RECOVERY' THEN clock_timestamp() ELSE NULL END,
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "deploymentId" = ${input.deploymentId}
+          AND "phase" = ${expectedSourcePhase}
+          AND "dispatchAttempts" = 1
+        RETURNING *
+      `);
+      if (updated.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_PHASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return mapProviderDeployHookOperation(updated[0]!);
+    });
+  }
+
+  async getProviderDeployHookReconciliationTarget(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt: ProviderDeployHookAttemptRecord;
+  } | undefined> {
+    return this.prisma.$transaction(async (tx) => {
+      const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>(Prisma.sql`
+        SELECT "organizationId", "ownershipEpoch"
+        FROM "Project"
+        WHERE "id" = ${input.projectId}
+        FOR SHARE
+      `);
+      const deployments = await tx.$queryRaw<Array<{ provider: string }>>(Prisma.sql`
+        SELECT "provider"
+        FROM "Deployment"
+        WHERE "id" = ${input.deploymentId}
+          AND "projectId" = ${input.projectId}
+        FOR SHARE
+      `);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "deploymentId" = ${input.deploymentId}
+        FOR SHARE
+      `);
+      const project = projects[0];
+      const deployment = deployments[0];
+      const row = rows[0];
+      if (!row) return undefined;
+      if (
+        !project ||
+        !deployment ||
+        project.organizationId !== input.expectedOrganizationId ||
+        row.organizationId !== input.expectedOrganizationId ||
+        Number(row.ownershipEpoch) !== Number(project.ownershipEpoch) ||
+        deployment.provider !== input.provider ||
+        row.provider !== input.provider
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECONCILIATION_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      const attempts = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookAttempt"
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+        FOR SHARE
+      `);
+      if (attempts.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_ATTEMPT_CORRUPT',
+          statusCode: 500,
+        });
+      }
+      return {
+        operation: mapProviderDeployHookOperation(row),
+        attempt: mapProviderDeployHookAttempt(attempts[0]!),
+      };
+    });
+  }
+
+  async recordProviderDeployHookTerminalObservation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    providerTerminalStatus: 'READY' | 'FAILED' | 'CANCELED';
+    providerUrl?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    if (
+      !input.attemptId ||
+      !input.providerBuildId ||
+      !['READY', 'FAILED', 'CANCELED'].includes(input.providerTerminalStatus)
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_INVALID',
+        statusCode: 400,
+      });
+    }
+    const errorMessage = input.errorMessage?.slice(0, 500);
+
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Provider status is an observation about the immutable external request,
+       * not authority to publish a release. Lock current tenant ownership and
+       * the exact deployment/operation/attempt identity, but intentionally do
+       * not require a ProjectReleaseFence here so manifest drift cannot wedge
+       * the ledger in IDENTIFIED forever.
+       */
+      const projects = await tx.$queryRaw<Array<{ organizationId: string; ownershipEpoch: number }>>(Prisma.sql`
+        SELECT "organizationId", "ownershipEpoch"
+        FROM "Project"
+        WHERE "id" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const deployments = await tx.$queryRaw<Array<{ provider: string }>>(Prisma.sql`
+        SELECT "provider"
+        FROM "Deployment"
+        WHERE "id" = ${input.deploymentId}
+          AND "projectId" = ${input.projectId}
+        FOR UPDATE
+      `);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "deploymentId" = ${input.deploymentId}
+        FOR UPDATE
+      `);
+      const attempts = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookAttempt"
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+        FOR UPDATE
+      `);
+      const project = projects[0];
+      const deployment = deployments[0];
+      const row = rows[0];
+      const attempt = attempts[0];
+      if (
+        !project ||
+        !deployment ||
+        !row ||
+        !attempt ||
+        project.organizationId !== input.expectedOrganizationId ||
+        row.organizationId !== input.expectedOrganizationId ||
+        Number(row.ownershipEpoch) !== Number(project.ownershipEpoch) ||
+        deployment.provider !== input.provider ||
+        row.provider !== input.provider ||
+        row.providerBuildId !== input.providerBuildId ||
+        attempt.attemptId !== input.attemptId ||
+        attempt.providerBuildId !== input.providerBuildId
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_IDENTITY_MISMATCH',
+          statusCode: 409,
+        });
+      }
+
+      if (row.phase === 'TERMINAL') {
+        const replay = mapProviderDeployHookOperation(row);
+        if (
+          replay.outcomeStatus === 'ACCEPTED' &&
+          replay.providerTerminalStatus === input.providerTerminalStatus &&
+          attempt.state === 'TERMINAL'
+        ) {
+          return replay;
+        }
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      if (row.phase !== 'IDENTIFIED' || attempt.state !== 'IDENTIFIED') {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const attemptChanged = await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProviderDeployHookAttempt"
+        SET "state" = 'TERMINAL',
+            "providerUrl" = COALESCE("providerUrl", ${input.providerUrl ?? null}),
+            "providerTerminalStatus" = ${input.providerTerminalStatus},
+            "errorCode" = COALESCE("errorCode", ${input.errorCode ?? null}),
+            "errorMessage" = COALESCE("errorMessage", ${errorMessage ?? null}),
+            "settledAt" = COALESCE("settledAt", clock_timestamp())
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+          AND "attemptId" = ${input.attemptId}
+          AND "state" = 'IDENTIFIED'
+          AND "providerBuildId" = ${input.providerBuildId}
+      `);
+      if (attemptChanged !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_ATTEMPT_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const updated = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        UPDATE "ProviderDeployHookOperation"
+        SET "phase" = 'TERMINAL',
+            "providerUrl" = COALESCE("providerUrl", ${input.providerUrl ?? null}),
+            "providerTerminalStatus" = ${input.providerTerminalStatus},
+            "lastErrorCode" = COALESCE("lastErrorCode", ${input.errorCode ?? null}),
+            "lastErrorMessage" = COALESCE("lastErrorMessage", ${errorMessage ?? null}),
+            "terminalAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+          AND "deploymentId" = ${input.deploymentId}
+          AND "phase" = 'IDENTIFIED'
+          AND "outcomeStatus" = 'ACCEPTED'
+          AND "providerBuildId" = ${input.providerBuildId}
+        RETURNING *
+      `);
+      if (updated.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_PHASE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return mapProviderDeployHookOperation(updated[0]!);
+    });
+  }
+
+  async recordProviderDeployHookReconciliationFailure(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    errorCode: string;
+    errorMessage: string;
+    manualRecoveryReason: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    const errorMessage = input.errorMessage.slice(0, 500);
+    return this.prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<ProviderDeployHookReconciliationAuthorityRow[]>(Prisma.sql`
+        SELECT operation.*,
+               project."organizationId" AS "currentOrganizationId",
+               project."ownershipEpoch" AS "currentOwnershipEpoch",
+               deployment."provider" AS "currentProvider",
+               attempt."attemptId" AS "currentAttemptId",
+               attempt."state" AS "currentAttemptState",
+               attempt."providerBuildId" AS "attemptProviderBuildId"
+        FROM "ProviderDeployHookOperation" operation
+        JOIN "Project" project ON project."id" = operation."projectId"
+        JOIN "Deployment" deployment ON deployment."id" = operation."deploymentId"
+        JOIN "ProviderDeployHookAttempt" attempt
+          ON attempt."operationId" = operation."id" AND attempt."attemptNumber" = 1
+        WHERE operation."id" = ${input.operationId}
+          AND operation."projectId" = ${input.projectId}
+          AND operation."deploymentId" = ${input.deploymentId}
+        FOR UPDATE OF operation, project, deployment, attempt
+      `);
+      const row = rows[0];
+      if (
+        !row ||
+        row.organizationId !== input.expectedOrganizationId ||
+        row.currentOrganizationId !== input.expectedOrganizationId ||
+        Number(row.ownershipEpoch) !== Number(row.currentOwnershipEpoch) ||
+        row.provider !== input.provider ||
+        row.currentProvider !== input.provider ||
+        row.currentAttemptId !== input.attemptId ||
+        row.providerBuildId !== input.providerBuildId ||
+        row.attemptProviderBuildId !== input.providerBuildId
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECONCILIATION_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      if (row.phase === 'MANUAL_RECOVERY' && row.currentAttemptState === 'MANUAL_RECOVERY') {
+        return mapProviderDeployHookOperation(row);
+      }
+      if (row.phase !== 'IDENTIFIED' || row.currentAttemptState !== 'IDENTIFIED') {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECONCILIATION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      const attemptChanged = await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProviderDeployHookAttempt"
+        SET "state" = 'MANUAL_RECOVERY',
+            "errorCode" = COALESCE("errorCode", ${input.errorCode}),
+            "errorMessage" = COALESCE("errorMessage", ${errorMessage}),
+            "settledAt" = COALESCE("settledAt", clock_timestamp())
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+          AND "attemptId" = ${input.attemptId}
+          AND "state" = 'IDENTIFIED'
+          AND "providerBuildId" = ${input.providerBuildId}
+      `);
+      const updated = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        UPDATE "ProviderDeployHookOperation"
+        SET "phase" = 'MANUAL_RECOVERY',
+            "lastErrorCode" = COALESCE("lastErrorCode", ${input.errorCode}),
+            "lastErrorMessage" = COALESCE("lastErrorMessage", ${errorMessage}),
+            "manualRecoveryReason" = ${input.manualRecoveryReason},
+            "manualRecoveryAt" = clock_timestamp(),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+          AND "phase" = 'IDENTIFIED'
+          AND "providerBuildId" = ${input.providerBuildId}
+        RETURNING *
+      `);
+      if (attemptChanged !== 1 || updated.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECONCILIATION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return mapProviderDeployHookOperation(updated[0]!);
+    });
+  }
+
+  async getProviderDeployHookRecoveryCandidate(input: {
+    operationId: string;
+    operatorUserId: string;
+  }): Promise<{ operation: ProviderDeployHookOperationRecord; databaseNow: string } | undefined> {
+    return this.prisma.$transaction(async (tx) => {
+      const operators = await tx.$queryRaw<Array<{ platformAdmin: boolean }>>(Prisma.sql`
+        SELECT "platformAdmin"
+        FROM "User"
+        WHERE "id" = ${input.operatorUserId}
+        FOR SHARE
+      `);
+      if (operators[0]?.platformAdmin !== true) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT operation.*
+        FROM "ProviderDeployHookOperation" operation
+        JOIN "Project" project ON project."id" = operation."projectId"
+        JOIN "Deployment" deployment ON deployment."id" = operation."deploymentId"
+        WHERE operation."id" = ${input.operationId}
+          AND operation."phase" = 'MANUAL_RECOVERY'
+          AND project."organizationId" = operation."organizationId"
+          AND project."ownershipEpoch" = operation."ownershipEpoch"
+          AND deployment."projectId" = operation."projectId"
+          AND deployment."provider" = operation."provider"
+      `);
+      if (!rows[0]) return undefined;
+      return {
+        operation: mapProviderDeployHookOperation(rows[0]),
+        databaseNow: (await databaseNow(tx)).toISOString(),
+      };
+    });
+  }
+
+  async recoverProviderDeployHook(input: {
+    operationId: string;
+    operatorUserId: string;
+    ipAddress?: string;
+    providerBuildId: string;
+    observation: ProviderDeployHookRecoveryObservation;
+  }): Promise<ProviderDeployHookRecoveryResult> {
+    if (
+      !input.operationId.trim() ||
+      !input.operatorUserId.trim() ||
+      !input.providerBuildId.trim() ||
+      input.observation.providerBuildId !== input.providerBuildId
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_EVIDENCE_INVALID',
+        statusCode: 400,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const operators = await tx.$queryRaw<Array<{ platformAdmin: boolean }>>(Prisma.sql`
+        SELECT "platformAdmin"
+        FROM "User"
+        WHERE "id" = ${input.operatorUserId}
+        FOR SHARE
+      `);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT operation.*
+        FROM "ProviderDeployHookOperation" operation
+        JOIN "Project" project ON project."id" = operation."projectId"
+        JOIN "Deployment" deployment ON deployment."id" = operation."deploymentId"
+        WHERE operation."id" = ${input.operationId}
+          AND project."organizationId" = operation."organizationId"
+          AND project."ownershipEpoch" = operation."ownershipEpoch"
+          AND deployment."projectId" = operation."projectId"
+          AND deployment."provider" = operation."provider"
+        FOR UPDATE OF operation
+      `);
+      const attempts = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        SELECT *
+        FROM "ProviderDeployHookAttempt"
+        WHERE "operationId" = ${input.operationId}
+          AND "attemptNumber" = 1
+        FOR UPDATE
+      `);
+      const row = rows[0];
+      const attempt = attempts[0];
+      if (
+        operators[0]?.platformAdmin !== true ||
+        !row ||
+        !attempt ||
+        row.phase !== 'MANUAL_RECOVERY' ||
+        attempt.state !== 'MANUAL_RECOVERY' ||
+        (row.providerBuildId !== null && row.providerBuildId !== input.providerBuildId) ||
+        (attempt.providerBuildId !== null && attempt.providerBuildId !== input.providerBuildId) ||
+        input.observation.resolution !== 'EXACT_IDENTITY' ||
+        row.provider !== input.observation.provider ||
+        row.operationTag !== input.observation.operationTag ||
+        row.providerTargetHash !== input.observation.providerTargetHash ||
+        !providerDeployHookTargetSnapshotEqual(row.providerTargetSnapshot, input.observation.providerTarget) ||
+        input.observation.providerBuildId !== input.providerBuildId
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_AUTHORITY_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      const resolution = input.observation.providerState === 'building' ? 'IDENTIFIED' : 'TERMINAL';
+      const providerTerminalStatus =
+        input.observation.providerState === 'ready'
+          ? 'READY'
+          : input.observation.providerState === 'failed'
+            ? 'FAILED'
+            : null;
+      const auditLogId = randomUUID();
+      const recoveryId = randomUUID();
+      const evidence = {
+        schemaVersion: 'provider-deploy-hook-recovery-v1',
+        operationId: row.id,
+        projectId: row.projectId,
+        deploymentId: row.deploymentId,
+        organizationId: row.organizationId,
+        ownershipEpoch: Number(row.ownershipEpoch),
+        attemptId: attempt.attemptId,
+        attemptNumber: 1,
+        operatorUserId: input.operatorUserId,
+        auditLogId,
+        resolution,
+        ...input.observation,
+      };
+
+      await tx.auditLog.create({
+        data: {
+          id: auditLogId,
+          organizationId: row.organizationId,
+          actorUserId: input.operatorUserId,
+          action: 'deployment.provider_hook.recovery',
+          resourceType: 'providerDeployHookOperation',
+          resourceId: row.id,
+          metadata: {
+            resolution,
+            provider: row.provider,
+            deploymentId: row.deploymentId,
+            attemptId: attempt.attemptId,
+            providerBuildId: input.providerBuildId,
+            providerState: input.observation.providerState,
+            identityKind: input.observation.identityKind,
+          },
+          ...(input.ipAddress ? { ipAddress: input.ipAddress } : {}),
+        },
+      });
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO "ProviderDeployHookRecovery" (
+          "id", "operationId", "attemptNumber", "providerBuildId", "resolution", "auditLogId", "evidence", "createdAt"
+        ) VALUES (
+          ${recoveryId}, ${row.id}, 1, ${input.providerBuildId}, ${resolution}, ${auditLogId},
+          ${JSON.stringify(evidence)}::jsonb, clock_timestamp()
+        )
+      `);
+
+      const attemptChanged = await tx.$executeRaw(Prisma.sql`
+        UPDATE "ProviderDeployHookAttempt"
+        SET "state" = ${resolution},
+            "providerBuildId" = COALESCE("providerBuildId", ${input.providerBuildId}),
+            "providerUrl" = COALESCE("providerUrl", ${input.observation.providerUrl ?? null}),
+            "providerTerminalStatus" = ${providerTerminalStatus},
+            "settledAt" = COALESCE("settledAt", clock_timestamp())
+        WHERE "operationId" = ${row.id}
+          AND "attemptNumber" = 1
+          AND "attemptId" = ${attempt.attemptId}
+          AND "state" = 'MANUAL_RECOVERY'
+          AND ("providerBuildId" IS NULL OR "providerBuildId" = ${input.providerBuildId})
+      `);
+      if (attemptChanged !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const updated = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        UPDATE "ProviderDeployHookOperation"
+        SET "phase" = ${resolution},
+            "providerBuildId" = COALESCE("providerBuildId", ${input.providerBuildId}),
+            "providerUrl" = COALESCE("providerUrl", ${input.observation.providerUrl ?? null}),
+            "outcomeStatus" = 'ACCEPTED',
+            "providerTerminalStatus" = ${providerTerminalStatus},
+            "identifiedAt" = clock_timestamp(),
+            "terminalAt" = CASE WHEN ${resolution} = 'TERMINAL' THEN clock_timestamp() ELSE NULL END,
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${row.id}
+          AND "phase" = 'MANUAL_RECOVERY'
+          AND ("providerBuildId" IS NULL OR "providerBuildId" = ${input.providerBuildId})
+        RETURNING *
+      `);
+      if (updated.length !== 1) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_CONFLICT',
+          statusCode: 409,
+        });
+      }
+      return { operation: mapProviderDeployHookOperation(updated[0]!), auditLogId };
+    });
+  }
+
+  async getProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord | undefined> {
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      const rows = await tx.$queryRaw<ProviderDeployHookOperationRow[]>(Prisma.sql`
+        SELECT * FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+      `);
+      const row = rows[0];
+      if (!row) return undefined;
+      if (row.organizationId !== input.releaseFence.expectedOrganizationId) {
+        throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+          code: 'PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST',
+          statusCode: 409,
+        });
+      }
+      return mapProviderDeployHookOperation(row);
+    });
+  }
+
+  async listProviderDeployHookAttempts(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookAttemptRecord[]> {
+    return this.prisma.$transaction(async (tx) => {
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      const operations = await tx.$queryRaw<Array<{ organizationId: string }>>(Prisma.sql`
+        SELECT "organizationId" FROM "ProviderDeployHookOperation"
+        WHERE "id" = ${input.operationId}
+          AND "projectId" = ${input.projectId}
+      `);
+      if (!operations[0] || operations[0].organizationId !== input.releaseFence.expectedOrganizationId) return [];
+      const rows = await tx.$queryRaw<ProviderDeployHookAttemptRow[]>(Prisma.sql`
+        SELECT * FROM "ProviderDeployHookAttempt"
+        WHERE "operationId" = ${input.operationId}
+        ORDER BY "attemptNumber"
+      `);
+      return rows.map(mapProviderDeployHookAttempt);
+    });
+  }
+
   private async withPermanentDeletionProviderAuthority<T>(
     lease: ObjectStorageOperationLease,
     effect: (tx: Prisma.TransactionClient, scope: { projectId: string; organizationId: string }) => Promise<T>,
@@ -7834,6 +8826,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
         await assertProjectReservedVmDecommissioned(tx, input.projectId);
         await this.assertNoActiveRemixSourceShare(tx, input.projectId);
+        await assertProviderDeployHooksTerminalForProjectDeletion(tx, input.projectId);
       });
 
       return this.withProjectFilesystemLock(input.projectId, async () => {
@@ -7854,6 +8847,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           });
           await assertProjectReservedVmDecommissioned(tx, input.projectId);
           await this.assertNoActiveRemixSourceShare(tx, input.projectId);
+          await assertProviderDeployHooksTerminalForProjectDeletion(tx, input.projectId);
           const current = await tx.project.findUniqueOrThrow({ where: { id: input.projectId } });
           return {
             current,
@@ -8438,6 +9432,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
     let claimed: ClaimObjectStorageOperationResult;
     try {
       claimed = await this.prisma.$transaction(async (tx) => {
+        await lockProjectAfterPurgeTopology(tx, input.projectId);
+        await assertProviderDeployHooksTerminalForProjectDeletion(tx, input.projectId);
         const operation = await claimObjectStorageOperation(tx, {
           ...operationRequest,
           idempotencyKey: input.idempotencyKey,
@@ -8543,6 +9539,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
                  */
                 await assertAccountPurgeMutationAllowed(tx, { organizationIds: [input.targetOrganizationId] });
                 await lockProjectAfterPurgeTopology(tx, input.projectId);
+                await assertProviderDeployHooksTerminalForProjectDeletion(tx, input.projectId);
 
                 const locked = assertFound(
                   await tx.project.findUnique({ where: { id: input.projectId } }),
@@ -10507,6 +11504,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         return false;
       }
 
+      await finalizeProviderDeployHooksForProjectDeletion(tx, input.targetProjectId);
       await tx.project.deleteMany({ where: { id: input.targetProjectId, organizationId: input.organizationId } });
 
       return true;
@@ -11786,6 +12784,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         return false;
       }
 
+      await finalizeProviderDeployHooksForProjectDeletion(tx, input.targetProjectId);
       const deleted = await tx.project.deleteMany({
         where: { id: input.targetProjectId, organizationId: input.organizationId, deletedAt: { not: null } },
       });
@@ -25660,7 +26659,28 @@ function deploymentProjectManifestDigest(metadata: unknown): string | undefined 
   return typeof digest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(digest) ? digest : undefined;
 }
 
-function mapReleaseManifest(row: any): ReleaseManifestRecord {
+interface ReleaseManifestRow {
+  id: string;
+  projectId: string;
+  deploymentId: string;
+  environment: string;
+  version: number;
+  provider: string;
+  artifactKind: 'static-snapshot' | 'server-image';
+  artifactRef: string;
+  artifactDigest: string;
+  storeGeneration: string | null;
+  configDigest: string | null;
+  dbMigrationPoint: string | null;
+  runtimeSpec: unknown;
+  promotionEvidence: unknown;
+  accessPolicyVersion: number;
+  planEntitlements: unknown;
+  projectManifestDigest: string | null;
+  createdAt: Date | string;
+}
+
+function mapReleaseManifest(row: ReleaseManifestRow): ReleaseManifestRecord {
   const planEntitlements = parseReleasePlanEntitlementsPin(row.planEntitlements);
 
   return {
@@ -25685,6 +26705,228 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
         ? row.projectManifestDigest
         : undefined,
     createdAt: toIso(row.createdAt)!,
+  };
+}
+
+interface ProviderDeployHookOperationRow {
+  id: string;
+  projectId: string;
+  deploymentId: string;
+  organizationId: string;
+  ownershipEpoch: number;
+  actorUserId: string | null;
+  intentKind: string;
+  provider: string;
+  publishRegion: string | null;
+  projectManifestDigest: string;
+  targetBindingId: string;
+  providerTargetHash: string;
+  providerTargetSnapshot: unknown;
+  providerTargetDedicated: boolean;
+  operationTag: string;
+  intentHash: string;
+  phase: string;
+  dispatchAttempts: number;
+  providerBuildId: string | null;
+  providerUrl: string | null;
+  outcomeStatus: string | null;
+  providerTerminalStatus: string | null;
+  lastHttpStatus: number | null;
+  lastErrorCode: string | null;
+  lastErrorMessage: string | null;
+  manualRecoveryReason: string | null;
+  preparedAt: Date | string;
+  dispatchCommittedAt: Date | string | null;
+  identifiedAt: Date | string | null;
+  terminalAt: Date | string | null;
+  manualRecoveryAt: Date | string | null;
+  decommissionedAt: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+interface ProviderDeployHookTargetBindingRow {
+  id: string;
+  projectId: string;
+  provider: string;
+  targetHash: string;
+  targetSnapshot: unknown;
+  dedicated: boolean;
+  createdAt: Date | string;
+}
+
+function providerDeployHookTargetSnapshotValid(value: unknown): value is Record<string, string> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const entries = Object.entries(value);
+  return (
+    entries.length > 0 &&
+    entries.length <= 12 &&
+    entries.every(
+      ([key, entry]) =>
+        /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(key) &&
+        typeof entry === 'string' &&
+        entry.length > 0 &&
+        entry.length <= 512,
+    )
+  );
+}
+
+function canonicalProviderDeployHookTargetSnapshot(value: unknown): string | undefined {
+  if (!providerDeployHookTargetSnapshotValid(value)) return undefined;
+  return JSON.stringify(Object.fromEntries(Object.entries(value).sort(([left], [right]) => left.localeCompare(right))));
+}
+
+function providerDeployHookTargetSnapshotEqual(left: unknown, right: unknown): boolean {
+  const leftCanonical = canonicalProviderDeployHookTargetSnapshot(left);
+  return leftCanonical !== undefined && leftCanonical === canonicalProviderDeployHookTargetSnapshot(right);
+}
+
+function providerDeployHookTargetBindingMatches(
+  binding: ProviderDeployHookTargetBindingRow,
+  input: {
+    projectId: string;
+    provider: ProviderDeployHookProvider;
+    providerTargetHash: string;
+    providerTargetSnapshot: Record<string, string>;
+    providerTargetDedicated: boolean;
+  },
+): boolean {
+  return (
+    binding.projectId === input.projectId &&
+    binding.provider === input.provider &&
+    binding.targetHash === input.providerTargetHash &&
+    providerDeployHookTargetSnapshotEqual(binding.targetSnapshot, input.providerTargetSnapshot) &&
+    binding.dedicated === input.providerTargetDedicated
+  );
+}
+
+interface ProviderDeployHookAttemptRow {
+  operationId: string;
+  attemptNumber: number;
+  attemptId: string;
+  requestId: string | null;
+  state: string;
+  httpStatus: number | null;
+  providerBuildId: string | null;
+  providerUrl: string | null;
+  providerTerminalStatus: string | null;
+  errorCode: string | null;
+  errorMessage: string | null;
+  dispatchStartedAt: Date | string;
+  settledAt: Date | string | null;
+}
+
+interface ProviderDeployHookReconciliationAuthorityRow extends ProviderDeployHookOperationRow {
+  currentOrganizationId: string;
+  currentOwnershipEpoch: number;
+  currentProvider: string;
+  currentAttemptId: string;
+  currentAttemptState: string;
+  attemptProviderBuildId: string | null;
+}
+
+function mapProviderDeployHookOperation(row: ProviderDeployHookOperationRow): ProviderDeployHookOperationRecord {
+  const phase = row.phase as ProviderDeployHookOperationRecord['phase'];
+  const intentKind = row.intentKind as ProviderDeployHookOperationRecord['intentKind'];
+  const provider = row.provider as ProviderDeployHookOperationRecord['provider'];
+  const outcomeStatus = row.outcomeStatus as ProviderDeployHookOperationRecord['outcomeStatus'];
+  const providerTerminalStatus =
+    row.providerTerminalStatus as ProviderDeployHookOperationRecord['providerTerminalStatus'];
+  const preparedAt = toIso(row.preparedAt);
+  const createdAt = toIso(row.createdAt);
+  const updatedAt = toIso(row.updatedAt);
+  if (
+    !['PREPARED', 'DISPATCHING', 'IDENTIFIED', 'TERMINAL', 'MANUAL_RECOVERY'].includes(phase) ||
+    !['CREATE', 'REDEPLOY'].includes(intentKind) ||
+    !['vercel', 'netlify', 'github-pages', 'cloudflare-pages', 'google-cloud-run', 'docker'].includes(provider) ||
+    typeof row.projectManifestDigest !== 'string' ||
+    !PROJECT_MANIFEST_DIGEST_PATTERN.test(row.projectManifestDigest) ||
+    !row.targetBindingId ||
+    !/^sha256:[a-f0-9]{64}$/u.test(row.providerTargetHash) ||
+    !providerDeployHookTargetSnapshotValid(row.providerTargetSnapshot) ||
+    typeof row.providerTargetDedicated !== 'boolean' ||
+    (outcomeStatus !== undefined &&
+      outcomeStatus !== null &&
+      !['ACCEPTED', 'REJECTED', 'CANCELED'].includes(outcomeStatus)) ||
+    (providerTerminalStatus !== undefined &&
+      providerTerminalStatus !== null &&
+      !['READY', 'FAILED', 'CANCELED', 'REJECTED'].includes(providerTerminalStatus)) ||
+    !preparedAt ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'PROVIDER_DEPLOY_HOOK_LEDGER_CORRUPT',
+      statusCode: 500,
+    });
+  }
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    deploymentId: row.deploymentId,
+    organizationId: row.organizationId,
+    ownershipEpoch: Number(row.ownershipEpoch),
+    ...(row.actorUserId ? { actorUserId: row.actorUserId } : {}),
+    intentKind,
+    provider,
+    ...(row.publishRegion ? { publishRegion: row.publishRegion } : {}),
+    projectManifestDigest: row.projectManifestDigest,
+    targetBindingId: row.targetBindingId,
+    providerTargetHash: row.providerTargetHash,
+    providerTargetSnapshot: row.providerTargetSnapshot,
+    providerTargetDedicated: row.providerTargetDedicated,
+    operationTag: row.operationTag,
+    intentHash: row.intentHash,
+    phase,
+    dispatchAttempts: Number(row.dispatchAttempts),
+    ...(row.providerBuildId ? { providerBuildId: row.providerBuildId } : {}),
+    ...(row.providerUrl ? { providerUrl: row.providerUrl } : {}),
+    ...(outcomeStatus ? { outcomeStatus } : {}),
+    ...(providerTerminalStatus ? { providerTerminalStatus } : {}),
+    ...(row.lastHttpStatus !== null && row.lastHttpStatus !== undefined
+      ? { lastHttpStatus: Number(row.lastHttpStatus) }
+      : {}),
+    ...(row.lastErrorCode ? { lastErrorCode: row.lastErrorCode } : {}),
+    ...(row.lastErrorMessage ? { lastErrorMessage: row.lastErrorMessage } : {}),
+    ...(row.manualRecoveryReason ? { manualRecoveryReason: row.manualRecoveryReason } : {}),
+    preparedAt,
+    ...(toIso(row.dispatchCommittedAt) ? { dispatchCommittedAt: toIso(row.dispatchCommittedAt) } : {}),
+    ...(toIso(row.identifiedAt) ? { identifiedAt: toIso(row.identifiedAt) } : {}),
+    ...(toIso(row.terminalAt) ? { terminalAt: toIso(row.terminalAt) } : {}),
+    ...(toIso(row.manualRecoveryAt) ? { manualRecoveryAt: toIso(row.manualRecoveryAt) } : {}),
+    ...(toIso(row.decommissionedAt) ? { decommissionedAt: toIso(row.decommissionedAt) } : {}),
+    createdAt,
+    updatedAt,
+  };
+}
+
+function mapProviderDeployHookAttempt(row: ProviderDeployHookAttemptRow): ProviderDeployHookAttemptRecord {
+  const state = row.state as ProviderDeployHookAttemptRecord['state'];
+  const dispatchStartedAt = toIso(row.dispatchStartedAt);
+  if (
+    Number(row.attemptNumber) !== 1 ||
+    !['DISPATCHING', 'IDENTIFIED', 'TERMINAL', 'MANUAL_RECOVERY'].includes(state) ||
+    !dispatchStartedAt
+  ) {
+    throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+      code: 'PROVIDER_DEPLOY_HOOK_ATTEMPT_CORRUPT',
+      statusCode: 500,
+    });
+  }
+  return {
+    operationId: row.operationId,
+    attemptNumber: 1,
+    attemptId: row.attemptId,
+    ...(row.requestId ? { requestId: row.requestId } : {}),
+    state,
+    ...(row.httpStatus !== null && row.httpStatus !== undefined ? { httpStatus: Number(row.httpStatus) } : {}),
+    ...(row.providerBuildId ? { providerBuildId: row.providerBuildId } : {}),
+    ...(row.providerUrl ? { providerUrl: row.providerUrl } : {}),
+    ...(row.providerTerminalStatus ? { providerTerminalStatus: row.providerTerminalStatus } : {}),
+    ...(row.errorCode ? { errorCode: row.errorCode } : {}),
+    ...(row.errorMessage ? { errorMessage: row.errorMessage } : {}),
+    dispatchStartedAt,
+    ...(toIso(row.settledAt) ? { settledAt: toIso(row.settledAt) } : {}),
   };
 }
 

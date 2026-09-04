@@ -357,11 +357,13 @@ import {
   buildPublishedDeploymentInput,
   canPublishDeployment,
   canPollDeploymentStatus,
+  canReconcileProviderDeployHook,
   computeStaticSnapshotDigest,
   computeStaticArtifactDigest,
   createDeploymentLogs,
   deployProviderConfigError,
   garbageCollectStaticArtifacts,
+  pollProviderDeployHookRecoveryIdentity,
   pollProviderDeploymentStatus,
   providerSupportedPublishRegions,
   providerHasAuthoritativePlanEdge,
@@ -376,7 +378,6 @@ import {
   snapshotStaticBuild,
   writeStaticDeploymentRoutingAlias,
   staticDeploymentSnapshotDir,
-  triggerProviderDeployHook,
   triggerProviderRollback,
   providerRollbackProviders,
   createDeploymentSchema,
@@ -389,6 +390,10 @@ import {
   type RunStaticBuildResult,
   type StaticBuildLog,
 } from './deployments.js';
+import {
+  isProviderDeployHookProvider,
+  runProviderDeployHookSaga,
+} from './provider-deploy-hook-saga.js';
 import {
   buildServerRollbackPromotionEvidence,
   buildServerRollbackRuntimeSpec,
@@ -5272,7 +5277,11 @@ async function reconcileDeploymentStatus(
   if (deployment.status === 'QUEUED' || deployment.status === 'BUILDING') {
     const startedMs = new Date(deployment.startedAt ?? deployment.createdAt).getTime();
 
-    if (!Number.isNaN(startedMs) && Date.now() - startedMs > STALE_DEPLOYMENT_MS) {
+    if (
+      !Number.isNaN(startedMs) &&
+      Date.now() - startedMs > STALE_DEPLOYMENT_MS &&
+      !isProviderDeployHookProvider(deployment.provider)
+    ) {
       /*
        * A server deploy that never converged leaves its Deployment/Service
        * applied — tear them down as we fail the row so nothing leaks (a Pending
@@ -5334,40 +5343,275 @@ async function reconcileDeploymentStatus(
     }
   }
 
-  if (deployment.status !== 'BUILDING') {
+  if (
+    deployment.status !== 'BUILDING' &&
+    !(deployment.status === 'QUEUED' && isProviderDeployHookProvider(deployment.provider))
+  ) {
     return deployment;
   }
 
-  const buildId = (deployment.metadata as Record<string, unknown> | undefined)?.providerBuildId as string | undefined;
-
-  if (!canPollDeploymentStatus(deployment.provider, buildId)) {
-    return deployment;
-  }
-
-  const result = await pollProviderDeploymentStatus(deployment.provider, buildId as string).catch(() => undefined);
-
-  if (!result || result.state === 'building') {
-    return deployment;
-  }
-
-  const isReady = result.state === 'ready';
-  const url = isReady ? (result.url ?? deployment.url) : undefined;
-
-  return store.updateDeployment(deployment.projectId, deployment.id, {
-    status: isReady ? 'READY' : 'FAILED',
-    url,
-    previewUrl: isReady && deployment.environment !== 'production' ? url : undefined,
-    productionUrl: isReady && deployment.environment === 'production' ? url : undefined,
-    logs: [
-      ...deployment.logs,
+  const legacyBuildId = (deployment.metadata as Record<string, unknown> | undefined)?.providerBuildId as
+    | string
+    | undefined;
+  const persistTerminalObservation = async (
+    target: DeploymentRecord,
+    result: Exclude<Awaited<ReturnType<typeof pollProviderDeploymentStatus>>, undefined> & {
+      state: 'ready' | 'failed';
+    },
+    releaseFence?: ProjectReleaseFence,
+  ) => {
+    const isReady = result.state === 'ready';
+    const url = isReady ? (result.url ?? target.url) : undefined;
+    return store.updateDeployment(
+      target.projectId,
+      target.id,
       {
-        timestamp: new Date().toISOString(),
-        level: isReady ? ('info' as const) : ('error' as const),
-        message: result.log,
+        status: isReady ? 'READY' : 'FAILED',
+        url,
+        previewUrl: isReady && target.environment !== 'production' ? url : undefined,
+        productionUrl: isReady && target.environment === 'production' ? url : undefined,
+        logs: [
+          ...target.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: isReady ? ('info' as const) : ('error' as const),
+            message: result.log,
+          },
+        ],
+        finishedAt: new Date().toISOString(),
       },
-    ],
-    finishedAt: new Date().toISOString(),
-  });
+      releaseFence,
+    );
+  };
+
+  if (isProviderDeployHookProvider(deployment.provider)) {
+    const project = await store.getProject(deployment.projectId);
+    if (!project) return deployment;
+
+    const operationId = `provider-deploy-hook:${deployment.id}`;
+    const target = await store.getProviderDeployHookReconciliationTarget({
+      operationId,
+      projectId: deployment.projectId,
+      deploymentId: deployment.id,
+      expectedOrganizationId: project.organizationId,
+      provider: deployment.provider,
+    });
+
+    if (target) {
+      if (!['IDENTIFIED', 'TERMINAL'].includes(target.operation.phase)) return deployment;
+      const buildId = target.operation.providerBuildId;
+      if (!buildId) return deployment;
+
+      let result:
+        | (Exclude<Awaited<ReturnType<typeof pollProviderDeploymentStatus>>, undefined> & {
+            state: 'ready' | 'failed';
+          })
+        | undefined;
+
+      if (target.operation.phase === 'TERMINAL') {
+        if (target.operation.outcomeStatus !== 'ACCEPTED') return deployment;
+        const providerReady = target.operation.providerTerminalStatus === 'READY';
+        const providerFailed = ['FAILED', 'CANCELED'].includes(target.operation.providerTerminalStatus ?? '');
+        if (!providerReady && !providerFailed) return deployment;
+        result = {
+          state: providerReady ? 'ready' : 'failed',
+          ...(providerReady && target.operation.providerUrl ? { url: target.operation.providerUrl } : {}),
+          log: providerReady
+            ? `${deployment.provider}: durable live READY observation replayed`
+            : `${deployment.provider}: durable live terminal failure observation replayed`,
+        };
+      } else {
+        if (!canReconcileProviderDeployHook(deployment.provider, buildId)) {
+          await store.recordProviderDeployHookReconciliationFailure({
+            operationId: target.operation.id,
+            projectId: deployment.projectId,
+            deploymentId: deployment.id,
+            expectedOrganizationId: project.organizationId,
+            provider: deployment.provider,
+            attemptId: target.attempt.attemptId,
+            providerBuildId: buildId,
+            errorCode: 'PROVIDER_DEPLOY_STATUS_LOOKUP_NOT_CONFIGURED',
+            errorMessage: 'No configured exact provider status lookup can reconcile this build identity.',
+            manualRecoveryReason: 'IDENTIFIED_WITHOUT_EXACT_STATUS_LOOKUP',
+          });
+          return deployment;
+        }
+        let polled: Awaited<ReturnType<typeof pollProviderDeploymentStatus>>;
+        try {
+          const exact = await pollProviderDeployHookRecoveryIdentity({
+            provider: deployment.provider,
+            providerBuildId: buildId,
+            operationTag: target.operation.operationTag,
+            expectedTargetHash: target.operation.providerTargetHash,
+            expectedProjectId: target.operation.projectId,
+            fetchImpl: fetch,
+            env: process.env,
+          });
+          polled = {
+            state: exact.providerState,
+            ...(exact.providerUrl ? { url: exact.providerUrl } : {}),
+            log: `${deployment.provider}: exact provider identity and ${exact.providerState} state observed`,
+          };
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (
+            code === 'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE' ||
+            code === 'PROVIDER_DEPLOY_HOOK_TARGET_DRIFT'
+          ) {
+            await store.recordProviderDeployHookReconciliationFailure({
+              operationId: target.operation.id,
+              projectId: deployment.projectId,
+              deploymentId: deployment.id,
+              expectedOrganizationId: project.organizationId,
+              provider: deployment.provider,
+              attemptId: target.attempt.attemptId,
+              providerBuildId: buildId,
+              errorCode: code === 'PROVIDER_DEPLOY_HOOK_TARGET_DRIFT'
+                ? 'PROVIDER_DEPLOY_TARGET_DRIFT'
+                : 'PROVIDER_DEPLOY_IDENTITY_NOT_RECONCILABLE',
+              errorMessage: 'Provider GET did not prove the immutable operation target and build identity.',
+              manualRecoveryReason: code === 'PROVIDER_DEPLOY_HOOK_TARGET_DRIFT'
+                ? 'PROVIDER_TARGET_DRIFT'
+                : 'PROVIDER_STATUS_IDENTITY_UNPROVABLE',
+            });
+          }
+          return deployment;
+        }
+        if (!polled || polled.state === 'building') return deployment;
+        result = polled;
+
+        let currentManifestDigest: string | undefined;
+        try {
+          currentManifestDigest = (await currentProjectManifest(store, project)).digest;
+        } catch {
+          currentManifestDigest = undefined;
+        }
+        const manifestDrift = currentManifestDigest !== target.operation.projectManifestDigest;
+        await store.recordProviderDeployHookTerminalObservation({
+          operationId: target.operation.id,
+          projectId: deployment.projectId,
+          deploymentId: deployment.id,
+          expectedOrganizationId: project.organizationId,
+          provider: deployment.provider,
+          attemptId: target.attempt.attemptId,
+          providerBuildId: buildId,
+          providerTerminalStatus: polled.state === 'ready' ? 'READY' : 'FAILED',
+          ...(polled.url ? { providerUrl: polled.url } : {}),
+          ...(manifestDrift
+            ? {
+                errorCode: 'PROVIDER_DEPLOY_RELEASE_COMMIT_REFUSED_MANIFEST_DRIFT',
+                errorMessage: 'Provider terminal state was observed after the project manifest changed.',
+              }
+            : polled.state === 'failed'
+              ? { errorCode: 'PROVIDER_DEPLOY_BUILD_FAILED', errorMessage: polled.log }
+              : {}),
+        });
+        if (manifestDrift) {
+          /* The external result is terminal, but a newer manifest owns release authority. */
+          try {
+            const currentManifest = await currentProjectManifest(store, project);
+            return await withProjectReleaseBarrier(
+              store,
+              {
+                projectId: deployment.projectId,
+                expectedOrganizationId: project.organizationId,
+                expectedManifestDigest: currentManifest.digest,
+                operationId: `provider-deploy-supersede:${deployment.id}`,
+              },
+              async (releaseGuard) => {
+                await releaseGuard.assert();
+                const candidate = await store.getDeployment(deployment.projectId, deployment.id);
+                if (!candidate || !['QUEUED', 'BUILDING'].includes(candidate.status)) return candidate ?? deployment;
+                return store.updateDeployment(
+                  candidate.projectId,
+                  candidate.id,
+                  {
+                    status: 'FAILED',
+                    url: undefined,
+                    previewUrl: undefined,
+                    productionUrl: undefined,
+                    metadata: {
+                      ...(candidate.metadata as Record<string, unknown>),
+                      providerDeployHookTerminalized: 'MANIFEST_DRIFT',
+                    },
+                    logs: [
+                      ...candidate.logs,
+                      {
+                        timestamp: new Date().toISOString(),
+                        level: 'error',
+                        message: 'Provider deployment completed for an obsolete project manifest.',
+                      },
+                    ],
+                    finishedAt: new Date().toISOString(),
+                  },
+                  releaseGuard.fence,
+                );
+              },
+            );
+          } catch {
+            return (await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined)) ?? deployment;
+          }
+        }
+      }
+
+      /*
+       * The provider ledger is terminal before release publication. Revalidate
+       * the immutable manifest under a fresh barrier; a concurrent A -> B drift
+       * leaves the terminal provider proof durable but cannot publish stale A.
+       */
+      try {
+        return await withProjectReleaseBarrier(
+          store,
+          {
+            projectId: deployment.projectId,
+            expectedOrganizationId: project.organizationId,
+            expectedManifestDigest: target.operation.projectManifestDigest,
+            operationId: `provider-deploy-reconcile:${deployment.id}`,
+          },
+          async (releaseGuard) => {
+            await releaseGuard.assert();
+            const candidate = await store.getDeployment(deployment.projectId, deployment.id);
+            if (!candidate || !['QUEUED', 'BUILDING'].includes(candidate.status)) return candidate ?? deployment;
+            const boundDigest = (candidate.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+            if (boundDigest !== target.operation.projectManifestDigest) return candidate;
+            await releaseGuard.assert();
+            return persistTerminalObservation(candidate, result!, releaseGuard.fence);
+          },
+        );
+      } catch {
+        return (await store.getDeployment(deployment.projectId, deployment.id).catch(() => undefined)) ?? deployment;
+      }
+    }
+
+    /* Pre-0116 rows retain their legacy fenced polling path. */
+    const manifestDigest = (deployment.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+    if (typeof manifestDigest !== 'string' || !PROJECT_MANIFEST_DIGEST_PATTERN.test(manifestDigest)) return deployment;
+    if (!canPollDeploymentStatus(deployment.provider, legacyBuildId)) return deployment;
+    const legacyResult = await pollProviderDeploymentStatus(deployment.provider, legacyBuildId as string).catch(
+      () => undefined,
+    );
+    if (!legacyResult || legacyResult.state === 'building') return deployment;
+    return withProjectReleaseBarrier(
+      store,
+      {
+        projectId: deployment.projectId,
+        expectedOrganizationId: project.organizationId,
+        expectedManifestDigest: manifestDigest,
+        operationId: `legacy-provider-deploy-reconcile:${deployment.id}`,
+      },
+      async (releaseGuard) => {
+        await releaseGuard.assert();
+        return persistTerminalObservation(deployment, legacyResult, releaseGuard.fence);
+      },
+    );
+  }
+
+  if (!canPollDeploymentStatus(deployment.provider, legacyBuildId)) return deployment;
+  const legacyResult = await pollProviderDeploymentStatus(deployment.provider, legacyBuildId as string).catch(
+    () => undefined,
+  );
+  if (!legacyResult || legacyResult.state === 'building') return deployment;
+  return persistTerminalObservation(deployment, legacyResult);
 }
 
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
@@ -34556,6 +34800,54 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /**
+   * Recover an opaque/lost provider-hook response without ever resubmitting it.
+   * The operator supplies only a candidate provider id; the API performs a live
+   * GET and requires the configured target plus immutable operation tag before
+   * the store can bind an AuditLog and leave MANUAL_RECOVERY.
+   */
+  app.post('/admin/provider-deploy-hooks/:operationId/recovery', async (request) => {
+    await requirePlatformAdmin(request);
+    await requireAdminMfaForSensitiveAction(request);
+    await requireRecentAdminReauth(request, 60);
+
+    const { operationId } = parse(
+      z.object({ operationId: z.string().trim().min(1).max(512) }).strict(),
+      request.params,
+    );
+    const { providerBuildId } = parse(
+      z.object({ providerBuildId: z.string().trim().min(1).max(512) }).strict(),
+      request.body,
+    );
+    const operatorUserId = request.currentUser!.id;
+    const candidate = await store.getProviderDeployHookRecoveryCandidate({ operationId, operatorUserId });
+    if (!candidate) {
+      throw Object.assign(new Error(appPublicEnglish('GENERIC_REQUEST_FAILED')), {
+        code: 'PROVIDER_DEPLOY_HOOK_RECOVERY_AUTHORITY_INVALID',
+        statusCode: 409,
+      });
+    }
+    const observation = await pollProviderDeployHookRecoveryIdentity({
+      provider: candidate.operation.provider,
+      providerBuildId,
+      operationTag: candidate.operation.operationTag,
+      expectedTargetHash: candidate.operation.providerTargetHash,
+      expectedProjectId: candidate.operation.projectId,
+      fetchImpl: fetch,
+      env: process.env,
+    });
+
+    return {
+      recovery: await store.recoverProviderDeployHook({
+        operationId,
+        operatorUserId,
+        ipAddress: request.ip,
+        providerBuildId,
+        observation,
+      }),
+    };
+  });
+
   app.get('/admin/users', async (request) => {
     await requirePlatformAdmin(request);
 
@@ -42274,9 +42566,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           }
 
           await releaseGuard.assert();
-          const hookResult = await triggerProviderDeployHook(body.provider, fetch, process.env, {
-            publishRegion: queuedEntitlementsPin.publishRegion,
-          });
+          const hookResult =
+            body.provider === 'static'
+              ? undefined
+              : await runProviderDeployHookSaga({
+                  store,
+                  releaseGuard,
+                  projectId: project.id,
+                  deploymentId: queued.id,
+                  ...(request.currentUser?.id ? { actorUserId: request.currentUser.id } : {}),
+                  requestId: request.id,
+                  intentKind: 'CREATE',
+                  provider: body.provider,
+                  publishRegion: queuedEntitlementsPin.publishRegion,
+                  projectManifestDigest: expectedManifestDigest,
+                  fetchImpl: fetch,
+                  env: process.env,
+                });
 
           let staticBuildFailed = false;
           let staticBuildLogs: Array<{ timestamp: string; level: 'info' | 'error'; message: string }> = [];
@@ -42419,7 +42725,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               : []),
           ];
 
-          const failed = hookResult?.status === 'failed' || staticBuildFailed;
+          /* Ambiguous provider responses remain recoverable; only a proven rejection can fail locally. */
+          const failed = hookResult?.outcome === 'rejected' || staticBuildFailed;
 
           /*
            * For non-static providers the deploy hook only QUEUES a build at the
@@ -42436,6 +42743,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             canPollDeploymentStatus(body.provider, hookResult?.buildId);
 
           const hasRealHookUrl = Boolean(hookResult?.url);
+          const recoverableExternal = hookResult?.outcome === 'ambiguous';
 
           /*
            * A non-static deploy hook only QUEUES a build at the provider. If we can
@@ -42444,9 +42752,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * serves nothing) — keep it BUILDING (queued externally) instead.
            */
           const queuedExternalNoUrl =
-            !failed && body.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
+            !failed &&
+            body.provider !== 'static' &&
+            (hookResult?.status === 'queued' || hookResult?.outcome === 'ambiguous') &&
+            !pollable &&
+            !hasRealHookUrl;
 
-          const status = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
+          const status = failed ? 'FAILED' : recoverableExternal || pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
           const isReady = status === 'READY';
           const waitsForStaticManifest = isReady && body.provider === 'static';
           const persistedStatus = waitsForStaticManifest ? 'BUILDING' : status;
@@ -42564,6 +42876,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (body.provider === 'static') {
         await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
       }
+
+      /*
+       * An external hook may already have reached the provider. Losing the
+       * release fence must not authorize an unfenced FAILED write that masks
+       * the durable DISPATCHING/IDENTIFIED recovery state.
+       */
+      if (isProviderDeployHookProvider(body.provider)) throw error;
 
       const code = (error as { code?: string }).code ?? 'PROJECT_RELEASE_BARRIER_LOST';
       return store.updateDeployment(project.id, queued.id, {
@@ -47053,10 +47372,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .send({ deployment: localizeDeploymentRecord(rebuilt, transactionalLocaleForRequest(request)) });
     }
 
-    const hookResult = await triggerProviderDeployHook(sourceProvider, fetch, process.env, {
-      publishRegion: redeployEntitlementsPin.publishRegion,
-    });
-
     let staticBuildFailed = false;
     let workspaceBuildTempDir: string | undefined;
     let staticArtifactDigest: string | undefined;
@@ -47162,59 +47477,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (workspaceBuildTempDir) {
         await rm(workspaceBuildTempDir, { recursive: true, force: true }).catch(() => undefined);
       }
-    } else if (hookResult) {
-      rebuildLogs.push({
-        timestamp: new Date().toISOString(),
-        level: hookResult.status === 'failed' ? 'error' : 'info',
-        message: hookResult.log,
-      });
     }
-
-    const failed = hookResult?.status === 'failed' || staticBuildFailed;
-    const url = hookResult?.url ?? buildDeploymentUrl(project, redeploy);
-
-    /*
-     * Same as create: a pollable non-static provider stays BUILDING until its
-     * real status is reconciled, rather than being faked READY on a queued hook.
-     */
-    const pollable =
-      !failed &&
-      source.provider !== 'static' &&
-      hookResult?.status === 'queued' &&
-      canPollDeploymentStatus(source.provider, hookResult?.buildId);
-
-    const hasRealHookUrl = Boolean(hookResult?.url);
-
-    /*
-     * Port the create-handler guard (audit #1): a non-static deploy hook only
-     * QUEUES a build. If we can neither poll its status nor got a real URL back,
-     * don't mark it READY with the synthesized *.vibecore.local host (serves
-     * nothing) — keep it BUILDING.
-     */
-    const queuedExternalNoUrl =
-      !failed && source.provider !== 'static' && hookResult?.status === 'queued' && !pollable && !hasRealHookUrl;
-
-    const redeployStatus = failed ? 'FAILED' : pollable || queuedExternalNoUrl ? 'BUILDING' : 'READY';
-    const redeployReady = redeployStatus === 'READY';
-    const waitsForStaticManifest = redeployReady && source.provider === 'static';
-    const persistedRedeployStatus = waitsForStaticManifest ? 'BUILDING' : redeployStatus;
-
-    // Only persist a usable URL: a real hook URL, or the static path-based URL.
-    const resolvedUrl = failed
-      ? undefined
-      : hasRealHookUrl
-        ? hookResult?.url
-        : source.provider === 'static'
-          ? url
-          : undefined;
-
-    const finalMetadata = {
-      ...(redeploy.metadata as Record<string, unknown>),
-      providerBuildId: hookResult?.buildId,
-      hookStatus: hookResult?.status,
-      staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
-    };
-    const finishedAt = redeployStatus === 'BUILDING' ? undefined : new Date().toISOString();
     let ready: DeploymentRecord;
 
     try {
@@ -47227,6 +47490,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           operationId: `deployment-redeploy:${redeploy.id}`,
         },
         async (releaseGuard) => {
+          const hookResult =
+            source.provider === 'static'
+              ? undefined
+              : isProviderDeployHookProvider(sourceProvider)
+                ? await runProviderDeployHookSaga({
+                    store,
+                    releaseGuard,
+                    projectId: project.id,
+                    deploymentId: redeploy.id,
+                    ...(request.currentUser?.id ? { actorUserId: request.currentUser.id } : {}),
+                    requestId: request.id,
+                    intentKind: 'REDEPLOY',
+                    provider: sourceProvider,
+                    publishRegion: redeployEntitlementsPin.publishRegion,
+                    projectManifestDigest: redeployProjectManifest.digest,
+                    fetchImpl: fetch,
+                    env: process.env,
+                  })
+                : (() => {
+                    throw Object.assign(new Error('Unsupported external deployment provider.'), {
+                      code: 'DEPLOYMENT_PROVIDER_INVALID',
+                      statusCode: 409,
+                    });
+                  })();
+
+          if (hookResult) {
+            rebuildLogs.push({
+              timestamp: new Date().toISOString(),
+              level: hookResult.status === 'failed' ? 'error' : 'info',
+              message: hookResult.log,
+            });
+          }
+
+          /* A MANUAL_RECOVERY ledger is not a provider rejection and must remain recoverable. */
+          const failed = hookResult?.outcome === 'rejected' || staticBuildFailed;
+          const url = hookResult?.url ?? buildDeploymentUrl(project, redeploy);
+
+          /* Provider hooks stay BUILDING until an identified build reports its real terminal state. */
+          const pollable =
+            !failed &&
+            source.provider !== 'static' &&
+            hookResult?.status === 'queued' &&
+            canPollDeploymentStatus(source.provider, hookResult?.buildId);
+          const hasRealHookUrl = Boolean(hookResult?.url);
+          const recoverableExternal = hookResult?.outcome === 'ambiguous';
+          const queuedExternalNoUrl =
+            !failed &&
+            source.provider !== 'static' &&
+            (hookResult?.status === 'queued' || hookResult?.outcome === 'ambiguous') &&
+            !pollable &&
+            !hasRealHookUrl;
+          const redeployStatus = failed
+            ? 'FAILED'
+            : recoverableExternal || pollable || queuedExternalNoUrl
+              ? 'BUILDING'
+              : 'READY';
+          const redeployReady = redeployStatus === 'READY';
+          const waitsForStaticManifest = redeployReady && source.provider === 'static';
+          const persistedRedeployStatus = waitsForStaticManifest ? 'BUILDING' : redeployStatus;
+          const resolvedUrl = failed
+            ? undefined
+            : hasRealHookUrl
+              ? hookResult?.url
+              : source.provider === 'static'
+                ? url
+                : undefined;
+          const finalMetadata = {
+            ...(redeploy.metadata as Record<string, unknown>),
+            providerBuildId: hookResult?.buildId,
+            hookStatus: hookResult?.status,
+            staticBuildOk: source.provider === 'static' ? !staticBuildFailed : undefined,
+          };
+          const finishedAt = redeployStatus === 'BUILDING' ? undefined : new Date().toISOString();
+
           await releaseGuard.assert();
           const updateRedeploy = (patch: Parameters<ApiStore['updateDeployment']>[2]) =>
             store.updateDeployment(project.id, redeploy.id, patch, releaseGuard.fence);
@@ -47257,6 +47594,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch (error) {
       if (source.provider === 'static') {
         await removeStaticDeploymentSnapshot(redeploy.id).catch(() => undefined);
+      } else if (isProviderDeployHookProvider(sourceProvider)) {
+        /* Preserve the fenced hook ledger; never mask it with an unfenced status write. */
+        throw error;
       }
       await store
         .updateDeployment(project.id, redeploy.id, {

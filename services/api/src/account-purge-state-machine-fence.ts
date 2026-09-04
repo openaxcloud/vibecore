@@ -314,6 +314,7 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
     activeReservedVmOperation,
     activeReservedVmBillingPeriod,
     soleOrganizationReservedVmRuntime,
+    activeProviderDeployHook,
   ] = await Promise.all([
     tx.importJob.findMany({
       where: { OR: jobScope },
@@ -378,6 +379,22 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
           select: { id: true },
         })
       : Promise.resolve(null),
+    tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT "id"
+      FROM "ProviderDeployHookOperation"
+      WHERE "phase" <> 'TERMINAL'
+        AND (
+          "actorUserId" = ${input.userId}
+          ${
+            soleOrganizationIds.length > 0
+              ? Prisma.sql`OR "organizationId" IN (${Prisma.join(soleOrganizationIds)})`
+              : Prisma.empty
+          }
+        )
+      ORDER BY "id"
+      LIMIT 1
+      FOR UPDATE
+    `),
   ]);
 
   if (activeCheckpointRows[0]) {
@@ -394,6 +411,9 @@ export async function assertAccountPurgeStateMachinesSafeToStart(
   }
   if (soleOrganizationReservedVmRuntime) {
     throw purgeConflict('ACCOUNT_PURGE_RESERVED_VM_RUNTIME_ACTIVE');
+  }
+  if (activeProviderDeployHook[0]) {
+    throw purgeConflict('ACCOUNT_PURGE_PROVIDER_DEPLOY_HOOK_ACTIVE');
   }
 
   const possiblyVisibleTargets = [

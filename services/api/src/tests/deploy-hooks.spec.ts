@@ -1,5 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
-import { triggerProviderDeployHook, triggerProviderRollback } from '../deployments.js';
+import { providerDeployHookTargetSnapshot, triggerProviderDeployHook, triggerProviderRollback } from '../deployments.js';
+
+const durableOperationTag = 'ecode-deploy-0123456789abcdef0123456789abcdef01234567';
+
+function durableOptions(provider: 'vercel' | 'netlify' | 'cloudflare-pages' | 'github-pages' | 'google-cloud-run', env: Record<string, string | undefined>) {
+  return {
+    operationTag: durableOperationTag,
+    deployedAt: '2026-08-31T00:00:00.000Z',
+    expectedTargetHash: providerDeployHookTargetSnapshot(provider, env).targetHash,
+  };
+}
 
 function mockFetch(response: Partial<Response> & { jsonValue?: unknown } = {}): typeof fetch {
   const fn = vi.fn(async (_url: any, _init: any) => {
@@ -28,9 +38,11 @@ describe('triggerProviderDeployHook', () => {
 
   it('queues a Vercel deploy when VERCEL_DEPLOY_HOOK_URL is set', async () => {
     const fetchImpl = mockFetch({ ok: true, status: 201, jsonValue: { job: { id: 'job_1', state: 'PENDING' } } });
-    const result = await triggerProviderDeployHook('vercel', fetchImpl, {
+    const env = {
       VERCEL_DEPLOY_HOOK_URL: 'https://api.vercel.com/v1/integrations/deploy/hook',
-    });
+      VERCEL_PROJECT_ID: 'project',
+    };
+    const result = await triggerProviderDeployHook('vercel', fetchImpl, env, durableOptions('vercel', env));
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(result?.status).toBe('queued');
     expect(result?.buildId).toBe('job_1');
@@ -38,9 +50,11 @@ describe('triggerProviderDeployHook', () => {
 
   it('reports failure when the provider returns non-2xx', async () => {
     const fetchImpl = mockFetch({ ok: false, status: 502 });
-    const result = await triggerProviderDeployHook('netlify', fetchImpl, {
+    const env = {
       NETLIFY_BUILD_HOOK_URL: 'https://api.netlify.com/build_hooks/abc',
-    });
+      NETLIFY_SITE_ID: 'site',
+    };
+    const result = await triggerProviderDeployHook('netlify', fetchImpl, env, durableOptions('netlify', env));
     expect(result?.status).toBe('failed');
     expect(result?.log).toContain('502');
   });
@@ -49,20 +63,29 @@ describe('triggerProviderDeployHook', () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('ECONNRESET');
     }) as unknown as typeof fetch;
-    const result = await triggerProviderDeployHook('cloudflare-pages', fetchImpl, {
+    const env = {
       CLOUDFLARE_DEPLOY_HOOK_URL: 'https://api.cloudflare.com/client/v4/pages/projects/x/deployments/hook',
-    });
+      CLOUDFLARE_ACCOUNT_ID: 'account',
+      CLOUDFLARE_PAGES_PROJECT: 'project',
+    };
+    const result = await triggerProviderDeployHook(
+      'cloudflare-pages',
+      fetchImpl,
+      env,
+      durableOptions('cloudflare-pages', env),
+    );
     expect(result?.status).toBe('failed');
     expect(result?.log).toContain('ECONNRESET');
   });
 
   it('dispatches a GitHub Pages workflow when env is configured', async () => {
     const fetchImpl = mockFetch({ ok: true, status: 204 });
-    const result = await triggerProviderDeployHook('github-pages', fetchImpl, {
+    const env = {
       GITHUB_DEPLOY_TOKEN: 'gh_token',
       GITHUB_PAGES_REPO: 'org/site',
       GITHUB_PAGES_WORKFLOW: 'pages.yml',
-    });
+    };
+    const result = await triggerProviderDeployHook('github-pages', fetchImpl, env, durableOptions('github-pages', env));
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const call = (fetchImpl as any).mock.calls[0];
     expect(call[0]).toBe('https://api.github.com/repos/org/site/actions/workflows/pages.yml/dispatches');
@@ -72,10 +95,16 @@ describe('triggerProviderDeployHook', () => {
 
   it('triggers Cloud Build for Cloud Run when token + URL set', async () => {
     const fetchImpl = mockFetch({ ok: true, status: 200, jsonValue: { metadata: { build: { id: 'build_42' } } } });
-    const result = await triggerProviderDeployHook('google-cloud-run', fetchImpl, {
-      CLOUD_RUN_BUILD_TRIGGER_URL: 'https://cloudbuild.googleapis.com/v1/projects/p/triggers/t:webhook?key=K',
+    const env = {
+      CLOUD_RUN_BUILD_TRIGGER_URL: 'https://cloudbuild.googleapis.com/v1/projects/p/locations/l/triggers/t:run',
       GCP_OAUTH_TOKEN: 'ya29.fake',
-    });
+    };
+    const result = await triggerProviderDeployHook(
+      'google-cloud-run',
+      fetchImpl,
+      env,
+      durableOptions('google-cloud-run', env),
+    );
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(result?.buildId).toBe('build_42');
     expect(result?.status).toBe('queued');
@@ -86,9 +115,11 @@ describe('triggerProviderDeployHook', () => {
       ok: true,
       jsonValue: { result: { id: 'd1', deploy_ssl_url: 'https://my-site.netlify.app' } },
     });
-    const result = await triggerProviderDeployHook('netlify', fetchImpl, {
+    const env = {
       NETLIFY_BUILD_HOOK_URL: 'https://api.netlify.com/build_hooks/abc',
-    });
+      NETLIFY_SITE_ID: 'site',
+    };
+    const result = await triggerProviderDeployHook('netlify', fetchImpl, env, durableOptions('netlify', env));
     expect(result?.url).toBe('https://my-site.netlify.app');
   });
 });

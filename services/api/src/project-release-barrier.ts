@@ -8,6 +8,8 @@ const DEFAULT_RELEASE_BARRIER_HEARTBEAT_MS = 15_000;
 export interface ProjectReleaseGuard {
   readonly lease: ProjectReleaseBarrierLease;
   readonly fence: ProjectReleaseFence;
+  /** Aborts in-flight provider I/O as soon as the DB-clock release authority is lost. */
+  readonly signal: AbortSignal;
 
   /** Revalidate the DB-clock lease, Project organization, and manifest digest. */
   assert(): Promise<void>;
@@ -56,6 +58,7 @@ export async function withProjectReleaseBarrier<T>(
 
   let lost: unknown;
   let renewing = false;
+  const authorityAbort = new AbortController();
 
   const fence: ProjectReleaseFence = {
     checkpointId: lease.checkpointId,
@@ -80,6 +83,7 @@ export async function withProjectReleaseBarrier<T>(
       });
     } catch (error) {
       lost = error;
+      authorityAbort.abort(error);
       throw error;
     }
   };
@@ -103,10 +107,12 @@ export async function withProjectReleaseBarrier<T>(
             code: 'PROJECT_RELEASE_BARRIER_LOST',
             statusCode: 409,
           });
+          authorityAbort.abort(lost);
         }
       })
       .catch((error: unknown) => {
         lost = error;
+        authorityAbort.abort(error);
       })
       .finally(() => {
         renewing = false;
@@ -117,12 +123,19 @@ export async function withProjectReleaseBarrier<T>(
   try {
     await assert();
 
-    const result = await effect({ lease, fence, assert });
+    const result = await effect({ lease, fence, signal: authorityAbort.signal, assert });
     await assert();
 
     return result;
   } finally {
     clearInterval(heartbeat);
+    authorityAbort.abort(
+      lost ??
+        Object.assign(new Error(appPublicEnglish('PROJECT_RELEASE_BARRIER_LOST')), {
+          code: 'PROJECT_RELEASE_BARRIER_RELEASED',
+          statusCode: 409,
+        }),
+    );
     await store
       .releaseProjectReleaseBarrier({
         checkpointId: lease.checkpointId,

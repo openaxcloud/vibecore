@@ -164,6 +164,12 @@ import type {
   AiToolCallRecord,
   AgentCheckpointRecord,
   AppImageBuildOperationRecord,
+  ProviderDeployHookAttemptRecord,
+  ProviderDeployHookIntentKind,
+  ProviderDeployHookOperationRecord,
+  ProviderDeployHookProvider,
+  ProviderDeployHookRecoveryObservation,
+  ProviderDeployHookRecoveryResult,
   UserSpendLimitRecord,
   BillingCustomerRecord,
   BillingPlanRecord,
@@ -525,6 +531,23 @@ export class TestApiStore implements ApiStore {
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
   readonly deployments = new Map<string, DeploymentRecord>();
   readonly appImageBuildOperations = new Map<string, AppImageBuildOperationRecord>();
+  readonly providerDeployHookOperations = new Map<string, ProviderDeployHookOperationRecord>();
+  readonly providerDeployHookTargetBindings = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      provider: ProviderDeployHookProvider;
+      targetHash: string;
+      targetSnapshot: Record<string, string>;
+      dedicated: boolean;
+    }
+  >();
+  readonly providerDeployHookAttempts = new Map<string, ProviderDeployHookAttemptRecord[]>();
+  readonly providerDeployHookRecoveries = new Map<
+    string,
+    { auditLogId: string; providerBuildId?: string; observation: ProviderDeployHookRecoveryObservation }
+  >();
   readonly registryMutationOperations = new Map<
     string,
     {
@@ -1406,6 +1429,580 @@ export class TestApiStore implements ApiStore {
     row.promotionReferences = structuredClone(input.promotionReferences);
   }
 
+  async prepareProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    actorUserId?: string;
+    intentKind: ProviderDeployHookIntentKind;
+    provider: ProviderDeployHookProvider;
+    publishRegion?: string;
+    projectManifestDigest: string;
+    providerTargetHash: string;
+    providerTargetSnapshot: Record<string, string>;
+    providerTargetDedicated: boolean;
+    operationTag: string;
+    intentHash: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    const project = this.projects.get(input.projectId);
+    const deployment = this.deployments.get(input.deploymentId);
+    if (
+      !project ||
+      project.permanentDeletionStartedAt ||
+      project.organizationId !== input.releaseFence.expectedOrganizationId ||
+      !deployment ||
+      deployment.projectId !== input.projectId ||
+      deployment.provider !== input.provider
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_AUTHORITY_INVALID');
+    }
+    if (['vercel', 'cloudflare-pages'].includes(input.provider) && !input.providerTargetDedicated) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_DEDICATED_TARGET_REQUIRED');
+    }
+    const bindingByTarget = [...this.providerDeployHookTargetBindings.values()].find(
+      (binding) => binding.provider === input.provider && binding.targetHash === input.providerTargetHash,
+    );
+    const bindingByProject = [...this.providerDeployHookTargetBindings.values()].find(
+      (binding) => binding.projectId === input.projectId && binding.provider === input.provider,
+    );
+    const binding = bindingByTarget ?? bindingByProject ?? {
+      id: `provider-target:${input.providerTargetHash.slice('sha256:'.length)}`,
+      projectId: input.projectId,
+      provider: input.provider,
+      targetHash: input.providerTargetHash,
+      targetSnapshot: structuredClone(input.providerTargetSnapshot),
+      dedicated: input.providerTargetDedicated,
+    };
+    const bindingMatches =
+      binding.projectId === input.projectId &&
+      binding.provider === input.provider &&
+      binding.targetHash === input.providerTargetHash &&
+      JSON.stringify(binding.targetSnapshot) === JSON.stringify(input.providerTargetSnapshot) &&
+      binding.dedicated === input.providerTargetDedicated;
+    if ((bindingByTarget && bindingByProject && bindingByTarget.id !== bindingByProject.id) || !bindingMatches) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_TARGET_BINDING_CONFLICT');
+    }
+    this.providerDeployHookTargetBindings.set(binding.id, binding);
+    const existing =
+      this.providerDeployHookOperations.get(input.operationId) ??
+      [...this.providerDeployHookOperations.values()].find((row) => row.deploymentId === input.deploymentId);
+    const timestamp = now();
+    const expectedStable = {
+      id: input.operationId,
+      projectId: input.projectId,
+      deploymentId: input.deploymentId,
+      organizationId: project.organizationId,
+      ownershipEpoch: project.ownershipEpoch,
+      actorUserId: input.actorUserId,
+      intentKind: input.intentKind,
+      provider: input.provider,
+      publishRegion: input.publishRegion,
+      projectManifestDigest: input.projectManifestDigest,
+      targetBindingId: binding.id,
+      providerTargetHash: input.providerTargetHash,
+      providerTargetSnapshot: structuredClone(input.providerTargetSnapshot),
+      providerTargetDedicated: input.providerTargetDedicated,
+      operationTag: input.operationTag,
+      intentHash: input.intentHash,
+    };
+    if (existing) {
+      const actualStable = {
+        id: existing.id,
+        projectId: existing.projectId,
+        deploymentId: existing.deploymentId,
+        organizationId: existing.organizationId,
+        ownershipEpoch: existing.ownershipEpoch,
+        actorUserId: existing.actorUserId,
+        intentKind: existing.intentKind,
+        provider: existing.provider,
+        publishRegion: existing.publishRegion,
+        projectManifestDigest: existing.projectManifestDigest,
+        targetBindingId: existing.targetBindingId,
+        providerTargetHash: existing.providerTargetHash,
+        providerTargetSnapshot: existing.providerTargetSnapshot,
+        providerTargetDedicated: existing.providerTargetDedicated,
+        operationTag: existing.operationTag,
+        intentHash: existing.intentHash,
+      };
+      if (JSON.stringify(actualStable) !== JSON.stringify(expectedStable)) {
+        throw new Error('PROVIDER_DEPLOY_HOOK_INTENT_CONFLICT');
+      }
+      return structuredClone(existing);
+    }
+    if (
+      [...this.providerDeployHookOperations.values()].some(
+        (operation) => operation.targetBindingId === binding.id && operation.phase !== 'TERMINAL',
+      )
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_TARGET_BUSY');
+    }
+    const created: ProviderDeployHookOperationRecord = {
+      ...expectedStable,
+      phase: 'PREPARED',
+      dispatchAttempts: 0,
+      preparedAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.providerDeployHookOperations.set(input.operationId, created);
+    return structuredClone(created);
+  }
+
+  private async assertTestProviderDeployHookAuthority(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord | undefined> {
+    await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+    const row = this.providerDeployHookOperations.get(input.operationId);
+    if (row && (row.projectId !== input.projectId || row.organizationId !== input.releaseFence.expectedOrganizationId)) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST');
+    }
+    return row;
+  }
+
+  async beginProviderDeployHookDispatch(input: {
+    operationId: string;
+    projectId: string;
+    requestId?: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt?: ProviderDeployHookAttemptRecord;
+    shouldDispatch: boolean;
+  }> {
+    const row = await this.assertTestProviderDeployHookAuthority(input);
+    if (!row) throw new Error('PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST');
+    if (row.phase !== 'PREPARED') {
+      return {
+        operation: structuredClone(row),
+        ...(this.providerDeployHookAttempts.get(input.operationId)?.[0]
+          ? { attempt: structuredClone(this.providerDeployHookAttempts.get(input.operationId)![0]!) }
+          : {}),
+        shouldDispatch: false,
+      };
+    }
+    const timestamp = now();
+    const attempt: ProviderDeployHookAttemptRecord = {
+      operationId: input.operationId,
+      attemptNumber: 1,
+      attemptId: randomUUID(),
+      ...(input.requestId ? { requestId: input.requestId } : {}),
+      state: 'DISPATCHING',
+      dispatchStartedAt: timestamp,
+    };
+    const dispatching: ProviderDeployHookOperationRecord = {
+      ...row,
+      phase: 'DISPATCHING',
+      dispatchAttempts: 1,
+      dispatchCommittedAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.providerDeployHookAttempts.set(input.operationId, [attempt]);
+    this.providerDeployHookOperations.set(input.operationId, dispatching);
+    return { operation: structuredClone(dispatching), attempt: structuredClone(attempt), shouldDispatch: true };
+  }
+
+  async recordProviderDeployHookOutcome(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    phase: 'IDENTIFIED' | 'TERMINAL' | 'MANUAL_RECOVERY';
+    outcomeStatus?: 'ACCEPTED' | 'REJECTED';
+    providerTerminalStatus?: 'READY' | 'FAILED' | 'CANCELED' | 'REJECTED';
+    providerBuildId?: string;
+    providerUrl?: string;
+    httpStatus?: number;
+    errorCode?: string;
+    errorMessage?: string;
+    manualRecoveryReason?: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    const project = this.projects.get(input.projectId);
+    const deployment = this.deployments.get(input.deploymentId);
+    const row = this.providerDeployHookOperations.get(input.operationId);
+    const attempt = this.providerDeployHookAttempts.get(input.operationId)?.[0];
+    if (
+      !project ||
+      !deployment ||
+      !row ||
+      !attempt ||
+      project.organizationId !== input.expectedOrganizationId ||
+      row.organizationId !== input.expectedOrganizationId ||
+      row.ownershipEpoch !== project.ownershipEpoch ||
+      deployment.projectId !== input.projectId ||
+      deployment.provider !== input.provider ||
+      row.deploymentId !== input.deploymentId ||
+      row.provider !== input.provider ||
+      attempt.attemptId !== input.attemptId
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_AUTHORITY_LOST');
+    }
+    const expectedSourcePhase = 'DISPATCHING';
+    if (row.phase !== expectedSourcePhase || attempt.state !== expectedSourcePhase) {
+      if (
+        row.phase === input.phase &&
+        row.outcomeStatus === input.outcomeStatus &&
+        row.providerTerminalStatus === input.providerTerminalStatus &&
+        row.providerBuildId === input.providerBuildId &&
+        row.providerUrl === input.providerUrl &&
+        row.lastHttpStatus === input.httpStatus &&
+        row.lastErrorCode === input.errorCode &&
+        row.lastErrorMessage === input.errorMessage &&
+        row.manualRecoveryReason === input.manualRecoveryReason
+      ) {
+        return structuredClone(row);
+      }
+      throw new Error('PROVIDER_DEPLOY_HOOK_OUTCOME_CONFLICT');
+    }
+    const timestamp = now();
+    const settledAttempt: ProviderDeployHookAttemptRecord = {
+      ...attempt,
+      state: input.phase,
+      ...(input.httpStatus !== undefined ? { httpStatus: input.httpStatus } : {}),
+      ...(input.providerBuildId ? { providerBuildId: input.providerBuildId } : {}),
+      ...(input.providerUrl ? { providerUrl: input.providerUrl } : {}),
+      ...(input.providerTerminalStatus ? { providerTerminalStatus: input.providerTerminalStatus } : {}),
+      ...(input.errorCode ? { errorCode: input.errorCode } : {}),
+      ...(input.errorMessage ? { errorMessage: input.errorMessage } : {}),
+      settledAt: attempt.settledAt ?? timestamp,
+    };
+    const settled: ProviderDeployHookOperationRecord = {
+      ...row,
+      phase: input.phase,
+      ...(input.outcomeStatus ? { outcomeStatus: input.outcomeStatus } : {}),
+      ...(input.providerTerminalStatus ? { providerTerminalStatus: input.providerTerminalStatus } : {}),
+      ...(input.providerBuildId ? { providerBuildId: input.providerBuildId } : {}),
+      ...(input.providerUrl ? { providerUrl: input.providerUrl } : {}),
+      ...(input.httpStatus !== undefined ? { lastHttpStatus: input.httpStatus } : {}),
+      ...(input.errorCode ? { lastErrorCode: input.errorCode } : {}),
+      ...(input.errorMessage ? { lastErrorMessage: input.errorMessage } : {}),
+      ...(input.manualRecoveryReason ? { manualRecoveryReason: input.manualRecoveryReason } : {}),
+      ...(input.phase === 'IDENTIFIED' ? { identifiedAt: timestamp } : {}),
+      ...(input.phase === 'TERMINAL' ? { terminalAt: timestamp } : {}),
+      ...(input.phase === 'MANUAL_RECOVERY' ? { manualRecoveryAt: timestamp } : {}),
+      updatedAt: timestamp,
+    };
+    this.providerDeployHookAttempts.set(input.operationId, [settledAttempt]);
+    this.providerDeployHookOperations.set(input.operationId, settled);
+    return structuredClone(settled);
+  }
+
+  async getProviderDeployHookReconciliationTarget(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+  }): Promise<{
+    operation: ProviderDeployHookOperationRecord;
+    attempt: ProviderDeployHookAttemptRecord;
+  } | undefined> {
+    const project = this.projects.get(input.projectId);
+    const deployment = this.deployments.get(input.deploymentId);
+    const operation = this.providerDeployHookOperations.get(input.operationId);
+    if (!operation) return undefined;
+    const attempt = this.providerDeployHookAttempts.get(input.operationId)?.[0];
+    if (
+      !project ||
+      !deployment ||
+      !attempt ||
+      project.organizationId !== input.expectedOrganizationId ||
+      operation.organizationId !== input.expectedOrganizationId ||
+      operation.ownershipEpoch !== project.ownershipEpoch ||
+      deployment.projectId !== input.projectId ||
+      deployment.provider !== input.provider ||
+      operation.projectId !== input.projectId ||
+      operation.deploymentId !== input.deploymentId ||
+      operation.provider !== input.provider
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_RECONCILIATION_AUTHORITY_INVALID');
+    }
+    return { operation: structuredClone(operation), attempt: structuredClone(attempt) };
+  }
+
+  async recordProviderDeployHookTerminalObservation(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    providerTerminalStatus: 'READY' | 'FAILED' | 'CANCELED';
+    providerUrl?: string;
+    errorCode?: string;
+    errorMessage?: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    const target = await this.getProviderDeployHookReconciliationTarget(input);
+    if (!target) throw new Error('PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_IDENTITY_MISMATCH');
+    const { operation, attempt } = target;
+    if (
+      operation.providerBuildId !== input.providerBuildId ||
+      attempt.providerBuildId !== input.providerBuildId ||
+      attempt.attemptId !== input.attemptId
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_IDENTITY_MISMATCH');
+    }
+    if (operation.phase === 'TERMINAL') {
+      if (
+        operation.outcomeStatus === 'ACCEPTED' &&
+        operation.providerTerminalStatus === input.providerTerminalStatus &&
+        attempt.state === 'TERMINAL'
+      ) {
+        return structuredClone(operation);
+      }
+      throw new Error('PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_CONFLICT');
+    }
+    if (operation.phase !== 'IDENTIFIED' || attempt.state !== 'IDENTIFIED') {
+      throw new Error('PROVIDER_DEPLOY_HOOK_TERMINAL_OBSERVATION_CONFLICT');
+    }
+    const timestamp = now();
+    const terminalAttempt: ProviderDeployHookAttemptRecord = {
+      ...attempt,
+      state: 'TERMINAL',
+      ...(attempt.providerUrl ? {} : input.providerUrl ? { providerUrl: input.providerUrl } : {}),
+      providerTerminalStatus: input.providerTerminalStatus,
+      ...(attempt.errorCode ? {} : input.errorCode ? { errorCode: input.errorCode } : {}),
+      ...(attempt.errorMessage ? {} : input.errorMessage ? { errorMessage: input.errorMessage } : {}),
+      settledAt: attempt.settledAt ?? timestamp,
+    };
+    const terminal: ProviderDeployHookOperationRecord = {
+      ...operation,
+      phase: 'TERMINAL',
+      ...(operation.providerUrl ? {} : input.providerUrl ? { providerUrl: input.providerUrl } : {}),
+      providerTerminalStatus: input.providerTerminalStatus,
+      ...(operation.lastErrorCode ? {} : input.errorCode ? { lastErrorCode: input.errorCode } : {}),
+      ...(operation.lastErrorMessage ? {} : input.errorMessage ? { lastErrorMessage: input.errorMessage } : {}),
+      terminalAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.providerDeployHookAttempts.set(input.operationId, [terminalAttempt]);
+    this.providerDeployHookOperations.set(input.operationId, terminal);
+    return structuredClone(terminal);
+  }
+
+  async recordProviderDeployHookReconciliationFailure(input: {
+    operationId: string;
+    projectId: string;
+    deploymentId: string;
+    expectedOrganizationId: string;
+    provider: ProviderDeployHookProvider;
+    attemptId: string;
+    providerBuildId: string;
+    errorCode: string;
+    errorMessage: string;
+    manualRecoveryReason: string;
+  }): Promise<ProviderDeployHookOperationRecord> {
+    const target = await this.getProviderDeployHookReconciliationTarget(input);
+    if (!target) throw new Error('PROVIDER_DEPLOY_HOOK_RECONCILIATION_AUTHORITY_INVALID');
+    if (
+      target.operation.providerBuildId !== input.providerBuildId ||
+      target.attempt.providerBuildId !== input.providerBuildId ||
+      target.attempt.attemptId !== input.attemptId
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_RECONCILIATION_AUTHORITY_INVALID');
+    }
+    if (target.operation.phase === 'MANUAL_RECOVERY' && target.attempt.state === 'MANUAL_RECOVERY') {
+      return structuredClone(target.operation);
+    }
+    if (target.operation.phase !== 'IDENTIFIED' || target.attempt.state !== 'IDENTIFIED') {
+      throw new Error('PROVIDER_DEPLOY_HOOK_RECONCILIATION_CONFLICT');
+    }
+    const timestamp = now();
+    const manualAttempt: ProviderDeployHookAttemptRecord = {
+      ...target.attempt,
+      state: 'MANUAL_RECOVERY',
+      errorCode: target.attempt.errorCode ?? input.errorCode,
+      errorMessage: target.attempt.errorMessage ?? input.errorMessage,
+      settledAt: target.attempt.settledAt ?? timestamp,
+    };
+    const manual: ProviderDeployHookOperationRecord = {
+      ...target.operation,
+      phase: 'MANUAL_RECOVERY',
+      lastErrorCode: target.operation.lastErrorCode ?? input.errorCode,
+      lastErrorMessage: target.operation.lastErrorMessage ?? input.errorMessage,
+      manualRecoveryReason: input.manualRecoveryReason,
+      manualRecoveryAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.providerDeployHookAttempts.set(input.operationId, [manualAttempt]);
+    this.providerDeployHookOperations.set(input.operationId, manual);
+    return structuredClone(manual);
+  }
+
+  async getProviderDeployHookRecoveryCandidate(input: {
+    operationId: string;
+    operatorUserId: string;
+  }): Promise<{ operation: ProviderDeployHookOperationRecord; databaseNow: string } | undefined> {
+    if (!this.users.get(input.operatorUserId)?.platformAdmin) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_RECOVERY_AUTHORITY_INVALID');
+    }
+    const operation = this.providerDeployHookOperations.get(input.operationId);
+    if (!operation || operation.phase !== 'MANUAL_RECOVERY') return undefined;
+    const project = this.projects.get(operation.projectId);
+    const deployment = this.deployments.get(operation.deploymentId);
+    if (
+      !project ||
+      !deployment ||
+      project.organizationId !== operation.organizationId ||
+      project.ownershipEpoch !== operation.ownershipEpoch ||
+      deployment.projectId !== operation.projectId ||
+      deployment.provider !== operation.provider
+    ) {
+      return undefined;
+    }
+    return { operation: structuredClone(operation), databaseNow: now() };
+  }
+
+  async recoverProviderDeployHook(input: {
+    operationId: string;
+    operatorUserId: string;
+    ipAddress?: string;
+    providerBuildId: string;
+    observation: ProviderDeployHookRecoveryObservation;
+  }): Promise<ProviderDeployHookRecoveryResult> {
+    const operator = this.users.get(input.operatorUserId);
+    const operation = this.providerDeployHookOperations.get(input.operationId);
+    const attempt = this.providerDeployHookAttempts.get(input.operationId)?.[0];
+    const project = operation ? this.projects.get(operation.projectId) : undefined;
+    const deployment = operation ? this.deployments.get(operation.deploymentId) : undefined;
+    if (
+      !operator?.platformAdmin ||
+      !operation ||
+      !attempt ||
+      !project ||
+      !deployment ||
+      operation.phase !== 'MANUAL_RECOVERY' ||
+      attempt.state !== 'MANUAL_RECOVERY' ||
+      (operation.providerBuildId && operation.providerBuildId !== input.providerBuildId) ||
+      (attempt.providerBuildId && attempt.providerBuildId !== input.providerBuildId) ||
+      operation.organizationId !== project.organizationId ||
+      operation.ownershipEpoch !== project.ownershipEpoch ||
+      deployment.projectId !== project.id ||
+      deployment.provider !== operation.provider ||
+      input.observation.resolution !== 'EXACT_IDENTITY' ||
+      input.observation.provider !== operation.provider ||
+      input.observation.operationTag !== operation.operationTag ||
+      input.observation.providerTargetHash !== operation.providerTargetHash ||
+      JSON.stringify(Object.entries(input.observation.providerTarget).sort()) !==
+        JSON.stringify(Object.entries(operation.providerTargetSnapshot).sort()) ||
+      input.observation.providerBuildId !== input.providerBuildId ||
+      this.providerDeployHookRecoveries.has(input.operationId)
+    ) {
+      throw new Error('PROVIDER_DEPLOY_HOOK_RECOVERY_AUTHORITY_INVALID');
+    }
+    const timestamp = now();
+    const auditLogId = id('audit');
+    const phase = input.observation.providerState === 'building' ? 'IDENTIFIED' : 'TERMINAL';
+    const providerTerminalStatus =
+      input.observation.providerState === 'ready'
+        ? ('READY' as const)
+        : input.observation.providerState === 'failed'
+          ? ('FAILED' as const)
+          : undefined;
+    const recoveredAttempt: ProviderDeployHookAttemptRecord = {
+      ...attempt,
+      state: phase,
+      providerBuildId: input.providerBuildId,
+      ...(input.observation.providerUrl ? { providerUrl: input.observation.providerUrl } : {}),
+      ...(providerTerminalStatus ? { providerTerminalStatus } : {}),
+      settledAt: attempt.settledAt ?? timestamp,
+    };
+    const recovered: ProviderDeployHookOperationRecord = {
+      ...operation,
+      phase,
+      providerBuildId: input.providerBuildId,
+      ...(input.observation.providerUrl ? { providerUrl: input.observation.providerUrl } : {}),
+      outcomeStatus: 'ACCEPTED',
+      ...(providerTerminalStatus ? { providerTerminalStatus } : {}),
+      identifiedAt: timestamp,
+      ...(phase === 'TERMINAL' ? { terminalAt: timestamp } : {}),
+      updatedAt: timestamp,
+    };
+    this.auditLogs.push({
+      id: auditLogId,
+      organizationId: operation.organizationId,
+      actorUserId: input.operatorUserId,
+      action: 'deployment.provider_hook.recovery',
+      resourceType: 'providerDeployHookOperation',
+      resourceId: operation.id,
+      metadata: {
+        resolution: phase,
+        provider: operation.provider,
+        deploymentId: operation.deploymentId,
+        attemptId: attempt.attemptId,
+        providerBuildId: input.providerBuildId,
+        providerState: input.observation.providerState,
+        identityKind: input.observation.identityKind,
+      },
+      ipAddress: input.ipAddress,
+      createdAt: timestamp,
+    });
+    this.providerDeployHookRecoveries.set(input.operationId, {
+      auditLogId,
+      providerBuildId: input.providerBuildId,
+      observation: structuredClone(input.observation),
+    });
+    this.providerDeployHookAttempts.set(input.operationId, [recoveredAttempt]);
+    this.providerDeployHookOperations.set(input.operationId, recovered);
+    return { operation: structuredClone(recovered), auditLogId };
+  }
+
+  async getProviderDeployHookOperation(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookOperationRecord | undefined> {
+    return structuredClone(await this.assertTestProviderDeployHookAuthority(input));
+  }
+
+  async listProviderDeployHookAttempts(input: {
+    operationId: string;
+    projectId: string;
+    releaseFence: ProjectReleaseFence;
+  }): Promise<ProviderDeployHookAttemptRecord[]> {
+    const row = await this.assertTestProviderDeployHookAuthority(input);
+    if (!row) return [];
+    return structuredClone(this.providerDeployHookAttempts.get(input.operationId) ?? []);
+  }
+
+  private assertTestProviderDeployHooksTerminalForDeletion(projectId: string): void {
+    const blocking = [...this.providerDeployHookOperations.values()].find(
+      (row) =>
+        row.projectId === projectId &&
+        !(
+          row.phase === 'TERMINAL' &&
+          ((row.outcomeStatus === 'REJECTED' &&
+            row.providerTerminalStatus === 'REJECTED' &&
+            !row.providerBuildId) ||
+            (row.outcomeStatus === 'ACCEPTED' &&
+              Boolean(row.providerBuildId) &&
+              ['READY', 'FAILED', 'CANCELED'].includes(row.providerTerminalStatus ?? '')))
+        ),
+    );
+    if (blocking) {
+      throw Object.assign(new Error('Provider deployment outcome is not terminal.'), {
+        code: 'PROVIDER_DEPLOY_HOOK_NOT_TERMINAL',
+        statusCode: 409,
+      });
+    }
+  }
+
+  private finalizeTestProviderDeployHooksForDeletion(projectId: string): void {
+    this.assertTestProviderDeployHooksTerminalForDeletion(projectId);
+    for (const [operationId, operation] of this.providerDeployHookOperations) {
+      if (operation.projectId !== projectId) continue;
+      this.providerDeployHookOperations.delete(operationId);
+      this.providerDeployHookAttempts.delete(operationId);
+      this.providerDeployHookRecoveries.delete(operationId);
+    }
+  }
+
   private projectIdFromTestDeletionLease(lease: ObjectStorageOperationLease): string {
     const prefix = 'test-permanent-delete:';
     if (!lease.operationId.startsWith(prefix)) throw new Error('PROJECT_PERMANENT_DELETION_PROVIDER_AUTHORITY_INVALID');
@@ -1898,6 +2495,17 @@ export class TestApiStore implements ApiStore {
       if (activeRollbackEffect) {
         throw Object.assign(new Error('ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE'), {
           code: 'ACCOUNT_PURGE_ROLLBACK_EFFECT_ACTIVE',
+          statusCode: 409,
+        });
+      }
+      const activeProviderDeployHook = [...this.providerDeployHookOperations.values()].find(
+        (operation) =>
+          operation.phase !== 'TERMINAL' &&
+          (operation.actorUserId === input.userId || soleOrgIds.includes(operation.organizationId)),
+      );
+      if (activeProviderDeployHook) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_PROVIDER_DEPLOY_HOOK_ACTIVE'), {
+          code: 'ACCOUNT_PURGE_PROVIDER_DEPLOY_HOOK_ACTIVE',
           statusCode: 409,
         });
       }
@@ -3701,6 +4309,8 @@ export class TestApiStore implements ApiStore {
             statusCode: 409,
           });
         }
+        /* Reject before installing the delete fence or invoking any provider callback. */
+        this.assertTestProviderDeployHooksTerminalForDeletion(input.projectId);
         const project = this.assertExpectedProjectTenant(physicalScope, {
           allowDeletedProject: true,
           allowPermanentDeletion: true,
@@ -3919,6 +4529,7 @@ export class TestApiStore implements ApiStore {
           ipAddress: input.ipAddress,
           createdAt: completedAt,
         });
+        this.finalizeTestProviderDeployHooksForDeletion(input.projectId);
         this.projects.delete(input.projectId);
         this.projectManifestRevisions.delete(input.projectId);
         for (const [operationId, build] of this.appImageBuildOperations) {
@@ -4005,6 +4616,8 @@ export class TestApiStore implements ApiStore {
       if (current.organizationId === input.targetOrganizationId) {
         return { ...current };
       }
+
+      this.assertTestProviderDeployHooksTerminalForDeletion(input.projectId);
 
       /* Match Prisma: provider preflight is outside the object-storage DB lock. */
       await input.assertExternalStorageDetached();
@@ -11049,6 +11662,7 @@ export class TestApiStore implements ApiStore {
       return false;
     }
 
+    this.finalizeTestProviderDeployHooksForDeletion(input.targetProjectId);
     this.projects.delete(input.targetProjectId);
     this.projectManifestRevisions.delete(input.targetProjectId);
     this.projectIdeStates.delete(input.targetProjectId);
@@ -11850,6 +12464,7 @@ export class TestApiStore implements ApiStore {
       return false;
     }
 
+    this.finalizeTestProviderDeployHooksForDeletion(input.targetProjectId);
     this.projects.delete(input.targetProjectId);
     this.projectManifestRevisions.delete(input.targetProjectId);
     this.projectIdeStates.delete(input.targetProjectId);

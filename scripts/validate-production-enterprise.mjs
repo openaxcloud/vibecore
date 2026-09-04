@@ -65,12 +65,42 @@ const httpsRequired = new Set([
 
 const deploymentProviderRequirements = {
   static: [],
-  vercel: ['VERCEL_DEPLOY_HOOK_URL'],
-  netlify: ['NETLIFY_BUILD_HOOK_URL'],
-  'cloudflare-pages': ['CLOUDFLARE_DEPLOY_HOOK_URL'],
-  'github-pages': ['GITHUB_DEPLOY_TOKEN', 'GITHUB_PAGES_REPO', 'GITHUB_PAGES_WORKFLOW'],
-  'google-cloud-run': ['CLOUD_RUN_BUILD_TRIGGER_URL', 'GCP_OAUTH_TOKEN'],
-  docker: ['DOCKER_BUILD_TRIGGER_URL', 'GCP_OAUTH_TOKEN', 'DOCKER_REGISTRY_URL'],
+  vercel: ['VERCEL_DEPLOY_HOOK_URL', 'VERCEL_DEPLOY_TARGET_DEDICATED', 'VERCEL_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+  netlify: ['NETLIFY_BUILD_HOOK_URL', 'NETLIFY_DEPLOY_TARGET_DEDICATED', 'NETLIFY_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+  'cloudflare-pages': [
+    'CLOUDFLARE_DEPLOY_HOOK_URL',
+    'CLOUDFLARE_PAGES_TARGET_DEDICATED',
+    'CLOUDFLARE_PAGES_TARGET_VIBECORE_PROJECT_ID',
+  ],
+  'github-pages': [
+    'GITHUB_DEPLOY_TOKEN',
+    'GITHUB_PAGES_REPO',
+    'GITHUB_PAGES_WORKFLOW',
+    'GITHUB_PAGES_TARGET_DEDICATED',
+    'GITHUB_PAGES_TARGET_VIBECORE_PROJECT_ID',
+  ],
+  'google-cloud-run': [
+    'CLOUD_RUN_BUILD_TRIGGER_URL',
+    'GCP_OAUTH_TOKEN',
+    'CLOUD_RUN_DEPLOY_TARGET_DEDICATED',
+    'CLOUD_RUN_DEPLOY_TARGET_VIBECORE_PROJECT_ID',
+  ],
+  docker: [
+    'DOCKER_BUILD_TRIGGER_URL',
+    'GCP_OAUTH_TOKEN',
+    'DOCKER_REGISTRY_URL',
+    'DOCKER_DEPLOY_TARGET_DEDICATED',
+    'DOCKER_DEPLOY_TARGET_VIBECORE_PROJECT_ID',
+  ],
+};
+
+const deploymentProviderDedicatedFlags = {
+  vercel: 'VERCEL_DEPLOY_TARGET_DEDICATED',
+  netlify: 'NETLIFY_DEPLOY_TARGET_DEDICATED',
+  'cloudflare-pages': 'CLOUDFLARE_PAGES_TARGET_DEDICATED',
+  'github-pages': 'GITHUB_PAGES_TARGET_DEDICATED',
+  'google-cloud-run': 'CLOUD_RUN_DEPLOY_TARGET_DEDICATED',
+  docker: 'DOCKER_DEPLOY_TARGET_DEDICATED',
 };
 
 const groups = [
@@ -378,6 +408,10 @@ function validateDeploymentProviders(problems) {
 
     for (const variable of required) {
       validateScalar(variable, problems);
+    }
+    const dedicatedFlag = deploymentProviderDedicatedFlags[provider];
+    if (dedicatedFlag && valueOf(dedicatedFlag) !== 'true') {
+      problems.push(`${dedicatedFlag} must be true for an enabled durable provider-hook target`);
     }
   }
 }
@@ -779,12 +813,18 @@ function selfTest() {
     STRIPE_ENTERPRISE_PRICE_ID: 'price_enterprise',
     DEPLOYMENT_PROVIDERS_ENABLED: 'static,vercel,github-pages,google-cloud-run',
     VERCEL_DEPLOY_HOOK_URL: 'https://api.vercel.com/v1/integrations/deploy/hook/prod',
+    VERCEL_DEPLOY_TARGET_DEDICATED: 'true',
+    VERCEL_DEPLOY_TARGET_VIBECORE_PROJECT_ID: 'project_provider_target_vercel',
     GITHUB_DEPLOY_TOKEN: 'ghp_productiondeploytoken123456',
     GITHUB_PAGES_REPO: 'vibecore/www',
     GITHUB_PAGES_WORKFLOW: 'pages.yml',
+    GITHUB_PAGES_TARGET_DEDICATED: 'true',
+    GITHUB_PAGES_TARGET_VIBECORE_PROJECT_ID: 'project_provider_target_github',
     CLOUD_RUN_BUILD_TRIGGER_URL:
       'https://cloudbuild.googleapis.com/v1/projects/vibecore-prod/triggers/app:webhook?key=prod',
     GCP_OAUTH_TOKEN: 'ya29.production-token-123456',
+    CLOUD_RUN_DEPLOY_TARGET_DEDICATED: 'true',
+    CLOUD_RUN_DEPLOY_TARGET_VIBECORE_PROJECT_ID: 'project_provider_target_cloud_run',
     OPENAI_API_KEY: 'sk-live-openai-prod-123456',
     OTEL_SERVICE_NAME: 'vibecore-api',
     OTEL_EXPORTER_OTLP_ENDPOINT: 'https://otel.company.com/v1/traces',

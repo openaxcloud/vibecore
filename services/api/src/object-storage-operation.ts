@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 
 import { Prisma } from '@vibecore/database';
 import type { AccountPurgeProjectDeletionAuthority } from './account-purge.js';
+import { finalizeProviderDeployHooksForProjectDeletion } from './provider-deploy-hook-finalizer.js';
 
 export const OBJECT_STORAGE_OPERATION_KINDS = [
   'TENANT_MUTATION',
@@ -3704,6 +3705,7 @@ export async function finalizeObjectStorageOperation(
     await tx.$executeRaw`DELETE FROM "ProjectRuntimeEffect" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "RegistryMutationOperation" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
     await tx.$executeRaw`DELETE FROM "AppImageBuildOperation" WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}`;
+    await finalizeProviderDeployHooksForProjectDeletion(tx, permanentReceipt.scope.projectIdSnapshot);
     await tx.$executeRaw`DELETE FROM "Project" WHERE "id" = ${permanentReceipt.scope.projectIdSnapshot}`;
     const cascade = await tx.$queryRaw<
       Array<{
@@ -3720,6 +3722,7 @@ export async function finalizeObjectStorageOperation(
         databaseErasurePlanRetained: boolean;
         registryMutationRowsAbsent: boolean;
         appImageBuildRowsAbsent: boolean;
+        providerDeployHookRowsAbsent: boolean;
       }>
     >(Prisma.sql`
       SELECT
@@ -3780,7 +3783,11 @@ export async function finalizeObjectStorageOperation(
         NOT EXISTS (
           SELECT 1 FROM "AppImageBuildOperation"
           WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
-        ) AS "appImageBuildRowsAbsent"
+        ) AS "appImageBuildRowsAbsent",
+        NOT EXISTS (
+          SELECT 1 FROM "ProviderDeployHookOperation"
+          WHERE "projectId" = ${permanentReceipt.scope.projectIdSnapshot}
+        ) AS "providerDeployHookRowsAbsent"
     `);
     if (
       cascade[0]?.projectReleaseReferencesAbsent !== true ||
@@ -3795,7 +3802,8 @@ export async function finalizeObjectStorageOperation(
       cascade[0]?.databaseRestoreRowsAbsent !== true ||
       cascade[0]?.databaseErasurePlanRetained !== true ||
       cascade[0]?.registryMutationRowsAbsent !== true ||
-      cascade[0]?.appImageBuildRowsAbsent !== true
+      cascade[0]?.appImageBuildRowsAbsent !== true ||
+      cascade[0]?.providerDeployHookRowsAbsent !== true
     ) {
       throw operationError(
         'OBJECT_STORAGE_OPERATION_PROJECT_CASCADE_INCOMPLETE',
@@ -3822,6 +3830,7 @@ export async function finalizeObjectStorageOperation(
             databaseErasurePlanRetained: true,
             registryMutationRowsAbsent: true,
             appImageBuildRowsAbsent: true,
+            providerDeployHookRowsAbsent: true,
           },
         },
       },
@@ -3991,7 +4000,8 @@ export async function getPermanentDeletionReplay(
     databaseCascade.databaseRestoreRowsAbsent !== true ||
     databaseCascade.databaseErasurePlanRetained !== true ||
     databaseCascade.registryMutationRowsAbsent !== true ||
-    databaseCascade.appImageBuildRowsAbsent !== true
+    databaseCascade.appImageBuildRowsAbsent !== true ||
+    databaseCascade.providerDeployHookRowsAbsent !== true
   ) {
     throw operationError(
       'OBJECT_STORAGE_OPERATION_PERMANENT_ERASURE_PROOF_INCOMPLETE',

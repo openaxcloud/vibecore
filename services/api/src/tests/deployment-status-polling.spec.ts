@@ -101,6 +101,9 @@ describe('non-static deploy status (endpoint)', () => {
   }
 
   async function createVercelDeploy(app: any, auth: any, projectId: string) {
+    process.env.VERCEL_PROJECT_ID = 'vercel-project';
+    process.env.VERCEL_DEPLOY_TARGET_DEDICATED = 'true';
+    process.env.VERCEL_DEPLOY_TARGET_VIBECORE_PROJECT_ID = projectId;
     return app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments`,
@@ -115,7 +118,7 @@ describe('non-static deploy status (endpoint)', () => {
     });
   }
 
-  it('marks READY immediately when the provider status cannot be polled (no token)', async () => {
+  it('keeps an externally accepted hook BUILDING when no exact GET credentials are available', async () => {
     const { app, auth, projectId } = await setup();
     mockFetch(
       () =>
@@ -127,8 +130,8 @@ describe('non-static deploy status (endpoint)', () => {
 
     const deploy = await createVercelDeploy(app, auth, projectId);
     expect(deploy.statusCode).toBe(201);
-    expect(deploy.json().deployment.status).toBe('READY');
-    expect(deploy.json().deployment.productionUrl).toContain('vercel');
+    expect(deploy.json().deployment.status).toBe('BUILDING');
+    expect(deploy.json().deployment.productionUrl ?? null).toBeNull();
     await app.close();
   });
 
@@ -145,7 +148,7 @@ describe('non-static deploy status (endpoint)', () => {
         });
       }
       if (url.startsWith('https://api.vercel.com/')) {
-        return new Response(JSON.stringify({ readyState: vercelState, url: 'my-app.vercel.app' }), {
+        return new Response(JSON.stringify({ id: 'dpl_42', projectId: 'vercel-project', readyState: vercelState, url: 'my-app.vercel.app' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         });
@@ -190,7 +193,7 @@ describe('non-static deploy status (endpoint)', () => {
           headers: { 'content-type': 'application/json' },
         });
       }
-      return new Response(JSON.stringify({ readyState: 'ERROR' }), {
+      return new Response(JSON.stringify({ id: 'dpl_err', projectId: 'vercel-project', readyState: 'ERROR' }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       });

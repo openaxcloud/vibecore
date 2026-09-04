@@ -135,6 +135,7 @@ model User {
   rollbackOperations          RollbackIdempotencyRequest[]   @relation("RollbackOperationActor")
   reservedVmOperations        ReservedVmOperation[]          @relation("ReservedVmOperationActor")
   reservedVmBillingPeriods    ReservedVmBillingPeriod[]      @relation("ReservedVmBillingPeriodActor")
+  providerDeployHookOperations ProviderDeployHookOperation[] @relation("ProviderDeployHookActor")
   cloudOperations             CloudOperation[]
   projectCheckpoints          ProjectCheckpoint[]            @relation("ProjectCheckpointCreator")
   invitedOrganizationMembers  OrganizationMember[]           @relation("OrganizationMemberInviter")
@@ -492,6 +493,8 @@ model Project {
   objectStorageVersionGcSchedule   ObjectStorageVersionGcSchedule?
   runtimeEffects                   ProjectRuntimeEffect[]
   appImageBuilds                   AppImageBuildOperation[]
+  providerDeployHookTargetBindings ProviderDeployHookTargetBinding[]
+  providerDeployHookOperations     ProviderDeployHookOperation[]
   registryMutations                RegistryMutationOperation[]
 
   @@unique([organizationId, slug])
@@ -1462,11 +1465,125 @@ model Deployment {
   reservedVmBillingReservation   LedgerReservation?        @relation("DeploymentReservedVmBillingReservation", fields: [reservedVmBillingReservationId], references: [id], onDelete: Restrict)
   reservedVmOperations           ReservedVmOperation[]
   reservedVmBillingPeriods       ReservedVmBillingPeriod[]
+  providerDeployHookOperation    ProviderDeployHookOperation?
 
   @@index([projectId])
   @@index([projectId, workspaceId])
   @@index([projectId, environmentName])
   @@index([projectId, status])
+}
+
+/// Set-once, non-secret provider target authority. A provider target can belong
+/// to exactly one Vibecore project; destructive recovery additionally requires
+/// the dedicated bit captured under the project/release lock at first use.
+model ProviderDeployHookTargetBinding {
+  id             String   @id
+  projectId      String
+  provider       String
+  targetHash     String
+  targetSnapshot Json
+  dedicated      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  project        Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  operations     ProviderDeployHookOperation[]
+
+  @@unique([provider, targetHash])
+  @@unique([projectId, provider])
+  @@index([projectId, createdAt])
+}
+
+/// Durable, single-attempt ledger for an external deployment hook. The stable
+/// operation tag and PostgreSQL timestamp are committed before a provider POST;
+/// release-fenced transitions make a lost response recoverable without a blind
+/// second POST. Hook URLs and credentials are deliberately never persisted.
+model ProviderDeployHookOperation {
+  id                    String   @id
+  projectId             String
+  deploymentId          String   @unique
+  organizationId        String
+  ownershipEpoch        Int
+  actorUserId            String?
+  intentKind             String
+  provider               String
+  publishRegion          String?
+  projectManifestDigest String
+  targetBindingId        String
+  providerTargetHash     String
+  providerTargetSnapshot Json
+  providerTargetDedicated Boolean
+  operationTag           String   @unique
+  intentHash             String
+  phase                  String   @default("PREPARED")
+  dispatchAttempts       Int      @default(0)
+  providerBuildId        String?
+  providerUrl            String?
+  outcomeStatus          String?
+  providerTerminalStatus String?
+  lastHttpStatus         Int?
+  lastErrorCode          String?
+  lastErrorMessage       String?
+  manualRecoveryReason   String?
+  preparedAt             DateTime @default(now())
+  dispatchCommittedAt    DateTime?
+  identifiedAt           DateTime?
+  terminalAt             DateTime?
+  manualRecoveryAt       DateTime?
+  decommissionedAt       DateTime?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  project                Project  @relation(fields: [projectId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  deployment             Deployment @relation(fields: [deploymentId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  actor                  User?       @relation("ProviderDeployHookActor", fields: [actorUserId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  targetBinding          ProviderDeployHookTargetBinding @relation(fields: [targetBindingId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  attempts               ProviderDeployHookAttempt[]
+  recoveries             ProviderDeployHookRecovery[]
+
+  @@index([projectId, phase, createdAt])
+  @@index([organizationId, phase, createdAt])
+  @@index([provider, phase, createdAt])
+  @@index([targetBindingId, phase, createdAt])
+}
+
+/// One append-only audit row per provider POST. The first transition records
+/// DISPATCHING before network I/O; the outcome fields may be filled exactly
+/// once, and this saga intentionally never creates attempt number two.
+model ProviderDeployHookAttempt {
+  operationId       String
+  attemptNumber     Int
+  attemptId         String   @unique
+  requestId         String?
+  state             String   @default("DISPATCHING")
+  httpStatus        Int?
+  providerBuildId   String?
+  providerUrl       String?
+  providerTerminalStatus String?
+  errorCode         String?
+  errorMessage      String?
+  dispatchStartedAt DateTime @default(now())
+  settledAt         DateTime?
+  operation         ProviderDeployHookOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([operationId, attemptNumber])
+  @@index([operationId, state, dispatchStartedAt])
+}
+
+/// Append-only operator recovery proof for a MANUAL_RECOVERY hook. The API
+/// performs a provider GET and the database binds its exact target/tag/build
+/// observation to an immutable platform-admin AuditLog row.
+model ProviderDeployHookRecovery {
+  id            String                      @id @default(cuid())
+  operationId   String
+  attemptNumber Int
+  providerBuildId String?
+  resolution    String
+  auditLogId    String                      @unique
+  evidence      Json
+  createdAt     DateTime                    @default(now())
+  operation     ProviderDeployHookOperation @relation(fields: [operationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  auditLog      AuditLog                    @relation(fields: [auditLogId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+  @@unique([operationId, attemptNumber])
+  @@index([operationId, createdAt])
 }
 
 // Durable saga for Reserved VM create/change/redeploy/decommission. PostgreSQL clock leases and the
@@ -1831,6 +1948,7 @@ model AuditLog {
   organization               Organization?              @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   actor                      User?                      @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
   registryMutationRecoveries RegistryMutationRecovery[]
+  providerDeployHookRecoveries ProviderDeployHookRecovery[]
 
   @@index([organizationId])
   @@index([actorUserId])

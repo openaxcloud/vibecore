@@ -7,7 +7,7 @@ import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
 import { DEPLOYMENT_ACCESS_MODES } from './deployment-access.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
 import { withStaticDeploymentStorageLock, withStaticDeploymentStorageLocks } from './static-deployment-storage-lock.js';
-import type { DeploymentRecord, ProjectRecord } from './store.js';
+import type { DeploymentRecord, ProjectRecord, ProviderDeployHookRecoveryObservation } from './store.js';
 import type { TransactionalLocale } from './transactional-i18n.js';
 
 export const deploymentProviders = [
@@ -319,6 +319,10 @@ export interface ProviderHookResult {
   buildId?: string;
   status: 'queued' | 'started' | 'failed';
   log: string;
+  outcome?: 'accepted' | 'rejected' | 'ambiguous';
+  httpStatus?: number;
+  errorCode?: string;
+  echoedOperationTag?: string;
 }
 
 interface HookSpec {
@@ -327,13 +331,125 @@ interface HookSpec {
   body: string;
 }
 
+export interface ProviderDeployHookTargetSnapshot {
+  targetHash: string;
+  target: Record<string, string>;
+}
+
+function targetUrlHash(value: string | undefined): string {
+  return value ? `sha256:${createHash('sha256').update(value).digest('hex')}` : 'unconfigured';
+}
+
+function cloudBuildTriggerTarget(value: string | undefined): Record<string, string> {
+  if (!value) return { origin: 'unconfigured', projectId: 'unconfigured', location: 'unconfigured', triggerId: 'unconfigured' };
+  try {
+    const parsed = new URL(value);
+    const match = parsed.pathname.match(/\/v1\/projects\/([^/]+)\/locations\/([^/]+)\/triggers\/([^/:]+):run$/u);
+    if (!match) {
+      return { origin: 'unconfigured', projectId: 'unconfigured', location: 'unconfigured', triggerId: 'unconfigured' };
+    }
+    return {
+      origin: parsed.origin,
+      projectId: decodeURIComponent(match[1]!),
+      location: decodeURIComponent(match[2]!),
+      triggerId: decodeURIComponent(match[3]!),
+    };
+  } catch {
+    return { origin: 'unconfigured', projectId: 'unconfigured', location: 'unconfigured', triggerId: 'unconfigured' };
+  }
+}
+
+/** Canonical non-secret provider target captured before PREPARED. */
+export function providerDeployHookTargetSnapshot(
+  provider: (typeof deploymentProviders)[number],
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): ProviderDeployHookTargetSnapshot {
+  const target = (() => {
+    if (provider === 'vercel') {
+      return {
+        hookUrlHash: targetUrlHash(env.VERCEL_DEPLOY_HOOK_URL),
+        projectId: env.VERCEL_PROJECT_ID ?? 'unconfigured',
+        teamId: env.VERCEL_TEAM_ID ?? 'personal',
+      };
+    }
+    if (provider === 'netlify') {
+      return {
+        hookUrlHash: targetUrlHash(env.NETLIFY_BUILD_HOOK_URL),
+        siteId: env.NETLIFY_SITE_ID ?? 'unconfigured',
+      };
+    }
+    if (provider === 'cloudflare-pages') {
+      return {
+        hookUrlHash: targetUrlHash(env.CLOUDFLARE_DEPLOY_HOOK_URL),
+        accountId: env.CLOUDFLARE_ACCOUNT_ID ?? 'unconfigured',
+        project: env.CLOUDFLARE_PAGES_PROJECT ?? 'unconfigured',
+      };
+    }
+    if (provider === 'github-pages') {
+      return {
+        repository: env.GITHUB_PAGES_REPO ?? 'unconfigured',
+        workflow: env.GITHUB_PAGES_WORKFLOW ?? 'unconfigured',
+        ref: env.GITHUB_PAGES_REF ?? 'main',
+      };
+    }
+    if (provider === 'google-cloud-run') {
+      return {
+        triggerUrlHash: targetUrlHash(env.CLOUD_RUN_BUILD_TRIGGER_URL),
+        ...cloudBuildTriggerTarget(env.CLOUD_RUN_BUILD_TRIGGER_URL),
+        sourceBranch: env.CLOUD_RUN_SOURCE_BRANCH ?? 'main',
+      };
+    }
+    if (provider === 'docker') {
+      return {
+        triggerUrlHash: targetUrlHash(env.DOCKER_BUILD_TRIGGER_URL),
+        ...cloudBuildTriggerTarget(env.DOCKER_BUILD_TRIGGER_URL),
+        registry: env.DOCKER_REGISTRY_URL ?? 'gcr.io',
+        sourceBranch: env.DOCKER_SOURCE_BRANCH ?? 'main',
+      };
+    }
+    return { provider };
+  })();
+  const canonical = JSON.stringify(
+    Object.fromEntries(Object.entries(target).sort(([left], [right]) => left.localeCompare(right))),
+  );
+  return {
+    target,
+    targetHash: `sha256:${createHash('sha256').update(`${provider}:${canonical}`).digest('hex')}`,
+  };
+}
+
+export function providerDeployHookTargetIsConfigured(snapshot: ProviderDeployHookTargetSnapshot): boolean {
+  return Object.values(snapshot.target).every((value) => value !== 'unconfigured');
+}
+
+export function providerDeployHookTargetIsDedicated(
+  provider: string,
+  projectId: string,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): boolean {
+  const configuration = {
+    vercel: ['VERCEL_DEPLOY_TARGET_DEDICATED', 'VERCEL_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+    netlify: ['NETLIFY_DEPLOY_TARGET_DEDICATED', 'NETLIFY_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+    'github-pages': ['GITHUB_PAGES_TARGET_DEDICATED', 'GITHUB_PAGES_TARGET_VIBECORE_PROJECT_ID'],
+    'cloudflare-pages': ['CLOUDFLARE_PAGES_TARGET_DEDICATED', 'CLOUDFLARE_PAGES_TARGET_VIBECORE_PROJECT_ID'],
+    'google-cloud-run': ['CLOUD_RUN_DEPLOY_TARGET_DEDICATED', 'CLOUD_RUN_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+    docker: ['DOCKER_DEPLOY_TARGET_DEDICATED', 'DOCKER_DEPLOY_TARGET_VIBECORE_PROJECT_ID'],
+  } as const;
+  const target = configuration[provider as keyof typeof configuration];
+  return Boolean(target && env[target[0]] === 'true' && env[target[1]] === projectId);
+}
+
 function buildHookSpec(
   provider: (typeof deploymentProviders)[number],
   env: Record<string, string | undefined>,
-  options: { publishRegion?: string } = {},
+  options: { publishRegion?: string; operationTag: string; deployedAt: string },
 ): HookSpec | undefined {
-  const now = new Date().toISOString();
-  const baseBody = { source: 'vibecore', deployedAt: now, publishRegion: options.publishRegion };
+  const baseBody = {
+    source: 'vibecore',
+    operationTag: options.operationTag,
+    deployedAt: options.deployedAt,
+    publishRegion: options.publishRegion,
+  };
 
   if (provider === 'vercel' && env.VERCEL_DEPLOY_HOOK_URL) {
     return {
@@ -344,8 +460,10 @@ function buildHookSpec(
   }
 
   if (provider === 'netlify' && env.NETLIFY_BUILD_HOOK_URL) {
+    const url = new URL(env.NETLIFY_BUILD_HOOK_URL);
+    url.searchParams.set('trigger_title', options.operationTag);
     return {
-      url: env.NETLIFY_BUILD_HOOK_URL,
+      url: url.toString(),
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(baseBody),
     };
@@ -371,7 +489,12 @@ function buildHookSpec(
       },
       body: JSON.stringify({
         ref,
-        inputs: { source: 'vibecore', deployedAt: now, publishRegion: options.publishRegion },
+        inputs: {
+          source: 'vibecore',
+          operationTag: options.operationTag,
+          deployedAt: options.deployedAt,
+          publishRegion: options.publishRegion,
+        },
       }),
     };
   }
@@ -385,7 +508,12 @@ function buildHookSpec(
       },
       body: JSON.stringify({
         source: { branchName: env.CLOUD_RUN_SOURCE_BRANCH || 'main' },
-        substitutions: { _SOURCE: 'vibecore', _DEPLOYED_AT: now, _REGION: options.publishRegion },
+        substitutions: {
+          _SOURCE: 'vibecore',
+          _VIBECORE_OPERATION_TAG: options.operationTag,
+          _DEPLOYED_AT: options.deployedAt,
+          _REGION: options.publishRegion,
+        },
       }),
     };
   }
@@ -401,7 +529,8 @@ function buildHookSpec(
         source: { branchName: env.DOCKER_SOURCE_BRANCH || 'main' },
         substitutions: {
           _SOURCE: 'vibecore',
-          _DEPLOYED_AT: now,
+          _VIBECORE_OPERATION_TAG: options.operationTag,
+          _DEPLOYED_AT: options.deployedAt,
           _DOCKER_REGISTRY: env.DOCKER_REGISTRY_URL || 'gcr.io',
           _REGION: options.publishRegion,
         },
@@ -418,26 +547,41 @@ function parseHookPayload(
 ): {
   url?: string;
   buildId?: string;
+  echoedOperationTag?: string;
 } {
-  const body = (payload as Record<string, any>) ?? {};
+  const body = recoveryObject(payload);
+  const echoedOperationTag =
+    body.operationTag ??
+    body.operation_tag ??
+    recoveryObject(body.job).operationTag ??
+    recoveryObject(body.result).operationTag ??
+    recoveryObject(recoveryObject(recoveryObject(body.metadata).build).substitutions)._VIBECORE_OPERATION_TAG ??
+    recoveryObject(recoveryObject(body.build).substitutions)._VIBECORE_OPERATION_TAG;
 
   if (provider === 'github-pages') {
-    return { buildId: body.run_id ? String(body.run_id) : undefined };
-  }
-
-  if (provider === 'google-cloud-run' || provider === 'docker') {
-    const meta = body.metadata?.build ?? body.build ?? body;
     return {
-      buildId: meta?.id,
-      url: meta?.results?.images?.[0]?.name,
+      buildId: body.run_id ? String(body.run_id) : undefined,
+      echoedOperationTag: typeof echoedOperationTag === 'string' ? echoedOperationTag : undefined,
     };
   }
 
-  const job = body.job ?? body.result ?? body;
+  if (provider === 'google-cloud-run' || provider === 'docker') {
+    const meta = recoveryObject(recoveryObject(body.metadata).build ?? body.build ?? body);
+    const results = recoveryObject(meta.results);
+    const images = Array.isArray(results.images) ? results.images : [];
+    return {
+      buildId: meta?.id,
+      url: recoveryObject(images[0]).name,
+      echoedOperationTag: typeof echoedOperationTag === 'string' ? echoedOperationTag : undefined,
+    };
+  }
+
+  const job = recoveryObject(body.job ?? body.result ?? body);
 
   return {
     url: job?.url ?? job?.deploy_ssl_url ?? job?.deploy_url ?? job?.deployment?.url,
     buildId: job?.id ?? job?.deploy_id ?? job?.run_id,
+    echoedOperationTag: typeof echoedOperationTag === 'string' ? echoedOperationTag : undefined,
   };
 }
 
@@ -532,8 +676,36 @@ export async function triggerProviderDeployHook(
   provider: (typeof deploymentProviders)[number],
   fetchImpl: typeof fetch = fetch,
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
-  options: { publishRegion?: string } = {},
+  options?: {
+    publishRegion?: string;
+    operationTag: string;
+    deployedAt: string;
+    expectedTargetHash: string;
+    signal?: AbortSignal;
+  },
 ): Promise<ProviderHookResult | undefined> {
+  if (provider === 'static' || provider === 'server') return undefined;
+  if (
+    !options ||
+    !/^ecode-deploy-[a-f0-9]{40}$/u.test(options.operationTag) ||
+    !/^sha256:[a-f0-9]{64}$/u.test(options.expectedTargetHash) ||
+    !Number.isFinite(Date.parse(options.deployedAt)) ||
+    new Date(Date.parse(options.deployedAt)).toISOString() !== options.deployedAt
+  ) {
+    throw Object.assign(new Error('Durable provider deployment identity is required before dispatch.'), {
+      code: 'PROVIDER_DEPLOY_HOOK_IDENTITY_REQUIRED',
+      statusCode: 500,
+    });
+  }
+  const currentTarget = providerDeployHookTargetSnapshot(provider, env);
+  if (currentTarget.targetHash !== options.expectedTargetHash) {
+    return {
+      status: 'failed',
+      outcome: 'ambiguous',
+      log: `${provider}: configured deployment target changed after durable preparation`,
+      errorCode: 'PROVIDER_DEPLOY_TARGET_DRIFT',
+    };
+  }
   const spec = buildHookSpec(provider, env, options);
 
   if (!spec) {
@@ -542,6 +714,9 @@ export async function triggerProviderDeployHook(
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
+  const abortFromAuthority = () => controller.abort(options.signal?.reason);
+  options.signal?.addEventListener('abort', abortFromAuthority, { once: true });
+  if (options.signal?.aborted) abortFromAuthority();
 
   try {
     const response = await fetchImpl(spec.url, {
@@ -552,9 +727,23 @@ export async function triggerProviderDeployHook(
     });
 
     if (!response.ok) {
+      /*
+       * Only bounded client errors prove the provider rejected the request
+       * before starting work. Timeouts, throttling, conflicts, redirects and
+       * every 5xx are ambiguous: the provider may have launched a build before
+       * its edge returned the error, so they can never unlock hard-delete.
+       */
+      const provenRejection = new Set([400, 401, 403, 404, 405, 410, 411, 413, 414, 415, 422]).has(
+        response.status,
+      );
       return {
         status: 'failed',
         log: `${provider}: deploy hook responded with ${response.status}`,
+        outcome: provenRejection ? 'rejected' : 'ambiguous',
+        httpStatus: response.status,
+        errorCode: provenRejection
+          ? `PROVIDER_DEPLOY_HTTP_${response.status}`
+          : `PROVIDER_DEPLOY_HTTP_AMBIGUOUS_${response.status}`,
       };
     }
 
@@ -568,19 +757,38 @@ export async function triggerProviderDeployHook(
 
     const parsed = parseHookPayload(provider, payload);
 
+    if (parsed.echoedOperationTag && parsed.echoedOperationTag !== options.operationTag) {
+      return {
+        status: 'failed',
+        log: `${provider}: deploy hook returned a mismatched durable operation identity`,
+        outcome: 'ambiguous',
+        ...(parsed.buildId ? { buildId: parsed.buildId } : {}),
+        ...(parsed.url ? { url: parsed.url } : {}),
+        httpStatus: response.status,
+        errorCode: 'PROVIDER_DEPLOY_IDENTITY_MISMATCH',
+        echoedOperationTag: parsed.echoedOperationTag,
+      };
+    }
+
     return {
       url: parsed.url,
       buildId: parsed.buildId,
       status: 'queued',
       log: `${provider}: deploy hook accepted (id=${parsed.buildId ?? 'unknown'})`,
+      outcome: 'accepted',
+      httpStatus: response.status,
+      ...(parsed.echoedOperationTag ? { echoedOperationTag: parsed.echoedOperationTag } : {}),
     };
   } catch (error: any) {
     return {
       status: 'failed',
       log: `${provider}: deploy hook failed: ${error?.message ?? 'unknown error'}`,
+      outcome: 'ambiguous',
+      errorCode: options.signal?.aborted ? 'PROVIDER_DEPLOY_AUTHORITY_ABORTED' : 'PROVIDER_DEPLOY_RESPONSE_LOST',
     };
   } finally {
     clearTimeout(timeout);
+    options.signal?.removeEventListener('abort', abortFromAuthority);
   }
 }
 
@@ -642,6 +850,44 @@ export function canPollDeploymentStatus(
   env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
 ): boolean {
   return Boolean(buildId) && buildStatusSpec(provider, buildId as string, env) !== undefined;
+}
+
+/** Whether an IDENTIFIED hook has a bounded exact GET path in this runtime. */
+export function canReconcileProviderDeployHook(
+  provider: string,
+  buildId: string | undefined,
+  env: Record<string, string | undefined> = process.env as Record<string, string | undefined>,
+): boolean {
+  if (!buildId) return false;
+  if (provider === 'vercel') return Boolean(env.VERCEL_API_TOKEN && env.VERCEL_PROJECT_ID);
+  if (provider === 'netlify') return Boolean(env.NETLIFY_AUTH_TOKEN && env.NETLIFY_SITE_ID);
+  if (provider === 'cloudflare-pages') {
+    return Boolean(env.CLOUDFLARE_API_TOKEN && env.CLOUDFLARE_ACCOUNT_ID && env.CLOUDFLARE_PAGES_PROJECT);
+  }
+  if (provider === 'github-pages') {
+    return Boolean(
+      env.GITHUB_DEPLOY_TOKEN &&
+        env.GITHUB_PAGES_REPO &&
+        env.GITHUB_PAGES_OPERATION_TAG_RUN_NAME === 'true',
+    );
+  }
+  if (provider === 'google-cloud-run' || provider === 'docker') {
+    const triggerUrl = provider === 'google-cloud-run' ? env.CLOUD_RUN_BUILD_TRIGGER_URL : env.DOCKER_BUILD_TRIGGER_URL;
+    return Boolean(
+      env.GCP_OAUTH_TOKEN &&
+        triggerUrl &&
+        /\/v1\/projects\/[^/]+\/locations\/[^/]+\/triggers\/[^/:]+:run$/u.test(
+          (() => {
+            try {
+              return new URL(triggerUrl as string).pathname;
+            } catch {
+              return '';
+            }
+          })(),
+        ),
+    );
+  }
+  return false;
 }
 
 function parseStatusPayload(provider: string, payload: unknown): ProviderStatusResult {
@@ -736,6 +982,338 @@ export async function pollProviderDeploymentStatus(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function providerRecoveryError(code: string, message: string, statusCode = 409): Error {
+  return Object.assign(new Error(message), { code, statusCode });
+}
+
+async function readProviderRecoveryPayload(
+  url: string,
+  headers: Record<string, string>,
+  fetchImpl: typeof fetch,
+): Promise<Record<string, unknown>> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10_000);
+  try {
+    const response = await fetchImpl(url, { headers: { ...headers, accept: 'application/json' }, signal: controller.signal });
+    if (!response.ok) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        `Provider identity lookup responded with ${response.status}.`,
+        response.status >= 500 ? 503 : 409,
+      );
+    }
+    const payload = await response.json().catch(() => undefined);
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'Provider identity lookup returned no verifiable object.',
+      );
+    }
+    return payload as Record<string, unknown>;
+  } catch (error) {
+    if ((error as { code?: string }).code) throw error;
+    throw providerRecoveryError(
+      'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+      'Provider identity lookup could not be completed.',
+      503,
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function recoveryObject(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function recoveryString(value: unknown): string {
+  return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
+}
+
+/**
+ * Verify an operator-supplied provider id using a live GET. Recovery succeeds
+ * only when the provider returns the configured target and either this ledger's
+ * stable operation tag or, for an explicitly dedicated Vercel/Cloudflare
+ * target, the exact target-bound deployment identity.
+ */
+export async function pollProviderDeployHookRecoveryIdentity(input: {
+  provider: string;
+  providerBuildId: string;
+  operationTag: string;
+  expectedTargetHash?: string;
+  expectedProjectId?: string;
+  fetchImpl?: typeof fetch;
+  env?: Record<string, string | undefined>;
+}): Promise<ProviderDeployHookRecoveryObservation> {
+  const fetchImpl = input.fetchImpl ?? fetch;
+  const env = input.env ?? (process.env as Record<string, string | undefined>);
+  if (!input.providerBuildId.trim() || !/^ecode-deploy-[a-f0-9]{40}$/u.test(input.operationTag)) {
+    throw providerRecoveryError('PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_INVALID', 'Recovery identity is invalid.', 400);
+  }
+  const currentTarget = providerDeployHookTargetSnapshot(
+    input.provider as (typeof deploymentProviders)[number],
+    env,
+  );
+  if (input.expectedTargetHash && currentTarget.targetHash !== input.expectedTargetHash) {
+    throw providerRecoveryError(
+      'PROVIDER_DEPLOY_HOOK_TARGET_DRIFT',
+      'The configured provider target changed after durable preparation.',
+    );
+  }
+  if (input.expectedProjectId && !providerDeployHookTargetIsDedicated(input.provider, input.expectedProjectId, env)) {
+    throw providerRecoveryError(
+      'PROVIDER_DEPLOY_HOOK_TARGET_DRIFT',
+      'The provider target is no longer dedicated to this project.',
+    );
+  }
+
+  if (input.provider === 'vercel') {
+    if (!env.VERCEL_API_TOKEN || !env.VERCEL_PROJECT_ID) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Vercel recovery target is not configured.',
+        503,
+      );
+    }
+    const teamSuffix = env.VERCEL_TEAM_ID ? `?teamId=${encodeURIComponent(env.VERCEL_TEAM_ID)}` : '';
+    const body = await readProviderRecoveryPayload(
+      `https://api.vercel.com/v13/deployments/${encodeURIComponent(input.providerBuildId)}${teamSuffix}`,
+      { authorization: `Bearer ${env.VERCEL_API_TOKEN}` },
+      fetchImpl,
+    );
+    const readyState = recoveryString(body.readyState ?? body.status).toUpperCase();
+    const project = recoveryObject(body.project);
+    const returnedProjectId = recoveryString(body.projectId ?? project.id);
+    const returnedTeamId = recoveryString(recoveryObject(body.team).id ?? body.teamId);
+    if (
+      recoveryString(body.uid ?? body.id) !== input.providerBuildId ||
+      returnedProjectId !== env.VERCEL_PROJECT_ID ||
+      (env.VERCEL_TEAM_ID && returnedTeamId !== env.VERCEL_TEAM_ID)
+    ) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'Vercel deployment id and dedicated project target did not match.',
+      );
+    }
+    const rawUrl = recoveryString(body.url);
+    return {
+      resolution: 'EXACT_IDENTITY', provider: 'vercel', providerBuildId: input.providerBuildId,
+      providerState: readyState === 'READY' ? 'ready' : ['ERROR', 'CANCELED'].includes(readyState) ? 'failed' : 'building',
+      ...(rawUrl ? { providerUrl: rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}` } : {}),
+      operationTag: input.operationTag, identityKind: 'DEDICATED_VERCEL_TARGET',
+      providerTarget: currentTarget.target, providerTargetHash: currentTarget.targetHash,
+    };
+  }
+
+  if (input.provider === 'cloudflare-pages') {
+    if (!env.CLOUDFLARE_API_TOKEN || !env.CLOUDFLARE_ACCOUNT_ID || !env.CLOUDFLARE_PAGES_PROJECT) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Cloudflare Pages recovery target is not configured.',
+        503,
+      );
+    }
+    const body = await readProviderRecoveryPayload(
+      `https://api.cloudflare.com/client/v4/accounts/${encodeURIComponent(env.CLOUDFLARE_ACCOUNT_ID)}/pages/projects/${encodeURIComponent(env.CLOUDFLARE_PAGES_PROJECT)}/deployments/${encodeURIComponent(input.providerBuildId)}`,
+      { authorization: `Bearer ${env.CLOUDFLARE_API_TOKEN}` }, fetchImpl,
+    );
+    const result = recoveryObject(body.result ?? body);
+    const stage = recoveryObject(result.latest_stage);
+    const status = recoveryString(stage.status).toLowerCase();
+    if (
+      body.success === false ||
+      recoveryString(result.id) !== input.providerBuildId ||
+      recoveryString(result.project_name) !== env.CLOUDFLARE_PAGES_PROJECT
+    ) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'Cloudflare deployment id and dedicated Pages project did not match.',
+      );
+    }
+    const providerUrl = recoveryString(result.url);
+    return {
+      resolution: 'EXACT_IDENTITY', provider: 'cloudflare-pages', providerBuildId: input.providerBuildId,
+      providerState: stage.name === 'deploy' && status === 'success' ? 'ready' : ['failure', 'canceled'].includes(status) ? 'failed' : 'building',
+      ...(providerUrl ? { providerUrl } : {}), operationTag: input.operationTag,
+      identityKind: 'DEDICATED_CLOUDFLARE_TARGET', providerTarget: currentTarget.target, providerTargetHash: currentTarget.targetHash,
+    };
+  }
+
+  if (input.provider === 'netlify') {
+    if (!env.NETLIFY_AUTH_TOKEN || !env.NETLIFY_SITE_ID) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Netlify recovery credentials and site target are not configured.',
+        503,
+      );
+    }
+    const body = await readProviderRecoveryPayload(
+      `https://api.netlify.com/api/v1/deploys/${encodeURIComponent(input.providerBuildId)}`,
+      { authorization: `Bearer ${env.NETLIFY_AUTH_TOKEN}` },
+      fetchImpl,
+    );
+    const state = recoveryString(body.state).toLowerCase();
+    const providerUrl = recoveryString(body.ssl_url ?? body.deploy_ssl_url ?? body.url);
+    if (
+      recoveryString(body.id) !== input.providerBuildId ||
+      recoveryString(body.site_id) !== env.NETLIFY_SITE_ID ||
+      recoveryString(body.title ?? body.trigger_title) !== input.operationTag
+    ) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'Netlify deploy id, site, and durable trigger title did not all match.',
+      );
+    }
+    return {
+      resolution: 'EXACT_IDENTITY',
+      provider: 'netlify',
+      providerBuildId: input.providerBuildId,
+      providerState: state === 'ready' ? 'ready' : ['error', 'rejected'].includes(state) ? 'failed' : 'building',
+      ...(providerUrl ? { providerUrl } : {}),
+      operationTag: input.operationTag,
+      identityKind: 'NETLIFY_TRIGGER_TITLE',
+      providerTarget: currentTarget.target,
+      providerTargetHash: currentTarget.targetHash,
+    };
+  }
+
+  if (input.provider === 'github-pages') {
+    if (!env.GITHUB_DEPLOY_TOKEN || !env.GITHUB_PAGES_REPO) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'GitHub recovery credentials and repository target are not configured.',
+        503,
+      );
+    }
+    const body = await readProviderRecoveryPayload(
+      `https://api.github.com/repos/${env.GITHUB_PAGES_REPO}/actions/runs/${encodeURIComponent(input.providerBuildId)}`,
+      { authorization: `Bearer ${env.GITHUB_DEPLOY_TOKEN}`, 'x-github-api-version': '2022-11-28' },
+      fetchImpl,
+    );
+    const status = recoveryString(body.status).toLowerCase();
+    const conclusion = recoveryString(body.conclusion).toLowerCase();
+    const repository = recoveryObject(body.repository);
+    const providerUrl = recoveryString(body.html_url);
+    if (
+      recoveryString(body.id) !== input.providerBuildId ||
+      recoveryString(repository.full_name) !== env.GITHUB_PAGES_REPO ||
+      recoveryString(body.path) !== `.github/workflows/${env.GITHUB_PAGES_WORKFLOW}` ||
+      recoveryString(body.display_title) !== input.operationTag
+    ) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'GitHub workflow run id, repository, and durable run name did not all match.',
+      );
+    }
+    return {
+      resolution: 'EXACT_IDENTITY',
+      provider: 'github-pages',
+      providerBuildId: input.providerBuildId,
+      providerState:
+        status !== 'completed' ? 'building' : conclusion === 'success' ? 'ready' : 'failed',
+      ...(providerUrl ? { providerUrl } : {}),
+      operationTag: input.operationTag,
+      identityKind: 'GITHUB_WORKFLOW_RUN_NAME',
+      providerTarget: currentTarget.target,
+      providerTargetHash: currentTarget.targetHash,
+    };
+  }
+
+  if (input.provider === 'google-cloud-run' || input.provider === 'docker') {
+    const triggerUrl =
+      input.provider === 'google-cloud-run' ? env.CLOUD_RUN_BUILD_TRIGGER_URL : env.DOCKER_BUILD_TRIGGER_URL;
+    if (!triggerUrl || !env.GCP_OAUTH_TOKEN) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Cloud Build recovery credentials and trigger target are not configured.',
+        503,
+      );
+    }
+    let parsed: URL;
+    try {
+      parsed = new URL(triggerUrl);
+    } catch {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Cloud Build trigger target is invalid.',
+        503,
+      );
+    }
+    const match = parsed.pathname.match(/\/v1\/projects\/([^/]+)\/locations\/([^/]+)\/triggers\/[^/:]+:run$/u);
+    if (!match) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_PROVIDER_UNAVAILABLE',
+        'Cloud Build trigger target is not an exact regional trigger URL.',
+        503,
+      );
+    }
+    const projectId = decodeURIComponent(match[1]!);
+    const location = decodeURIComponent(match[2]!);
+    const triggerId = recoveryString(currentTarget.target.triggerId);
+    const body = await readProviderRecoveryPayload(
+      `${parsed.origin}/v1/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}/builds/${encodeURIComponent(input.providerBuildId)}`,
+      { authorization: `Bearer ${env.GCP_OAUTH_TOKEN}` },
+      fetchImpl,
+    );
+    const status = recoveryString(body.status).toUpperCase();
+    const buildName = recoveryString(body.name);
+    const substitutions = recoveryObject(body.substitutions);
+    const results = recoveryObject(body.results);
+    const images = Array.isArray(results.images) ? results.images : [];
+    const image = recoveryString(recoveryObject(images[0]).name);
+    const expectedName = `projects/${projectId}/locations/${location}/builds/${input.providerBuildId}`;
+    if (
+      recoveryString(body.id) !== input.providerBuildId ||
+      buildName !== expectedName ||
+      recoveryString(body.projectId) !== projectId ||
+      recoveryString(body.buildTriggerId) !== triggerId ||
+      recoveryString(substitutions._VIBECORE_OPERATION_TAG) !== input.operationTag
+    ) {
+      throw providerRecoveryError(
+        'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+        'Cloud Build id, project, location, trigger, and durable substitution did not all match.',
+      );
+    }
+    const failedStatuses = ['FAILURE', 'INTERNAL_ERROR', 'TIMEOUT', 'CANCELLED', 'EXPIRED'];
+    return {
+      resolution: 'EXACT_IDENTITY',
+      provider: input.provider,
+      providerBuildId: input.providerBuildId,
+      providerState: status === 'SUCCESS' ? 'ready' : failedStatuses.includes(status) ? 'failed' : 'building',
+      ...(image ? { providerUrl: image } : {}),
+      operationTag: input.operationTag,
+      identityKind: 'CLOUD_BUILD_SUBSTITUTION',
+      providerTarget: currentTarget.target,
+      providerTargetHash: currentTarget.targetHash,
+    };
+  }
+
+  throw providerRecoveryError(
+    'PROVIDER_DEPLOY_HOOK_RECOVERY_IDENTITY_UNPROVABLE',
+    'This provider does not expose the durable hook identity through an exact lookup API.',
+  );
+}
+
+/**
+ * Deliberately unavailable: a timestamp window cannot prove which deployment
+ * belongs to one operation. Recovery uses an exact GET for a dedicated target;
+ * anything not provable that way remains MANUAL_RECOVERY with no DELETE I/O.
+ */
+export async function decommissionProviderDeployHookRecoveryTarget(input: {
+  provider: string;
+  operationTag: string;
+  windowStartedAt: string;
+  horizonAt: string;
+  fetchImpl?: typeof fetch;
+  env?: Record<string, string | undefined>;
+}): Promise<ProviderDeployHookRecoveryObservation> {
+  void input;
+  throw providerRecoveryError(
+    'PROVIDER_DEPLOY_HOOK_RECOVERY_MANUAL_REQUIRED',
+    'Timestamp-window decommission is unsafe; leave this provider operation in manual recovery.',
+  );
 }
 
 export function detectFramework(input: CreateDeploymentRequest) {
