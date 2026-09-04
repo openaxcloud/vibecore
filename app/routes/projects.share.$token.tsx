@@ -14,8 +14,10 @@
 
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { data as json } from 'react-router';
-import { useLoaderData } from 'react-router';
+import { isRouteErrorResponse, useLoaderData, useRouteError } from 'react-router';
 
+import type { ShareLinkErrorKind } from '~/components/share/ShareLinkErrorView';
+import { ShareLinkErrorView } from '~/components/share/ShareLinkErrorView';
 import { apiRequest, isApiResponse, redirect } from '~/lib/enterprise-api.server';
 import { legacyProjectIdePath } from '~/utils/project-url';
 
@@ -26,14 +28,21 @@ interface RedeemResponse {
 }
 
 interface LoaderData {
-  error?: string;
+  /*
+   * Typed error state (G29). `GET /collaboration/share-links/:token`
+   * distinguishes `SHARE_LINK_INVALID` (unknown token, expired, or revoked —
+   * the store collapses those into one 404) from `SHARE_LINK_PROJECT_MISSING`
+   * (link valid but the project was deleted). Each maps to branded copy
+   * rendered inside PublicShell.
+   */
+  errorKind?: ShareLinkErrorKind;
 }
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const token = params.token ?? '';
 
   if (!token) {
-    return json<LoaderData>({ error: 'Missing share token.' }, { status: 400 });
+    return json<LoaderData>({ errorKind: 'invalid' }, { status: 400 });
   }
 
   try {
@@ -46,30 +55,61 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     return redirect(legacyProjectIdePath(result.share.projectId));
   } catch (error) {
     if (isApiResponse(error, 404)) {
-      return json<LoaderData>({ error: 'This share link is invalid, expired, or has been revoked.' }, { status: 404 });
+      /*
+       * Read the API error code to tell "link gone" from "project gone".
+       * `apiRequest` re-wraps the upstream body as `{ ok, error, code }`,
+       * where `error` carries the upstream `error` field — here the object
+       * `{ code, message }` sent by the share-links endpoint.
+       */
+      let code: string | undefined;
+
+      try {
+        const body = (await error.clone().json()) as { error?: { code?: string } | string };
+        code = typeof body.error === 'object' && body.error ? body.error.code : undefined;
+      } catch {
+        code = undefined;
+      }
+
+      return json<LoaderData>(
+        { errorKind: code === 'SHARE_LINK_PROJECT_MISSING' ? 'project-missing' : 'not-found' },
+        { status: 404 },
+      );
     }
 
     /*
      * `apiRequest` throws a redirect Response (e.g. -> /login on 401) for page
-     * navigations; that and any other thrown Response must propagate.
+     * navigations; that and any other thrown Response must propagate. Non-3xx
+     * Responses land in this route's ErrorBoundary below (branded), no longer
+     * the bare root boundary.
      */
     if (error instanceof Response) {
       throw error;
     }
 
-    return json<LoaderData>({ error: 'Failed to redeem the share link.' }, { status: 502 });
+    return json<LoaderData>({ errorKind: 'unavailable' }, { status: 502 });
   }
 };
 
-export const meta: MetaFunction = () => [{ title: 'Project share · E-Code' }];
+export const meta: MetaFunction = () => [{ title: 'Project share · E-Code' }, { name: 'robots', content: 'noindex' }];
 
-export default function ProjectShareRedeemRoute() {
-  const { error } = useLoaderData<typeof loader>() as LoaderData;
+/*
+ * Catches thrown Responses (unexpected API failures rethrown by the loader)
+ * and render errors, keeping them inside the branded PublicShell.
+ */
+export function ErrorBoundary() {
+  const error = useRouteError();
 
   return (
-    <main className="bolt-share-view bolt-share-view-error" role="alert">
-      <h1>Share link unavailable</h1>
-      <p>{error ?? 'The share link could not be redeemed.'}</p>
-    </main>
+    <ShareLinkErrorView kind={isRouteErrorResponse(error) && error.status === 404 ? 'not-found' : 'unavailable'} />
   );
+}
+
+export default function ProjectShareRedeemRoute() {
+  const { errorKind } = useLoaderData<typeof loader>() as LoaderData;
+
+  /*
+   * The happy path redirects from the loader, so this component only ever
+   * renders an error state.
+   */
+  return <ShareLinkErrorView kind={errorKind ?? 'unavailable'} />;
 }
