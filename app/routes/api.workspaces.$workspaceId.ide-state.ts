@@ -1,5 +1,6 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
+import { projectIdeStateForBrowser } from '~/lib/persistence/ide-state-browser-projection';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.workspaceId) {
@@ -8,7 +9,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const payload = await apiRequest(request, `/workspaces/${params.workspaceId}/ide-state`);
 
-  return json(payload);
+  /*
+   * BUG-IDE-STATE-007 — même projection que la route projet : le navigateur ne
+   * reçoit pas le magasin de fichiers, qui reste intact côté serveur pour
+   * `listProjectFilesIncludingIdeState` (git, exports, déploiements).
+   */
+  return json(projectIdeStateForBrowser(payload));
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
