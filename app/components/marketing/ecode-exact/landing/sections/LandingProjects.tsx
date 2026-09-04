@@ -1,32 +1,34 @@
 import { Badge, Card, CardContent } from '~/components/marketing/ecode-exact/EcodeExactUi';
 
-const cloudComputingImg =
-  'https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=2072&auto=format&fit=crop';
+/*
+ * Card artwork reuses the local product screenshots shipped for the Press
+ * page (no third-party stock-image dependency).
+ */
+const dashboardShotImg = '/ecode-static/assets/product/dashboard.png';
 
-const modernSoftwareImg = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
+const ideShotImg = '/ecode-static/assets/product/ide.png';
 
-const codingWorkspaceImg =
-  'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop';
+const deployShotImg = '/ecode-static/assets/product/ide-deploy.png';
 
 const projects = [
   {
     title: 'TechStore Pro',
     description: 'Full-featured e-commerce platform with 50K+ daily transactions',
-    image: cloudComputingImg,
+    image: dashboardShotImg,
     tags: ['React', 'Node.js', 'PostgreSQL'],
     stats: 'Built in 3 hours',
   },
   {
     title: 'TeamSync Hub',
     description: 'Real-time collaboration platform for remote teams',
-    image: modernSoftwareImg,
+    image: ideShotImg,
     tags: ['WebSocket', 'Redis', 'TypeScript'],
     stats: 'Built in 2 hours',
   },
   {
     title: 'DataViz Pro',
     description: 'Enterprise analytics dashboard with real-time charts',
-    image: codingWorkspaceImg,
+    image: deployShotImg,
     tags: ['Recharts', 'D3.js', 'PostgreSQL'],
     stats: 'Built in 4 hours',
   },

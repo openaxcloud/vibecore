@@ -5,7 +5,12 @@ import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
 import { RevealButton } from '~/components/ui/RevealButton';
 
-const heroImage = 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=2070&auto=format&fit=crop';
+/*
+ * The right-hand hero panel is a pure token-gradient treatment (brand orange,
+ * identical in both themes) with an existing product screenshot from the
+ * Press/marketing asset set — no third-party stock-image dependency.
+ */
+const heroScreenshot = '/ecode-static/assets/product/ide.png';
 
 interface AuthScreenProps {
   /*
@@ -129,8 +134,7 @@ export function AuthScreen({
       </section>
 
       <section className="relative hidden min-h-dvh overflow-hidden lg:block">
-        <img src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(242,98,7,0.92),rgba(249,157,37,0.84))]" />
+        <div className="absolute inset-0 bg-[linear-gradient(135deg,var(--ecode-orange),#f99d25)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.22),transparent_26%),radial-gradient(circle_at_80%_86%,rgba(10,15,28,0.36),transparent_30%)]" />
         <div className="relative z-10 flex min-h-dvh items-center justify-center p-8 xl:p-12">
           <div className="max-w-[28rem] text-white xl:max-w-md">
@@ -141,6 +145,9 @@ export function AuthScreen({
             <h2 className="text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-[1.03] tracking-normal">{heroTitle}</h2>
             <p className="mt-5 text-[15px] leading-7 text-white/88">{heroBody}</p>
             {heroAside}
+            <div className="mt-10 overflow-hidden rounded-xl border border-white/25 bg-[rgba(10,15,28,0.24)] shadow-[0_24px_64px_rgba(10,15,28,0.35)]">
+              <img src={heroScreenshot} alt="" aria-hidden="true" loading="lazy" className="block w-full" />
+            </div>
           </div>
         </div>
       </section>
