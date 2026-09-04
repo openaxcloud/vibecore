@@ -1,8 +1,8 @@
 import type { Message } from 'ai';
-import { createSingleFlight } from '~/lib/ide/single-flight';
 import type { IChatMetadata } from './db';
 import { pruneToBudget, writeWithinBudget } from './ide-memory-budget';
 import { formatPersistenceRuntimeCopy, getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 
 export type ProjectIdePanel = 'webview' | 'console' | 'network' | 'files';
 export type ProjectIdeWorkspacePanel =

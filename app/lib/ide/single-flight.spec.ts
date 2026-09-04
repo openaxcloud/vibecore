@@ -4,6 +4,7 @@ import { createSingleFlight } from './single-flight';
 const deferred = <T>() => {
   let resolve!: (v: T) => void;
   let reject!: (e: unknown) => void;
+
   const promise = new Promise<T>((res, rej) => {
     resolve = res;
     reject = rej;
@@ -80,8 +81,10 @@ describe('createSingleFlight', () => {
     await expect(a).rejects.toBe(boom);
     await expect(b).rejects.toBe(boom);
 
-    // A wedged key would make the resource permanently unfetchable — worse than
-    // the duplication this fixes.
+    /*
+     * A wedged key would make the resource permanently unfetchable — worse than
+     * the duplication this fixes.
+     */
     expect(flight.size).toBe(0);
     await expect(flight.run('k', async () => 'recovered')).resolves.toBe('recovered');
   });
@@ -100,6 +103,7 @@ describe('createSingleFlight', () => {
 describe('createSingleFlight cooldown (secondary guard)', () => {
   it('returns the previous SUCCESS without redoing the work, inside the window', async () => {
     let clock = 1000;
+
     const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
     const fn = vi.fn(async () => 'v');
 
@@ -111,6 +115,7 @@ describe('createSingleFlight cooldown (secondary guard)', () => {
 
   it('works again once the window has passed', async () => {
     let clock = 1000;
+
     const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
     const fn = vi.fn(async () => 'v');
 
@@ -122,11 +127,10 @@ describe('createSingleFlight cooldown (secondary guard)', () => {
 
   it('never remembers a FAILURE (that was BUG-PANEL-CACHE-003)', async () => {
     let clock = 1000;
+
     const flight = createSingleFlight<string>({ cooldownMs: 5000, now: () => clock });
-    const fn = vi
-      .fn()
-      .mockRejectedValueOnce(new Error('boom'))
-      .mockResolvedValueOnce('recovered');
+
+    const fn = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce('recovered');
 
     await expect(flight.run('k', fn as () => Promise<string>)).rejects.toThrow('boom');
     clock += 10;

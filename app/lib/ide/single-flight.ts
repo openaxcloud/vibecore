@@ -24,6 +24,7 @@
 export interface SingleFlight<T> {
   /** Exécute `fn` — ou rend la promesse déjà en vol pour la même clé. */
   run(key: string, fn: () => Promise<T>): Promise<T>;
+
   /** Nombre d'appels actuellement en vol (tests et diagnostic). */
   readonly size: number;
 }
@@ -46,6 +47,7 @@ export interface SingleFlightOptions {
    * si elle était une charge utile valide.
    */
   cooldownMs?: number;
+
   /** Injectable pour les tests ; `Date.now` par défaut. */
   now?: () => number;
 }
