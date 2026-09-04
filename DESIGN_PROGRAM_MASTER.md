@@ -185,3 +185,21 @@ Trois raisons, à ne pas séparer :
 | SURF-03 | `ModelSelector` — passer de 240 px fixes à une fraction d'écran | session Agent (composeur) | ✅ 01/09 | ☐ | ☐ |
 
 ⚠️ **Ne passer un SURF en ✅ qu'après vérification live sur les 3 formats** (390 / 768 / 1440), panneau ouvert avec une liste **assez longue pour déborder** — un panneau court ne prouve rien, le défaut n'apparaît qu'au débordement.
+
+## Lot AGENT-MOBILE-2026-09-04 — capture iPhone d'Avi : liste d'actions, pastille « descendre », zone de saisie
+
+Origine : capture Safari iOS du 04/09 (`app.e-code.ai`, panneau Agent, projet « Nova Market »), trois points entourés en rouge. Mesuré AVANT correctif en réel (Chromium, 390×844, commit `bf4f6a6`, arbre propre, fil semé par l'API avec un artefact de 7 fichiers) :
+
+- **liste d'actions** — pas de ligne **47,25 px** (le bouton du fichier portait `min-h-11`, soit 2,75 rem = 38,5 px avec la base rem mobile de 14 px, plus 8,75 px de `space-y-2.5`) ; pastille « Terminé » à **14 px** contre **11 px** pour le chemin de fichier (`text-[11px]` écrasé par la règle d'échelle `.bolt-project-agent-panel :where(span…) !important`) ;
+- **pastille « descendre »** — `bottom` calculé **145 px**, soit **63 px** au-dessus du composeur : décalée de `--vc-agent-composer-measured-height` (composeur + barre du bas) alors que, en mobile, le composeur ne recouvre le fil que de ce que son `sticky` le remonte (`--mobile-nav-height` + 10 px = **82 px** mesurés) ;
+- **zone de saisie** — libellés « Agent » / « Économique » à **17 px** (`--vc-composer-text` mobile) contre **14 px** pour les messages de l'agent ; champ à 17 px (plancher iOS `max(16px, 1em)`).
+
+Après correctif (même montage) : lignes de **28 px** au pas de **36 px**, boîte tactile du fichier **44 px** conservée (marges négatives symétriques de 8 px, fond du chip déplacé sur le `code`) ; pastille **11 px = chemin 11 px** ; pastille « descendre » à **12 px** au-dessus du composeur à 390 **et** à 768 ; libellés du composeur **14 px = messages 14 px** ; champ à **16 px** (plancher iOS conservé — en dessous, Safari iOS zoome à la prise de focus) et son invite « Construire, corriger, refactoriser… » à 14 px.
+
+⚠️ **WebKit non vérifié ici** : le téléchargement du navigateur WebKit est bloqué par le proxy de la session. Ce sont des tailles de police et un positionnement `sticky`, pas une révélation au toucher — mais un vert Chromium n'est pas une preuve iOS ; à confirmer sur l'iPhone d'Avi après déploiement.
+
+| ID | Point | Propriétaire | 📤 | 💻 | ✅ | Preuve |
+|---|---|---|:---:|:---:|:---:|---|
+| AGM-01 | Liste d'actions d'un artefact : lignes serrées, pastille « Terminé » à la taille du chemin à sa gauche | session Agent | ✅ 04/09 | ✅ 04/09 (`main`) | ☐ live iPhone à confirmer | preuve live locale 04/09 (Chromium 390 : pas 47,25 → 36 px, pastille 14 → 11 px) + épinglé par `app/styles/agent-action-list-density.spec.ts`, `app/components/chat/Artifact.density.spec.tsx`, `tests/e2e/agent-action-list-density.spec.ts` |
+| AGM-02 | Pastille « descendre » juste au-dessus de la zone de saisie (mobile + tablette) | session Agent | ✅ 04/09 | ✅ 04/09 (`main`) | ☐ live iPhone à confirmer | preuve live locale 04/09 (Chromium 390 et 768 : écart 63 → 12 px ; bureau 1440 inchangé à 6 px) + épinglé par `app/styles/agent-action-list-density.spec.ts`, `tests/e2e/agent-action-list-density.spec.ts` |
+| AGM-03 | Zone de saisie à la taille des messages de l'agent (libellés 17 → 14 px, invite du champ 14 px, champ au plancher iOS 16 px) | session Agent | ✅ 04/09 | ✅ 04/09 (`main`) | ☐ live iPhone à confirmer | preuve live locale 04/09 (Chromium 390 : libellés 17 → 14 px = messages) + épinglé par `app/styles/agent-action-list-density.spec.ts`, `tests/e2e/agent-action-list-density.spec.ts` |

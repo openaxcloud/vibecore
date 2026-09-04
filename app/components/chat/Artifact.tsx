@@ -331,7 +331,7 @@ function ActionDurationBadge({
 
   return (
     <span
-      className="ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textSecondary"
+      className="bolt-action-status ml-1 inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-1.5 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textSecondary"
       aria-label={formatChatRenderersCopy(copy['chatRenderers.artifact.duration'], { duration: label })}
     >
       {label}
@@ -346,7 +346,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
-      <ul className="list-none space-y-2.5">
+      <ul className="bolt-action-list list-none">
         {actions.map((action, index) => {
           const { status, type, content } = action;
           const isLast = index === actions.length - 1;
@@ -394,13 +394,15 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                       <span className="shrink-0">{copy['chatRenderers.artifact.createFile']}</span>
                       <button
                         type="button"
-                        className="inline-flex min-h-11 min-w-0 max-w-full items-center rounded-md bg-bolt-elements-artifacts-inlineCode-background px-1.5 py-1 text-bolt-elements-item-contentAccent outline-none hover:underline focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+                        className="bolt-action-target inline-flex min-w-0 max-w-full items-center text-bolt-elements-item-contentAccent outline-none hover:underline"
                         onClick={() => openArtifactInWorkbench(action.filePath)}
                         aria-label={formatChatRenderersCopy(copy['chatRenderers.artifact.openFile'], {
                           path: action.filePath,
                         })}
                       >
-                        <code className="truncate text-bolt-elements-artifacts-inlineCode-text">{action.filePath}</code>
+                        <code className="bolt-action-file-path truncate rounded-md bg-bolt-elements-artifacts-inlineCode-background px-1.5 py-0.5 text-bolt-elements-artifacts-inlineCode-text">
+                          {action.filePath}
+                        </code>
                       </button>
                     </div>
                   ) : type === 'diff' ? (
@@ -410,7 +412,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                       onOpenFile={openArtifactInWorkbench}
                     />
                   ) : type === 'shell' ? (
-                    <span className="flex min-h-11 flex-1 items-center break-words">
+                    <span className="flex flex-1 items-center break-words">
                       {copy['chatRenderers.artifact.runCommand']}
                     </span>
                   ) : type === 'start' ? (
@@ -420,7 +422,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                         e.preventDefault();
                         workbenchStore.currentView.set('preview');
                       }}
-                      className="flex min-h-11 min-w-0 flex-1 items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
+                      className="bolt-action-target flex min-w-0 flex-1 items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
                     >
                       {copy['chatRenderers.artifact.startApplication']}
                     </button>
@@ -429,7 +431,7 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                 {statusText ? (
                   <span
                     className={classNames(
-                      'shrink-0 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
+                      'bolt-action-status shrink-0 rounded-full border px-1.5 py-0 text-[11px] font-medium leading-4',
                       'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
                       status === 'complete'
                         ? 'text-bolt-elements-icon-success'

@@ -938,12 +938,22 @@ html:has(.vc-app-shell-grid) body {
     --vc-type-label-size: 9px;
 
     /*
-     * Mobile et tablette : l'échelle de la référence, 17 / 15 / 13. Le doigt et
-     * le bras ne sont pas la souris et l'écran de bureau.
+     * Mobile et tablette : la MÊME taille que les messages de l'agent.
+     *
+     * L'échelle 17 / 15 / 13 venait de la référence Replit ; Avi l'a retournée
+     * sur capture iPhone le 04/09 : « la police de toute la zone de saisie
+     * doit être plus petite, comme les messages de l'agent ». Mesuré avant :
+     * libellés « Agent » / « Économique » à 17 px, messages à 14 px. Le libellé
+     * suit donc le jeton des messages, pour ne plus pouvoir s'en écarter.
+     *
+     * Le champ lui-même garde son plancher de 16 px (`_ios-input-zoom.scss`) :
+     * en dessous, Safari iOS zoome la page à la prise de focus. Seul son texte
+     * d'invite descend à l'échelle des messages (règle `::placeholder` plus
+     * bas) — le zoom ne dépend que de la taille du contrôle.
      */
-    --vc-composer-text: 17px;
-    --vc-composer-text-secondary: 15px;
-    --vc-composer-caption: 13px;
+    --vc-composer-text: var(--vc-type-interface-size);
+    --vc-composer-text-secondary: 13px;
+    --vc-composer-caption: 12px;
   }
 }
 
@@ -7387,6 +7397,54 @@ body :where(.lucide, svg[data-lucide]) {
    * pixels, la valeur ne dépend plus de cette redéfinition.
    */
   gap: 6px;
+}
+
+/*
+ * Liste d'actions d'un artefact — « Créer package.json … Terminé ».
+ *
+ * Capture iPhone d'Avi, 04/09 : « trop d'espace entre les lignes », et la
+ * pastille « Terminé » plus grosse que le contenu à sa gauche.
+ *
+ * Mesuré avant (Chromium, 390×844, commit bf4f6a6) : pas de ligne 47,25 px —
+ * le bouton du fichier portait `min-h-11`, soit 2,75rem = 38,5 px avec la base
+ * rem mobile de 14 px, plus 8,75 px de `space-y-2.5`. Et la pastille valait
+ * 14 px comme le verbe « Créer », parce que la règle d'échelle du panneau
+ * (`.bolt-project-agent-panel :where(span…) { font-size … !important }`)
+ * écrase son `text-[11px]` — le chemin de fichier, lui, est un `code` à 11 px.
+ *
+ * Deux décisions, toutes deux en PIXELS (la base rem vaut 12/14 px) :
+ *
+ * 1. La CIBLE TACTILE reste de 44 px, mais elle sort du flux : `margin-block`
+ *    négatif de 8 px de chaque côté, donc la ligne visible fait 28 px et la
+ *    boîte cliquable déborde exactement dans l'interligne de 8 px — jamais
+ *    sur la ligne voisine. Le fond du « chip » passe sur le `code`, pour que
+ *    la surface peinte soit la ligne visible et non la boîte de 44 px.
+ * 2. La pastille suit le JETON DU CODE, le même que le chemin de fichier à sa
+ *    gauche : les deux ne peuvent plus diverger.
+ */
+.bolt-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.bolt-action-target {
+  position: relative;
+  min-height: 44px;
+  margin-block: -8px;
+  padding: 0;
+  background: transparent;
+}
+
+.bolt-action-target:focus-visible .bolt-action-file-path {
+  box-shadow: 0 0 0 2px var(--bolt-elements-borderColorActive);
+}
+
+.bolt-project-agent-panel .bolt-action-row .bolt-action-status {
+  font-size: var(--vc-type-code-size) !important;
+  line-height: 16px !important;
 }
 
 /*
@@ -20225,6 +20283,15 @@ button.bolt-project-statusbar-pill:focus-visible,
   .bolt-project-chatbox textarea:not([class*='i-']) {
     font-size: 16px !important;
   }
+
+  /*
+   * L'invite « Construire, corriger, refactoriser… » à la taille des messages.
+   * Le plancher de 16 px ci-dessus ne concerne que le contrôle : Safari iOS ne
+   * zoome pas sur la taille du texte d'invite.
+   */
+  .bolt-project-chatbox textarea:not([class*='i-'])::placeholder {
+    font-size: var(--vc-composer-text);
+  }
 }
 
 @media (max-width: 767px) {
@@ -22348,6 +22415,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     z-index: 50;
     margin-bottom: 0 !important;
     padding-bottom: 8px;
+  }
+
+  /*
+   * La pastille « descendre » se pose JUSTE au-dessus de la zone de saisie.
+   *
+   * Capture iPhone d'Avi, 04/09 : elle flottait au milieu du fil. Mesuré
+   * (Chromium, 390×844, commit bf4f6a6) : `bottom` calculé 145 px, pastille à
+   * 63 px au-dessus du composeur. La règle générale la décale de
+   * `--vc-agent-composer-measured-height` — composeur + barre du bas — comme si
+   * le composeur recouvrait le fil de toute sa hauteur. Or, sur mobile, il ne
+   * le recouvre que de ce que son `sticky` le remonte : `--mobile-nav-height`
+   * + 10 px (règle juste au-dessus), soit 82 px mesurés — et cette valeur ne
+   * dépend PAS de la hauteur du composeur, puisque la fin du fil et le haut du
+   * composeur se déplacent ensemble quand il grandit.
+   *
+   * Le sélecteur reprend la forme de la règle d'infobulle (attribut +
+   * `:not()`) pour la battre en spécificité, comme la règle générale le fait.
+   */
+  .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,
+  .bolt-responsive-ide-mobile[data-mobile-panel='chat']
+    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
+    bottom: calc(var(--mobile-nav-height) + 10px + 12px);
   }
 
   /*
