@@ -2,7 +2,13 @@ import { mkdtemp, rm, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { K8sObject, WorkspaceK8sClient } from '@vibecore/k8s-client';
-import type { WorkspaceEvent } from '@vibecore/workspace-sdk';
+import {
+  AGENT_TOKEN_SCHEME_DERIVED_V1,
+  deriveWorkspaceAgentSecret,
+  signAgentToken,
+  verifyAgentToken,
+  type WorkspaceEvent,
+} from '@vibecore/workspace-sdk';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   JsonWorkspaceStore,
@@ -246,10 +252,18 @@ describe('WorkspaceManager', () => {
     await manager.startWorkspace({ ...input, allowedSecrets: { NPM_TOKEN: 'tok_secret_value' } });
 
     const secret = k8s.objects.get('workspaces:Secret:agent-token-workspace_1') as any;
+
+    /*
+     * AUDX-003: the project's own secrets belong in this Secret; the manager's
+     * ROOT signing secret does not. This assertion used to read
+     * `tokenSecret: 'test-workspace-agent-secret'` — it pinned the vulnerability
+     * in place. The pod now receives only the per-workspace derived value.
+     */
     expect(secret.stringData).toMatchObject({
-      tokenSecret: 'test-workspace-agent-secret',
+      tokenSecret: deriveWorkspaceAgentSecret('test-workspace-agent-secret', 'workspace_1'),
       NPM_TOKEN: 'tok_secret_value',
     });
+    expect(secret.stringData.tokenSecret).not.toBe('test-workspace-agent-secret');
 
     const pod = k8s.objects.get('workspaces:Pod:workspace-workspace_1') as any;
     const npmEnv = pod.spec.containers[0].env.find((entry: any) => entry.name === 'NPM_TOKEN');
@@ -1367,5 +1381,166 @@ describe('server-deploy scale-to-zero (Replit-parity Autoscale)', () => {
     const slept = await manager.reapIdleServerDeployments('workspaces', 15 * 60_000);
 
     expect(slept).toEqual(['dep_fresh_old']);
+  });
+});
+
+/*
+ * AUDX-003 — per-workspace agent signing secrets.
+ *
+ * Before this, the manager wrote its own global signing secret verbatim into
+ * every workspace's Kubernetes Secret, which is mounted into the tenant pod. One
+ * tenant reading that value could forge a valid agent token for ANY other
+ * workspace: full cross-tenant filesystem and command takeover from a single
+ * leak.
+ *
+ * Each `it` below breaks ONE mechanism on purpose, so a regression in any single
+ * part fails on its own instead of hiding behind the others.
+ */
+describe('AUDX-003 agent token secret derivation', () => {
+  const ROOT = 'root-signing-secret';
+
+  async function startedManager(workspaceId = 'workspace_1') {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), ROOT);
+    await manager.startWorkspace({ ...input, workspaceId });
+
+    return { k8s, store, manager };
+  }
+
+  /*
+   * A workspace that predates this change: its row and its RUNNING pod were
+   * created by the OLD manager, so this manager process has never seen it and
+   * has nothing cached about it. That is exactly the state a rollout lands in.
+   */
+  async function legacyManager(workspaceId = 'workspace_legacy') {
+    const store = new TestWorkspaceStore();
+    await store.create({
+      id: workspaceId,
+      orgId: 'org_1',
+      projectId: 'project_1',
+      plan: 'pro',
+      status: 'RUNNING',
+      pvcName: `pvc-${workspaceId}`,
+      podName: `workspace-${workspaceId}`,
+      serviceName: `workspace-${workspaceId}`,
+      agentTokenSecretName: `agent-token-${workspaceId}`,
+      agentTokenScheme: 'root',
+    });
+
+    return {
+      store,
+      manager: new WorkspaceManager(store, new TestWorkspaceK8sClient(), new TestEventBus(), ROOT),
+    };
+  }
+
+  function podSecret(k8s: TestWorkspaceK8sClient, workspaceId: string) {
+    return (k8s.objects.get(`workspaces:Secret:agent-token-${workspaceId}`) as any).stringData.tokenSecret as string;
+  }
+
+  /* MECHANISM 1: the root secret must never reach a tenant pod. */
+  it('never writes the root signing secret into the workspace pod Secret', async () => {
+    const { k8s } = await startedManager();
+
+    expect(podSecret(k8s, 'workspace_1')).not.toBe(ROOT);
+    expect(podSecret(k8s, 'workspace_1')).toBe(deriveWorkspaceAgentSecret(ROOT, 'workspace_1'));
+  });
+
+  /* MECHANISM 2: the derived value must be per-workspace, not one shared value. */
+  it('gives two workspaces different pod secrets', async () => {
+    const a = await startedManager('workspace_a');
+    const b = await startedManager('workspace_b');
+
+    expect(podSecret(a.k8s, 'workspace_a')).not.toBe(podSecret(b.k8s, 'workspace_b'));
+  });
+
+  /*
+   * MECHANISM 3: the actual security property. A tenant holding workspace A's
+   * secret must not be able to mint a token another workspace's agent accepts.
+   * This is the test that would have caught the original defect: under the old
+   * scheme BOTH sides were the same root secret, so this passed trivially.
+   */
+  it('blocks a token forged with one workspace secret from verifying for another', async () => {
+    const secretA = deriveWorkspaceAgentSecret(ROOT, 'workspace_a');
+    const secretB = deriveWorkspaceAgentSecret(ROOT, 'workspace_b');
+
+    const forged = signAgentToken({ workspaceId: 'workspace_b', expiresAt: Date.now() + 60_000, secret: secretA });
+
+    expect(verifyAgentToken(forged, secretB, 'workspace_b')).toBe(false);
+
+    /*
+     * Sanity: the same token IS valid under the secret it was signed with, so
+     * the assertion above fails for the right reason (wrong key, not bad shape).
+     */
+    expect(verifyAgentToken(forged, secretA, 'workspace_b')).toBe(true);
+  });
+
+  /* MECHANISM 4: a freshly created pod advances the recorded scheme. */
+  it('records derived-v1 when it actually creates the pod', async () => {
+    const { store } = await startedManager();
+
+    expect((await store.get('workspace_1'))?.agentTokenScheme).toBe(AGENT_TOKEN_SCHEME_DERIVED_V1);
+  });
+
+  /*
+   * MECHANISM 5: the site-of-call trap. A Secret change does NOT propagate into
+   * a pod that is already running (secretKeyRef env resolves once, at pod
+   * start). Rewriting the Secret and then claiming "derived-v1" would sign a
+   * live legacy pod with a key it does not have -> 401 -> the client's one-shot
+   * self-heal re-mints the SAME wrong secret -> the workspace wedges.
+   */
+  it('does NOT advance the scheme when the pod already existed', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), ROOT);
+
+    await manager.startWorkspace({ ...input });
+
+    // Model a pod created before this change: it is up, on the legacy scheme.
+    await store.update('workspace_1', { agentTokenScheme: 'root' });
+
+    await manager.startWorkspace({ ...input });
+
+    expect((await store.get('workspace_1'))?.agentTokenScheme).toBe('root');
+  });
+
+  /*
+   * MECHANISM 6: the no-wedge guarantee for the rollout itself. A workspace
+   * whose pod is already running under the legacy scheme must keep being signed
+   * with the ROOT secret — that is the only key its live pod holds.
+   */
+  it('signs a legacy root-scheme workspace with the root secret', async () => {
+    const { manager } = await legacyManager();
+    const derived = deriveWorkspaceAgentSecret(ROOT, 'workspace_legacy');
+
+    const token = await manager.issueAgentToken('workspace_legacy');
+
+    expect(verifyAgentToken(token, ROOT, 'workspace_legacy')).toBe(true);
+    expect(verifyAgentToken(token, derived, 'workspace_legacy')).toBe(false);
+  });
+
+  /* MECHANISM 7: a derived workspace is signed with its derived secret. */
+  it('signs a derived-v1 workspace with its own derived secret', async () => {
+    const { manager } = await startedManager();
+
+    const token = await manager.issueAgentToken('workspace_1');
+
+    expect(verifyAgentToken(token, deriveWorkspaceAgentSecret(ROOT, 'workspace_1'), 'workspace_1')).toBe(true);
+    expect(verifyAgentToken(token, ROOT, 'workspace_1')).toBe(false);
+  });
+
+  /*
+   * MECHANISM 8: fail-safe on an unknown scheme. An unrecognised marker (a
+   * future scheme rolled back, a corrupt row) must fall back to the LEGACY
+   * secret, because that is the one a currently-running pod can actually hold.
+   * Guessing the stronger scheme here would wedge the workspace.
+   */
+  it('falls back to the root secret for an unknown scheme rather than guessing derived', async () => {
+    const { store, manager } = await legacyManager();
+    await store.update('workspace_legacy', { agentTokenScheme: 'derived-v99-from-the-future' });
+
+    const token = await manager.issueAgentToken('workspace_legacy');
+
+    expect(verifyAgentToken(token, ROOT, 'workspace_legacy')).toBe(true);
   });
 });

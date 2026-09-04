@@ -15,7 +15,13 @@ import {
   type WorkspacePlan,
 } from '@vibecore/k8s-client';
 import { resolveSandboxRuntime, type SandboxRuntime } from '@vibecore/sandbox-runtime';
-import { signAgentToken, type WorkspaceEvent } from '@vibecore/workspace-sdk';
+import {
+  AGENT_TOKEN_SCHEME_DERIVED_V1,
+  agentSecretForScheme,
+  deriveWorkspaceAgentSecret,
+  signAgentToken,
+  type WorkspaceEvent,
+} from '@vibecore/workspace-sdk';
 import {
   workspaceManagerError,
   workspaceManagerMessage,
@@ -45,6 +51,13 @@ export interface WorkspaceRecord {
   podName: string;
   serviceName: string;
   agentTokenSecretName: string;
+
+  /*
+   * Which agent-token signing scheme this workspace's pod was created with.
+   * Undefined / anything unknown means the LEGACY 'root' scheme — see
+   * AGENT_TOKEN_SCHEME_* in @vibecore/workspace-sdk.
+   */
+  agentTokenScheme?: string;
   createdAt: string;
   lastActiveAt: string;
 
@@ -645,10 +658,31 @@ export class WorkspaceManager {
         await this.k8s.apply(pvc);
       }
 
+      /*
+       * AUDX-003 : the pod gets ONLY its own derived secret, never the manager's
+       * root secret. This Secret is mounted into the tenant pod, so writing the
+       * root value here handed every tenant the key that signs for every OTHER
+       * workspace.
+       */
       await this.k8s.apply({
         ...workspaceAgentSecret(runtimeInput),
-        stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
+        stringData: {
+          tokenSecret: deriveWorkspaceAgentSecret(this.tokenSecret, input.workspaceId),
+          ...allowedSecrets,
+        },
       });
+
+      /*
+       * A Secret change does NOT propagate into a pod that is already running:
+       * env from `secretKeyRef` is resolved once, at pod start. So the derived
+       * secret we just wrote only reaches the pod if the pod is actually being
+       * CREATED here. If a pod is already up (reopen without reprovision), it is
+       * still running with whatever secret it started with, and the workspace
+       * must keep being signed under its recorded scheme — hence this probe
+       * rather than an unconditional "we wrote it, so it must be derived now".
+       */
+      const podExistedBeforeApply = Boolean(await this.k8s.getPod(input.namespace, record.podName).catch(() => null));
+
       await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
       await this.k8s.apply(workspaceService(runtimeInput));
       await this.waitForReadiness(input.namespace, record.podName);
@@ -669,7 +703,18 @@ export class WorkspaceManager {
       const running = await this.store.update(input.workspaceId, {
         status: 'RUNNING',
         lastActiveAt: new Date().toISOString(),
+
+        /*
+         * Only advance the scheme when THIS call created the pod: a reused pod
+         * still holds the older secret. Never moves backwards — a pod that was
+         * already 'derived-v1' and got reused keeps that scheme.
+         */
+        ...(podExistedBeforeApply ? {} : { agentTokenScheme: AGENT_TOKEN_SCHEME_DERIVED_V1 }),
       });
+
+      if (!podExistedBeforeApply) {
+        this.#derivedSchemeWorkspaces.add(input.workspaceId);
+      }
 
       /*
        * The workspace is fully provisioned and committed RUNNING at this point.
@@ -1377,8 +1422,40 @@ export class WorkspaceManager {
     return this.k8s.streamPodLogs(namespace, workspace.podName);
   }
 
-  issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
-    return signAgentToken({ workspaceId, expiresAt: Date.now() + expiresInMs, secret: this.tokenSecret });
+  /*
+   * Workspaces already known to run under 'derived-v1'. The scheme is terminal —
+   * it only ever moves root -> derived-v1, never back — so a positive entry can
+   * never go stale in a harmful direction, and the steady state (every pod
+   * recycled at least once) costs no database read at all. Legacy workspaces
+   * still read their row, which is what makes them keep working.
+   */
+  readonly #derivedSchemeWorkspaces = new Set<string>();
+
+  /**
+   * Mint a short-lived agent token for a workspace.
+   *
+   * Signs with the secret the workspace's RUNNING pod actually holds, which is
+   * why this reads the record instead of always using the root secret. Getting
+   * this wrong does not degrade gracefully: the agent 401s, and the client's
+   * one-shot token self-heal re-mints the same wrong secret, so the workspace
+   * wedges rather than recovering.
+   */
+  async issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
+    let secret: string;
+
+    if (this.#derivedSchemeWorkspaces.has(workspaceId)) {
+      secret = deriveWorkspaceAgentSecret(this.tokenSecret, workspaceId);
+    } else {
+      const workspace = await this.store.get(workspaceId);
+
+      secret = agentSecretForScheme(this.tokenSecret, workspaceId, workspace?.agentTokenScheme);
+
+      if (workspace?.agentTokenScheme === AGENT_TOKEN_SCHEME_DERIVED_V1) {
+        this.#derivedSchemeWorkspaces.add(workspaceId);
+      }
+    }
+
+    return signAgentToken({ workspaceId, expiresAt: Date.now() + expiresInMs, secret });
   }
 
   /**

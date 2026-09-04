@@ -463,7 +463,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
      */
     void manager.touch(workspaceId).catch(() => undefined);
 
-    return { token: manager.issueAgentToken(workspaceId) };
+    return { token: await manager.issueAgentToken(workspaceId) };
   });
 
   /*
@@ -604,7 +604,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
 
     return {
       baseUrl: agentBaseUrl(workspaceId),
-      token: manager.issueAgentToken(workspaceId, 5 * 60_000),
+      token: await manager.issueAgentToken(workspaceId, 5 * 60_000),
     };
   });
 
