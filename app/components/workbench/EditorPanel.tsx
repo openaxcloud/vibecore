@@ -349,7 +349,7 @@ export const EditorPanel = memo(
     return (
       <PanelGroup direction="vertical">
         <Panel defaultSize={showTerminal ? DEFAULT_EDITOR_SIZE : 100} minSize={20}>
-          <PanelGroup direction="horizontal">
+          <PanelGroup direction="horizontal" autoSaveId="ecode:panels:editor-files">
             <Panel defaultSize={20} minSize={15} collapsible className="border-r border-bolt-elements-borderColor">
               <PanelBoundary title="Files">
                 <div className="h-full">{fileTabs}</div>
