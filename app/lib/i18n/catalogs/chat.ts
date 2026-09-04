@@ -314,6 +314,15 @@ export const chatEn = {
   'chat.copy.environment_d443a118': 'Environment',
   'chat.copy.environmentScope_aa238040': 'Environment scope',
   'chat.copy.environmentVariables_1173b2e1': 'Environment variables',
+
+  /*
+   * R-4 — Secrets needs a description OF ITS OWN. It used to reuse the Env vars
+   * one, so the All-tools grid showed two cards with the same subtitle and no
+   * way to tell which to open. Two real panels, two different stores
+   * (`/projects/:id/env-vars` vs `/projects/:id/secrets`) — the copy has to say
+   * what separates them: secrets are encrypted and masked until revealed.
+   */
+  'chat.copy.secretsToolDescription': 'Encrypted values, hidden until revealed',
   'chat.copy.environmentVariables_ec072bba': 'Environment Variables',
   'chat.copy.episodic_2de3ef9c': 'Episodic',
   'chat.copy.errors_e6ef8d02': 'errors ·',
@@ -1881,6 +1890,7 @@ export const chatFr = {
   'chat.copy.environment_d443a118': 'Environnement',
   'chat.copy.environmentScope_aa238040': 'Périmètre environnement',
   'chat.copy.environmentVariables_1173b2e1': "Variables d'environnement",
+  'chat.copy.secretsToolDescription': 'Valeurs chiffrées, masquées jusqu’à révélation',
   'chat.copy.environmentVariables_ec072bba': "Variables d'environnement",
   'chat.copy.episodic_2de3ef9c': 'Épisodique',
   'chat.copy.errors_e6ef8d02': 'erreurs ·',

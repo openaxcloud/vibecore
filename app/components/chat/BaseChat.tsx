@@ -559,7 +559,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   deployments: 'chat.copy.publishYourApp_84e20c23',
   security: 'chat.copy.securityScanner_3993f46d',
   env: 'chat.copy.environmentVariables_1173b2e1',
-  secrets: 'chat.copy.environmentVariables_1173b2e1',
+  secrets: 'chat.copy.secretsToolDescription',
   git: 'chat.copy.versionControl_62f1aa26',
   activity: 'chat.copy.projectTimeline_307c9b37',
   terminal: 'chat.copy.workspaceShellTerminal_21af7c52',
@@ -11823,12 +11823,10 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set(['.', '/workspace']));
-  const [showEnvForm, setShowEnvForm] = useState(false);
   const [showSshForm, setShowSshForm] = useState(false);
   const [showKeygenForm, setShowKeygenForm] = useState(false);
   const [showScriptForm, setShowScriptForm] = useState(false);
   const [customScript, setCustomScript] = useState('');
-  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const data = payload?.data ?? {};
   const envVars = data.envVars ?? [];
@@ -11899,6 +11897,66 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     void loadPanel();
   }, [loadPanel]);
 
+  /*
+   * R-2 — the Environment tab hosts the REAL env/secrets panels, whose forms
+   * must reach their own endpoints (`/ide-panel/env`, `/ide-panel/secrets`),
+   * not the terminal's. Same submit contract as `submit` below, only the target
+   * panel changes; the terminal payload is reloaded afterwards so the mounted
+   * panels see the write they just made.
+   */
+  function submitToPanel(panel: 'env' | 'secrets' | 'ports') {
+    return async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!projectId) {
+        return;
+      }
+
+      const form = event.currentTarget;
+      setBusy(true);
+      setError(undefined);
+      setMessage('');
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
+          method: 'POST',
+          body: new FormData(form),
+        });
+
+        const result = (await response.json().catch(() => ({}))) as any;
+
+        if (!response.ok) {
+          console.warn('Environment action request failed', {
+            panel,
+            status: response.status,
+            serverError: result.error,
+          });
+          setError(t('baseChatAst.terminal.actionFailedHttp', { status: response.status }));
+
+          return;
+        }
+
+        form.reset();
+
+        /*
+         * ProjectEnvPanel clears its controlled key/value inputs on this event
+         * (a DOM-level form.reset() cannot), so it has to fire here too or the
+         * form stays populated and the next create re-submits the old key.
+         */
+        window.dispatchEvent(
+          new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent: 'upsert', ok: true } }),
+        );
+        setMessage(t('baseChatAst.terminal.actionApplied'));
+        await loadPanel();
+      } catch (requestError) {
+        console.error('Environment action request failed', requestError);
+        setError(t('baseChatAst.terminal.actionFailed'));
+      } finally {
+        setBusy(false);
+      }
+    };
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -11930,7 +11988,6 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       }
 
       form.reset();
-      setShowEnvForm(false);
       setShowSshForm(false);
       setShowKeygenForm(false);
       setShowScriptForm(false);
@@ -11964,49 +12021,6 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
 
       return next;
     });
-  }
-
-  async function copyValue(value: string, label: string) {
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.terminal.valueCopied', { label }));
-    } catch (error) {
-      console.error('Terminal value copy failed', error);
-      setError(t('baseChatAst.clipboard.copyFailed'));
-    }
-  }
-
-  async function revealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    if (revealedSecrets[key]) {
-      setRevealedSecrets((current) => {
-        const next = { ...current };
-        delete next[key];
-
-        return next;
-      });
-      return;
-    }
-
-    const response = await fetch(
-      `/api/projects/${projectId}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(key)}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-
-    if (!response.ok || !result || result.status === 'error') {
-      console.warn('Terminal secret reveal failed', { status: response.status, serverError: result?.error });
-      setError(t('baseChatAst.terminal.revealFailed'));
-
-      return;
-    }
-
-    const secret = result.data?.secrets?.find((item: any) => item.key === key);
-    setRevealedSecrets((current) => ({ ...current, [key]: secret?.value ?? '' }));
   }
 
   function renderFileTree(nodes: any[], depth = 0) {
@@ -12277,91 +12291,38 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             </section>
           )}
 
+          {/*
+           * R-2 — one implementation, mounted here.
+           *
+           * This tab used to carry its OWN env/secrets CRUD: a second set of
+           * forms writing the same `/projects/:id/env-vars` and
+           * `/projects/:id/secrets` endpoints as the Env vars and Secrets
+           * tools. It was not merely redundant, it DIVERGED — the terminal
+           * panel's `add-env`/`delete-env` sent no `scope`, and the store
+           * defaults an omitted scope to production
+           * (`prisma-store.upsertProjectEnvVar` / `deleteProjectEnvVar`). So
+           * this tab listed variables from EVERY scope undifferentiated, then
+           * wrote and deleted only the production row: deleting a
+           * preview-scoped `API_URL` from here silently removed the
+           * PRODUCTION one instead — or nothing, leaving the clicked row on
+           * screen. It also keyed the list on `envVar.key`, which collides in
+           * React as soon as one key exists in two scopes.
+           *
+           * Mounting the real panels keeps everything this tab offered — env
+           * vars AND secrets side by side, which the dedicated tools show
+           * separately — and gains what it never had: scope selection, search,
+           * diff, and .env import.
+           */}
           {activeTab === 'environment' && (
             <section className="bolt-terminal-card" data-testid="card-env-vars">
-              <div className="bolt-terminal-section-head">
-                <div>
-                  <strong>{t('chat.copy.environmentVariables_ec072bba')}</strong>
-                  <small>{t('chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da')}</small>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowEnvForm((value) => !value)}
-                  data-testid="button-add-env-var"
-                >
-                  {t('chat.copy.addVariable_4c2707bc')}
-                </button>
-              </div>
-              {showEnvForm ? (
-                <form onSubmit={submit} className="bolt-terminal-env-form" data-testid="dialog-add-env">
-                  <input type="hidden" name="intent" value="add-env" />
-                  <PanelInput
-                    name="key"
-                    placeholder={t('chat.copy.myVariable_7d794385')}
-                    required
-                    data-testid="input-env-key"
-                  />
-                  <PanelInput name="value" placeholder={t('chat.copy.value_8dce170d')} data-testid="input-env-value" />
-                  <select name="isSecret" defaultValue="false" data-testid="switch-env-secret">
-                    <option value="false">{t('chat.copy.plainVariable_dd1fe819')}</option>
-                    <option value="true">{t('chat.copy.encryptedSecret_0cdff4dc')}</option>
-                  </select>
-                  <PanelButton disabled={busy} data-testid="button-save-env">
-                    {t('chat.copy.saveVariable_568937f7')}
-                  </PanelButton>
-                </form>
-              ) : null}
-              <div className="bolt-terminal-env-list">
-                {envVars.map((envVar: any) => (
-                  <article key={envVar.key} data-testid={`env-var-${envVar.key}`}>
-                    <span className="i-ph:brackets-curly" aria-hidden />
-                    <div>
-                      <strong>{envVar.key}</strong>
-                      <small>{envVar.value || t('chat.copy.emptyValue_2464254a')}</small>
-                    </div>
-                    <button type="button" onClick={() => void copyValue(envVar.value ?? '', envVar.key)}>
-                      {t('chat.copy.copy_af74f7c5')}
-                    </button>
-                    <form onSubmit={submit}>
-                      <input type="hidden" name="intent" value="delete-env" />
-                      <input type="hidden" name="key" value={envVar.key} />
-                      <input type="hidden" name="isSecret" value="false" />
-                      <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
-                      </PanelButton>
-                    </form>
-                  </article>
-                ))}
-                {secrets.map((secret: any) => (
-                  <article key={secret.key} data-testid={`env-var-${secret.key}`}>
-                    <span className="i-ph:lock" aria-hidden />
-                    <div>
-                      <strong>{secret.key}</strong>
-                      <small>{revealedSecrets[secret.key] ?? '••••••••'}</small>
-                    </div>
-                    <button type="button" onClick={() => void revealSecret(secret.key)}>
-                      {revealedSecrets[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void copyValue(revealedSecrets[secret.key] ?? secret.key, secret.key)}
-                    >
-                      {t('chat.copy.copy_af74f7c5')}
-                    </button>
-                    <form onSubmit={submit}>
-                      <input type="hidden" name="intent" value="delete-env" />
-                      <input type="hidden" name="key" value={secret.key} />
-                      <input type="hidden" name="isSecret" value="true" />
-                      <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
-                      </PanelButton>
-                    </form>
-                  </article>
-                ))}
-                {!envVars.length && !secrets.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noEnvironmentVariables_6b838fa1')}</div>
-                ) : null}
-              </div>
+              <ProjectEnvPanel data={{ envVars }} onSubmit={submitToPanel('env')} busy={busy} />
+              <ProjectSecretsPanel
+                projectId={projectId}
+                data={{ secrets }}
+                onSubmit={submitToPanel('secrets')}
+                busy={busy}
+                reload={loadPanel}
+              />
             </section>
           )}
 
@@ -12470,21 +12431,27 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                   <div className="bolt-project-empty-panel">{t('chat.copy.noRuntimeProcessesReported_f02fbd04')}</div>
                 ) : null}
               </div>
-              <div className="bolt-terminal-port-grid">
-                {runtimePorts.map((port: any) => (
-                  <a key={port.port} href={port.url} target="_blank" rel="noreferrer">
-                    <span className="i-ph:link" aria-hidden />
-                    {t('chat.copy.port_fe035157')}
-                    {port.port}
-                    <small>
-                      {port.ready === false ? t('chat.copy.notReady_970258df') : t('chat.copy.ready_75c05337')}
-                    </small>
-                  </a>
-                ))}
-                {!runtimePorts.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noPreviewPortsOpen_fb7dda37')}</div>
-                ) : null}
-              </div>
+              {/*
+               * R-3 — one ports implementation, mounted here.
+               *
+               * This tab used to re-render the port list itself from the very
+               * same `runtimePortsFromPayload` helper the Ports tool uses, so
+               * the same data had two renderers — and the copy here was the
+               * poorer one: a bare link per port, with no primary-port
+               * selection and no public/private toggle, the two things that
+               * actually change how a port behaves. Mounting the real panel
+               * removes the second renderer AND gives this tab the controls it
+               * never had.
+               *
+               * The process list above stays: it is this panel's own, no tool
+               * duplicates it.
+               */}
+              <ProjectPortsPanel
+                data={{ ports: runtimePorts, portsState: data.portsState }}
+                projectId={projectId}
+                onSubmit={submitToPanel('ports')}
+                busy={busy}
+              />
             </section>
           )}
         </main>
