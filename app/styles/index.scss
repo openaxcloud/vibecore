@@ -5123,6 +5123,20 @@ body :where(.lucide, svg[data-lucide]) {
   overscroll-behavior-x: contain;
   scroll-padding-inline: 2px;
   scrollbar-width: none;
+
+  /*
+   * La rangée s'arrête TOUJOURS sur un onglet, jamais au milieu d'un mot.
+   *
+   * Avi photographie « ontexte » au lieu de « Contexte ». Reproduit ici en
+   * 320×568 : la rangée déborde de 52px et, une fois défilée de 26px, le
+   * premier onglet est coupé de 26px à gauche — la majuscule disparaît et le
+   * libellé devient un mot inconnu.
+   *
+   * `mandatory` et non `proximity` : avec `proximity`, le navigateur garde le
+   * droit de s'immobiliser entre deux points d'ancrage, ce qui laisse
+   * exactement le défaut qu'on corrige.
+   */
+  scroll-snap-type: x mandatory;
 }
 
 .bolt-mobile-replit-panel-scroll::-webkit-scrollbar {
@@ -5137,6 +5151,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-mobile-replit-panel-tab {
+  /* Chaque onglet est un point d'arrêt : le bord du libellé, jamais son milieu. */
+  scroll-snap-align: start;
+
   width: 44px;
   min-width: 44px;
   max-width: 44px;
