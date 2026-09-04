@@ -534,7 +534,12 @@ jobs:
             else
               RUNTIME=false; WEB=false; WSAGENT=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
+              # AUDX-173 — `apps/admin/` compte dans le tier web. Il n'etait dans
+              # AUCUN motif : une modification de l'admin ne declenchait donc
+              # aucun tier, et l'image n'etait de toute facon pas construite par
+              # les fichiers de tier (elle ne l'etait que par le `cloudbuild.yaml`
+              # racine, reserve aux builds manuels).
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|apps/admin/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
 
               # If nothing tier-specific matched (docs/CI-only push), still roll web+runtime
@@ -750,8 +755,21 @@ jobs:
           #                  must be resolvable on EVERY run (rebuilt or carried forward)
           #   rolled       — this workflow waits for its rollout and checks its imageIDs
           #
-          # admin: an enabled chart service this continuous path never builds or rolls.
-          # Its current digest is carried forward so the release stays fully pinned.
+          # admin — AUDX-173. Cette ligne portait `tier=none`, donc `rebuilt=false`
+          # a chaque run, donc le digest DEJA EN PRODUCTION etait repris tel quel.
+          # Le commentaire d'origine decrivait cela comme un choix (« an enabled
+          # chart service this continuous path never builds or rolls ») ; l'effet
+          # reel etait qu'un service vivant (`enabled: true`, `replicas: 2`, expose
+          # sur `/admin`) ne recevait AUCUN correctif de securite, jamais.
+          #
+          # Mesure : 32 commits touchant `apps/admin/` en six mois, aucun livre.
+          #
+          # Il rejoint le tier `web` — qui le construit desormais
+          # (infra/cloudbuild/single-web.yaml) — et devient `rolled=true` : sans
+          # attente de rollout, on deduirait a nouveau le succes de l'absence
+          # d'echec, ce qui est exactement ce qui a laisse le trou ouvert.
+          # ⚠️ Ce `rolled=true` est une porte NOUVELLE : un deploiement echouera
+          # desormais si le rollout de l'admin n'aboutit pas. C'est voulu.
           #
           # screenshotter is a chart service like any other. The chart AND values-prod
           # both say `enabled: false`, but the live production release has it TRUE — set
@@ -771,7 +789,7 @@ jobs:
           # when it is rebuilt it is still scanned and signature-verified; the previous
           # vulnerability gate covered it, and dropping it would have silently ended
           # that coverage.
-          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
+          SERVICES="web:web:web:true:true admin:admin:web:true:true api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
 
           rebuilt_web="${{ steps.tiers.outputs.web }}"
           rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"

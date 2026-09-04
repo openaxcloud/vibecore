@@ -69,6 +69,8 @@ steps:
         docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_DEPS_TAG}
         echo "::: pulling web:latest (best-effort)"
         docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest || true
+        echo "::: pulling admin:latest (best-effort)"
+        docker pull ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest || true
 
   - id: build-web
     name: gcr.io/cloud-builders/docker
@@ -87,6 +89,79 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
       - .
+
+  # ---- admin (AUDX-173) ----
+  #
+  # L'image admin n'etait construite par AUCUN des deux fichiers de tier que la
+  # chaine de livraison execute. Elle n'existait que dans le `cloudbuild.yaml`
+  # racine, qui n'est utilise QUE par un build manuel. Consequence mesuree :
+  # 32 commits touchant `apps/admin/` en six mois, dont aucun n'a jamais atteint
+  # la production — et, plus grave, aucun correctif de securite non plus, alors
+  # que le service tourne (`enabled: true`, `replicas: 2`, expose sur `/admin`).
+  #
+  # Rattache au tier `web` et non a `runtime` : c'est une application front, elle
+  # partage l'image `deps` et le meme cycle que `web`.
+  - id: build-admin
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['prime-cache']
+    env:
+      - DOCKER_BUILDKIT=1
+    args:
+      - build
+      - -f=infra/docker/node-service.Dockerfile
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_DEPS_TAG}
+      - --build-arg=PACKAGE_FILTER=@vibecore/admin
+      - --build-arg=START_CMD=node serve.mjs
+      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
+      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+      - .
+
+  - id: push-admin
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-admin']
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
+        docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
+
+  # Signee comme `web`. Une image non signee serait refusee par la porte
+  # d'attestation en aval — la livrer sans signature aurait juste deplace le
+  # blocage au lieu de fermer le trou.
+  - id: sign-admin
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['push-admin', 'fetch-cosign']
+    entrypoint: bash
+    env:
+      - 'COSIGN_KMS_KEY=gcpkms://projects/${_PROJECT}/locations/${_REGION}/keyRings/${_KMS_KEYRING}/cryptoKeys/${_KMS_KEY}'
+    args:
+      - -c
+      - |
+        set -euo pipefail
+        export PATH="/workspace:$$PATH"
+        ref="${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}"
+        digest_ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$ref")"
+        bash scripts/cosign-sign-images.sh "$digest_ref"
+
+  - id: scan-admin
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    waitFor: ['build-admin']
+    allowFailure: true
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        set -u
+        echo "::: scanning admin:${_SHORT_SHA}"
+        gcloud artifacts docker images scan \
+          "${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}" \
+          --location="${_REGION}" \
+          --format='value(response.scan)' \
+          || echo "WARN: scan failed for admin (non-fatal)"
 
   # ---- sign image (B7) — see infra/cloudbuild/runtime-tier.yaml for rationale ----
   - id: fetch-cosign
@@ -166,3 +241,5 @@ steps:
 images:
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
   - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:${_SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/admin:latest
