@@ -124,6 +124,7 @@ platformEnv:
     workspaceRuntimeNamespace: 'workspaces'
     workspaceStorageClass: 'workspace-standard-rwo'
     workspaceAgentImage: 'europe-west9-docker.pkg.dev/vibecore-495216/vibecore-prod-containers/workspace-agent:sha-7704c1dd6b'
+    workspaceAgentSourceSha: '7704c1dd6bf65f79c0139d4ccf6148043ac695c5'
     # Host-based preview: the {workspaceId}-{port} subdomain already identifies
     # the workspace+port and the preview-proxy host-routes EVERY path to the dev
     # server, so the URL must be the host ROOT. A '/p/<ws>/<port>/' path prefix

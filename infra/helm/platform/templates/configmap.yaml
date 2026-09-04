@@ -180,6 +180,7 @@ data:
   WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
   WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
   WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
+  WORKSPACE_AGENT_SOURCE_SHA: {{ .Values.platformEnv.runtime.workspaceAgentSourceSha | quote }}
   PREVIEW_URL_TEMPLATE: {{ .Values.platformEnv.runtime.previewUrlTemplate | quote }}
   # Base preview domain (e.g. preview.e-code.ai). The preview-proxy uses it to
   # recognize per-preview hosts `<workspaceId>-<port>.<PREVIEW_DOMAIN>` and serve

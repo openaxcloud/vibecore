@@ -23,6 +23,11 @@
             "type": "string",
             "pattern": "^(|sha256:[0-9a-f]{64})$",
             "description": "Per-service immutable image digest; overrides global.imageDigest. Set by the deploy workflow from the digest it built, scanned and verified."
+          },
+          "imageSourceSha": {
+            "type": "string",
+            "pattern": "^(|[0-9a-f]{40})$",
+            "description": "Full commit that produced imageDigest. The deploy workflow persists this beside the immutable reference so a later partial release can carry it forward without inventing provenance."
           }
         }
       }
@@ -39,6 +44,11 @@
               "type": "string",
               "enum": ["0", "1"],
               "description": "D2 (approved 2026-07-17): '1' = server rollback re-deploys the retained image by digest (I-REL-1, fail-closed). '0' = explicit kill switch — the api refuses server rollbacks (409) rather than reviving the URL-copy row that re-deploys nothing. Any other value (including '' or a bare boolean) is rejected at upgrade time."
+            },
+            "workspaceAgentSourceSha": {
+              "type": "string",
+              "pattern": "^(|[0-9a-f]{40})$",
+              "description": "Full commit that produced workspaceAgentImage. Required by the gated deploy once the workspace-agent is pinned by digest."
             }
           }
         }
