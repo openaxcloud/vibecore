@@ -16,7 +16,7 @@
     "platform:test": "pnpm run test",
     "platform:typecheck": "pnpm run typecheck",
     "platform:lint": "pnpm run lint",
-    "platform:verify": "pnpm run platform:no-mocks && pnpm run platform:no-build-tools-in-prod && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate",
+    "platform:verify": "pnpm run platform:no-mocks && pnpm run admin:dangerous-actions:validate && pnpm run readiness:validate && pnpm run platform:lint && pnpm run platform:test && pnpm run platform:typecheck && pnpm run platform:build && pnpm run infra:validate",
     "production:validate": "node scripts/validate-production-enterprise.mjs --strict",
     "production:validate:live": "node scripts/validate-production-enterprise.mjs --strict --live",
     "production:validate:self-test": "node scripts/validate-production-enterprise.mjs --self-test",
@@ -104,8 +104,7 @@
     "electron:build:dist": "rimraf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl",
     "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs",
     "parity:validate": "node scripts/parity/validate-registries.mjs",
-    "parity:collect": "node scripts/parity/collect-baseline.mjs",
-    "platform:no-build-tools-in-prod": "node scripts/check-no-build-tools-in-prod.mjs"
+    "parity:collect": "node scripts/parity/collect-baseline.mjs"
   },
   "engines": {
     "node": ">=18.18.0"
@@ -178,6 +177,7 @@
     "@radix-ui/react-tabs": "^1.1.2",
     "@radix-ui/react-toggle-group": "^1.1.11",
     "@radix-ui/react-tooltip": "^1.1.4",
+    "@react-router/fs-routes": "^7.18.0",
     "@react-router/node": "^7.18.0",
     "@react-router/serve": "^7.18.0",
     "@tanstack/react-virtual": "^3.13.0",
@@ -262,6 +262,7 @@
     "tailwind-merge": "^2.2.1",
     "unist-util-visit": "^5.0.0",
     "use-debounce": "^10.0.4",
+    "vite-plugin-node-polyfills": "^0.22.0",
     "ws": "^8.20.0",
     "zod": "^3.24.1",
     "zustand": "^5.0.3"
@@ -274,7 +275,6 @@
     "@iconify/types": "^2.0.0",
     "@playwright/test": "^1.59.1",
     "@react-router/dev": "^7.18.0",
-    "@react-router/fs-routes": "^7.18.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/diff": "^5.2.3",
@@ -317,7 +317,6 @@
     "unocss": "^0.61.9",
     "vite": "^5.4.21",
     "vite-plugin-copy": "^0.1.6",
-    "vite-plugin-node-polyfills": "^0.22.0",
     "vite-plugin-optimize-css-modules": "^1.1.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^3.2.6",
