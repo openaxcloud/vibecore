@@ -1989,6 +1989,12 @@ model CreditWallet {
   id                        String         @id @default(cuid())
   organizationId            String         @unique
   balanceCents              Int            @default(0)
+  // AUDX-018: credits RESERVED for in-flight provider calls but not yet settled.
+  // Available = balanceCents - heldCents. Held is incremented by a CONDITIONAL
+  // update (the only way the check and the hold can be atomic) and released on
+  // settle, on failure, or by the expiry sweep. Without it, N concurrent calls
+  // each pass the same balance check and collectively overspend.
+  heldCents                 Int            @default(0)
   currency                  String         @default("usd")
   // Replit "Usage Limit": cap on usage-based spend past included credits.
   budgetCapCents            Int?
@@ -2005,6 +2011,35 @@ model CreditWallet {
   updatedAt                 DateTime       @updatedAt
   organization              Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   entries                   CreditLedger[]
+}
+
+/// AUDX-018 — a credit hold taken BEFORE a provider call and settled after.
+///
+/// The metering path debits only when usage is REPORTED, i.e. after the call has
+/// already cost money. A report that never arrives (crash, closed tab, a caller
+/// that simply omits it) is free AI, and concurrent calls can each clear the same
+/// pre-check. A reservation moves the decision before the spend.
+///
+/// Lifecycle: HELD -> SETTLED (actual cost debited, remainder released)
+///                 -> RELEASED (call failed / never happened)
+///                 -> EXPIRED (swept; a crashed request must not strand credits)
+model CreditReservation {
+  id             String    @id @default(cuid())
+  organizationId String
+  projectId      String?
+  // Correlates the settle with the usage report.
+  conversationId String?
+  amountCents    Int
+  status         String    @default("HELD")
+  // Actual cost once settled; null while HELD.
+  settledCents   Int?
+  expiresAt      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([organizationId, status])
+  // Expiry sweep scans HELD rows past their deadline.
+  @@index([status, expiresAt])
 }
 
 /// Purchased credit pack (Replit). Credits expire 6 months after purchase, are

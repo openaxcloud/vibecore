@@ -2654,5 +2654,9 @@
   "MIGRATION_MANUAL_RECOVERY_MESSAGE": {
     "en": "The commit was not confirmed, so the schema state is undetermined and needs manual recovery. Publishing was refused to keep the previous version live.",
     "fr": "Le COMMIT n’a pas été confirmé : l’état du schéma est indéterminé et demande une reprise manuelle. La publication a été refusée pour continuer à servir la version précédente."
+  },
+  "CREDITS_RESERVATION_REFUSED": {
+    "en": "Not enough credits available to start this request.",
+    "fr": "Crédits insuffisants pour démarrer cette requête."
   }
 }

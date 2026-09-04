@@ -4856,6 +4856,143 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
+  /*
+   * AUDX-018 — take a credit hold ATOMICALLY.
+   *
+   * The check ("is there enough left?") and the hold ("take it") MUST be one
+   * statement. Reading the balance and then inserting a reservation is a TOCTOU
+   * race: N concurrent calls all read the same balance, all decide yes, and the
+   * wallet goes past its limit — exactly the overspend this exists to stop.
+   *
+   * Prisma's updateMany cannot express a column-to-column comparison
+   * (`balanceCents - heldCents >= $amount`), so this is parameterised SQL. The
+   * affected-row count IS the answer: 1 = held, 0 = refused. No read precedes it.
+   */
+  async reserveCredits(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    amountCents: number;
+    expiresAtMs: number;
+  }): Promise<{ id: string; amountCents: number } | undefined> {
+    const amount = Math.max(0, Math.ceil(input.amountCents));
+
+    if (amount <= 0) {
+      return undefined;
+    }
+
+    await this.ensureCreditWallet(input.organizationId);
+
+    const held = await this.prisma.$executeRaw`
+      UPDATE "CreditWallet"
+         SET "heldCents" = "heldCents" + ${amount}, "updatedAt" = NOW()
+       WHERE "organizationId" = ${input.organizationId}
+         AND "balanceCents" - "heldCents" >= ${amount}
+    `;
+
+    if (held !== 1) {
+      return undefined;
+    }
+
+    const reservation = await this.prisma.creditReservation.create({
+      data: {
+        organizationId: input.organizationId,
+        projectId: input.projectId,
+        conversationId: input.conversationId,
+        amountCents: amount,
+        expiresAt: new Date(input.expiresAtMs),
+      },
+    });
+
+    return { id: reservation.id, amountCents: reservation.amountCents };
+  }
+
+  /*
+   * Release a hold. Conditional on status = 'HELD' so a double release (settle
+   * racing the expiry sweep) cannot give the credits back twice — the second
+   * call matches no row and is a no-op.
+   */
+  async releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }): Promise<boolean> {
+    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+
+    if (!reservation || reservation.status !== 'HELD') {
+      return false;
+    }
+
+    const claimed = await this.prisma.creditReservation.updateMany({
+      where: { id: input.id, status: 'HELD' },
+      data: { status: input.status ?? 'RELEASED' },
+    });
+
+    if (claimed.count !== 1) {
+      return false;
+    }
+
+    /*
+     * Clamp at 0: heldCents must never go negative, whatever bookkeeping drift
+     * an earlier crash left behind.
+     */
+    await this.prisma.$executeRaw`
+      UPDATE "CreditWallet"
+         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+       WHERE "organizationId" = ${reservation.organizationId}
+    `;
+
+    return true;
+  }
+
+  /*
+   * Settle a hold against the ACTUAL cost. Releases the whole hold; the caller
+   * debits the real amount through the normal accounting path so there stays one
+   * debit path, not two.
+   */
+  async settleCreditReservation(input: { id: string; actualCents: number }): Promise<boolean> {
+    const reservation = await this.prisma.creditReservation.findUnique({ where: { id: input.id } });
+
+    if (!reservation || reservation.status !== 'HELD') {
+      return false;
+    }
+
+    const claimed = await this.prisma.creditReservation.updateMany({
+      where: { id: input.id, status: 'HELD' },
+      data: { status: 'SETTLED', settledCents: Math.max(0, Math.ceil(input.actualCents)) },
+    });
+
+    if (claimed.count !== 1) {
+      return false;
+    }
+
+    await this.prisma.$executeRaw`
+      UPDATE "CreditWallet"
+         SET "heldCents" = GREATEST(0, "heldCents" - ${reservation.amountCents}), "updatedAt" = NOW()
+       WHERE "organizationId" = ${reservation.organizationId}
+    `;
+
+    return true;
+  }
+
+  /*
+   * Sweep abandoned holds. A crashed request, a closed tab or a caller that never
+   * reports would otherwise strand credits as held forever — the wallet would
+   * slowly stop being able to reserve anything at all, which is an outage.
+   */
+  async releaseExpiredCreditReservations(nowMs: number, take = 200): Promise<number> {
+    const stale = await this.prisma.creditReservation.findMany({
+      where: { status: 'HELD', expiresAt: { lt: new Date(nowMs) } },
+      take: Math.max(1, Math.min(take, 1000)),
+    });
+
+    let released = 0;
+
+    for (const reservation of stale) {
+      if (await this.releaseCreditReservation({ id: reservation.id, status: 'EXPIRED' })) {
+        released += 1;
+      }
+    }
+
+    return released;
+  }
+
   async updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;

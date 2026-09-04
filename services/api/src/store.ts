@@ -2482,6 +2482,25 @@ export interface ApiStore {
   // --- Replit-parity: credit wallet (dormant until BILLING_CREDITS_ENABLED) ---
   getCreditWallet(organizationId: string): Promise<CreditWalletRecord | undefined>;
   ensureCreditWallet(organizationId: string): Promise<CreditWalletRecord>;
+
+  /*
+   * AUDX-018 — credit holds taken BEFORE a provider call.
+   *
+   * reserveCredits MUST be atomic: implementations check availability and take
+   * the hold in ONE statement. Returning undefined means refused, never "try
+   * again after reading the balance".
+   */
+  reserveCredits(input: {
+    organizationId: string;
+    projectId?: string;
+    conversationId?: string;
+    amountCents: number;
+    expiresAtMs: number;
+  }): Promise<{ id: string; amountCents: number } | undefined>;
+  releaseCreditReservation(input: { id: string; status?: 'RELEASED' | 'EXPIRED' }): Promise<boolean>;
+  settleCreditReservation(input: { id: string; actualCents: number }): Promise<boolean>;
+  releaseExpiredCreditReservations(nowMs: number, take?: number): Promise<number>;
+
   updateCreditWalletSettings(input: {
     organizationId: string;
     budgetCapCents?: number | null;
