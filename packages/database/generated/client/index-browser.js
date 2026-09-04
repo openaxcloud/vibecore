@@ -137,14 +137,6 @@ exports.Prisma.UserScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.AccountLockoutScalarFieldEnum = {
-  userId: 'userId',
-  failedCount: 'failedCount',
-  firstFailedAt: 'firstFailedAt',
-  lockedUntil: 'lockedUntil',
-  updatedAt: 'updatedAt'
-};
-
 exports.Prisma.AccountScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1846,7 +1838,6 @@ exports.LedgerReconciliationStatus = exports.$Enums.LedgerReconciliationStatus =
 
 exports.Prisma.ModelName = {
   User: 'User',
-  AccountLockout: 'AccountLockout',
   Account: 'Account',
   Session: 'Session',
   Organization: 'Organization',
