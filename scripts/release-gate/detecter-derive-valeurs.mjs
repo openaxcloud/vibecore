@@ -16,18 +16,25 @@
  */
 import { readFileSync } from 'node:fs';
 
-import { parse } from 'yaml';
-
 import { comparerValeurs, formaterEcarts } from './garde-derive-valeurs.mjs';
 
+/*
+ * DEUX FICHIERS JSON, aucune dependance externe.
+ *
+ * La premiere version important `yaml` : sur le runner, ce paquet n'est pas
+ * resolvable a ce stade du deploiement, et le controle mourait en
+ * ERR_MODULE_NOT_FOUND. Comme il etait lance en `|| true`, il se taisait — un
+ * garde contre les reglages silencieux, lui-meme silencieux. La conversion du
+ * YAML se fait donc en amont, dans le workflow, et l'echec y est fatal.
+ */
 const [cheminFichier, cheminRelease] = process.argv.slice(2);
 
 if (!cheminFichier || !cheminRelease) {
-  console.error('usage: detecter-derive-valeurs.mjs <values-prod.yaml> <valeurs-release.json>');
+  console.error('usage: detecter-derive-valeurs.mjs <valeurs-fichier.json> <valeurs-release.json>');
   process.exit(2);
 }
 
-const fichier = parse(readFileSync(cheminFichier, 'utf8'));
+const fichier = JSON.parse(readFileSync(cheminFichier, 'utf8'));
 const release = JSON.parse(readFileSync(cheminRelease, 'utf8') || '{}');
 const ecarts = comparerValeurs(fichier, release);
 

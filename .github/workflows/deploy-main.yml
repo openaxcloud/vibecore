@@ -1530,12 +1530,16 @@ jobs:
           # Ce contrôle CRIE et ne bloque pas : il ne referme pas les écarts tout
           # seul, parce que le fichier n'a pas toujours raison contre la
           # production (un `--set` d'hier peut être le bon réglage d'aujourd'hui).
-          if helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/valeurs-release.json 2>/dev/null; then
-            node scripts/release-gate/detecter-derive-valeurs.mjs \
-              infra/helm/platform/values-prod.yaml /tmp/valeurs-release.json || true
-          else
-            echo "::warning::valeurs de la release illisibles — contrôle de dérive non exécuté"
-          fi
+          # PAS de `|| true`. Un contrôle qui ne peut pas s'exécuter doit faire
+          # échouer, pas se taire : la première version importait `yaml`,
+          # introuvable sur le runner, et mourait en silence derrière un
+          # `|| true` — un garde contre les réglages silencieux, lui-même
+          # silencieux. Exactement le défaut qu'il existe pour attraper.
+          helm get values "${HELM_RELEASE}" --namespace "${HELM_NAMESPACE}" -o json > /tmp/valeurs-release.json
+          python3 -c 'import json,sys,yaml; json.dump(yaml.safe_load(open(sys.argv[1])), open(sys.argv[2],"w"))' \
+            infra/helm/platform/values-prod.yaml /tmp/valeurs-fichier.json
+          node scripts/release-gate/detecter-derive-valeurs.mjs \
+            /tmp/valeurs-fichier.json /tmp/valeurs-release.json
 
           echo "helm --set args: ${SETS[*]}"
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
