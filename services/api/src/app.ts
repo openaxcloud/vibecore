@@ -15341,11 +15341,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.post('/orgs', async (request, reply) => {
     const body = parse(createOrgSchema, request.body);
 
-    const organization = await store.createOrganization({
-      name: body.name,
-      slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-      ownerUserId: request.currentUser!.id,
-    });
+    let organization;
+
+    try {
+      organization = await store.createOrganization({
+        name: body.name,
+        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        ownerUserId: request.currentUser!.id,
+      });
+    } catch (error) {
+      /*
+       * Organization.slug is globally @unique, so a name whose derived slug is
+       * already taken surfaces as Prisma P2002 — which the global error handler
+       * would report as an opaque 500. Duck-type the code (same pattern as the
+       * store's own P2002 checks) and return an actionable 409 instead.
+       */
+      if ((error as { code?: string } | null)?.code === 'P2002') {
+        return reply.code(409).send({
+          error: 'An organization with this name or slug already exists. Pick a different name.',
+          code: 'ORG_SLUG_TAKEN',
+        });
+      }
+
+      throw error;
+    }
+
     await audit(request, store, {
       organizationId: organization.id,
       action: 'org.create',
