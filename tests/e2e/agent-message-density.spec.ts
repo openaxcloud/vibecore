@@ -127,7 +127,47 @@ async function measureRows(page: Page) {
     const lastRow = rows.at(-1) ?? null;
     const trailing = lastRow?.nextElementSibling ?? null;
 
+    /*
+     * Diagnostic de la PREMIÈRE barre, celle que le survol et le toucher
+     * visent. Rouge 3/3 en CI (E2E 1351 : survol → opacité 0, toucher →
+     * hauteur 0) et vert sur le MÊME build en local : la mesure doit dire, dans
+     * le message d'échec, si la barre est bien dans la ligne visée, ce que le
+     * moteur calcule pour elle, et ce que les media queries rendent.
+     */
+    const firstRow = rows[1] ?? null;
+    const firstFooter = footers[0] ?? null;
+    const firstStyle = firstFooter ? getComputedStyle(firstFooter) : null;
+
+    const diagnostic = {
+      hoverMedia: matchMedia('(hover: hover)').matches ? 'hover' : matchMedia('(hover: none)').matches ? 'none' : '?',
+      pointerMedia: matchMedia('(pointer: coarse)').matches
+        ? 'coarse'
+        : matchMedia('(pointer: fine)').matches
+          ? 'fine'
+          : '?',
+      viewport: `${innerWidth}x${innerHeight}`,
+      firstFooterInFirstRow: firstRow && firstFooter ? firstRow.contains(firstFooter) : null,
+      firstRowHovered: firstRow ? firstRow.matches(':hover') : null,
+      firstRowRevealed: firstRow?.getAttribute('data-actions-revealed') ?? null,
+      firstRowFocusWithin: firstRow ? firstRow.matches(':focus-within') : null,
+      firstFooter: firstStyle
+        ? `display=${firstStyle.display} height=${firstStyle.height} opacity=${firstStyle.opacity} overflow=${firstStyle.overflow} children=${firstFooter?.childElementCount}`
+        : null,
+      styleSheets: document.styleSheets.length,
+      footerRules: [...document.styleSheets].reduce((total, sheet) => {
+        try {
+          return (
+            total + [...sheet.cssRules].filter((rule) => rule.cssText.includes('bolt-assistant-message-footer')).length
+          );
+        } catch {
+          return total;
+        }
+      }, 0),
+      activeElement: document.activeElement ? document.activeElement.tagName.toLowerCase() : null,
+    };
+
     return {
+      diagnostic: JSON.stringify(diagnostic),
       rowCount: rows.length,
       lastRowIsLastChild: lastRow ? lastRow.parentElement?.lastElementChild === lastRow : null,
       trailing: trailing ? `${trailing.tagName.toLowerCase()}.${[...trailing.classList].join('.')}` : null,
@@ -180,7 +220,9 @@ test.describe('densité des messages — pointeur fin', () => {
 
     const hovered = await measureRows(page);
 
-    expect(hovered.footerOpacities[0], 'le survol ne révèle pas les actions du message').toBe(1);
+    expect(hovered.footerOpacities[0], `le survol ne révèle pas les actions du message — ${hovered.diagnostic}`).toBe(
+      1,
+    );
     expect(
       hovered.footerOpacities.slice(1).every((opacity) => opacity === 0),
       'le survol révèle les actions des AUTRES messages',
@@ -230,7 +272,7 @@ test.describe('densité des messages — pointeur grossier', () => {
       atRest.footerHeights.at(-1),
       `la dernière réponse n’expose pas ses actions — lignes ${atRest.rowCount}, barres ${atRest.footerCount}, ` +
         `dernière ligne :last-child=${atRest.lastRowIsLastChild}, frère suivant=${atRest.trailing}, ` +
-        `indicateurs de flux=${atRest.statusCount}`,
+        `indicateurs de flux=${atRest.statusCount} — ${atRest.diagnostic}`,
     ).toBeGreaterThan(0);
 
     /*
@@ -256,7 +298,10 @@ test.describe('densité des messages — pointeur grossier', () => {
 
     const tapped = await measureRows(page);
 
-    expect(tapped.footerHeights[0], 'le toucher ne déplie pas les actions du message').toBeGreaterThan(0);
+    expect(
+      tapped.footerHeights[0],
+      `le toucher ne déplie pas les actions du message — ${tapped.diagnostic}`,
+    ).toBeGreaterThan(0);
 
     /*
      * Contre-vérification du même mécanisme SANS focus : on retire le focus, la
