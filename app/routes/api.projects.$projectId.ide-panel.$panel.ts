@@ -1976,16 +1976,37 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         method: 'DELETE',
         body: JSON.stringify({ key: body.key }),
       });
-    } else if (intent === 'delete-env') {
-      await apiRequest(request, `/projects/${projectId}/env-vars`, {
-        method: 'DELETE',
-        body: JSON.stringify({ key: body.key }),
-      });
     } else {
-      await apiRequest(request, `/projects/${projectId}/env-vars`, {
-        method: 'PUT',
-        body: JSON.stringify({ key: body.key || 'DATABASE_URL', value: body.value ?? '' }),
-      });
+      /*
+       * R-8 — this used to fall through to
+       * `PUT /env-vars { key: body.key || 'DATABASE_URL', value: body.value ?? '' }`.
+       *
+       * Nothing routes here: the only callers of `/ide-panel/database` are the
+       * workbench (`provision`), the SQL studio (`query`) and the connection
+       * onboarding form (`upsert-secret`) — all handled above. The rollback
+       * panel's `restore` / `snapshot` go to `/api/projects/:id/database`, a
+       * different route. Measured with a fixed-string sweep of `app/`, because a
+       * quoted-pattern search missed the JSX `value="…"` forms and under-reported.
+       *
+       * But an unreachable path that WRITES is still a loaded gun: any future
+       * intent added to a database form without a branch here would have blanked
+       * the project's `DATABASE_URL` (empty `value`) and returned `ok: true`.
+       * A dead branch that silently destroys the connection string is exactly
+       * the fallthrough-as-default trap; it now fails closed and says so.
+       *
+       * The `delete-env` branch removed alongside it had no emitter either: the
+       * only `delete-env` forms belong to the Terminal panel and post to
+       * `/ide-panel/terminal`.
+       */
+      return json(
+        {
+          error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.databaseIntentUnsupported'], {
+            intent: intent ?? '',
+          }),
+          code: 'DATABASE_INTENT_UNSUPPORTED',
+        },
+        { status: 400 },
+      );
     }
   } else if (panel === 'ports') {
     /*
