@@ -1709,13 +1709,21 @@ jobs:
           # Probe from INSIDE the cluster via a throwaway pod: the api Service is
           # not reachable from the runner.
           #
-          # SANS `--rm -i` : l'attache au conteneur est un websocket, et c'est
-          # précisément ce que le Connect Gateway refuse à l'identité CI — la
-          # même cause que `kubectl exec` (voir la note de l'étape D2). Mesuré
-          # le 2026-09-04, run 1436 : l'étape sortait en erreur SANS code HTTP,
-          # stderr masquée par `2>/dev/null`, et le rollback suivait sur un
-          # rollout sain. Tout ce que fait cette version passe par des GET/POST
-          # ordinaires : créer le pod, lire son état, le supprimer.
+          # CE QUI TOMBAIT, mesuré une fois stderr rendue visible (run 1456) :
+          #   pods "sec9-probe-…" is forbidden: violates PodSecurity
+          #   "restricted:latest": allowPrivilegeEscalation != false,
+          #   unrestricted capabilities, runAsNonRoot != true, seccompProfile
+          # Le namespace applique la politique « restricted » ; un pod créé par
+          # `kubectl run` nu n'a AUCUN securityContext, l'apiserver le refuse
+          # avant même de l'ordonnancer. Les runs 1436 et 1454 tombaient sur ce
+          # même refus, mais `2>/dev/null` l'avalait et l'étape sortait en
+          # erreur sans un mot — la production était rollbackée sur un rollout
+          # sain. (Une première réécriture attribuait le refus à l'attache
+          # websocket de `--rm -i` : c'était une déduction, pas une mesure.)
+          #
+          # Le pod porte donc exactement ce que la politique exige, via
+          # `--overrides` ; et l'on ne s'attache toujours pas : créer le pod,
+          # lire son état par un GET, le supprimer.
           #
           # Le VERDICT voyage dans le code de sortie du pod (lisible par un GET
           # sur `status`), pas dans ses journaux ni dans une attache :
@@ -1728,10 +1736,14 @@ jobs:
           PROBE="sec9-probe-${GITHUB_RUN_ID}"
           PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
           kubectl -n "${HELM_NAMESPACE}" delete pod "${PROBE}" --ignore-not-found --wait=true
+          # curlimages/curl tourne en utilisateur 100:101 ; l'écrire en clair
+          # parce que `runAsNonRoot` ne se vérifie pas sur un USER symbolique.
+          OVERRIDES="$(printf '{"spec":{"automountServiceAccountToken":false,"securityContext":{"runAsNonRoot":true,"runAsUser":100,"runAsGroup":101,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"%s","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]}},"resources":{"requests":{"cpu":"10m","memory":"16Mi"},"limits":{"cpu":"100m","memory":"64Mi"}}}]}}' "${PROBE}")"
           kubectl -n "${HELM_NAMESPACE}" run "${PROBE}" \
             --restart=Never --image=curlimages/curl:8.10.1 \
             --labels="app.kubernetes.io/name=sec9-probe,app.kubernetes.io/part-of=vibecore" \
             --env="PROBE_URL=${PROBE_URL}" \
+            --overrides="${OVERRIDES}" \
             --command -- sh -c 'code="$(curl -s -o /dev/null -w "%{http_code}" -m 15 -X POST "$PROBE_URL" -H "content-type: application/json" -d "{\"mode\":\"password\",\"password\":\"sec9-probe-not-a-real-password\"}" || true)"; echo "http ${code:-none}"; printf "%s" "$code" > /dev/termination-log 2>/dev/null || true; case "$code" in 2*) exit 20 ;; ""|000) exit 30 ;; *) exit 0 ;; esac'
 
           PHASE=""

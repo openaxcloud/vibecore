@@ -9,15 +9,17 @@ import { parse } from 'yaml';
  * SEC-9 — la sonde « l'api refuse l'activation en phase 1 » doit POUVOIR
  * s'exécuter depuis l'identité CI, et rendre un verdict juste.
  *
- * Mesuré le 2026-09-04, run 1436 : Helm avait réussi, le rollout était vérifié,
- * puis cette étape sortait en erreur SANS afficher de code HTTP — et la
- * production était rollbackée sur un déploiement sain. Cause : `kubectl run
- * --rm -i` s'ATTACHE au conteneur, un websocket que le Connect Gateway refuse
- * à l'identité CI (même cause que `kubectl exec`, déjà documentée dans l'étape
- * D2) ; et `2>/dev/null` masquait le refus.
+ * Mesuré le 2026-09-04, runs 1436 et 1454 : Helm avait réussi, le rollout était
+ * vérifié, puis cette étape sortait en erreur SANS afficher de code HTTP — et
+ * la production était rollbackée sur un déploiement sain. `2>/dev/null`
+ * masquait la cause ; rendue visible au run 1456, elle tient en une ligne :
+ * « violates PodSecurity "restricted:latest" ». Le namespace refuse tout pod
+ * sans securityContext, et `kubectl run` nu n'en pose aucun. (Une première
+ * réécriture accusait l'attache websocket de `--rm -i` : déduction, pas mesure.)
  *
- * Deux gardes : la forme de l'étape (pas d'attache, pas de stderr masquée) et
- * le VERDICT du script embarqué, exécuté ici contre un vrai serveur HTTP.
+ * Trois gardes : la forme de l'étape (pas d'attache, pas de stderr masquée),
+ * le securityContext que la politique exige, et le VERDICT du script embarqué,
+ * exécuté ici contre un vrai serveur HTTP.
  */
 
 const RACINE = join(new URL('.', import.meta.url).pathname, '..', '..');
@@ -76,6 +78,30 @@ describe('SEC-9 — forme de l’étape', () => {
     expect(commandeRun).not.toMatch(/--rm/);
     expect(commandeRun).not.toMatch(/\s-i\s/);
     expect(run).not.toMatch(/kubectl[^\n]*2>\/dev\/null/);
+  });
+
+  it('crée un pod conforme à PodSecurity « restricted » — ce que le namespace exige et refusait', () => {
+    /*
+     * Mesuré au run 1456, stderr enfin visible : « violates PodSecurity
+     * "restricted:latest" » — quatre exigences nommées par l'apiserver. Sans
+     * elles, le pod n'existe jamais et la sonde tombe avant la première
+     * requête, quel que soit le reste de l'étape.
+     */
+    const run = etapeSonde().run;
+    const printf = run.match(/OVERRIDES="\$\(printf '(\{.*?\})' "\$\{PROBE\}"\)"/)?.[1];
+
+    expect(printf, 'les overrides de securityContext sont introuvables').toBeDefined();
+
+    const overrides = JSON.parse(printf.replace('%s', 'probe'));
+    const pod = overrides.spec.securityContext;
+    const conteneur = overrides.spec.containers[0].securityContext;
+
+    expect(pod.runAsNonRoot).toBe(true);
+    expect(typeof pod.runAsUser).toBe('number');
+    expect(pod.seccompProfile.type).toBe('RuntimeDefault');
+    expect(conteneur.allowPrivilegeEscalation).toBe(false);
+    expect(conteneur.capabilities.drop).toEqual(['ALL']);
+    expect(run).toMatch(/--overrides="\$\{OVERRIDES\}"/);
   });
 
   it('lit le verdict dans l’état terminé du pod, par un GET, et supprime le pod', () => {
