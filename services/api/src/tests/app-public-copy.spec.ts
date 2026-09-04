@@ -305,11 +305,6 @@ describe('app.ts i18n source guard', () => {
       'invalid_credentials',
       'mfa_required',
       'invalid_mfa',
-      // Dimension de `auth_failures_total`, comme ses voisines : jamais rendue.
-      // La réponse vue par l'utilisateur passe par le catalogue
-      // (`AUTH_INVALID_CREDENTIALS`) et reste volontairement identique à celle
-      // d'un mauvais mot de passe, pour ne pas révéler qu'un compte existe.
-      'account_locked',
       'suspended',
       'sso_enforced',
       'token_expired_or_revoked',
@@ -331,21 +326,6 @@ describe('app.ts i18n source guard', () => {
       // Internal deploy-manifest outcomes are discarded before the public response.
       'Open the project workspace before deploying.',
       'Workspace is starting — please retry.',
-      /*
-       * P0-V3-09 — motifs internes de la machine à états du checkpoint. Écrits
-       * dans `ProjectCheckpoint.error` ou portés par une Error typée dont le
-       * CODE (CHECKPOINT_INADMISSIBLE, CHECKPOINT_UNVERIFIED) est ce que voit
-       * l'appelant ; les messages destinés à l'utilisateur, eux, passent
-       * désormais par le catalogue (CHECKPOINT_*_MESSAGE). Les traduire
-       * masquerait le motif technique dans l'audit sans rien apporter.
-       */
-      'quiesce inadmissible',
-      'quiesce without finite timeout + guaranteed thaw',
-      'checkpoint inadmissible',
-      'manifest not visible',
-      // Libellé d'instantané du stockage (`checkpoint <barrierId>`) : identifiant
-      // interne corrélé aux journaux, pas de la copie destinée à l'utilisateur.
-      'checkpoint {…}',
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',

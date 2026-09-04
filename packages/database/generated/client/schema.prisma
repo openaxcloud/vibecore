@@ -101,24 +101,6 @@ model User {
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
-  loginLockout                AccountLockout?
-}
-
-/**
- * Per-account brute-force / credential-stuffing lock (defence-in-depth on top of
- * the per-IP login rate limit). One row per user; the failed-login counter is
- * incremented atomically in a row-locked transaction so concurrent attempts can't
- * race it. See login-throttle.ts for the pure state machine.
- */
-model AccountLockout {
-  userId        String    @id
-  failedCount   Int       @default(0)
-  firstFailedAt DateTime?
-  lockedUntil   DateTime?
-  updatedAt     DateTime  @updatedAt
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([lockedUntil])
 }
 
 model Account {
@@ -142,10 +124,6 @@ model Session {
   rotatedAt      DateTime?
   revokedAt      DateTime?
   lastReauthAt   DateTime?
-  // Last authenticated activity on this session; drives the idle/inactivity
-  // timeout (see session-idle.ts). Null on rows created before this column —
-  // treated as the session's createdAt for the idle check.
-  lastActiveAt   DateTime?
   // When set, this session is an admin impersonating another user; value = the
   // impersonating admin's user id (for audit / UI banner / traceability). P8.
   impersonatedBy String?
@@ -2408,37 +2386,6 @@ model AgentCallLog {
   @@index([lineKey, createdAt])
   @@index([organizationId, createdAt])
   @@index([projectId, createdAt])
-}
-
-/// Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
-/// + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
-/// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
-/// AgentCheckpoint (facturation par requête agent).
-model ProjectCheckpoint {
-  id               String    @id @default(cuid())
-  projectId        String
-  state            String    @default("PREPARING")
-  logicalBarrierId String?
-  /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
-  /// would require quiescing the in-pod writers (dev server, terminal, agent),
-  /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
-  consistencyLevel String?
-  /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
-  manifest         Json?
-  error            String?
-  expiresAt        DateTime?
-  createdByUserId  String?
-  /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
-  /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
-  /// in-process barrier is invisible to the other replicas and freezes nothing.
-  /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
-  /// process holding the checkpoint dies mid-flight.
-  barrierExpiresAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  @@index([projectId, createdAt])
-  @@index([projectId, barrierExpiresAt])
 }
 
 /// A secure project remix (fork) run. Tracks the normative state machine

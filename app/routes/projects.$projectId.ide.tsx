@@ -15,7 +15,6 @@ import {
   PenLine,
   Play,
   Rocket,
-  Search,
   Settings,
   Share2,
   Square,
@@ -26,7 +25,6 @@ import {
 import {
   lazy,
   Suspense,
-  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -49,7 +47,6 @@ import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
-import { ProjectResourcesPanel } from '~/components/workbench/ProjectResourcesPanel';
 import { formatProjectIdeCopy, formatProjectIdeCount, getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
@@ -209,18 +206,6 @@ function IdeProjectTopBar({
   const renameInputRef = useRef<HTMLInputElement>(null);
   const filesPanelOpen = useStore(workbenchStore.projectFilesPanelOpen);
   const effectiveWorkspace = runtimeWorkspaceStatus ?? workspace;
-
-  /**
-   * RPL-IDE-001.8 — hand Spotlight to the workspace shell, which owns the
-   * palette engine it is built on. Same window-event channel the topbar already
-   * uses to open tool panels.
-   */
-  const openProjectSpotlight = useCallback(() => {
-    window.dispatchEvent(
-      new CustomEvent('vibecore:open-project-spotlight', { detail: { projectName: displayProjectName } }),
-    );
-  }, [displayProjectName]);
-
   const isReallyRunning = isWorkspaceReallyRunning(effectiveWorkspace, previews);
   const previewRunning = isReallyRunning;
   const workspaceState = workspaceUiState(effectiveWorkspace, { ports: previews, loading, error });
@@ -568,12 +553,6 @@ function IdeProjectTopBar({
             <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
-        {/*
-          RPL-IDE-001.7 — Resources sits beside the app name, as in Replit, so
-          RAM/CPU/Storage pressure is visible from wherever you are in the IDE
-          rather than being buried in a tool tab.
-        */}
-        <ProjectResourcesPanel projectId={projectId} workspaceId={effectiveWorkspace?.id} />
       </div>
       <div className="bolt-project-topbar-actions">
         <div
@@ -582,23 +561,6 @@ function IdeProjectTopBar({
           data-priority="overflow"
           aria-label={copy['projectIde.actions.more']}
         >
-          {/*
-            RPL-IDE-001.8 — le déclencheur de Spotlight. Le rappel, les
-            traductions et l'écouteur côté coque existaient déjà ; seul ce
-            bouton manquait, si bien que la palette n'était joignable depuis
-            aucun endroit de l'IDE.
-          */}
-          <button
-            type="button"
-            data-testid="ide-spotlight-trigger"
-            className="bolt-project-topbar-icon-button"
-            aria-label={text(copy['projectIde.project.spotlightAria'], { project: displayProjectName })}
-            title={copy['projectIde.project.spotlight']}
-            data-vc-tooltip={copy['projectIde.project.spotlight']}
-            onClick={openProjectSpotlight}
-          >
-            <Search className="h-3.5 w-3.5" aria-hidden />
-          </button>
           <button
             type="button"
             data-testid="ide-files-panel-toggle"
