@@ -3498,6 +3498,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const projectFilesRef = useRef(projectFiles);
 
     projectFilesRef.current = projectFiles;
+
     const runtimePreviews = useStore(workbenchStore.previews);
     const runtimeWorkspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);

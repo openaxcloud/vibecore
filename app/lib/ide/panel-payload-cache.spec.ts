@@ -75,8 +75,10 @@ describe('project panel payload cache', () => {
   it('RED (BUG-PANEL-CACHE-003): never serves an error envelope as a cached payload', () => {
     writeProjectPanelCache('p1:overview', { payload: errorEnvelope, lastLoadedAt: '2026-09-04T00:00:00.000Z' });
 
-    // A revisited tab seeds from this. Seeding on `data: null` paints an empty
-    // panel, so the cache must not hand this back as if it were content.
+    /*
+     * A revisited tab seeds from this. Seeding on `data: null` paints an empty
+     * panel, so the cache must not hand this back as if it were content.
+     */
     expect(readProjectPanelCache('p1:overview')).toBeUndefined();
   });
 
