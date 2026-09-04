@@ -1,6 +1,0 @@
-- [Button](references/components/button.md)
-- [Checkbox](references/components/checkbox.md)
-- [Component Index](references/components/component-index.md) — Full list of available components with status and category
-- [Guardrails](references/guides/guardrails.md) — Hard rules that must never be broken (banned patterns, required tokens, accessibility minimums)
-- [Layout & Spacing](references/guides/layout-and-spacing.md) — Grid system, spacing scale, responsive breakpoints, and page templates
-- [Setup](references/guides/setup.md) — Installation, project configuration, and provider setup
