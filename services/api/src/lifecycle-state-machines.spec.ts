@@ -19,9 +19,8 @@ describe('checkpoint two-phase barrier (audit v4 D)', () => {
     const path = [
       ['PREPARING', 'QUIESCING'],
       ['QUIESCING', 'BARRIER_ESTABLISHED'],
-      ['BARRIER_ESTABLISHED', 'VOLUME_SNAPSHOTTING'],
-      ['VOLUME_SNAPSHOTTING', 'DB_SNAPSHOTTING'],
-      ['DB_SNAPSHOTTING', 'VERIFYING'], // POD est optionnel — saut légal
+      ['BARRIER_ESTABLISHED', 'SNAPSHOTTING'],
+      ['SNAPSHOTTING', 'VERIFYING'],
       ['VERIFYING', 'COMMITTED'],
     ] as const;
 
@@ -32,7 +31,7 @@ describe('checkpoint two-phase barrier (audit v4 D)', () => {
 
   it('REFUSES snapshotting before the barrier is established (the illusion-of-consistency bug)', () => {
     try {
-      assertCheckpointTransition('QUIESCING', 'VOLUME_SNAPSHOTTING');
+      assertCheckpointTransition('QUIESCING', 'SNAPSHOTTING');
       throw new Error('should have thrown');
     } catch (error) {
       expect(error).toBeInstanceOf(LifecycleError);
@@ -41,7 +40,7 @@ describe('checkpoint two-phase barrier (audit v4 D)', () => {
   });
 
   it('allows ABORTING from any non-terminal state, then CLEANED / MANUAL_INTERVENTION', () => {
-    for (const from of ['PREPARING', 'QUIESCING', 'BARRIER_ESTABLISHED', 'VOLUME_SNAPSHOTTING', 'VERIFYING'] as const) {
+    for (const from of ['PREPARING', 'QUIESCING', 'BARRIER_ESTABLISHED', 'SNAPSHOTTING', 'VERIFYING'] as const) {
       expect(() => assertCheckpointTransition(from, 'ABORTING')).not.toThrow();
     }
     expect(() => assertCheckpointTransition('ABORTING', 'CLEANED')).not.toThrow();
@@ -56,7 +55,6 @@ describe('checkpoint two-phase barrier (audit v4 D)', () => {
   });
 
   const component = (over: Partial<CheckpointComponentSnapshot>): CheckpointComponentSnapshot => ({
-    componentKind: 'FILES',
     snapshotId: 's',
     logicalBarrierId: 'barrier-1',
     startedAt: '2026-07-16T00:00:00Z',
