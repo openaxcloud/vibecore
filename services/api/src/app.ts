@@ -3518,6 +3518,34 @@ async function requirePlatformAdmin(request: FastifyRequest) {
  * WORKSPACE_MANAGER_SHARED_SECRET, which the manager/worker pods already hold).
  * Fails closed when no secret is configured.
  */
+/*
+ * AUDX-017 — provenance marker for a report that ALSO carries a user session.
+ *
+ * requireInternalSecret() reads the Authorization header, which on this route is
+ * already the user's session bearer — using it here would make the trusted path
+ * UNREACHABLE (the auth preHandler would have 401'd an internal-secret bearer
+ * long before the route ran). A distinct header lets a server-to-server caller
+ * prove it is the platform while still forwarding the user's session for
+ * org/project resolution.
+ *
+ * Deliberately NOT in the CORS allowedHeaders list, so a browser cannot send it
+ * cross-origin.
+ */
+function hasInternalSecretHeader(request: FastifyRequest): boolean {
+  const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
+  const header = request.headers['x-vibecore-internal'];
+  const provided = typeof header === 'string' ? header.trim() : '';
+
+  if (!expected || !provided) {
+    return false;
+  }
+
+  const expectedBuf = Buffer.from(expected);
+  const providedBuf = Buffer.from(provided);
+
+  return expectedBuf.length === providedBuf.length && timingSafeEqual(expectedBuf, providedBuf);
+}
+
 function requireInternalSecret(request: FastifyRequest) {
   const expected = (process.env.INTERNAL_API_SHARED_SECRET || process.env.WORKSPACE_MANAGER_SHARED_SECRET || '').trim();
   const header = request.headers.authorization;
@@ -26989,6 +27017,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   app.post('/projects/:projectId/ai/record-usage', async (request) => {
     const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * AUDX-017 — is this report the platform's own, or a caller's claim?
+     *
+     * This route is session-authenticated, so its token counts are DECLARED by
+     * whoever holds a session: `inputTokens: 0` bills nothing, and simply never
+     * calling it bills nothing at all. The LLM call does not yet go through the
+     * ai-gateway (see the C1.b.4 note in app/lib/.server/ai-usage.ts), so the
+     * counts cannot be recomputed here.
+     *
+     * What CAN be established is provenance. A report carrying the internal
+     * shared secret is server-to-server — no user session can produce it — and
+     * is recorded as 'trusted'. Everything else is recorded as 'declared' and
+     * stays reconcilable instead of being silently believed. Declared rows are
+     * still written: losing them would be strictly worse than marking them.
+     */
+    const usageSource: 'trusted' | 'declared' = hasInternalSecretHeader(request) ? 'trusted' : 'declared';
+
     const project = await requireProject(request, store, projectId, 'workspaces:read');
 
     /*
@@ -27018,6 +27064,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       outputTokens: body.outputTokens,
       costCents,
       reason: `chat.completion.${body.source}`,
+      source: usageSource,
     });
 
     /*

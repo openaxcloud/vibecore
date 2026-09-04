@@ -3757,8 +3757,16 @@ export class TestApiStore implements ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }) {
-    const cost: AiCostLedgerRecord = { id: id('ai_cost'), ...input, createdAt: now() };
+    const cost: AiCostLedgerRecord = { id: id('ai_cost'), source: 'declared', ...input, createdAt: now() };
     this.aiCostLedger.set(cost.id, cost);
 
     return cost;

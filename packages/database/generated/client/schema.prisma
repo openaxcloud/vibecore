@@ -1217,12 +1217,26 @@ model AiCostLedger {
   outputTokens   Int
   costCents      Int
   reason         String
+  // AUDX-017: where these token counts came from.
+  //   'trusted'  = reported server-to-server (internal shared secret). The
+  //                caller cannot be a user session, so the numbers are the
+  //                platform's own.
+  //   'declared' = reported under a USER SESSION. /ai/record-usage is an
+  //                authenticated HTTP route, so anyone holding a session could
+  //                post inputTokens: 0 and bill nothing — or never post at all.
+  //                Such rows are still recorded (losing them entirely would be
+  //                worse) but are marked so they are reconcilable instead of
+  //                silently trusted. Existing rows backfill to 'declared',
+  //                which is the honest description of how they were produced.
+  source         String       @default("declared")
   createdAt      DateTime     @default(now())
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
   @@index([projectId])
   @@index([conversationId])
+  // Reconciliation sweep: find declared rows to re-check against provider data.
+  @@index([organizationId, source, createdAt])
 }
 
 model AbuseEvent {

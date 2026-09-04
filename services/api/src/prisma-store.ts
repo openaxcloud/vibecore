@@ -4816,8 +4816,18 @@ export class PrismaApiStore implements ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }) {
-    return mapAiCostLedger(await this.prisma.aiCostLedger.create({ data: input }));
+    return mapAiCostLedger(
+      await this.prisma.aiCostLedger.create({ data: { ...input, source: input.source ?? 'declared' } }),
+    );
   }
 
   async listAiCosts(organizationId: string, range?: { from?: string; to?: string }) {
@@ -7040,6 +7050,7 @@ function mapAiCostLedger(cost: any): AiCostLedgerRecord {
     outputTokens: cost.outputTokens,
     costCents: cost.costCents,
     reason: cost.reason,
+    source: cost.source ?? 'declared',
     createdAt: toIso(cost.createdAt)!,
   };
 }

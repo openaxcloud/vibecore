@@ -709,6 +709,9 @@ export interface AiCostLedgerRecord {
   outputTokens: number;
   costCents: number;
   reason: string;
+
+  /** AUDX-017 — 'trusted' (server-to-server) or 'declared' (user session). */
+  source?: string;
   createdAt: string;
 }
 
@@ -2476,6 +2479,14 @@ export interface ApiStore {
     outputTokens: number;
     costCents: number;
     reason: string;
+
+    /*
+     * AUDX-017 — provenance of the token counts. 'trusted' = reported
+     * server-to-server; 'declared' = reported under a user session and therefore
+     * forgeable. Defaults to 'declared': the untrusted value is the safe default
+     * for a caller that has not said which it is.
+     */
+    source?: 'trusted' | 'declared';
   }): Promise<AiCostLedgerRecord>;
   listAiCosts(organizationId: string, range?: { from?: string; to?: string }): Promise<AiCostLedgerRecord[]>;
 

@@ -82562,6 +82562,7 @@ export namespace Prisma {
     outputTokens: number | null
     costCents: number | null
     reason: string | null
+    source: string | null
     createdAt: Date | null
   }
 
@@ -82577,6 +82578,7 @@ export namespace Prisma {
     outputTokens: number | null
     costCents: number | null
     reason: string | null
+    source: string | null
     createdAt: Date | null
   }
 
@@ -82592,6 +82594,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: number
+    source: number
     createdAt: number
     _all: number
   }
@@ -82621,6 +82624,7 @@ export namespace Prisma {
     outputTokens?: true
     costCents?: true
     reason?: true
+    source?: true
     createdAt?: true
   }
 
@@ -82636,6 +82640,7 @@ export namespace Prisma {
     outputTokens?: true
     costCents?: true
     reason?: true
+    source?: true
     createdAt?: true
   }
 
@@ -82651,6 +82656,7 @@ export namespace Prisma {
     outputTokens?: true
     costCents?: true
     reason?: true
+    source?: true
     createdAt?: true
     _all?: true
   }
@@ -82753,6 +82759,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source: string
     createdAt: Date
     _count: AiCostLedgerCountAggregateOutputType | null
     _avg: AiCostLedgerAvgAggregateOutputType | null
@@ -82787,6 +82794,7 @@ export namespace Prisma {
     outputTokens?: boolean
     costCents?: boolean
     reason?: boolean
+    source?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aiCostLedger"]>
@@ -82803,6 +82811,7 @@ export namespace Prisma {
     outputTokens?: boolean
     costCents?: boolean
     reason?: boolean
+    source?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aiCostLedger"]>
@@ -82819,6 +82828,7 @@ export namespace Prisma {
     outputTokens?: boolean
     costCents?: boolean
     reason?: boolean
+    source?: boolean
     createdAt?: boolean
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["aiCostLedger"]>
@@ -82835,10 +82845,11 @@ export namespace Prisma {
     outputTokens?: boolean
     costCents?: boolean
     reason?: boolean
+    source?: boolean
     createdAt?: boolean
   }
 
-  export type AiCostLedgerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "conversationId" | "messageId" | "provider" | "model" | "inputTokens" | "outputTokens" | "costCents" | "reason" | "createdAt", ExtArgs["result"]["aiCostLedger"]>
+  export type AiCostLedgerOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "projectId" | "conversationId" | "messageId" | "provider" | "model" | "inputTokens" | "outputTokens" | "costCents" | "reason" | "source" | "createdAt", ExtArgs["result"]["aiCostLedger"]>
   export type AiCostLedgerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     organization?: boolean | OrganizationDefaultArgs<ExtArgs>
   }
@@ -82866,6 +82877,7 @@ export namespace Prisma {
       outputTokens: number
       costCents: number
       reason: string
+      source: string
       createdAt: Date
     }, ExtArgs["result"]["aiCostLedger"]>
     composites: {}
@@ -83302,6 +83314,7 @@ export namespace Prisma {
     readonly outputTokens: FieldRef<"AiCostLedger", 'Int'>
     readonly costCents: FieldRef<"AiCostLedger", 'Int'>
     readonly reason: FieldRef<"AiCostLedger", 'String'>
+    readonly source: FieldRef<"AiCostLedger", 'String'>
     readonly createdAt: FieldRef<"AiCostLedger", 'DateTime'>
   }
     
@@ -159371,6 +159384,7 @@ export namespace Prisma {
     outputTokens: 'outputTokens',
     costCents: 'costCents',
     reason: 'reason',
+    source: 'source',
     createdAt: 'createdAt'
   };
 
@@ -165541,6 +165555,7 @@ export namespace Prisma {
     outputTokens?: IntFilter<"AiCostLedger"> | number
     costCents?: IntFilter<"AiCostLedger"> | number
     reason?: StringFilter<"AiCostLedger"> | string
+    source?: StringFilter<"AiCostLedger"> | string
     createdAt?: DateTimeFilter<"AiCostLedger"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }
@@ -165557,6 +165572,7 @@ export namespace Prisma {
     outputTokens?: SortOrder
     costCents?: SortOrder
     reason?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
     organization?: OrganizationOrderByWithRelationInput
   }
@@ -165576,6 +165592,7 @@ export namespace Prisma {
     outputTokens?: IntFilter<"AiCostLedger"> | number
     costCents?: IntFilter<"AiCostLedger"> | number
     reason?: StringFilter<"AiCostLedger"> | string
+    source?: StringFilter<"AiCostLedger"> | string
     createdAt?: DateTimeFilter<"AiCostLedger"> | Date | string
     organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
   }, "id">
@@ -165592,6 +165609,7 @@ export namespace Prisma {
     outputTokens?: SortOrder
     costCents?: SortOrder
     reason?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
     _count?: AiCostLedgerCountOrderByAggregateInput
     _avg?: AiCostLedgerAvgOrderByAggregateInput
@@ -165615,6 +165633,7 @@ export namespace Prisma {
     outputTokens?: IntWithAggregatesFilter<"AiCostLedger"> | number
     costCents?: IntWithAggregatesFilter<"AiCostLedger"> | number
     reason?: StringWithAggregatesFilter<"AiCostLedger"> | string
+    source?: StringWithAggregatesFilter<"AiCostLedger"> | string
     createdAt?: DateTimeWithAggregatesFilter<"AiCostLedger"> | Date | string
   }
 
@@ -176143,6 +176162,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
     organization: OrganizationCreateNestedOneWithoutAiCostLedgerInput
   }
@@ -176159,6 +176179,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
   }
 
@@ -176173,6 +176194,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     organization?: OrganizationUpdateOneRequiredWithoutAiCostLedgerNestedInput
   }
@@ -176189,6 +176211,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -176204,6 +176227,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
   }
 
@@ -176218,6 +176242,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -176233,6 +176258,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -185912,6 +185938,7 @@ export namespace Prisma {
     outputTokens?: SortOrder
     costCents?: SortOrder
     reason?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -185933,6 +185960,7 @@ export namespace Prisma {
     outputTokens?: SortOrder
     costCents?: SortOrder
     reason?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -185948,6 +185976,7 @@ export namespace Prisma {
     outputTokens?: SortOrder
     costCents?: SortOrder
     reason?: SortOrder
+    source?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -200371,6 +200400,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
   }
 
@@ -200385,6 +200415,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
   }
 
@@ -201414,6 +201445,7 @@ export namespace Prisma {
     outputTokens?: IntFilter<"AiCostLedger"> | number
     costCents?: IntFilter<"AiCostLedger"> | number
     reason?: StringFilter<"AiCostLedger"> | string
+    source?: StringFilter<"AiCostLedger"> | string
     createdAt?: DateTimeFilter<"AiCostLedger"> | Date | string
   }
 
@@ -226598,6 +226630,7 @@ export namespace Prisma {
     outputTokens: number
     costCents: number
     reason: string
+    source?: string
     createdAt?: Date | string
   }
 
@@ -227136,6 +227169,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -227150,6 +227184,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -227164,6 +227199,7 @@ export namespace Prisma {
     outputTokens?: IntFieldUpdateOperationsInput | number
     costCents?: IntFieldUpdateOperationsInput | number
     reason?: StringFieldUpdateOperationsInput | string
+    source?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
