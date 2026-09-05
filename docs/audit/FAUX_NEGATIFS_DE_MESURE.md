@@ -145,7 +145,34 @@ n'avais pas comparé sa valeur à celle que j'attendais.
 **Contrôle applicable partout :** faire dire à la commande de contrôle ce qu'on
 attend, pas seulement ce qu'elle trouve — `test "$(git rev-parse HEAD)" = "$(git ls-remote origin <branche> | cut -f1)"`.
 
-## La règle que ces trente-et-un cas imposent
+### 32. Des accents inverses dans un message de commit, exécutés par le shell (2026-09-05)
+
+**Le geste.** `git commit -m "… la mesure s'arrête à \`load\`, et les 7 vagues …"`
+entre guillemets doubles. Le shell a vu une substitution de commande, a exécuté
+`load`, et a inséré sa sortie — vide — à la place.
+
+**Le résultat.** `git commit` a **réussi**. Le SHA était bon, le fichier
+intact, la comparaison `local == origin` passait. Seul le message portait
+« s'arrête à , » — un mot manquant au milieu d'une phrase, dans le seul artefact
+que personne ne relit après coup. Une ligne d'erreur `command not found: load`
+est bien passée dans la sortie, noyée entre le résultat du push et celui de la
+comparaison.
+
+**Pourquoi c'est la même famille que 29 et 31.** La commande a réussi et le
+résultat était faux. Ni un « 0 résultat », ni un silence : un **succès partiel**
+dont la partie fausse ne se voit dans aucun contrôle, parce qu'aucun contrôle ne
+porte sur le texte d'un message de commit.
+
+**Le contrôle.** Écrire tout message de commit non trivial dans un fichier —
+`git commit -F <fichier>` — avec un heredoc **quoté** (`<<'EOF'`). Le quotage
+supprime toute interprétation, accents inverses, `$`, `!` compris. Et pour un
+message déjà écrit, un contrôle qui **compare** : `git log -1 --format=%B |
+grep -c <un mot attendu>`.
+
+**Ce que ça coûte de ne pas le faire.** Ici, un mot. Ailleurs, une commande
+arbitraire exécutée depuis un texte qu'on croyait inerte.
+
+## La règle que ces trente-deux cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
