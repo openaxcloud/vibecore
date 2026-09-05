@@ -44,6 +44,25 @@
  *
  * N'est PAS appliquée au `PUT` : des chemins légitimes y posent `files`
  * (récupération d'échafaudage, indexation des manifestes de paquets).
+ *
+ * ── VÉRIFIÉ EN PRODUCTION le 2026-09-04, après déploiement (`914facc791`) ────
+ *
+ * Le risque réel de cette projection était de casser git : `ide-state` sert de
+ * magasin de contenu au SERVEUR, et `listProjectFilesIncludingIdeState` est
+ * appelée depuis plus de dix endroits de l'API. Sans lui, un fichier édité à la
+ * main redevient invisible et `status` annonce « 0 changement » indéfiniment —
+ * un défaut qui a DÉJÀ existé (voir `project-storage.ts`).
+ *
+ * Mesuré en production, projet de 401 fichiers, APRÈS le déploiement :
+ *
+ *     GET /api/projects/:id/ide-panel/git  ->  branche main, 407 fichiers modifiés
+ *
+ * Le magasin serveur est donc intact et git voit toujours l'arbre. Le gain
+ * navigateur, lui, est de 4 052 179 o à 231 o (facteur 17 542).
+ *
+ * Si vous vous demandez pourquoi cette projection existe et pourquoi elle ne
+ * touche QUE la lecture : c'est ça. Retirer `files` du magasin plutôt que de la
+ * réponse aurait été le réflexe évident, et il aurait cassé git en silence.
  */
 
 /** Clés retirées de la réponse envoyée au navigateur. */

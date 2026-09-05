@@ -25,6 +25,7 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 18 | sonde de correspondance CSS | sur WebKit, `cssRules` existe sur **toute** règle ; le parcours traitait donc chaque règle comme un conteneur et n'en testait aucune | **« aucune règle ne fixe la taille de cet élément »** — impossible pour un élément affiché (témoin : `anySelectorMatched: 0` sur 290 règles, 11 feuilles) | distinguer les règles groupantes par leur `type`, et **compter les règles parcourues** avant de lire un zéro |
 | 19 | sonde d'état de rebase | `[ -d .git/rebase-merge ]` — dans un **worktree**, l'état vit dans `.git/worktrees/<nom>/rebase-merge` | **« REBASE COMPLETE »** alors que le rebase était arrêté sur un conflit, et qu'un commit semblait perdu | lire `git status`, qui est l'autorité ; `git rev-parse --git-dir` donne le bon répertoire |
 | 20 | le dépôt partagé lui-même | trois remises à zéro du checkout principal dans la journée (bascule de branche par une autre session), sans avertissement | **le travail écrit « existe »** — il est à l'écran, il est dans le fichier — puis il n'existe plus, et rien ne le signale. Entrées 13-17 du registre perdues une fois, huit lignes d'inventaire perdues DEUX fois | **copier tout écrit durable dans un dossier NON SUIVI avant de continuer**, puis le porter en ligne dès que possible. Acquis après trois effacements : la 1ʳᵉ fois j'ai réécrit, la 2ᵉ j'ai copié le code mais pas les documents, la 3ᵉ seule la copie a sauvé le travail |
+| 21 | tout comptage de fichiers par chemin | un fichier **présent par accident** — résidu non commité ramassé par un archivage automatique — est indiscernable d'un fichier **présent par choix**. Mesuré : `.github/workflows/deploy-prod.yml`, seul fichier « absent de `main` » d'une branche orpheline, arrivé par un commit intitulé « travail non commité de vc-ideux [fix/ide-panel-resolution] » — un worktree consacré à un TOUT AUTRE sujet | « un fichier de travail unique à sauver ». En réalite `main` ne l'avait pas perdu : `main` l'avait **supprimé** par la PR #132, celle qui installe la porte exact-SHA. Le restaurer aurait rouvert une seconde voie de déploiement en production contournant cette porte — une régression de sécurité présentée comme une récupération | avant d'extraire un fichier « absent de `main` », chercher s'il y a **déjà existé** : `git log --diff-filter=D origin/main -- <chemin>`. Une suppression délibérée ne se distingue d'une perte que par l'historique |
 
 ## La règle qui en découle
 
@@ -59,12 +60,12 @@ couvrait **3**.
 
 ---
 
-## La règle que ces vingt cas imposent
+## La règle que ces vingt-et-un cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
 
-Ils n'ont pas vingt causes, ils en ont une. Un outil qui **n'a pas mesuré**
+Ils n'ont pas vingt-et-une causes, ils en ont une. Un outil qui **n'a pas mesuré**
 rend le même résultat qu'un outil qui **a mesuré et n'a rien trouvé**. Le
 silence n'est jamais un verdict.
 
