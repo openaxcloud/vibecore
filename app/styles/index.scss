@@ -7725,7 +7725,24 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell .bolt-mobile-ecode-header-title :where(.text-xs, small):not([class*='i-']):not([class*='i-']),
 .bolt-project-ide-shell .bolt-mobile-agent-context-bar :where(.text-xs, small):not([class*='i-']):not([class*='i-']),
 .bolt-project-ide-shell .bolt-mobile-agent-start-state :where(.text-xs, small):not([class*='i-']):not([class*='i-']) {
-  font-size: var(--vc-composer-caption) !important;
+  /*
+   * PLANCHER de 13px, pas la legende brute.
+   *
+   * `--vc-composer-caption` vaut 12px — mesure aux deux endroits ou elle est
+   * definie, `:root` et `@media (max-width: 1024px)`. Douze, c'est mieux que
+   * les 9px qu'Avi a photographies, mais c'est encore sous le plancher que
+   * l'echelle s'impose a elle-meme : `ui-details.spec.ts` refuse tout libelle
+   * du panneau Agent sous 13px, et il a raison — ce sont les premiers mots
+   * qu'on lit en ouvrant le panneau sur un telephone.
+   *
+   * `max()` plutot qu'un litteral : si la legende monte un jour au-dessus de
+   * 13px, ces libelles la suivent. Le plancher ne fige pas l'echelle, il
+   * l'empeche seulement de descendre trop bas ICI.
+   *
+   * On ne touche PAS `--vc-composer-caption` elle-meme : elle sert la zone de
+   * saisie, qui n'est pas le perimetre de ce correctif.
+   */
+  font-size: max(13px, var(--vc-composer-caption)) !important;
 }
 
 .bolt-agent-scroll-to-bottom {
