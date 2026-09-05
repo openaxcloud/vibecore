@@ -122,6 +122,33 @@ gcloud container clusters get-credentials vibecore-audit-cluster \
 
 ---
 
+## 3 bis. PREMIER GESTE : lire le SHA servi
+
+> **Aucune mesure ne se fait sur cet environnement sans avoir lu d'abord quel
+> code il sert.** Il a produit au moins trois faux diagnostics par péremption,
+> dont un le 2026-09-05 : trois hypothèses réfutées sur un défaut **déjà corrigé
+> depuis quatre jours**, parce que l'image datait du 1er septembre.
+>
+> Un environnement de test en retard sur la production n'est pas un
+> environnement de test, c'est un piège.
+
+```bash
+CTX=gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster
+kubectl --context "$CTX" -n vibecore get deploy vibecore-vibecore-platform-web \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
+# puis, avant d'accuser un défaut, vérifier que le correctif attendu y est :
+git merge-base --is-ancestor <sha-du-correctif> <sha-servi> && echo PRÉSENT || echo ABSENT
+```
+
+⚠️ **L'état déclaré et l'état réel divergent sur cet environnement.** Les valeurs
+Helm annoncent un `imageTag` que le cluster ne sert pas — il est piloté
+impérativement (`kubectl set image`, `kubectl patch`) et `helm upgrade` échoue
+sur des conflits de propriété de champs. **Lire l'image du déploiement, jamais
+les valeurs de la release.** Et la release s'appelle ici `vibecore`, comme en
+production, alors que la section 4 dit `vibecore-audit` : poser les gardes de
+contexte avant tout `helm`.
+
+
 ## 4. Charger un build du repo sur l'environnement
 
 Les images sont construites **dans le projet de test** et poussées dans son
