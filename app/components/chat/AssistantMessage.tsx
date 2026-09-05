@@ -297,6 +297,29 @@ export const AssistantMessage = memo(
       (annotation) => annotation.type === 'toolCall',
     ) as ToolCallAnnotation[];
 
+    /*
+     * LE CORPS DU MESSAGE — et pourquoi il ne peut pas venir du seul `content`.
+     *
+     * Capture d'Avi, iPhone, 21h21 : en-tête « Agent · 2 messages », sa question
+     * s'affiche, et sous le titre « Agent » il n'y a QUE la rangée d'actions —
+     * copier, relancer, éditer, pouce haut, pouce bas — aucun texte, puis un
+     * grand vide.
+     *
+     * Le corps était lu uniquement dans `content`. Les `parts` texte du SDK
+     * n'étaient exploitées que pour les appels d'outils et le raisonnement :
+     * quand le texte arrive par les `parts` et que `content` est vide, la bulle
+     * rendait son en-tête et sa barre d'actions AUTOUR DE RIEN.
+     *
+     * `content` reste prioritaire : c'est la version passée par l'analyseur de
+     * messages (artefacts convertis). Les `parts` sont le filet.
+     */
+    const texteDesParts = (parts ?? [])
+      .filter((part): part is TextUIPart => part.type === 'text')
+      .map((part) => part.text)
+      .join('');
+
+    const corpsDuMessage = content && content.trim().length > 0 ? content : texteDesParts;
+
     const connectorAnnotations = filteredAnnotations.filter(
       (annotation) =>
         annotation.type === 'connector' &&
@@ -304,6 +327,26 @@ export const AssistantMessage = memo(
         annotation.payload !== null &&
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
+
+    /*
+     * Une bulle sans RIEN à montrer ne doit pas exister. Une coquille avec cinq
+     * boutons donne à croire qu'un message est là ; c'est ce qu'Avi photographie.
+     * On ne compte pas que le texte : un message peut n'être qu'un appel d'outil,
+     * qu'un plan, qu'un raisonnement ou qu'une carte de connecteur.
+     */
+    const aQuelqueChoseAMontrer =
+      corpsDuMessage.trim().length > 0 ||
+      (toolInvocations?.length ?? 0) > 0 ||
+      connectorAnnotations.length > 0 ||
+      reasoningTexts.length > 0 ||
+      Boolean(codeContext || chatSummary || agentOrchestration || agentExecution || agentMemory || agentRules) ||
+      Boolean(agentPlan) ||
+      Boolean(agentModeChipText) ||
+      Boolean(usageChipText);
+
+    if (!aQuelqueChoseAMontrer) {
+      return null;
+    }
 
     return (
       <div className="bolt-assistant-message overflow-hidden w-full">
@@ -882,8 +925,8 @@ export const AssistantMessage = memo(
            * partial input (an in-flight `- [ ]` line missing a description
            * is just skipped).
            */
-          const extracted = extractAndStripPlanChecklist(content);
-          const markdownBody = extracted ? extracted.remainingText : content;
+          const extracted = extractAndStripPlanChecklist(corpsDuMessage);
+          const markdownBody = extracted ? extracted.remainingText : corpsDuMessage;
 
           return (
             <>
@@ -956,7 +999,7 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
-        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        <AssistantMessageFooter content={corpsDuMessage} messageId={messageId} onRewind={onRewind} onFork={onFork} />
       </div>
     );
   },
