@@ -30,6 +30,9 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 23 | comptage de résultats via `jq`/`-q '.[0]'` | sur un tableau vide, `.[0]` rend `null` ; la condition comparait à la chaîne `"null"` alors que la sortie réelle était `"#null null"` | **« TROUVÉ »** pour les huit sujets testés — **l'exact contraire de la vérité** | compter les éléments (`len(json.load(...))`), et valider la méthode par un témoin positif ET un témoin négatif avant de l'utiliser |
 | 24 | refspec de `git push` en zsh | `"$src:refs/heads/$dst"` — zsh a appliqué le **modificateur d'historique `:r`** et mangé deux caractères | `src refspec …20260831efs/heads/… does not match any`, trois fois. Message trompeur : lisible comme un refus du serveur, comme la vraie limite de taille rencontrée une heure plus tôt | accolader (`${src}:refs/heads/${dst}`), et **vérifier la présence sur le distant** (`git ls-remote`) plutôt que croire l'absence d'erreur |
 | 25 | détecteur de « contenu chargé » | il déclarait STABLE après 3 lectures identiques : il mesurait l'**immobilité**, pas la **présence**. Un palier transitoire suffisait | **162 caractères** rendus comme état final d'un panneau qui en porte 915. Puis, une fois le seuil ajouté : trois panneaux sains déclarés en échec — `env` raté de **8 caractères**, `logs` recalé parce qu'il oscille de 5 caractères en affichant des journaux vivants | critère PRINCIPAL = marqueur sémantique du contenu attendu ; la stabilité n'est qu'une condition secondaire, et tolérante |
+| 26 | `PerformanceObserver` sur WebKit | `observe({entryTypes:['longtask']})` est **accepté sans erreur** pour un type que WebKit n'implémente pas, puis n'émet jamais rien. Types réellement supportés : `event, first-input, largest-contentful-paint, mark, measure, navigation, paint, resource` | **zéro tâche longue** sur 7 s d'activité navigateur — un zéro qui se lit comme un résultat. J'ai failli conclure « défaut de sonde » sur un comportement parfaitement normal | interroger `PerformanceObserver.supportedEntryTypes` AVANT d'observer, et provoquer une tâche longue connue comme témoin |
+| 27 | `tsc` sur un fichier portant `// @ts-nocheck` | l'outil fonctionne, le projet inclut bien le fichier (`--listFiles` le confirme), et pourtant rien n'en sort : c'est le FICHIER qui s'exclut | **« 0 erreur »** sur `BaseChat.tsx` (23 800 lignes, panneau Agent) quoi qu'on y écrive — vérifié en injectant `const __TEMOIN_TYPE: number = "pas un nombre"`, jamais rapportée. Plusieurs sessions y ont travaillé en le croyant vérifié | **le témoin doit être dans le FICHIER dont on lit le résultat.** Placé ailleurs, il valide l'instrument et pas la mesure |
+| 28 | nom de chunk produit par Rollup | un nom de chunk est le module que l'outil a choisi comme représentant. **Il ne dit rien de la composition** — et il ne se trompe pas dans un seul sens : `legal-dates` contient **0 route**, tandis que `api.integrations.api-key._provider.configure` en agrège **191** | d'abord « 10 modules de routes » (surestimation par le nom), puis, la composition mesurée, **223**. Deux conclusions fausses tirées de la même étiquette, en sens opposés | lire la composition (`generateBundle` → `chunk.modules`, ou un manifeste de build), jamais le nom |
 
 ## La règle qui en découle
 
@@ -64,12 +67,12 @@ couvrait **3**.
 
 ---
 
-## La règle que ces vingt-cinq cas imposent
+## La règle que ces vingt-huit cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
 
-Ils n'ont pas vingt-cinq causes, ils en ont une. Un outil qui **n'a pas mesuré**
+Ils n'ont pas vingt-huit causes, ils en ont une. Un outil qui **n'a pas mesuré**
 rend le même résultat qu'un outil qui **a mesuré et n'a rien trouvé**. Le
 silence n'est jamais un verdict.
 
@@ -109,3 +112,34 @@ rendue produit.
 
 Corollaire pratique : avant d'écrire un seuil, se demander à quoi ressemble
 l'état vide légitime. S'il existe, écrire un marqueur à la place.
+
+### Le silence légitime, et l'outil bien interrogé (2026-09-05)
+
+Deux fois dans la même nuit, ce qui ressemblait à une panne n'en était pas une :
+`tsc` se taisait parce que le fichier portait `@ts-nocheck`, et
+`PerformanceObserver` n'émettait rien parce que WebKit n'implémente pas ce type
+d'entrée. **Dans les deux cas l'outil avait raison de se taire.** C'est plus
+dangereux qu'une panne : une panne laisse un code de sortie, un message, une
+pile. Un silence légitime ne laisse rien — il n'y a rien à réparer, donc rien
+qui alerte.
+
+Le cas 28 est une troisième forme, plus difficile encore. **L'outil n'a pas
+menti : il a été mal interrogé.** Rollup produit une étiquette parfaitement
+exacte pour ce qu'elle désigne — le module représentatif d'un chunk — et c'est
+nous qui l'avons lue comme une identité. Rien n'est cassé, tout est correct, et
+la conclusion est fausse.
+
+Et la nuance qui a failli m'échapper : l'erreur n'était pas de croire ces noms
+**trop gros**. `legal-dates` ne contenait aucune route quand
+`api.integrations…` en cachait 191. **L'erreur était de croire qu'ils disaient
+quoi que ce soit.** Un indicateur non fiable ne se corrige pas en le pondérant ;
+il se remplace.
+
+Corollaire opérationnel, valable pour les vingt-huit cas : **le témoin doit
+porter sur la même cible que la mesure** — même fichier, même moteur, même
+projet, même fenêtre. Un témoin décalé d'un cran valide l'outil et laisse passer
+exactement l'erreur qu'on cherchait à exclure.
+
+Enfin, une mise en garde née de la même nuit : après huit outils défaillants,
+« c'est encore l'outil » devient un biais à son tour. Deux fois, le comportement
+était normal.
