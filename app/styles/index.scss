@@ -7743,6 +7743,9 @@ body :where(.lucide, svg[data-lucide]) {
    * saisie, qui n'est pas le perimetre de ce correctif.
    */
   font-size: max(13px, var(--vc-composer-caption)) !important;
+}
+
+/*
  * MENU CONTEXTUEL D'UN MESSAGE — appui long au doigt, clic droit à la souris.
  *
  * Avi entoure en rouge, sur ses captures : le crayon d'édition posé en
