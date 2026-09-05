@@ -22752,7 +22752,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,
   .bolt-responsive-ide-mobile[data-mobile-panel='chat']
     .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
-    bottom: calc(var(--mobile-nav-height) + 10px + 12px);
+    /*
+     * 2 px au-dessus du CONTENEUR du composeur, dont 8 px de rembourrage haut
+     * sont transparents : 10 px visibles entre la pastille et le cadre de la
+     * zone de saisie. Capture iPhone d'Avi, 04/09 21:30 (prod 914facc), mesurée
+     * au pixel : 28 px visibles avec les 12 px précédents — 12 de marge, 8 de
+     * rembourrage, et 8 d'un `gap` de flex payé par la pile d'avis VIDE
+     * (règle ci-dessous). Chromium 390 et 768 rendaient exactement les mêmes
+     * 28 px : la mesure locale ne visait que le conteneur, pas ce qu'on voit.
+     */
+    bottom: calc(var(--mobile-nav-height) + 10px + 2px);
+  }
+
+  /*
+   * La pile d'avis (alerte de déploiement…) est rendue même vide : boîte de
+   * 0 px, mais un enfant de flex quand même, donc un `gap` de 8 px payé entre
+   * elle et la zone de saisie — une ligne invisible qui écartait la pastille.
+   * Vide (ou seulement lisible par lecteur d'écran), elle ne participe plus.
+   */
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-composer
+    .bolt-project-agent-notice-stack:not(:has(> :not(.vc-sr-only))) {
+    display: none;
   }
 
   /*

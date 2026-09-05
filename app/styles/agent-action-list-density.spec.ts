@@ -130,10 +130,24 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
 
     const bas = (pastille.match(/bottom:\s*calc\((.+?)\);/)?.[1] ?? '').trim();
 
-    // Le même terme que la remontée du composeur, plus la marge de 12px.
+    /*
+     * Le même terme que la remontée du composeur, plus 2 px : le conteneur
+     * porte 8 px de rembourrage transparent, donc 10 px visibles. Capture
+     * iPhone d'Avi (04/09 21:30, prod 914facc) mesurée au pixel : 28 px
+     * visibles avec 12 px de marge — trop pour « juste au-dessus ».
+     */
     expect(bas).toContain(remontee);
-    expect(bas).toMatch(/\+\s*12px/);
+    expect(bas).toMatch(/\+\s*2px/);
     expect(bas).not.toMatch(/measured-height/);
+  });
+
+  it('la pile d’avis VIDE ne paie plus le gap de flex qui écartait la pastille', () => {
+    // 8 px mesurés (Chromium 390 et 768, iPhone) entre le rembourrage du composeur et la zone de saisie.
+    const pile = regle(
+      '.bolt-responsive-ide-mobile\n    .bolt-project-agent-composer\n    .bolt-project-agent-notice-stack:not(:has(> :not(.vc-sr-only)))',
+    );
+
+    expect(pile).toMatch(/display:\s*none/);
   });
 });
 
