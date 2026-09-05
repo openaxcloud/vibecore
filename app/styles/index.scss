@@ -7700,6 +7700,51 @@ body :where(.lucide, svg[data-lucide]) {
   padding-inline-end: 64px;
 }
 
+/*
+ * L'ÉCHELLE S'ÉTEND À L'EN-TÊTE DU PANNEAU ET À SA CARTE D'ÉTAT.
+ *
+ * Mesuré en production sur le SHA servi, format iPhone 13 : « 0 messages »,
+ * « README.md » et « Focused on README.md » étaient rendus à 9px. Ce sont les
+ * premiers libellés qu'on voit en ouvrant le panneau.
+ *
+ * LA CAUSE N'EST PAS celle de #388. Ce n'est pas une variante de bureau
+ * attrapée en mobile : ces trois libellés sont des `<small>`, et
+ *   `.bolt-project-ide-shell :where(.text-xs, small, …):not([class*='i-']):not([class*='i-'])`
+ * leur impose `--vc-type-label-size`, soit 9px sous 1024px. #382 avait couvert
+ * la zone de saisie et ses feuilles ; l'en-tête et la barre de contexte étaient
+ * hors de son périmètre — comme la carte d'état, qui porte « Agent prêt » et
+ * « Centré sur README.md ».
+ *
+ * La spécificité de cette règle est (0,3,0) avec `!important` — une classe et
+ * deux `:not([attr])`. On reprend sa forme exacte en ajoutant la classe de la
+ * surface visée, ce qui porte la nôtre à (0,4,0). Sans cela, elle perdrait.
+ *
+ * C'est la LÉGENDE de l'échelle qui s'applique, pas le corps de texte : ces
+ * libellés sont secondaires, ils n'ont pas à peser autant qu'un message.
+ */
+.bolt-project-ide-shell .bolt-mobile-ecode-header-title :where(.text-xs, small):not([class*='i-']):not([class*='i-']),
+.bolt-project-ide-shell .bolt-mobile-agent-context-bar :where(.text-xs, small):not([class*='i-']):not([class*='i-']),
+.bolt-project-ide-shell .bolt-mobile-agent-start-state :where(.text-xs, small):not([class*='i-']):not([class*='i-']) {
+  /*
+   * PLANCHER de 13px, pas la legende brute.
+   *
+   * `--vc-composer-caption` vaut 12px — mesure aux deux endroits ou elle est
+   * definie, `:root` et `@media (max-width: 1024px)`. Douze, c'est mieux que
+   * les 9px qu'Avi a photographies, mais c'est encore sous le plancher que
+   * l'echelle s'impose a elle-meme : `ui-details.spec.ts` refuse tout libelle
+   * du panneau Agent sous 13px, et il a raison — ce sont les premiers mots
+   * qu'on lit en ouvrant le panneau sur un telephone.
+   *
+   * `max()` plutot qu'un litteral : si la legende monte un jour au-dessus de
+   * 13px, ces libelles la suivent. Le plancher ne fige pas l'echelle, il
+   * l'empeche seulement de descendre trop bas ICI.
+   *
+   * On ne touche PAS `--vc-composer-caption` elle-meme : elle sert la zone de
+   * saisie, qui n'est pas le perimetre de ce correctif.
+   */
+  font-size: max(13px, var(--vc-composer-caption)) !important;
+}
+
 .bolt-agent-scroll-to-bottom {
   position: sticky;
   bottom: 12px;
