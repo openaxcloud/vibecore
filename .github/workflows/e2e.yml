@@ -21,8 +21,86 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Un changement purement documentaire n'a rien a faire verifier ici.
+  #
+  # Mesure du 2026-09-05 sur les 60 derniers runs : **30 portaient sur des
+  # commits ne touchant QUE de la documentation**, soit la moitie exacte. Ces
+  # runs occupaient les runners pendant ~1 h chacun, et cette saturation faisait
+  # echouer les vraies PR : `agent-message-density.spec.ts` rougissait 3 fois sur
+  # 3 sous 24 executions concurrentes, et passait sur le meme arbre une fois la
+  # file vide. Les deux defauts se nourrissaient l'un l'autre.
+  #
+  # Un controle qui s'execute la ou il n'a rien a verifier n'est pas neutre :
+  # il coute a ceux qui en ont besoin.
+  #
+  # Le job `e2e` GARDE SON NOM. `Playwright local stack` est un check requis par
+  # la protection de branche ET par la porte de deploiement : le retirer par
+  # `paths-ignore` laisserait les PR de documentation en attente eternelle d'un
+  # statut qui n'arriverait jamais. Il s'execute donc toujours, et ce sont ses
+  # ETAPES qui sont sautees.
+  perimetre:
+    name: Perimetre des changements
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.detecte.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: detecte
+        # CONSERVATEUR PAR DEFAUT : on ne saute QUE si l'on est certain que tout
+        # est documentaire. Le moindre doute — pas de base comparable, aucun
+        # fichier detecte, evenement autre qu'une pull request — execute la
+        # suite. Un filtre qui se trompe dans l'autre sens laisserait passer du
+        # code non teste, ce qui serait bien pire que le gaspillage qu'il evite.
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" != 'pull_request' ]; then
+            echo "evenement ${{ github.event_name }} : on execute (pas de filtrage hors PR)"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          BASE="${{ github.event.pull_request.base.sha }}"
+          TETE="${{ github.event.pull_request.head.sha }}"
+
+          if ! git cat-file -e "${BASE}^{commit}" 2>/dev/null || ! git cat-file -e "${TETE}^{commit}" 2>/dev/null; then
+            echo "::warning::base ou tete illisible — on execute la suite complete"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          FICHIERS="$(git diff --name-only "${BASE}" "${TETE}")"
+
+          if [ -z "${FICHIERS}" ]; then
+            echo "::warning::aucun fichier detecte — on execute la suite complete"
+            echo "code=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "fichiers changes :"
+          printf '%s\n' "${FICHIERS}" | sed 's/^/  /'
+
+          # Tout ce qui n'est pas .md / .txt / LICENSE / docs/ compte comme du code.
+          RESTE="$(printf '%s\n' "${FICHIERS}" \
+            | grep -vE '\.(md|txt)$' \
+            | grep -vE '^docs/' \
+            | grep -vE '^LICENSE$' || true)"
+
+          if [ -z "${RESTE}" ]; then
+            echo "changement purement documentaire — la suite navigateur est sautee"
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "fichiers non documentaires :"
+            printf '%s\n' "${RESTE}" | sed 's/^/  /'
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          fi
+
   e2e:
     name: Playwright local stack
+    needs: perimetre
     runs-on: ubuntu-latest
     timeout-minutes: 75
     # Forked PRs can't read the AI provider secrets (so the run would hard-fail
@@ -69,23 +147,29 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        if: needs.perimetre.outputs.code == 'true'
 
       - uses: actions/setup-node@v4
+        if: needs.perimetre.outputs.code == 'true'
         with:
           node-version: 22
 
       - uses: pnpm/action-setup@v4
+        if: needs.perimetre.outputs.code == 'true'
         with:
           version: 9.14.4
           run_install: false
 
       - name: Install
+        if: needs.perimetre.outputs.code == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
+        if: needs.perimetre.outputs.code == 'true'
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Validate AI provider secret for E2E
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
             echo "Production E2E requires ANTHROPIC_API_KEY because the default IDE model is Anthropic."
@@ -93,6 +177,7 @@ jobs:
           fi
 
       - name: Start local dependencies
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
@@ -100,20 +185,24 @@ jobs:
           npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
 
       - name: Prepare database
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
       - name: Start API
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
           echo $! > /tmp/vibecore-api.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
 
       - name: Build web app
+        if: needs.perimetre.outputs.code == 'true'
         run: pnpm run build
 
       - name: Start web app
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
           echo $! > /tmp/vibecore-web.pid
@@ -122,6 +211,7 @@ jobs:
       # PLAYWRIGHT_SKIP_WEB_SERVER means Playwright no longer boots the admin
       # dev server (5174) either — the workflow provides it, like the web app.
       - name: Start admin app
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           pnpm --filter @vibecore/admin dev > /tmp/vibecore-admin.log 2>&1 &
           echo $! > /tmp/vibecore-admin.pid
@@ -134,6 +224,7 @@ jobs:
       # The run itself is allowed to exit non-zero; the gate step below is what
       # decides, applying the bounded waiver in tests/e2e/e2e-waivers.json.
       - name: Playwright auth, project, IDE, terminal, billing mock flows
+        if: needs.perimetre.outputs.code == 'true'
         run: |
           set +e
           PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
@@ -145,13 +236,15 @@ jobs:
       # waived test that has started passing. The policy path is hard-coded in
       # the script, so this cannot be widened from the workflow.
       - name: E2E gate (bounded waiver)
+        if: needs.perimetre.outputs.code == 'true'
         run: node scripts/e2e-gate.mjs playwright-results.json
 
       - name: Playwright mobile viewport tests
+        if: needs.perimetre.outputs.code == 'true'
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
 
       - name: Upload E2E traces
-        if: always()
+        if: always() && needs.perimetre.outputs.code == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
