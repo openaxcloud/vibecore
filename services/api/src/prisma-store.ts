@@ -5,6 +5,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { horodatageMessageMonotone } from './horodatage-message.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
@@ -4767,11 +4768,19 @@ export class PrismaApiStore implements ApiStore {
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    /*
+     * Instant STRICTEMENT croissant d'un message au suivant : voir
+     * horodatage-message.ts. Sans lui, question et réponse d'un même tour (ou
+     * une transcription synchronisée en rafale) partagent la milliseconde et
+     * reviennent dans un ordre indéfini au rechargement.
+     */
+    const createdAt = horodatageMessageMonotone();
+
     if (input.id) {
       return mapAiMessage(
         await this.prisma.aiMessage.upsert({
           where: { id: input.id },
-          create: input,
+          create: { ...input, createdAt },
           update: {
             role: input.role,
             content: input.content,
@@ -4780,7 +4789,7 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
+    return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
   async listAiMessages(conversationId: string) {
@@ -4793,7 +4802,12 @@ export class PrismaApiStore implements ApiStore {
 
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+
+      /*
+       * `id` départage deux instants égaux : l'ordre reste alors DÉTERMINISTE
+       * d'une lecture à l'autre, quel que soit le plan choisi par Postgres.
+       */
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_AI_MESSAGES,
     });
 
