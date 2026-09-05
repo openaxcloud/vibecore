@@ -240,6 +240,7 @@ import {
   type IdeWorkspacePanel,
 } from '~/lib/ide/panel-registry';
 import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
+import { createSingleFlight } from '~/lib/ide/single-flight';
 import { resolvePendingSelectedFile } from '~/lib/ide/pending-selected-file';
 import {
   type CompactPreviewRunState,
@@ -10786,6 +10787,13 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
  * with the retry/backoff above — resolves well under this budget, so Retry only
  * appears when the load is genuinely stuck (e.g. the workspace is still booting).
  */
+/*
+ * Portée MODULE : ce qu'on mutualise est une requête pour un couple
+ * (projet, panneau), pas pour un composant. Une portée d'instance ne
+ * corrigerait rien — c'est précisément le défaut qu'on corrige.
+ */
+const panneauEnVol = createSingleFlight<{ status: number; ok: boolean; corps: unknown }>();
+
 const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
 
 function projectPanelFetchMethod(init?: RequestInit) {
@@ -10947,10 +10955,37 @@ function ProjectIdeApiServicePanel({
       setError(undefined);
 
       try {
-        const response = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
-          headers: { accept: 'application/json' },
+        /*
+         * BUG-PANEL-PERF-004 — TROISIÈME occurrence du même motif, et la plus
+         * instructive : ici une garde EXISTE (`loadingPanelRef`), elle
+         * fonctionne, et elle ne sert à rien contre ce défaut. Elle protège
+         * l'INSTANCE — elle empêche un même composant d'empiler ses appels —
+         * mais elle ne COORDONNE pas les instances entre elles. Trois panneaux
+         * montés en parallèle, ce sont trois gardes qui font chacune
+         * correctement leur travail, et trois requêtes quand même.
+         *
+         * Mesuré en production le 2026-09-05, iPhone, projet de 401 fichiers :
+         * trois appels à `/ide-panel/overview` (7 237 / 7 289 / 9 043 ms), aux
+         * piles d'appel IDENTIQUES — un seul site d'appel, trois invocations.
+         * Chacun coûte 5 à 7 s au serveur pour ~100 Ko, alors que le même appel
+         * ISOLÉ met 1,8 à 2,2 s : le surcoût est de la contention que la page
+         * s'inflige.
+         *
+         * `single-flight` mutualise l'appel RÉSEAU entre instances ; chaque
+         * instance continue d'appliquer le résultat à son propre état. La garde
+         * de ré-entrance reste : les deux protections ne couvrent pas le même
+         * cas.
+         */
+        const partage = await panneauEnVol.run(`${projectId}:${panel}`, async () => {
+          const reponse = await fetchPanel(`/api/projects/${projectId}/ide-panel/${panel}`, {
+            headers: { accept: 'application/json' },
+          });
+
+          return { status: reponse.status, ok: reponse.ok, corps: await reponse.json() };
         });
-        const result = (await response.json()) as {
+
+        const response = { status: partage.status, ok: partage.ok };
+        const result = partage.corps as {
           error?: { code: string; message: string; retryable: boolean } | string;
           status?: 'ok' | 'empty' | 'error';
         };
