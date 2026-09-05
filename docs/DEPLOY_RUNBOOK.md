@@ -7,9 +7,19 @@ aspirational design.
 ## TL;DR
 
 - **Trigger:** every push to `main` runs GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — NOT the `stackblitz-labs/bolt.diy` upstream; `gh` defaults to upstream, so always pass `-R openaxcloud/vibecore`).
-- **Build:** it calls **`gcloud builds submit --config=cloudbuild.yaml`** in region **`europe-west9`**, producing 7 images tagged with the commit's **`git rev-parse --short=10`** SHA.
+- **Build:** it calls **three** regional Cloud Build configs in **`europe-west9`** — `infra/cloudbuild/runtime-tier.yaml`, **`infra/cloudbuild/single-web.yaml`** and `infra/cloudbuild/workspace-agent.yaml` — each tagged with the commit's **`git rev-parse --short=10`** SHA. It does **NOT** use root `cloudbuild.yaml` (verified 2026-09-06: `--config=` appears three times in the workflow, none of them the root file). The `web` image has its own config **because `VITE_RUNTIME_MODE` / `VITE_RUNTIME_API_BASE_URL` are inlined into the client bundle at build time** — a Helm/configmap value is a no-op for the browser, and an image built without them silently ships WebContainer.
 - **Deploy:** **`helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`**.
 - **No GitOps** (no Argo CD / Flux). **Helm release `vibecore`** in namespace `vibecore` on GKE `vibecore-prod-app` (europe-west9).
+
+> **`_DEPS_TAG` was removed from the manual commands above (2026-09-06).** Cloud
+> Build is strict about substitutions: a key that is passed but **not referenced
+> by any step** fails the submission outright — measured, the error names every
+> offending key. Root `cloudbuild.yaml` never referenced `_DEPS_TAG`, so the
+> documented command could not run at all. `_VITE_RUNTIME_MODE`,
+> `_VITE_RUNTIME_API_BASE_URL` and `_VITE_BYOK_DISABLED` are now **declared and
+> consumed** by its `build-web` step, which **refuses to build** when the mode is
+> empty or unrecognised. Dropping those flags to make the command "work" would
+> ship a WebContainer IDE tagged `:latest`; the step now fails instead.
 
 ## Facts (verified live)
 
@@ -124,7 +134,7 @@ Push to `main` → `deploy-main.yml` does:
    ```bash
    gcloud builds submit --config=cloudbuild.yaml \
      --project=vibecore-495216 --region=europe-west9 \
-     --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+     --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
    ```
    → pushes `…/<service>:${SHORT_SHA}` (+ `:latest`) for the 7 platform images.
 4. Resolve **every** service to an immutable digest — the tiers just built, plus the
@@ -196,7 +206,7 @@ SHORT_SHA="$(git rev-parse --short=10 HEAD)"
 # 1) build + push images (regional Cloud Build)
 gcloud builds submit --config=cloudbuild.yaml \
   --project=vibecore-495216 --region=europe-west9 \
-  --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+  --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
 
 # (single service only: `make deploy-<svc> SHORT_SHA=${SHORT_SHA}` — build+push only, no deploy)
 

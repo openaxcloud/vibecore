@@ -48,6 +48,13 @@ substitutions:
   _PROJECT: vibecore-495216
   _REPO: vibecore-prod-containers
   _SHORT_SHA: dev
+  # Vides DÉLIBÉRÉMENT : `build-web` refuse de construire sans mode d'exécution.
+  # Cloud Build est strict sur les substitutions — une clé passée mais non
+  # utilisée dans le template fait échouer la soumission. Les déclarer ET les
+  # consommer est donc ce qui rend la commande manuelle du runbook valide.
+  _VITE_RUNTIME_MODE: ''
+  _VITE_RUNTIME_API_BASE_URL: ''
+  _VITE_BYOK_DISABLED: ''
 options:
   machineType: E2_HIGHCPU_8
   logging: CLOUD_LOGGING_ONLY
@@ -94,20 +101,78 @@ steps:
   # Each waitFor: ['build-deps'] so Cloud Build dispatches them
   # concurrently the moment deps is ready. No waitFor between siblings.
 
+  # FERMÉE PAR DÉFAUT : pas de mode d'exécution, pas d'image `web`.
+  #
+  # `VITE_RUNTIME_MODE` est inliné dans le bundle par Vite AU MOMENT DU BUILD.
+  # Absent, `getRuntimeMode()` (app/lib/runtime/RuntimeAdapterProvider.tsx) retombe
+  # sur `webcontainer` — et l'IDE livré n'appelle plus jamais workspace-manager ni
+  # preview-proxy. Le symptôme n'est pas une erreur : c'est un `425` éternel sur
+  # la lecture de fichiers, sans qu'aucun démarrage d'espace de travail ne soit
+  # jamais demandé. Mesuré le 2026-09-05 sur le banc d'audit : 23 lectures, 24
+  # réponses `425`, ZÉRO appel de démarrage sur 6 heures.
+  #
+  # La seule voie de secours du code ne peut pas jouer : `VITE_SAAS_COMMERCIAL`
+  # n'est pas un `ARG` du Dockerfile (0 occurrence sur 9 `ARG`), donc la branche
+  # `PROD && VITE_SAAS_COMMERCIAL === 'true'` est morte dans une image.
+  #
+  # On REFUSE donc de construire plutôt que de produire une image muette. Le
+  # défaut vide n'est pas un oubli : il rend l'omission impossible à commettre
+  # en silence. Un commentaire n'aurait protégé personne — celui du Dockerfile
+  # décrivait déjà ce piège en douze lignes pendant que le piège restait armé.
   - id: build-web
     name: gcr.io/cloud-builders/docker
     waitFor: ['build-deps']
+    entrypoint: bash
     env:
       - DOCKER_BUILDKIT=1
     args:
-      - build
-      - --target=bolt-ai-production
-      - --build-arg=BUILDKIT_INLINE_CACHE=1
-      - --build-arg=DEPS_IMAGE=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}
-      - --cache-from=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
-      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}
-      - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest
-      - .
+      - -c
+      - |
+        set -euo pipefail
+
+        mode='${_VITE_RUNTIME_MODE}'
+        apiBase='${_VITE_RUNTIME_API_BASE_URL}'
+
+        if [ -z "$mode" ]; then
+          echo "REFUS build-web : _VITE_RUNTIME_MODE est vide." >&2
+          echo "  Vite inline cette valeur dans le bundle ; sans elle l'IDE livre" >&2
+          echo "  WebContainer et n'atteint jamais workspace-manager." >&2
+          echo "  Production : --substitutions=...,_VITE_RUNTIME_MODE=remote-kubernetes" >&2
+          exit 1
+        fi
+
+        case "$mode" in
+          remote-kubernetes|webcontainer) ;;
+          *)
+            echo "REFUS build-web : _VITE_RUNTIME_MODE=\"$mode\" n'est pas une valeur reconnue." >&2
+            echo "  Attendu : remote-kubernetes (production) ou webcontainer (dev)." >&2
+            echo "  Une valeur inconnue retombe sur webcontainer dans getRuntimeMode()." >&2
+            exit 1
+            ;;
+        esac
+
+        # En mode distant, l'URL de l'API est aussi inlinée. Sans elle le client
+        # vise `/api/runtime` en même origine, donc le pod web (Remix), qui n'a
+        # aucune route runtime — l'espace de travail n'est jamais provisionné.
+        if [ "$mode" = 'remote-kubernetes' ] && [ -z "$apiBase" ]; then
+          echo "REFUS build-web : mode remote-kubernetes sans _VITE_RUNTIME_API_BASE_URL." >&2
+          echo "  Attendu : https://api.e-code.ai/api/runtime" >&2
+          exit 1
+        fi
+
+        echo "build-web : mode=$mode apiBase=${apiBase:-<meme origine>}"
+
+        docker build \
+          --target=bolt-ai-production \
+          --build-arg=BUILDKIT_INLINE_CACHE=1 \
+          --build-arg=DEPS_IMAGE='${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/deps:${_SHORT_SHA}' \
+          --build-arg=VITE_RUNTIME_MODE="$mode" \
+          --build-arg=VITE_RUNTIME_API_BASE_URL="$apiBase" \
+          --build-arg=VITE_BYOK_DISABLED='${_VITE_BYOK_DISABLED}' \
+          --cache-from='${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest' \
+          --tag='${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:${_SHORT_SHA}' \
+          --tag='${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/web:latest' \
+          .
 
   - id: build-admin
     name: gcr.io/cloud-builders/docker
