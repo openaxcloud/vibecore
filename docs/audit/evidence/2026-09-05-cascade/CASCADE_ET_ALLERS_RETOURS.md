@@ -96,3 +96,60 @@ sont un coût de visite à froid**, pas un défaut de cache.
   **affiche sa source** (`sourceTiming`).
 - Trois échantillons WebKit, dont un à 5 006 ms contre 3 214 ms : la variance
   est réelle et vient du serveur. Un échantillon unique aurait menti de 55 %.
+
+---
+
+# Vérification en PRODUCTION (`app.e-code.ai`) — 2026-09-05
+
+La mesure ci-dessus vient de l'env de test, dont l'hôte encode l'IP de
+l'équilibreur. La question qui décidait de tout : **la production a-t-elle un
+CDN ?**
+
+## Non. Elle est servie en direct.
+
+| | |
+|---|---|
+| `app.e-code.ai` | enregistrement **A** direct vers `34.1.6.93`, TTL 300 |
+| chaîne CNAME | **aucune** |
+| en-têtes d'un asset statique | `cache-control: public, max-age=31536000, immutable`, `etag`, `vary` |
+| marqueurs CDN (`via`, `age`, `x-cache`, `cf-ray`, `server`) | **aucun** |
+
+**Témoins de validité :** `dig` rend bien des IP anycast pour un domaine
+derrière Cloudflare, et le même filtre d'en-têtes rend `server: cloudflare` +
+`cf-ray` sur ce domaine. L'absence de marqueur en production n'est donc pas une
+recherche qui a échoué.
+
+## Les chiffres d'Avi sont PIRES que ceux de l'env de test
+
+Page publique `app.e-code.ai/`, WebKit/iPhone 15 Pro, deux échantillons :
+
+| | échantillon 1 | échantillon 2 | env de test (rappel) |
+|---|---:|---:|---:|
+| requêtes statiques | 43 | 43 | 65 |
+| **TTFB médian statique** | **1 079 ms** | **804 ms** | 452 ms |
+| somme des TTFB | 41 457 ms | 36 044 ms | 33 621 ms |
+| temps de **transfert** cumulé | **2 118 ms** | **2 138 ms** | 3 571 ms |
+| réseau oisif | 6 % | 6 % | 6–9 % |
+| temps mural | 3 190 ms | 2 500 ms | 3 214–5 006 ms |
+
+**Les assets statiques passent ~95 % de leur temps réseau à attendre.**
+41 secondes de TTFB cumulé pour 2,1 secondes d'octets.
+
+Et le serveur de production n'est pas lent : sur connexion réutilisée, TTFB
+**93 ms** pour un RTT TCP de 82 ms — soit ~10 à 20 ms de traitement réel.
+
+## Le cache est bon en production aussi
+
+`If-None-Match` → **304, 0 octet**. Témoin : la même requête sans l'en-tête rend
+`200` avec un corps. Les secondes sont bien un coût de **première visite**.
+
+C'est ce qui rend la cible précise plutôt que rassurante : c'est le premier
+contact qui décide si un visiteur reste, et c'est exactement celui-là qui paie.
+
+## Conclusion
+
+Le levier existe, il est en production, et il ne demande aucune ligne de code :
+**43 assets statiques immuables traversent l'Europe à chaque première visite**,
+depuis une origine unique, sans cache de bord. C'est le plus gros levier de tout
+ce qui a été examiné depuis hier — et le seul qui ne touche ni au build, ni au
+découpage, ni au code applicatif.

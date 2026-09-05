@@ -118,7 +118,34 @@ elle-même. Elle se valide sur la **composition mesurée de tout le bundle**, av
 et après — et le signe qui doit alerter est un nombre de chunks qui *baisse* quand
 on croyait en ajouter un.
 
-## La règle que ces trente cas imposent
+### 31. `2>/dev/null` sur un `git add`, et la vérification en forme de succès (2026-09-05)
+
+**Ce que j'ai écrit.** `git add <chemin> 2>/dev/null` dans la session même où
+j'invoquais la règle 13 qui l'interdit.
+
+**Ce qui s'est passé.** Le chemin était dans `.gitignore` ; `git add` a rendu
+`fatal: pathspec … did not match any files` — supprimé. `git commit` a donc dit
+« nothing added to commit », `git push` a dit « up to date », et mon `ls-remote`
+de contrôle a affiché **un SHA**.
+
+**Le piège, et il est plus fin que le `2>/dev/null`.** Ce SHA avait la FORME
+d'un succès : quarante caractères hexadécimaux en face du bon nom de branche.
+C'était celui du commit **précédent**. J'avais posé la bonne vérification et je
+n'avais pas comparé sa valeur à celle que j'attendais.
+
+**Les deux règles.**
+
+1. Ne jamais rediriger la sortie d'erreur d'une commande dont on lit le
+   résultat — y compris `git add`, qui passe pour incapable d'échouer.
+2. **Une vérification n'en est une que si l'on compare sa valeur à une valeur
+   attendue.** Afficher un SHA n'est pas vérifier un SHA. Une sortie qui a la
+   forme d'un succès se lit comme un succès, et c'est exactement ce qui rend ce
+   cas plus dangereux que le silence : le silence alerte, la forme rassure.
+
+**Contrôle applicable partout :** faire dire à la commande de contrôle ce qu'on
+attend, pas seulement ce qu'elle trouve — `test "$(git rev-parse HEAD)" = "$(git ls-remote origin <branche> | cut -f1)"`.
+
+## La règle que ces trente-et-un cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
