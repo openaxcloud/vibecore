@@ -62,6 +62,7 @@ describe('entry server document isolation headers', () => {
    */
   it('does not derive the cache header from the request, so no path can be excluded', () => {
     const aveugle = new Headers();
+
     const piege = new Request('https://app.e-code.ai/login', {
       headers: { cookie: 'vc_session=abc', 'user-agent': 'x', accept: 'text/html' },
     });
