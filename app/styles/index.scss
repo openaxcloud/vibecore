@@ -28810,6 +28810,7 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
  * Un élément qui décale la mise en page au passage de la souris est un défaut
  * visuel à lui seul, et celui-là se photographie.
  */
+.bolt-chat-message-row .bolt-message-menu-trigger[data-vc-tooltip],
 .bolt-message-menu-trigger {
   position: absolute;
   top: 4px;
