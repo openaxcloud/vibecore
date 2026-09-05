@@ -4121,9 +4121,40 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   box-shadow: 0 0 0 4px color-mix(in srgb, var(--vc-ide-accent-action), transparent 78%);
 }
 
+/*
+ * SPÉCIFICITÉ NULLE, DÉLIBÉRÉMENT. Cette règle n'existe que pour donner un
+ * ancrage aux pseudo-éléments d'infobulle. Elle ne doit JAMAIS gagner contre le
+ * style d'un composant.
+ *
+ * Elle l'a pourtant fait deux fois, et le mécanisme est le même les deux fois :
+ * `[data-vc-tooltip]` compte (0,1,0) et **`:not()` compte la spécificité de son
+ * argument**, donc (0,1,0) de plus. Total (0,2,0) — au-dessus de n'importe
+ * quelle classe simple, qui ne pèse que (0,1,0).
+ *
+ *   - `.bolt-agent-scroll-to-bottom` : `position: sticky` écrasé, pastille
+ *     rendue à y=795..839 dans une fenêtre de 659 px, hors écran ;
+ *   - `.bolt-message-menu-trigger` : `position: absolute` écrasé, un bouton
+ *     INVISIBLE (`opacity: 0`) occupant 28 px de flux dans CHAQUE message
+ *     d'agent — mesuré sur page réelle, bulle à 64 px, 36 px une fois le
+ *     bouton hors flux.
+ *
+ * Ce qui rend ce défaut coûteux à trouver : la source dit la bonne valeur, la
+ * feuille SERVIE dit la bonne valeur, et seul le style CALCULÉ dit la vraie.
+ * Relire le code ou la feuille conclut que tout va bien.
+ *
+ * Le correctif ne corrige pas une victime, il corrige la règle : `:where()`
+ * autour de l'attribut ET autour de l'argument de `:not()` ramène le tout à
+ * (0,0,0). La règle s'applique toujours quand rien ne la concurrence — c'est
+ * tout ce qu'un ancrage doit faire — et la moindre classe la bat désormais.
+ *
+ * 47 éléments portent `data-vc-tooltip` sur la seule page IDE : ce n'était pas
+ * deux accidents, c'était deux tirages sur une surface de 47.
+ *
+ * Épinglé par app/styles/tooltip-anchor-specificity.spec.ts.
+ */
 :where(.bolt-responsive-ide, .bolt-project-ide-shell)
-  :where(button, summary, [role='button'], [role='separator'], input, select)[data-vc-tooltip]:not(
-    [data-vc-radix-tooltip='true']
+  :where(button, summary, [role='button'], [role='separator'], input, select):where([data-vc-tooltip]):not(
+    :where([data-vc-radix-tooltip='true'])
   ) {
   position: relative;
 }
