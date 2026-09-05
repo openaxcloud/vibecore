@@ -29,8 +29,10 @@ export function specificiteB(selecteur: string): number {
     s = s.replace(/:where\(([^()]*)\)/g, '');
   } while (s !== avant);
 
-  // `:not(...)` et `:is(...)` contribuent la spécificité de leur argument :
-  // on remplace la construction par son contenu, puis on recompte.
+  /*
+   * `:not(...)` et `:is(...)` contribuent la spécificité de leur argument :
+   * on remplace la construction par son contenu, puis on recompte.
+   */
   do {
     avant = s;
     s = s.replace(/:(?:not|is)\(([^()]*)\)/g, ' $1 ');
