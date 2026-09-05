@@ -86,8 +86,8 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
  */
 export const shouldRevalidate = shouldRevalidateProjectIde;
 
-export const loader = async ({ request, params }: LoaderFunctionArgs) =>
-  loadProjectIdeData(request, params.projectId ?? '');
+export const loader = async ({ request, params, context }: LoaderFunctionArgs) =>
+  loadProjectIdeData(request, params.projectId ?? '', context);
 
 export default function ProjectIdeRoute() {
   const { i18n } = useTranslation();
