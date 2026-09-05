@@ -300,6 +300,68 @@ La décision est `reused && seededThisSession && hasLivePort`, et `storageNewerT
 
 **Troisième levier, ouvert : le chunk `root` importe statiquement ~95 chunks de ROUTES** (`import"./admin-billing-*.js"`, `./support-*.js`, `./team-access-log-*.js`, `./upgrade-*.js`, `./ide-new-route-*.js`…) en imports d'effet de bord, alors que la home marketing n'en apparie aucune. C'est ce qui fixe le plancher de 102 requêtes. Tant que ce point n'est pas traité, le gain en octets ne se convertit pas en gain de temps perçu. À instruire ensuite.
 
+#### 2026-09-05 — le troisième levier, remesuré par un autre chemin (et il tient)
+
+Le découpage du temps de premier contenu sur **iPhone, en production** est
+retombé exactement sur cette entrée, écrite le 12 août. Personne ne l'avait vue.
+
+**Segment A — les secondes AVANT que la moindre requête de données ne parte :**
+
+| jalon | à |
+|---|---:|
+| document reçu | 3 ms |
+| thème appliqué | 9 ms |
+| **dernier JS téléchargé** | **4 638 ms** — 63 fichiers |
+| premier contenu peint | 4 191 ms |
+| **première requête `/api/`** | **6 018 ms** |
+| départ de la requête du panneau | 6 375 ms |
+
+**0 → ~4 200 ms : rien n'est peint, aucune requête API n'est émise. On télécharge
+du JavaScript.** Durée CUMULÉE des 63 fichiers : **74 à 96 secondes** selon le
+relevé, pour ~4,6 s de temps mural — forte contention entre eux.
+
+C'est la confirmation de la phrase écrite le 12 août : *« tant que ce point n'est
+pas traité, le gain en octets ne se convertit pas en gain de temps perçu »*. La
+nuit du 4 au 5 septembre a réduit les octets (état d'IDE ×17 542, archives ÷2,
+huit requêtes de moins) **sans que les secondes bougent** — l'inventaire l'avait
+prédit.
+
+**Mesure du graphe, sur l'artefact SERVI** (aucun navigateur, donc aucun problème
+d'attribution) :
+
+- fermeture transitive des imports **statiques** depuis le chunk `root` :
+  **29 fichiers**, dont **10 modules de routes** — `signup`, `dashboard`,
+  `legal`, `mfa`, `security`, `organization`, `account-settings._index`,
+  `settings`, `marketing`, `api.integrations.api-key._provider.configure` ;
+- la page d'accueil précharge **36 modules**, dont `marketing-community-route`
+  et `security`, qu'elle n'ouvre pas.
+
+**Le mécanisme est nommé** : ce n'est ni un barrel, ni un composant qui importe
+une route (mesuré : **0 occurrence** de `from '~/routes/…'` dans `app/components`
+et `app/lib`), ni une règle de `manualChunks`. C'est le **découpage automatique
+de Rollup sur le code applicatif** : `build-config/manual-chunks.ts` sort
+explicitement de sa fonction dès que l'identifiant n'est pas dans
+`node_modules` (`if (!id.includes('/node_modules/')) return undefined;`). Il
+n'existe donc **aucune politique de découpage pour les routes** — Rollup
+regroupe, et du code de route se retrouve importé statiquement par le chunk
+partagé.
+
+**Le risque d'un découpage paresseux est documenté dans ce même fichier, et il a
+déjà eu lieu** : séparer le cœur de CodeMirror de ses paquets de langage a
+produit un **chunk circulaire**, `Cannot access 'dt' before initialization`, et
+une page blanche. Un découpage mal posé ne rend pas le démarrage plus lent : il
+casse l'écran. C'est pourquoi la règle de `manualChunks` garde aujourd'hui
+CodeMirror en un seul morceau.
+
+**Ce que cette mesure ne dit PAS** : combien des 63 fichiers l'ouverture d'un
+projet utilise réellement. Établir cela demande une page authentifiée avec un
+relevé d'usage par fichier ; je ne l'ai pas fait, et le compte de 63 ne doit pas
+être lu comme « 63 inutiles ». Ce qui est établi, c'est que **10 modules de
+routes étrangères sont dans la fermeture statique du chunk partagé**.
+
+Instruments et relevés : `docs/audit/evidence/2026-09-05-reference/`.
+
+
 ### 2026-08-12 — Deux bugs root-causés par le balayage QA : corrigés et mergés
 
 | ID | Bug | 📤 | 💻 | ✅ | Preuve |
