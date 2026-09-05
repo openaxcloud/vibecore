@@ -1,5 +1,28 @@
 # `no-store` sur `/api/*` — proposition cadrée
 
+> ## À lire avant tout le reste
+>
+> **Le risque principal de ce changement n'est pas que le service tombe.**
+>
+> `react-router-serve` ne fait pas que lancer l'application : c'est lui qui sert
+> les fichiers statiques avec `maxAge` et **`immutable`**. C'est de là que vient
+> le `public, max-age=31536000, immutable` mesuré en production — le seul point
+> rassurant de tout le dossier des neuf secondes, celui qui fait qu'un visiteur
+> qui revient ne paie rien.
+>
+> Un remplacement qui oublie cette ligne **démarre parfaitement**. Les pages
+> s'affichent, les tests passent, aucune alarme ne se déclenche. Et **chaque
+> visite redevient une première visite**, pour tout le monde, indéfiniment.
+>
+> Une panne bruyante coûte une heure : le déploiement est `--atomic`, le rollout
+> échoue, Helm revient tout seul. Celle-ci coûterait des semaines avant que
+> quelqu'un se demande pourquoi le site est devenu lent pour tous.
+>
+> **C'est ce que la vérification doit attraper en priorité**, avant le
+> correctif lui-même : comparer les en-têtes des assets avant et après, et
+> bloquer la livraison sur le moindre écart concernant `immutable`.
+
+
 ## La mesure qui décide de l'urgence
 
 **Question : une seule des 176 routes `api.*` pose-t-elle un `Set-Cookie` ?**
