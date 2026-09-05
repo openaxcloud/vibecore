@@ -28761,3 +28761,69 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
     display: none;
   }
 }
+
+/*
+ * CIBLE VISIBLE DU MENU DE MESSAGE — sans coût au repos.
+ *
+ * Avi n'a jamais demandé que les actions disparaissent : il a demandé que la
+ * barre permanente et le crayon cessent de manger de la place dans chaque
+ * bulle. Une cible qui n'apparaît qu'au survol ne coûte rien au repos — le gain
+ * de place est intégralement conservé — et la fonction reste trouvable pour qui
+ * ne connaît pas l'appui long. C'est ce que fait WhatsApp sur ordinateur, la
+ * référence qu'il a lui-même citée deux fois.
+ *
+ * `position: absolute` : le chevron ne pousse JAMAIS le texte à son apparition.
+ * Un élément qui décale la mise en page au passage de la souris est un défaut
+ * visuel à lui seul, et celui-là se photographie.
+ */
+.bolt-message-menu-trigger {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--vc-ide-text-secondary, var(--bolt-elements-textSecondary));
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+
+  /*
+   * Invisible au repos, mais TOUJOURS dans le parcours clavier : `opacity`, pas
+   * `display: none`. Un élément retiré du flux n'est plus focalisable, et l'on
+   * retomberait sur la fonction inaccessible qu'on vient de corriger.
+   */
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+
+/* Au doigt, pas de survol : l'appui long suffit, et le chevron ne s'affiche pas. */
+@media (hover: hover) {
+  .bolt-chat-message-row:hover .bolt-message-menu-trigger,
+  .bolt-message-menu-trigger:focus-visible {
+    opacity: 1;
+  }
+}
+
+/* Le focus clavier le révèle dans tous les cas, y compris sur pointeur grossier. */
+.bolt-message-menu-trigger:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--vc-ide-focus-ring, currentColor);
+  outline-offset: 1px;
+}
+
+/*
+ * Le chevron est en `position: absolute` : sans contexte de positionnement, il
+ * se placerait par rapport à la page entière et voyagerait au défilement.
+ * `relative` sur la bulle l'ancre à son message, sans rien changer au flux.
+ */
+.bolt-assistant-message,
+.bolt-user-message {
+  position: relative;
+}
