@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
+import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
@@ -305,8 +306,38 @@ export const AssistantMessage = memo(
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
+    const menuContextuel = useMenuContextuelDeMessage();
+
     return (
-      <div className="bolt-assistant-message overflow-hidden w-full">
+      <div
+        className="bolt-assistant-message overflow-hidden w-full"
+        ref={menuContextuel.ancre as React.RefObject<HTMLDivElement>}
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+        onKeyDown={menuContextuel.onKeyDown}
+      >
+        {/*
+          CIBLE VISIBLE, SANS COUT AU REPOS.
+          Un appui long est invisible tant qu'on ne l'a pas decouvert. Ce
+          chevron rend la fonction trouvable pour qui ne connait pas le geste,
+          et il ne coute rien a la densite : `position: absolute`, donc il ne
+          pousse jamais le texte a l'apparition — un element qui deplace la
+          mise en page au survol est un defaut visuel a lui seul.
+          Il n'apparait qu'au survol (souris) ou au focus (clavier) ; au doigt,
+          l'appui long suffit, comme sur WhatsApp.
+        */}
+        <button
+          type="button"
+          className="bolt-message-menu-trigger"
+          aria-label={copy['assistantMessage.footer.group']}
+          aria-haspopup="menu"
+          onClick={(evenement) => {
+            const boite = evenement.currentTarget.getBoundingClientRect();
+            menuContextuel.ouvrirEn(boite.left, boite.bottom);
+          }}
+        >
+          <span aria-hidden>⋯</span>
+        </button>
         <>
           {/*
             Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
@@ -956,7 +987,21 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
-        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        {/*
+          La rangée d'actions n'est plus posée sous chaque message : c'est
+          exactement ce qu'Avi entoure en rouge sur ses captures — « pourquoi
+          perdre tant de place dans les bubbles ». Ce sont les MÊMES boutons,
+          les mêmes gestionnaires et les mêmes libellés, déplacés dans le menu
+          contextuel : appui long au doigt, clic droit à la souris.
+        */}
+        <MenuContextuel
+          ouvert={menuContextuel.ouvert}
+          position={menuContextuel.position}
+          fermer={menuContextuel.fermer}
+          etiquette={copy['assistantMessage.footer.group']}
+        >
+          <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        </MenuContextuel>
       </div>
     );
   },
