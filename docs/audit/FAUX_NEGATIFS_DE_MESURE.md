@@ -26,6 +26,10 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 19 | sonde d'état de rebase | `[ -d .git/rebase-merge ]` — dans un **worktree**, l'état vit dans `.git/worktrees/<nom>/rebase-merge` | **« REBASE COMPLETE »** alors que le rebase était arrêté sur un conflit, et qu'un commit semblait perdu | lire `git status`, qui est l'autorité ; `git rev-parse --git-dir` donne le bon répertoire |
 | 20 | le dépôt partagé lui-même | trois remises à zéro du checkout principal dans la journée (bascule de branche par une autre session), sans avertissement | **le travail écrit « existe »** — il est à l'écran, il est dans le fichier — puis il n'existe plus, et rien ne le signale. Entrées 13-17 du registre perdues une fois, huit lignes d'inventaire perdues DEUX fois | **copier tout écrit durable dans un dossier NON SUIVI avant de continuer**, puis le porter en ligne dès que possible. Acquis après trois effacements : la 1ʳᵉ fois j'ai réécrit, la 2ᵉ j'ai copié le code mais pas les documents, la 3ᵉ seule la copie a sauvé le travail |
 | 21 | tout comptage de fichiers par chemin | un fichier **présent par accident** — résidu non commité ramassé par un archivage automatique — est indiscernable d'un fichier **présent par choix**. Mesuré : `.github/workflows/deploy-prod.yml`, seul fichier « absent de `main` » d'une branche orpheline, arrivé par un commit intitulé « travail non commité de vc-ideux [fix/ide-panel-resolution] » — un worktree consacré à un TOUT AUTRE sujet | « un fichier de travail unique à sauver ». En réalite `main` ne l'avait pas perdu : `main` l'avait **supprimé** par la PR #132, celle qui installe la porte exact-SHA. Le restaurer aurait rouvert une seconde voie de déploiement en production contournant cette porte — une régression de sécurité présentée comme une récupération | avant d'extraire un fichier « absent de `main` », chercher s'il y a **déjà existé** : `git log --diff-filter=D origin/main -- <chemin>`. Une suppression délibérée ne se distingue d'une perte que par l'historique |
+| 22 | comparaison de sujets de commits à `main` | `main` fusionne en **squash** : ses sujets sont des titres de PR, jamais ceux des commits de branche. Le test ne pouvait structurellement rien trouver | **« 0 trouvé / 153 absents »**, à l'identique sur trois branches indépendantes. **Un taux d'échec de 100 % identique sur des entrées indépendantes n'est pas un résultat, c'est une panne** | comparer le CONTENU (`git diff --quiet origin/main...<branche>`) ou chercher la PR fusionnée par titre — jamais les sujets de commits |
+| 23 | comptage de résultats via `jq`/`-q '.[0]'` | sur un tableau vide, `.[0]` rend `null` ; la condition comparait à la chaîne `"null"` alors que la sortie réelle était `"#null null"` | **« TROUVÉ »** pour les huit sujets testés — **l'exact contraire de la vérité** | compter les éléments (`len(json.load(...))`), et valider la méthode par un témoin positif ET un témoin négatif avant de l'utiliser |
+| 24 | refspec de `git push` en zsh | `"$src:refs/heads/$dst"` — zsh a appliqué le **modificateur d'historique `:r`** et mangé deux caractères | `src refspec …20260831efs/heads/… does not match any`, trois fois. Message trompeur : lisible comme un refus du serveur, comme la vraie limite de taille rencontrée une heure plus tôt | accolader (`${src}:refs/heads/${dst}`), et **vérifier la présence sur le distant** (`git ls-remote`) plutôt que croire l'absence d'erreur |
+| 25 | détecteur de « contenu chargé » | il déclarait STABLE après 3 lectures identiques : il mesurait l'**immobilité**, pas la **présence**. Un palier transitoire suffisait | **162 caractères** rendus comme état final d'un panneau qui en porte 915. Puis, une fois le seuil ajouté : trois panneaux sains déclarés en échec — `env` raté de **8 caractères**, `logs` recalé parce qu'il oscille de 5 caractères en affichant des journaux vivants | critère PRINCIPAL = marqueur sémantique du contenu attendu ; la stabilité n'est qu'une condition secondaire, et tolérante |
 
 ## La règle qui en découle
 
@@ -60,12 +64,12 @@ couvrait **3**.
 
 ---
 
-## La règle que ces vingt-et-un cas imposent
+## La règle que ces vingt-cinq cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
 
-Ils n'ont pas vingt-et-une causes, ils en ont une. Un outil qui **n'a pas mesuré**
+Ils n'ont pas vingt-cinq causes, ils en ont une. Un outil qui **n'a pas mesuré**
 rend le même résultat qu'un outil qui **a mesuré et n'a rien trouvé**. Le
 silence n'est jamais un verdict.
 
@@ -86,3 +90,22 @@ sessions, un fichier écrit n'est pas un fichier conservé. La parade est la mê
 que pour les mesures : ne pas croire ce qui est à l'écran, vérifier que ça
 survit. En pratique — copie immédiate dans un dossier non suivi, puis mise en
 ligne. Ce document a lui-même été perdu une fois avant d'être écrit ainsi.
+
+### La règle du volume, énoncée généralement (2026-09-05)
+
+**Pour toute surface pouvant être légitimement VIDE, la détection par volume est
+structurellement incapable.**
+
+Mesuré : le panneau `secrets` correctement rendu à vide fait **54 caractères** —
+« Aucun secret de projet. » — soit **moins que son propre message de chargement**
+(83). Aucun seuil, si bien réglé soit-il, ne distingue cet état sain d'un
+panneau mort : l'ordre des grandeurs est inversé.
+
+La conséquence dépasse ce panneau. Un compteur de caractères, d'éléments, de
+lignes ou d'octets ne peut pas répondre à « est-ce chargé ? » dès lors que
+« chargé et vide » est un état valide. Seul un **marqueur du contenu attendu**
+le peut — un texte, un attribut, un élément que seule la surface correctement
+rendue produit.
+
+Corollaire pratique : avant d'écrire un seuil, se demander à quoi ressemble
+l'état vide légitime. S'il existe, écrire un marqueur à la place.
