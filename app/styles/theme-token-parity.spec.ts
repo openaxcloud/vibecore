@@ -208,6 +208,43 @@ describe('the palettes that failed the live contrast sweep now clear WCAG AA', (
     },
   );
 
+  /*
+   * L'orange de TEXTE, mesuré là où il sert vraiment.
+   *
+   * `--ecode-accent-text` ne passait AA que sur du BLANC PUR. Le marketing le
+   * pose sur des surfaces teintées et surtout sur des pastilles
+   * `bg-[#F26207]/10` : l'orange à 10 % éclaircit le fond, et le texte y
+   * repassait sous le seuil. Trois endroits l'avaient rattrapé localement avec
+   * un `color-mix(…, #000 10%)` — signe que le défaut était dans le jeton.
+   *
+   * On mesure donc les trois fonds réels, alpha COMPOSÉE, et non le seul blanc.
+   */
+  it.each([
+    ['blanc', '--ecode-surface'],
+    ['surface secondaire', '--ecode-surface-secondary'],
+  ])("garde l'orange de texte lisible sur une pastille d'accent à 10 %% — %s", (_nom, jetonSurface) => {
+    const texte = token(":root[data-theme='light']", '--ecode-accent-text');
+    const surface = token(":root[data-theme='light']", jetonSurface);
+    const accent = token(":root[data-theme='light']", '--ecode-accent');
+
+    const canal = (hex: string, decalage: number) => parseInt(hex.slice(decalage, decalage + 2), 16);
+
+    const pastille = `#${[1, 3, 5]
+      .map((decalage) => canal(accent, decalage) * 0.1 + canal(surface, decalage) * 0.9)
+      .map((valeur) => Math.round(valeur).toString(16).padStart(2, '0'))
+      .join('')}`;
+
+    expect(contrast(texte, pastille)).toBeGreaterThanOrEqual(AA_BODY_TEXT);
+  });
+
+  it("garde l'orange de texte lisible en toutes lettres sur la surface claire", () => {
+    const texte = token(":root[data-theme='light']", '--ecode-accent-text');
+
+    expect(contrast(texte, token(":root[data-theme='light']", '--ecode-surface-secondary'))).toBeGreaterThanOrEqual(
+      AA_BODY_TEXT,
+    );
+  });
+
   it('keeps the tertiary grey visibly quieter than the secondary text', () => {
     const background = token(":root[data-theme='dark']", '--vc-ide-bg-app');
     const muted = contrast(token(":root[data-theme='dark']", '--vc-ide-text-muted'), background);
