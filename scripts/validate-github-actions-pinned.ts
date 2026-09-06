@@ -416,7 +416,13 @@ export function analyzeGithubActionsYaml(
 
   const lineCounter = new LineCounter();
 
-  let document;
+  /*
+   * Typée explicitement : `noeudPorteur` appelle `document.getIn(...)`, et sans
+   * ce type la porte d'épinglage rend TS7034/TS7005 (« implicitly has an any
+   * type »). Ce contrôle de sécurité compile sous un contrat plus strict que le
+   * reste du dépôt — délibérément, pour qu'il ne dérive pas en silence.
+   */
+  let document: ReturnType<typeof parseDocument> | undefined;
 
   try {
     document = parseDocument(source, {
@@ -480,7 +486,7 @@ export function analyzeGithubActionsYaml(
    * ce qu'elle couvre. Seule la PORTÉE de l'ancrage change. Aucun refus n'est
    * assoupli, aucune exception n'est ajoutée.
    */
-  const documentFingerprint = fingerprint(document.contents);
+  const documentFingerprint = fingerprint(document.contents as ParsedNode | null);
 
   /*
    * Le nœud porteur d'une référence : l'étape (`steps[i]`), le service
@@ -488,13 +494,13 @@ export function analyzeGithubActionsYaml(
    * hors de ces formes — on retombe sur l'empreinte du document, plus large mais
    * jamais plus permissive.
    */
-  function noeudPorteur(path: readonly LocationSegment[]): unknown {
+  function noeudPorteur(path: readonly LocationSegment[]): ParsedNode | undefined {
     for (let profondeur = path.length; profondeur > 0; profondeur -= 1) {
       const segment = path[profondeur - 1];
       const estPorteur = typeof segment === 'number' || segment === 'container' || path[profondeur - 2] === 'services';
 
       if (estPorteur) {
-        const noeud = document.getIn(path.slice(0, profondeur), true);
+        const noeud = document?.getIn(path.slice(0, profondeur) as unknown[], true) as ParsedNode | undefined;
 
         if (noeud) {
           return noeud;
@@ -600,7 +606,7 @@ export function analyzeGithubActionsYaml(
     }
   }
 
-  walk(document.contents, []);
+  walk(document.contents as ParsedNode | null, []);
 
   /*
    * L'empreinte du DOCUMENT reste rendue ici : elle sert aux appelants qui
