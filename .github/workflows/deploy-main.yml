@@ -101,7 +101,7 @@ on:
         required: false
       force_tiers:
         description: >-
-          Force which tiers to build (comma list of web/runtime/wsagent, or 'all'),
+          Force which tiers to build (comma list of web/runtime/admin/wsagent, or 'all'),
           bypassing path detection. For validating conditional builds via dispatch.
         required: false
 
@@ -469,22 +469,23 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          RUNTIME=true; WEB=true; WSAGENT=true
+          RUNTIME=true; WEB=true; WSAGENT=true; ADMIN=true
 
           # Manual override (dispatch only) to validate conditional builds without a
           # real push. e.g. force_tiers=web exercises the web-only skip path live.
           if [ -n "${FORCE_TIERS:-}" ]; then
             if [ "${FORCE_TIERS}" = "all" ]; then
-              RUNTIME=true; WEB=true; WSAGENT=true
+              RUNTIME=true; WEB=true; WSAGENT=true; ADMIN=true
             else
-              RUNTIME=false; WEB=false; WSAGENT=false
+              RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               case ",${FORCE_TIERS}," in *,web,*) WEB=true;; esac
               case ",${FORCE_TIERS}," in *,runtime,*) RUNTIME=true;; esac
               case ",${FORCE_TIERS}," in *,wsagent,*) WSAGENT=true;; esac
+              case ",${FORCE_TIERS}," in *,admin,*) ADMIN=true;; esac
             fi
-            echo "FORCE_TIERS=${FORCE_TIERS} -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
+            echo "FORCE_TIERS=${FORCE_TIERS} -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT} admin=${ADMIN}"
             {
-              echo "runtime=${RUNTIME}"; echo "web=${WEB}"; echo "wsagent=${WSAGENT}"
+              echo "runtime=${RUNTIME}"; echo "web=${WEB}"; echo "wsagent=${WSAGENT}"; echo "admin=${ADMIN}"
             } >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -532,14 +533,18 @@ jobs:
             if printf '%s\n' "${CHANGED}" | grep -Eq '^(packages/|pnpm-lock\.yaml|package\.json|pnpm-workspace\.yaml|Dockerfile|infra/docker/|infra/cloudbuild/cloudbuild\.yaml|\.github/workflows/deploy-main\.yml)'; then
               echo "Shared/base input changed -> build ALL tiers"
             else
-              RUNTIME=false; WEB=false; WSAGENT=false
+              RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
+              # `apps/admin/` ne matchait AUCUN motif : un changement admin tombait dans
+              # le repli « web+runtime » ci-dessous, et l'image n'etait jamais reconstruite.
+              # Mesure du 2026-09-07 : 56 jours et 1 415 commits de retard en production.
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(apps/admin/|infra/cloudbuild/admin-tier\.yaml)' && ADMIN=true || true
 
               # If nothing tier-specific matched (docs/CI-only push), still roll web+runtime
               # as a safe no-op-ish default rather than deploying nothing unexpectedly.
-              if [ "${RUNTIME}" = false ] && [ "${WEB}" = false ] && [ "${WSAGENT}" = false ]; then
+              if [ "${RUNTIME}" = false ] && [ "${WEB}" = false ] && [ "${WSAGENT}" = false ] && [ "${ADMIN}" = false ]; then
                 echo "No tier-specific change detected -> default to web+runtime"
                 RUNTIME=true; WEB=true
               fi
@@ -551,7 +556,8 @@ jobs:
           echo "runtime=${RUNTIME}" >> "$GITHUB_OUTPUT"
           echo "web=${WEB}" >> "$GITHUB_OUTPUT"
           echo "wsagent=${WSAGENT}" >> "$GITHUB_OUTPUT"
-          echo "Tiers to build -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
+          echo "admin=${ADMIN}" >> "$GITHUB_OUTPUT"
+          echo "Tiers to build -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT} admin=${ADMIN}"
 
       - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
@@ -669,6 +675,53 @@ jobs:
           echo "workspace-agent build id: ${WSAGENT_BUILD_ID}"
           echo "::endgroup::"
 
+      # ---- Build 4/4: admin tier (la console d'administration) ----
+      #
+      # POURQUOI CETTE ETAPE N'EXISTAIT PAS.
+      #
+      # `cloudbuild.yaml` sait construire l'image admin depuis toujours. Mais ce
+      # workflow n'invoque JAMAIS `cloudbuild.yaml` — seulement runtime-tier,
+      # single-web et workspace-agent. L'etape qui savait construire l'admin
+      # n'etait donc appelee par rien, et `apps/admin/` ne correspondait a aucun
+      # motif de detection : un changement admin tombait dans le repli
+      # « web+runtime ».
+      #
+      # Mesure du 2026-09-07 : l'image servie datait du 2026-07-12 — 56 jours et
+      # 1 415 commits de retard, pendant que les sept autres etages avancaient a
+      # chaque poussee. Entre-temps `apps/admin/` avait recu 9 commits,
+      # +1 782 / -456, dont la localisation francaise et trois correctifs de
+      # contraste sur des libelles illisibles. L'administration tournait sur du
+      # code de juillet sans que rien ne le signale.
+      #
+      # Bloquant, comme les autres etages : une console qui ne se construit pas
+      # doit faire echouer le deploiement, pas repartir en silence sur l'image
+      # d'il y a deux mois. C'est ce silence qui a coute les 56 jours.
+      - name: Build admin tier (Cloud Build)
+        if: steps.tiers.outputs.admin == 'true'
+        run: |
+          set -euo pipefail
+          # Meme regle que le tier web : on epingle la base deps de CE commit
+          # uniquement si le tier runtime a ete reconstruit (c'est lui qui publie
+          # deps:<sha>) ; sinon deps:latest, qui existe toujours.
+          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
+            DEPS_TAG="${SHORT_SHA}"
+          else
+            DEPS_TAG="latest"
+          fi
+          echo "::group::gcloud builds submit — admin-tier (deps:${DEPS_TAG})"
+          ADMIN_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GAR_LOCATION}" \
+            --config=infra/cloudbuild/admin-tier.yaml \
+            --substitutions=_DEPS_TAG="${DEPS_TAG}",_SHORT_SHA="${SHORT_SHA}" \
+            --machine-type=e2-highcpu-8 \
+            --timeout=1800s \
+            . )"
+          echo "ADMIN_BUILD_ID=${ADMIN_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "admin build id: ${ADMIN_BUILD_ID}"
+          echo "::endgroup::"
+
       - name: Set up Helm
         uses: azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4
         with:
@@ -698,7 +751,8 @@ jobs:
           # message.
           for pair in "runtime:${{ steps.tiers.outputs.runtime }}:${RUNTIME_BUILD_ID:-}" \
                       "web:${{ steps.tiers.outputs.web }}:${WEB_BUILD_ID:-}" \
-                      "wsagent:${{ steps.tiers.outputs.wsagent }}:${WSAGENT_BUILD_ID:-}"; do
+                      "wsagent:${{ steps.tiers.outputs.wsagent }}:${WSAGENT_BUILD_ID:-}" \
+                      "admin:${{ steps.tiers.outputs.admin }}:${ADMIN_BUILD_ID:-}"; do
             tier="${pair%%:*}"; rest="${pair#*:}"; built="${rest%%:*}"; id="${rest#*:}"
             if [ "${built}" = "true" ] && [ -z "${id}" ]; then
               echo "::error::the ${tier} tier was rebuilt but its Cloud Build id was not captured"
@@ -771,11 +825,12 @@ jobs:
           # when it is rebuilt it is still scanned and signature-verified; the previous
           # vulnerability gate covered it, and dropping it would have silently ended
           # that coverage.
-          SERVICES="web:web:web:true:true admin:admin:none:true:false api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
+          SERVICES="web:web:web:true:true admin:admin:admin:true:true api:api:runtime:true:true worker:worker:runtime:true:true aiGateway:ai-gateway:runtime:true:true workspaceManager:workspace-manager:runtime:true:true previewProxy:preview-proxy:runtime:true:true screenshotter:screenshotter:runtime:true:false workspaceAgent:workspace-agent:wsagent:false:false"
 
           rebuilt_web="${{ steps.tiers.outputs.web }}"
           rebuilt_runtime="${{ steps.tiers.outputs.runtime }}"
           rebuilt_wsagent="${{ steps.tiers.outputs.wsagent }}"
+          rebuilt_admin="${{ steps.tiers.outputs.admin }}"
 
           echo '[]' > /tmp/services.json
 
@@ -786,6 +841,7 @@ jobs:
               web) rebuilt="${rebuilt_web}" ;;
               runtime) rebuilt="${rebuilt_runtime}" ;;
               wsagent) rebuilt="${rebuilt_wsagent}" ;;
+              admin) rebuilt="${rebuilt_admin}" ;;
               *) rebuilt=false ;;
             esac
 
@@ -798,6 +854,7 @@ jobs:
                 web) BUILD_ID="${WEB_BUILD_ID}" ;;
                 runtime) BUILD_ID="${RUNTIME_BUILD_ID}" ;;
                 wsagent) BUILD_ID="${WSAGENT_BUILD_ID}" ;;
+                admin) BUILD_ID="${ADMIN_BUILD_ID}" ;;
               esac
             else
               BUILD_ID=""
@@ -1556,7 +1613,7 @@ jobs:
       - name: Verify rollout
         run: |
           set -euo pipefail
-          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+          for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             if [ -z "${dep}" ]; then
@@ -1987,7 +2044,7 @@ jobs:
             echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
             exit 1
           fi
-          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+          for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             [ -n "${dep}" ] || continue
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
