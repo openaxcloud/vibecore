@@ -1152,6 +1152,7 @@ function AssistantMessageFooter({
           onClick={copyMarkdown}
         >
           <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.copy']}</span>
         </button>
       </WithTooltip>
       {onRewind && messageId ? (
@@ -1163,6 +1164,7 @@ function AssistantMessageFooter({
             onClick={() => onRewind(messageId)}
           >
             <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+            <span className="bolt-message-action-label">{copy['assistantMessage.footer.regenerate']}</span>
           </button>
         </WithTooltip>
       ) : null}
@@ -1175,6 +1177,7 @@ function AssistantMessageFooter({
             onClick={() => onFork(messageId)}
           >
             <span className="i-ph:pencil-simple" aria-hidden />
+            <span className="bolt-message-action-label">{copy['assistantMessage.footer.forkTooltip']}</span>
           </button>
         </WithTooltip>
       ) : null}
@@ -1189,6 +1192,7 @@ function AssistantMessageFooter({
           onClick={() => toggleFeedback('up')}
         >
           <span className="i-ph:thumbs-up" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.helpful']}</span>
         </button>
       </WithTooltip>
       <WithTooltip tooltip={copy['assistantMessage.footer.improve']}>
@@ -1201,6 +1205,7 @@ function AssistantMessageFooter({
           onClick={() => toggleFeedback('down')}
         >
           <span className="i-ph:thumbs-down" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.improve']}</span>
         </button>
       </WithTooltip>
     </div>

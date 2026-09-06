@@ -23619,11 +23619,14 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+    <div className="bolt-panel-rows overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
       {normalized.map(([title, detail], index) => (
-        <div key={`${title}-${index}`} className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0">
-          <div className="text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
-          <div className="mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
+        <div
+          key={`${title}-${index}`}
+          className="bolt-panel-row border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0"
+        >
+          <div className="bolt-panel-row-title text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
+          <div className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
         </div>
       ))}
     </div>

@@ -7877,9 +7877,21 @@ body :where(.lucide, svg[data-lucide]) {
  * qui ne la connaît pas — c'est la même raison qui a fait écrire le libellé de
  * la pastille « aller au dernier message ».
  */
-.bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action::after,
-.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit::after {
-  content: attr(aria-label);
+/*
+ * Le libellé est un VRAI élément (`.bolt-message-action-label`), pas un
+ * `::after` en `attr(aria-label)` : mesuré le 06/09 à 390 (Chromium, sonde
+ * probe-menu.mjs), ce pseudo-élément rendait `content: none` — la règle
+ * mobile qui éteint les infobulles `[data-vc-tooltip]::after` l'emportait, et
+ * le menu n'affichait que quatre icônes muettes (capture iPhone 12:18).
+ * Caché dans les pieds de message (icônes seules), montré dans le menu.
+ */
+.bolt-message-action-label {
+  display: none;
+}
+
+.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label {
+  display: inline;
+  min-width: 0;
   overflow: hidden;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -7912,6 +7924,19 @@ body :where(.lucide, svg[data-lucide]) {
   -webkit-touch-callout: default;
   -webkit-user-select: text;
   user-select: text;
+}
+
+/*
+ * Au doigt, l'appui long ouvre NOTRE menu (« Copier le message » y est) : la
+ * sélection native de Safari n'a plus à s'y superposer. Capture iPhone d'Avi,
+ * 06/09 12:18 : toute la page bleuie et la bulle « Copier · ⌘ · › » d'iOS
+ * par-dessus le menu. Le code reste sélectionnable (règle juste au-dessus).
+ */
+@media (hover: none) {
+  [data-menu-contextuel='true'] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 .bolt-agent-scroll-to-bottom {
@@ -23172,7 +23197,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     flex: 1 1 100%;
   }
 
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar button {
+  /* `:where(button)` et non `button` : panel-uniformization-lot7.spec.tsx interdit le gabarit nu `… toolbar button {` (run 1489 refusé). */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar :where(button) {
     width: auto;
     min-width: 0;
     height: auto;
@@ -23263,6 +23289,42 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     flex: 0 0 auto;
     padding: 0 14px;
     white-space: nowrap;
+  }
+
+  /*
+   * Plan de l'agent (capture iPhone 06/09 12:18) : le rôle en capitales
+   * (« INTERFACE UTILISATEUR ») prenait la moitié de la ligne et poussait la
+   * tâche dans une colonne de quatre mots. Sur téléphone la tâche passe
+   * dessous, alignée sous le rôle.
+   */
+  .bolt-responsive-ide-mobile .bolt-agent-plan li {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-agent-plan li > span:last-child {
+    flex: 1 1 100%;
+    padding-left: 22px;
+  }
+
+  /*
+   * Lignes « titre / détail » des panneaux (Sécurité : « Modérée / 0 active »,
+   * capture 12:19 — 120 px par ligne). Une ligne par paire sur téléphone, le
+   * détail à droite ; un détail long se replie dessous.
+   */
+  .bolt-responsive-ide-mobile .bolt-panel-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 2px 12px;
+    padding: 9px 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-panel-row-detail {
+    flex: 1 1 auto;
+    margin-top: 0;
+    text-align: right;
   }
 
   .bolt-responsive-ide-mobile .bolt-preview-splash-task small,

@@ -335,7 +335,7 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
 describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramètres, Éditeur', () => {
   it('barre d’outils d’un panneau : deux boutons par rangée, 44 px, jamais cinq boutons empilés', () => {
     const bouton = bloc(
-      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar button',
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar :where(button)',
     );
 
     expect(bouton).toMatch(/width:\s*auto/);
@@ -404,5 +404,45 @@ describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’acti
 
     expect(bouton).toMatch(/width:\s*auto/);
     expect(bouton).toMatch(/white-space:\s*nowrap/);
+  });
+});
+
+describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection, plan, Sécurité', () => {
+  it('le menu contextuel porte de vrais libellés — plus de `::after` que la règle des infobulles éteignait', () => {
+    expect(INDEX).not.toMatch(/bolt-message-context-menu \.bolt-assistant-message-action::after/);
+    expect(bloc('.bolt-message-action-label')).toMatch(/display:\s*none/);
+    expect(bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label')).toMatch(
+      /display:\s*inline/,
+    );
+
+    const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
+    const utilisateur = readFileSync(join(__dirname, '..', 'components', 'chat', 'UserMessage.tsx'), 'utf8');
+
+    expect(assistant.match(/className="bolt-message-action-label"/g)?.length).toBe(5);
+    expect(utilisateur.match(/className="bolt-message-action-label"/g)?.length).toBe(1);
+  });
+
+  it('au doigt, la bulle de message n’est plus sélectionnable — le code, si', () => {
+    const debut = INDEX.indexOf("@media (hover: none) {\n  [data-menu-contextuel='true'] {");
+
+    expect(debut).toBeGreaterThan(-1);
+    expect(INDEX.slice(debut, debut + 200)).toMatch(/user-select:\s*none/);
+    expect(bloc("[data-menu-contextuel='true'] :where(pre, code, .bolt-assistant-message-code)")).toMatch(
+      /user-select:\s*text/,
+    );
+  });
+
+  it('plan de l’agent : la tâche passe sous le rôle ; lignes de panneau sur une ligne', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li')).toMatch(/flex-wrap:\s*wrap/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li > span:last-child')).toMatch(/flex:\s*1 1 100%/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-panel-row')).toMatch(/justify-content:\s*space-between/);
+    expect(BASE_CHAT).toContain('className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary"');
+  });
+
+  it('« télécommande » ne traduit plus « remote » : dépôt distant', () => {
+    const catalogue = readFileSync(join(__dirname, '..', 'lib', 'i18n', 'catalogs', 'chat.ts'), 'utf8');
+
+    expect(catalogue).not.toContain('télécommande');
+    expect(catalogue).toContain("'Connecter un dépôt distant GitHub'");
   });
 });

@@ -59,6 +59,7 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
       }}
     >
       <span className="i-ph:pencil-simple text-sm" aria-hidden />
+      <span className="bolt-message-action-label">{copy['chatResiduals.user.editTooltip']}</span>
     </button>
   );
 }

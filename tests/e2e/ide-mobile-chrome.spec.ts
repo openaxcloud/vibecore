@@ -387,10 +387,12 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(chemin.first()).toBeVisible({ timeout: 60_000 });
 
-    const [m] = await mesurer(page, '.bolt-action-file-path');
+    // Le fil se rend en deux temps (une passe sur trois, `mesurer` rendait vide) : attendre le chemin PEINT.
+    await expect
+      .poll(async () => (await mesurer(page, '.bolt-action-file-path'))[0]?.text, { timeout: 30_000 })
+      .toBe(CHEMIN_PROFOND.slice(0, 40));
 
-    // `mesurer` ne garde que 40 caractères du texte.
-    expect(m.text).toBe(CHEMIN_PROFOND.slice(0, 40));
+    const [m] = await mesurer(page, '.bolt-action-file-path');
     expect(m.sw, `chemin tronqué : ${m.sw}px de texte pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
 
     // Replié sur plusieurs lignes, pas coupé : plus haut qu'une ligne de 11 px.
@@ -506,5 +508,59 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       `pastille à ${geometrie.bottom}px pour un socle à ${geometrie.navTop}px`,
     ).toBeLessThanOrEqual(geometrie.navTop);
     expect(geometrie.right).toBeLessThanOrEqual(geometrie.vw);
+  });
+
+  test('menu contextuel d’un message : chaque action a son libellé ; Sécurité : une paire par ligne', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(200_000);
+    await ouvrirIde(page, request, { fil: true });
+
+    // Capture 12:18 : quatre icônes muettes. L'appui long est un `contextmenu` pour le moteur.
+    const ligne = page.locator('.bolt-chat-message-row').nth(1);
+
+    await expect(ligne).toBeVisible({ timeout: 60_000 });
+
+    const boite = await ligne.boundingBox();
+
+    await ligne.dispatchEvent('contextmenu', {
+      clientX: Math.round((boite?.x ?? 0) + 60),
+      clientY: Math.round((boite?.y ?? 0) + 20),
+      bubbles: true,
+    });
+
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await expect(menu).toBeVisible({ timeout: 15_000 });
+
+    const libelles = await mesurer(page, '.bolt-message-context-menu .bolt-message-action-label');
+
+    expect(libelles.length).toBeGreaterThanOrEqual(3);
+
+    for (const m of libelles) {
+      expect(m.w, `libellé « ${m.text} » large de ${m.w}px : invisible`).toBeGreaterThan(40);
+    }
+
+    const menuBoite = await menu.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+
+      return { right: r.right, bottom: r.bottom, vw: innerWidth, vh: innerHeight };
+    });
+
+    expect(menuBoite.right).toBeLessThanOrEqual(menuBoite.vw);
+    expect(menuBoite.bottom).toBeLessThanOrEqual(menuBoite.vh);
+    await page.keyboard.press('Escape');
+
+    // Capture 12:19 : « Modérée / 0 active » sur 120 px par ligne.
+    await ouvrirOutil(page, 'security');
+
+    const lignes = page.locator('.bolt-panel-row');
+
+    await expect(lignes.first()).toBeVisible({ timeout: 30_000 });
+
+    for (const m of await mesurer(page, '.bolt-panel-row')) {
+      expect(m.h, `ligne « ${m.text} » haute de ${m.h}px`).toBeLessThanOrEqual(48);
+    }
   });
 });

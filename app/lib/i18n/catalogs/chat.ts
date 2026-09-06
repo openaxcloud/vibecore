@@ -1753,7 +1753,7 @@ export const chatFr = {
     'Configurez SAML ou OIDC pour les organisations qui nécessitent SSO.',
   'chat.copy.configureWorkflows_20afd690': 'Configurer les flux de travail',
   'chat.copy.conflicts_19401428': 'Conflits ·',
-  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter une télécommande GitHub',
+  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter un dépôt distant GitHub',
   'chat.copy.connectARealProviderBySaving_bb256530':
     'Connectez un vrai fournisseur en enregistrant sa chaîne de connexion en tant que secret de projet crypté. E-Code détecte les URL Postgres, MySQL, MongoDB et Redis à partir des secrets et les utilise pour la navigation dans les schémas, les sauvegardes et les requêtes en lecture seule.',
   'chat.copy.connectAServiceToSyncData_643c4e95':
@@ -1878,7 +1878,7 @@ export const chatFr = {
   'chat.copy.enabled_df174a3f': 'Activé',
   'chat.copy.enableDisableOrRemoveExtensionsWithout_fd2603b1':
     "Activez, désactivez ou supprimez des extensions sans quitter l'EDI.",
-  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsque la télécommande GitHub existe',
+  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsqu’un dépôt distant GitHub existe',
   'chat.copy.enableObjectStorageForThisProject_6caf063b': "Activer le stockage d'objets pour ce projet",
   'chat.copy.encryptedSecret_0cdff4dc': 'Secret crypté',
   'chat.copy.ensureBucket_59b7cad5': 'Vérifier le bucket',
@@ -2168,7 +2168,7 @@ export const chatFr = {
   'chat.copy.noProjectSecrets_f3f1ca38': 'Aucun secret de projet.',
   'chat.copy.noProtocolPathOrPortExample_d3c7f2f8': 'Aucun protocole, chemin ou port. Exemple : app.example.com.',
   'chat.copy.noRemoteConfiguredConnectOneIn_c5d82469':
-    "Aucune télécommande configurée : connectez-en d'abord une dans les paramètres du panneau Git.",
+    "Aucun dépôt distant configuré : connectez-en d'abord un dans les paramètres du panneau Git.",
   'chat.copy.noRunsYetTheFirstOne_ba1ed340':
     "Aucune course pour l'instant. Le premier apparaîtra ici après le déclenchement du planning.",
   'chat.copy.noRuntimeProcessesReported_f02fbd04': 'Aucun processus en cours pour l’instant.',
