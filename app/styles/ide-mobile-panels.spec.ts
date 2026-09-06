@@ -369,3 +369,40 @@ describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramèt
     expect(pastille).toMatch(/--vc-mobile-visual-viewport-bottom/);
   });
 });
+
+describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’action de l’agent', () => {
+  it('clavier levé : le composeur se colle au clavier, le socle disparaît, la pastille suit', () => {
+    expect(
+      bloc(
+        "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer",
+      ),
+    ).toMatch(/bottom:\s*0\s*!important/);
+    expect(bloc("html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav")).toMatch(/display:\s*none/);
+    expect(INDEX).toMatch(
+      /html\[data-vc-clavier='ouvert'\] \.bolt-responsive-ide-mobile\[data-mobile-panel='chat'\] \.bolt-agent-scroll-to-bottom,[\s\S]{0,300}bottom:\s*12px/,
+    );
+  });
+
+  it('l’attribut est posé par BaseChat depuis la mesure de la fenêtre visuelle, et retiré au démontage', () => {
+    expect(BASE_CHAT).toContain('import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from');
+    expect(BASE_CHAT).toContain('if (clavierProbablementOuvert(recouvrementBas)) {');
+    expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
+    expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
+  });
+
+  it('carte d’action de l’agent : une rangée, titre 13 px, sous-titre 11 px, bouton à droite', () => {
+    expect(bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card')).toMatch(
+      /grid-template-columns:\s*minmax\(0, 1fr\) auto/,
+    );
+    expect(
+      bloc(
+        ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card strong:not([class*='i-'])",
+      ),
+    ).toMatch(/font-size:\s*13px\s*!important/);
+
+    const bouton = bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card button');
+
+    expect(bouton).toMatch(/width:\s*auto/);
+    expect(bouton).toMatch(/white-space:\s*nowrap/);
+  });
+});

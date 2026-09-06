@@ -126,7 +126,7 @@ import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
-import { recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -3091,6 +3091,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           '--vc-mobile-visual-viewport-bottom',
           `${Math.round(recouvrementBas)}px`,
         );
+
+        /*
+         * Clavier levé : le socle est passé sous lui, le composeur ne doit plus
+         * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
+         * attribut — voir « CLAVIER LEVÉ » dans index.scss.
+         */
+        if (clavierProbablementOuvert(recouvrementBas)) {
+          document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+        } else {
+          document.documentElement.removeAttribute('data-vc-clavier');
+        }
       };
 
       updateVisualViewportHeight();
@@ -3104,6 +3115,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-height');
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-bottom');
+        document.documentElement.removeAttribute('data-vc-clavier');
       };
     }, [useMobileIde]);
 

@@ -23206,6 +23206,65 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     z-index: 30;
   }
 
+  /*
+   * CLAVIER LEVÉ — captures iPhone d'Avi, 06/09 11:04.
+   *
+   * Le socle est `fixed; bottom: 0` : quand le clavier se lève, il passe
+   * dessous. Le composeur, lui, restait posé à `socle + 10 px` au-dessus du
+   * clavier — 90 px de vide entre les deux. Et sur l'état de départ, le socle
+   * flottait au-dessus du clavier pendant que le composeur était hors de vue.
+   * `data-vc-clavier` est posé par BaseChat dès que le bas recouvert dépasse
+   * 150 px (clavierProbablementOuvert) : le socle disparaît, le composeur se
+   * colle au clavier, la pastille « descendre » suit. Non mesurable sur
+   * Chromium — la fenêtre visuelle n'y bouge pas ; preuve iPhone à prendre.
+   */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
+    bottom: 0 !important;
+  }
+
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,
+  html[data-vc-clavier='ouvert']
+    .bolt-responsive-ide-mobile[data-mobile-panel='chat']
+    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {
+    bottom: 12px;
+  }
+
+  html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav {
+    display: none;
+  }
+
+  /*
+   * Carte d'action de l'agent (« Ouvrir la webview · Aperçu de l'application ·
+   * Ouvrir → ») — captures 11:03 : trois lignes et un bouton pleine largeur de
+   * 44 px, 110 px pris sur le fil pendant que l'agent tourne, le plan coupé
+   * derrière. Une seule rangée sur téléphone : icône, titre 13 px, sous-titre
+   * 11 px, bouton à droite.
+   */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px 6px 10px;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card strong:not([class*='i-']) {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card small:not([class*='i-']) {
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-agent-action-card button {
+    width: auto;
+    min-width: 0;
+    flex: 0 0 auto;
+    padding: 0 14px;
+    white-space: nowrap;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-splash-task small,
   .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small {
     overflow: visible;
