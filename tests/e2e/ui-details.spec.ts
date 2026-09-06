@@ -1756,6 +1756,7 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
+
     // CHARTE-IDE-001 — l'accent d'action suit l'orange de marque.
     themeAction: '#f97316',
     themeOrange: '#f26207',
@@ -1910,6 +1911,108 @@ test('public platform hides the desktop app sidebar on mobile and tablet', async
   expect(desktopMetrics.sidebarWidth, 'desktop sidebar width').toBeGreaterThan(0);
   expect(desktopMetrics.sidebarHeight, 'desktop sidebar height').toBe(720);
   expect(desktopMetrics.contentLeft, 'desktop content offset').toBeGreaterThanOrEqual(desktopMetrics.sidebarWidth - 1);
+});
+
+/*
+ * Studio de l'agent, « Modifications de l'IA en attente » — capture iPhone
+ * d'Avi du 06/09 à 14:38 : cinq fichiers rognés sur 20 px chacun. Les cartes
+ * portent `overflow-x: auto` sur téléphone, ce qui ramène leur taille minimale
+ * automatique à zéro ; dans une grille bornée en hauteur, les rangées `auto`
+ * se serraient pour tenir dans la boîte. Le balisage est celui de
+ * `AgentPatchReviewQueue`, posé dans le contexte du Studio
+ * (`.bolt-workbench-mobile-service`), avec la feuille compilée.
+ */
+async function mountStudioPatchReviewDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>${stylesheet}</style>
+      </head>
+      <body>
+        <div class="bolt-project-ide-shell">
+          <main class="bolt-responsive-ide-mobile">
+            <section class="bolt-workbench-mobile-service" style="padding: 16px;">
+              <section class="bolt-project-agent-patch-review" data-testid="studio-patch-review">
+                <div class="bolt-project-agent-patch-review-head">
+                  <div>
+                    <strong>Examiner les modifications apportées à l'IA</strong>
+                    <span>5 modifications de l’IA à vérifier</span>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-bulk" data-testid="studio-patch-bulk">
+                    <button class="bolt-project-agent-patch-review-bulk-accept" type="button">Acceptez tout</button>
+                    <button class="bolt-project-agent-patch-review-bulk-reject" type="button">Rejeter tout</button>
+                  </div>
+                </div>
+                <div class="bolt-project-agent-patch-review-list" data-testid="studio-patch-list">
+                  ${[
+                    'src/styles/global.css',
+                    'src/components/Counter.tsx',
+                    'src/App.tsx',
+                    'src/components/ErrorBoundary.tsx',
+                    'src/main.tsx',
+                  ]
+                    .map(
+                      (chemin) => `
+                        <article class="bolt-project-agent-patch-card" data-testid="studio-patch-card">
+                          <div class="bolt-project-agent-patch-card-head">
+                            <div>
+                              <strong>${chemin}</strong>
+                              <span>1 modification sélectionnée</span>
+                            </div>
+                            <div class="bolt-project-agent-patch-actions">
+                              <button type="button">Accepter</button>
+                              <button type="button">Rejeter</button>
+                            </div>
+                          </div>
+                        </article>
+                      `,
+                    )
+                    .join('')}
+                </div>
+              </section>
+            </section>
+          </main>
+        </div>
+      </body>
+    </html>
+  `);
+}
+
+test('public platform keeps the Studio patch review readable on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mountStudioPatchReviewDocument(page);
+
+  const geometrie = await page.evaluate(() => {
+    const boite = (el: Element) => Math.round(el.getBoundingClientRect().height);
+    const liste = document.querySelector('[data-testid="studio-patch-list"]')!;
+    const revue = document.querySelector('[data-testid="studio-patch-review"]')!;
+    const boutons = [...document.querySelectorAll('[data-testid="studio-patch-bulk"] button')];
+
+    return {
+      cartes: [...document.querySelectorAll('[data-testid="studio-patch-card"]')].map((carte) => ({
+        h: boite(carte),
+        sh: carte.scrollHeight,
+        ch: carte.clientHeight,
+      })),
+      liste: { h: boite(liste), sh: liste.scrollHeight, ch: liste.clientHeight },
+      revue: { sh: revue.scrollHeight, ch: revue.clientHeight, overflow: getComputedStyle(revue).overflow },
+      boutonsSurUneLigne: new Set(boutons.map((b) => Math.round(b.getBoundingClientRect().y))).size === 1,
+    };
+  });
+
+  expect(geometrie.cartes).toHaveLength(5);
+
+  // Mesuré avant : 20 px par carte, chemins coupés.
+  for (const carte of geometrie.cartes) {
+    expect(carte.h, `carte de ${carte.h}px`).toBeGreaterThanOrEqual(40);
+    expect(carte.sh, 'carte rognée').toBeLessThanOrEqual(carte.ch + 1);
+  }
+
+  expect(geometrie.liste.sh, 'la liste ne doit pas cacher de carte').toBeLessThanOrEqual(geometrie.liste.ch + 1);
+  expect(geometrie.revue.sh, 'la file de révision ne doit pas être rognée').toBeLessThanOrEqual(geometrie.revue.ch + 1);
+  expect(geometrie.boutonsSurUneLigne, '« Acceptez tout / Rejeter tout » côte à côte').toBe(true);
 });
 
 test('public platform keeps mobile IDE chrome clear of the bottom navigation', async ({ page }) => {

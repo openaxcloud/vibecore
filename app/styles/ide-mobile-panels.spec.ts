@@ -558,3 +558,39 @@ describe('14. capture iPhone 06/09 14:10 : « Afficher la commande » après l�
     expect(jetons).toMatch(/font-size:\s*12px\s*!important/);
   });
 });
+
+describe('15. captures iPhone 06/09 14:38–14:40 : Studio de l’agent, Intégrations, Extensions', () => {
+  it('une icône masquée a pour fond sa couleur — plus de glyphe blanc sur gris clair', () => {
+    const icone = bloc(
+      ".bolt-project-integrations-grid article > div > span[class*='i-'],\n.bolt-project-integrations-list article > span[class*='i-'],\n.bolt-project-integration-config > div > span[class*='i-']",
+    );
+
+    expect(icone).toMatch(/background-color:\s*currentColor/);
+    expect(icone).toMatch(/mask-position:\s*center/);
+  });
+
+  it('les cartes de la file de révision valent leur contenu, et le Studio ne les rogne pas', () => {
+    const liste = bloc('.bolt-responsive-ide-mobile .bolt-project-agent-patch-review-list');
+
+    expect(liste).toMatch(/grid-auto-rows:\s*max-content/);
+
+    const studio = bloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review,\n  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review-list',
+    );
+
+    expect(studio).toMatch(/max-height:\s*none/);
+    expect(studio).toMatch(/overflow:\s*visible/);
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-agent-patch-review-bulk')).toMatch(
+      /repeat\(2, minmax\(0, 1fr\)\)/,
+    );
+  });
+
+  it('les pastilles de domaine des Extensions se replient au lieu de défiler coupées', () => {
+    const pastilles = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories',
+    );
+
+    expect(pastilles).toMatch(/flex-wrap:\s*wrap/);
+    expect(pastilles).not.toMatch(/overflow-x:\s*auto/);
+  });
+});

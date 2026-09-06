@@ -758,6 +758,53 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       expect(e.bh, 'cible tactile').toBeGreaterThanOrEqual(44);
     }
   });
+  test('Intégrations : icônes visibles ; Extensions : pastilles de domaine entières', async ({ page, request }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+
+    // Capture 14:40 : Trello, Asana, Figma en blanc sur gris — le fond de boîte paraissait à travers le masque.
+    await ouvrirOutil(page, 'integrations');
+
+    const icones = page.locator(".bolt-project-integrations-grid article > div > span[class*='i-']");
+
+    await expect(icones.first()).toBeVisible({ timeout: 30_000 });
+
+    const couleurs = await icones.evaluateAll((elements) =>
+      elements.slice(0, 6).map((el) => {
+        const cs = getComputedStyle(el);
+
+        return {
+          color: cs.color,
+          fond: cs.backgroundColor,
+          masque: cs.maskImage !== 'none' || cs.webkitMaskImage !== 'none',
+        };
+      }),
+    );
+
+    expect(couleurs.length).toBeGreaterThan(0);
+
+    for (const c of couleurs) {
+      expect(c.masque, 'l’icône est bien rendue par un masque').toBe(true);
+      expect(c.fond, `fond ${c.fond} pour une couleur ${c.color}`).toBe(c.color);
+    }
+
+    // Même capture : « web browsi » coupé au bord de la rangée des domaines.
+    await ouvrirOutil(page, 'extensions');
+
+    const pastilles = page.locator('.bolt-project-extension-categories');
+
+    await expect(pastilles).toBeVisible({ timeout: 30_000 });
+
+    const [rangee] = await mesurer(page, '.bolt-project-extension-categories');
+
+    expect(rangee.sw, `rangée de ${rangee.sw}px pour ${rangee.cw}px : une pastille est coupée`).toBeLessThanOrEqual(
+      rangee.cw + 1,
+    );
+
+    for (const m of await mesurer(page, '.bolt-project-extension-categories button')) {
+      expect(m.sw, `pastille « ${m.text} » tronquée`).toBeLessThanOrEqual(m.cw + 1);
+    }
+  });
 });
 
 /*

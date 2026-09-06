@@ -20452,6 +20452,30 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: 20px;
 }
 
+/*
+ * L'ICÔNE EST LE MASQUE : son fond est sa couleur.
+ *
+ * Les pictogrammes `i-ph:*` sont rendus par un masque SVG posé sur l'élément,
+ * et c'est le FOND de l'élément qui paraît à travers. Le fond de boîte
+ * ci-dessus (`--vc-ide-bg-panel`, blanc en clair) devenait donc la couleur
+ * du glyphe : Trello, Asana, Figma en blanc sur gris clair — capture iPhone
+ * d'Avi du 06/09 à 14:40, reproduite à l'identique sur Chromium (sonde
+ * probe-icons.mjs : `color` rgb(17 24 39), `background` rgb(255 255 255),
+ * masque posé). Quand la boîte porte elle-même le masque, son fond doit être
+ * `currentColor`, et le glyphe se centre dans la boîte.
+ */
+.bolt-project-integrations-grid article > div > span[class*='i-'],
+.bolt-project-integrations-list article > span[class*='i-'],
+.bolt-project-integration-config > div > span[class*='i-'] {
+  background-color: currentColor;
+  mask-size: 22px 22px;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-size: 22px 22px;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
 .bolt-project-integrations-grid article p,
 .bolt-project-integrations-list small,
 .bolt-project-integration-config small {
@@ -21693,6 +21717,28 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     max-height: min(24dvh, 230px);
     overflow-y: auto;
     overscroll-behavior: contain;
+
+    /*
+     * Les cartes portent `overflow-x: auto` (ci-dessus), ce qui ramène leur
+     * taille minimale automatique à ZÉRO : dans une grille bornée en hauteur,
+     * les rangées `auto` se serraient alors pour tenir dans la boîte au lieu
+     * de la faire défiler — cinq fichiers sur 20 px chacun, chemins coupés
+     * (capture iPhone d'Avi, Studio de l'agent, 06/09 14:38). Une rangée vaut
+     * son contenu ; c'est la liste qui défile.
+     */
+    grid-auto-rows: max-content;
+  }
+
+  /*
+   * Dans le Studio de l'agent, la file de révision vit dans une page qui
+   * défile : la borner à 38 dvh puis la rogner (`overflow: hidden`) ne sert
+   * qu'à cacher des fichiers. Ces plafonds restent utiles dans le panneau
+   * Agent, au-dessus du composeur.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-agent-patch-review-list {
+    max-height: none;
+    overflow: visible;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-head,
@@ -21703,6 +21749,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
     gap: 8px;
+  }
+
+  /* « Acceptez tout / Rejeter tout » côte à côte : deux libellés courts, 52 px rendus à la liste. */
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-review-bulk {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-patch-actions button,
@@ -22228,13 +22279,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     align-items: center;
   }
 
+  /*
+   * Les pastilles de domaine SE REPLIENT. Elles défilaient sur une ligne, et
+   * la dernière visible était coupée au bord (« web browsi », capture iPhone
+   * d'Avi du 06/09 à 14:40) : un libellé coupé se lit comme une casse, pas
+   * comme une invitation à faire défiler. Trois rangées de 40 px valent mieux
+   * qu'une pastille cachée.
+   */
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories {
     width: 100%;
     min-width: 0;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow: visible;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-extension-categories::-webkit-scrollbar {
