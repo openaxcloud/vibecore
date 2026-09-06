@@ -17,7 +17,18 @@ const messageParser = new EnhancedStreamingMessageParser({
       workbenchStore.addArtifact(data);
     },
     onArtifactClose: (data) => {
-      logger.trace('onArtifactClose');
+      /*
+       * Deux fermetures possibles, et on les DISTINGUE dans le journal : une
+       * balise `</boltArtifact>` reçue, ou le filet de fin de flux. Sans cette
+       * distinction, la fréquence réelle des flux tronqués reste introuvable —
+       * et c'est le chiffre qui décide si le filet est un garde-fou ou une
+       * réparation majeure.
+       */
+      if (data.fermetureDeSecours) {
+        logger.warn('Artefact fermé par le filet de fin de flux (balise </boltArtifact> absente)', data.artifactId);
+      } else {
+        logger.trace('onArtifactClose');
+      }
 
       workbenchStore.updateArtifact(data, { closed: true });
     },
@@ -101,6 +112,28 @@ export function useMessageParser() {
            * code was using the global reset).
            */
           messageParser.resetMessage(message.id);
+        }
+
+        /*
+         * FILET DE FIN DE FLUX. `onArtifactClose` n'est émis que sur une balise
+         * `</boltArtifact>` trouvée — c'est l'UNIQUE site du dépôt qui pose
+         * `closed: true`, et il n'a aucun repli. Un flux tronqué par une limite
+         * de jetons, une erreur de fournisseur ou un abandon laisse donc
+         * l'artefact ouvert pour toujours, et TOUT ce qui pend à sa fermeture
+         * ne s'exécute jamais — à commencer par la persistance des fichiers
+         * vers le stockage durable : du code produit, affiché, et perdu.
+         *
+         * On ferme dès que ce message ne coule plus. `isLoading` retombe à faux
+         * aussi bien sur une fin normale que sur une erreur ou un abandon —
+         * c'est précisément le cas tronqué qu'on veut couvrir, et il ne passe
+         * pas par une fin propre.
+         *
+         * Idempotent : `fermerArtefactsOuverts` ne rend `true` que s'il restait
+         * réellement un artefact ouvert. Un message déjà clos par sa balise ne
+         * déclenche rien.
+         */
+        if (message.role === 'assistant' && !isLoading) {
+          messageParser.fermerArtefactsOuverts(message.id);
         }
 
         setParsedMessages((prevParsed) => ({
