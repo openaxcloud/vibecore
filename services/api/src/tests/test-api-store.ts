@@ -537,6 +537,7 @@ export class TestApiStore implements ApiStore {
   }
 
   private loginLockouts = new Map<string, LoginLockoutState>();
+
   /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
   loginLockoutShouldThrow = false;
 
@@ -1675,9 +1676,45 @@ export class TestApiStore implements ApiStore {
     ).length;
   }
 
-  async countDeployments(organizationId: string) {
+  /*
+   * FIDÈLE au vrai magasin sur ses DEUX filtres, et ce n'était le cas sur
+   * aucun des deux.
+   *
+   * TypeScript ne signale rien quand un double déclare MOINS de paramètres que
+   * son interface : une méthode à un paramètre reste assignable à une signature
+   * à deux. Le `periodStart` que `app.ts` transmet était donc silencieusement
+   * jeté, et ce double rendait toujours un total À VIE.
+   *
+   * Conséquence : tout test du quota de déploiements écrit contre ce double
+   * était VERT quel que soit le comportement de production. Retirer
+   * `periodStart` du site d'appel — le défaut exact que le commentaire du vrai
+   * magasin décrit comme ayant « verrouillé tous les déploiements » — n'aurait
+   * fait rougir aucun test.
+   *
+   * Les deux filtres du vrai magasin, tous deux absents ici :
+   *   - `status: { notIn: ['FAILED', 'CANCELED'] }` — une construction ratée ne
+   *     consomme pas de quota, elle n'a produit aucun déploiement vivant ;
+   *   - `since` — borne le compte à la période d'usage courante ; sans lui,
+   *     c'est un total monotone à vie.
+   */
+  async countDeployments(organizationId: string, since?: Date) {
     const projectIds = this.#orgProjectIds(organizationId);
-    return [...this.deployments.values()].filter((deployment) => projectIds.has(deployment.projectId)).length;
+
+    return [...this.deployments.values()].filter((deployment) => {
+      if (!projectIds.has(deployment.projectId)) {
+        return false;
+      }
+
+      if (deployment.status === 'FAILED' || deployment.status === 'CANCELED') {
+        return false;
+      }
+
+      if (since && new Date((deployment as { createdAt?: string }).createdAt ?? 0) < since) {
+        return false;
+      }
+
+      return true;
+    }).length;
   }
 
   async countPublishedApps(organizationId: string, options: { excludeProjectId?: string } = {}) {
@@ -2125,6 +2162,7 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+
       // P104: see store.ts — omitting this fails OPEN on the static-serve gate.
       metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
@@ -2296,12 +2334,16 @@ export class TestApiStore implements ApiStore {
   async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
     const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
     this.projectCheckpoints.set(row.id, row);
+
     return { id: row.id, state: row.state };
   }
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
     const row = this.projectCheckpoints.get(idv);
-    if (row) Object.assign(row, patch);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
   }
 
   /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
