@@ -12,12 +12,35 @@ on:
     branches: [main, stable, product/saas-platform-production]
 
 concurrency:
+  # GROUPE PAR COMMIT SUR `main`, par branche ailleurs.
+  #
+  # `cancel-in-progress: false` protège le run EN COURS, mais GitHub annule les
+  # runs EN ATTENTE d'un même groupe dès qu'un plus récent arrive. Avec un groupe
+  # commun à toutes les poussées sur `main`, une cadence soutenue évinçait les
+  # contrôles avant qu'ils ne démarrent : mesuré le 2026-09-06, le CI de
+  # b987b79e98 a été créé à 11:27 et annulé à 11:38 SANS AVOIR LANCÉ UN SEUL JOB.
+  #
+  # La porte de livraison lit un run annulé comme « non vert » et refuse le
+  # déploiement — trois déploiements refusés dans la journée sur des contrôles
+  # qui n'avaient pas échoué, seulement été évincés.
+  #
+  # Un groupe par SHA sur `main` supprime la file, donc l'éviction : chaque commit
+  # va au bout de ses contrôles et la porte peut trouver un SHA vert.
+  #
+  # CE QUE ÇA NE CHANGE PAS : sur les branches, le groupe reste par `ref` et
+  # `cancel-in-progress` reste vrai — une nouvelle poussée annule toujours la
+  # précédente, comme avant.
+  #
+  # PAS DE RISQUE DE CONTENTION : `runs-on: ubuntu-latest` donne une VM DÉDIÉE par
+  # job. Deux runs parallèles ne partagent aucun CPU. La seule contrainte commune
+  # est le plafond de jobs simultanés du compte, qui met en file sans évincer —
+  # les groupes étant distincts.
   # Deliberately NOT cancel-in-progress on main. Cancelling an E2E run makes it
   # `cancelled`, which the deploy gate reads as "not green" — so a rapid second
   # push would kill the first commit's E2E and block its (already queued) deploy
   # on a result that was never allowed to finish. On PR branches, cancelling is
   # still the right trade: nothing deploys from there.
-  group: production-e2e-${{ github.ref }}
+  group: production-e2e-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
