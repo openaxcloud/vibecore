@@ -7815,6 +7815,15 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-message-context-menu {
   position: fixed;
   z-index: 12041;
+
+  /*
+   * `max-content` et non la largeur « au plus juste » d'un élément fixé : celle-ci
+   * dépend de `left` (l'espace qui reste à droite du point d'ancrage), si bien
+   * qu'un menu ramené vers la gauche s'élargissait d'autant et retouchait le
+   * bord — mesuré le 06/09 : bord droit à 390 px sur 390. Une largeur qui ne
+   * dépend que du contenu se laisse placer.
+   */
+  width: max-content;
   min-width: 232px;
   max-width: calc(100vw - 24px);
 
@@ -7861,11 +7870,12 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit {
   display: flex;
   width: 100%;
+  height: auto;
   min-height: 44px;
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
-  padding: 0 12px;
+  padding: 8px 12px;
   border-radius: 10px;
   font-size: var(--vc-composer-text, 15px);
   text-align: start;
@@ -7889,13 +7899,19 @@ body :where(.lucide, svg[data-lucide]) {
   display: none;
 }
 
+/*
+ * Le libellé SE REPLIE, il ne se coupe pas. « Modifier le prompt et créer une
+ * branche de conversation » mesure 414 px ; le menu, 366 px au plus sur un
+ * iPhone de 390. Une ellipse cachait la fin de la phrase (capture 06/09 13:35) ;
+ * une deuxième ligne la garde entière, la rangée grandit avec elle.
+ */
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label {
   display: inline;
   min-width: 0;
-  overflow: hidden;
   font-weight: 500;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action:hover,

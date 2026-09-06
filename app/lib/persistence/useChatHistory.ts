@@ -447,6 +447,30 @@ ${value.content}
           const finalChatId = chatId.get() ?? `project:${projectId}`;
           chatId.set(finalChatId);
 
+          /*
+           * VIDER AUSSI LA DEUXIÈME BANQUE.
+           *
+           * La restauration lit la mémoire de projet, puis IndexedDB quand
+           * elle est vide. Un fil effacé n'était vidé QUE dans la mémoire :
+           * au rechargement, IndexedDB rendait les quatre messages et
+           * l'ancien identifiant de conversation — mesuré le 06/09 (sonde
+           * probe-clear.mjs) : « Effacer l'historique » tenait jusqu'au
+           * rechargement, puis tout revenait.
+           */
+          if (db) {
+            await setMessages(
+              db,
+              finalChatId,
+              [],
+              urlId,
+              description.get() ?? copy['chatHistory.fallback.projectAssistant'],
+              undefined,
+              chatMetadata.get(),
+            ).catch((error) => {
+              logSafeChatHistoryError(safeError('chatHistory.error.persistProjectMemory', error));
+            });
+          }
+
           await saveProjectIdeMemory(projectId, {
             chat: {
               id: finalChatId,

@@ -28,6 +28,7 @@ const mocks = vi.hoisted(() => {
     completerFilSiVide: vi.fn(),
     getProjectIdeMemory: vi.fn(),
     saveProjectIdeMemory: vi.fn(),
+    setMessages: vi.fn(async () => undefined),
     openDatabase: vi.fn(async () => ({ name: 'fil-serveur-spec-db' })),
     noop: vi.fn(),
   };
@@ -53,7 +54,7 @@ vi.mock('./db', () => ({
   getMessages: vi.fn(async () => undefined),
   getNextId: vi.fn(async () => 'chat-next'),
   getUrlId: vi.fn(async () => 'chat-url'),
-  setMessages: vi.fn(async () => undefined),
+  setMessages: (...a: unknown[]) => mocks.setMessages(...a),
   duplicateChat: vi.fn(),
   createChatFromMessages: vi.fn(),
   getSnapshot: vi.fn(async () => undefined),
@@ -91,6 +92,7 @@ describe('la restauration d’un projet consulte la banque serveur', () => {
     mocks.completerFilSiVide.mockReset();
     mocks.getProjectIdeMemory.mockReset();
     mocks.saveProjectIdeMemory.mockReset().mockResolvedValue(undefined);
+    mocks.setMessages.mockReset().mockResolvedValue(undefined);
     mocks.completerFilSiVide.mockResolvedValue(undefined);
     mocks.getProjectIdeMemory.mockResolvedValue({
       chat: undefined,
@@ -146,5 +148,30 @@ describe('la restauration d’un projet consulte la banque serveur', () => {
      * écraserait un fil frais par celui du serveur.
      */
     expect(mocks.completerFilSiVide.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it('un fil effacé est vidé dans IndexedDB aussi, pas seulement dans la mémoire de projet', async () => {
+    /*
+     * Mesuré le 06/09 : « Effacer l'historique » ne vidait que la mémoire de
+     * projet. Au rechargement, la restauration — mémoire vide — retombait sur
+     * IndexedDB, qui rendait les quatre messages et l'ANCIEN identifiant de
+     * conversation. Le fil « effacé » revenait, avec sa conversation.
+     */
+    const { result } = renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    mocks.setMessages.mockClear();
+
+    await result.current.storeMessageHistory([]);
+
+    const ecritureVide = mocks.setMessages.mock.calls.find(
+      (appel) => appel[1] === 'project:projet-sonde' && Array.isArray(appel[2]) && appel[2].length === 0,
+    );
+
+    expect(ecritureVide, 'IndexedDB doit recevoir le fil vide sous l’identifiant du projet').toBeTruthy();
+    expect(mocks.saveProjectIdeMemory).toHaveBeenCalledWith(
+      'projet-sonde',
+      expect.objectContaining({ chat: expect.objectContaining({ messages: [], clearMessages: true }) }),
+    );
   });
 });

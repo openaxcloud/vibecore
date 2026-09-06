@@ -26,7 +26,6 @@ import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote
 import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequiredBanner';
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
-import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
 import {
   formatAssistantCost,
@@ -1143,71 +1142,63 @@ function AssistantMessageFooter({
 
   return (
     <div className="bolt-assistant-message-footer" role="group" aria-label={copy['assistantMessage.footer.group']}>
-      <WithTooltip tooltip={copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.copy']}
+        className="bolt-assistant-message-action"
+        data-copied={copied ? 'true' : 'false'}
+        onClick={copyMarkdown}
+      >
+        <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+        <span className="bolt-message-action-label">
+          {copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}
+        </span>
+      </button>
+      {onRewind && messageId ? (
         <button
           type="button"
-          aria-label={copy['assistantMessage.footer.copy']}
+          aria-label={copy['assistantMessage.footer.regenerate']}
           className="bolt-assistant-message-action"
-          data-copied={copied ? 'true' : 'false'}
-          onClick={copyMarkdown}
+          onClick={() => onRewind(messageId)}
         >
-          <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
-          <span className="bolt-message-action-label">{copy['assistantMessage.footer.copy']}</span>
+          <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.regenerate']}</span>
         </button>
-      </WithTooltip>
-      {onRewind && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.regenerate']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.regenerate']}
-            className="bolt-assistant-message-action"
-            onClick={() => onRewind(messageId)}
-          >
-            <span className="i-ph:arrow-counter-clockwise" aria-hidden />
-            <span className="bolt-message-action-label">{copy['assistantMessage.footer.regenerate']}</span>
-          </button>
-        </WithTooltip>
       ) : null}
       {onFork && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.forkTooltip']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.forkAria']}
-            className="bolt-assistant-message-action"
-            onClick={() => onFork(messageId)}
-          >
-            <span className="i-ph:pencil-simple" aria-hidden />
-            <span className="bolt-message-action-label">{copy['assistantMessage.footer.forkTooltip']}</span>
-          </button>
-        </WithTooltip>
+        <button
+          type="button"
+          aria-label={copy['assistantMessage.footer.forkAria']}
+          className="bolt-assistant-message-action"
+          onClick={() => onFork(messageId)}
+        >
+          <span className="i-ph:pencil-simple" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.forkTooltip']}</span>
+        </button>
       ) : null}
       <span className="bolt-assistant-message-action-divider" aria-hidden />
-      <WithTooltip tooltip={copy['assistantMessage.footer.helpful']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.helpfulAria']}
-          aria-pressed={feedback === 'up'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'up' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('up')}
-        >
-          <span className="i-ph:thumbs-up" aria-hidden />
-          <span className="bolt-message-action-label">{copy['assistantMessage.footer.helpful']}</span>
-        </button>
-      </WithTooltip>
-      <WithTooltip tooltip={copy['assistantMessage.footer.improve']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.improveAria']}
-          aria-pressed={feedback === 'down'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'down' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('down')}
-        >
-          <span className="i-ph:thumbs-down" aria-hidden />
-          <span className="bolt-message-action-label">{copy['assistantMessage.footer.improve']}</span>
-        </button>
-      </WithTooltip>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.helpfulAria']}
+        aria-pressed={feedback === 'up'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'up' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('up')}
+      >
+        <span className="i-ph:thumbs-up" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.helpful']}</span>
+      </button>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.improveAria']}
+        aria-pressed={feedback === 'down'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'down' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('down')}
+      >
+        <span className="i-ph:thumbs-down" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.improve']}</span>
+      </button>
     </div>
   );
 }

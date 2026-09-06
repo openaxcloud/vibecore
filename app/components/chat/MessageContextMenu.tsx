@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -13,6 +14,7 @@ import {
   fautIlArmerLAppuiLong,
   leDeplacementAnnuleLAppui,
   placerLeMenu,
+  ramenerDansLEcran,
   type AppuiEnCours,
 } from './message-context-menu';
 
@@ -254,6 +256,34 @@ export function MenuContextuel({
 }) {
   const panneau = useRef<HTMLDivElement | null>(null);
   const focusAvant = useRef<HTMLElement | null>(null);
+  const [positionReelle, setPositionReelle] = useState<{ x: number; y: number } | null>(null);
+
+  /*
+   * LA TAILLE RÉELLE, MESURÉE APRÈS LE RENDU.
+   *
+   * `placerLeMenu` ne connaît qu'une estimation. Depuis que chaque entrée porte
+   * son libellé, le menu s'élargit jusqu'à sa `max-width` — 366 px sur un
+   * iPhone de 390 — et l'estimation de 232 px le laissait sortir de l'écran
+   * (capture du 06/09 à 13:35 : « Régénérer à partir de ce promp… », coupé au
+   * bord droit). On mesure donc le panneau une fois rendu, avant la peinture,
+   * et on le ramène dans l'écran s'il en sort.
+   */
+  useLayoutEffect(() => {
+    if (!ouvert || !panneau.current) {
+      setPositionReelle(null);
+      return;
+    }
+
+    const boite = panneau.current.getBoundingClientRect();
+
+    const corrige = ramenerDansLEcran(
+      position,
+      { largeur: boite.width, hauteur: boite.height },
+      { largeur: window.innerWidth, hauteur: window.innerHeight },
+    );
+
+    setPositionReelle(corrige.x === position.x && corrige.y === position.y ? null : corrige);
+  }, [ouvert, position]);
 
   /*
    * LE FOCUS ENTRE DANS LE MENU, ET IL EN REVIENT.
@@ -307,7 +337,7 @@ export function MenuContextuel({
         role="menu"
         aria-label={etiquette}
         tabIndex={-1}
-        style={{ left: `${position.x}px`, top: `${position.y}px` }}
+        style={{ left: `${(positionReelle ?? position).x}px`, top: `${(positionReelle ?? position).y}px` }}
       >
         {children}
       </div>

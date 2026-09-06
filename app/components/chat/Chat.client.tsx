@@ -447,6 +447,19 @@ export const ChatImpl = memo(
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
 
+    /*
+     * GÉNÉRATION DU FIL — incrémentée à chaque « Effacer l'historique ».
+     *
+     * La synchronisation de la transcription attend `ensureProjectAiConversation`.
+     * Si le fil est effacé PENDANT cette attente, l'identifiant rendu est celui
+     * de la conversation NEUVE — et l'ancien fil s'y écrivait. Mesuré le 06/09
+     * (sonde probe-clear.mjs, effacement juste après l'affichage) : quatre
+     * messages `PUT` dans la conversation neuve, puis quatre messages à l'écran
+     * au rechargement. Un instantané pris sous une génération antérieure ne se
+     * synchronise plus.
+     */
+    const generationDuFilRef = useRef(0);
+
     const backendAiConversationIdRef = useRef<string | undefined>(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
     );
@@ -520,7 +533,7 @@ export const ChatImpl = memo(
     }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
-      async (nextMessages: Message[]) => {
+      async (nextMessages: Message[], generation = generationDuFilRef.current) => {
         if (!projectIdeMode || !projectId || nextMessages.length === 0) {
           return;
         }
@@ -534,7 +547,7 @@ export const ChatImpl = memo(
         try {
           const conversationId = await ensureProjectAiConversation();
 
-          if (!conversationId) {
+          if (!conversationId || generation !== generationDuFilRef.current) {
             return;
           }
 
@@ -574,9 +587,10 @@ export const ChatImpl = memo(
         const drainPendingSaves = async () => {
           while (pendingPersistRef.current) {
             const snapshot = pendingPersistRef.current;
+            const generation = generationDuFilRef.current;
             pendingPersistRef.current = null;
             await storeMessageHistory(snapshot);
-            void syncProjectAiTranscript(snapshot);
+            void syncProjectAiTranscript(snapshot, generation);
           }
         };
 
@@ -1036,17 +1050,21 @@ export const ChatImpl = memo(
      * la transcription n'est pas encore là. C'est le défaut que ce correctif
      * répare, reproduit dans le correctif lui-même.
      */
+    const transcriptionAdoptee = useRef<Message[] | null>(null);
+
     useEffect(() => {
       if (
         !fautIlAdopterLaTranscriptionRestauree({
           modeProjet: projectIdeMode,
           messagesRestaures: initialMessages.length,
           messagesAffiches: messages.length,
+          dejaAdoptee: transcriptionAdoptee.current === initialMessages,
         })
       ) {
         return;
       }
 
+      transcriptionAdoptee.current = initialMessages;
       setMessages(initialMessages);
       latestMessagesRef.current = initialMessages;
       setChatStarted(true);
@@ -2205,7 +2223,14 @@ export const ChatImpl = memo(
               .catch((error) => console.error('Failed to archive project conversation', error));
           }
 
+          /*
+           * La transcription restaurée ne doit pas revenir : l'effet d'adoption
+           * la réinjectait dans le fil vidé (voir `fautIlAdopterLaTranscriptionRestauree`).
+           */
+          transcriptionAdoptee.current = initialMessages;
+          generationDuFilRef.current += 1;
           setMessages([]);
+          latestMessagesRef.current = [];
           backendAiConversationIdRef.current = undefined;
 
           if (projectIdeMode && projectId) {
@@ -2221,13 +2246,42 @@ export const ChatImpl = memo(
                 },
               });
             }
+
+            /*
+             * OUVRIR UNE CONVERSATION NEUVE, tout de suite.
+             *
+             * Créée à la demande au premier envoi, la conversation « suivante »
+             * n'existe pas encore au rechargement : le repli serveur
+             * (`completerFilSiVide`, `?limit=1`) retrouve alors la DERNIÈRE
+             * conversation — celle qu'on vient d'effacer — et le fil revient.
+             * Avi, 06/09 : « quand j'efface l'historique ça ouvre pas une
+             * nouvelle conversation ». La créer ici fait d'elle la plus
+             * récente ; l'ancienne reste dans l'historique des branches.
+             */
+            pendingPersistRef.current = null;
+
+            /*
+             * Le fil vide est écrit APRÈS la conversation neuve : il porte
+             * l'identifiant courant, et c'est celui-là qui doit être le neuf
+             * — dans la mémoire de projet comme dans IndexedDB.
+             */
+            ensureProjectAiConversation()
+              .catch((error) => {
+                logStore.logError('Failed to open a fresh project AI conversation', error);
+              })
+              .then(() => persistMessageHistory([]))
+              .catch((error) => {
+                logger.error('Failed to reset chat history', error);
+                toast.error(copy['chatClient.history.resetFailed']);
+              });
+          } else {
+            pendingPersistRef.current = null;
+            persistMessageHistory([]).catch((error) => {
+              logger.error('Failed to reset chat history', error);
+              toast.error(copy['chatClient.history.resetFailed']);
+            });
           }
 
-          pendingPersistRef.current = null;
-          persistMessageHistory([]).catch((error) => {
-            logger.error('Failed to reset chat history', error);
-            toast.error(copy['chatClient.history.resetFailed']);
-          });
           setInput('');
           setData(undefined);
         }}

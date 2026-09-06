@@ -80,3 +80,27 @@ export function placerLeMenu(
 
   return { x: Math.round(x), y: Math.round(y) };
 }
+
+/**
+ * Ramène un menu DÉJÀ RENDU dans l'écran, à partir de sa taille réelle.
+ *
+ * `placerLeMenu` travaille sur une estimation (232 px), la seule connue avant
+ * le rendu. Depuis que chaque entrée porte son libellé, le menu s'élargit
+ * jusqu'à sa `max-width` — 366 px sur un iPhone de 390. Capture d'Avi du
+ * 06/09 à 13:35 : posé à 165 px du bord gauche pour une largeur de 366, il
+ * sortait de l'écran et rognait « Régénérer à partir de ce promp… ».
+ *
+ * Ici on ne retourne rien : la position est déjà du bon côté du point de
+ * contact. On glisse seulement, en gardant la marge de chaque côté.
+ */
+export function ramenerDansLEcran(
+  position: { x: number; y: number },
+  taille: { largeur: number; hauteur: number },
+  ecran: { largeur: number; hauteur: number },
+  marge = 12,
+): { x: number; y: number } {
+  const x = Math.max(marge, Math.min(position.x, ecran.largeur - taille.largeur - marge));
+  const y = Math.max(marge, Math.min(position.y, ecran.hauteur - taille.hauteur - marge));
+
+  return { x: Math.round(x), y: Math.round(y) };
+}

@@ -411,9 +411,26 @@ describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection,
   it('le menu contextuel porte de vrais libellés — plus de `::after` que la règle des infobulles éteignait', () => {
     expect(INDEX).not.toMatch(/bolt-message-context-menu \.bolt-assistant-message-action::after/);
     expect(bloc('.bolt-message-action-label')).toMatch(/display:\s*none/);
-    expect(bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label')).toMatch(
-      /display:\s*inline/,
-    );
+
+    const libelleDuMenu = bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label');
+
+    expect(libelleDuMenu).toMatch(/display:\s*inline/);
+
+    /*
+     * Capture 06/09 13:35 : « Modifier le prompt et créer une branche de
+     * conversation » fait 414 px pour un menu de 366 px au plus. Il se replie
+     * sur deux lignes ; une ellipse en cachait la fin.
+     */
+    expect(libelleDuMenu).toMatch(/white-space:\s*normal/);
+    expect(
+      bloc('.bolt-message-context-menu'),
+      'la largeur du menu ne doit pas dépendre de `left` — sinon il retouche le bord après recalage',
+    ).toMatch(/width:\s*max-content/);
+    expect(libelleDuMenu).not.toMatch(/text-overflow/);
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit'),
+      'la rangée doit pouvoir grandir avec un libellé sur deux lignes',
+    ).toMatch(/height:\s*auto/);
 
     const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
     const utilisateur = readFileSync(join(__dirname, '..', 'components', 'chat', 'UserMessage.tsx'), 'utf8');

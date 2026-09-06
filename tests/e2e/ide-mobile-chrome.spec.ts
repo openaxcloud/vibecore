@@ -114,6 +114,37 @@ async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil:
     .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
+
+  return { token, projectId };
+}
+
+/*
+ * Un VRAI appui long, par le moteur.
+ *
+ * `dispatchEvent('contextmenu', { clientX })` ne porte pas de coordonnées dans
+ * Playwright : le menu recevait `NaN`, son style en ligne était refusé, et il
+ * restait posé dans le flux à 10 px du bord — mesuré le 06/09. Un vert pris là
+ * ne disait rien du menu réel. Les événements tactiles du protocole, eux,
+ * passent par la pile pointeur du moteur, comme le doigt d'Avi.
+ */
+async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'gauche' | 'droite') {
+  await cible.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(400);
+
+  const boite = await cible.boundingBox();
+
+  expect(boite, 'la cible de l’appui long doit être mesurable').toBeTruthy();
+
+  const x = Math.round(ou === 'droite' ? boite!.x + boite!.width - 40 : boite!.x + 60);
+  const y = Math.round(Math.min(Math.max(boite!.y + boite!.height / 2, 120), 700));
+  const cdp = await page.context().newCDPSession(page);
+
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+  await page.waitForTimeout(900);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await cdp.detach();
+
+  return { x, y };
 }
 
 /* Le vrai chemin : la feuille « + », puis l'outil. */
@@ -528,13 +559,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(ligne).toBeVisible({ timeout: 60_000 });
 
-    const boite = await ligne.boundingBox();
-
-    await ligne.dispatchEvent('contextmenu', {
-      clientX: Math.round((boite?.x ?? 0) + 60),
-      clientY: Math.round((boite?.y ?? 0) + 20),
-      bubbles: true,
-    });
+    await appuiLong(page, ligne, 'gauche');
 
     const menu = page.locator('.bolt-message-context-menu');
 
@@ -631,5 +656,122 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.studio.display).toBe('block');
     expect(geometrie.studio.h, `studio haut de ${geometrie.studio.h}px`).toBeGreaterThan(250);
     expect(geometrie.resultats.h, `résultats hauts de ${geometrie.resultats.h}px`).toBeGreaterThanOrEqual(120);
+  });
+});
+
+/*
+ * EN FRANÇAIS, comme Avi.
+ *
+ * Le bloc précédent tourne dans la langue par défaut du navigateur, l'anglais,
+ * et c'est ainsi qu'un menu de 300 px passait pour tenir dans l'écran : les
+ * libellés français sont plus longs (« Modifier le prompt et créer une branche
+ * de conversation ») et poussent le menu à sa largeur maximale, 366 px sur 390.
+ * Un vert pris dans la mauvaise langue ne prouvait rien pour la capture.
+ */
+test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
+  test.use({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+    deviceScaleFactor: 2,
+    locale: 'fr-FR',
+  });
+
+  test('appui long près du bord droit : le menu et ses libellés français restent dans l’écran, sans infobulle', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true });
+
+    const ligne = page.locator('.bolt-chat-message-row').nth(1);
+
+    await expect(ligne).toBeVisible({ timeout: 60_000 });
+
+    // Capture 13:35 : le doigt à droite de la bulle, le menu posé à 165 px et coupé.
+    await appuiLong(page, ligne, 'droite');
+
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await expect(menu).toBeVisible({ timeout: 15_000 });
+    await expect(menu.getByRole('button', { name: /Régénérer/ })).toBeVisible();
+
+    const geometrie = await menu.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+
+      return { left: r.left, right: r.right, width: r.width, vw: innerWidth };
+    });
+
+    expect(geometrie.width, 'le menu français doit être plus large que l’estimation de 232 px').toBeGreaterThan(232);
+    expect(geometrie.left).toBeGreaterThanOrEqual(12);
+    expect(geometrie.right, `bord droit à ${geometrie.right}px pour ${geometrie.vw}px d’écran`).toBeLessThanOrEqual(
+      geometrie.vw - 12,
+    );
+
+    // Chaque libellé du menu est entier — replié sur deux lignes s'il le faut, jamais coupé ni rogné.
+    for (const m of await mesurer(page, '.bolt-message-context-menu .bolt-message-action-label')) {
+      expect(m.sw, `libellé « ${m.text} » tronqué : ${m.sw}px pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
+      expect(m.sh, `libellé « ${m.text} » rogné en hauteur : ${m.sh}px pour ${m.ch}px`).toBeLessThanOrEqual(m.ch + 1);
+    }
+
+    for (const m of await mesurer(page, '.bolt-message-context-menu button')) {
+      expect(m.sh, `entrée « ${m.text} » rognée : ${m.sh}px de contenu pour ${m.ch}px`).toBeLessThanOrEqual(m.ch + 1);
+      expect(m.h, `entrée « ${m.text} » haute de ${m.h}px`).toBeGreaterThanOrEqual(44);
+    }
+
+    // Même capture : une infobulle « Copier le message » flottait au-dessus du menu.
+    await page.waitForTimeout(400);
+    await expect(page.locator('[role="tooltip"]')).toHaveCount(0);
+  });
+
+  test('« Effacer l’historique » ouvre une conversation neuve, et elle le reste au rechargement', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: true });
+    const lignes = page.locator('.bolt-chat-message-row');
+
+    await expect(lignes).toHaveCount(2, { timeout: 60_000 });
+
+    const etatAvant = await request.get(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const conversationAvant = (await etatAvant.json()).ideState?.state?.chat?.metadata?.aiConversationId as
+      | string
+      | undefined;
+
+    expect(conversationAvant, 'le projet part d’une conversation connue').toBeTruthy();
+
+    // Le vrai chemin d'Avi : le menu de l'Agent, « Nouvelle discussion », puis la confirmation.
+    await page.getByTestId('mobile-agent-menu-trigger').click();
+    await page.getByTestId('mobile-agent-new-chat').click();
+    await page.getByRole('button', { name: /^Effacer l'historique$/ }).click({ timeout: 15_000 });
+
+    // Mesuré avant : quatre messages avant, quatre après — le fil « effacé » revenait.
+    await expect(lignes).toHaveCount(0, { timeout: 15_000 });
+    await page.waitForTimeout(3000);
+    await expect(lignes, 'le fil ne doit pas se remplir à nouveau').toHaveCount(0);
+
+    await expect
+      .poll(
+        async () => {
+          const etat = await request.get(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+            headers: { authorization: `Bearer ${token}` },
+          });
+
+          return (await etat.json()).ideState?.state?.chat?.metadata?.aiConversationId as string | undefined;
+        },
+        { timeout: 20_000, message: 'une conversation NEUVE doit devenir la conversation courante' },
+      )
+      .not.toBe(conversationAvant);
+
+    // Au rechargement, le repli serveur (`?limit=1`) ne doit pas ramener l'ancienne conversation.
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
+    await page.waitForTimeout(6000);
+    await expect(lignes, 'après rechargement, la conversation reste neuve').toHaveCount(0);
   });
 });
