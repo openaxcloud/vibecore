@@ -144,23 +144,30 @@ describe('BUG-QA-I18N-COUNT-001/002 — compteurs collés et faux pluriels', () 
   });
 });
 
-describe('BUG-QA-PANEL-429-MASKED-001 — un quota atteint est nommé', () => {
-  it('429 a sa propre branche, avant le fourre-tout', () => {
-    expect(panelRoute).toMatch(/status === 429[\s\S]{0,40}PANEL_QUOTA_EXCEEDED/);
-    expect(panelRoute).toMatch(/apiRuntime\.panel\.quotaExceeded/);
-  });
-
-  it('les DEUX chemins d_erreur du panneau traitent le 429', () => {
-    const occurrences = panelRoute.match(/quotaExceeded/g) ?? [];
+describe('BUG-QA-PANEL-429-MASKED-001 — le 429 a sa propre branche', () => {
+  /*
+   * CE QUE CES TROIS CONTRÔLES SONT DEVENUS.
+   *
+   * Ils lisaient le TEXTE SOURCE de la route à coups d'expressions régulières :
+   * « `status === 429` suivi, à moins de quarante caractères, de
+   * `PANEL_QUOTA_EXCEEDED` ». C'était de la prose, pas du comportement — et deux
+   * d'entre eux ont rougi sur un changement qui AMÉLIORE la route, tandis que le
+   * défaut qu'ils visaient serait passé intact sous un simple réordonnancement.
+   *
+   * Le fond était juste : le 429 mérite sa branche. Il est désormais tenu sur le
+   * rendu, dans `app/routes/panneau-refus-429.spec.ts`, qui vérifie en plus ce
+   * que ces contrôles ne pouvaient pas voir — que l'étiquette ne nomme pas une
+   * cause qu'elle n'a pas vérifiée.
+   */
+  it('les deux chemins d_erreur du panneau traitent le 429', () => {
+    const occurrences = panelRoute.match(/status === 429/g) ?? [];
     expect(occurrences.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('le message de quota existe en anglais ET en français', () => {
+  it('les deux messages du 429 existent en anglais ET en français', () => {
     const catalog = readFileSync(join(APP, 'lib', 'i18n', 'catalogs', 'api-runtime-routes.ts'), 'utf8');
-    const occurrences = catalog.match(/'apiRuntime\.panel\.quotaExceeded'/g) ?? [];
 
-    expect(occurrences).toHaveLength(2);
-    expect(catalog).toMatch(/quota was reached/i);
-    expect(catalog).toMatch(/quota est atteint/i);
+    expect(catalog.match(/'apiRuntime\.panel\.quotaExceeded'/g) ?? []).toHaveLength(2);
+    expect(catalog.match(/'apiRuntime\.panel\.rateLimited'/g) ?? []).toHaveLength(2);
   });
 });
