@@ -55,6 +55,8 @@ describe('bloc arborescence + consigne de câblage', () => {
     expect(source, 'le bloc doit être construit dans streamText').toContain(
       'const arborescenceBlock = construireBlocArborescence(projectFilePaths);',
     );
-    expect(source, 'et INTERPOLÉ en tête du tampon de contexte').toContain('`${arborescenceBlock}Below is the artifact');
+    expect(source, 'et INTERPOLÉ en tête du tampon de contexte').toContain(
+      '`${arborescenceBlock}Below is the artifact',
+    );
   });
 });
