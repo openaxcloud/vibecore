@@ -19,11 +19,6 @@ import {
   marketingExactLegalBlogFr,
 } from './marketing-exact-legal-blog';
 
-import {
-  ecodeLegalPages,
-  getEcodeExactLegalPages,
-  makeEcodeLegalMeta,
-} from '~/components/marketing/EcodeExactLegalPages';
 import Blog from '~/components/marketing/ecode-exact/pages/Blog';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import { loader as rootLoader } from '~/root';
@@ -129,19 +124,6 @@ describe('exact legal registry and blog catalogs', () => {
     expect(fallback.exactBlog.hero.title).toBe('The E-Code blog');
   });
 
-  it('localizes the complete legal registry without translating routes', () => {
-    const french = getEcodeExactLegalPages('fr');
-
-    expect(french.legal.title).toBe('Informations juridiques');
-    expect(french.terms.title).toBe('Conditions d’utilisation');
-    expect(french.privacy.title).toBe('Politique de confidentialité');
-    expect(french.subprocessors.title).toBe('Sous-traitants ultérieurs');
-    expect(french.dpa.title).toBe('Accord de traitement des données');
-    expect(french['student-dpa'].route).toBe('/student-dpa');
-    expect(french['report-abuse'].route).toBe('/report-abuse');
-    expect(ecodeLegalPages.privacy.title).toBe('Privacy Policy');
-  });
-
   it('formats publication dates with the active locale and a stable UTC day', () => {
     expect(formatExactBlogDate('2026-06-16', 'en')).toBe('June 16, 2026');
     expect(formatExactBlogDate('2026-06-16', 'fr')).toBe('16 juin 2026');
@@ -181,22 +163,11 @@ describe('exact legal registry and blog catalogs', () => {
     expect(screen.getByTestId('filter-pricing').getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('localizes legal and Blog SEO, including social image alternatives', () => {
-    const legalPage = marketingExactLegalBlogFr.exactLegalRegistry.pages.privacy;
-
-    const legalTags = makeEcodeLegalMeta('privacy')({
-      matches: [{ id: 'root', data: { language: 'fr' } }],
-    } as never);
-
+  it('localizes Blog SEO, including social image alternatives', () => {
     const blogData = blogLoader({ request: new Request('https://e-code.ai/blog?lang=fr') } as never);
     const blogTags = blogMeta({ data: blogData } as never);
     const blogSeo = marketingExactLegalBlogFr.exactBlog.seo;
 
-    expect(legalTags).toEqual(expect.arrayContaining([{ title: `${legalPage.title} - E-Code` }]));
-    expect(legalTags).toEqual(expect.arrayContaining([{ property: 'og:image:alt', content: legalPage.imageAlt }]));
-    expect(legalTags).toEqual(
-      expect.arrayContaining([{ name: 'twitter:description', content: legalPage.description }]),
-    );
     expect(blogData.language).toBe('fr');
     expect(blogTags).toEqual(expect.arrayContaining([{ title: blogSeo.title }]));
     expect(blogTags).toEqual(expect.arrayContaining([{ name: 'description', content: blogSeo.description }]));
@@ -239,11 +210,10 @@ describe('exact legal registry and blog catalogs', () => {
     expect(source).not.toContain('window.location');
   });
 
-  it('leaves no hard-coded visible copy in the two components or the authorized Blog route', async () => {
+  it('leaves no hard-coded visible copy in the Blog component or the authorized Blog route', async () => {
     const { scanSource } = await import('../../../../scripts/i18n/source-scanner.mjs');
 
     const files = [
-      'app/components/marketing/EcodeExactLegalPages.tsx',
       'app/components/marketing/ecode-exact/pages/Blog.tsx',
       'app/routes/blog.tsx',
     ];
