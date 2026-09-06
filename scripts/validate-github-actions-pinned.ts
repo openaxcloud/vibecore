@@ -461,7 +461,55 @@ export function analyzeGithubActionsYaml(
 
   const findings: PinningFinding[] = [];
   const localActions: LocalActionReference[] = [];
-  const contextFingerprint = fingerprint(document.contents);
+
+  /*
+   * L'EMPREINTE COUVRE L'ÉTAPE, PAS LE FICHIER ENTIER.
+   *
+   * Elle portait sur `document.contents`, donc sur tout le workflow. Une
+   * exception se périmait alors sur n'importe quel changement du YAML — y
+   * compris l'ajout d'un job à l'autre bout du fichier, qui ne touche aucune
+   * des étapes couvertes.
+   *
+   * Mesuré le 2026-09-06 sur `.github/workflows/e2e.yml`, qui porte 4
+   * exceptions : ajouter un job SANS RAPPORT rend
+   * `FAIL (4 blocked, 4 stale)`. Le contrôle ne savait pas distinguer un
+   * changement anodin d'une modification de ce qu'il protège — et rendait donc
+   * le même verdict pour les deux.
+   *
+   * Le principe reste entier : une exception ne survit pas à la modification de
+   * ce qu'elle couvre. Seule la PORTÉE de l'ancrage change. Aucun refus n'est
+   * assoupli, aucune exception n'est ajoutée.
+   */
+  const documentFingerprint = fingerprint(document.contents);
+
+  /*
+   * Le nœud porteur d'une référence : l'étape (`steps[i]`), le service
+   * (`services.<nom>`) ou le conteneur d'un job. À défaut — une référence posée
+   * hors de ces formes — on retombe sur l'empreinte du document, plus large mais
+   * jamais plus permissive.
+   */
+  function noeudPorteur(path: readonly LocationSegment[]): unknown {
+    for (let profondeur = path.length; profondeur > 0; profondeur -= 1) {
+      const segment = path[profondeur - 1];
+      const estPorteur = typeof segment === 'number' || segment === 'container' || path[profondeur - 2] === 'services';
+
+      if (estPorteur) {
+        const noeud = document.getIn(path.slice(0, profondeur), true);
+
+        if (noeud) {
+          return noeud;
+        }
+      }
+    }
+
+    return undefined;
+  }
+
+  function empreinteDe(path: readonly LocationSegment[]): string {
+    const noeud = noeudPorteur(path);
+
+    return noeud ? fingerprint(noeud) : documentFingerprint;
+  }
 
   function walk(node: ParsedNode | null, path: readonly LocationSegment[]): void {
     if (isMap(node)) {
@@ -498,7 +546,7 @@ export function analyzeGithubActionsYaml(
           });
         } else if (key === 'uses') {
           const location = formatLocation(nextPath);
-          const finding = inspectUses(valueNode, filename, location, lineCounter, contextFingerprint);
+          const finding = inspectUses(valueNode, filename, location, lineCounter, empreinteDe(nextPath));
 
           if (finding) {
             findings.push(finding);
@@ -508,7 +556,7 @@ export function analyzeGithubActionsYaml(
               line: lineFor(valueNode, lineCounter),
               location,
               path: valueNode.value,
-              contextFingerprint,
+              contextFingerprint: empreinteDe(nextPath),
             });
           }
         } else if (isServiceImagePath(nextPath) || (isJobContainerPath(nextPath) && !isMap(valueNode))) {
@@ -517,7 +565,7 @@ export function analyzeGithubActionsYaml(
             filename,
             formatLocation(nextPath),
             lineCounter,
-            contextFingerprint,
+            empreinteDe(nextPath),
           );
 
           if (finding) {
@@ -534,7 +582,7 @@ export function analyzeGithubActionsYaml(
             filename,
             formatLocation(nextPath),
             lineCounter,
-            contextFingerprint,
+            empreinteDe(nextPath),
           );
 
           if (finding) {
@@ -554,7 +602,12 @@ export function analyzeGithubActionsYaml(
 
   walk(document.contents, []);
 
-  return { findings, localActions, contextFingerprint };
+  /*
+   * L'empreinte du DOCUMENT reste rendue ici : elle sert aux appelants qui
+   * raisonnent sur le fichier entier. Les constats, eux, portent désormais
+   * chacun l'empreinte de leur étape.
+   */
+  return { findings, localActions, contextFingerprint: documentFingerprint };
 }
 
 export function findUnpinnedActions(source: string, filename = '<memory>'): PinningFinding[] {
