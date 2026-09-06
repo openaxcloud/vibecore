@@ -162,6 +162,7 @@ spec:
             # crash-looping the pod. Making presence mandatory is a separate
             # concern from scoping and is deliberately not bundled here.
             {{- range $key := $scoped }}
+            {{- if not (and (eq $key "DATABASE_URL") $svc.databaseUrlSecretKey) }}
             - name: {{ $key }}
               valueFrom:
                 secretKeyRef:
@@ -169,6 +170,24 @@ spec:
                   key: {{ $key }}
                   optional: true
             {{- end }}
+            {{- end }}
+            {{- end }}
+            {{- if $svc.databaseUrlSecretKey }}
+            # AUDX-012 (rôles DB) — ce service se connecte avec SON PROPRE rôle
+            # PostgreSQL, pas le rôle partagé. Aujourd'hui les cinq services
+            # partagent une seule `DATABASE_URL`, donc un seul rôle ayant accès à
+            # tout le schéma : `workspace-manager` touche UNE table sur 125 et
+            # peut lire `User.passwordHash`, `Session` et chaque colonne `*Enc`.
+            #
+            # Inerte par défaut : sans `databaseUrlSecretKey`, le service prend la
+            # `DATABASE_URL` partagée exactement comme avant. La clé n'est posée
+            # qu'une fois le rôle créé côté Cloud SQL et validé en recette.
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $.Values.secrets.existingSecret }}
+                  key: {{ $svc.databaseUrlSecretKey }}
+                  optional: true
             {{- end }}
             - name: NODE_ENV
               value: production
