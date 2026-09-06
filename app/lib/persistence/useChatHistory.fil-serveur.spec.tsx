@@ -49,7 +49,7 @@ vi.mock('react-toastify', () => ({
 }));
 
 vi.mock('./db', () => ({
-  openDatabase: (...a: unknown[]) => mocks.openDatabase(...a),
+  openDatabase: () => mocks.openDatabase(),
   getMessages: vi.fn(async () => undefined),
   getNextId: vi.fn(async () => 'chat-next'),
   getUrlId: vi.fn(async () => 'chat-url'),
