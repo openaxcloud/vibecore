@@ -502,3 +502,27 @@ describe('12. capture iPhone 06/09 13:07 : Base de données, « Mes données » 
     expect(studio).toContain('bolt-database-studio-results min-h-0 flex-1 overflow-auto');
   });
 });
+
+describe('13. captures iPhone 06/09 14:10 : Déploiements « Gérer »', () => {
+  it('les actions d’un déploiement se partagent la ligne au lieu de s’empiler', () => {
+    /*
+     * Mesuré à 390 (sonde probe-deploy.mjs) : une grille d'une colonne, trois
+     * formulaires de 44 px l'un sous l'autre, chacun avec un bouton étroit. La
+     * règle de conteneur du volet de bureau (`display: grid !important`) gagnait
+     * sur téléphone ; ici elle est battue à (0,3,0), `!important` compris.
+     */
+    const actions = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions',
+    );
+
+    expect(actions).toMatch(/display:\s*flex\s*!important/);
+    expect(actions).toMatch(/flex-wrap:\s*wrap/);
+
+    const enfants = dernierBloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions :where(a, form)',
+    );
+
+    expect(enfants).toMatch(/flex:\s*1 1 \d+px/);
+    expect(enfants).toMatch(/width:\s*auto/);
+  });
+});

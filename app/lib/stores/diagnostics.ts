@@ -107,6 +107,36 @@ const TRANSIENT_RUNTIME_ERROR_PATTERN =
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 
 /*
+ * Un serveur de développement qui annonce qu'il est PRÊT a survécu à son
+ * démarrage : les erreurs journalisées avant cette ligne appartiennent à un
+ * démarrage précédent. Capture iPhone du 06/09 à 14:11 : « failed to load
+ * config from /workspace/vite.config.ts », « error when starting dev server: »,
+ * « Cannot find module '@vitejs/plugin-react' » — trois erreurs dans Problèmes
+ * pendant que la Webview servait l'application, la même minute. Le tampon de
+ * journaux est append-only ; sans ce signal, un raté de démarrage y restait
+ * pour toute la durée de la page. Formes de Vite (« ready in 312 ms »,
+ * « Local: http://… »), de Next (« Ready in »), et des serveurs Node usuels.
+ */
+const DEV_SERVER_READY_PATTERN =
+  /\bready in \d+\s*m?s\b|\bLocal:\s+https?:\/\/|\blistening on\b|\bserver running at\b|\bstarted server on\b|\bcompiled successfully\b/i;
+
+/*
+ * Bruit d'installation de npm : « install-scripts … not yet covered by
+ * allowScripts », « deprecated inflight@1.0.6 ». Ce sont des avertissements
+ * sur des dépendances, pas des problèmes du projet ; ils ont leur place dans
+ * les Journaux, pas dans Problèmes (capture 06/09 14:11 : cinq avertissements,
+ * trois occurrences chacun, aucun sur le code de l'utilisateur).
+ */
+const NPM_INSTALL_NOISE_PATTERN = /\bnpm (?:warn|WARN) (?:deprecated|install-scripts|cleanup|old lockfile|skipping)\b/i;
+
+/*
+ * Un en-tête d'erreur qui se termine par « : » annonce la ligne suivante —
+ * « error when starting dev server: » puis « Error: Cannot find module … ».
+ * Séparés, l'en-tête est une erreur vide et le détail une erreur sans contexte.
+ */
+const ERROR_HEADER_PATTERN = /:$/;
+
+/*
  * A dev-server BUILD error names the module it failed on. Unlike a runtime
  * exception these are *fixable*: the moment the user repairs the file, the dev
  * server transforms it successfully and the error is dead. `workspaceLogs` is an
@@ -192,6 +222,9 @@ export function buildRuntimeDiagnostics({
   // moduleKey -> ids of the build errors currently blamed on that module.
   const buildErrorIdsByModule = new Map<string, Set<string>>();
 
+  // Erreurs issues des journaux depuis le dernier démarrage réussi — celles qu'un « prêt » périme.
+  const startupErrorIds = new Set<string>();
+
   const addDiagnostic = (severity: DiagnosticSeverity, message: string, detail?: string) => {
     const normalizedMessage = normalizeRuntimeLine(message);
 
@@ -248,8 +281,44 @@ export function buildRuntimeDiagnostics({
     addDiagnostic('error', quotaWarning, quotaUpgrade ?? undefined);
   }
 
-  for (const line of workspaceLogs) {
-    const normalizedLine = normalizeRuntimeLine(line);
+  let enTeteEnAttente: string | null = null;
+
+  const addStartupSensitiveError = (message: string) => {
+    addDiagnostic('error', message);
+
+    if (!BLANK_PREVIEW_PATTERN.test(message)) {
+      startupErrorIds.add(stableDiagnosticId('runtime', 'error', normalizeRuntimeLine(message)));
+    }
+  };
+
+  for (const rawLine of workspaceLogs) {
+    let normalizedLine = normalizeRuntimeLine(rawLine);
+
+    if (enTeteEnAttente) {
+      normalizedLine = normalizedLine ? `${enTeteEnAttente} ${normalizedLine}` : enTeteEnAttente;
+      enTeteEnAttente = null;
+    }
+
+    if (DEV_SERVER_READY_PATTERN.test(normalizedLine)) {
+      for (const staleId of startupErrorIds) {
+        diagnosticsById.delete(staleId);
+      }
+
+      startupErrorIds.clear();
+    }
+
+    if (NPM_INSTALL_NOISE_PATTERN.test(normalizedLine)) {
+      continue;
+    }
+
+    if (
+      RUNTIME_ERROR_PATTERN.test(normalizedLine) &&
+      ERROR_HEADER_PATTERN.test(normalizedLine) &&
+      !BLANK_PREVIEW_PATTERN.test(normalizedLine)
+    ) {
+      enTeteEnAttente = normalizedLine;
+      continue;
+    }
 
     /*
      * Retire build errors for a module as soon as the dev server reports a
@@ -272,10 +341,15 @@ export function buildRuntimeDiagnostics({
     }
 
     if (BLANK_PREVIEW_PATTERN.test(normalizedLine) || RUNTIME_ERROR_PATTERN.test(normalizedLine)) {
-      addDiagnostic('error', normalizedLine);
+      addStartupSensitiveError(normalizedLine);
     } else if (RUNTIME_WARNING_PATTERN.test(normalizedLine)) {
       addDiagnostic('warning', normalizedLine);
     }
+  }
+
+  // Un en-tête sans suite est une erreur à lui seul.
+  if (enTeteEnAttente) {
+    addStartupSensitiveError(enTeteEnAttente);
   }
 
   return sortDiagnostics([...diagnosticsById.values()]);

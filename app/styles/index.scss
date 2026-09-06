@@ -22454,6 +22454,32 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100%;
   }
 
+  /*
+   * Déploiements « Gérer », capture iPhone 06/09 14:10 : « Redéployer /
+   * Restauration / Annuler » empilés sur trois lignes, chacun étroit. La règle
+   * de conteneur du volet de bureau (`display: grid !important`, une colonne)
+   * gagnait sur téléphone, et la largeur pleine n'était donnée qu'aux liens —
+   * les actions sont des formulaires. Ici : une ligne qui se replie, chaque
+   * action prend sa part.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions :where(a, form) {
+    flex: 1 1 100px;
+    min-width: 0;
+    width: auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-actions :where(form > button) {
+    width: 100%;
+    min-height: var(--vc-touch-min, 44px);
+    justify-content: center;
+  }
+
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-domain-status,
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-deploy-card em,
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-collaboration-live {

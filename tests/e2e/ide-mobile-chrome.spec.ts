@@ -657,6 +657,63 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.studio.h, `studio haut de ${geometrie.studio.h}px`).toBeGreaterThan(250);
     expect(geometrie.resultats.h, `résultats hauts de ${geometrie.resultats.h}px`).toBeGreaterThanOrEqual(120);
   });
+  test('Déploiements « Gérer » : les actions d’un déploiement se partagent la ligne', async ({ page, request }) => {
+    test.setTimeout(150_000);
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    // Un déploiement statique mis en file (il échoue proprement sans pod) : la carte suffit.
+    const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { provider: 'static', timeoutSeconds: 30 },
+    });
+
+    expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+    await ouvrirOutil(page, 'deployments');
+    await page
+      .getByRole('button', { name: /^(Gérer|Manage)$/ })
+      .first()
+      .click({ timeout: 30_000 });
+
+    const actions = page.locator('.bolt-project-deploy-actions').first();
+
+    await expect(actions).toBeVisible({ timeout: 30_000 });
+
+    // Capture 14:10 : trois formulaires de 44 px l'un sous l'autre, boutons étroits.
+    const geometrie = await actions.evaluate((el) => {
+      const enfants = [...el.children].map((c) => {
+        const r = c.getBoundingClientRect();
+        const bouton = c.querySelector('button, a') ?? c;
+        const b = bouton.getBoundingClientRect();
+
+        return { y: Math.round(r.y), w: Math.round(r.width), bw: Math.round(b.width), bh: Math.round(b.height) };
+      });
+
+      return { display: getComputedStyle(el).display, enfants };
+    });
+
+    expect(geometrie.display).toBe('flex');
+    expect(geometrie.enfants.length).toBeGreaterThanOrEqual(3);
+
+    /*
+     * 308 px de carte à 390 : deux actions par ligne, la troisième prend la
+     * ligne suivante en entier. Trois sur une ligne feraient 97 px chacune et
+     * couperaient « Restauration ». Mesuré avant : trois lignes, boutons étroits.
+     */
+    const lignes = new Set(geometrie.enfants.map((e) => e.y));
+
+    expect(
+      lignes.size,
+      `les actions occupent ${lignes.size} lignes : ${JSON.stringify(geometrie.enfants)}`,
+    ).toBeLessThanOrEqual(2);
+
+    for (const e of geometrie.enfants) {
+      expect(e.bw, 'chaque bouton prend la largeur de sa part').toBeGreaterThanOrEqual(e.w - 2);
+      expect(e.bw, `bouton large de ${e.bw}px : étroit comme avant`).toBeGreaterThanOrEqual(140);
+      expect(e.bh, 'cible tactile').toBeGreaterThanOrEqual(44);
+    }
+  });
 });
 
 /*
