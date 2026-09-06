@@ -14587,7 +14587,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const record = await store.getWorkspace(workspaceId);
 
       if (!record) {
-        throw new Error(`aucun enregistrement d'espace de travail pour ${workspaceId}`);
+        /*
+         * Code, pas de prose : cette erreur n'est jamais rendue à un utilisateur
+         * — elle est journalisée avec `workspaceId` en champ structuré, ce qui
+         * porte déjà toute l'information de diagnostic. Une phrase ici ferait
+         * régresser le scan de chaînes en dur sans rien apporter.
+         */
+        throw Object.assign(new Error(), { code: 'WORKSPACE_RECORD_MISSING', workspaceId });
       }
 
       const project = await store.getProject(record.projectId);
