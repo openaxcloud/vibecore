@@ -204,6 +204,7 @@ import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/ho
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
 import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -992,89 +993,6 @@ function runtimeStateLabel(t: TFunction, status?: string | null): string {
   }
 
   return status || t('baseChatAst.status.unknown');
-}
-
-function platformStateLabel(t: TFunction, status: unknown): string {
-  const raw = String(status ?? '').trim();
-  const normalized = raw.toLowerCase().replace(/[\s-]+/g, '_');
-
-  switch (normalized) {
-    case 'active':
-      return t('baseChatAst.status.active');
-    case 'cancelled':
-    case 'canceled':
-      return t('baseChatAst.status.cancelled');
-    case 'critical':
-      return t('baseChatAst.status.critical');
-    case 'completed':
-      return t('baseChatAst.status.completed');
-    case 'connected':
-      return t('baseChatAst.status.connected');
-    case 'disabled':
-      return t('baseChatAst.status.disabled');
-    case 'enabled':
-      return t('baseChatAst.status.enabled');
-    case 'error':
-      return t('baseChatAst.status.error');
-    case 'failed':
-      return t('baseChatAst.status.failed');
-    case 'high':
-      return t('baseChatAst.status.high');
-    case 'info':
-      return t('baseChatAst.status.info');
-    case 'idle':
-      return t('baseChatAst.presence.idle');
-    case 'offline':
-      return t('baseChatAst.status.offline');
-    case 'low':
-      return t('baseChatAst.status.low');
-    case 'medium':
-      return t('baseChatAst.status.medium');
-    case 'moderate':
-      return t('baseChatAst.status.moderate');
-    case 'paused':
-      return t('baseChatAst.status.paused');
-    case 'pending':
-      return t('baseChatAst.status.pending');
-    case 'preview':
-      return t('baseChatAst.status.preview');
-    case 'production':
-      return t('baseChatAst.status.production');
-    case 'ready':
-      return t('baseChatAst.status.ready');
-    case 'reconnecting':
-      return t('baseChatAst.status.reconnecting');
-    case 'running':
-      return t('baseChatAst.status.running');
-    case 'starting':
-      return t('baseChatAst.status.starting');
-    case 'stopped':
-      return t('baseChatAst.status.stopped');
-    case 'staging':
-      return t('baseChatAst.status.staging');
-    case 'succeeded':
-    case 'success':
-      return t('baseChatAst.status.succeeded');
-    case 'trialing':
-      return t('baseChatAst.status.trialing');
-    case 'approved':
-      return t('baseChatAst.status.approved');
-    case 'quarantined':
-      return t('baseChatAst.status.quarantined');
-    case 'rejected':
-      return t('baseChatAst.status.rejected');
-    case 'revoked':
-      return t('baseChatAst.status.revoked');
-    case 'daily':
-      return t('baseChatAst.status.daily');
-    case 'weekly':
-      return t('baseChatAst.status.weekly');
-    case 'warn':
-    case 'warning':
-      return t('baseChatAst.status.warning');
-    default:
-      return raw || t('baseChatAst.status.unknown');
-  }
 }
 
 function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {

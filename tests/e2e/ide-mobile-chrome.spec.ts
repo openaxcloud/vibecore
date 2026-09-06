@@ -724,6 +724,12 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(actions).toBeVisible({ timeout: 30_000 });
 
+    // L'état du déploiement est traduit : « QUEUED » en capitales anglaises n'est pas un libellé.
+    const etat = page.locator('.bolt-project-deploy-card em[data-status]').first();
+
+    await expect(etat).toBeVisible();
+    await expect(etat).not.toHaveText(/^[A-Z_]+$/);
+
     // Capture 14:10 : trois formulaires de 44 px l'un sous l'autre, boutons étroits.
     const geometrie = await actions.evaluate((el) => {
       const enfants = [...el.children].map((c) => {
