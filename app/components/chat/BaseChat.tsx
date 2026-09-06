@@ -2555,6 +2555,8 @@ interface BaseChatProps {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
+  /** Prompt d'origine récupéré depuis `ProjectIdeState.chat` (voir GenerateAppCta). */
+  promptDeSecours?: string;
   projectId?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, any>;
@@ -2612,6 +2614,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       onWebSearchResult,
       projectIdeMode = false,
+      promptDeSecours,
       projectId,
       projectUrl,
       initialIdePanels,
@@ -7521,6 +7524,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
+                  promptDeSecours={promptDeSecours}
                   hasMessages={(messages?.length ?? 0) > 0}
                   isGenerating={isAgentRunning}
                   onGenerate={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
