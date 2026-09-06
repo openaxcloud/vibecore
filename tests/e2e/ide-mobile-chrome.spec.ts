@@ -562,5 +562,14 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     for (const m of await mesurer(page, '.bolt-panel-row')) {
       expect(m.h, `ligne « ${m.text} » haute de ${m.h}px`).toBeLessThanOrEqual(48);
     }
+
+    // Git, capture 13:08 : deux champs « main » sans libellé visible au-dessus.
+    await ouvrirOutil(page, 'git');
+
+    const source = page.getByTestId('git-tab-pr-source');
+
+    await expect(source).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/^(Branche source|Source branch)$/)).toBeVisible();
+    await expect(page.getByText(/^(Branche cible|Target branch)$/)).toBeVisible();
   });
 });

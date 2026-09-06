@@ -2026,13 +2026,24 @@ export function GitTab({ projectId }: GitTabProps) {
               {t('idePanels.git.prTitle')}
             </label>
             <PanelInput id="git-tab-pr-title" name="title" placeholder={t('idePanels.git.prTitleExample')} />
+            {/*
+             * Capture iPhone d'Avi, 06/09 13:08 : deux champs « main » / « main »
+             * sans un mot au-dessus — l'`aria-label` parle au lecteur d'écran,
+             * pas à l'œil. Le libellé devient visible, comme celui du titre.
+             */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <PanelInput name="sourceBranch" defaultValue={branch} aria-label={t('idePanels.git.sourceBranch')} />
-              <PanelInput
-                name="targetBranch"
-                defaultValue={project?.gitDefaultBranch ?? 'main'}
-                aria-label={t('idePanels.git.targetBranch')}
-              />
+              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+                {t('idePanels.git.sourceBranch')}
+                <PanelInput name="sourceBranch" defaultValue={branch} data-testid="git-tab-pr-source" />
+              </label>
+              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+                {t('idePanels.git.targetBranch')}
+                <PanelInput
+                  name="targetBranch"
+                  defaultValue={project?.gitDefaultBranch ?? 'main'}
+                  data-testid="git-tab-pr-target"
+                />
+              </label>
             </div>
             <textarea
               name="body"

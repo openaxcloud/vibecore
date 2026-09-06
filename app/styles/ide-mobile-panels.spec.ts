@@ -446,3 +446,13 @@ describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection,
     expect(catalogue).toContain("'Connecter un dépôt distant GitHub'");
   });
 });
+
+describe('11. capture iPhone 06/09 13:08 : formulaire de pull request du panneau Git', () => {
+  it('les branches source et cible portent un libellé VISIBLE, pas seulement un aria-label', () => {
+    const gitTab = readFileSync(join(__dirname, '..', 'components', 'git', 'GitTab.tsx'), 'utf8');
+
+    expect(gitTab).toMatch(/<label[^>]*>\s*\{t\('idePanels\.git\.sourceBranch'\)\}\s*<PanelInput name="sourceBranch"/);
+    expect(gitTab).toMatch(/<label[^>]*>\s*\{t\('idePanels\.git\.targetBranch'\)\}\s*<PanelInput/);
+    expect(gitTab).not.toContain("aria-label={t('idePanels.git.sourceBranch')}");
+  });
+});
