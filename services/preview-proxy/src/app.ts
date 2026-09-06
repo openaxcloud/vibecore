@@ -481,6 +481,13 @@ export function sanitizePreviewFramingHeader(name: string, value: string): strin
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
  */
+/*
+ * How long a KNOWN-GOOD port-access answer is reused. Short enough that flipping
+ * a port to private takes effect quickly, long enough that an api blip is
+ * absorbed without changing anyone's access.
+ */
+const PORT_ACCESS_CACHE_TTL_MS = 10_000;
+
 export function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) {
     return undefined;
@@ -564,26 +571,74 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     );
   }
 
-  /* Is this workspace's port marked private? Fail-open on any lookup error. */
+  /*
+   * AUDX-005 — is this workspace's port marked private?
+   *
+   * This used to return false (= "public, proxy it") on ANY lookup failure: a
+   * non-2xx, a timeout, a DNS blip. An authorization decision that answers
+   * "allow" when it does not know is fail-OPEN: one api hiccup turned every
+   * private port on the platform public, silently, for the duration.
+   *
+   * It now fails CLOSED — unknown is treated as private.
+   *
+   * ⚠️ Why that does not break the owner (rule 19): "private" does not mean
+   * "nobody"; it means "a valid vc_preview session is required". The owner
+   * viewing their own preview HAS that cookie, so during an api outage they are
+   * unaffected. Only unauthenticated third parties are turned away — which is
+   * precisely the population that must not be guessing at private ports.
+   *
+   * And to avoid manufacturing unknowns out of ordinary noise, a failed lookup
+   * is retried once, and the last KNOWN-GOOD answer is reused for a short window
+   * so a transient blip does not flip anything at all.
+   */
+  const portAccessCache = new Map<string, { private: boolean; expiresAt: number }>();
+
   const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
     if (!enforcePrivatePorts || !apiBaseUrl || !proxySharedSecret) {
       return false;
     }
 
-    try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
-        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
-      );
+    const cacheKey = `${workspaceId}:${port}`;
+    const cached = portAccessCache.get(cacheKey);
 
-      if (!response.ok) {
-        return false;
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.private;
+    }
+
+    const lookup = async (): Promise<boolean | undefined> => {
+      try {
+        const response = await fetchImpl(
+          `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
+          { headers: { authorization: `Bearer ${proxySharedSecret}` } },
+        );
+
+        if (!response.ok) {
+          return undefined;
+        }
+
+        return ((await response.json()) as { private?: boolean })?.private === true;
+      } catch {
+        return undefined;
+      }
+    };
+
+    const answer = (await lookup()) ?? (await lookup());
+
+    if (answer === undefined) {
+      /*
+       * Genuinely unknown. Prefer a recently-known answer over a blanket deny so
+       * a blip is invisible to everyone; otherwise deny.
+       */
+      if (cached) {
+        return cached.private;
       }
 
-      return ((await response.json()) as { private?: boolean })?.private === true;
-    } catch {
-      return false;
+      return true;
     }
+
+    portAccessCache.set(cacheKey, { private: answer, expiresAt: Date.now() + PORT_ACCESS_CACHE_TTL_MS });
+
+    return answer;
   };
 
   /* Login-required page shown when a private port is hit without a session. */
@@ -1890,6 +1945,18 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   attachPreviewWebSocketProxy(app.server, {
     previewDomain,
     resolveAgent,
+
+    /*
+     * AUDX-005 — hand the WS path the SAME gates the HTTP path uses. They were
+     * absent here, so every control below was enforced on the front door only.
+     */
+    enforceTenant,
+    resolveRequesterOrgId: (cookieHeader) =>
+      tenantSecret
+        ? verifyPreviewTenantToken(readCookie(cookieHeader, 'vc_preview'), tenantSecret, Date.now())
+        : undefined,
+    enforcePrivatePorts,
+    isPortPrivate,
     logger: { warn: (message) => app.log.warn(message) },
   });
 
