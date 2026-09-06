@@ -322,19 +322,83 @@ export function byNewest(a, b) {
 // GitHub transport
 // ---------------------------------------------------------------------------
 
-async function ghFetch(url, token) {
-  const res = await fetch(url, {
-    headers: {
-      accept: 'application/vnd.github+json',
-      'x-github-api-version': '2022-11-28',
-      'user-agent': 'vibecore-release-gate',
-      ...(token ? { authorization: `Bearer ${token}` } : {}),
-    },
-  });
-  if (!res.ok) {
-    throw new Error(`GitHub API ${res.status} ${res.statusText} for ${url}: ${(await res.text()).slice(0, 400)}`);
+/*
+ * Un aller-retour vers l'API GitHub, avec reprise sur les pannes PASSAGÈRES.
+ *
+ * Mesuré le 2026-09-06, run 1479 : la porte a attendu 30 s, puis est morte sur
+ * « release gate transport/usage error: fetch failed » — une seule requête
+ * tombée sur une coupure réseau du runner, et le déploiement entier refusé
+ * alors que l'E2E du même commit passait au vert vingt minutes plus tard. Une
+ * porte qui dit NON sur un sursaut réseau ne protège de rien : elle empêche une
+ * livraison saine et pousse à relancer à la main.
+ *
+ * Ce qui se retente : une erreur de transport (fetch rejette, sans réponse
+ * HTTP), un 5xx, un 429, un 403 de quota secondaire. Ce qui ne se retente
+ * JAMAIS : un 4xx ordinaire — 401, 404, 422 sont des réponses, pas des pannes.
+ * Bornée à `attempts` essais, attente 2, 4, 8, 16 s plafonnée à 30 s : au pire
+ * une minute de plus avant de refuser, jamais un refus pour un seul incident.
+ */
+export const GH_FETCH_ATTEMPTS = 5;
+
+export function isTransientGitHubStatus(status) {
+  return status === 429 || status === 403 || status >= 500;
+}
+
+export async function ghFetchWithRetry(
+  url,
+  token,
+  {
+    fetchImpl = fetch,
+    sleep = (ms) => new Promise((r) => setTimeout(r, ms)),
+    attempts = GH_FETCH_ATTEMPTS,
+    log = console.warn,
+  } = {},
+) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    let res;
+
+    try {
+      res = await fetchImpl(url, {
+        headers: {
+          accept: 'application/vnd.github+json',
+          'x-github-api-version': '2022-11-28',
+          'user-agent': 'vibecore-release-gate',
+          ...(token ? { authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch (err) {
+      lastError = new Error(`GitHub API transport failure for ${url}: ${err.message}`);
+    }
+
+    if (res) {
+      if (res.ok) {
+        return res.json();
+      }
+
+      const body = (await res.text()).slice(0, 400);
+      const error = new Error(`GitHub API ${res.status} ${res.statusText} for ${url}: ${body}`);
+
+      if (!isTransientGitHubStatus(res.status)) {
+        throw error;
+      }
+
+      lastError = error;
+    }
+
+    if (attempt < attempts) {
+      const waitMs = Math.min(30_000, 2_000 * 2 ** (attempt - 1));
+      log(`[gate] ${lastError.message} — attempt ${attempt}/${attempts}, retrying in ${waitMs / 1000}s`);
+      await sleep(waitMs);
+    }
   }
-  return res.json();
+
+  throw new Error(`${lastError.message} (gave up after ${attempts} attempts)`);
+}
+
+async function ghFetch(url, token) {
+  return ghFetchWithRetry(url, token);
 }
 
 async function fetchRunsForSha({ repo, sha, token }) {
