@@ -871,3 +871,63 @@ ici depuis la copie durable
 | BUG-PANEL-ZIP-005 | **P0 candidat — À L'ÉCHELLE, Safari télécharge le projet ENTIER en archive NEUF fois par ouverture à froid.** Confirmé sur un projet représentatif (401 fichiers de source RÉELLE, 3,73 Mio bruts) : `zipCalls=9`, charge utile **5 316 429 octets décodés par appel** (5,07 Mio, base64 d'un ZIP de 3,8 Mio — **+33 % rien qu'en base64**), soit **15,2 Mio observés dans la fenêtre de mesure** et ~46 Mio si les 9 aboutissent (~13 Mio compressés sur le fil, 1,44 Mio par appel). Sur le starter à 7 fichiers c'était 4 appels de 3 Ko : **invisible à petite échelle, le défaut ne se voit QU'à l'échelle.** Les traces de pile nomment la cause : **1 appel direct** depuis `ProjectWorkspaceProvider` et **8 depuis `loadRuntimeFiles`** — `loadProjectStorageFiles` est le REPLI utilisé quand le chargement runtime échoue ou rend 0 fichier, et il n'a **ni mise en commun des requêtes en vol, ni limite de reprise**. Même classe que BUG-PANEL-PERF-004(b), mais sur une charge utile de plusieurs mégaoctets. Les réponses arrivent à 15,0 / 15,6 / 16,0 s — **après** que le panneau a peint (11,6 s) : elles continuent en fond. | — | — | ❌ | `zip-webkit-scale-run1.log` (traces de pile complètes), `zip-chromium-scale.log`, `zip-at-scale.mjs`, `zip-webkit-only.mjs`. Chromium au même moment : **1** appel. **Limite : un seul passage à l'échelle pour le chiffre 9** (le ×4 sur le petit projet, lui, est reproduit deux fois). Mac sur bonne liaison — sur réseau mobile ces mégaoctets coûtent bien davantage. |
 | BUG-IDE-STATE-007 | **P1 — plafond de croissance : au-delà d'une certaine taille de projet, l'état de l'IDE n'est NI écrit localement NI relu de façon fiable.** Reproduit en production (`be197c3e38`), projet de 401 fichiers, 3 ouvertures à froid : `write degraded {outcome: skipped-too-large}` **3/3**, et `Failed to restore project IDE state AbortError` + `Failed to load project IDE memory.` **2/3**. Chiffres : charge utile `ide-state` = **4 053 595 o (3,87 Mio)** contre un plafond par entrée `IDE_MEMORY_ENTRY_CAP_BYTES` de **524 288 o** — **dépassement ×7,7**. Inspection du `localStorage` : **l'entrée du projet est absente** (seule reste une entrée d'espace de travail de 2 808 o) — rien n'est écrit. Les deux défauts se composent : trop gros pour le cache local → aucun repli → tout dépend du réseau → 3,87 Mio à ramener en moins de `PROJECT_IDE_MEMORY_LOAD_TIMEOUT_MS` = **5 000 ms**, sinon `AbortError` et état perdu. Conséquence utilisateur : disposition, fichier sélectionné et onglets perdus à l'ouverture, par intermittence, **et cela empire à mesure que le projet grandit**. Même famille que le `localStorage` saturé déjà vécu par Avi — le commentaire de `ide-memory-budget.ts` le nomme explicitement. Aggravé par la course corrigée dans #442 : l'état est demandé 2 à 10 fois par ouverture, soit jusqu'à **38,7 Mio** d'`ide-state` transférés en une seule ouverture. | — | — | ❌ | `docs/audit/evidence/2026-09-04-panneaux-instables/PERFORMANCE.md` + `ide-state-scale.mjs`. SHA prod vérifié identique avant ET après. #442 supprime les répétitions mais **ne corrige ni le plafond de 512 Kio ni le délai de 5 s** — ce point reste entier. | **MESURÉ APRÈS DÉPLOIEMENT (prod `914facc791`, #443 servie, SHA vérifié identique avant ET après) — la moitié ÉCRITURE est corrigée, la moitié LECTURE reste OUVERTE.** Charge `ide-state` : **4 052 179 o → 231 o** (183 o compressés), soit **−99,994 %, facteur 17 542** ; `files` a disparu de la charge navigateur, il ne reste que `ui` (2 o) et `chat` (15 o). Rapporté aux 9 appels par ouverture à froid : **34,8 Mio → 2,0 Kio**. `write degraded {skipped-too-large}` : **3/3 → 0/3**, et surtout **l'entrée `localStorage` du projet EXISTE enfin (2 998 o)** alors qu'elle était absente — preuve discriminante que l'état est désormais réellement persisté. **En revanche `AbortError` au chargement subsiste à 1/3** (contre 2/3) sur une ouverture réellement à froid : **la moitié lecture n'est PAS résolue**, c'est elle qui fait encore perdre son état à l'utilisateur. Le plafond de 512 Kio et le délai de 5 s n'ont pas été retouchés, conformément au diagnostic. **Aucun gain de TEMPS revendiqué** : peinture de `overview` à 12 720/14 882 ms (Chromium) et 11 902/12 610 ms (WebKit) contre 12 884/9 943 en référence — dispersion supérieure à 2 s sur 2 relevés contre 1, donc rien de concluant dans un sens ni dans l'autre. Le temps est tenu par la tempête d'archives (#442, **non déployée**) : contrôle négatif à l'appui, l'archive reste **identique à l'octet** (2 requêtes, 10,14 Mio, sur les deux moteurs). **Propriété de sûreté vérifiée en production : `git status` voit toujours ses 407 fichiers modifiés** — le magasin serveur est intact.
 | BUG-UX-022 | **Sur ORDINATEUR, `--vc-agent-composer-measured-height` n'est JAMAIS écrite : la règle d'ancrage de la pastille retombe en silence sur `bottom: 12px`.** L'effet qui publie la variable (`BaseChat.tsx:3116`) commence par `if (!useMobileIde …) return undefined;` — elle n'est donc écrite QUE sur l'IDE mobile. **Mesuré en production (`be197c3e38`), Chromium 1440×900 : `--vc-agent-composer-measured-height` = `(UNSET)`** (contre `133px` mesurée au même moment sur iPhone). Or la feuille SERVIE porte `.bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip=true]){position:sticky;bottom:calc(var(--vc-agent-composer-measured-height, 0px) + 12px)}` : sans la variable, le repli `0px` s'applique et l'ancrage vaut 12 px — c'est-à-dire le bas du MÊME conteneur que la zone de saisie, laquelle porte `z-index:50` contre `20` pour la pastille. **Même motif que BUG-PANEL-CACHE-003 et BUG-PANEL-ZIP-005 : une règle livrée n'est pas une règle appliquée.** Avi travaille sur iPhone, mais ses utilisateurs seront sur ordinateur. | — | — | ❌ | `pill-desktop.mjs` (mesure `(UNSET)` en prod) + la feuille servie `/assets/index-B9vvI5YB.css`. **Portée honnête : la variable non écrite est MESURÉE ; le recouvrement par la zone de saisie qui en découle est DÉDUIT de la feuille servie, pas observé** — ma sélection de conteneur défilant est tombée sur Monaco (`scrollHeight` 16 777 216) et la pastille n'a pas été trouvée sur ordinateur. À observer avant de le déclarer P1. |
+
+---
+
+### BUG-PERF-004 — le tier `web` n'a AUCUN plafond de requêtes, l'API en a un exact
+
+📤 · 💻 · 📦 · ❌ **ouvert** — mesuré le 2026-09-05 sur la prod servie (`a8a96a3932`),
+depuis une IP domestique unique, arbre `main` propre à `cbca838be9`.
+
+**Le plafond de l'API est exact et se comporte bien.** 3 600 requêtes en 13 s
+(~276 req/s) sur `https://api.e-code.ai/health`, une seule IP :
+
+| réponses | nombre |
+|---|---|
+| `200` | **1 999** |
+| `429` | **1 601** |
+
+Soit **2 000/minute par IP** — exactement `API_RATE_LIMIT_MAX ?? 2000` de
+[`app.ts:8981`](services/api/src/app.ts:8981), aucune variable ne le surchargeant en
+prod. `Retry-After` décompte honnêtement (37 s → 16 s → 0) et la fenêtre se rouvre à
+~60 s. **Rien à corriger de ce côté : le limiteur fait ce qu'il annonce.**
+
+**Le tier `web`, lui, ne plafonne rien.** Même rafale de 3 600 requêtes en 20 s
+(~180 req/s) sur `https://e-code.ai/api/health` : **3 600 × `200`, zéro `429`**.
+Aucun `rateLimit` entrant dans `app/` (les seules occurrences sont les types d'API
+GitHub/GitLab), aucune annotation `nginx.ingress.kubernetes.io/limit-*` sur les
+Ingress. Le tier qui sert **toutes les pages et tous les loaders SSR** est donc sans
+plafond au moins jusqu'à ~10 800 req/min depuis une seule adresse.
+
+⚠️ **Piège de mesure — la première rafale n'a rien mesuré.** `e-code.ai/api/health`
+n'est PAS l'API : c'est la route Remix [`app/routes/api.health.ts`](app/routes/api.health.ts),
+et l'ingress route `e-code.ai/` vers `web`, l'API vivant sur `api.e-code.ai`. Le
+corps l'a trahi — `{"status":"healthy"}` côté web contre `{"status":"ok"}` que rend
+[`app.ts:9259`](services/api/src/app.ts:9259). Sans cette comparaison, 3 600 réponses
+`200` se seraient lues comme « le plafond de 2 000 ne s'applique pas », soit
+l'inverse de la vérité.
+
+---
+
+### BUG-RESIL-001 — `worker` n'a ni sonde de disponibilité, ni PDB, ni autoscaler
+
+📤 · 💻 · 📦 · ❌ **ouvert** — mesuré le 2026-09-05, 8 déploiements de `vibecore`.
+
+Sept des huit déploiements sont correctement armés : deux répliques minimum,
+`maxUnavailable: 0`, `preStop`, sondes de vivacité **et** de disponibilité, PDB à
+`minAvailable: 1`, HPA de 2 à 6-10. Deux ne le sont pas :
+
+| déploiement | répliques | vivacité | disponibilité | PDB | HPA |
+|---|---|---|---|---|---|
+| `worker` | **1** | oui | **NON** | **aucun** | **aucun** |
+| `screenshotter` | **1** | oui | oui | **aucun** | min 1 |
+
+Conséquences distinctes :
+
+* **Sans sonde de disponibilité**, `worker` est déclaré prêt dès que son conteneur
+  démarre. Pendant un redéploiement, ses messages sont routés vers un processus qui
+  n'a pas fini d'ouvrir ses connexions — `maxUnavailable: 0` ne protège que ce que
+  la sonde sait mesurer, et ici elle ne mesure rien.
+* **Sans PDB et à une seule réplique**, `worker` et `screenshotter` tombent
+  entièrement pendant un drain de nœud (mise à jour GKE, réduction d'échelle du
+  pool). Les six autres services gardent au moins une réplique par construction.
