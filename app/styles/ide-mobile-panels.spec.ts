@@ -456,3 +456,32 @@ describe('11. capture iPhone 06/09 13:08 : formulaire de pull request du panneau
     expect(gitTab).not.toContain("aria-label={t('idePanels.git.sourceBranch')}");
   });
 });
+
+describe('12. capture iPhone 06/09 13:07 : Base de données, « Mes données » coupé à cent pixels', () => {
+  it('sur téléphone, plus aucun bloc `flex-1` ni défilement interne dans la chaîne du studio', () => {
+    const racine = bloc(
+      '.bolt-responsive-ide-mobile .bolt-database-workbench,\n  .bolt-responsive-ide-mobile .bolt-database-studio',
+    );
+
+    expect(racine).toMatch(/display:\s*block/);
+    expect(racine).toMatch(/height:\s*auto/);
+
+    const corps = bloc(
+      '.bolt-responsive-ide-mobile .bolt-database-workbench-body,\n  .bolt-responsive-ide-mobile .bolt-database-studio-main',
+    );
+
+    expect(corps).toMatch(/flex:\s*none/);
+    expect(corps).toMatch(/overflow:\s*visible/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-database-studio-results')).toMatch(/max-height:\s*60vh/);
+  });
+
+  it('les classes existent dans les deux composants — la moitié DOM de la garde', () => {
+    const workbench = readFileSync(join(__dirname, '..', 'components', 'database', 'DatabaseWorkbench.tsx'), 'utf8');
+    const studio = readFileSync(join(__dirname, '..', 'components', 'database', 'DatabaseStudio.tsx'), 'utf8');
+
+    expect(workbench).toContain('className="bolt-database-workbench flex h-full min-h-0 flex-col"');
+    expect(workbench).toContain('className="bolt-database-workbench-body min-h-0 flex-1 overflow-auto"');
+    expect(studio).toContain('className="bolt-database-studio flex h-full min-h-0 flex-col gap-3"');
+    expect(studio).toContain('bolt-database-studio-results min-h-0 flex-1 overflow-auto');
+  });
+});

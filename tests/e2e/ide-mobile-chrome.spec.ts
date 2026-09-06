@@ -84,6 +84,12 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
           headers: entetes,
           data: { state: { chat: { metadata: { aiConversationId: conversationId } } } },
         });
+
+        // Une connexion nommée suffit au panneau Base de données pour montrer le studio (capture 13:07).
+        await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+          headers: entetes,
+          data: { key: 'DATABASE_URL', value: 'postgres://e2e:e2e@127.0.0.1:5432/e2e' },
+        });
       }
 
       return { token: auth.token, projectId };
@@ -571,5 +577,59 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await expect(source).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/^(Branche source|Source branch)$/)).toBeVisible();
     await expect(page.getByText(/^(Branche cible|Target branch)$/)).toBeVisible();
+  });
+
+  test('Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true });
+    await ouvrirOutil(page, 'database');
+
+    // La liste « Toutes les bases de données » d'abord : la carte DATABASE_URL ouvre l'atelier.
+    await page
+      .getByRole('button', { name: /^DATABASE_URL/ })
+      .first()
+      .click({ timeout: 30_000 });
+
+    const atelier = page.locator('.bolt-database-workbench');
+
+    await expect(atelier).toBeVisible({ timeout: 30_000 });
+    await page.getByRole('tab', { name: /Mes données|My data/i }).click();
+
+    const studio = page.locator('.bolt-database-studio');
+
+    await expect(studio).toBeVisible({ timeout: 30_000 });
+
+    const geometrie = await page.evaluate(() => {
+      const lire = (sel: string) => {
+        const el = document.querySelector<HTMLElement>(sel)!;
+        const cs = getComputedStyle(el);
+
+        return {
+          display: cs.display,
+          flexGrow: cs.flexGrow,
+          overflowY: cs.overflowY,
+          h: Math.round(el.getBoundingClientRect().height),
+          sh: el.scrollHeight,
+          ch: el.clientHeight,
+        };
+      };
+
+      return {
+        corps: lire('.bolt-database-workbench-body'),
+        studio: lire('.bolt-database-studio'),
+        resultats: lire('.bolt-database-studio-results'),
+      };
+    });
+
+    // Capture 13:07 : une centaine de pixels visibles, le reste coupé par un défilement interne.
+    expect(geometrie.corps.flexGrow).toBe('0');
+    expect(geometrie.corps.overflowY).toBe('visible');
+    expect(geometrie.corps.sh, 'le corps défile encore en interne').toBeLessThanOrEqual(geometrie.corps.ch + 1);
+    expect(geometrie.studio.display).toBe('block');
+    expect(geometrie.studio.h, `studio haut de ${geometrie.studio.h}px`).toBeGreaterThan(250);
+    expect(geometrie.resultats.h, `résultats hauts de ${geometrie.resultats.h}px`).toBeGreaterThanOrEqual(120);
   });
 });

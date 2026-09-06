@@ -23327,6 +23327,52 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     text-align: right;
   }
 
+  /*
+   * BASE DE DONNÉES, « Mes données » — captures iPhone d'Avi, 06/09 13:07 : le
+   * studio coupé à une centaine de pixels sous les onglets, le reste de l'écran
+   * vide. La chaîne `h-full min-h-0 flex-col` → `flex-1 overflow-auto` est
+   * faite pour un volet de bureau à hauteur fixe. Sur téléphone le panneau
+   * défile comme une page, sa hauteur est indéfinie, et Safari résout alors
+   * `flex: 1 1 0%` à ZÉRO : les blocs « flex-1 » s'effondrent et `overflow:
+   * auto` coupe ce qui reste. Chromium, lui, retombe sur le contenu — d'où un
+   * vert local qui ne prouve rien pour iOS. Ici, plus aucun bloc flexible ni
+   * de défilement interne : le panneau prend la hauteur de son contenu, la
+   * liste des tables et les résultats gardent seulement un plafond.
+   */
+  .bolt-responsive-ide-mobile .bolt-database-workbench,
+  .bolt-responsive-ide-mobile .bolt-database-studio {
+    display: block;
+    height: auto;
+    min-height: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-database-workbench-body,
+  .bolt-responsive-ide-mobile .bolt-database-studio-main {
+    flex: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-database-studio > * + * {
+    margin-top: 12px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-database-studio-grid {
+    display: grid;
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bolt-responsive-ide-mobile .bolt-database-studio-tables {
+    max-height: 40vh;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-database-studio-results {
+    flex: none;
+    min-height: 120px;
+    max-height: 60vh;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-splash-task small,
   .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small {
     overflow: visible;
