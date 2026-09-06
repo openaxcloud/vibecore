@@ -1538,6 +1538,24 @@ body :where(button, [role='button'], .btn, .button, summary):where(:enabled:hove
   background-color: var(--vc-button-hover-bg);
 }
 
+/*
+ * LE SURVOL N'EXISTE PAS AU DOIGT — et pourtant il colle.
+ *
+ * Sur un écran tactile, l'élément qu'on vient de toucher garde `:hover` jusqu'au
+ * prochain appui ailleurs : iOS comme Chromium. Capture iPhone d'Avi, 06/09
+ * 14:10 : « Afficher la commande » restait dans une boîte grise après l'appui,
+ * comme un bouton enfoncé pour toujours. Mesuré à 390 (sonde probe-actions.mjs,
+ * appui tactile réel) : `:hover` vrai, `:focus-visible` faux, fond
+ * rgb(226 232 240). Là où le survol n'existe pas, le fond de survol n'a pas
+ * lieu d'être ; `:active` garde le retour d'appui.
+ */
+@media (hover: none) {
+  body
+    :where(button, [role='button'], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled='true']):hover) {
+    background-color: var(--vc-button-bg);
+  }
+}
+
 body
   :where(button, [role='button'], .btn, .button, summary):where(
     :enabled:active,
@@ -23446,6 +23464,26 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    */
   .bolt-responsive-ide-mobile .bolt-action-row-details > summary {
     margin-block: -6px;
+  }
+
+  /*
+   * La commande dépliée, même capture : « npm install » flottait dans 20 px de
+   * marge intérieure héritée du rendu Markdown, et ses jetons Shiki prenaient
+   * les 14 px de la règle de coquille (`span … !important`) dans un `pre` de
+   * 11 px à l'interligne de 16 px. Une commande est une ligne de code : 12 px
+   * mono, interligne 1.5, marge serrée.
+   */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 12px !important;
+    line-height: 1.5;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre :where(span, code) {
+    font-family: inherit;
+    font-size: 12px !important;
+    line-height: inherit;
   }
 
   @media (max-width: 480px) {

@@ -429,7 +429,18 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       .poll(async () => (await mesurer(page, '.bolt-action-file-path'))[0]?.text, { timeout: 30_000 })
       .toBe(CHEMIN_PROFOND.slice(0, 40));
 
-    const [m] = await mesurer(page, '.bolt-action-file-path');
+    // Le fil peut se re-rendre entre deux mesures : on mesure jusqu'à obtenir une ligne.
+    const mesurerJusquA = async (selecteur: string) => {
+      let mesures: Mesure[] = [];
+
+      await expect
+        .poll(async () => (mesures = await mesurer(page, selecteur)).length, { timeout: 30_000 })
+        .toBeGreaterThan(0);
+
+      return mesures[0];
+    };
+
+    const m = await mesurerJusquA('.bolt-action-file-path');
     expect(m.sw, `chemin tronqué : ${m.sw}px de texte pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
 
     // Replié sur plusieurs lignes, pas coupé : plus haut qu'une ligne de 11 px.
@@ -437,7 +448,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(page.locator('.bolt-action-row button.bolt-action-target').first()).toBeVisible();
 
-    const [cible] = await mesurer(page, '.bolt-action-row button.bolt-action-target');
+    const cible = await mesurerJusquA('.bolt-action-row button.bolt-action-target');
 
     expect(cible.h, `cible du fichier de ${cible.h}px`).toBeGreaterThanOrEqual(44);
 
@@ -446,11 +457,44 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(page.locator('.bolt-action-row-details').first()).toBeVisible({ timeout: 30_000 });
 
-    const [repli] = await mesurer(page, '.bolt-action-row-details');
-    const [resume] = await mesurer(page, '.bolt-action-row-details > summary');
+    const repli = await mesurerJusquA('.bolt-action-row-details');
+    const resume = await mesurerJusquA('.bolt-action-row-details > summary');
 
     expect(resume.h, `cible du résumé de ${resume.h}px`).toBeGreaterThanOrEqual(44);
     expect(repli.h, `repli de ${repli.h}px dans le flux`).toBeLessThanOrEqual(34);
+
+    /*
+     * Capture 14:10 : « Afficher la commande » restait dans une boîte grise
+     * après l'appui (le survol colle au doigt), et « npm install » flottait
+     * dans 20 px de marge, en jetons de 14 px dans un `pre` de 11 px.
+     */
+    const resumeLocator = page.locator('.bolt-action-row-details > summary').first();
+    const boite = await resumeLocator.boundingBox();
+
+    await page.touchscreen.tap((boite?.x ?? 0) + (boite?.width ?? 0) / 2, (boite?.y ?? 0) + (boite?.height ?? 0) / 2);
+    await expect(page.locator('.bolt-action-row-details[open]').first()).toBeVisible({ timeout: 10_000 });
+
+    const apresAppui = await page.evaluate(() => {
+      const resume = document.querySelector<HTMLElement>('.bolt-action-row-details[open] > summary')!;
+      const pre = document.querySelector<HTMLElement>('.bolt-action-row-details[open] pre')!;
+      const jeton = pre.querySelector<HTMLElement>('span');
+
+      return {
+        survol: resume.matches(':hover'),
+        fond: getComputedStyle(resume).backgroundColor,
+        padding: getComputedStyle(pre).paddingTop,
+        jetonFont: jeton ? getComputedStyle(jeton).fontSize : null,
+        preFont: getComputedStyle(pre).fontSize,
+      };
+    });
+
+    // Le doigt laisse `:hover` vrai (c'est le piège) : le fond doit rester celui du repos.
+    expect(apresAppui.fond, `fond après appui : ${apresAppui.fond} (survol : ${apresAppui.survol})`).toBe(
+      'rgba(0, 0, 0, 0)',
+    );
+    expect(parseFloat(apresAppui.padding), `marge intérieure de ${apresAppui.padding}`).toBeLessThanOrEqual(10);
+    expect(apresAppui.preFont).toBe('12px');
+    expect(apresAppui.jetonFont, 'les jetons Shiki suivent le pre, pas la règle de coquille').toBe('12px');
   });
 
   test('Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible', async ({

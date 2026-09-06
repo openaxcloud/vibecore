@@ -526,3 +526,35 @@ describe('13. captures iPhone 06/09 14:10 : Déploiements « Gérer »', () => {
     expect(enfants).toMatch(/width:\s*auto/);
   });
 });
+
+describe('14. capture iPhone 06/09 14:10 : « Afficher la commande » après l’appui', () => {
+  it('le fond de survol n’existe pas là où le survol n’existe pas', () => {
+    /*
+     * Mesuré après un appui tactile réel : `:hover` reste vrai sur l'élément
+     * touché, et le résumé gardait le fond gris de survol des boutons. Le
+     * remède vit sous `@media (hover: none)`, pour toute la famille.
+     */
+    const debut = INDEX.indexOf('@media (hover: none) {\n  body\n    :where(button');
+
+    expect(debut, 'la remise à plat du survol tactile est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', INDEX.indexOf('{', debut + 24)) + 1);
+
+    expect(regle).toMatch(/:hover/);
+    expect(regle).toMatch(/background-color:\s*var\(--vc-button-bg\)/);
+  });
+
+  it('la commande dépliée est une ligne de code serrée, pas un bloc Markdown', () => {
+    const pre = bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre');
+
+    expect(pre).toMatch(/padding:\s*8px 10px/);
+    expect(pre).toMatch(/font-size:\s*12px/);
+
+    const jetons = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-action-row-details pre :where(span, code)',
+    );
+
+    // La règle de coquille impose 14 px `!important` à tout `span` : seule une règle plus forte et `!important` la bat.
+    expect(jetons).toMatch(/font-size:\s*12px\s*!important/);
+  });
+});
