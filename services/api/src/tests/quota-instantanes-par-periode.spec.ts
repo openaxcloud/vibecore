@@ -23,6 +23,7 @@ const JOUR = 24 * 60 * 60 * 1000;
 
 async function organisationAvecInstantanes(ages: readonly number[]) {
   const store = new TestApiStore();
+
   const proprietaire = await store.createUser({
     email: `q-${Math.random().toString(36).slice(2, 8)}@example.com`,
     passwordHash: 'x',
@@ -32,6 +33,7 @@ async function organisationAvecInstantanes(ages: readonly number[]) {
     slug: `org-${Math.random().toString(36).slice(2, 8)}`,
     ownerUserId: proprietaire.id,
   });
+
   const project = await store.createProject({ organizationId: org.id, name: 'Projet', slug: 'projet' });
 
   for (const joursEnArriere of ages) {
