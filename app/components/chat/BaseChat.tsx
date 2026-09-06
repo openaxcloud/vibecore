@@ -1154,9 +1154,11 @@ function previewPortCompactText(
 }
 
 /*
- * previewCommandFromLogs / devServerStatusText live in ./dev-server-status so
- * the BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing
- * this whole file (see dev-server-status.spec.ts).
+ * devServerStatusText lives in ./dev-server-status so the
+ * BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing this
+ * whole file (see dev-server-status.spec.ts). Its former `previewCommandFromLogs`
+ * fallback was removed: it recognised an English UI sentence that neither the
+ * current English copy nor the French one produces.
  */
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
@@ -4253,10 +4255,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
-          logs: workspaceLogs,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading, workspaceLogs],
+      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading],
     );
     const workspaceStatusLabel = useMemo(() => {
       // A live serving port means Running — beats a stale error or a lagging status.

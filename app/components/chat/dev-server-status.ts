@@ -7,18 +7,30 @@ import type { TFunction } from 'i18next';
  * chat surface.
  */
 
-function previewCommandFromLogs(logs: string[]) {
-  for (const log of [...logs].reverse()) {
-    const message = typeof log === 'string' ? log : '';
-    const match = message.match(/Starting preview with ([^\n]+)/i);
-
-    if (match?.[1]) {
-      return match[1].replace(/\s+in\s+.+$/i, '').trim();
-    }
-  }
-
-  return undefined;
-}
+/*
+ * REPLI PAR LES JOURNAUX SUPPRIMÉ — il était mort, et doublement.
+ *
+ * Il cherchait `/Starting preview with (.+)/i` dans les lignes de journal. Or :
+ *
+ *   1. le libellé réellement émis est `workbenchRuntime.preview.startCommand`,
+ *      soit « Starting **the** preview with … » en anglais — le motif ne
+ *      correspondait donc même pas à sa propre langue depuis une reformulation
+ *      que personne n'a répercutée ;
+ *   2. et en français il vaut « Démarrage de l'aperçu avec … », que le motif ne
+ *      pouvait structurellement pas reconnaître.
+ *
+ * Il rendait donc TOUJOURS `undefined`. Son spec ne l'exerçait jamais : tous ses
+ * cas passent `logs: []` — vérifié le 2026-09-06, zéro cas avec des journaux non
+ * vides. Un repli non testé et non fonctionnel n'est pas un filet, c'est une
+ * fausse assurance.
+ *
+ * `previewServerState.command` est la source STRUCTURÉE, déjà consultée en
+ * premier et insensible à la langue. La suppression est donc strictement sans
+ * effet observable — c'est ce que prouvent les cas « repli » du spec.
+ *
+ * Leçon générale : reconnaître un texte d'interface, c'est dépendre d'une chaîne
+ * que la traduction ET la réécriture font bouger sans prévenir personne.
+ */
 
 export function devServerStatusText(
   t: TFunction,
@@ -26,11 +38,10 @@ export function devServerStatusText(
     previews: Array<{ ready?: boolean; serving?: boolean }>;
     workspaceLoading: boolean;
     workspaceError?: string;
-    logs: string[];
     previewServerState: { status: string; command?: string; error?: string };
   },
 ) {
-  const command = input.previewServerState.command ?? previewCommandFromLogs(input.logs);
+  const command = input.previewServerState.command;
 
   /*
    * BUG-UX-DEV-BLOCKED-STUCK: a SERVING port (HTTP answers + live process —
