@@ -5,11 +5,34 @@ import { webcontainerRuntimeAdapter } from '~/lib/webcontainer';
 
 const RuntimeAdapterContext = createContext<RuntimeAdapter | undefined>(undefined);
 
-let cachedRuntimeToken: string | undefined;
-let cachedRuntimeTokenExpiry: number | undefined;
+/*
+ * AUDX-004: tickets are scoped to ONE project, so the cache is keyed by project.
+ * A single shared slot would hand project B the ticket minted for project A —
+ * which the API now rejects (scope mismatch), turning a stale cache into a hard
+ * 401 loop rather than a silent over-grant. Keyed, so neither happens.
+ */
+interface RuntimeTicketCacheEntry {
+  token?: string;
+  expiry?: number;
 
-// Coalesces concurrent /api/runtime-token refreshes (single-flight) — see resolveRuntimeAuthToken.
-let inflightTokenFetch: Promise<string | undefined> | undefined;
+  /* Coalesces concurrent refreshes for the same project (single-flight). */
+  inflight?: Promise<string | undefined>;
+}
+
+const runtimeTicketCache = new Map<string, RuntimeTicketCacheEntry>();
+
+function ticketCacheEntry(projectId: string): RuntimeTicketCacheEntry {
+  const existing = runtimeTicketCache.get(projectId);
+
+  if (existing) {
+    return existing;
+  }
+
+  const created: RuntimeTicketCacheEntry = {};
+  runtimeTicketCache.set(projectId, created);
+
+  return created;
+}
 
 /*
  * Re-fetch this long before the real expiry so a request never goes out with a
@@ -36,10 +59,23 @@ function readJwtExpiryMs(token: string): number | undefined {
   }
 }
 
-/** Drop the cached runtime token so the next resolve re-fetches a fresh one. */
-export function invalidateRuntimeToken() {
-  cachedRuntimeToken = undefined;
-  cachedRuntimeTokenExpiry = undefined;
+/** Drop cached runtime tickets so the next resolve re-fetches fresh ones. */
+export function invalidateRuntimeToken(projectId?: string) {
+  if (projectId) {
+    const entry = runtimeTicketCache.get(projectId);
+
+    if (entry) {
+      entry.token = undefined;
+      entry.expiry = undefined;
+    }
+
+    return;
+  }
+
+  for (const entry of runtimeTicketCache.values()) {
+    entry.token = undefined;
+    entry.expiry = undefined;
+  }
 }
 
 export interface RuntimeAdapterProviderProps extends PropsWithChildren {
@@ -88,7 +124,7 @@ export function createRuntimeAdapter(
   if (mode === 'remote-kubernetes') {
     return new RemoteKubernetesRuntimeAdapter({
       baseUrl: import.meta.env.RUNTIME_API_BASE_URL ?? import.meta.env.VITE_RUNTIME_API_BASE_URL ?? '/api/runtime',
-      authToken: resolveRuntimeAuthToken,
+      authToken: () => resolveRuntimeAuthToken(options.projectId ?? options.workspaceId),
 
       /*
        * Activate the adapter's token self-heal. Without this hook wired,
@@ -100,7 +136,7 @@ export function createRuntimeAdapter(
        * one from /api/runtime-token. Clearing the cache lets the next resolve
        * re-fetch, so an interrupted session recovers instead of storming.
        */
-      invalidateAuthToken: invalidateRuntimeToken,
+      invalidateAuthToken: () => invalidateRuntimeToken(options.projectId ?? options.workspaceId),
       workspaceId: options.workspaceId ?? options.projectId,
     });
   }
@@ -126,19 +162,31 @@ export function getRuntimeAdapter(): RuntimeAdapter {
 
 export const runtimeAdapter = getRuntimeAdapter();
 
-async function resolveRuntimeAuthToken() {
+async function resolveRuntimeAuthToken(projectId: string | undefined) {
   if (typeof window === 'undefined') {
     return undefined;
   }
 
-  const localToken = localStorage.getItem('runtime-auth-token');
-
-  if (localToken) {
-    return localToken;
+  /*
+   * Fail closed. A ticket has to name a project; minting one without a scope
+   * would restore exactly the unscoped credential this change removes.
+   */
+  if (!projectId) {
+    return undefined;
   }
 
-  if (cachedRuntimeToken && cachedRuntimeTokenExpiry && Date.now() < cachedRuntimeTokenExpiry) {
-    return cachedRuntimeToken;
+  const entry = ticketCacheEntry(projectId);
+
+  /*
+   * AUDX-004: a `runtime-auth-token` localStorage override used to short-circuit
+   * this whole function. localStorage is readable by any script on the origin,
+   * so it is the one place a runtime credential must never live — and it also
+   * bypassed expiry and the single-flight refresh below. Removed outright: the
+   * ticket comes from the server, or there is no ticket.
+   */
+
+  if (entry.token && entry.expiry && Date.now() < entry.expiry) {
+    return entry.token;
   }
 
   /*
@@ -148,15 +196,20 @@ async function resolveRuntimeAuthToken() {
    * the WS auth-close storm). If a refresh is already in flight, every concurrent
    * caller awaits the same promise.
    */
-  if (inflightTokenFetch) {
-    return inflightTokenFetch;
+  if (entry.inflight) {
+    return entry.inflight;
   }
 
-  // Expired (or never set): drop it so a stale token is never reused on reconnect.
-  invalidateRuntimeToken();
+  // Expired (or never set): drop it so a stale ticket is never reused on reconnect.
+  invalidateRuntimeToken(projectId);
 
   const fetchPromise = (async (): Promise<string | undefined> => {
-    const response = await fetch('/api/runtime-token', {
+    /*
+     * The ticket is scoped to a project, so the project has to be named at mint
+     * time. Without one the route fails closed (400) rather than issuing an
+     * unscoped credential.
+     */
+    const response = await fetch(`/api/runtime-token?projectId=${encodeURIComponent(projectId)}`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
@@ -182,21 +235,21 @@ async function resolveRuntimeAuthToken() {
       return undefined;
     }
 
-    cachedRuntimeToken = payload.token;
+    entry.token = payload.token;
 
     const expiry = readJwtExpiryMs(payload.token);
-    cachedRuntimeTokenExpiry = (expiry ?? Date.now() + RUNTIME_TOKEN_FALLBACK_TTL_MS) - RUNTIME_TOKEN_REFRESH_SKEW_MS;
+    entry.expiry = (expiry ?? Date.now() + RUNTIME_TOKEN_FALLBACK_TTL_MS) - RUNTIME_TOKEN_REFRESH_SKEW_MS;
 
-    return cachedRuntimeToken;
+    return entry.token;
   })();
 
-  inflightTokenFetch = fetchPromise;
+  entry.inflight = fetchPromise;
 
   try {
     return await fetchPromise;
   } finally {
-    if (inflightTokenFetch === fetchPromise) {
-      inflightTokenFetch = undefined;
+    if (entry.inflight === fetchPromise) {
+      entry.inflight = undefined;
     }
   }
 }
