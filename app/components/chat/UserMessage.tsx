@@ -151,25 +151,36 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
       {...menuContextuel.gestes}
     >
       <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
-        <div className="flex gap-3 mb-2">
-          {images.map((item, index) => (
-            <div
-              key={index}
-              className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden"
-            >
-              <div className="h-16 w-16 bg-transparent outline-none">
-                <img
-                  src={`data:${item.mimeType};base64,${item.data}`}
-                  alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
-                    count: formatChatResidualsNumber(index + 1, language),
-                  })}
-                  className="h-full w-full rounded-lg"
-                  style={{ objectFit: 'fill' }}
-                />
+        {/*
+          La rangée d'images n'est montée QUE s'il y a des images.
+
+          Rendue systématiquement, elle réservait sa marge basse — mesuré 7px
+          sous CHAQUE message de l'utilisateur, pour un conteneur vide. Sur un
+          fil de douze messages c'est une ligne de texte entière perdue en
+          blanc, et c'est exactement la plainte d'Avi : « pourquoi perdre tant
+          de place dans les bubbles ».
+        */}
+        {images.length > 0 ? (
+          <div className="flex gap-3 mb-2">
+            {images.map((item, index) => (
+              <div
+                key={index}
+                className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden"
+              >
+                <div className="h-16 w-16 bg-transparent outline-none">
+                  <img
+                    src={`data:${item.mimeType};base64,${item.data}`}
+                    alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
+                      count: formatChatResidualsNumber(index + 1, language),
+                    })}
+                    className="h-full w-full rounded-lg"
+                    style={{ objectFit: 'fill' }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : null}
         <Markdown html>{textContent}</Markdown>
       </div>
       {/*
