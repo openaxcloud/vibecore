@@ -104,7 +104,8 @@
     "electron:build:dist": "rimraf dist && pnpm electron:build:renderer && pnpm electron:build:deps && electron-builder --mwl",
     "platform:no-mocks": "node scripts/check-no-runtime-mocks.mjs",
     "parity:validate": "node scripts/parity/validate-registries.mjs",
-    "parity:collect": "node scripts/parity/collect-baseline.mjs"
+    "parity:collect": "node scripts/parity/collect-baseline.mjs",
+    "runbook:verify": "node scripts/verifier-runbook-executable.mjs"
   },
   "engines": {
     "node": ">=18.18.0"

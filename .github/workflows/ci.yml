@@ -178,6 +178,14 @@ jobs:
         timeout-minutes: 15
         run: pnpm --filter './services/**' build
 
+      # Le runbook de déploiement est lu quand la chaîne automatique est en panne
+      # — donc vite, la nuit, avec déjà un problème sur les bras. Quatre de ses
+      # prescriptions étaient inexécutables le 2026-09-06 sans que rien ne le
+      # signale : le code avait des contrôles, la documentation n'en avait aucun.
+      # VALIDATION SEULE : ce contrôle ne lance aucun déploiement.
+      - name: Le runbook de déploiement reste exécutable
+        run: pnpm run runbook:verify
+
       - name: Security checks
         run: |
           pnpm run platform:no-mocks
