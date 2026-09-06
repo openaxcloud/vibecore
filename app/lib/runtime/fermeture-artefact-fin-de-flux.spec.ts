@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { StreamingMessageParser, type ArtifactCallbackData } from './message-parser';
 
 /*
@@ -15,10 +15,12 @@ import { StreamingMessageParser, type ArtifactCallbackData } from './message-par
  * Même mécanisme que le défaut de juillet sur `</boltAction>` — une balise plus
  * haut, jamais vérifiée quand celle du dessous a été corrigée.
  */
-const OUVERTURE = '<boltArtifact id="a1" title="Application"><boltAction type="file" filePath="src/App.tsx">const x = 1;</boltAction>';
+const OUVERTURE =
+  '<boltArtifact id="a1" title="Application"><boltAction type="file" filePath="src/App.tsx">const x = 1;</boltAction>';
 
 function sonde() {
   const fermetures: ArtifactCallbackData[] = [];
+
   const parser = new StreamingMessageParser({
     callbacks: { onArtifactClose: (d) => fermetures.push(d) },
   });
