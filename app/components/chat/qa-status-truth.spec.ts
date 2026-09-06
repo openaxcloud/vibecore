@@ -86,23 +86,84 @@ describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une e
     );
   });
 
-  it('les signaux réels sont bien câblés depuis BaseChat', () => {
-    expect(baseChat).toMatch(/<ProgressCompilation[\s\S]{0,160}streaming=\{isStreaming\}/);
+  /*
+   * ─────────────────────────────────────────────────────────────────────────
+   * LE SITE D'APPEL — et pourquoi il est mesuré par CONTENANCE.
+   *
+   * Tout ce qui précède exécute `deriveProgressState` : c'est du comportement,
+   * et c'est solide. Ce qui suit ne peut pas l'être ici — il faudrait rendre
+   * BaseChat.tsx (23 000 lignes, 124 imports) pour observer les props passées.
+   * Le rendu de composants existe pourtant dans ce dépôt (241 specs importent
+   * `@testing-library/react`), donc l'obstacle est la TAILLE de ce composant,
+   * pas l'outillage. Le vrai remède serait d'extraire le calcul des props dans
+   * un module pur — comme `panel-payload-cache.ts` l'a été — et de le tester.
+   * Ce n'est pas fait ici : BaseChat.tsx est modifié par plusieurs sessions
+   * chaque jour, et un refactor de production n'a pas sa place dans un
+   * correctif de garde.
+   *
+   * En attendant : on ISOLE l'élément JSX, puis on vérifie que les props sont
+   * SUR CET ÉLÉMENT. La version précédente affirmait « `<ProgressCompilation`
+   * suivi, à moins de cent-soixante caractères, de `streaming={isStreaming}` » :
+   * une distance, que la lecture de texte ne peut pas honnêtement affirmer.
+   * Elle rougissait si l'on insérait une prop devant, et acceptait un
+   * `streaming={isStreaming}` posé sur un composant VOISIN.
+   */
+  const elementProgress = (() => {
+    const debut = baseChat.indexOf('<ProgressCompilation');
 
-    // BUG-AGENT-003 : `failed` porte désormais DEUX signaux, pas seulement l'erreur LLM.
-    expect(baseChat).toMatch(
-      /<ProgressCompilation[\s\S]{0,200}failed=\{Boolean\(llmErrorAlert\) \|\| agentRunFailed\}/,
+    if (debut === -1) {
+      return '';
+    }
+
+    let profondeur = 0;
+
+    for (let i = debut; i < baseChat.length; i++) {
+      if (baseChat[i] === '{') {
+        profondeur++;
+      } else if (baseChat[i] === '}') {
+        profondeur--;
+      } else if (profondeur === 0 && baseChat.startsWith('/>', i)) {
+        return baseChat.slice(debut, i + 2);
+      }
+    }
+
+    return '';
+  })();
+
+  it("l'élément JSX a bien été isolé, et il est unique", () => {
+    /*
+     * Règle 14 — un « 0 résultat » n'informe que si la recherche a fonctionné.
+     * Sans ce contrôle, un renommage du composant viderait l'extrait et toutes
+     * les contenances ci-dessous passeraient pour de mauvaises raisons.
+     */
+    expect(elementProgress, '<ProgressCompilation …/> introuvable').not.toBe('');
+    expect(elementProgress.length, 'extrait trop court pour porter quatre props').toBeGreaterThan(120);
+    expect(baseChat.match(/<ProgressCompilation/g) ?? [], 'un seul site d’appel attendu').toHaveLength(1);
+  });
+
+  it('CONTENANCE — les quatre signaux sont portés par CE composant', () => {
+    expect(elementProgress, 'le streaming').toMatch(/streaming=\{isStreaming\}/);
+
+    // BUG-AGENT-003 : `failed` porte DEUX signaux, pas seulement l'erreur LLM.
+    expect(elementProgress, 'l’échec, LLM ou run').toMatch(
+      /failed=\{Boolean\(llmErrorAlert\)\s*\|\|\s*agentRunFailed\}/,
     );
-    expect(baseChat).toMatch(/setAgentRunFailed\(isAgentRunFailed\(data\)\)/);
 
     /*
      * BUG-UX-AGENT-DONE-FALSE : `degraded` porte les TROIS signaux de santé —
      * orchestration dégradée, compteur d'erreurs Problèmes, alerte d'aperçu.
+     * Chacun est vérifié SÉPARÉMENT : en retirer un seul doit faire rougir,
+     * ce qu'une expression régulière d'un bloc entier ne garantissait pas.
      */
-    expect(baseChat).toMatch(/setAgentRunDegraded\(isAgentRunDegraded\(data\)\)/);
-    expect(baseChat).toMatch(
-      /degraded=\{\s*agentRunDegraded\s*\|\|\s*diagnosticErrorCount > 0\s*\|\|\s*Boolean\(actionAlert && actionAlert\.source === 'preview'\)\s*\}/,
-    );
+    expect(elementProgress, 'la dégradation d’orchestration').toContain('agentRunDegraded');
+    expect(elementProgress, 'les erreurs du panneau Problèmes').toContain('diagnosticErrorCount > 0');
+    expect(elementProgress, 'l’alerte d’aperçu').toContain("actionAlert.source === 'preview'");
+  });
+
+  it('les deux signaux d’exécution sont bien alimentés depuis le flux', () => {
+    /* Une prop câblée sur un état que rien ne met à jour ne vaut rien. */
+    expect(baseChat).toContain('setAgentRunFailed(isAgentRunFailed(data))');
+    expect(baseChat).toContain('setAgentRunDegraded(isAgentRunDegraded(data))');
   });
 });
 
