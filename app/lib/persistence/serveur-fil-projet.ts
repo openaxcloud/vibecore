@@ -66,12 +66,18 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
      * « message de chat » divergeraient sur les appels d'outils.
      */
     return projectAiMessagesToChatMessages(messages.messages);
-  } catch {
+  } catch (erreur) {
     /*
      * Un repli ne doit JAMAIS casser le chargement. Serveur lent, hors ligne,
      * corps illisible : on rend une liste vide et la chaîne continue vers
      * IndexedDB.
+     *
+     * Mais on le DIT. Un `catch` totalement muet est ce qui a rendu
+     * `provisionWorkspaceOnDemand` indiagnosticable — `void managerRequest(…)
+     * .catch(() => undefined)`, aucune trace, aucune remontée. Une ligne de
+     * journal coûte peu et évite un diagnostic à l'aveugle.
      */
+    console.debug('[fil serveur] repli indisponible, on continue vers IndexedDB', erreur);
     return [];
   }
 }
