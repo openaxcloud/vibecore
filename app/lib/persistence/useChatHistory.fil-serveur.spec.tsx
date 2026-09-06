@@ -121,6 +121,7 @@ describe('la restauration d’un projet consulte la banque serveur', () => {
      * lancé en arrière-plan, ce cas resterait bloqué — c'est exactement ce que
      * la mise en garde de la session QA demandait d'épingler.
      */
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- une promesse qui ne se résout JAMAIS : c'est le contrat testé
     mocks.completerFilSiVide.mockReturnValue(new Promise(() => {}));
 
     const { result } = renderHook(() => useChatHistory());

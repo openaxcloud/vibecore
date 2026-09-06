@@ -32,7 +32,12 @@ describe('chargerFilDepuisServeur', () => {
       'fetch',
       faussesReponses(
         { conversations: [{ id: 'conv-1' }] },
-        { messages: [{ id: 'm1', role: 'user', content: 'salut' }, { id: 'm2', role: 'assistant', content: 'bonjour' }] },
+        {
+          messages: [
+            { id: 'm1', role: 'user', content: 'salut' },
+            { id: 'm2', role: 'assistant', content: 'bonjour' },
+          ],
+        },
       ),
     );
 
@@ -46,17 +51,36 @@ describe('chargerFilDepuisServeur', () => {
 
   /* Un repli ne doit jamais casser le chargement : les trois façons d'échouer. */
   it('avale une réponse non-ok', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false }) as unknown as Response),
+    );
     await expect(chargerFilDepuisServeur('p1')).resolves.toEqual([]);
   });
 
   it('avale un réseau qui jette', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('hors ligne'); }));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('hors ligne');
+      }),
+    );
     await expect(chargerFilDepuisServeur('p1')).resolves.toEqual([]);
   });
 
   it('avale un corps illisible', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => { throw new Error('pas du json'); } }) as unknown as Response));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          ({
+            ok: true,
+            json: async () => {
+              throw new Error('pas du json');
+            },
+          }) as unknown as Response,
+      ),
+    );
     await expect(chargerFilDepuisServeur('p1')).resolves.toEqual([]);
   });
 });
@@ -86,7 +110,12 @@ describe('completerFilSiVide — la règle de priorité', () => {
   it('SANS la banque serveur, le même cas ne rend RIEN', async () => {
     const pose: Message[][] = [];
 
-    await completerFilSiVide([], 'p1', (m) => pose.push(m), async () => []);
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => [],
+    );
 
     expect(pose, "sans le serveur, l'appareil neuf reste sur un écran vide").toHaveLength(0);
   });
@@ -104,7 +133,12 @@ describe('completerFilSiVide — la règle de priorité', () => {
   it('un serveur en échec ne pose rien — l’affichage garde ce qu’il a', async () => {
     const pose: Message[][] = [];
 
-    await completerFilSiVide([], 'p1', (m) => pose.push(m), async () => []);
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => [],
+    );
 
     expect(pose).toHaveLength(0);
   });

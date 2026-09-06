@@ -1,5 +1,5 @@
-import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from '~/components/chat/projectAiTranscript';
 import type { Message } from 'ai';
+import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from '~/components/chat/projectAiTranscript';
 
 /*
  * LA BANQUE SERVEUR DU FIL — la seule des trois que la restauration ne
