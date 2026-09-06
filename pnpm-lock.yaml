@@ -247,6 +247,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.1.4
         version: 1.2.7(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@react-router/express':
+        specifier: ^7.18.0
+        version: 7.18.0(express@4.21.2)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3)
       '@react-router/fs-routes':
         specifier: ^7.18.0
         version: 7.18.0(@react-router/dev@7.18.0(@react-router/serve@7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1)))(typescript@5.8.3)
@@ -325,6 +328,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      compression:
+        specifier: ^1.8.1
+        version: 1.8.1
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
@@ -343,6 +349,9 @@ importers:
       electron-updater:
         specifier: ^6.3.9
         version: 6.6.2
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
@@ -403,6 +412,9 @@ importers:
       mongodb:
         specifier: ^7.2.0
         version: 7.2.0
+      morgan:
+        specifier: ^1.10.1
+        version: 1.10.1
       mysql2:
         specifier: ^3.22.3
         version: 3.22.3(@types/node@25.6.0)
@@ -16865,7 +16877,7 @@ snapshots:
       bytes: 3.1.2
       content-type: 1.0.5
       debug: 4.4.3
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       iconv-lite: 0.7.2
       on-finished: 2.4.1
       qs: 6.15.1
@@ -21836,7 +21848,7 @@ snapshots:
       escape-html: 1.0.3
       etag: 1.8.1
       fresh: 2.0.0
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       mime-types: 3.0.1
       ms: 2.1.3
       on-finished: 2.4.1
