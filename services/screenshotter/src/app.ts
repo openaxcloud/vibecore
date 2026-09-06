@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 
+import { checkOutboundUrl } from '@vibecore/security';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
 import { PageRenderError } from './browser.js';
@@ -32,6 +33,9 @@ export interface ScreenshotterOptions {
    */
   allowedHostSuffixes?: string[];
 
+  /** Injected in tests; defaults to a real DNS lookup inside checkOutboundUrl. */
+  resolveHost?: (hostname: string) => Promise<string[]>;
+
   /** Max simultaneous renders (Chromium is heavy). Excess requests queue. */
   maxConcurrency?: number;
 
@@ -46,16 +50,6 @@ function bearerOk(header: string | undefined, secret: string): boolean {
   const expected = Buffer.from(secret);
 
   return provided.length === expected.length && timingSafeEqual(provided, expected);
-}
-
-function hostAllowed(hostname: string, suffixes: string[]): boolean {
-  const host = hostname.toLowerCase();
-
-  return suffixes.some((raw) => {
-    const suffix = raw.toLowerCase().replace(/^\.+/, '');
-
-    return host === suffix || host.endsWith(`.${suffix}`);
-  });
 }
 
 /** Minimal FIFO semaphore so at most `max` renders run at once. */
@@ -109,8 +103,29 @@ export async function buildScreenshotterApp(options: ScreenshotterOptions): Prom
       return reply.code(400).send({ error: 'unsupported protocol' });
     }
 
-    if (allow.length > 0 && !hostAllowed(parsed.hostname, allow)) {
-      return reply.code(403).send({ error: 'host not allowed' });
+    /*
+     * AUDX-006 — SSRF guard, fail-closed.
+     *
+     * This used to read `allow.length > 0 && !hostAllowed(...)`: with an EMPTY
+     * allowlist the check was skipped entirely and /capture became an open
+     * renderer against any address the pod can reach — including
+     * 169.254.169.254, the cloud metadata endpoint. The comment in server.ts
+     * said the allowlist "MUST be set in production"; nothing enforced it.
+     *
+     * checkOutboundUrl also resolves the hostname and rejects when it points at
+     * a private/link-local/metadata address, which a string suffix check cannot
+     * see: an attacker-controlled subdomain of an allowed suffix is an ordinary
+     * A record.
+     */
+    const rejection = await checkOutboundUrl(parsed.toString(), {
+      allowedHostSuffixes: allow,
+      resolveHost: options.resolveHost,
+    });
+
+    if (rejection) {
+      request.log.warn({ url: parsed.toString(), rejection }, 'screenshot refused by SSRF guard');
+
+      return reply.code(403).send({ error: 'host not allowed', code: rejection });
     }
 
     await gate.acquire();
