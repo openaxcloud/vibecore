@@ -2675,7 +2675,6 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-
   async listActiveWorkspaces(organizationId: string) {
     return (
       await this.prisma.workspace.findMany({
@@ -2688,7 +2687,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapWorkspace);
   }
 
-  async countSnapshots(organizationId: string) {
+  async countSnapshots(organizationId: string, since?: Date) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
      * snapshots.count quota. They are created automatically on every AI
@@ -2697,8 +2696,17 @@ export class PrismaApiStore implements ApiStore {
      * manual snapshot endpoint even though they took no manual snapshots
      * (self-lockout). The quota governs user-initiated snapshots only.
      */
+    /*
+     * `since` borne le compte à la période d'usage courante. Sans lui, le total
+     * était monotone et finissait par fermer définitivement le retour arrière —
+     * exactement le piège décrit sur `countDeployments` juste en dessous.
+     */
     return this.prisma.projectSnapshot.count({
-      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+      where: {
+        project: { organizationId, deletedAt: null },
+        kind: { not: 'before-ai-change' },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 

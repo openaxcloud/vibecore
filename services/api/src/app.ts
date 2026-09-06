@@ -2122,10 +2122,9 @@ function chatShareTokenSecret() {
  * Verification accepts every returned secret (rotation); minting uses the first.
  */
 function deploymentAccessTokenSecrets(): string[] {
-  const explicit = [
-    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET,
-    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET_OLD,
-  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+  const explicit = [process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET, process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET_OLD].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
 
   if (explicit.length > 0) {
     return explicit;
@@ -4239,7 +4238,6 @@ function normalizeProjectPath(path?: string) {
   return normalized;
 }
 
-
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
  * expose the same `.state` payload, and downstream readers only touch that
@@ -4501,7 +4499,9 @@ async function persistProjectFileEntry(
   }
 
   await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => {
-    const etat = (existing?.state ?? {}) as { files?: { entries?: Array<{ path: string; content: string; encoding?: 'base64' }> } };
+    const etat = (existing?.state ?? {}) as {
+      files?: { entries?: Array<{ path: string; content: string; encoding?: 'base64' }> };
+    };
     const entrees = Array.isArray(etat.files?.entries) ? [...etat.files!.entries!] : [];
     const entree = {
       path: chemin,
@@ -4560,7 +4560,6 @@ function persistedIdeMessageContent(message: unknown) {
     .filter(Boolean)
     .join('\n');
 }
-
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
@@ -5128,7 +5127,6 @@ const PROVIDER_KEY_ENV: Record<string, string> = {
 
 /** Local/keyless providers that are "ready" once enabled, no platform key needed. */
 const KEYLESS_LLM_PROVIDERS = new Set(['LMStudio', 'Ollama']);
-
 
 /*
  * Map the ai-gateway's provider `id` (services/ai-gateway/src/gateway.ts:
@@ -8616,8 +8614,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return (releases.at(0)?.metadata as Record<string, unknown> | undefined)?.access;
   };
 
-
-
   /*
    * When a caller injects its own staticBuildRunner (unit/integration tests), it
    * wants the in-process build path — skip the workspace-pod build entirely so
@@ -8916,8 +8912,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * preuve live à 2 instances.
    */
   const isTestRuntime = Boolean(process.env.VITEST) || process.env.NODE_ENV === 'test';
-  const rateLimitKeyPrefix =
-    process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
+  const rateLimitKeyPrefix = process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
 
   /*
    * SOUS TEST, on n'utilise PAS le store partagé (sauf RATE_LIMIT_FORCE_SHARED=1).
@@ -9198,11 +9193,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * réessayer, et l'astreinte le distingue d'une panne de code.
      */
     if (error instanceof RateLimitStoreUnavailableError) {
-      return reply.code(503).header('retry-after', '5').send({
-        error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
-        code: error.code,
-        retryable: true,
-      });
+      return reply
+        .code(503)
+        .header('retry-after', '5')
+        .send({
+          error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
+          code: error.code,
+          retryable: true,
+        });
     }
 
     /*
@@ -9279,7 +9277,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const deploymentId = ((request.params as { deploymentId?: string }).deploymentId ?? '').trim();
 
     if (!/^[A-Za-z0-9_-]{1,80}$/.test(deploymentId)) {
-      return reply.code(400).send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
+      return reply
+        .code(400)
+        .send({ error: appPublicEnglish('STATIC_DEPLOY_INVALID_ID'), code: 'STATIC_DEPLOY_INVALID_ID' });
     }
 
     const body = (request.body ?? {}) as { password?: unknown };
@@ -9288,7 +9288,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
 
     if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
-      return reply.code(404).send({ error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'), code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+      return reply.code(404).send({
+        error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
+        code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
+      });
     }
 
     // Every response on this credential-checking route is per-request: never cache.
@@ -9299,7 +9302,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // SEC-1: a gated deployment with a missing/corrupt hash is LOCKED — it cannot
     // be unlocked (there is no valid password to match), and must never open.
     if (access.mode === 'locked') {
-      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
+      return reply.code(503).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_LOCKED',
+      });
     }
 
     // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
@@ -9308,7 +9314,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (!password || !verifyPassword(password, access.passwordHash)) {
-      return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_INCORRECT', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+      return reply.code(401).send({
+        error: appPublicCopy('DEPLOYMENT_PASSWORD_INCORRECT', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_PASSWORD_INCORRECT',
+      });
     }
 
     // SEC-5/6: an EXPIRING token (server-verified) signed with the DEDICATED key.
@@ -9448,7 +9457,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     // SEC-1: a locked deployment (password mode, hash gone) serves nothing.
     if (access.mode === 'locked') {
-      return reply.code(503).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_LOCKED' });
+      return reply.code(503).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_LOCKED', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_LOCKED',
+      });
     }
 
     if (access.mode === 'password' && access.passwordHash) {
@@ -9465,7 +9477,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             .send(accessGateHtml());
         }
 
-        return reply.code(401).send({ error: appPublicCopy('DEPLOYMENT_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_PASSWORD_REQUIRED' });
+        return reply.code(401).send({
+          error: appPublicCopy('DEPLOYMENT_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)),
+          code: 'DEPLOYMENT_PASSWORD_REQUIRED',
+        });
       }
     }
 
@@ -10874,11 +10889,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (error instanceof RateLimitStoreUnavailableError) {
           request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
 
-          return reply.code(503).header('retry-after', '5').send({
-            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
-            code: 'RATE_LIMIT_STORE_UNAVAILABLE',
-            retryable: true,
-          });
+          return reply
+            .code(503)
+            .header('retry-after', '5')
+            .send({
+              error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
+              code: 'RATE_LIMIT_STORE_UNAVAILABLE',
+              retryable: true,
+            });
         }
 
         throw error;
@@ -15973,11 +15991,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const corpsAmont = (await response.json().catch(() => undefined)) as
         | { error?: unknown; code?: unknown }
         | undefined;
-      const mappee = mapperErreurPasserelle(
-        response.status,
-        corpsAmont,
-        appPublicEnglish('AI_GATEWAY_REQUEST_FAILED'),
-      );
+      const mappee = mapperErreurPasserelle(response.status, corpsAmont, appPublicEnglish('AI_GATEWAY_REQUEST_FAILED'));
 
       throw Object.assign(new Error(mappee.message), {
         statusCode: mappee.statusCode,
@@ -16082,7 +16096,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'snapshots.count') {
-      return store.countSnapshots(organizationId);
+      /*
+       * PER-PERIOD, comme `deployments.count` juste en dessous et comme les
+       * `ai.*`. Prendre un instantané est une action RÉCURRENTE, pas une
+       * ressource qu'on détient : la compter pour TOUTE LA VIE de l'organisation
+       * faisait grimper le total de façon monotone et fermait définitivement le
+       * retour arrière une fois le plafond du plan atteint.
+       *
+       * Mesuré en production le 2026-09-06 : 125 organisations sur 303 au plafond
+       * de 5 ou au-dessus, dont une à 3 451 instantanés. Pour elles, plus aucun
+       * instantané n'était créable — y compris dans un projet NEUF à zéro
+       * instantané, puisque le compte porte sur l'organisation entière.
+       *
+       * Sur une plateforme où l'agent réécrit le code, cela revenait à supprimer
+       * le retour arrière définitivement après cinq usages.
+       *
+       * Le volume reste borné par `snapshots.sizeMb`, qui gouverne le stockage ;
+       * cette clé-ci ne gouverne que le RYTHME de création.
+       *
+       * Le même défaut avait été diagnostiqué et corrigé pour `deployments`, avec
+       * le commentaire qui le nomme — il n'avait pas été reporté sur la voisine.
+       */
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+
+      return store.countSnapshots(organizationId, periodStart);
     }
 
     if (key === 'deployments.count') {
@@ -17301,7 +17338,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       try {
         await persistProjectFileEntry(store, authorized.projectId, body, request.currentUser?.id);
       } catch (error) {
-        request.log.error({ err: error, projectId: authorized.projectId, path: body.path }, 'project manifest persist failed');
+        request.log.error(
+          { err: error, projectId: authorized.projectId, path: body.path },
+          'project manifest persist failed',
+        );
       }
     }
     await audit(request, store, {
@@ -19896,12 +19936,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const members = await store.listMembers(orgId);
 
       if (members.some((existingMember) => (existingMember.userEmail ?? '').trim().toLowerCase() === inviteEmail)) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_MEMBER',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_MEMBER',
+        });
       }
 
       /*
@@ -19920,12 +19958,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (hasPending) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_INVITED',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_INVITED',
+        });
       }
 
       const token = createOpaqueToken('invite');
@@ -24907,7 +24943,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_QUIESCE_TIMEOUT_MS, thawGuaranteed: true })) {
       await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: 'quiesce inadmissible' });
       await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' });
-      return { ok: false, code: 'CHECKPOINT_QUIESCE_INADMISSIBLE', error: 'quiesce without finite timeout + guaranteed thaw' };
+      return {
+        ok: false,
+        code: 'CHECKPOINT_QUIESCE_INADMISSIBLE',
+        error: 'quiesce without finite timeout + guaranteed thaw',
+      };
     }
 
     const barrierId = `bar_${randomUUID()}`;
@@ -24955,7 +24995,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const fileSnapshot = await store.createSnapshot({
         projectId,
         kind: 'manual',
-        manifest: { checkpoint: true, files: files.map((f) => f.path), logicalBarrierId: barrierId, contentHash: filesHash },
+        manifest: {
+          checkpoint: true,
+          files: files.map((f) => f.path),
+          logicalBarrierId: barrierId,
+          contentHash: filesHash,
+        },
         storageKey: archive.storageKey,
         byteLength: archive.byteLength,
         createdByUserId: request.currentUser?.id,
@@ -25121,13 +25166,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.post('/projects/:projectId/checkpoints', async (request, reply) => {
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
     const result = await runProjectCheckpoint({ request, projectId: project.id });
 
     if (!result.ok) {
-      return reply.status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500).send({ error: result.error, code: result.code });
+      return reply
+        .status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500)
+        .send({ error: result.error, code: result.code });
     }
 
     const ckpt = await store.getProjectCheckpoint(result.checkpointId);
@@ -25135,12 +25187,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
-    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id) {
-      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({
+        error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_NOT_FOUND',
+      });
     }
 
     return { checkpoint: ckpt };
@@ -25152,14 +25215,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
    */
   app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
-    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
-      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({
+        error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_NOT_FOUND',
+      });
     }
 
     const manifest = ckpt.manifest as {
@@ -25169,13 +25243,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
-      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+      return reply.status(422).send({
+        error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_NO_FILES',
+      });
     }
 
     const snapshot = await store.getSnapshot(filesComponent.snapshotId);
 
     if (!snapshot) {
-      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+      return reply.status(409).send({
+        error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_SNAPSHOT_MISSING',
+      });
     }
 
     const files = await getSnapshotFiles(snapshot);
@@ -25203,7 +25283,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
     });
 
-    return { restoreVerified: matches, restoredHash, expectedHash: manifest.contentHashes.files, targetProjectId: target.id };
+    return {
+      restoreVerified: matches,
+      restoredHash,
+      expectedHash: manifest.contentHashes.files,
+      targetProjectId: target.id,
+    };
   });
 
   /*
@@ -25221,14 +25306,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    *   4. un hash divergent renvoie 409 et le dit — jamais un succès silencieux.
    */
   app.post('/projects/:projectId/checkpoints/:checkpointId/restore', async (request, reply) => {
-    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
     await requireOrg(request, store, project.organizationId, 'projects:write');
 
-    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
     const ckpt = await store.getProjectCheckpoint(ckptId);
 
     if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
-      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+      return reply.status(404).send({
+        error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_NOT_FOUND',
+      });
     }
 
     const manifest = ckpt.manifest as {
@@ -25239,13 +25335,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
-      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+      return reply.status(422).send({
+        error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_NO_FILES',
+      });
     }
 
     const snapshot = await store.getSnapshot(filesComponent.snapshotId);
 
     if (!snapshot) {
-      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+      return reply.status(409).send({
+        error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)),
+        code: 'CHECKPOINT_SNAPSHOT_MISSING',
+      });
     }
 
     const files = await getSnapshotFiles(snapshot);
@@ -29980,14 +30082,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * fournisseur pour la rotation. Aucun champ de saisie ne lui correspond.
    */
   const AI_PROVIDERS = [
-    { provider: 'anthropic', displayName: 'Anthropic', envVar: 'ANTHROPIC_API_KEY',
-      tokenConsoleUrl: 'https://console.anthropic.com/settings/keys' },
-    { provider: 'xai', displayName: 'xAI', envVar: 'XAI_API_KEY',
-      tokenConsoleUrl: 'https://console.x.ai' },
-    { provider: 'moonshot', displayName: 'Moonshot', envVar: 'MOONSHOT_API_KEY',
-      tokenConsoleUrl: 'https://platform.moonshot.cn/console/api-keys' },
-    { provider: 'google', displayName: 'Google Gemini', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
-      tokenConsoleUrl: 'https://aistudio.google.com/apikey' },
+    {
+      provider: 'anthropic',
+      displayName: 'Anthropic',
+      envVar: 'ANTHROPIC_API_KEY',
+      tokenConsoleUrl: 'https://console.anthropic.com/settings/keys',
+    },
+    { provider: 'xai', displayName: 'xAI', envVar: 'XAI_API_KEY', tokenConsoleUrl: 'https://console.x.ai' },
+    {
+      provider: 'moonshot',
+      displayName: 'Moonshot',
+      envVar: 'MOONSHOT_API_KEY',
+      tokenConsoleUrl: 'https://platform.moonshot.cn/console/api-keys',
+    },
+    {
+      provider: 'google',
+      displayName: 'Google Gemini',
+      envVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
+      tokenConsoleUrl: 'https://aistudio.google.com/apikey',
+    },
   ] as const;
 
   /**
@@ -36014,7 +36127,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     if (body.mode === 'password' && !body.password) {
-      return reply.code(400).send({ error: appPublicCopy('DEPLOYMENT_ACCESS_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)), code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED' });
+      return reply.code(400).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_PASSWORD_REQUIRED', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_PASSWORD_REQUIRED',
+      });
     }
 
     const project = await requireProject(request, store, projectId, 'projects:write');
@@ -36101,9 +36217,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * static — other providers' URLs are unaffected by access mode.
      */
     const nextUrl =
-      deployment.provider === 'static'
-        ? buildDeploymentUrl(project, { ...deployment, metadata })
-        : deployment.url;
+      deployment.provider === 'static' ? buildDeploymentUrl(project, { ...deployment, metadata }) : deployment.url;
 
     const updated = await store.updateDeployment(project.id, deployment.id, {
       metadata,
