@@ -836,6 +836,103 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       expect(m.sw, `pastille « ${m.text} » tronquée`).toBeLessThanOrEqual(m.cw + 1);
     }
   });
+  test('zone de saisie : les menus « Agent » et « Économique » se rendent hors du composeur, visibles à l’écran', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+
+    /*
+     * Avi, 06/09 17:57 : « quand on ouvre le menu on voit rien ». Rendus dans
+     * le composeur, les menus étaient bornés par ses ancêtres (confinement,
+     * collant, défilement) ; sur iPhone ils restaient derrière lui. Ils se
+     * rendent désormais à la racine du gabarit mobile.
+     */
+    for (const [nom, declencheur, selecteur] of [
+      ['Agent', page.locator('.bolt-chatbox-mode-trigger').first(), '.bolt-chatbox-mode-menu'],
+      ['Économique', page.locator('.bolt-composer-chip').first(), '.bolt-agent-power-popover'],
+    ] as const) {
+      await expect(declencheur).toBeVisible({ timeout: 30_000 });
+      await expect(declencheur).toBeEnabled({ timeout: 30_000 });
+
+      const menu = page.locator(selecteur).first();
+
+      // Le composeur finit de s'armer après son affichage : un premier appui peut tomber trop tôt.
+      for (let essai = 0; essai < 3 && !(await menu.isVisible().catch(() => false)); essai += 1) {
+        const boite = await declencheur.boundingBox();
+
+        await page.touchscreen.tap(
+          (boite?.x ?? 0) + (boite?.width ?? 0) / 2,
+          (boite?.y ?? 0) + (boite?.height ?? 0) / 2,
+        );
+        await page.waitForTimeout(700);
+      }
+
+      await expect(menu, `menu « ${nom} »`).toBeVisible({ timeout: 10_000 });
+
+      const place = await menu.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+
+        return {
+          top: Math.round(r.top),
+          bottom: Math.round(r.bottom),
+          vh: innerHeight,
+          dansComposeur: Boolean(el.closest('.bolt-project-agent-composer, .bolt-project-chatbox')),
+          dansRacineMobile: Boolean(el.closest('.bolt-responsive-ide-mobile')),
+          parentConfine: Boolean(
+            [
+              ...(function* () {
+                let p = el.parentElement;
+
+                while (p) {
+                  yield p;
+                  p = p.parentElement;
+                }
+              })(),
+            ].find((p) => getComputedStyle(p).containerType !== 'normal'),
+          ),
+        };
+      });
+
+      expect(place.dansComposeur, `menu « ${nom} » encore rendu dans le composeur`).toBe(false);
+      expect(place.dansRacineMobile, `menu « ${nom} » hors du gabarit mobile : ses règles ne s’appliquent plus`).toBe(
+        true,
+      );
+      expect(place.parentConfine, `menu « ${nom} » sous un ancêtre confiné`).toBe(false);
+      expect(place.top).toBeGreaterThanOrEqual(0);
+      expect(place.bottom, `menu « ${nom} » bas à ${place.bottom}px pour ${place.vh}px`).toBeLessThanOrEqual(place.vh);
+
+      /*
+       * Un appui DANS le menu ne le referme pas : le portail sort le menu de
+       * l'ancre qui servait de test « dehors ». Le menu de mode se ferme sur
+       * choix (voulu) ; le panneau de puissance reste ouvert après un choix
+       * de palier, et se ferme par son déclencheur.
+       */
+      const entree = menu.locator('button').first();
+      const libelleEntree = (await entree.textContent())?.trim() ?? '';
+      const boiteEntree = await entree.boundingBox();
+
+      await page.touchscreen.tap(
+        (boiteEntree?.x ?? 0) + (boiteEntree?.width ?? 0) / 2,
+        (boiteEntree?.y ?? 0) + (boiteEntree?.height ?? 0) / 2,
+      );
+      await page.waitForTimeout(500);
+
+      if (selecteur === '.bolt-chatbox-mode-menu') {
+        await expect(menu, 'le menu de mode se ferme sur choix').toBeHidden({ timeout: 5_000 });
+        await expect(declencheur, `le choix « ${libelleEntree} » a été pris`).toContainText(libelleEntree.slice(0, 5));
+      } else {
+        await expect(menu, 'le panneau de puissance reste ouvert après un appui dedans').toBeVisible();
+
+        // La feuille recouvre son déclencheur : on la ferme comme au doigt, par un appui au-dessus d'elle, dans le fil.
+        const boiteFeuille = await menu.boundingBox();
+
+        await page.touchscreen.tap(195, Math.max(120, (boiteFeuille?.y ?? 400) - 40));
+        await expect(menu, 'un appui hors de la feuille la ferme').toBeHidden({ timeout: 5_000 });
+      }
+    }
+  });
 });
 
 /*

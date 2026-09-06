@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { cibleFeuilleMobile } from './feuille-mobile';
 import { formatChatBoxChildrenCopy, getChatBoxChildrenCopy } from '~/lib/i18n/catalogs/chat-box-children';
 import { classNames } from '~/utils/classNames';
 
@@ -47,6 +49,7 @@ export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatB
 
   const [open, setOpen] = useState(false);
   const anchorRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const menuId = useId();
 
   const current: ComposerMode = agentMode === 'assistant' ? 'assistant' : 'agent';
@@ -58,9 +61,14 @@ export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatB
     }
 
     const onPointerDown = (event: MouseEvent) => {
-      if (anchorRef.current && !anchorRef.current.contains(event.target as Node)) {
-        setOpen(false);
+      const cible = event.target as Node;
+
+      // Le menu peut vivre hors de l'ancre (portail mobile) : un appui dedans n'est pas « dehors ».
+      if (anchorRef.current?.contains(cible) || menuRef.current?.contains(cible)) {
+        return;
       }
+
+      setOpen(false);
     };
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -104,37 +112,51 @@ export function ChatBoxModeDropdown({ agentMode, setAgentMode, disabled }: ChatB
         <span className="i-ph:caret-up text-xs" aria-hidden />
       </button>
 
-      {open ? (
-        <div
-          id={menuId}
-          className="bolt-chatbox-mode-menu overflow-x-hidden"
-          role="menu"
-          aria-label={copy['chatBoxChildren.mode.menuAria']}
-        >
-          {modeOptions.map((option) => {
-            const active = option.id === current;
+      {open
+        ? porterSurTelephone(
+            <div
+              id={menuId}
+              ref={menuRef}
+              className="bolt-chatbox-mode-menu overflow-x-hidden"
+              role="menu"
+              aria-label={copy['chatBoxChildren.mode.menuAria']}
+            >
+              {modeOptions.map((option) => {
+                const active = option.id === current;
 
-            return (
-              <button
-                key={option.id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                className="bolt-chatbox-mode-menu-item"
-                data-active={active ? 'true' : 'false'}
-                onClick={() => selectMode(option.id)}
-              >
-                <span className={classNames(option.icon, 'bolt-chatbox-mode-menu-item-icon')} aria-hidden />
-                <span className="bolt-chatbox-mode-menu-item-body break-words">
-                  <span className="bolt-chatbox-mode-menu-item-label break-words">{option.label}</span>
-                  <span className="bolt-chatbox-mode-menu-item-desc break-words">{option.description}</span>
-                </span>
-                {active ? <span className="i-ph:check bolt-chatbox-mode-menu-item-check" aria-hidden /> : null}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={active}
+                    className="bolt-chatbox-mode-menu-item"
+                    data-active={active ? 'true' : 'false'}
+                    onClick={() => selectMode(option.id)}
+                  >
+                    <span className={classNames(option.icon, 'bolt-chatbox-mode-menu-item-icon')} aria-hidden />
+                    <span className="bolt-chatbox-mode-menu-item-body break-words">
+                      <span className="bolt-chatbox-mode-menu-item-label break-words">{option.label}</span>
+                      <span className="bolt-chatbox-mode-menu-item-desc break-words">{option.description}</span>
+                    </span>
+                    {active ? <span className="i-ph:check bolt-chatbox-mode-menu-item-check" aria-hidden /> : null}
+                  </button>
+                );
+              })}
+            </div>,
+          )
+        : null}
     </div>
   );
+}
+
+/*
+ * Sur téléphone, la feuille se rend à la racine du gabarit mobile — hors du
+ * composeur et de ses ancêtres qui bornent un élément fixé (voir
+ * feuille-mobile.ts). Sur bureau, elle reste ancrée à son déclencheur.
+ */
+function porterSurTelephone(menu: React.ReactElement) {
+  const cible = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+
+  return cible ? createPortal(menu, cible) : menu;
 }
