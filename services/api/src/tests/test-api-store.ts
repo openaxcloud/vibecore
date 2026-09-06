@@ -1658,9 +1658,21 @@ export class TestApiStore implements ApiStore {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
-  async countSnapshots(organizationId: string) {
+  /*
+   * FIDÈLE À `since`, délibérément.
+   *
+   * Ce double l'ignorait. Un double qui laisse tomber la contrainte rend le test
+   * VERT quel que soit le code : on ne peut plus distinguer « la fenêtre est
+   * respectée » de « la fenêtre n'existe pas ». Le quota d'instantanés était
+   * précisément un compteur À VIE, et aucun test ne pouvait l'attraper.
+   */
+  async countSnapshots(organizationId: string, since?: Date) {
     const projectIds = this.#orgProjectIds(organizationId);
-    return [...this.snapshots.values()].filter((snapshot) => projectIds.has(snapshot.projectId)).length;
+
+    return [...this.snapshots.values()].filter(
+      (snapshot) =>
+        projectIds.has(snapshot.projectId) && (!since || new Date(snapshot.createdAt).getTime() >= since.getTime()),
+    ).length;
   }
 
   async countDeployments(organizationId: string) {
@@ -2615,10 +2627,7 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
-  async putImportStagedFiles(
-    importJobId: string,
-    files: Array<{ path: string; content: string; encoding?: string }>,
-  ) {
+  async putImportStagedFiles(importJobId: string, files: Array<{ path: string; content: string; encoding?: string }>) {
     this.importStagedFiles.set(
       importJobId,
       files.map((file) => ({ ...file })),

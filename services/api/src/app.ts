@@ -16082,7 +16082,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'snapshots.count') {
-      return store.countSnapshots(organizationId);
+      /*
+       * PER-PERIOD, comme `deployments.count` juste en dessous. Le comptage à vie
+       * transformait une allocation renouvelable en plafond définitif : 125
+       * organisations sur 303 étaient au plafond de 5 ou au-dessus, dont une à
+       * 3 451 instantanés — bloquées pour toujours, sans qu'aucune période ne
+       * rouvre quoi que ce soit.
+       */
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+
+      return store.countSnapshots(organizationId, periodStart);
     }
 
     if (key === 'deployments.count') {
