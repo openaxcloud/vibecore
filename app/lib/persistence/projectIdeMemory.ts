@@ -99,6 +99,42 @@ export interface ProjectIdeMemory {
       aiFallback?: boolean;
       aiFallbackReason?: string;
     } | null;
+
+    /*
+     * LE PROMPT N'EST JAMAIS DÉTRUIT.
+     *
+     * `pendingPrompt` était mis à `null` par deux chemins distincts, sans trace.
+     * Mesuré en production le 2026-09-06 : sur 22 projets échoués — créés depuis
+     * un prompt, aucune application produite — impossible de distinguer « jamais
+     * écrit » de « effacé ». Sept portaient `null`, trois n'avaient pas la clé, et
+     * rien ne disait lequel des deux effaceurs était passé. Ce trou de diagnostic
+     * a coûté une enquête entière sur un projet réel.
+     *
+     * Le prompt est désormais DÉPLACÉ ici plutôt que supprimé :
+     *   - `reason` dit QUI a effacé, `clearedAt` QUAND ;
+     *   - et la récupération reste possible, ce dont a précisément besoin le
+     *     bouton « Générer l'application ».
+     *
+     * Aucun risque de fuite : ce champ vit dans `ProjectIdeState`, côté serveur,
+     * jamais dans un fichier de projet. C'est la raison même pour laquelle
+     * BUG-QA-PROMPT-IN-README a sorti le prompt du README, qui lui est exporté
+     * en ZIP et commité chez l'utilisateur.
+     */
+    consumedPrompt?: {
+      id: string;
+      prompt: string;
+      model?: string;
+      provider?: string;
+      createdAt: string;
+      aiFallback?: boolean;
+      aiFallbackReason?: string;
+
+      /** Horodatage de l'effacement. */
+      clearedAt: string;
+
+      /** Qui a effacé : génération aboutie, ou rejeu jugé inutile. */
+      reason: 'generated' | 'skipped-existing-app';
+    } | null;
     conversations?: Array<{
       id: string;
       title?: string;
