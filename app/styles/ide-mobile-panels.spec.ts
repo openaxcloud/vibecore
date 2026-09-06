@@ -611,3 +611,46 @@ describe('16. audit du 06/09 : Sécurité, « Dernière analyse » sort de l’�
     ).toBeGreaterThanOrEqual(2);
   });
 });
+
+describe('17. captures iPhone 06/09 17:56 : « ontexte », onglet « Fabrication » recouvert', () => {
+  it('le déclencheur « Contexte » suit son libellé au lieu d’une boîte de 32 px', () => {
+    const declencheur = dernierBloc('.bolt-message-context-trigger');
+
+    expect(declencheur).toMatch(/width:\s*auto/);
+    expect(declencheur).toMatch(/min-width:\s*32px/);
+    expect(declencheur).not.toMatch(/\n\s*width:\s*32px/);
+  });
+
+  it('les portées des variables d’environnement se replient : bande pleine largeur, bouton dessous', () => {
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes')).toMatch(
+      /flex-wrap:\s*wrap/,
+    );
+
+    const debut = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes .bolt-project-tool-tabs,',
+    );
+
+    expect(debut).toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/flex:\s*1 1 100%/);
+    expect(regle).toMatch(/bolt-project-env-diff-toggle/);
+  });
+
+  it('le bouton « modifier et renvoyer » n’a plus d’infobulle : son libellé est dans le menu', () => {
+    /*
+     * Capture 17:57 : « Modifier et renvoyer ce message » flottait sous le
+     * menu au doigt. Deux verrous : plus d'attribut sur le bouton, et une
+     * règle qui éteint toute infobulle dans le menu.
+     */
+    const utilisateur = readFileSync(join(__dirname, '..', 'components', 'chat', 'UserMessage.tsx'), 'utf8');
+
+    expect(utilisateur).not.toMatch(/data-vc-tooltip=\{copy\['chatResiduals\.user\./);
+    expect(
+      bloc(
+        '.bolt-message-context-menu [data-vc-tooltip]::before,\n.bolt-message-context-menu [data-vc-tooltip]::after',
+      ),
+    ).toMatch(/content:\s*none\s*!important/);
+  });
+});

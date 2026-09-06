@@ -2383,8 +2383,16 @@ body
     padding: 10px;
   }
 
+  /*
+   * `width: 32px` datait du déclencheur-icône. Depuis qu'il porte son libellé
+   * (« Contexte »), une boîte de 32 px centrée faisait déborder le contenu
+   * des deux côtés, et la ligne rognait la gauche : « ontexte » sans son
+   * « C » ni son icône (capture iPhone d'Avi, 06/09 17:56). La largeur suit
+   * le contenu ; le plancher tactile reste.
+   */
   .bolt-message-context-trigger {
-    width: 32px;
+    width: auto;
+    min-width: 32px;
     height: 32px;
   }
 
@@ -7935,6 +7943,19 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-assistant-message-action:hover,
 .bolt-project-ide-shell .bolt-message-context-menu .bolt-user-message-edit:hover {
   background: var(--vc-ide-bg-hover);
+}
+
+/*
+ * AUCUNE INFOBULLE DANS LE MENU. Chaque entrée porte son libellé ; une
+ * infobulle qui le répète n'est que du bruit — et au doigt, le survol colle :
+ * capture iPhone d'Avi, 06/09 17:57, « Modifier et renvoyer ce message »
+ * posé sous le menu du message utilisateur. Le bouton n'a plus l'attribut ;
+ * cette règle tient la ligne pour tout ce qui entrerait dans le menu demain.
+ */
+.bolt-message-context-menu [data-vc-tooltip]::before,
+.bolt-message-context-menu [data-vc-tooltip]::after {
+  display: none !important;
+  content: none !important;
 }
 
 .bolt-message-context-menu .bolt-assistant-message-action-divider {
@@ -22351,6 +22372,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100%;
     min-height: var(--vc-touch-min);
     justify-content: center;
+  }
+
+  /*
+   * Variables d'environnement, capture iPhone d'Avi 06/09 17:56 : la bande
+   * « Développement · Aperçu · Fabrication » n'avait que 203 px à côté de
+   * « Portées différentielles », et « Fabrication » était recouvert. Sur
+   * téléphone, la bande prend toute la largeur et le bouton passe dessous.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes {
+    flex-wrap: wrap;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes .bolt-project-tool-tabs,
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-env-scopes .bolt-project-env-diff-toggle {
+    flex: 1 1 100%;
+    width: 100%;
+    margin-inline-start: 0;
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-tool-tabs {

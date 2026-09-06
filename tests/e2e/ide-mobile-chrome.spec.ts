@@ -532,6 +532,18 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     // Variables — même barre d'outils que Stockage d'objets (capture 11:03 : cinq boutons empilés de 60 px).
     await ouvrirOutil(page, 'env');
 
+    // Capture 17:56 : la bande « Développement · Aperçu · Fabrication » n'avait que 203 px, « Fabrication » recouvert.
+    const portees = page.locator('.bolt-project-env-scopes .bolt-project-tool-tabs');
+
+    await expect(portees).toBeVisible({ timeout: 30_000 });
+
+    const [bandePortees] = await mesurer(page, '.bolt-project-env-scopes .bolt-project-tool-tabs');
+
+    expect(bandePortees.w, `bande des portées large de ${bandePortees.w}px`).toBeGreaterThan(300);
+    expect(bandePortees.sw, `bande de ${bandePortees.sw}px de contenu pour ${bandePortees.cw}px`).toBeLessThanOrEqual(
+      bandePortees.cw + 1,
+    );
+
     const barre = page.locator('.bolt-project-panel-toolbar');
 
     await expect(barre.first()).toBeVisible({ timeout: 30_000 });

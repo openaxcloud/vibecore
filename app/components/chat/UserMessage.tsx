@@ -48,7 +48,6 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
     <button
       type="button"
       aria-label={copy['chatResiduals.user.editAria']}
-      data-vc-tooltip={copy['chatResiduals.user.editTooltip']}
       className="bolt-user-message-edit flex items-center justify-center rounded-md text-bolt-elements-textTertiary outline-none transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
       onClick={() => {
         if (typeof window === 'undefined') {
