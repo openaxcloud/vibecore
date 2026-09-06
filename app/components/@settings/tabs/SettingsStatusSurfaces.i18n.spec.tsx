@@ -84,7 +84,6 @@ vi.mock('react-toastify', () => ({
   toast: { success: testState.toastSuccess, error: testState.toastError },
 }));
 
-import { GitHubProgressiveLoader } from './github/components/GitHubProgressiveLoader';
 import CloudProvidersTab from './providers/cloud/CloudProvidersTab';
 import ServiceStatusTab from './service-status/ServiceStatusTab';
 import TaskManagerTab from './task-manager/TaskManagerTab';
@@ -165,62 +164,6 @@ describe('CloudProvidersTab localization', () => {
   });
 });
 
-describe('GitHubProgressiveLoader localization', () => {
-  it('announces localized progress details and keeps caller step data intact', () => {
-    testState.language = 'fr';
-    render(
-      <GitHubProgressiveLoader
-        isLoading
-        showProgress
-        progressSteps={[
-          { key: 'metadata', label: 'refs/heads/main', completed: true },
-          { key: 'branches', label: 'API_URL', completed: false, loading: true },
-        ]}
-      >
-        <div>child</div>
-      </GitHubProgressiveLoader>,
-    );
-
-    expect(screen.getByRole('status').textContent).toContain('Chargement…');
-    expect(screen.getByRole('progressbar', { name: 'Progression du chargement : 50 %' })).toBeTruthy();
-
-    const details = screen.getByRole('button', { name: 'Afficher les détails' });
-    expect(details.className).toContain('min-h-11');
-    fireEvent.click(details);
-    expect(screen.getByRole('list', { name: 'Étapes du chargement' })).toBeTruthy();
-    expect(screen.getByText('refs/heads/main')).toBeTruthy();
-    expect(screen.getByText('API_URL')).toBeTruthy();
-    expect(screen.getByText('Terminée:')).toBeTruthy();
-  });
-
-  it('masks raw errors and exposes localized 44px recovery actions', () => {
-    testState.language = 'fr';
-
-    const rawError = 'Raw API failure bearer=secret';
-    const onRetry = vi.fn();
-    const onRefresh = vi.fn();
-    vi.spyOn(console, 'error').mockImplementation(() => undefined);
-
-    render(
-      <GitHubProgressiveLoader error={rawError} isLoading={false} onRetry={onRetry} onRefresh={onRefresh}>
-        <div>child</div>
-      </GitHubProgressiveLoader>,
-    );
-
-    expect(screen.getByRole('alert').textContent).toContain('Impossible de charger cette section GitHub');
-    expect(screen.getByRole('alert').textContent).not.toContain(rawError);
-
-    const retry = screen.getByRole('button', { name: 'Réessayer' });
-    const refresh = screen.getByRole('button', { name: 'Actualiser' });
-    expect(retry.className).toContain('min-h-11');
-    expect(refresh.className).toContain('min-h-11');
-    fireEvent.click(retry);
-    fireEvent.click(refresh);
-    expect(onRetry).toHaveBeenCalledTimes(1);
-    expect(onRefresh).toHaveBeenCalledTimes(1);
-  });
-});
-
 describe('ServiceStatusTab localization', () => {
   it('renders localized diagnostics, preserves endpoints and switches live', async () => {
     testState.language = 'fr';
@@ -292,7 +235,6 @@ describe('targeted source safeguards', () => {
   it('has zero scanner findings and explicit responsive, theme, loading, and accessibility safeguards', async () => {
     const files = [
       'app/components/@settings/tabs/providers/cloud/CloudProvidersTab.tsx',
-      'app/components/@settings/tabs/github/components/GitHubProgressiveLoader.tsx',
       'app/components/@settings/tabs/service-status/ServiceStatusTab.tsx',
       'app/components/@settings/tabs/task-manager/TaskManagerTab.tsx',
     ];

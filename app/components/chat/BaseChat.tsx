@@ -2688,7 +2688,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     /*
      * Header presence — subscribe to the project collaboration channel
-     * at the root so PresenceAvatars in the agent header stays live
+     * at the root so the agent header presence indicator stays live
      * regardless of which sidebar panel is active. (The collaborators
      * panel currently runs its own subscription too; deduping is a
      * follow-up — the WS handshake cost is negligible.)
