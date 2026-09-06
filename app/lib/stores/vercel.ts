@@ -2,6 +2,12 @@ import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
 import {
+  CONNECTION_SECRET_FIELDS,
+  LEGACY_CONNECTION_STORAGE_KEYS,
+  migrateLegacyTokenToServer,
+  persistConnectionWithoutSecrets,
+} from '~/lib/connections/serverConnections';
+import {
   formatClientRuntimeResidualCopy,
   getClientRuntimeResidualCopy,
 } from '~/lib/i18n/catalogs/client-runtime-residual';
@@ -10,6 +16,47 @@ import type { VercelConnection } from '~/types/vercel';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
+
+/*
+ * AUDX-007 — one-time upgrade for a browser that still holds a PAT.
+ *
+ * Uploads it to the server (stored encrypted as a UserConnection) and clears it
+ * locally ONLY on confirmed success. The order is the whole point: clearing
+ * first would lose the user's connection whenever the upload fails — offline,
+ * expired key, server down — turning a security fix into data loss.
+ *
+ * Best-effort and silent: a failed migration leaves the browser exactly as it
+ * was, so nothing the user could do stops working (CLAUDE.md rule 19).
+ */
+export async function migrateStoredVercelToken(): Promise<boolean> {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  return migrateLegacyTokenToServer(
+    'vercel',
+    () => {
+      try {
+        const raw = localStorage.getItem(LEGACY_CONNECTION_STORAGE_KEYS.vercel);
+        const parsed = raw ? (JSON.parse(raw) as { token?: unknown }) : undefined;
+
+        return typeof parsed?.token === 'string' && parsed.token ? parsed.token : undefined;
+      } catch {
+        return undefined;
+      }
+    },
+    () => {
+      try {
+        const raw = localStorage.getItem(LEGACY_CONNECTION_STORAGE_KEYS.vercel);
+        const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+        delete parsed.token;
+        localStorage.setItem(LEGACY_CONNECTION_STORAGE_KEYS.vercel, JSON.stringify(parsed));
+      } catch {
+        localStorage.removeItem(LEGACY_CONNECTION_STORAGE_KEYS.vercel);
+      }
+    },
+  );
+}
 
 function getVercelConnectionCopy() {
   const i18n = getI18nInstance();
@@ -79,9 +126,21 @@ export const updateVercelConnection = (updates: Partial<VercelConnection>) => {
   const newState = { ...currentState, ...updates };
   vercelConnection.set(newState);
 
-  // Persist to localStorage
+  /*
+   * AUDX-007 — persist the connection WITHOUT the token.
+   *
+   * The PAT used to be written here verbatim, so it sat in localStorage
+   * readable by any script on the origin and survived reloads indefinitely.
+   * The non-secret half (user, stats) is still cached so the panel renders
+   * instantly; the secret half lives server-side, encrypted, and reaches the
+   * provider through connector-proxy.
+   */
   if (typeof window !== 'undefined') {
-    localStorage.setItem('vercel_connection', JSON.stringify(newState));
+    persistConnectionWithoutSecrets(
+      'vercel_connection',
+      newState as unknown as Record<string, unknown>,
+      CONNECTION_SECRET_FIELDS.vercel,
+    );
   }
 };
 
