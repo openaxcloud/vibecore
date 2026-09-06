@@ -552,6 +552,7 @@ function selfTest() {
       stagingWorkflow,
       arRetentionWorkflow,
     })],
+
     /*
      * Le sabotage visait `admin`, qui est desormais LEGITIMEMENT dans la liste
      * d'attente depuis AUDX-173. L'y inserer ne creait plus d'ecart : le cas
