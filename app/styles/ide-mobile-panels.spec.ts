@@ -654,3 +654,29 @@ describe('17. captures iPhone 06/09 17:56 : « ontexte », onglet « Fabrication
     ).toMatch(/content:\s*none\s*!important/);
   });
 });
+
+describe('18. audit WebKitGTK du 06/09 : chemins coupés dans le Studio et dans Git', () => {
+  it('sur téléphone, les chemins du Studio et de Git se replient au lieu d’être coupés', () => {
+    /*
+     * Mesuré sur WebKitGTK à 390 (sonde webkit-probe.mjs) : 510 px de chemin
+     * pour 297 dans une carte de révision, 492 px pour 157 dans l'arbre de
+     * travail Git. La même règle que le fil de l'agent : repli, jamais ellipse.
+     */
+    const debut = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-project-agent-patch-card strong,\n  .bolt-responsive-ide-mobile .bolt-git-tab .truncate {',
+    );
+
+    expect(debut, 'la règle de repli des chemins est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/white-space:\s*normal/);
+    expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
+    expect(regle).toMatch(/text-overflow:\s*clip/);
+
+    // La racine de l'onglet Git porte la classe que cette règle vise (`.bolt-project-git-tool` n'existait dans aucun composant).
+    const git = readFileSync(join(__dirname, '..', 'components', 'git', 'GitTab.tsx'), 'utf8');
+
+    expect(git).toContain('className="bolt-git-tab h-full overflow-auto"');
+  });
+});

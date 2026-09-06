@@ -1073,7 +1073,7 @@ export function GitTab({ projectId }: GitTabProps) {
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="bolt-git-tab h-full overflow-auto">
       <div className="grid gap-4 p-4">
         {error && (
           <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">

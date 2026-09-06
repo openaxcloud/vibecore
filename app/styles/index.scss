@@ -21727,6 +21727,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overflow-x: auto;
   }
 
+  /*
+   * UN CHEMIN DE FICHIER SE REPLIE, IL NE SE COUPE PAS — la règle posée pour le
+   * fil de l'agent (BUG-AGENT-PATH-001) vaut partout sur téléphone. Mesuré sur
+   * WebKitGTK à 390 (sonde webkit-probe.mjs, 06/09) : dans le Studio,
+   * « src/components/very/deep/directory/stru… » (510 px pour 297) ; dans Git,
+   * « src/components/very/… » (492 px pour 157) et la ligne de commit. Un
+   * chemin dont on ne voit pas la fin ne dit pas quel fichier il désigne.
+   */
+  .bolt-responsive-ide-mobile .bolt-project-agent-patch-card strong,
+  .bolt-responsive-ide-mobile .bolt-git-tab .truncate {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-agent-patch-review {
     max-height: min(38dvh, 340px);
     gap: 8px;

@@ -671,6 +671,26 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await expect(source).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/^(Branche source|Source branch)$/)).toBeVisible();
     await expect(page.getByText(/^(Branche cible|Target branch)$/)).toBeVisible();
+
+    // Audit WebKitGTK 06/09 : « src/components/very/… » à 157 px dans l'arbre de travail — un chemin se replie.
+    const rangeesGit = await mesurer(page, '.bolt-git-tab .truncate');
+
+    expect(rangeesGit.length, 'Git : aucun élément mesuré — le sélecteur ne vise plus le panneau').toBeGreaterThan(0);
+
+    for (const m of rangeesGit) {
+      expect(m.sw, `Git : « ${m.text} » coupé, ${m.sw}px pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
+    }
+
+    // Même audit, Studio : « src/components/very/deep/directory/stru… » dans la carte de révision.
+    await ouvrirOutil(page, 'studio');
+
+    const carte = page.locator('.bolt-project-agent-patch-card strong').first();
+
+    if (await carte.isVisible({ timeout: 15_000 }).catch(() => false)) {
+      for (const m of await mesurer(page, '.bolt-project-agent-patch-card strong')) {
+        expect(m.sw, `Studio : « ${m.text} » coupé, ${m.sw}px pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
+      }
+    }
   });
 
   test('Base de données, « Mes données » : le studio prend la hauteur de son contenu, sans défilement interne', async ({
