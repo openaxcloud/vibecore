@@ -154,3 +154,68 @@ exactement l'erreur qu'on cherchait à exclure.
 Enfin, une mise en garde née de la même nuit : après huit outils défaillants,
 « c'est encore l'outil » devient un biais à son tour. Deux fois, le comportement
 était normal.
+
+---
+
+### L'avertissement ne protège pas ; seul le geste protège (2026-09-06)
+
+Le cas est petit, et c'est pour ça qu'il compte. Une session voisine venait de me
+transmettre, mot pour mot, la mise en garde : **lire la sortie avant de
+commiter**. Je l'ai lue, comprise, trouvée juste. Puis j'ai poussé une branche
+avec **deux erreurs de lint affichées à l'écran**, dans le défilement que je
+venais moi-même de produire.
+
+L'avertissement était arrivé. Il n'a rien empêché.
+
+**Pourquoi il n'empêche rien.** Un avertissement s'adresse à l'intention, et
+l'intention est déjà bonne au moment où on le reçoit — personne ne décide de ne
+pas lire sa sortie. Ce qui manque n'est pas la volonté de vérifier, c'est
+l'endroit où la vérification a lieu. Entre « je sais qu'il faut lire » et « j'ai
+lu », il y a un geste, et seul le geste tient.
+
+Quatre échecs de la même famille, la même journée, toutes règles déjà écrites :
+
+* un `grep` de contrôle rendu sur cinq motifs, **témoin positif compris**, tous à
+  zéro : la conclusion juste était « mon motif est faux », pas « le contenu est
+  absent » — et elle n'est venue qu'en regardant le témoin, pas les résultats ;
+* une ancre de correctif introuvable parce que **mon propre préfixe d'affichage**
+  (`sed 's/^/  /'`) était passé dans le motif que j'en avais tiré ;
+* un typecheck déclaré vert sur un `grep` trop étroit, alors qu'il rendait **133
+  lignes et le code 134** — un épuisement mémoire de V8, pas un silence. Le
+  témoin, une faute de typage introduite exprès, n'a rien trouvé : c'est ce
+  zéro-là qui a révélé que la mesure n'avait pas mesuré ;
+* un `cd` échoué dont je n'ai pas lu l'échec, si bien que l'écriture suivante est
+  partie **dans le checkout principal** au lieu du worktree — la faute que trois
+  consignes explicites m'interdisaient. Elle a reformaté un fichier portant le
+  travail non commité d'une autre session.
+
+**Ce qu'on en tire, et qui n'est pas un rappel de plus.** Une règle ne se formule
+utilement qu'en geste vérifiable, attaché à un moment précis :
+
+| ne protège pas | protège |
+|---|---|
+| « lire la sortie » | avant `git commit`, relire l'écran et **énoncer le code de sortie** |
+| « vérifier ses greps » | faire rendre au moins **un résultat** à la même commande sur un cas connu positif |
+| « le typecheck est vert » | énoncer **le code de sortie ET le nombre de lignes**, et les comparer à la base |
+| « ancrer sur du code » | comparer les **octets exacts** du fichier, jamais un affichage retraité |
+| « toujours dans un worktree » | **enchaîner `cd` et écriture par `&&`**, et énoncer le chemin courant avant d'écrire |
+
+Le test de la formulation : si elle décrit un état d'esprit, elle ne protège pas ;
+si elle nomme un moment et une sortie à énoncer, elle protège. C'est la raison
+pour laquelle un commentaire n'a jamais tenu un correctif là où un test rouge le
+tient — sauf qu'ici le garde-fou ne peut pas être du code, alors il doit au moins
+être un geste daté, pas une bonne disposition.
+
+**Le corollaire, désagréable :** recevoir l'avertissement peut *nuire*. On se sent
+couvert par le fait de l'avoir lu. Sur ce cas, l'écart entre le moment où la mise
+en garde est arrivée et celui où je l'ai enfreinte se compte en minutes.
+
+**Et la sortie de secours, quand la faute est déjà commise.** Ne jamais réparer
+par `git checkout --` avant d'avoir établi si le fichier portait du travail non
+commité : ici il en portait — sept lignes de tableau et une section entière — et
+la restauration réflexe les aurait détruites. La réparation s'est faite en
+reconstruisant l'état d'avant, avec un **témoin** : la transformation inverse
+devait reproduire au octet près les douze lignes déjà présentes dans `HEAD`. Elle
+en a d'abord reproduit **0**, puis **11 sur 12** — un tube échappé cassait le
+découpage — et seulement ensuite **12 sur 12**. Sans ce témoin, les deux premières
+tentatives se seraient présentées comme des réparations réussies.
