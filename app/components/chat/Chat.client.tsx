@@ -1475,6 +1475,7 @@ export const ChatImpl = memo(
            */
           pendingGenerationRef.current = {
             promptId: pendingPrompt.id,
+
             /*
              * On garde le prompt LUI-MÊME, pas seulement son identifiant : au
              * moment de la consommation (1,5 s plus tard) la mémoire a pu être

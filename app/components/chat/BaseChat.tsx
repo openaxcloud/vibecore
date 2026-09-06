@@ -2555,6 +2555,7 @@ interface BaseChatProps {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
+
   /** Prompt d'origine récupéré depuis `ProjectIdeState.chat` (voir GenerateAppCta). */
   promptDeSecours?: string;
   projectId?: string;

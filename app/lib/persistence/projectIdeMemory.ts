@@ -128,8 +128,10 @@ export interface ProjectIdeMemory {
       createdAt: string;
       aiFallback?: boolean;
       aiFallbackReason?: string;
+
       /** Horodatage de l'effacement. */
       clearedAt: string;
+
       /** Qui a effacé : génération aboutie, ou rejeu jugé inutile. */
       reason: 'generated' | 'skipped-existing-app';
     } | null;
