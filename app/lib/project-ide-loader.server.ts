@@ -1,9 +1,9 @@
 import type { AppLoadContext, LoaderFunctionArgs } from 'react-router';
-import { isSuccessfulPanelPayload } from '~/lib/ide/panel-payload-cache';
 import { previewTenantCookie } from '~/lib/.server/preview-tenant';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { getEnterpriseApiErrorCopy } from '~/lib/i18n/catalogs/enterprise-api-errors';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { isSuccessfulPanelPayload } from '~/lib/ide/panel-payload-cache';
 
 export type ProjectWorkspaceSummary = {
   id: string;
@@ -114,8 +114,7 @@ let chargeurDeRoutePanneau: ChargeurRoutePanneau = () =>
 export function __setChargeurRoutePanneauForTests(chargeur: ChargeurRoutePanneau | null) {
   chargeurDeRoutePanneau =
     chargeur ??
-    ((() =>
-      import('~/routes/api.projects.$projectId.ide-panel.$panel')) as unknown as ChargeurRoutePanneau);
+    ((() => import('~/routes/api.projects.$projectId.ide-panel.$panel')) as unknown as ChargeurRoutePanneau);
 }
 
 export { chargerPanneauEnProcessus as __chargerPanneauPourTests };
@@ -152,6 +151,7 @@ async function chargerPanneauEnProcessus(
 ): Promise<unknown | null> {
   try {
     const module = await chargeurDeRoutePanneau();
+
     /*
      * Le projet embarque les types Cloudflare Workers : le `Request` global y
      * est `Request<unknown, CfProperties>`, incompatible en signature avec le
@@ -212,30 +212,33 @@ export async function loadProjectIdeData(
   try {
     const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
 
-    const [collaboratorsResult, dashboardResult, organizationsResult, workspacesResult, panneauxPrecharges] = await Promise.all([
-      apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
-        request,
-        `/projects/${projectId}/collaborators`,
-      ).catch(() => ({ collaborators: [] })),
-      apiRequest<{
-        workspace?: ProjectLoaderData['workspace'];
-        git?: ProjectLoaderData['git'];
-        recentActivity?: ProjectLoaderData['notifications'];
-      }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
-      apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
-        organizations: [],
-      })),
-      apiRequest<{ workspaces: ProjectWorkspaceSummary[] }>(request, `/projects/${projectId}/workspaces`).catch(() => ({
-        workspaces: [] as ProjectWorkspaceSummary[],
-      })),
-          context
-        ? Promise.all(
-            PANNEAUX_PRECHARGES.map(
-              async (panel) => [panel, await chargerPanneauEnProcessus(request, projectId, panel, context)] as const,
-            ),
-          )
-        : Promise.resolve([] as (readonly [string, unknown | null])[]),
-]);
+    const [collaboratorsResult, dashboardResult, organizationsResult, workspacesResult, panneauxPrecharges] =
+      await Promise.all([
+        apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
+          request,
+          `/projects/${projectId}/collaborators`,
+        ).catch(() => ({ collaborators: [] })),
+        apiRequest<{
+          workspace?: ProjectLoaderData['workspace'];
+          git?: ProjectLoaderData['git'];
+          recentActivity?: ProjectLoaderData['notifications'];
+        }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
+        apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
+          organizations: [],
+        })),
+        apiRequest<{ workspaces: ProjectWorkspaceSummary[] }>(request, `/projects/${projectId}/workspaces`).catch(
+          () => ({
+            workspaces: [] as ProjectWorkspaceSummary[],
+          }),
+        ),
+        context
+          ? Promise.all(
+              PANNEAUX_PRECHARGES.map(
+                async (panel) => [panel, await chargerPanneauEnProcessus(request, projectId, panel, context)] as const,
+              ),
+            )
+          : Promise.resolve([] as (readonly [string, unknown | null])[]),
+      ]);
 
     const organization =
       organizationsResult.organizations.find((item) => item.id === result.project.organizationId) ??

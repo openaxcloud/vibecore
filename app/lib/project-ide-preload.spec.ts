@@ -36,7 +36,7 @@ describe('préchargement des panneaux avec le document', () => {
     expect(r).toEqual({ panel: 'settings', status: 'ok', data: { a: 1 } });
   });
 
-  it("garde un panneau légitimement VIDE — `empty` est du contenu chargé", async () => {
+  it('garde un panneau légitimement VIDE — `empty` est du contenu chargé', async () => {
     __setChargeurRoutePanneauForTests(chargeurQuiRend({ panel: 'snapshots', status: 'empty', data: {} }));
 
     await expect(__chargerPanneauPourTests(requete, 'p1', 'snapshots', contexte)).resolves.not.toBeNull();
@@ -64,7 +64,13 @@ describe('préchargement des panneaux avec le document', () => {
   });
 
   it('avale un loader qui jette', async () => {
-    __setChargeurRoutePanneauForTests(() => Promise.resolve({ loader: async () => { throw new Error('boum'); } }));
+    __setChargeurRoutePanneauForTests(() =>
+      Promise.resolve({
+        loader: async () => {
+          throw new Error('boum');
+        },
+      }),
+    );
     await expect(__chargerPanneauPourTests(requete, 'p1', 'settings', contexte)).resolves.toBeNull();
   });
 
