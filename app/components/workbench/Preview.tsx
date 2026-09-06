@@ -36,6 +36,7 @@ import { previewStartStatus } from './preview-start-status';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
@@ -3042,7 +3043,8 @@ export const Preview = memo(
                     }),
                   ]
                 : workspaceLogs.length
-                  ? workspaceLogs.slice(-120)
+                  ? // L'agent journalise en JSON : on montre ce qu'un humain lit (capture iPhone 06/09 10:35).
+                    workspaceLogs.slice(-120).map((ligne) => texteRuntimeLisible(String(ligne)))
                   : [t('idePanels.preview.noServerLogs')]
               ).join('\n')}
             </pre>

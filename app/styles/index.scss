@@ -23139,6 +23139,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     white-space: normal;
   }
 
+  /*
+   * Ports (capture iPhone 06/09 10:36) : l'URL de l'aperçu coupée
+   * « https://ws-…-5173.preview.e… ». Une URL ou un chemin en monospace se
+   * replie sur téléphone — un `truncate` n'y a pas de sens, l'utilisateur veut
+   * la lire en entier.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.truncate.font-mono, code.truncate) {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-splash-task small,
   .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small {
     overflow: visible;

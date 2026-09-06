@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ligneRuntimeLisible } from './runtime-log-line';
+import { ligneRuntimeLisible, texteRuntimeLisible } from './runtime-log-line';
 
 /*
  * BUG-DEBUG-I18N-001 — capture iPhone d'Avi, 05/09 23:01 : le panneau
@@ -42,5 +42,26 @@ describe('ligneRuntimeLisible', () => {
 
   it('un JSON invalide sans événement ni niveau revient brut plutôt que vide', () => {
     expect(ligneRuntimeLisible('{"foo":"ba')).toEqual({ niveau: null, texte: '{"foo":"ba' });
+  });
+});
+
+/*
+ * Captures iPhone d'Avi, 06/09 10:35–10:36 : la même ligne JSON brute dans
+ * « Journaux du serveur » de la Webview (un `<pre>`, 27 fois) et dans le
+ * panneau Problèmes (« 27 occurrences détectées »).
+ */
+describe('texteRuntimeLisible', () => {
+  it('rend la ligne de la capture en texte, niveau entre crochets', () => {
+    expect(
+      texteRuntimeLisible(
+        '{"level":"error","service":"workspace-agent","event":"preview.proxy.unreachable","port":5173,"error":"fetch failed"}',
+      ),
+    ).toBe('[error] workspace-agent · preview.proxy.unreachable · port 5173 · fetch failed');
+  });
+
+  it('laisse passer une ligne ordinaire sans crochets', () => {
+    expect(texteRuntimeLisible('Reconnexion à l’espace de travail en cours d’exécution.')).toBe(
+      'Reconnexion à l’espace de travail en cours d’exécution.',
+    );
   });
 });

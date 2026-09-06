@@ -11755,7 +11755,8 @@ function ProjectProblemsPanel() {
                       </button>
                     ) : null}
                   </div>
-                  <p>{diagnostic.message}</p>
+                  {/* Une erreur d'exécution arrive en JSON brut (capture iPhone 06/09 10:36) : la même lecture que le Débogueur. */}
+                  <p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>
                   {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
                 </div>
               </li>

@@ -314,3 +314,20 @@ describe('6. ce que l’audit des 33 panneaux laissait encore tronqué', () => {
     expect(INDEX).toMatch(/\.bolt-action-target \{[^}]*min-height: 44px/);
   });
 });
+
+describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèmes, Ports', () => {
+  it('Ports : une URL ou un chemin en monospace se replie sur téléphone', () => {
+    const regle = bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.truncate.font-mono, code.truncate)');
+
+    expect(regle).toMatch(/white-space:\s*normal/);
+    expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
+  });
+
+  it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+
+    expect(preview).toContain("import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';");
+    expect(preview).toMatch(/workspaceLogs\.slice\(-120\)\.map\(\(ligne\) => texteRuntimeLisible\(String\(ligne\)\)\)/);
+    expect(BASE_CHAT).toContain("<p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>");
+  });
+});

@@ -116,3 +116,15 @@ export function ligneRuntimeLisible(ligne: string): LigneRuntimeLisible {
 
   return { niveau: null, texte: brut };
 }
+
+/*
+ * La même lecture, en TEXTE — pour les journaux rendus dans un `<pre>` (volet
+ * « Journaux du serveur » de la Webview) où il n'y a pas de balisage pour
+ * porter le niveau : « [error] workspace-agent · preview.proxy.unreachable ·
+ * port 5173 · fetch failed » au lieu de la ligne JSON brute.
+ */
+export function texteRuntimeLisible(ligne: string): string {
+  const lisible = ligneRuntimeLisible(ligne);
+
+  return lisible.niveau ? `[${lisible.niveau}] ${lisible.texte}` : lisible.texte;
+}
