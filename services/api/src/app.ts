@@ -190,6 +190,7 @@ import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugify, slugifyRouteSegment } from './slugify.js';
+import { publicErrorCode } from './public-error-code.js';
 import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
@@ -9250,9 +9251,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       statusCode >= 500 ? (error.publicMessage ?? appPublicEnglish('INTERNAL_SERVER_ERROR')) : error.message;
     const appLocalized = localizeAppPublicMessage(englishFallback, locale);
 
+    /*
+     * Le code EXPOSÉ passe par le filtre : `code` reste le code INTERNE, qui
+     * sert au journal, aux métriques et à la recherche du message localisé.
+     * Voir `public-error-code.ts` pour les deux règles.
+     */
     return reply.code(statusCode).send({
       error: appLocalized.matched ? appLocalized.value : publicErrorMessage({ code, locale, englishFallback }),
-      code,
+      code: publicErrorCode({ code, statusCode, hasPublicMessage: Boolean(error.publicMessage) }),
     });
   });
 
