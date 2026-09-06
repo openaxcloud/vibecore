@@ -17,6 +17,7 @@ import {
   type IChatMetadata,
 } from './db';
 import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
+import { completerFilSiVide } from './serveur-fil-projet';
 import type { Snapshot } from './types';
 import {
   getChatHistoryCopy,
@@ -150,6 +151,19 @@ export function useChatHistory() {
 
           setArchivedMessages(memory.chat?.archivedMessages ?? []);
           setInitialMessages(messages);
+
+          /*
+           * TROISIÈME BANQUE, en repli et SANS BLOQUER l'affichage.
+           *
+           * `setInitialMessages` vient d'être appelé : l'écran a déjà ce qu'il
+           * a. On ne met la main sur le serveur que si les deux banques locales
+           * n'ont rien donné — écriture cliente perdue dans une course, ou
+           * contexte navigateur neuf sans IndexedDB.
+           *
+           * Délibérément après le rendu et non devant : un serveur lent doit
+           * retarder le COMPLÉMENT du fil, jamais son affichage.
+           */
+          void completerFilSiVide(messages, projectId, setInitialMessages);
           setUrlId(storedMessages?.urlId);
           description.set(
             resolveProjectAssistantDescription(
