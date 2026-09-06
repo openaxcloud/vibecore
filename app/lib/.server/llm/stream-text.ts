@@ -43,6 +43,44 @@ export const DEFAULT_STREAM_MAX_RETRIES = 4;
  * exponential backoff before surfacing an error. Bounded to [0, 8] and defaults
  * to {@link DEFAULT_STREAM_MAX_RETRIES}; override with STREAM_MAX_RETRIES.
  */
+/**
+ * Le bloc ARBORESCENCE + CONSIGNE DE CÂBLAGE donné au SECOND appel du modèle —
+ * celui qui écrit le code.
+ *
+ * Il y a deux appels. `selectContext` reçoit la liste complète des chemins,
+ * mais seulement pour CHOISIR quels fichiers charger. Le générateur ne
+ * recevait ensuite QUE le contenu sélectionné : `projectFilePaths` ne servait
+ * qu'à décider d'inclure les instructions base de données ou mobile, il
+ * n'entrait jamais dans son prompt.
+ *
+ * Si le sélecteur ne retient pas `src/App.tsx`, le générateur IGNORE SON
+ * EXISTENCE — ni son contenu, ni même son nom. Mesuré deux fois : `Contact.jsx`
+ * écrit dans un projet TypeScript, et quatre fichiers dans `src/deck/` avec
+ * `src/App.tsx` intact à UN OCTET près.
+ *
+ * Extrait ici pour être testable : le mécanisme qui se défait n'est pas le
+ * texte, c'est le fait que le bloc soit CONSTRUIT et JOINT au prompt.
+ */
+export function construireBlocArborescence(projectFilePaths: readonly string[]): string {
+  if (!projectFilePaths.length) {
+    return '';
+  }
+
+  return `Below is the COMPLETE list of files that already exist in this project. Files not shown in the CONTEXT BUFFER still EXIST — do not assume otherwise, and do not recreate them under a different name or extension.
+
+PROJECT FILE TREE:
+---
+${projectFilePaths.map((path) => `- ${path}`).join('\n')}
+---
+
+WIRING REQUIREMENT — this is not optional:
+- Every file you create MUST be reachable from the project's existing entry point. A file nothing imports is dead code and does not satisfy the user's request.
+- If a file you create is meant to be rendered or executed, you MUST also EDIT the existing entry point (for example the App / main / index file listed above) so that it imports and uses it.
+- Match the extensions already in use. If the tree shows \`.tsx\`, do not create \`.jsx\`.
+- Never invent an entry point that is not in the tree above.
+`;
+}
+
 export function resolveStreamMaxRetries(env?: Record<string, string | undefined>): number {
   const raw = env?.STREAM_MAX_RETRIES ?? (typeof process !== 'undefined' ? process.env?.STREAM_MAX_RETRIES : undefined);
   const parsed = Number(raw);
@@ -729,7 +767,29 @@ ${projectRulesContext}`;
      * boundary. The model still receives the identical context, just lower in the
      * prompt.
      */
-    let contextBufferBlock = `Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
+    /*
+     * L'ARBORESCENCE, donnée au SECOND appel — celui qui écrit.
+     *
+     * Il y a deux appels au modèle. `selectContext` reçoit bien la liste
+     * complète des chemins (`AVAILABLE FILES PATHS`), mais elle ne sert qu'à
+     * CHOISIR quels fichiers charger. Le modèle qui écrit ensuite ne recevait
+     * QUE le contenu sélectionné : `projectFilePaths` n'entrait nulle part
+     * dans son prompt, il ne servait qu'à décider d'inclure les instructions
+     * base de données ou mobile.
+     *
+     * Conséquence mesurée deux fois : si le sélecteur ne retient pas
+     * `src/App.tsx`, le générateur IGNORE SON EXISTENCE — ni son contenu, ni
+     * même son nom. Il crée alors ses fichiers à côté du point d'entrée sans
+     * savoir qu'il y en a un. Demande d'une page de contact : `Contact.jsx`
+     * écrit dans un projet TypeScript. Demande d'un pitch deck : quatre
+     * fichiers dans `src/deck/` et `src/App.tsx` intact à UN OCTET près.
+     *
+     * La liste seule ne suffirait pas : le défaut n'est pas que l'ignorance,
+     * c'est l'absence de consigne. Les deux sont donc données ensemble.
+     */
+    const arborescenceBlock = construireBlocArborescence(projectFilePaths);
+
+    let contextBufferBlock = `${arborescenceBlock}Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
 CONTEXT BUFFER:
 ---
 ${codeContext}
