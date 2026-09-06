@@ -552,8 +552,18 @@ function selfTest() {
       stagingWorkflow,
       arRetentionWorkflow,
     })],
+    /*
+     * Le sabotage visait `admin`, qui est desormais LEGITIMEMENT dans la liste
+     * d'attente depuis AUDX-173. L'y inserer ne creait plus d'ecart : le cas
+     * passait au vert sur un sabotage devenu SANS EFFET, et la porte de preflux
+     * a bloque le deploiement — ce qui etait la bonne reaction.
+     *
+     * On vise donc un service qui n'est PAS dans la liste. Le mecanisme garde
+     * est le meme — un service attendu mais jamais verifie — et l'ecart
+     * redevient reel.
+     */
     ['a service waited on but no longer verified', () => ({
-      deployWorkflow: deployWorkflow.replace('for svc in web api', 'for svc in web admin api'),
+      deployWorkflow: deployWorkflow.replace('for svc in web admin', 'for svc in web screenshotter admin'),
       breakGlassWorkflow,
       policy,
       chartValues,
