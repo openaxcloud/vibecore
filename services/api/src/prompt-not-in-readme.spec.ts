@@ -66,8 +66,41 @@ describe('BUG-QA-PROMPT-IN-README — nothing private ships in the delivered REA
     }
   });
 
+  /*
+   * ASSERTIONS DE PRÉSENCE, PAS DE PROXIMITÉ — et voici pourquoi ce n'est pas un
+   * test de comportement.
+   *
+   * Ce cas portait `pendingPrompt:\s*\{[\s\S]{0,200}prompt:\s*body.prompt`. Une
+   * lecture de texte peut honnêtement affirmer une PRÉSENCE, jamais une
+   * proximité : deux cents caractères entre deux motifs, c'est un garde qui
+   * rougit sur un réordonnancement sans conséquence ET laisse passer une fuite
+   * écrite autrement. Il refuse le bon et accepte le mauvais.
+   *
+   * Le tester par comportement demanderait d'importer `app.ts`, ce qui est
+   * IMPOSSIBLE dans cet environnement : il tire `@e-code/sdk`, absent des
+   * `node_modules` — vérifié dans le checkout principal, pas seulement en
+   * worktree. Y parvenir exigerait d'extraire `starterFiles` dans un module
+   * séparé, c'est-à-dire un refactor de production dans un fichier de 28 000
+   * lignes que plusieurs sessions modifient chaque jour.
+   *
+   * Le garde reste donc textuel, mais ramené à ce qu'il peut tenir honnêtement.
+   * Un garde imparfait et compris vaut mieux qu'un garde remplacé par rien.
+   */
   it('the from-ai route carries the prompt through ide-state instead', () => {
-    expect(appSource).toMatch(/pendingPrompt:\s*\{[\s\S]{0,200}prompt:\s*body\.prompt/);
+    /*
+     * On ISOLE le bloc `pendingPrompt` avant d'asserter. `prompt: body.prompt`
+     * apparaît DEUX fois dans app.ts : une première dans la création de projet,
+     * une seconde ici. Asserter sa présence sur le fichier entier ne
+     * discriminait rien — vérifié : retirer celle de `pendingPrompt` laissait le
+     * test VERT, l'autre occurrence suffisait. Un garde qui ne rougit pas quand
+     * le défaut revient ne garde rien.
+     */
+    const debut = appSource.indexOf('pendingPrompt: {');
+    expect(debut, 'le prompt doit être écrit dans pendingPrompt').toBeGreaterThan(-1);
+
+    const bloc = appSource.slice(debut, appSource.indexOf('}', appSource.indexOf('prompt:', debut)) + 1);
+
+    expect(bloc, 'et sa source doit être le corps de la requête').toContain('prompt: body.prompt');
     expect(appSource).toMatch(/action:\s*'project\.create_from_ai'/);
   });
 

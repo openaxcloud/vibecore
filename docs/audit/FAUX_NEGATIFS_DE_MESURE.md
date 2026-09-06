@@ -44,6 +44,7 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 36 bis | **contre-épreuve creuse d'un garde-fou sain** | quelques heures après avoir écrit la leçon 36, je l'ai subie sur mon PROPRE test. Ma contre-épreuve neutralisait cinq mécanismes un par un et les laissait **tous les cinq au vert**. Le garde était bon ; c'est le harnais qui ne mesurait rien : il fermait un port, donc ne produisait qu'un `ECONNREFUSED`, et n'exerçait jamais la branche « nom DNS non résolu » | j'allais annoncer **cinq mécanismes tenus alors qu'un seul l'était** — avec un tableau de contre-épreuve à l'appui, ce qui rendait l'erreur plus crédible qu'une absence de preuve | **un garde-fou peut être bon et sa contre-épreuve creuse.** Vérifier que chaque sabotage produit bien un rouge : un sabotage qui laisse tout vert ne prouve pas la robustesse, il prouve que la branche n'est pas atteinte. Ici le remède tenait au TLD réservé `.invalid` (RFC 2606), qui produit un vrai ENOTFOUND là où un port fermé ne donne qu'un refus de connexion |
 | 37 | **un verdict VRAI sur le mauvais objet** | `git checkout <branche-d-une-autre-session>` a ÉCHOUÉ — un fichier non suivi bloquait l'écrasement — et la commande suivante a rendu `Tests 12 passed (12)`. Le worktree était resté sur le commit précédent : je mesurais MA combinaison locale en croyant certifier SA branche | j'allais certifier une branche que je n'avais jamais exécutée. **Le verdict n'était pas faux** — douze tests passaient réellement — il portait simplement sur un autre arbre. La ligne d'erreur du `checkout` était juste au-dessus, noyée entre deux sorties | **toutes les autres entrées de ce registre visent des verdicts FAUX ; celle-ci vise un verdict vrai mal attribué, et aucune règle ne l'attrape.** Avant de lire un résultat, vérifier que la commande QUI PLACE L'OBJET a réussi : `git rev-parse --short HEAD` après un `checkout`, le chemin après un `cd`, l'identifiant du pod après un `exec`. Le verdict ne dit jamais sur quoi il porte |
 | 38 | **un garde trop large bloque tout le monde** | une assertion `not.toContain('.bolt-project-panel-toolbar button {')` dans une spec partagée : une recherche de SOUS-CHAÎNE, qui ne distingue pas le gabarit nu qu'elle vise du sélecteur imbriqué légitime `.bolt-responsive-ide-mobile … .bolt-project-panel-toolbar button {`. Le test voisin, dans la MÊME spec, avait déjà résolu le problème avec un ancrage en début de ligne — le correctif n'avait pas été reporté d'une assertion à l'autre | `main` rouge **pour toutes les branches à la fois**, donc la porte de livraison a refusé le déploiement d'un correctif de **perte de données** sans aucun rapport. Plusieurs heures d'immobilisation, sur un défaut qui n'en était pas un : la règle SCSS incriminée était correcte | **ce n'est pas un défaut de test, c'est un défaut d'infrastructure d'équipe.** Une assertion de spec partagée arbitre le travail de tous ceux qui touchent le fichier. Ancrer sur la STRUCTURE (`/^\s*\.selecteur \{/m`) et non sur une sous-chaîne ; et vérifier que le garde attrape encore le cas visé — ici il en attrape un de plus, le gabarit nu INDENTÉ, que l'ancrage `^\.` du voisin ratait |
+| 39 | recherche d'un marqueur dans les **assets servis** | j'ai sondé **une** feuille de style sur cinq (456 Ko sur 1 070 Ko), puis les 37 bundles JS de la seule page d'accueil — alors que les morceaux du parseur sont **chargés paresseusement** et ne sont référencés par aucune page publique | **deux zéros consécutifs**, tous deux faux : « le correctif #455 n'est pas déployé » (il l'était, `1` sur l'ensemble des feuilles) et « le parseur n'est pas dans le bundle » (témoin `boltArtifact` également à `0`, ce qui est impossible) | **un témoin positif dans la MÊME sonde** — un motif dont on sait qu'il doit être présent (`bolt-project-statusbar-pill`, `boltArtifact`). Quand le témoin rend `0` lui aussi, ce n'est pas le code qui manque, c'est la sonde qui regarde au mauvais endroit. La règle 14 dit de vérifier qu'un `0` vient d'une recherche qui a fonctionné ; ce cas ajoute qu'une recherche peut **parfaitement fonctionner sur la mauvaise moitié de la cible** |
 
 ## La règle qui en découle
 
@@ -219,3 +220,29 @@ devait reproduire au octet près les douze lignes déjà présentes dans `HEAD`.
 en a d'abord reproduit **0**, puis **11 sur 12** — un tube échappé cassait le
 découpage — et seulement ensuite **12 sur 12**. Sans ce témoin, les deux premières
 tentatives se seraient présentées comme des réparations réussies.
+
+## 41. Sonder un SOUS-ENSEMBLE et lire le zéro comme une absence
+
+**2026-09-07, en datant le banc d'audit.** Deux fois de suite dans la même
+demi-heure, la même faute, rattrapée les deux fois par un témoin positif.
+
+* Cherché le marqueur du correctif de tooltip (`#455`) dans **la première**
+  feuille de style servie : `0`. Conclusion tentante : « le banc est vieux ».
+  En téléchargeant **les cinq** feuilles référencées : `1`. Le correctif était
+  là. La sonde avait mesuré 456 Ko sur 1 070 Ko.
+* Cherché `boltArtifact` dans les 37 bundles JS de la page d'accueil : `0`.
+  Or ce motif existe forcément dans l'application. Les morceaux du parseur sont
+  **chargés paresseusement** et ne sont référencés par aucune page publique.
+
+Dans les deux cas, le zéro était vrai *pour ce qui a été lu*, et faux pour la
+question posée. La règle 14 dit « vérifier qu'un 0 vient d'une recherche qui a
+fonctionné » ; ces deux cas ajoutent : **une recherche peut parfaitement
+fonctionner sur la mauvaise moitié de la cible.**
+
+**Ce qui a sauvé les deux** : un témoin positif choisi *dans la même sonde* —
+un motif dont on sait qu'il DOIT être présent. `bolt-project-statusbar-pill`
+pour le CSS, `boltArtifact` pour le JS. Quand le témoin rend `0` lui aussi, ce
+n'est pas le code qui manque, c'est la sonde qui ne regarde pas au bon endroit.
+
+**Le geste** : ne jamais poser une question à une sonde sans lui poser, dans le
+même souffle, une question dont on connaît déjà la réponse.
