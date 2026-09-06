@@ -22399,28 +22399,37 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
 
   return (
     <div className={classNames('bolt-project-console-tool', split && 'bolt-project-console-tool-split')}>
+      {/*
+       * Deux groupes sans effet sur le bureau (`display: contents` — la barre y
+       * reste une seule rangée, comme avant) ; sur téléphone ils deviennent
+       * les rangées de la barre : flux + statut, puis niveaux, puis recherche
+       * et actions en icônes. Voir « PANNEAU JOURNAUX SUR TÉLÉPHONE » dans
+       * index.scss.
+       */}
       <div className="bolt-project-console-header">
-        {[
-          ['console', streamLabels.console],
-          ['workflow', streamLabels.workflow],
-          ['system', streamLabels.system],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={activeStream === id}
-            aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
-            onClick={() => setActiveStream(id as any)}
+        <div className="bolt-project-console-streams">
+          {[
+            ['console', streamLabels.console],
+            ['workflow', streamLabels.workflow],
+            ['system', streamLabels.system],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={activeStream === id}
+              aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
+              onClick={() => setActiveStream(id as any)}
+            >
+              {label}
+            </button>
+          ))}
+          <span
+            className="bolt-project-console-status"
+            title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
           >
-            {label}
-          </button>
-        ))}
-        <span
-          className="bolt-project-console-status"
-          title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
-        >
-          {workspaceStatus}
-        </span>
+            {workspaceStatus}
+          </span>
+        </div>
         <div
           className="bolt-project-console-level-chips"
           role="group"
@@ -22450,53 +22459,67 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
             </button>
           ))}
         </div>
-        <input
-          aria-label={t('chat.copy.searchLogs_48225af1')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
-        />
-        <button
-          type="button"
-          aria-pressed={regexEnabled}
-          aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
-          onClick={() => setRegexEnabled((value) => !value)}
-        >
-          {t('chat.copy.regex_6e681935')}
-        </button>
-        <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
-          {t('chat.copy.clearLogs_532ffc7a')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
-          onClick={() => setSplit((value) => !value)}
-        >
-          {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
-          onClick={downloadLogs}
-        >
-          {t('chat.copy.exportTxt_469c1c08')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={liveTail}
-          aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
-          onClick={() => setLiveTail((value) => !value)}
-        >
-          {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
-          onClick={() => void reload?.()}
-          disabled={busy}
-        >
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
-        </button>
+        <div className="bolt-project-console-search">
+          <input
+            aria-label={t('chat.copy.searchLogs_48225af1')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
+          />
+          <button
+            type="button"
+            aria-pressed={regexEnabled}
+            aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
+            onClick={() => setRegexEnabled((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:brackets-curly" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.regex_6e681935')}</span>
+          </button>
+          <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
+            <span className="bolt-project-console-action-icon i-ph:eraser" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.clearLogs_532ffc7a')}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
+            onClick={() => setSplit((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:columns" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
+            onClick={downloadLogs}
+          >
+            <span className="bolt-project-console-action-icon i-ph:download-simple" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.exportTxt_469c1c08')}</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={liveTail}
+            aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
+            onClick={() => setLiveTail((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-line-down" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
+            onClick={() => void reload?.()}
+            disabled={busy}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-clockwise" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
+            </span>
+          </button>
+        </div>
       </div>
       <LogStreamView logs={filteredLogs} empty={activeStreamEmptyMessage} />
       {split && (

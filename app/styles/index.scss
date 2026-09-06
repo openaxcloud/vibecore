@@ -1005,7 +1005,15 @@ html:has(.vc-app-shell-grid) body {
     --vc-type-code-size: 11px;
     --vc-type-heading-size: 13px;
     --vc-type-heading-compact-size: 12px;
-    --vc-type-label-size: 9px;
+
+    /*
+     * 11px, et plus 9px. Mesuré le 06/09 sur le build de production à 390 :
+     * `.text-xs` rendait 9px dans les panneaux (descriptions du Débogueur, des
+     * outils de la feuille « + ») pendant que `text-[11px]` rendait 14px — la
+     * petite légende était plus PETITE qu'en bureau (10px), et la grande plus
+     * grande. Sur un téléphone la légende ne descend pas sous le bureau.
+     */
+    --vc-type-label-size: 11px;
 
     /*
      * Mobile et tablette : la MÊME taille que les messages de l'agent.
@@ -11592,6 +11600,21 @@ body :where(.lucide, svg[data-lucide]) {
   border-bottom: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-panel);
   padding: 0 8px;
+}
+
+/*
+ * Les deux groupes du bandeau (flux + statut, recherche + actions) n'existent
+ * que pour le téléphone, où ils deviennent des rangées. Ici ils sont
+ * transparents pour la mise en page : la barre reste une rangée, et les
+ * actions gardent leur libellé — l'icône est réservée au téléphone.
+ */
+.bolt-project-console-streams,
+.bolt-project-console-search {
+  display: contents;
+}
+
+.bolt-project-console-action-icon {
+  display: none;
 }
 
 .bolt-project-editor-toolbar-actions,
@@ -22794,23 +22817,59 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * niveau, un champ de recherche réduit à « Journaux c », six boutons de trois
    * styles. La zone de journaux commençait sous 60 % de la hauteur.
    *
-   * Ici : une seule famille de boutons (28 px, 12 px, même bordure), le champ
-   * de recherche prend la ligne entière, et la vue fractionnée — deux colonnes
-   * côte à côte — n'a pas de sens sur 390 px : masquée.
+   * Ici : une seule famille de boutons (28 px, 12 px, même bordure), trois
+   * rangées fixes (flux, niveaux, recherche + actions en icônes), et la vue
+   * fractionnée — deux colonnes côte à côte — n'a pas de sens sur 390 px :
+   * masquée. Reprise le 06/09 : la version de la veille laissait encore sept
+   * rangées (261 px mesurés), parce que six boutons à libellé ne tiennent pas
+   * sur 342 px quelle que soit leur taille.
    */
   .bolt-responsive-ide-mobile .bolt-project-console-header {
+    display: grid;
+    height: auto;
+    min-height: 0;
     gap: 6px;
     padding: 6px 8px;
   }
 
+  /*
+   * Trois rangées, jamais plus (mesuré avant : sept rangées, 261px) :
+   *   1. flux + statut — une ligne qui défile au doigt ;
+   *   2. puces de niveau — une ligne qui défile au doigt ;
+   *   3. recherche + actions en icônes (32px), libellés portés par `aria-label`.
+   */
+  .bolt-responsive-ide-mobile .bolt-project-console-streams,
+  .bolt-responsive-ide-mobile .bolt-project-console-level-chips,
+  .bolt-responsive-ide-mobile .bolt-project-console-search {
+    display: flex;
+    min-width: 0;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-streams,
+  .bolt-responsive-ide-mobile .bolt-project-console-level-chips {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-streams::-webkit-scrollbar,
+  .bolt-responsive-ide-mobile .bolt-project-console-level-chips::-webkit-scrollbar {
+    display: none;
+  }
+
   .bolt-responsive-ide-mobile .bolt-project-console-header button,
   .bolt-responsive-ide-mobile .bolt-project-console-header .bolt-project-console-status {
+    flex: 0 0 auto;
     min-height: 28px;
     height: 28px;
     border: 1px solid var(--vc-ide-border-subtle);
     border-radius: 6px;
     font-size: 12px !important;
     padding: 0 8px;
+    white-space: nowrap;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-console-header .bolt-project-console-level-chips button {
@@ -22818,11 +22877,29 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-project-console-header input {
-    width: 100%;
+    width: auto;
     min-width: 0;
-    flex: 1 1 100%;
+    flex: 1 1 auto;
     height: 32px;
     font-size: 16px; /* plancher iOS : sous 16 px Safari zoome au focus */
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-search button {
+    width: 32px;
+    min-width: 32px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-action-icon {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    font-size: 15px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-action-label {
+    display: none;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-console-header button[aria-label*='fractionn'],
@@ -22863,6 +22940,248 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-preview-logs-panel [role='tablist'] button {
     white-space: nowrap;
+  }
+
+  /*
+   * ÉCHELLE DU CHROME SUR TÉLÉPHONE — lot IDE-MOBILE-2026-09-06.
+   *
+   * Quatre captures iPhone d'Avi, 06/09 : onglets des journaux de la Webview,
+   * barre d'adresse, état de départ de l'Agent aux puces tronquées, panneau
+   * Journaux — « tu as pas réduit ici… fixe tous les panneaux, tout sans
+   * exception ». Mesuré sur le build de production à 390 (Chromium, sonde
+   * probe-panel.mjs), AVANT :
+   *   - Débogueur : `text-[11px]` rendu 14px, `.text-xs` rendu 9px, bouton
+   *     `h-7` à 44px de haut et 65px de large, libellé sur trois lignes ;
+   *   - feuille « + » : titres 14px gras, descriptions 9px coupées à deux
+   *     lignes ;
+   *   - Webview : barre d'adresse 53px, bouton de port 44px ; étapes de la
+   *     carte de démarrage tronquées — `.bolt-preview-loading-steps`, PAS la
+   *     `.bolt-preview-splash-steps` corrigée la veille : mauvais élément visé,
+   *     règle 1 (mesurer le chemin réel) non respectée ;
+   *   - état de départ de l'Agent : « Améliorer project/README.md » coupé à
+   *     143px pour 239 nécessaires.
+   *
+   * Un seul mécanisme derrière tout ça : la règle de coquille
+   * `.bolt-project-ide-shell :where(div, span, button…) { font-size:
+   * var(--vc-type-interface-size) !important }` aplatit TOUT le chrome à 14px
+   * sur téléphone, pendant que `--vc-type-label-size` descendait à 9px. Ici,
+   * l'échelle du chrome des panneaux d'outils (`.bolt-workbench-mobile`,
+   * jamais les messages de l'agent) : 13 / 12 / 11 / 10 px, portée à (0,4,0)
+   * et `!important` pour reprendre la main sur la règle de coquille.
+   */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.text-sm):not([class*='i-']) {
+    font-size: 13px !important;
+  }
+
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile
+    :where(.text-xs, small, [class*='text-xs']:not([class*=':text-xs'])):not([class*='i-']) {
+    font-size: 12px !important;
+    line-height: 1.35 !important;
+  }
+
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile
+    :where([class*='text-[10px]'], [class*='text-[11px]']):not([class*='i-']) {
+    font-size: 11px !important;
+    line-height: 1.3 !important;
+  }
+
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile
+    :where(.uppercase[class*='tracking']):not([class*='i-']) {
+    font-size: 10px !important;
+    letter-spacing: 0.05em !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Boutons et champs de gabarit (PanelPrimitives) : 36 px pour `sm`, 40 px pour `md`. */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-7, input.h-7, select.h-7) {
+    height: 36px !important;
+    min-height: 36px !important;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-9, input.h-9, select.h-9) {
+    height: 40px !important;
+    min-height: 40px !important;
+  }
+
+  /*
+   * Un en-tête de section « titre + description | bouton » se replie : le
+   * bouton descend sur sa propre ligne au lieu d'être écrasé à 65px et de
+   * casser son libellé sur trois lignes.
+   */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.flex.justify-between) {
+    flex-wrap: wrap;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.flex.justify-between) > button {
+    max-width: 100%;
+    flex: 0 0 auto;
+  }
+
+  /* Webview : barre d'adresse à 36px (mesurée 53), bouton de port 30px (mesuré 44). */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar {
+    min-height: 36px;
+    gap: 4px;
+    padding: 2px;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-port-button {
+    height: 30px !important;
+    min-height: 30px !important;
+    min-width: 44px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input {
+    height: 28px;
+    font-size: 16px; /* plancher iOS */
+  }
+
+  /* Carte de démarrage : deux colonnes, numéro à gauche, libellé entier à 11px. */
+  .bolt-responsive-ide-mobile .bolt-preview-loading-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-loading-steps li {
+    grid-template-columns: 18px minmax(0, 1fr);
+    justify-items: start;
+    align-items: start;
+    column-gap: 7px;
+    text-align: left;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-loading-steps strong,
+  .bolt-responsive-ide-mobile .bolt-preview-splash-steps strong {
+    max-width: none;
+    overflow: visible;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  /* Journaux de la Webview : onglets à 12px, bandeau qui se replie au lieu de déborder. */
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel header {
+    min-height: 0;
+    flex-wrap: wrap;
+    padding: 4px 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel button {
+    height: 28px;
+    font-size: 12px !important;
+    line-height: 1 !important;
+  }
+
+  /* Feuille « + » : titres 13px, descriptions 12px entières — plus de coupe à deux lignes. */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-item-copy span:not([class*='i-']) {
+    font-size: 13px !important;
+    font-weight: 600;
+    line-height: 1.25 !important;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-item-copy small:not([class*='i-']) {
+    display: block;
+    overflow: visible;
+    font-size: 12px !important;
+    line-height: 1.3 !important;
+    -webkit-line-clamp: unset;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-close:not([class*='i-']) {
+    font-size: 13px !important;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-section-label:not([class*='i-']) {
+    font-size: 11px !important;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-mobile-more-search input::placeholder {
+    font-size: 13px; /* « Rechercher des outils et des fichiers » entier dans 262 px */
+  }
+
+  /*
+   * Ce que l'audit des 33 panneaux (audit-mobile.mjs) laissait encore tronqué
+   * après l'échelle ci-dessus — chacun un `nowrap` + ellipse qui ne se justifie
+   * pas sur 390 px, où le repli coûte une ligne et la coupe coûte le sens.
+   */
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-mobile-agent-start-steps
+    span:last-child:not([class*='i-']) {
+    overflow: visible;
+    font-size: 11px !important;
+    line-height: 1.25 !important;
+    text-align: center;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-splash-task small,
+  .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  /*
+   * FIL DE L'AGENT — ligne d'action d'un artefact sur téléphone.
+   *
+   * Mesuré (sonde probe-messages.mjs, 390) : « src/components/very/deep/…/
+   * ProductCardWithVariants.tsx » coupé à 204 px pour 487. Le chemin se
+   * replie dans la place qu'il a, au lieu d'être coupé ; un chemin court garde
+   * sa ligne unique — la densité d'AGM-01 (pas de 36 px) ne bouge pas, et la
+   * cible tactile de 44 px du bouton non plus.
+   */
+  .bolt-responsive-ide-mobile .bolt-action-row .bolt-action-file-path {
+    overflow: visible;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  /*
+   * « Afficher la commande » : 44 px de résumé pour 12 px de texte. La cible
+   * tactile GARDE ses 44 px (plancher TACTILE-004, `!important`) mais sort du
+   * flux de 6 px de chaque côté, comme le bouton de fichier : 32 px visibles.
+   */
+  .bolt-responsive-ide-mobile .bolt-action-row-details > summary {
+    margin-block: -6px;
+  }
+
+  @media (max-width: 480px) {
+    /* Téléphone : une colonne, chaque outil sur sa ligne, rien de tronqué. */
+    .bolt-responsive-ide-mobile .bolt-mobile-more-list {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 6px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-mobile-more-item {
+      min-height: 54px;
+      padding: 8px 10px;
+    }
+
+    /*
+     * Zone de saisie : pièce jointe, micro et « plus » à 40px de large — la
+     * hauteur reste à 44. Mesuré : « Économique » coupé à 87px pour 96
+     * nécessaires ; les 12px rendus par trois boutons suffisent.
+     */
+    .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-toolbar-button {
+      width: 40px !important;
+      min-width: 40px !important;
+      flex-basis: 40px;
+    }
   }
 
   /*
@@ -28547,9 +28866,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 @media (max-width: 480px) {
+  /*
+   * Téléphone : une action par ligne, libellé entier. Mesuré le 06/09 :
+   * « Améliorer project/README.md » coupé à 143px pour 239 nécessaires sur
+   * la grille à deux colonnes.
+   */
   .bolt-mobile-agent-start-actions {
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
     overflow: visible;
     padding: 0;
     scroll-snap-type: none;
@@ -28558,7 +28883,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-mobile-agent-start-actions button {
     width: 100%;
     min-width: 0;
-    justify-content: center;
+    height: auto;
+    min-height: 40px;
+    justify-content: flex-start;
+    padding: 8px 12px;
+    text-align: left;
+  }
+
+  .bolt-project-ide-shell .bolt-mobile-agent-start-actions button span:last-child:not([class*='i-']) {
+    overflow: visible;
+    font-size: 13px !important;
+    line-height: 1.3 !important;
+    text-overflow: clip;
+    white-space: normal;
   }
 }
 
