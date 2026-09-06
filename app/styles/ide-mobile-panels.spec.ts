@@ -594,3 +594,20 @@ describe('15. captures iPhone 06/09 14:38–14:40 : Studio de l’agent, Intégr
     expect(pastilles).not.toMatch(/overflow-x:\s*auto/);
   });
 });
+
+describe('16. audit du 06/09 : Sécurité, « Dernière analyse » sort de l’écran à droite', () => {
+  it('les grilles de panneau sur téléphone n’ont plus de piste `1fr` nue', () => {
+    /*
+     * Mesuré : `.bolt-project-security-grid` à 358 px, sa piste unique à
+     * 437 px — `1fr` seul prend pour minimum la largeur min-content du volet.
+     * `minmax(0, 1fr)` rend la piste à l'écran.
+     */
+    const mobile = INDEX.slice(INDEX.indexOf('@media (max-width: 1024px)'));
+
+    expect(mobile).not.toMatch(/grid-template-columns:\s*1fr\s*!important/);
+    expect(
+      (mobile.match(/grid-template-columns:\s*minmax\(0, 1fr\)\s*!important/g) ?? []).length,
+      'les deux blocs de panneaux mobiles utilisent la piste bornée',
+    ).toBeGreaterThanOrEqual(2);
+  });
+});

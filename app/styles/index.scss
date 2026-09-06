@@ -22173,7 +22173,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-workflow-task-form,
       .bolt-project-git-tool
     ) {
-    grid-template-columns: 1fr !important;
+    /*
+     * `minmax(0, 1fr)` et non `1fr` : une piste `1fr` a pour minimum
+     * automatique la largeur min-content de son contenu, si bien qu'un
+     * volet au contenu large (Sécurité, « Dernière analyse » : 437 px sur
+     * 358, mesuré le 06/09 par la sonde probe-aside.mjs) ÉLARGIT la grille
+     * et sort de l'écran. Avec un minimum de zéro, la piste vaut l'écran et
+     * c'est le contenu qui se replie.
+     */
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .bolt-responsive-ide-mobile
@@ -22251,7 +22259,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
       .bolt-project-workflows-toolbar
     ) {
     display: grid !important;
-    grid-template-columns: 1fr !important;
+    /*
+     * `minmax(0, 1fr)` et non `1fr` : une piste `1fr` a pour minimum
+     * automatique la largeur min-content de son contenu, si bien qu'un
+     * volet au contenu large (Sécurité, « Dernière analyse » : 437 px sur
+     * 358, mesuré le 06/09 par la sonde probe-aside.mjs) ÉLARGIT la grille
+     * et sort de l'écran. Avec un minimum de zéro, la piste vaut l'écran et
+     * c'est le contenu qui se replie.
+     */
+    grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch !important;
     justify-content: stretch !important;
   }

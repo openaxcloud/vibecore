@@ -635,8 +635,21 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await expect(lignes.first()).toBeVisible({ timeout: 30_000 });
 
     for (const m of await mesurer(page, '.bolt-panel-row')) {
-      expect(m.h, `ligne « ${m.text} » haute de ${m.h}px`).toBeLessThanOrEqual(48);
+      // Une paire courte tient sur une ligne ; un détail long (« Résumé ») se replie dessous, deux lignes au plus.
+      expect(m.h, `ligne « ${m.text} » haute de ${m.h}px`).toBeLessThanOrEqual(m.text.length > 28 ? 72 : 48);
     }
+
+    // Audit du 06/09 : le volet « Dernière analyse » faisait 437 px sur 390 — « Aucune an… » coupé au bord.
+    const volet = await page
+      .locator('.bolt-project-security-grid aside')
+      .first()
+      .evaluate((el) => {
+        const r = el.getBoundingClientRect();
+
+        return { right: Math.round(r.right), w: Math.round(r.width), vw: innerWidth };
+      });
+
+    expect(volet.right, `volet large de ${volet.w}px, bord droit à ${volet.right}px`).toBeLessThanOrEqual(volet.vw);
 
     // Git, capture 13:08 : deux champs « main » sans libellé visible au-dessus.
     await ouvrirOutil(page, 'git');
