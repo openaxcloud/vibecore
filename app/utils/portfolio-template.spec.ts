@@ -93,6 +93,9 @@ describe('le sélecteur reconnaît le français', () => {
     ['cree un site personnel sans accent', true],
     ['fais-moi une page perso', true],
     ['je veux un CV en ligne, génère-le', true],
+    ['générer un portfolio', true],
+    ['générez un portfolio', true],
+    ['generer un portfolio sans accent', true],
     ['construire un site vitrine', true],
   ])('%s → %s', (prompt, attendu) => {
     expect(shouldUsePortfolioTemplate(entree(prompt))).toBe(attendu);
@@ -115,5 +118,51 @@ describe('le sélecteur reconnaît le français', () => {
   it('l’anglais continue de fonctionner à l’identique', () => {
     expect(shouldUsePortfolioTemplate(entree('build me a portfolio'))).toBe(true);
     expect(shouldUsePortfolioTemplate(entree('create a personal website'))).toBe(true);
+  });
+});
+
+/*
+ * LE CONTRÔLE SYSTÉMATIQUE, et c'est lui le vrai correctif du trou.
+ *
+ * Un premier jet écrivait `g[ée]n[èe]r[ee]r?` : `générer` et `générez` —
+ * l'infinitif et l'impératif pluriel — ne déclenchaient pas, parce que la
+ * quatrième position acceptait `è` ou `e` mais jamais `é`. Le test couvrait
+ * `génère-le`, qui passe, et manquait l'infinitif : un trou de couverture, pas
+ * un test creux.
+ *
+ * Vérifier une forme par verbe ne suffit donc pas. Ce cas balaie les formes
+ * qu'un francophone écrit réellement — infinitif, impératif singulier et
+ * pluriel — pour chaque verbe accepté.
+ */
+describe('toutes les formes conjuguées déclenchent, pas seulement celle qu’on a testée', () => {
+  const entree = (prompt: string) => ({
+    chatMode: 'build' as const,
+    messages: [{ role: 'user' as const, content: prompt }],
+    files: { 'index.html': '', 'src/main.tsx': '' },
+  });
+
+  const formes = [
+    'créer',
+    'crée',
+    'créez',
+    'creer',
+    'cree',
+    'creez',
+    'générer',
+    'génère',
+    'générez',
+    'generer',
+    'genere',
+    'generez',
+    'fabriquer',
+    'fabrique',
+    'construire',
+    'construis',
+    'faire',
+    'fais',
+  ];
+
+  it.each(formes)('« %s un portfolio » déclenche', (verbe) => {
+    expect(shouldUsePortfolioTemplate(entree(`${verbe} un portfolio`))).toBe(true);
   });
 });
