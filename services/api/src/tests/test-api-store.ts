@@ -537,6 +537,7 @@ export class TestApiStore implements ApiStore {
   }
 
   private loginLockouts = new Map<string, LoginLockoutState>();
+
   /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
   loginLockoutShouldThrow = false;
 
@@ -2149,6 +2150,7 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+
       // P104: see store.ts — omitting this fails OPEN on the static-serve gate.
       metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
@@ -2320,12 +2322,16 @@ export class TestApiStore implements ApiStore {
   async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
     const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
     this.projectCheckpoints.set(row.id, row);
+
     return { id: row.id, state: row.state };
   }
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
     const row = this.projectCheckpoints.get(idv);
-    if (row) Object.assign(row, patch);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
   }
 
   /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
@@ -2651,10 +2657,7 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
-  async putImportStagedFiles(
-    importJobId: string,
-    files: Array<{ path: string; content: string; encoding?: string }>,
-  ) {
+  async putImportStagedFiles(importJobId: string, files: Array<{ path: string; content: string; encoding?: string }>) {
     this.importStagedFiles.set(
       importJobId,
       files.map((file) => ({ ...file })),
