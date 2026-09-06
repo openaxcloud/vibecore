@@ -1715,15 +1715,25 @@ body
   }
 }
 
+/*
+ * `scale`, PAS `transform`. Les modales Radix se centrent par
+ * `translate(-50%, -50%)` dans `transform` ; une animation qui écrit
+ * `transform: scale(…)` — avec `animation-fill-mode: both` — REMPLACE ce
+ * centrage pour toujours : le coin haut-gauche de la boîte reste au milieu
+ * de l'écran et la boîte déborde à droite et en bas. Capture iPhone d'Avi,
+ * 05/09 22:59 : « Outils MCP » coupé, inutilisable. Mesuré sur le build de
+ * production, Chromium 390 : left = 195 px pour une boîte de 366 px.
+ * La propriété `scale` se compose avec `transform` au lieu de l'écraser.
+ */
 @keyframes vc-modal-in {
   from {
     opacity: 0;
-    transform: scale(0.95);
+    scale: 0.95;
   }
 
   to {
     opacity: 1;
-    transform: scale(1);
+    scale: 1;
   }
 }
 
@@ -22774,6 +22784,85 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     .bolt-project-agent-composer
     .bolt-project-agent-notice-stack:not(:has(> :not(.vc-sr-only))) {
     display: none;
+  }
+
+  /*
+   * PANNEAU JOURNAUX SUR TÉLÉPHONE (BUG-LOGS-MOBILE-001).
+   *
+   * Capture iPhone d'Avi, 05/09 23:00 : la barre d'outils occupait cinq
+   * rangées et plus de la moitié de l'écran — onglets, statut, quatre puces de
+   * niveau, un champ de recherche réduit à « Journaux c », six boutons de trois
+   * styles. La zone de journaux commençait sous 60 % de la hauteur.
+   *
+   * Ici : une seule famille de boutons (28 px, 12 px, même bordure), le champ
+   * de recherche prend la ligne entière, et la vue fractionnée — deux colonnes
+   * côte à côte — n'a pas de sens sur 390 px : masquée.
+   */
+  .bolt-responsive-ide-mobile .bolt-project-console-header {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-header button,
+  .bolt-responsive-ide-mobile .bolt-project-console-header .bolt-project-console-status {
+    min-height: 28px;
+    height: 28px;
+    border: 1px solid var(--vc-ide-border-subtle);
+    border-radius: 6px;
+    font-size: 12px !important;
+    padding: 0 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-header .bolt-project-console-level-chips button {
+    border-radius: 999px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-header input {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
+    height: 32px;
+    font-size: 16px; /* plancher iOS : sous 16 px Safari zoome au focus */
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-console-header button[aria-label*='fractionn'],
+  .bolt-responsive-ide-mobile .bolt-project-console-header button[aria-label*='split' i] {
+    display: none;
+  }
+
+  /*
+   * CARTE DE DÉMARRAGE DE LA WEBVIEW (BUG-PREVIEW-MOBILE-001), même capture
+   * 23:05 : quatre étapes sur une grille de quatre colonnes → deux par ligne à
+   * 390 px, libellés coupés « Compilation des dépend… », « Démarrage du
+   * serveur d… ». Deux colonnes assumées, et le libellé peut prendre deux
+   * lignes plutôt que d'être tronqué.
+   */
+  .bolt-responsive-ide-mobile .bolt-preview-splash-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-splash-steps div {
+    align-items: flex-start;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-splash-steps strong {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.25;
+  }
+
+  /*
+   * Journaux de la webview : « Ancrer à droite » ouvre les journaux dans le
+   * volet de droite — il n'y a pas de volet de droite sur un téléphone. Et
+   * les deux onglets restent sur une ligne.
+   */
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel [role='tablist'] button {
+    white-space: nowrap;
   }
 
   /*

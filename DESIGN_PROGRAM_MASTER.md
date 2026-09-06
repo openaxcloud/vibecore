@@ -190,10 +190,10 @@ Trois raisons, à ne pas séparer :
 
 | ID | Point | Session | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve |
 | --- | --- | --- | --- | --- | --- | --- |
-| IDM-01 | Feuille « Outils MCP » : pleine largeur, ancrée en bas, jamais hors écran sur mobile (BUG-MOBILE-MCP-001) | session Agent | ✅ 05/09 | ☐ | ☐ | — |
-| IDM-02 | Carte de démarrage de la Webview : libellé sans répétition, étapes lisibles à 390 px, onglets sur une ligne, pas d'« Ancrer à droite » sur téléphone (BUG-PREVIEW-COPY-001, BUG-PREVIEW-MOBILE-001) | session Agent | ✅ 05/09 | ☐ | ☐ | — |
-| IDM-03 | Débogueur : « Expressions surveillées » / « Surveiller une expression », sortie d'exécution lisible (BUG-DEBUG-I18N-001) | session Agent | ✅ 05/09 | ☐ | ☐ | — |
-| IDM-04 | Journaux : barre d'outils compacte sur mobile, une famille de boutons, zone de journaux visible dès l'ouverture (BUG-LOGS-MOBILE-001) | session Agent | ✅ 05/09 | ☐ | ☐ | — |
+| IDM-01 | Modale « Outils MCP » entière et centrée sur mobile — et sur bureau, où elle était aussi décalée (BUG-MOBILE-MCP-001) | session Agent | ✅ 05/09 | ✅ 06/09 (`main`) | ☐ live iPhone à confirmer | preuve live locale 06/09 (Chromium, build prod : 390 → left 195 → **12 px**, 1440 → left 720 → **460 px**, centrées, entières) + épinglé par `app/styles/ide-mobile-panels.spec.ts` (keyframes en `scale`) et `tests/e2e/mcp-dialog-viewport.spec.ts` (390 et 1440) |
+| IDM-02 | Carte de démarrage de la Webview : libellé sans répétition, étapes lisibles à 390 px, onglets sur une ligne, pas d'« Ancrer à droite » sur téléphone (BUG-PREVIEW-COPY-001, BUG-PREVIEW-MOBILE-001) | session Agent | ✅ 05/09 | ✅ 06/09 (`main`) | ☐ live iPhone à confirmer (démarrage réel requis) | épinglé par `app/components/workbench/preview-start-status.spec.ts` et `app/styles/ide-mobile-panels.spec.ts` ; pas de mesure live (la carte n'apparaît que pendant un démarrage réel) |
+| IDM-03 | Débogueur : « Expressions à surveiller » / « Surveiller cette expression », sortie d'exécution lisible (BUG-DEBUG-I18N-001) | session Agent | ✅ 05/09 | ✅ 06/09 (`main`) | ☐ live iPhone à confirmer | épinglé par `app/lib/ide/runtime-log-line.spec.ts` (dont la ligne tronquée de la capture) |
+| IDM-04 | Journaux : barre d'outils compacte sur mobile, une famille de boutons, zone de journaux visible dès l'ouverture (BUG-LOGS-MOBILE-001) | session Agent | ✅ 05/09 | ✅ 06/09 (`main`) | ☐ live iPhone à confirmer | épinglé par `app/styles/ide-mobile-panels.spec.ts` ; pas de mesure live locale (panneau non atteint par la route `/logs` à 390 px) |
 
 ## Lot AGENT-MOBILE-2026-09-04 — capture iPhone d'Avi : liste d'actions, pastille « descendre », zone de saisie
 

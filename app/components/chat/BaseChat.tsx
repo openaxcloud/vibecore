@@ -270,6 +270,7 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
   formatBaseChatAstDateTime,
@@ -22263,9 +22264,19 @@ function ProjectDebuggerPanel({
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
               <PanelSectionTitle>{t('chat.copy.runtimeOutput_fb71b522')}</PanelSectionTitle>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
-                {logs.slice(-12).map((log: any, index: number) => (
-                  <div key={`${log.timestamp}-${index}`}>{log.message}</div>
-                ))}
+                {logs.slice(-12).map((log: any, index: number) => {
+                  // L'agent journalise en JSON, parfois tronqué : on montre ce qu'un humain lit.
+                  const lisible = ligneRuntimeLisible(String(log.message ?? ''));
+
+                  return (
+                    <div key={`${log.timestamp}-${index}`} data-level={lisible.niveau ?? undefined}>
+                      {lisible.niveau ? (
+                        <span className="mr-1 uppercase text-bolt-elements-textTertiary">[{lisible.niveau}]</span>
+                      ) : null}
+                      {lisible.texte}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}

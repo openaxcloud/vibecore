@@ -32,6 +32,7 @@ import {
   shouldRunPreviewBootLoop,
   MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
+import { previewStartStatus } from './preview-start-status';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
@@ -1279,7 +1280,14 @@ export const Preview = memo(
 
       try {
         const label = await workbenchStore.startPreviewServer();
-        setPreviewStatus(t('idePanels.preview.startingCommand', { label }));
+        const runningCommand = workbenchStore.previewServerState.get()?.command;
+
+        // Une phrase de statut n'est pas une commande : voir preview-start-status.ts.
+        setPreviewStatus(
+          previewStartStatus(label, runningCommand, (command) =>
+            t('idePanels.preview.startingCommand', { label: command }),
+          ),
+        );
         toast.info(t('idePanels.preview.buildStarted', { label }), { toastId: 'preview-build-started' });
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
