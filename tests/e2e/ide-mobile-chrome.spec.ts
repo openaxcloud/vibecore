@@ -243,6 +243,21 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     for (const m of cartes.slice(0, 6)) {
       expect(m.w, `carte « ${m.text} » large de ${m.w}px`).toBeGreaterThan(300);
     }
+
+    // Feuille « Panneaux » (⋮) — capture iPhone 06/09 10:34 : libellés coupés à la deuxième ligne.
+    await page.getByTestId('tools-sheet-close').click();
+    await page.getByTestId('button-more').click();
+    await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 15_000 });
+
+    const panneaux = await mesurer(page, '.bolt-mobile-more-menu-item > span:last-child');
+
+    expect(panneaux.length).toBeGreaterThan(10);
+
+    for (const m of panneaux) {
+      expect(m.font, `panneau « ${m.text} » à ${m.font}px`).toBe(12);
+      expect(m.sh, `panneau « ${m.text} » coupé : ${m.sh}px pour ${m.ch}px`).toBeLessThanOrEqual(m.ch + 1);
+      expect(m.sw, `panneau « ${m.text} » tronqué`).toBeLessThanOrEqual(m.cw + 1);
+    }
   });
 
   test('Débogueur : légendes 11 px, texte 12 px, bouton d’en-tête entier sur sa ligne', async ({ page, request }) => {
@@ -273,8 +288,36 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     // 44 px de haut et 65 de large mesurés avant, le libellé sur trois lignes : une seule ligne de 36 px.
     for (const m of petits) {
-      expect(m.h, `bouton « ${m.text} » haut de ${m.h}px`).toBe(36);
+      // TACTILE-001 : la cible ne descend jamais sous 44 px (run 1481 refusé pour 36).
+      expect(m.h, `bouton « ${m.text} » haut de ${m.h}px`).toBeGreaterThanOrEqual(44);
     }
+
+    // 65 px mesurés avant, le libellé sur trois lignes : le bouton doit avoir sa largeur naturelle.
+    const ecrases = await page.evaluate(() => {
+      const out: string[] = [];
+
+      for (const bouton of document.querySelectorAll<HTMLElement>('.bolt-workbench-mobile button.h-7')) {
+        const clone = bouton.cloneNode(true) as HTMLElement;
+
+        clone.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;width:auto;max-width:none;';
+        // À côté de l'original : le clone hérite de la même échelle de police (12 px dans le panneau).
+        bouton.parentElement?.append(clone);
+
+        const naturelle = clone.getBoundingClientRect().width;
+
+        clone.remove();
+
+        if (bouton.getBoundingClientRect().width < naturelle - 1) {
+          out.push(
+            `${bouton.textContent?.trim()} : ${Math.round(bouton.getBoundingClientRect().width)}px pour ${Math.round(naturelle)}px`,
+          );
+        }
+      }
+
+      return out;
+    });
+
+    expect(ecrases, 'boutons écrasés sous leur largeur naturelle').toEqual([]);
   });
 
   test('Webview : barre d’adresse compacte, journaux à 12 px sans débordement', async ({ page, request }) => {
@@ -292,6 +335,8 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(adresse.h, `barre d'adresse de ${adresse.h}px`).toBeLessThanOrEqual(40);
 
     // Le bouton de port arrive avec la liste des ports, après la barre : l'attendre (vu flaky sans).
+    await expect(page.locator('.bolt-preview-port-button')).toBeVisible({ timeout: 30_000 });
+
     await expect(page.locator('.bolt-preview-port-button')).toBeVisible({ timeout: 30_000 });
 
     const [port] = await mesurer(page, '.bolt-preview-port-button');
@@ -357,6 +402,8 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(cible.h, `cible du fichier de ${cible.h}px`).toBeGreaterThanOrEqual(44);
 
     // Le repli de la commande : 44 px de cible, 32 px dans le flux (mesuré avant : 44).
+    await expect(page.locator('.bolt-action-row-details').first()).toBeVisible({ timeout: 30_000 });
+
     await expect(page.locator('.bolt-action-row-details').first()).toBeVisible({ timeout: 30_000 });
 
     const [repli] = await mesurer(page, '.bolt-action-row-details');

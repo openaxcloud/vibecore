@@ -22998,17 +22998,12 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     line-height: 1.3 !important;
   }
 
-  /* Boutons et champs de gabarit (PanelPrimitives) : 36 px pour `sm`, 40 px pour `md`. */
-  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-7, input.h-7, select.h-7) {
-    height: 36px !important;
-    min-height: 36px !important;
-  }
-
-  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-9, input.h-9, select.h-9) {
-    height: 40px !important;
-    min-height: 40px !important;
-  }
-
+  /*
+   * Les boutons de gabarit GARDENT leur plancher tactile de 44 px (TACTILE-001,
+   * `tests/e2e/ide-touch-targets.spec.ts` — la porte de release l'a rappelé le
+   * 06/09, run 1481) : c'est la police et le repli qui rendent la place, pas la
+   * hauteur des cibles.
+   */
   /*
    * Un en-tête de section « titre + description | bouton » se replie : le
    * bouton descend sur sa propre ligne au lieu d'être écrasé à 65px et de
@@ -23106,6 +23101,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     font-size: 11px !important;
   }
 
+  /*
+   * Feuille « Panneaux » (bouton ⋮) — capture iPhone d'Avi, 06/09 10:34 :
+   * « Vue d'ensemble », « Base de données », « Shell (Terminal) », « Variables
+   * d'environnement » coupés à la deuxième ligne par le `line-clamp: 2` et
+   * l'`overflow: hidden`, à 14 px par la règle de coquille. Ici : 12 px, et le
+   * libellé prend les lignes qu'il lui faut.
+   */
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-menu-item > span:last-child:not([class*='i-']) {
+    display: block;
+    overflow: visible;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    -webkit-line-clamp: unset;
+  }
+
   .bolt-responsive-ide-mobile .bolt-mobile-more-search input::placeholder {
     font-size: 13px; /* « Rechercher des outils et des fichiers » entier dans 262 px */
   }
@@ -23173,14 +23185,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     }
 
     /*
-     * Zone de saisie : pièce jointe, micro et « plus » à 40px de large — la
-     * hauteur reste à 44. Mesuré : « Économique » coupé à 87px pour 96
-     * nécessaires ; les 12px rendus par trois boutons suffisent.
+     * Zone de saisie : « Économique » coupé à 87px pour 96 nécessaires. Les
+     * trois boutons d'action restent à 44 × 44 (TACTILE-001) ; les 12px
+     * manquants viennent des marges internes des deux sélecteurs, 8 → 4 px et
+     * 6 → 4 px de chaque côté.
      */
-    .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-toolbar-button {
-      width: 40px !important;
-      min-width: 40px !important;
-      flex-basis: 40px;
+    .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-mode-trigger {
+      padding: 0 4px !important;
+    }
+
+    .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-composer-chip {
+      padding: 0 4px !important;
     }
   }
 
@@ -28884,7 +28899,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100%;
     min-width: 0;
     height: auto;
-    min-height: 40px;
+    min-height: var(--vc-touch-min, 44px); /* TACTILE-001 : jamais sous 44 px */
     justify-content: flex-start;
     padding: 8px 12px;
     text-align: left;

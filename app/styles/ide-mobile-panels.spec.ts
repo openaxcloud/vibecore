@@ -206,20 +206,14 @@ describe('4. échelle du chrome des panneaux sur téléphone', () => {
     );
   });
 
-  it('boutons de gabarit à 36 / 40 px, et un en-tête « titre | bouton » qui se replie', () => {
-    expect(
-      bloc(
-        '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-7, input.h-7, select.h-7)',
-      ),
-    ).toMatch(/height:\s*36px\s*!important/);
-    expect(
-      bloc(
-        '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(button.h-9, input.h-9, select.h-9)',
-      ),
-    ).toMatch(/height:\s*40px\s*!important/);
+  it('un en-tête « titre | bouton » se replie — et les cibles gardent 44 px (aucune règle de hauteur sur h-7 / h-9)', () => {
     expect(
       bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-workbench-mobile :where(.flex.justify-between)'),
     ).toMatch(/flex-wrap:\s*wrap/);
+
+    // Run 1481 refusé par TACTILE-001 : 36 px sur `h-7` — plus jamais.
+    expect(INDEX).not.toMatch(/\.bolt-workbench-mobile :where\(button\.h-7/);
+    expect(INDEX).not.toMatch(/\.bolt-workbench-mobile :where\(button\.h-9/);
   });
 });
 
@@ -253,15 +247,29 @@ describe('5. feuille « + » et état de départ de l’Agent : rien de tronqué
 
     expect(libelle).toMatch(/white-space:\s*normal/);
     expect(libelle).toMatch(/font-size:\s*13px\s*!important/);
+    expect(dernierBloc('.bolt-mobile-agent-start-actions button')).toMatch(/min-height:\s*var\(--vc-touch-min, 44px\)/);
   });
 
-  it('composeur : pièce jointe, micro et « plus » à 40 px de large sur téléphone, 44 de haut', () => {
-    const boutons = bloc(
-      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-toolbar-button',
+  it('composeur : la place pour « Économique » vient des marges des sélecteurs, jamais des cibles de 44 px', () => {
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-chatbox-mode-trigger'),
+    ).toMatch(/padding:\s*0 4px\s*!important/);
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-chatbox .bolt-composer-chip'),
+    ).toMatch(/padding:\s*0 4px\s*!important/);
+
+    // Run 1481 refusé par TACTILE-001 : 40 px de large sur les trois boutons — plus jamais.
+    expect(INDEX).not.toMatch(/\.bolt-chatbox-toolbar-button \{[^}]*width:\s*40px/);
+  });
+
+  it('feuille « Panneaux » (⋮) : libellés entiers à 12 px, plus de coupe à deux lignes', () => {
+    const libelle = bloc(
+      ".bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-more-menu-item > span:last-child:not([class*='i-'])",
     );
 
-    expect(boutons).toMatch(/width:\s*40px\s*!important/);
-    expect(boutons).not.toMatch(/height/);
+    expect(libelle).toMatch(/font-size:\s*12px\s*!important/);
+    expect(libelle).toMatch(/-webkit-line-clamp:\s*unset/);
+    expect(libelle).toMatch(/overflow:\s*visible/);
   });
 });
 
