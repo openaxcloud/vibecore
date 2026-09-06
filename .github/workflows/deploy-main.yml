@@ -1127,7 +1127,13 @@ jobs:
       # instead of appearing as pods stuck at admission mid-upgrade.
       #
       # Verification needs only the KMS PUBLIC key, not signing rights: the deploy
-      # service account requires roles/cloudkms.publicKeyViewer on the cosign-images
+      # service account requires DEUX rôles sur la clé cosign-images :
+      #   roles/cloudkms.viewer    → cloudkms.cryptoKeys.get
+      #   roles/cloudkms.verifier  → viewPublicKey + useToVerify
+      # `publicKeyViewer` seul NE SUFFIT PAS : il n'apporte pas cryptoKeys.get,
+      # et c'est précisément cette permission que KMS refuse en premier
+      # (constaté le 2026-08-28 : IAM_PERMISSION_DENIED sur cryptoKeys.get).
+      # Ancien commentaire, incomplet : roles/cloudkms.publicKeyViewer on the cosign-images
       # key. If that grant is missing this step fails closed with the role named.
       - name: Verify image signatures (cosign, blocking)
         run: |
@@ -1163,7 +1169,7 @@ jobs:
           done < <(jq -r '.[] | "\(.service) \(.image) \(.digest)"' /tmp/services.json)
           if [ "$rc" -ne 0 ]; then
             echo "::error::At least one image is not validly signed by ${KMS_KEY}."
-            echo "::error::If this is a permissions error, the deploy service account needs roles/cloudkms.publicKeyViewer on that key."
+            echo "::error::If this is a permissions error, grant the deploy service account BOTH roles/cloudkms.viewer (cryptoKeys.get) AND roles/cloudkms.verifier (viewPublicKey + useToVerify) on that key. publicKeyViewer alone is not enough."
             exit 1
           fi
 
