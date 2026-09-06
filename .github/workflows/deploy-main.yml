@@ -1613,7 +1613,7 @@ jobs:
       - name: Verify rollout
         run: |
           set -euo pipefail
-          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+          for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             if [ -z "${dep}" ]; then
@@ -2044,7 +2044,7 @@ jobs:
             echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
             exit 1
           fi
-          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+          for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             [ -n "${dep}" ] || continue
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
