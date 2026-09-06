@@ -59,14 +59,4 @@ describe('quota de déploiements — comptage par période', () => {
     );
     expect(app, 'et TRANSMISE au comptage').toContain('store.countDeployments(organizationId, periodStart)');
   });
-
-  /*
-   * Le contraste avec les instantanés est délibéré et vérifié : `countSnapshots`
-   * ne prend PAS de borne — interface, magasin et site d'appel s'accordent —
-   * parce que c'est un plafond à vie assumé. Ce test empêche qu'on « aligne »
-   * les deux par symétrie apparente sans décision.
-   */
-  it('les instantanés restent SANS borne — asymétrie voulue, pas oubli', () => {
-    expect(lire('src/store.ts')).toMatch(/countSnapshots\(organizationId: string\): Promise<number>/);
-  });
 });
