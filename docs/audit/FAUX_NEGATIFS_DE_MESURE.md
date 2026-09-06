@@ -219,3 +219,72 @@ devait reproduire au octet près les douze lignes déjà présentes dans `HEAD`.
 en a d'abord reproduit **0**, puis **11 sur 12** — un tube échappé cassait le
 découpage — et seulement ensuite **12 sur 12**. Sans ce témoin, les deux premières
 tentatives se seraient présentées comme des réparations réussies.
+
+---
+
+### Une commande qui tourne, une cible correcte, un résultat faux (2026-09-07)
+
+C'est la forme la plus coûteuse, parce qu'elle ne ressemble pas à une panne. La
+commande s'exécute, elle vise le bon fichier, elle rend quelque chose — et ce
+quelque chose est faux. Rien dans la sortie ne le dit.
+
+Six occurrences sur un seul cycle de livraison :
+
+* **`head -1` sur une ligne de signature.** Pour retrouver le SHA déployé, je
+  filtrais le registre d'images sur l'empreinte du conteneur. Le registre
+  contient aussi la **signature cosign** de cette image, dont le nom de tag
+  *contient l'empreinte cherchée* : `sha256-<empreinte>.sig`. Elle sortait en
+  premier, `head -1` la prenait, son tag ne ressemblait pas à un SHA, et cinq
+  étages sur huit se sont affichés « tag introuvable ». Le déploiement était
+  parfaitement sain.
+* **Des noms de ressources préfixés.** `kubectl get deploy web` rendait
+  `NotFound` : les Deployments s'appellent `vibecore-vibecore-platform-web`. Je
+  ne l'ai su que parce que je n'avais **pas** masqué la sortie d'erreur — avec
+  `2>/dev/null`, j'aurais lu huit lignes vides comme huit services absents.
+* **Un sabotage qui n'a jamais été appliqué.** Une contre-épreuve est ressortie
+  **verte** ; j'allais rapporter un garde creux comme sain. L'échappement dans
+  mon `python3 -c` était faux : la ligne visée n'avait jamais été retirée.
+  Vérifié ensuite en comptant les lignes réellement supprimées.
+* **Une indentation dans un contrôle de lockfile.** Je cherchais les
+  dépendances ajoutées avec six espaces là où le fichier en met huit :
+  « 0 sur 4 », alors que le diff les montrait toutes les quatre.
+* **Un grep sur le mauvais fichier.** `middleware` absent d'un `.d.ts` précis,
+  alors qu'il apparaît dans 42 fichiers du même paquet. Le témoin — chercher un
+  terme dont je savais qu'il devait sortir — a tranché en une commande.
+* **Un préfixe d'affichage passé dans une ancre.** Deux fois. J'affiche du code
+  avec `sed 's/^/  /'` pour la lisibilité, puis je recopie ce que je vois comme
+  motif de recherche. L'indentation réelle est de 10 espaces, la mienne en avait
+  12, et l'ancre ne mordait pas.
+
+**Ce que ces six ont en commun.** Aucune n'est une erreur de raisonnement : ce
+sont des erreurs d'**instrumentation**. Sur cette campagne, mes commandes de
+mesure m'ont trompé plus souvent que le code que je mesurais.
+
+**Les trois gestes qui les attrapent tous les six**, et qui ne coûtent qu'une
+commande de plus :
+
+1. **Un témoin positif avant de lire un zéro.** Faire rendre au moins un
+   résultat connu à la même commande. Cinq des six cas ci-dessus tombent à ce
+   seul contrôle.
+2. **Compter ce qui a été trouvé, pas seulement lire ce qui a été rendu.**
+   `head -1` sur une liste qu'on n'a pas comptée est un pari. Le nombre de
+   lignes retirées, le nombre d'entrées examinées, le code de sortie.
+3. **Les octets, jamais l'affichage.** Une ancre se prend dans le fichier, pas
+   dans un terminal — le terminal, lui, a été retraité par la commande qui l'a
+   produit.
+
+**Et le cas qui n'est pas une erreur de mesure mais mérite la même place.** Un
+`cd` échoué, dont je n'ai pas lu l'échec, a envoyé l'écriture suivante dans le
+checkout principal. Puis, en montant des liens symboliques dans un worktree,
+une boucle a écrit **à travers** un lien vers le répertoire partagé et a
+remplacé quatre liens de `node_modules` par des liens sur eux-mêmes — cassant
+la chaîne d'outils de toutes les sessions.
+
+La réparation vaut d'être notée autant que la faute : dans les deux cas, **ne
+pas effacer pour faire propre**. Établir d'abord ce que le fichier ou le
+répertoire portait — ici, sept lignes de tableau et une section entière écrites
+par une autre session — puis reconstruire, et **valider la reconstruction par un
+témoin** : la transformation inverse devait reproduire au octet près les douze
+lignes déjà présentes dans `HEAD`. Elle en a rendu **0**, puis **11 sur 12**,
+puis **12 sur 12**. Sans ce témoin, les deux premières tentatives se seraient
+présentées comme des réparations réussies.
