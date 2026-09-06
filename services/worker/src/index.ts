@@ -149,8 +149,13 @@ async function deliverSiemAuditEvents() {
   }
 }
 
-async function enforceDataRetention() {
-  const prisma = getPrisma();
+/*
+ * Exported, and taking its client as a defaulted parameter, so the retention
+ * sweep can be exercised at its CALL SITE. AUDX-011 makes the audit DELETE
+ * conditional on the sweep declaring itself; a mechanism whose call site is
+ * untestable is a mechanism nobody can prove is still wired.
+ */
+export async function enforceDataRetention(prisma = getPrisma()) {
   const settings = await prisma.enterpriseOrganizationSettings.findMany({ where: { legalHoldEnabled: false } });
 
   for (const setting of settings) {
@@ -181,8 +186,19 @@ async function enforceDataRetention() {
         }
       }
 
-      await prisma.auditLog.deleteMany({
-        where: { organizationId: setting.organizationId, createdAt: { lt: auditCutoff } },
+      /*
+       * AUDX-011 — AuditLog is enforced append-only at the database level
+       * (migration 0084). A DELETE is refused unless the caller DECLARES it is
+       * the retention purge, which is what separates a retention sweep from
+       * someone erasing their traces. `SET LOCAL` is scoped to this transaction,
+       * so the permission is released on COMMIT and on ROLLBACK alike — it can
+       * never leak to the next statement on a pooled connection.
+       */
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL vibecore.audit_retention = 'on'");
+        await tx.auditLog.deleteMany({
+          where: { organizationId: setting.organizationId, createdAt: { lt: auditCutoff } },
+        });
       });
       await prisma.projectActivity.deleteMany({
         where: {
