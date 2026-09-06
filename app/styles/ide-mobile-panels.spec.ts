@@ -331,3 +331,41 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
     expect(BASE_CHAT).toContain("<p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>");
   });
 });
+
+describe('8. captures iPhone 06/09 11:01–11:03 : Stockage d’objets, Paramètres, Éditeur', () => {
+  it('barre d’outils d’un panneau : deux boutons par rangée, 44 px, jamais cinq boutons empilés', () => {
+    const bouton = bloc(
+      '.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar button',
+    );
+
+    expect(bouton).toMatch(/width:\s*auto/);
+    expect(bouton).toMatch(/flex:\s*1 1 calc\(50% - 4px\)/);
+    expect(bouton).toMatch(/min-height:\s*var\(--vc-touch-min, 44px\)/);
+    expect(
+      dernierBloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar'),
+    ).toMatch(/flex-wrap:\s*wrap/);
+  });
+
+  it('Paramètres : un seul défilement (liste des raccourcis sans hauteur maximale), bande d’onglets compacte', () => {
+    const liste = bloc('.bolt-responsive-ide-mobile .bolt-project-settings-keybindings');
+
+    expect(liste).toMatch(/max-height:\s*none/);
+    expect(liste).toMatch(/overflow:\s*visible/);
+
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar')).toMatch(/top:\s*-16px/);
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar button small')).toMatch(
+      /display:\s*none/,
+    );
+    expect(dernierBloc('.bolt-responsive-ide-mobile .bolt-project-settings-sidebar button')).toMatch(
+      /min-height:\s*var\(--vc-touch-min, 44px\)/,
+    );
+  });
+
+  it('Éditeur : la pastille « Historique » est fixée au-dessus du socle, fenêtre visuelle comprise', () => {
+    const pastille = bloc(".bolt-responsive-ide-mobile [data-testid='file-history-open']");
+
+    expect(pastille).toMatch(/position:\s*fixed/);
+    expect(pastille).toMatch(/--mobile-nav-height/);
+    expect(pastille).toMatch(/--vc-mobile-visual-viewport-bottom/);
+  });
+});

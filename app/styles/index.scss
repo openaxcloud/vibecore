@@ -23152,6 +23152,60 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     white-space: normal;
   }
 
+  /*
+   * Cinq captures iPhone d'Avi, 06/09 11:01–11:03 — « ajoute ça aussi ».
+   *
+   * Stockage d'objets : la barre d'outils empilait CINQ boutons pleine largeur
+   * de 60 px (la règle mobile plus bas force `width: 100%` sur tous les
+   * boutons de barre). Ici deux boutons par rangée, 44 px de haut, le champ
+   * de préfixe seul sur sa ligne. Vaut pour toutes les barres `panel-toolbar`
+   * (Paquets, Studio, Supervision, Extensions, Variables).
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar label {
+    flex: 1 1 100%;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-panel-toolbar button {
+    width: auto;
+    min-width: 0;
+    height: auto;
+    min-height: var(--vc-touch-min, 44px);
+    flex: 1 1 calc(50% - 4px);
+  }
+
+  /*
+   * Paramètres : la liste des raccourcis clavier défilait DANS la page qui
+   * défile — « cmd+shift+p » coupé au milieu sous le bouton d'enregistrement.
+   * Sur téléphone, un seul défilement : celui du panneau.
+   */
+  .bolt-responsive-ide-mobile .bolt-project-settings-keybindings {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /*
+   * Éditeur : la pastille « Historique » est positionnée dans un conteneur
+   * dont le bas passe sous la barre d'outils de Safari — coupée à moitié sur
+   * la capture. Fixée au-dessus du socle, avec la même formule que les
+   * feuilles du composeur (socle + zone sûre + fenêtre visuelle).
+   */
+  .bolt-responsive-ide-mobile [data-testid='file-history-open'] {
+    position: fixed;
+    right: 12px;
+    bottom: calc(
+      var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px) +
+        12px
+    );
+    z-index: 30;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-splash-task small,
   .bolt-responsive-ide-mobile .bolt-project-package-stat-grid small {
     overflow: visible;
@@ -23186,6 +23240,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   @media (max-width: 480px) {
+    /*
+     * Paramètres : la bande d'onglets collante (Projet · Sécurité · IA …)
+     * faisait 88 px avec ses descriptions et masquait le formulaire en
+     * défilant. Sur téléphone : titres seuls, 44 px, collée au bord haut du
+     * défilement (le `p-4` du panneau vaut 16 px, d'où `top: -16px`).
+     */
+    .bolt-responsive-ide-mobile .bolt-project-settings-sidebar {
+      top: -16px;
+      gap: 4px;
+      padding: 6px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button {
+      width: auto;
+      min-width: 0 !important;
+      max-width: none;
+      min-height: var(--vc-touch-min, 44px);
+      flex: 0 0 auto;
+      padding: 0 12px;
+    }
+
+    .bolt-responsive-ide-mobile .bolt-project-settings-sidebar button small {
+      display: none;
+    }
+
     /* Téléphone : une colonne, chaque outil sur sa ligne, rien de tronqué. */
     .bolt-responsive-ide-mobile .bolt-mobile-more-list {
       grid-template-columns: minmax(0, 1fr);

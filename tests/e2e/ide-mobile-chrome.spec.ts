@@ -300,6 +300,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
         const clone = bouton.cloneNode(true) as HTMLElement;
 
         clone.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;width:auto;max-width:none;';
+
         // À côté de l'original : le clone hérite de la même échelle de police (12 px dans le panneau).
         bouton.parentElement?.append(clone);
 
@@ -411,5 +412,99 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     expect(resume.h, `cible du résumé de ${resume.h}px`).toBeGreaterThanOrEqual(44);
     expect(repli.h, `repli de ${repli.h}px dans le flux`).toBeLessThanOrEqual(34);
+  });
+
+  test('Paramètres, Variables, Éditeur : bande d’onglets compacte, boutons deux par rangée, pastille Historique visible', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(200_000);
+    await ouvrirIde(page, request, { fil: true });
+
+    // Paramètres — capture 11:02 : bande de 88 px avec descriptions, liste des raccourcis qui défile dans la page.
+    await ouvrirOutil(page, 'settings');
+
+    const bande = page.locator('.bolt-project-settings-sidebar');
+
+    await expect(bande).toBeVisible({ timeout: 30_000 });
+
+    const [b] = await mesurer(page, '.bolt-project-settings-sidebar');
+
+    expect(b.h, `bande d'onglets de ${b.h}px`).toBeLessThanOrEqual(60);
+    await expect(page.locator('.bolt-project-settings-sidebar button small').first()).toBeHidden();
+
+    for (const m of await mesurer(page, '.bolt-project-settings-sidebar button')) {
+      expect(m.h, `onglet « ${m.text} » haut de ${m.h}px`).toBeGreaterThanOrEqual(44);
+      expect(m.sw, `onglet « ${m.text} » tronqué`).toBeLessThanOrEqual(m.cw + 1);
+    }
+
+    const raccourcis = await mesurer(page, '.bolt-project-settings-keybindings');
+
+    for (const m of raccourcis) {
+      expect(m.sh, `liste des raccourcis qui défile dans la page : ${m.sh}px pour ${m.ch}px`).toBeLessThanOrEqual(
+        m.ch + 1,
+      );
+    }
+
+    // Variables — même barre d'outils que Stockage d'objets (capture 11:03 : cinq boutons empilés de 60 px).
+    await ouvrirOutil(page, 'env');
+
+    const barre = page.locator('.bolt-project-panel-toolbar');
+
+    await expect(barre.first()).toBeVisible({ timeout: 30_000 });
+
+    const boutons = (await mesurer(page, '.bolt-project-panel-toolbar button')).filter((m) => m.h > 0);
+
+    expect(boutons.length).toBeGreaterThan(0);
+
+    for (const m of boutons) {
+      expect(m.h, `bouton « ${m.text} » haut de ${m.h}px`).toBeGreaterThanOrEqual(44);
+    }
+
+    // Deux par rangée : au moins deux boutons partagent la même ligne (un bouton seul remplit la sienne).
+    if (boutons.length >= 2) {
+      const rangees = await page.evaluate(() => {
+        const tops = [...document.querySelectorAll<HTMLElement>('.bolt-project-panel-toolbar button')]
+          .filter((el) => el.getBoundingClientRect().height > 0)
+          .map((el) => Math.round(el.getBoundingClientRect().top));
+
+        return tops.filter((top, index) => tops.indexOf(top) !== index).length;
+      });
+
+      expect(rangees, 'aucun bouton ne partage sa rangée : empilés pleine largeur').toBeGreaterThan(0);
+    }
+
+    // Éditeur — capture 11:01 : pastille « Historique » coupée par le bas de son conteneur.
+    await ouvrirOutil(page, 'editor');
+
+    const editeur = page.getByRole('button', { name: /^(Éditeur|Editor)$/ }).first();
+
+    if (await editeur.count()) {
+      await editeur.click();
+    }
+
+    const pastille = page.getByTestId('file-history-open');
+
+    await expect(pastille).toBeVisible({ timeout: 30_000 });
+
+    const geometrie = await pastille.evaluate((el) => {
+      const r = el.getBoundingClientRect();
+      const nav = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
+
+      return {
+        bottom: r.bottom,
+        right: r.right,
+        navTop: nav?.top ?? innerHeight,
+        vw: innerWidth,
+        pos: getComputedStyle(el).position,
+      };
+    });
+
+    expect(geometrie.pos).toBe('fixed');
+    expect(
+      geometrie.bottom,
+      `pastille à ${geometrie.bottom}px pour un socle à ${geometrie.navTop}px`,
+    ).toBeLessThanOrEqual(geometrie.navTop);
+    expect(geometrie.right).toBeLessThanOrEqual(geometrie.vw);
   });
 });
