@@ -1,7 +1,9 @@
+import type { AppLoadContext, LoaderFunctionArgs } from 'react-router';
 import { previewTenantCookie } from '~/lib/.server/preview-tenant';
 import { apiErrorMessage, apiRequest, json } from '~/lib/enterprise-api.server';
 import { getEnterpriseApiErrorCopy } from '~/lib/i18n/catalogs/enterprise-api-errors';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { isSuccessfulPanelPayload } from '~/lib/ide/panel-payload-cache';
 
 export type ProjectWorkspaceSummary = {
   id: string;
@@ -95,7 +97,103 @@ export function shouldRethrowResolveError(error: unknown): error is Response {
   return error instanceof Response && error.status < 500;
 }
 
-export async function loadProjectIdeData(request: Request, projectId: string) {
+/**
+ * Panneaux demandés au PREMIER rendu de l'IDE. Mesuré sur un chargement à
+ * froid : `snapshots` et `settings`, et eux seuls. Embarquer les douze
+ * panneaux gonflerait un document qui est en `no-store`, donc jamais mis en
+ * cache — ces deux-là pèsent ~5,7 Kio bruts à eux deux.
+ */
+export const PANNEAUX_PRECHARGES = ['snapshots', 'settings'] as const;
+
+type ChargeurRoutePanneau = () => Promise<{ loader: (args: never) => Promise<unknown> }>;
+
+let chargeurDeRoutePanneau: ChargeurRoutePanneau = () =>
+  import('~/routes/api.projects.$projectId.ide-panel.$panel') as unknown as ReturnType<ChargeurRoutePanneau>;
+
+/** Couture de test uniquement : la vraie route pèse 5 200 lignes et parle au réseau. */
+export function __setChargeurRoutePanneauForTests(chargeur: ChargeurRoutePanneau | null) {
+  chargeurDeRoutePanneau =
+    chargeur ??
+    ((() => import('~/routes/api.projects.$projectId.ide-panel.$panel')) as unknown as ChargeurRoutePanneau);
+}
+
+export { chargerPanneauEnProcessus as __chargerPanneauPourTests };
+
+/*
+ * Appel EN PROCESSUS du loader de la route panneau — pas de requête HTTP, donc
+ * pas d'aller-retour réseau du tout. L'import est dynamique : la route pèse
+ * 5 200 lignes et l'importer au chargement du module créerait un cycle avec
+ * `enterprise-api.server`.
+ *
+ * POURQUOI CELA NE RETARDE PAS LE DOCUMENT. Le bloc ci-dessous est un
+ * `Promise.all` : son coût est le MAXIMUM, pas la somme. Mesuré sur connexion
+ * réutilisée (plancher réseau ~80-95 ms) :
+ *
+ *   dashboard      402 / 442 ms   <- déjà le plus lent, de loin
+ *   settings       205 / 207 ms
+ *   snapshots      148 / 155 ms
+ *   collaborators   94 / 105 ms
+ *   orgs            98 /  88 ms
+ *   workspaces     105 / 107 ms
+ *
+ * `dashboard` est 2,5x plus lent que le plus lourd des deux ajouts, et ceux-ci
+ * n'ont même pas de trajet réseau. Ils terminent largement avant lui.
+ *
+ * Toute défaillance est avalée : un panneau absent de `initialIdePanels` fait
+ * simplement retomber le client sur son chargement actuel. Précharger ne doit
+ * JAMAIS pouvoir casser le rendu du document.
+ */
+async function chargerPanneauEnProcessus(
+  request: LoaderFunctionArgs['request'],
+  projectId: string,
+  panel: string,
+  context: AppLoadContext,
+): Promise<unknown | null> {
+  try {
+    const module = await chargeurDeRoutePanneau();
+
+    /*
+     * Le projet embarque les types Cloudflare Workers : le `Request` global y
+     * est `Request<unknown, CfProperties>`, incompatible en signature avec le
+     * `Request` standard qu'attend `LoaderFunctionArgs`. Les deux décrivent le
+     * MÊME objet à l'exécution — c'est un désaccord de déclarations, pas de
+     * valeurs. Le passage est donc explicite et local, plutôt qu'un
+     * `@ts-expect-error` qui masquerait aussi les vraies erreurs de cet appel.
+     */
+    const response = await module.loader({ request, params: { projectId, panel }, context } as unknown as Parameters<
+      typeof module.loader
+    >[0]);
+
+    if (!response || typeof (response as Response).json !== 'function') {
+      return null;
+    }
+
+    const charge = await (response as Response).json();
+
+    /*
+     * MÊME prédicat que le cache de panneau côté client, importé et non
+     * réécrit : une enveloppe d'erreur n'est pas du contenu. La semer
+     * peindrait un panneau vide — c'est BUG-PANEL-CACHE-003, dans l'autre
+     * sens. Réécrire la condition ici, c'est se donner deux contrats qui
+     * divergeront.
+     */
+    return isSuccessfulPanelPayload(charge) ? charge : null;
+  } catch {
+    return null;
+  }
+}
+
+/*
+ * `context` est OPTIONNEL : les appelants qui ne le transmettent pas sautent
+ * simplement le préchargement et retombent sur le comportement actuel. Un
+ * chemin qui n'en profite pas doit continuer de fonctionner à l'identique —
+ * précharger est une optimisation, jamais une condition de rendu.
+ */
+export async function loadProjectIdeData(
+  request: LoaderFunctionArgs['request'],
+  projectId: string,
+  context?: AppLoadContext,
+) {
   const locale = resolveRequestLocale(request);
   const copy = getEnterpriseApiErrorCopy(locale.language);
 
@@ -114,23 +212,33 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
   try {
     const result = await apiRequest<{ project: ProjectLoaderData['project'] }>(request, `/projects/${projectId}`);
 
-    const [collaboratorsResult, dashboardResult, organizationsResult, workspacesResult] = await Promise.all([
-      apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
-        request,
-        `/projects/${projectId}/collaborators`,
-      ).catch(() => ({ collaborators: [] })),
-      apiRequest<{
-        workspace?: ProjectLoaderData['workspace'];
-        git?: ProjectLoaderData['git'];
-        recentActivity?: ProjectLoaderData['notifications'];
-      }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
-      apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
-        organizations: [],
-      })),
-      apiRequest<{ workspaces: ProjectWorkspaceSummary[] }>(request, `/projects/${projectId}/workspaces`).catch(() => ({
-        workspaces: [] as ProjectWorkspaceSummary[],
-      })),
-    ]);
+    const [collaboratorsResult, dashboardResult, organizationsResult, workspacesResult, panneauxPrecharges] =
+      await Promise.all([
+        apiRequest<{ collaborators: ProjectLoaderData['collaborators'] }>(
+          request,
+          `/projects/${projectId}/collaborators`,
+        ).catch(() => ({ collaborators: [] })),
+        apiRequest<{
+          workspace?: ProjectLoaderData['workspace'];
+          git?: ProjectLoaderData['git'];
+          recentActivity?: ProjectLoaderData['notifications'];
+        }>(request, `/projects/${projectId}/dashboard`).catch(() => ({ workspace: null, git: {}, recentActivity: [] })),
+        apiRequest<{ organizations: NonNullable<ProjectLoaderData['organization']>[] }>(request, '/orgs').catch(() => ({
+          organizations: [],
+        })),
+        apiRequest<{ workspaces: ProjectWorkspaceSummary[] }>(request, `/projects/${projectId}/workspaces`).catch(
+          () => ({
+            workspaces: [] as ProjectWorkspaceSummary[],
+          }),
+        ),
+        context
+          ? Promise.all(
+              PANNEAUX_PRECHARGES.map(
+                async (panel) => [panel, await chargerPanneauEnProcessus(request, projectId, panel, context)] as const,
+              ),
+            )
+          : Promise.resolve([] as (readonly [string, unknown | null])[]),
+      ]);
 
     const organization =
       organizationsResult.organizations.find((item) => item.id === result.project.organizationId) ??
@@ -174,6 +282,7 @@ export async function loadProjectIdeData(request: Request, projectId: string) {
             status: 'ok',
             data: { status: dashboardResult.git ?? {} },
           },
+          ...Object.fromEntries(panneauxPrecharges.filter(([, charge]) => charge !== null)),
         },
         workspaces,
         currentWorkspaceId,
