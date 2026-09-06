@@ -2164,6 +2164,29 @@ export class WorkbenchStore {
 
   setSelectedFile(filePath: string | undefined) {
     this.#editorStore.setSelectedFile(filePath);
+    void this.#rafraichirDepuisLeRuntime(filePath);
+  }
+
+  /**
+   * À l'ouverture d'un fichier, on relit la version du runtime.
+   *
+   * BUG-CREATE-011 : l'éditeur servait le contenu de `ide-state`, la mémoire
+   * LOCALE de l'appareil. Un fichier modifié ailleurs s'ouvrait donc périmé.
+   *
+   * Deux garde-fous : une frappe NON ENREGISTRÉE n'est jamais écrasée — c'est le
+   * travail de l'utilisateur, il prime sur tout — et une lecture impossible
+   * laisse le tampon tel quel plutôt que d'inventer un contenu.
+   */
+  async #rafraichirDepuisLeRuntime(filePath: string | undefined) {
+    if (!filePath || this.unsavedFiles.get().has(filePath)) {
+      return;
+    }
+
+    const issue = await this.#filesStore.adoptRemoteContent(filePath).catch(() => 'illisible' as const);
+
+    if (issue === 'adopte') {
+      this.setDocuments(this.#filesStore.files.get());
+    }
   }
 
   async saveFile(filePath: string, options?: SaveFileOptions) {
