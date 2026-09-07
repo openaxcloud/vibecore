@@ -159,7 +159,10 @@ async function mesurerLeRecouvrement(page: Page) {
   });
 }
 
-test('la pastille de descente n’est jamais posée sur du texte', async ({ page, request }) => {
+test('la pastille de descente : hors du texte sur bureau, translucide et centrée sur téléphone', async ({
+  page,
+  request,
+}) => {
   test.setTimeout(180_000);
 
   const session = await ouvrirUnFil(request);
@@ -196,5 +199,41 @@ test('la pastille de descente n’est jamais posée sur du texte', async ({ page
 
   expect(mesure, 'la pastille n’est pas montée').not.toBeNull();
   expect(mesure!.total, 'grille vide : la mesure ne prouverait rien').toBeGreaterThanOrEqual(80);
-  expect(mesure!.nombre, `texte sous la pastille : ${mesure!.touches.join(' | ')}`).toBe(0);
+
+  /*
+   * CE TEST A CHANGÉ DE SENS le 07/09, et il faut le dire. Il exigeait « jamais
+   * posée sur du texte », et c'est la gouttière de 64 px qui le garantissait.
+   * Avi, 07/09 07:58 : « l'icône scroll se met à droite et tout le texte se
+   * met à droite, au lieu qu'il reste comme il est et que l'icône se
+   * positionne juste au-dessus de la zone de saisie ». Sur téléphone, la
+   * gouttière est partie et la pastille est au milieu : elle PEUT couvrir du
+   * texte. Ce qui est gardé : le texte reste lisible dessous — la pastille est
+   * translucide — et le fil ne rétrécit pas quand elle est là.
+   */
+  const regle = await page.evaluate(() => {
+    const pastille = document.querySelector<HTMLElement>('.bolt-agent-scroll-to-bottom')!;
+    const style = getComputedStyle(pastille);
+    const alpha = /rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*([\d.]+))?\)/.exec(style.backgroundColor);
+    const fil = document.querySelector('.bolt-project-agent-transcript')?.getBoundingClientRect();
+    const boite = pastille.getBoundingClientRect();
+    const rangee = document.querySelector<HTMLElement>('.bolt-chat-message-row')!;
+
+    return {
+      telephone: Boolean(document.querySelector('.bolt-responsive-ide-mobile')),
+      alpha: alpha ? Number(alpha[1] ?? '1') : 1,
+      flou: style.backdropFilter !== 'none' && style.backdropFilter !== '',
+      centre: (boite.left + boite.right) / 2,
+      centreFil: fil ? (fil.left + fil.right) / 2 : null,
+      gouttiere: getComputedStyle(rangee).paddingInlineEnd,
+    };
+  });
+
+  if (regle.telephone) {
+    expect(regle.alpha < 1 || regle.flou, 'sur téléphone la pastille doit être translucide').toBe(true);
+    expect(regle.centreFil).not.toBeNull();
+    expect(Math.abs(regle.centre - regle.centreFil!), 'la pastille est centrée sur le fil').toBeLessThanOrEqual(2);
+    expect(regle.gouttiere, 'le fil ne rétrécit pas quand la pastille est là').toBe('0px');
+  } else {
+    expect(mesure!.nombre, `texte sous la pastille : ${mesure!.touches.join(' | ')}`).toBe(0);
+  }
 });

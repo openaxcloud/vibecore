@@ -139,8 +139,8 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
      */
     expect(bas).toContain(remontee);
 
-    // Le composeur n'a plus de rembourrage bas : les 8 px entre la pastille et le cadre sont tous visibles.
-    expect(bas).toMatch(/\+\s*8px\s*\+\s*8px$/);
+    // 2 px au-dessus du conteneur, dont 8 px de rembourrage haut transparent : 10 px visibles jusqu'au cadre.
+    expect(bas).toMatch(/\+\s*8px\s*\+\s*2px$/);
     expect(bas).not.toMatch(/measured-height/);
   });
 

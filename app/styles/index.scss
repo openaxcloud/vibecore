@@ -23050,7 +23050,13 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * (règle ci-dessous). Chromium 390 et 768 rendaient exactement les mêmes
      * 28 px : la mesure locale ne visait que le conteneur, pas ce qu'on voit.
      */
-    bottom: calc(var(--mobile-nav-height) + 8px + 8px);
+    /*
+     * 2 px au-dessus du CONTENEUR du composeur, dont les 8 px de rembourrage
+     * HAUT sont transparents : 10 px visibles jusqu'au cadre de la zone de
+     * saisie. (Le 07/09, « + 8px » de plus en faisait 16 — la CI l'a dit :
+     * agent-action-list-density.spec.ts, ≤ 14 attendus.)
+     */
+    bottom: calc(var(--mobile-nav-height) + 8px + 2px);
 
     /*
      * CENTRÉE, et le fil ne bouge pas — décision d'Avi, 07/09 07:58 : « l'icône
