@@ -292,34 +292,6 @@ présentées comme des réparations réussies.
 
 ---
 
-## 41. Sonder un SOUS-ENSEMBLE et lire le zéro comme une absence
-
-**2026-09-07, en datant le banc d'audit.** Deux fois de suite dans la même
-demi-heure, la même faute, rattrapée les deux fois par un témoin positif.
-
-* Cherché le marqueur du correctif de tooltip (`#455`) dans **la première**
-  feuille de style servie : `0`. Conclusion tentante : « le banc est vieux ».
-  En téléchargeant **les cinq** feuilles référencées : `1`. Le correctif était
-  là. La sonde avait mesuré 456 Ko sur 1 070 Ko.
-* Cherché `boltArtifact` dans les 37 bundles JS de la page d'accueil : `0`.
-  Or ce motif existe forcément dans l'application. Les morceaux du parseur sont
-  **chargés paresseusement** et ne sont référencés par aucune page publique.
-
-Dans les deux cas, le zéro était vrai *pour ce qui a été lu*, et faux pour la
-question posée. La règle 14 dit « vérifier qu'un 0 vient d'une recherche qui a
-fonctionné » ; ces deux cas ajoutent : **une recherche peut parfaitement
-fonctionner sur la mauvaise moitié de la cible.**
-
-**Ce qui a sauvé les deux** : un témoin positif choisi *dans la même sonde* —
-un motif dont on sait qu'il DOIT être présent. `bolt-project-statusbar-pill`
-pour le CSS, `boltArtifact` pour le JS. Quand le témoin rend `0` lui aussi, ce
-n'est pas le code qui manque, c'est la sonde qui ne regarde pas au bon endroit.
-
-**Le geste** : ne jamais poser une question à une sonde sans lui poser, dans le
-même souffle, une question dont on connaît déjà la réponse.
-
----
-
 ## 42. « Impossible sans refactor » est presque toujours un obstacle d'INSTALLATION
 
 **2026-09-07, deux sessions, la même erreur de diagnostic le même jour.**
