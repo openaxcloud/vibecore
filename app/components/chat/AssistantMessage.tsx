@@ -156,7 +156,7 @@ export const AssistantMessage = memo(
      */
     const ecartsIncomplets = ecartsAAvertir(
       agentExecution?.results,
-      messageId ? cheminsEcritsParLesLanes(messageId) : [],
+      messageId ? cheminsEcritsParLesLanes(messageId) : undefined,
       Boolean(agentExecution && messageId),
     );
 

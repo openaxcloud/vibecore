@@ -78,4 +78,28 @@ describe('ecartsAAvertir — le site d appel', () => {
   it('ne dit rien sans rapport du tout', () => {
     expect(ecartsAAvertir(undefined, [], true)).toEqual([]);
   });
+
+  /*
+   * LA FAUSSE ALERTE SUR L'HISTORIQUE — le defaut que ce test epingle.
+   *
+   * Au rechargement de la page, l'historique se reaffiche alors que la carte
+   * des arbitres est VIDE. Si `undefined` (aucune trace) se confond avec `[]`
+   * (rien ecrit), chaque ancien message annonce « Livraison incomplete » pour
+   * la totalite de ses fichiers — y compris ceux qui sont sur le disque.
+   *
+   * Un avertissement qui crie a tort sur l'historique est pire que pas
+   * d'avertissement du tout : il apprend a l'utilisateur a l'ignorer.
+   */
+  it("ne crie pas quand il n'y a AUCUNE trace d'arbitrage (page rechargee)", () => {
+    expect(ecartsAAvertir(rapports, undefined, true)).toEqual([]);
+  });
+
+  /*
+   * LA MOITIE INVERSE (regle 6) : une trace VIDE est un ecart reel, et doit
+   * bien declencher. Sans elle, on pourrait faire taire l'avertissement partout
+   * en rendant toujours `undefined`, et les deux tests resteraient verts.
+   */
+  it('crie quand la trace existe et ne contient rien', () => {
+    expect(ecartsAAvertir(rapports, [], true).map((e) => e.roleId)).toEqual(['frontend']);
+  });
 });

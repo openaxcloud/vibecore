@@ -173,6 +173,12 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
     );
 
     expect(cheminsEcritsParLesLanes('m7')).toEqual(['src/vu.tsx']);
-    expect(cheminsEcritsParLesLanes('message-sans-lane')).toEqual([]);
+
+    /*
+     * `undefined`, PAS `[]` : un message dont on n'a aucune trace n'est pas un
+     * message ou rien n'a ete ecrit. Confondre les deux fait crier « Livraison
+     * incomplete » sur tout l'historique au rechargement de la page.
+     */
+    expect(cheminsEcritsParLesLanes('message-sans-lane')).toBeUndefined();
   });
 });

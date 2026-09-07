@@ -95,10 +95,17 @@ export function livraisonIncomplete(ecarts: EcartDeLane[]): boolean {
  */
 export function ecartsAAvertir(
   rapports: RapportDeLane[] | undefined,
-  cheminsEcrits: Iterable<string>,
+  cheminsEcrits: Iterable<string> | undefined,
   resultatAgregeArrive: boolean,
 ): EcartDeLane[] {
-  if (!resultatAgregeArrive || !rapports?.length) {
+  /*
+   * `undefined` = AUCUNE TRACE de ce message, et surtout pas « rien ecrit ».
+   * Au rechargement de la page l'historique se reaffiche sans que rien n'ait
+   * ete arbitre : traiter ce cas comme un ecart ferait crier « Livraison
+   * incomplete » sur tous les anciens messages, pour des fichiers qui sont
+   * pourtant sur le disque.
+   */
+  if (!resultatAgregeArrive || !rapports?.length || cheminsEcrits === undefined) {
     return [];
   }
 
