@@ -1535,6 +1535,45 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await expect(journaux, 'les journaux se referment').toBeHidden({ timeout: 5_000 });
   });
 
+  test('sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    // Avi, 07/09 08:21 : « les carrés doivent être plus petits que les carrés au-dessus, et tous de même taille ».
+    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher').tap();
+
+    const selecteur = page.getByTestId('mobile-tab-switcher');
+
+    await expect(selecteur).toBeVisible({ timeout: 10_000 });
+
+    const onglets = await mesurer(page, '.bolt-mobile-tab-switcher-card');
+    const raccourcis = await mesurer(page, '.bolt-mobile-tab-switcher-quick button');
+
+    expect(onglets.length, 'au moins un onglet ouvert').toBeGreaterThan(0);
+    expect(raccourcis.length, 'quatre raccourcis').toBe(4);
+
+    const hauteurOnglet = Math.min(...onglets.map((m) => m.h));
+    const hauteurs = new Set(raccourcis.map((m) => m.h));
+    const largeurs = new Set(raccourcis.map((m) => m.w));
+
+    expect(hauteurs.size, `raccourcis de hauteurs différentes : ${[...hauteurs].join(', ')}`).toBe(1);
+    expect(largeurs.size, `raccourcis de largeurs différentes : ${[...largeurs].join(', ')}`).toBe(1);
+    expect(
+      raccourcis[0].h,
+      `raccourci de ${raccourcis[0].h}px pour un onglet de ${hauteurOnglet}px`,
+    ).toBeLessThanOrEqual(hauteurOnglet - 20);
+    expect(raccourcis[0].h, 'cible tactile').toBeGreaterThanOrEqual(44);
+
+    for (const m of raccourcis) {
+      expect(m.sw, `raccourci « ${m.text} » tronqué`).toBeLessThanOrEqual(m.cw + 1);
+    }
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,

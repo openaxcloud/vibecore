@@ -26,25 +26,44 @@ describe('AV-UX point 2 — libellé d’onglet actif complet dans l’en-tête 
   });
 });
 
-describe('AV-UX point 3 — tuiles du sélecteur d’onglets toutes identiques', () => {
-  it('tuiles de la grille et accès rapides : même hauteur figée (102px)', () => {
+describe('AV-UX point 3 — tuiles du sélecteur d’onglets : les raccourcis, plus petits et tous égaux', () => {
+  /*
+   * CE POINT A CHANGÉ DE SENS le 07/09, et il faut le dire : il exigeait des
+   * raccourcis IDENTIQUES aux tuiles d'onglets (102 px, « même famille »).
+   * Avi, 07/09 08:21, les quatre raccourcis entourés en rouge : « les carrés
+   * doivent être plus petits que les carrés au-dessus, et tous de même
+   * taille ». Les onglets gardent 102 px ; les raccourcis passent à 72 px,
+   * hauteur figée — quatre tuiles égales — même rayon, même bordure, même fond.
+   */
+  it('tuiles d’onglets à 102 px, raccourcis à 72 px figés', () => {
     const cardBlock = scss.match(/\.bolt-mobile-tab-switcher-card \{[\s\S]*?\n\}/)?.[0] ?? '';
     const quickBlock = scss.match(/\.bolt-mobile-tab-switcher-quick button \{[\s\S]*?\n\}/)?.[0] ?? '';
 
     expect(cardBlock).toContain('height: 102px;');
     expect(cardBlock).toContain('min-height: 102px;');
-    expect(quickBlock).toContain('height: 102px;');
-    expect(quickBlock).toContain('min-height: 102px;');
+    expect(quickBlock).toContain('height: 72px;');
+    expect(quickBlock).toContain('min-height: 72px;');
+    expect(quickBlock).toContain('border-radius: 12px;');
+    expect(quickBlock).toContain('border: 1px solid var(--mobile-nav-border);');
   });
 
-  it('même boîte d’icône : 40×40, rayon 10, glyphe 20px', () => {
+  it('boîte d’icône d’un second rang : 32×32, rayon 8, glyphe 18px', () => {
     const quickIcon =
       scss.match(/\.bolt-mobile-tab-switcher-quick button > span:first-child \{[\s\S]*?\n\}/)?.[0] ?? '';
 
-    expect(quickIcon).toContain('width: 40px;');
-    expect(quickIcon).toContain('height: 40px;');
-    expect(quickIcon).toContain('border-radius: 10px;');
-    expect(quickIcon).toContain('font-size: 20px;');
+    expect(quickIcon).toContain('width: 32px;');
+    expect(quickIcon).toContain('height: 32px;');
+    expect(quickIcon).toContain('border-radius: 8px;');
+    expect(quickIcon).toContain('font-size: 18px;');
+  });
+
+  it('le libellé des raccourcis passe devant la règle de coquille : 12 px !important à (0,3,1)', () => {
+    const libelle =
+      scss.match(
+        /\.bolt-project-ide-shell \.bolt-responsive-ide-mobile \.bolt-mobile-tab-switcher-quick button > span:last-child \{[\s\S]*?\n\}/,
+      )?.[0] ?? '';
+
+    expect(libelle).toContain('font-size: 12px !important;');
   });
 });
 

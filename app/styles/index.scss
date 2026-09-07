@@ -5642,21 +5642,28 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-tab-switcher-quick button {
   display: flex;
 
-  /* Exactement les cotes de `.bolt-mobile-tab-switcher-card` : même hauteur figée,
-     même rayon, même bordure, même fond — sinon l'œil voit deux familles. */
-  height: 102px;
-  min-height: 102px;
+  /*
+   * PLUS PETITS QUE LES ONGLETS, ET TOUS ÉGAUX — décision d'Avi, 07/09 08:21,
+   * les quatre raccourcis entourés en rouge : « les carrés doivent être plus
+   * petits que les carrés au-dessus, et tous de même taille ». Le 06/09 ils
+   * avaient été alignés sur les tuiles d'onglets (102 px, « même famille »).
+   * Avi tranche autrement : les onglets ouverts sont la matière, les raccourcis
+   * un second rang. Même rayon, même bordure, même fond ; 72 px de haut, icône
+   * de 32 px, libellé de 12 px. La hauteur est figée : quatre tuiles égales.
+   */
+  height: 72px;
+  min-height: 72px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 14px;
+  padding: 8px 10px;
   text-align: center;
   touch-action: manipulation;
 }
@@ -5673,17 +5680,24 @@ body :where(.lucide, svg[data-lucide]) {
   transform: scale(0.95);
 }
 
-/* AV-UX point 3 — same icon box as `.bolt-mobile-tab-switcher-card-icon`
-   (40×40, radius 10, 20px glyph) so the quick tiles read as the SAME family
-   as Déploiements/Agent/Webview, down to the glyph size. */
+/*
+ * Le libellé à 12 px : la règle de coquille (`.bolt-project-ide-shell :where(span …)`,
+ * 14 px `!important`) l'emportait sur le `font-size: 12px` du bouton — mesuré
+ * sur WebKitGTK, 14 px rendus. Même spécificité (0,3,1) et `!important`.
+ */
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-tab-switcher-quick button > span:last-child {
+  font-size: 12px !important;
+}
+
+/* Boîte d'icône d'un second rang : 32 × 32, glyphe de 18 px (les onglets : 40 × 40, 20 px). */
 .bolt-mobile-tab-switcher-quick button > span:first-child {
   display: inline-flex;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 20px;
+  border-radius: 8px;
+  font-size: 18px;
 }
 
 .bolt-mobile-tab-switcher-search {
