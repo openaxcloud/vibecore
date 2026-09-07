@@ -453,8 +453,31 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
 const SHARED_AGENT_SYSTEM_PREAMBLE = [
   'You are a specialist sub-agent for E-Code, collaborating with other specialists to build one app.',
   'Analyze only your assigned lane, but make your result directly integrable by the final coding agent.',
-  'Do not invent completed files. Only list files when your lane specifically requires creating or changing them.',
-  'Return strict JSON with this shape: {"summary":"string","files":["path"],"risks":["risk"],"verification":["check"]}.',
+  'Do not invent completed files. Only write files when your lane specifically requires creating or changing them.',
+
+  /*
+   * LES ROLES ECRIVENT, ILS NE SE CONTENTENT PLUS DE DECLARER.
+   *
+   * L'ancienne consigne ne demandait qu'un rapport JSON. Les roles renvoyaient
+   * donc une liste de chemins et RIEN d'autre : le contenu n'existait nulle
+   * part — ni en memoire, ni dans un flux, ni en base. Le coordinateur recevait
+   * ensuite ces noms (mesure du 2026-09-07 : 90 chemins) avec la consigne
+   * d'ecrire lui-meme les 90 fichiers en UNE reponse, alors que
+   * MAX_RESPONSE_SEGMENTS vaut 8. Il faisait les fondations et s'arretait :
+   * 9 fichiers livres sur 90 annonces, pour 209 018 jetons de sortie factures.
+   *
+   * Le format d'action ci-dessous est celui que le parseur du navigateur lit
+   * DEJA pour le flux du coordinateur (app/lib/runtime/message-parser.ts), et
+   * son etat est indexe par message — donc plusieurs lanes se parsent en
+   * parallele sans se melanger. On ne cable pas un nouveau chemin d'ecriture :
+   * on fait emprunter aux roles celui qui fonctionne.
+   */
+  'Write each file you own IN FULL, as an action block, before your report:',
+  '<boltArtifact id="lane" title="lane"><boltAction type="file" filePath="src/Example.tsx">…complete file contents…</boltAction></boltArtifact>',
+  'Never abbreviate a file with an ellipsis or a "rest unchanged" comment: what you do not write does not exist.',
+
+  'Then close with strict JSON on its own line: {"summary":"string","files":["path"],"risks":["risk"],"verification":["check"]}.',
+  'The "files" array must list exactly the paths you wrote above — it is what the consensus panel and the conflict arbiter read.',
 ].join('\n');
 
 export function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole): AiMessage[] {
@@ -466,7 +489,7 @@ export function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole):
     // 3) The ONLY per-lane part, kept LAST so it doesn't break the shared prefix.
     {
       role: 'user',
-      content: `Act as the ${role.title} sub-agent. Responsibility: ${role.responsibility}. Expected output: ${role.output}. Return only the strict JSON described above.`,
+      content: `Act as the ${role.title} sub-agent. Responsibility: ${role.responsibility}. Expected output: ${role.output}. Write the files you own as action blocks, then close with the strict JSON described above.`,
     },
   ];
 }
@@ -496,18 +519,53 @@ function parseJsonObject(content: string): Record<string, unknown> | undefined {
   }
 }
 
+/*
+ * RETIRE LES BLOCS D'ACTION AVANT DE CHERCHER LE RAPPORT.
+ *
+ * Depuis que les roles ECRIVENT (cf. SHARED_AGENT_SYSTEM_PREAMBLE), leur sortie
+ * porte le contenu complet des fichiers avant le JSON de cloture. Or le repli
+ * de `parseJsonObject` cherche la premiere `{` et la derniere `}` du texte :
+ * sur un lane qui vient d'ecrire un fichier TypeScript, cette premiere `{` est
+ * une accolade de CODE, et le rapport se parse en charabia ou echoue.
+ *
+ * On decoupe donc les artefacts d'abord. Ce qui reste est la prose du role et
+ * son rapport — c'est-a-dire exactement ce que l'ancienne consigne produisait,
+ * donc le comportement d'un role qui n'ecrit aucun fichier est inchange.
+ */
+const BLOC_ARTEFACT = /<boltArtifact\b[\s\S]*?(?:<\/boltArtifact>|$)/gi;
+const BLOC_ACTION = /<boltAction\b[\s\S]*?(?:<\/boltAction>|$)/gi;
+
+export function retirerLesBlocsDAction(contenu: string): string {
+  return contenu.replace(BLOC_ARTEFACT, ' ').replace(BLOC_ACTION, ' ').trim();
+}
+
+/*
+ * Un resume est une phrase, pas un depot. Si le rapport manque, l'ancien code
+ * repliait sur `content.trim()` — ce qui, maintenant que le contenu porte des
+ * fichiers entiers, deverserait une base de code dans la colonne `summary` et
+ * dans le panneau. On replie sur la prose seule, et on la borne.
+ */
+const LONGUEUR_MAX_RESUME = 2_000;
+
 function normalizeAgentOutput(
   roleId: AgentRoleId,
   content: string,
   locale: AgentRunRequest['locale'] = 'en',
 ): AgentRunResult {
-  const parsed = parseJsonObject(content);
+  const horsActions = retirerLesBlocsDAction(content);
+  const parsed = parseJsonObject(horsActions);
 
   if (!parsed || typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
+    /*
+     * Le role a peut-etre ECRIT sans rapporter. C'est un demi-succes, pas un
+     * echec : les fichiers sont dans le flux et le navigateur les posera. On
+     * rend donc `partial` — et le lot 4 le rendra visible a l'ecran.
+     */
     return {
       roleId,
       status: 'partial',
-      summary: content.trim() || aiGatewayMessage('agentEmptyResponse', locale),
+      summary:
+        horsActions.slice(0, LONGUEUR_MAX_RESUME) || aiGatewayMessage('agentEmptyResponse', locale),
     };
   }
 
