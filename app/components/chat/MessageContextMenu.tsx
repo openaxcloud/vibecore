@@ -9,10 +9,13 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
+import { createPortal } from 'react-dom';
+import { cibleFeuilleMobile } from './feuille-mobile';
 import {
   DELAI_APPUI_LONG_MS,
   fautIlArmerLAppuiLong,
   leDeplacementAnnuleLAppui,
+  placerLaBarre,
   placerLeMenu,
   ramenerDansLEcran,
   type AppuiEnCours,
@@ -275,12 +278,22 @@ export function MenuContextuel({
     }
 
     const boite = panneau.current.getBoundingClientRect();
+    const taille = { largeur: boite.width, hauteur: boite.height };
 
-    const corrige = ramenerDansLEcran(
-      position,
-      { largeur: boite.width, hauteur: boite.height },
-      { largeur: window.innerWidth, hauteur: window.innerHeight },
-    );
+    /*
+     * SUR TÉLÉPHONE, une barre d'icônes au-dessus du doigt, dans la zone utile :
+     * sous l'en-tête, au-dessus de la zone de saisie (Avi, 07/09 08:03 : sur le
+     * dernier message, le menu passait sous le composeur). Sur bureau, le menu
+     * garde son ancrage au point de clic, ramené dans l'écran.
+     */
+    const corrige = cibleFeuilleMobile(document)
+      ? placerLaBarre(position, taille, {
+          largeur: window.innerWidth,
+          haut: document.querySelector('.bolt-mobile-ecode-header')?.getBoundingClientRect().bottom ?? 0,
+          bas:
+            document.querySelector('.bolt-project-agent-composer')?.getBoundingClientRect().top ?? window.innerHeight,
+        })
+      : ramenerDansLEcran(position, taille, { largeur: window.innerWidth, hauteur: window.innerHeight });
 
     setPositionReelle(corrige.x === position.x && corrige.y === position.y ? null : corrige);
   }, [ouvert, position]);
@@ -303,18 +316,36 @@ export function MenuContextuel({
     const premier = panneau.current?.querySelector<HTMLElement>(
       'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
     );
-    (premier ?? panneau.current)?.focus();
 
+    /*
+     * SANS FAIRE DÉFILER : le menu est fixé, mais un `focus()` nu demande au
+     * conteneur de défilement d'amener l'élément en vue — mesuré sur WebKitGTK,
+     * le fil reculait de 45 px à l'ouverture ; sur l'iPhone d'Avi il disparaissait
+     * derrière le menu (07/09 08:03, « on ne voit plus le contenu »).
+     */
+    (premier ?? panneau.current)?.focus({ preventScroll: true });
+
+    /*
+     * EN PHASE DE CAPTURE, et en consommant la touche : le gestionnaire de
+     * raccourcis du projet possède déjà Échap (`overlay.close`) et arrête sa
+     * propagation avant tout écouteur en phase de bouillonnement — mesuré le
+     * 07/09 (sonde probe-menu-escape.mjs) : `stopPropagation` depuis le paquet
+     * BaseChat, le menu restait ouvert, son voile bloquait ensuite le « + » de
+     * la barre du bas. Le menu du ⋮ fait de même, pour la même raison. Fermer
+     * la surface la plus haute est la bonne priorité pour Échap.
+     */
     const surEchappement = (evenement: KeyboardEvent) => {
       if (evenement.key === 'Escape') {
+        evenement.preventDefault();
+        evenement.stopPropagation();
         fermer();
       }
     };
 
-    window.addEventListener('keydown', surEchappement);
+    window.addEventListener('keydown', surEchappement, true);
 
     return () => {
-      window.removeEventListener('keydown', surEchappement);
+      window.removeEventListener('keydown', surEchappement, true);
       focusAvant.current?.focus?.();
     };
   }, [fermer, ouvert]);
@@ -323,7 +354,7 @@ export function MenuContextuel({
     return null;
   }
 
-  return (
+  const menu = (
     <>
       {/*
        * Le voile ferme le menu au premier geste ailleurs. Il est sous le menu,
@@ -343,4 +374,16 @@ export function MenuContextuel({
       </div>
     </>
   );
+
+  /*
+   * SUR TÉLÉPHONE, LE MENU SE REND À LA RACINE DU GABARIT MOBILE — comme les
+   * feuilles du composeur (`feuille-mobile.ts`). Rendu dans la bulle, il est
+   * fixé mais reste DANS le contexte d'empilement du fil : le composeur collant
+   * (z-index 50, frère du fil) passait devant lui — capture d'Avi, 07/09 08:03,
+   * « Utile » et « À améliorer » cachés sous la zone de saisie sur le dernier
+   * message. Hors de cette chaîne, son z-index vaut pour tout l'écran.
+   */
+  const racineMobile = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+
+  return racineMobile ? createPortal(menu, racineMobile) : menu;
 }

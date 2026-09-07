@@ -143,6 +143,15 @@ async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil:
  * passent par la pile pointeur du moteur, comme le doigt d'Avi.
  */
 async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'gauche' | 'droite') {
+  /*
+   * Le fil se remonte une fois à la fin de l'hydratation (vers 13 s après le
+   * chargement, à l'événement `load`) : un appui long commencé juste avant
+   * perd sa ligne en cours de route et n'ouvre rien — mesuré le 07/09, deux
+   * échecs sur quatre passes, « menu introuvable » après 15 s. On attend donc
+   * la fin du chargement avant de poser le doigt.
+   */
+  await page.waitForLoadState('load');
+  await page.waitForTimeout(800);
   await cible.scrollIntoViewIfNeeded();
   await page.waitForTimeout(400);
 
@@ -618,7 +627,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.right).toBeLessThanOrEqual(geometrie.vw);
   });
 
-  test('menu contextuel d’un message : chaque action a son libellé ; Sécurité : une paire par ligne', async ({
+  test('menu contextuel d’un message : une barre d’icônes de 44 px, chaque action nommée ; Sécurité : une paire par ligne', async ({
     page,
     request,
   }) => {
@@ -636,22 +645,39 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     await expect(menu).toBeVisible({ timeout: 15_000 });
 
-    const libelles = await mesurer(page, '.bolt-message-context-menu .bolt-message-action-label');
+    /*
+     * Avi, 07/09 08:03 : « on n'a pas besoin du contenu, il faut que les
+     * icônes ». Sur téléphone, les libellés restent dans `aria-label` (chaque
+     * action est nommée), à l'écran cinq disques de 44 px en ligne.
+     */
+    const boutons = await mesurer(page, '.bolt-message-context-menu button');
 
-    expect(libelles.length).toBeGreaterThanOrEqual(3);
+    expect(boutons.length).toBeGreaterThanOrEqual(3);
 
-    for (const m of libelles) {
-      expect(m.w, `libellé « ${m.text} » large de ${m.w}px : invisible`).toBeGreaterThan(40);
+    for (const m of boutons) {
+      expect(m.w, `entrée « ${m.text} » large de ${m.w}px`).toBe(44);
+      expect(m.h, `entrée « ${m.text} » haute de ${m.h}px`).toBe(44);
+    }
+
+    const nommes = await menu
+      .locator('button')
+      .evaluateAll((els) => els.every((el) => (el.getAttribute('aria-label') ?? '').length > 3));
+
+    expect(nommes, 'chaque action porte son nom pour VoiceOver').toBe(true);
+
+    for (const m of await mesurer(page, '.bolt-message-context-menu .bolt-message-action-label')) {
+      expect(m.w, `libellé « ${m.text} » encore affiché`).toBe(0);
     }
 
     const menuBoite = await menu.evaluate((el) => {
       const r = el.getBoundingClientRect();
 
-      return { right: r.right, bottom: r.bottom, vw: innerWidth, vh: innerHeight };
+      return { right: r.right, bottom: r.bottom, height: r.height, vw: innerWidth, vh: innerHeight };
     });
 
     expect(menuBoite.right).toBeLessThanOrEqual(menuBoite.vw);
     expect(menuBoite.bottom).toBeLessThanOrEqual(menuBoite.vh);
+    expect(menuBoite.height, 'une seule rangée').toBeLessThanOrEqual(60);
     await page.keyboard.press('Escape');
 
     // Capture 12:19 : « Modérée / 0 active » sur 120 px par ligne.
@@ -1125,6 +1151,92 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     ).toBeLessThanOrEqual(16);
   });
 
+  test('menu contextuel sur le dernier message : la barre reste au-dessus de la zone de saisie, et le fil ne bouge pas', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+
+    /*
+     * Avi, 07/09 08:03 : « parfois on la voit pas si je prends le premier ou
+     * dernier message, c'est caché, et on ne voit plus le contenu à
+     * l'arrière-plan ». Mesuré sur WebKitGTK : menu jusqu'à 744 px pour une
+     * zone de saisie à 647 (rendu dans la bulle, sous le composeur collant), et
+     * le fil reculait de 45 px au `focus()` de la première entrée.
+     */
+    const derniere = page.locator('.bolt-chat-message-row').last();
+
+    await expect(derniere).toBeVisible({ timeout: 60_000 });
+    await page.waitForTimeout(1200);
+
+    const etat = () =>
+      page.evaluate(() => {
+        const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+          const style = getComputedStyle(el);
+
+          return (
+            /(auto|scroll)/.test(style.overflowY) &&
+            el.scrollHeight > el.clientHeight + 50 &&
+            el.querySelector('.bolt-chat-message-row')
+          );
+        });
+
+        const menu = document.querySelector('.bolt-message-context-menu')?.getBoundingClientRect();
+        const composeur = document.querySelector('.bolt-project-agent-composer')?.getBoundingClientRect();
+        const entete = document.querySelector('.bolt-mobile-ecode-header')?.getBoundingClientRect();
+
+        return {
+          scrollTop: boite ? Math.round(boite.scrollTop) : null,
+          menu: menu ? { top: Math.round(menu.top), bottom: Math.round(menu.bottom) } : null,
+          composeurTop: composeur ? Math.round(composeur.top) : null,
+          enteteBas: entete ? Math.round(entete.bottom) : 0,
+          dansLeFil: Boolean(document.querySelector('.bolt-project-agent-transcript .bolt-message-context-menu')),
+          dansLaRacine: Boolean(document.querySelector('.bolt-responsive-ide-mobile > .bolt-message-context-menu')),
+        };
+      });
+
+    const avant = await etat();
+
+    await appuiLong(page, derniere, 'gauche');
+
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await expect(menu).toBeVisible({ timeout: 15_000 });
+
+    const apres = await etat();
+
+    expect(apres.scrollTop, 'le fil ne doit pas bouger à l’ouverture du menu').toBe(avant.scrollTop);
+    expect(apres.dansLeFil, 'le menu ne se rend plus dans le fil').toBe(false);
+    expect(apres.dansLaRacine, 'le menu se rend à la racine du gabarit mobile').toBe(true);
+    expect(apres.menu).not.toBeNull();
+    expect(apres.composeurTop).not.toBeNull();
+    expect(
+      apres.menu!.bottom,
+      `menu jusqu’à ${apres.menu!.bottom}px pour une zone de saisie à ${apres.composeurTop}px`,
+    ).toBeLessThanOrEqual(apres.composeurTop! - 8);
+    expect(apres.menu!.top, 'sous l’en-tête').toBeGreaterThanOrEqual(apres.enteteBas);
+    await page.keyboard.press('Escape');
+    await expect(menu).toBeHidden();
+
+    // Le premier message, tout en haut : la barre passe sous le doigt, jamais sous l'en-tête.
+    await page.evaluate(() => document.querySelector('.bolt-chat-message-row')?.scrollIntoView({ block: 'start' }));
+    await page.waitForTimeout(500);
+
+    const premiere = page.locator('.bolt-chat-message-row').first();
+
+    await appuiLong(page, premiere, 'gauche');
+    await expect(menu).toBeVisible({ timeout: 15_000 });
+
+    const haut = await etat();
+
+    expect(
+      haut.menu!.top,
+      `menu à ${haut.menu!.top}px pour un en-tête jusqu’à ${haut.enteteBas}px`,
+    ).toBeGreaterThanOrEqual(haut.enteteBas);
+    expect(haut.menu!.bottom).toBeLessThanOrEqual(haut.composeurTop! - 8);
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,
@@ -1222,18 +1334,14 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
       return { left: r.left, right: r.right, width: r.width, vw: innerWidth };
     });
 
-    expect(geometrie.width, 'le menu français doit être plus large que l’estimation de 232 px').toBeGreaterThan(232);
+    // Depuis le 07/09 (barre d'icônes), le menu est plus étroit que l'écran : il tient entier, centré sous le doigt.
+    expect(geometrie.width, 'une barre d’icônes, pas une liste de libellés').toBeLessThan(300);
     expect(geometrie.left).toBeGreaterThanOrEqual(12);
     expect(geometrie.right, `bord droit à ${geometrie.right}px pour ${geometrie.vw}px d’écran`).toBeLessThanOrEqual(
       geometrie.vw - 12,
     );
 
-    // Chaque libellé du menu est entier — replié sur deux lignes s'il le faut, jamais coupé ni rogné.
-    for (const m of await mesurer(page, '.bolt-message-context-menu .bolt-message-action-label')) {
-      expect(m.sw, `libellé « ${m.text} » tronqué : ${m.sw}px pour ${m.cw}px`).toBeLessThanOrEqual(m.cw + 1);
-      expect(m.sh, `libellé « ${m.text} » rogné en hauteur : ${m.sh}px pour ${m.ch}px`).toBeLessThanOrEqual(m.ch + 1);
-    }
-
+    // Les libellés français vivent dans `aria-label` ; à l'écran, rien n'est rogné.
     for (const m of await mesurer(page, '.bolt-message-context-menu button')) {
       expect(m.sh, `entrée « ${m.text} » rognée : ${m.sh}px de contenu pour ${m.ch}px`).toBeLessThanOrEqual(m.ch + 1);
       expect(m.h, `entrée « ${m.text} » haute de ${m.h}px`).toBeGreaterThanOrEqual(44);

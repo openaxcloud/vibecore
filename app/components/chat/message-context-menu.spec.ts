@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   fautIlArmerLAppuiLong,
+  placerLaBarre,
   leDeplacementAnnuleLAppui,
   placerLeMenu,
   ramenerDansLEcran,
@@ -91,5 +92,31 @@ describe('menu contextuel d’un message', () => {
     expect(ramenerDansLEcran({ x: 12, y: 5 }, { largeur: 300, hauteur: 900 }, { largeur: 390, hauteur: 844 }).y).toBe(
       12,
     );
+  });
+});
+
+describe('placerLaBarre — la barre d’icônes du téléphone', () => {
+  const taille = { largeur: 240, hauteur: 52 };
+  const bornes = { largeur: 390, haut: 56, bas: 647 };
+
+  it('se pose au-dessus du doigt, centrée sur lui', () => {
+    expect(placerLaBarre({ x: 195, y: 400 }, taille, bornes)).toEqual({ x: 75, y: 336 });
+  });
+
+  it('sur le dernier message, elle ne descend jamais sous la zone de saisie', () => {
+    // Mesuré WebKitGTK : doigt à 491 px, menu jusqu'à 744 pour une zone de saisie à 647.
+    const { y } = placerLaBarre({ x: 121, y: 640 }, taille, bornes);
+
+    expect(y + taille.hauteur).toBeLessThanOrEqual(bornes.bas - 12);
+  });
+
+  it('sur le premier message, sans place au-dessus, elle passe sous le doigt', () => {
+    expect(placerLaBarre({ x: 121, y: 70 }, taille, bornes)).toEqual({ x: 12, y: 82 });
+  });
+
+  it('près du bord droit, elle reste dans l’écran', () => {
+    const { x } = placerLaBarre({ x: 380, y: 400 }, taille, bornes);
+
+    expect(x + taille.largeur).toBeLessThanOrEqual(bornes.largeur - 12);
   });
 });

@@ -104,3 +104,31 @@ export function ramenerDansLEcran(
 
   return { x: Math.round(x), y: Math.round(y) };
 }
+
+/**
+ * LA BARRE D'ICÔNES DU TÉLÉPHONE se pose AU-DESSUS du doigt, centrée sur lui,
+ * et jamais hors de la zone utile : sous l'en-tête, au-dessus de la zone de
+ * saisie. Avi, 07/09 08:03 : « parfois on la voit pas si je prends le premier
+ * ou le dernier message, c'est caché ». Mesuré sur WebKitGTK : sur le dernier
+ * message, le menu descendait à 744 px pour une zone de saisie à 647 — les
+ * trois dernières entrées sous le composeur.
+ *
+ * S'il n'y a pas la place au-dessus (premier message sous l'en-tête), elle
+ * passe sous le doigt ; et si même là elle sortirait de la zone utile, elle
+ * est ramenée à l'intérieur.
+ */
+export function placerLaBarre(
+  point: { x: number; y: number },
+  taille: { largeur: number; hauteur: number },
+  bornes: { largeur: number; haut: number; bas: number },
+  marge = 12,
+): { x: number; y: number } {
+  const x = Math.max(marge, Math.min(point.x - taille.largeur / 2, bornes.largeur - taille.largeur - marge));
+  const auDessus = point.y - taille.hauteur - marge;
+  const enDessous = point.y + marge;
+  const plancher = bornes.haut + marge;
+  const plafond = bornes.bas - taille.hauteur - marge;
+  const y = auDessus >= plancher ? auDessus : Math.max(plancher, Math.min(enDessous, plafond));
+
+  return { x: Math.round(x), y: Math.round(y) };
+}

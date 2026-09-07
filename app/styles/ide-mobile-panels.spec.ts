@@ -743,3 +743,59 @@ describe('20. capture iPhone 07/09 07:59 : espace mort sous la zone de saisie, b
     expect(module).toMatch(/\.PromptEffectLine \{[\s\S]*?x:\s*calc\(var\(--prompt-container-offset\) \/ 2/);
   });
 });
+
+describe('21. captures iPhone 07/09 08:03 : menu d’un message — barre d’icônes, au-dessus de la zone de saisie', () => {
+  it('sur téléphone, le menu est une rangée de disques de 44 px sans libellé ; le bureau garde ses libellés', () => {
+    const menu = bloc('.bolt-responsive-ide-mobile .bolt-message-context-menu');
+
+    expect(menu).toMatch(/border-radius:\s*999px/);
+    expect(menu).toMatch(/min-width:\s*0\b/);
+
+    const rangee = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-footer,\n  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-footer',
+    );
+
+    expect(rangee).toMatch(/flex-direction:\s*row/);
+
+    const action = bloc(
+      '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-action,\n  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-edit',
+    );
+
+    expect(action).toMatch(/width:\s*44px/);
+    expect(action).toMatch(/height:\s*44px/);
+    expect(action).toMatch(/padding:\s*0\b/);
+
+    expect(
+      bloc('.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-message-action-label'),
+    ).toMatch(/display:\s*none/);
+
+    // Le bureau : la règle des libellés visibles est toujours là, intacte.
+    expect(bloc('.bolt-project-ide-shell .bolt-message-context-menu .bolt-message-action-label')).toMatch(
+      /display:\s*inline/,
+    );
+  });
+
+  it('le voile du menu est transparent — la règle de thème des bulles le peignait en couleur de carte', () => {
+    /*
+     * `[class*='message']` attrape `bolt-message-context-menu-veil`. Mesuré sur
+     * WebKitGTK : rgb(238 242 247) sur tout l'écran — le fil disparaissait.
+     */
+    expect(bloc('.bolt-message-context-menu-veil')).toMatch(/background:\s*transparent/);
+    expect(INDEX).toMatch(/\[class\*='message'\]:not\(svg\)/);
+  });
+
+  it('le menu se rend à la racine mobile, se place dans la zone utile, et le focus ne fait pas défiler le fil', () => {
+    const composant = readFileSync(join(__dirname, '..', 'components', 'chat', 'MessageContextMenu.tsx'), 'utf8');
+
+    expect(composant).toMatch(/createPortal\(menu, racineMobile\)/);
+    expect(composant).toMatch(/cibleFeuilleMobile\(document\)/);
+    expect(composant).toMatch(/placerLaBarre\(position, taille, \{/);
+    expect(composant).toMatch(/querySelector\('\.bolt-project-agent-composer'\)\?\.getBoundingClientRect\(\)\.top/);
+    expect(composant).toMatch(/focus\(\{ preventScroll: true \}\)/);
+    expect(composant).not.toMatch(/\.focus\(\);/);
+
+    // Échap en phase de capture : le gestionnaire de raccourcis du projet consomme la touche avant le bouillonnement.
+    expect(composant).toMatch(/addEventListener\('keydown', surEchappement, true\)/);
+    expect(composant).toMatch(/removeEventListener\('keydown', surEchappement, true\)/);
+  });
+});

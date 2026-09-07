@@ -142,6 +142,33 @@ describe('<MenuContextuel /> sur une bulle', () => {
     }
   });
 
+  it('sur téléphone, le menu se rend à la racine du gabarit mobile, hors de la bulle', async () => {
+    /*
+     * Avi, 07/09 08:03 : sur le dernier message, le menu passait sous la zone
+     * de saisie. Rendu dans la bulle, il restait dans le contexte d'empilement
+     * du fil, derrière le composeur collant. À la racine mobile, son z-index
+     * vaut pour tout l'écran — comme les feuilles du composeur.
+     */
+    render(
+      <div className="bolt-responsive-ide-mobile" data-testid="racine-mobile">
+        <Bulle />
+      </div>,
+    );
+
+    const bulle = screen.getByTestId('bulle');
+
+    envoyerPointeur(bulle, 'pointerdown');
+
+    await act(async () => {
+      await new Promise((resoudre) => setTimeout(resoudre, DELAI_APPUI_LONG_MS + 50));
+    });
+
+    const menu = screen.getByRole('menu');
+
+    expect(menu.parentElement).toBe(screen.getByTestId('racine-mobile'));
+    expect(bulle.parentElement?.contains(menu)).toBe(false);
+  });
+
   it('Échap referme le menu', () => {
     render(<Bulle />);
     fireEvent.contextMenu(screen.getByTestId('bulle'), { clientX: 40, clientY: 60 });

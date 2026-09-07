@@ -7859,6 +7859,17 @@ body :where(.lucide, svg[data-lucide]) {
   position: fixed;
   z-index: 12040;
   inset: 0;
+
+  /*
+   * TRANSPARENT, et il faut le DIRE : la règle de thème des bulles peint tout
+   * élément dont la classe contient « message » (`body :where([class*='message']
+   * …) { background-color: var(--vc-ide-bg-card) }`), et ce voile en fait
+   * partie. Mesuré sur WebKitGTK (07/09) : fond calculé rgb(238 242 247) sur
+   * 390 × 844 — l'écran entier repeint en couleur de carte derrière le menu.
+   * C'est la capture d'Avi, 07/09 08:03 : « on ne voit plus le contenu à
+   * l'arrière-plan ». Le voile ne se voit pas, il ne fait que fermer.
+   */
+  background: transparent;
 }
 
 .bolt-message-context-menu {
@@ -23072,6 +23083,55 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    */
   .bolt-responsive-ide-mobile .bolt-project-agent-composer svg[class*='PromptEffectContainer'] {
     --prompt-container-offset: 0px;
+  }
+
+  /*
+   * LE MENU D'UN MESSAGE EST UNE BARRE D'ICÔNES sur téléphone — décision
+   * d'Avi, 07/09 08:03 : « ça affiche une boîte trop grosse, on n'a pas besoin
+   * du contenu, il faut que les icônes ». Mesuré sur WebKitGTK : 305 × 253 px
+   * pour cinq entrées. Les mêmes boutons, les mêmes libellés dans `aria-label`
+   * (lus par VoiceOver) ; à l'écran, cinq disques de 44 px en ligne, un trait
+   * vertical entre les actions et les avis. Le bureau garde ses libellés.
+   *
+   * Spécificité : les règles du menu sont à (0,3,0) avec la coquille ; la
+   * racine mobile ajoute une classe, (0,4,0).
+   */
+  .bolt-responsive-ide-mobile .bolt-message-context-menu {
+    width: max-content;
+    min-width: 0;
+    max-height: none;
+    padding: 4px;
+    border-radius: 999px;
+    overflow: visible;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-footer,
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-footer {
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-action,
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-user-message-edit {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
+    border-radius: 999px;
+  }
+
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-message-action-label {
+    display: none;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-message-context-menu .bolt-assistant-message-action-divider {
+    width: 1px;
+    height: 24px;
+    margin: 0 4px;
   }
 
   /*
