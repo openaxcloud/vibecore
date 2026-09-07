@@ -1822,6 +1822,49 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.floute, '… et il n’est pas flouté').toBe(false);
   });
 
+  for (const largeur of [430, 390] as const) {
+    test(`barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — ${largeur} px`, async ({
+      page,
+      request,
+    }) => {
+      test.setTimeout(150_000);
+      await page.setViewportSize({ width: largeur, height: largeur === 430 ? 932 : 844 });
+      await ouvrirIde(page, request, { fil: false });
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(600);
+
+      /*
+       * Avi, 07/09 08:36, entourés en rouge : « les trois panneaux fixes qui
+       * restent toujours fixes doivent être centrés ». Mesuré avant
+       * correction : onglets rangés à gauche de leur rangée, 55 px de vide
+       * avant « + » à 430, 15 à 390.
+       */
+      const mesure = await page.evaluate(() => {
+        const nav = document.querySelector<HTMLElement>('[data-testid="mobile-bottom-navigation"]')!;
+        const rangee = nav.querySelector<HTMLElement>('.bolt-mobile-replit-panel-scroll')!;
+        const onglets = [...rangee.querySelectorAll<HTMLElement>('.bolt-mobile-replit-panel-tab')];
+        const r = (el: HTMLElement) => el.getBoundingClientRect();
+        const premier = r(onglets[0]);
+        const dernier = r(onglets[onglets.length - 1]);
+        const boite = r(rangee);
+
+        return {
+          nombre: onglets.length,
+          videGauche: premier.left - boite.left,
+          videDroit: boite.right - dernier.right,
+          deborde: rangee.scrollWidth > rangee.clientWidth + 1,
+        };
+      });
+
+      expect(mesure.nombre, 'les trois onglets fixes').toBeGreaterThanOrEqual(3);
+      expect(mesure.deborde, 'la rangée tient sans défiler').toBe(false);
+      expect(
+        Math.abs(mesure.videGauche - mesure.videDroit),
+        `vide à gauche ${mesure.videGauche.toFixed(1)} px, à droite ${mesure.videDroit.toFixed(1)} px`,
+      ).toBeLessThanOrEqual(2);
+    });
+  }
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,

@@ -5333,6 +5333,24 @@ body :where(.lucide, svg[data-lucide]) {
   display: none;
 }
 
+/*
+ * BUG-NAV-TABS-CENTER-001 — Avi, 07/09 08:36 : « les trois panneaux fixes …
+ * doivent être centrés ». La rangée d'onglets prend toute la place entre le
+ * sélecteur et « + » (`flex: 1 1 auto`) et ses onglets se rangeaient à gauche :
+ * mesuré 55 px de vide avant « + » à 430, 39 à 414, 15 à 390. Des marges
+ * automatiques aux deux bouts : elles se partagent l'espace libre quand il y
+ * en a, et valent 0 quand la rangée déborde — le défilement et l'ancrage sur
+ * un onglet (ci-dessus) restent intacts. `justify-content: center` aurait
+ * coupé le premier onglet en cas de débordement.
+ */
+.bolt-mobile-replit-panel-scroll > :first-child {
+  margin-inline-start: auto;
+}
+
+.bolt-mobile-replit-panel-scroll > :last-child {
+  margin-inline-end: auto;
+}
+
 .bolt-mobile-replit-icon-tab svg,
 .bolt-mobile-replit-icon-tab
   > span:not(.sr-only):not(.bolt-mobile-replit-tab-label):not(.bolt-mobile-replit-tab-indicator) {

@@ -905,3 +905,23 @@ describe('§24 — le voile de la barre du bas s’arrête au bord haut de la pa
     expect(voile).toContain('backdrop-filter: blur(20px);');
   });
 });
+
+/*
+ * §25 — BUG-NAV-TABS-CENTER-001 : les onglets fixes sont centrés dans la
+ * rangée de la barre du bas, par des marges automatiques (jamais par
+ * `justify-content: center`, qui couperait le premier onglet en débordement).
+ */
+describe('§25 — les onglets de la barre du bas sont centrés dans leur rangée', () => {
+  it('marges automatiques aux deux bouts de la rangée', () => {
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :first-child')).toContain('margin-inline-start: auto;');
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :last-child')).toContain('margin-inline-end: auto;');
+  });
+
+  it('la rangée reste un défilement ancré sur un onglet (pas de centrage qui coupe)', () => {
+    const rangee = bloc('.bolt-mobile-replit-panel-scroll');
+
+    expect(rangee).toContain('overflow-x: auto;');
+    expect(rangee).toContain('scroll-snap-type: x mandatory;');
+    expect(rangee).not.toContain('justify-content: center');
+  });
+});
