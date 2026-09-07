@@ -885,3 +885,23 @@ describe('23. capture iPhone 07/09 08:19 : Webview — URL en grande police, jou
     ).toMatch(/display:\s*inline-flex/);
   });
 });
+
+/*
+ * §24 — BUG-PANEL-BOTTOM-GAP-001 : le voile de la barre du bas ne mange rien
+ * au-dessus de la pastille. Il faisait `nav + 26px` avec un flou d'arrière-plan :
+ * sur iOS, le bord de la boîte floutée est net, et ces 26 px se lisaient comme
+ * une bande vide (capture « Activité », 07/09 08:26).
+ */
+describe('§24 — le voile de la barre du bas s’arrête au bord haut de la pastille', () => {
+  const voile = bloc('.bolt-mobile-replit-nav-bg');
+
+  it('fait exactement la hauteur de la zone de navigation, sans halo au-dessus', () => {
+    expect(voile).toContain('height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));');
+    expect(voile).not.toMatch(/\+ ?26px/);
+  });
+
+  it('garde son flou sous la pastille seulement (la boîte ne dépasse pas)', () => {
+    expect(voile).toContain('inset: auto 0 0;');
+    expect(voile).toContain('backdrop-filter: blur(20px);');
+  });
+});

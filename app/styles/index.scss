@@ -5122,9 +5122,22 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-replit-nav-bg {
   position: absolute;
   inset: auto 0 0;
-  height: calc(var(--mobile-nav-height) + 26px + env(safe-area-inset-bottom, 0px));
+
+  /*
+   * BUG-PANEL-BOTTOM-GAP-001 — Avi, 07/09 08:26, panneau « Activité » : « cette
+   * espace ne sert à rien, on doit gagner de l'espace ». Le voile faisait
+   * `nav + 26px` de haut : 26 px de dégradé ET de `backdrop-filter` AU-DESSUS
+   * de la pastille. Sur iOS, le bord de la boîte floutée est une ligne nette :
+   * tout ce qui passait sous ces 26 px devenait de la bouillie veloutée, lue
+   * comme une bande vide entre le contenu et la barre. Chromium, lui, rend un
+   * fondu doux — c'est pourquoi la mesure locale ne montrait rien.
+   *
+   * Le voile couvre désormais la zone de la pastille et rien au-dessus : le
+   * contenu reste net jusqu'à son bord haut, et passe sous elle en défilant.
+   */
+  height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   border-top: 0;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vc-ide-bg-app) 92%, transparent) 46%);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vc-ide-bg-app) 92%, transparent) 10px);
   backdrop-filter: blur(20px);
   pointer-events: none;
 }

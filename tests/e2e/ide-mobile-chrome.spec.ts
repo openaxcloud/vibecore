@@ -1766,6 +1766,62 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await expect(micro).toHaveAttribute('aria-pressed', 'false');
   });
 
+  test('panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    /*
+     * Avi, 07/09 08:26, panneau « Activité » : « cette espace ne sert à rien,
+     * on doit gagner de l'espace ». Le voile de la barre du bas montait 26 px
+     * au-dessus de la pastille, avec un flou d'arrière-plan : sur iOS le bord
+     * de la boîte floutée est net, et ces 26 px se lisaient comme une bande
+     * vide. Ici : la boîte du voile commence au bord haut de la pastille, et
+     * un point 6 px au-dessus appartient au contenu du panneau, sans flou.
+     */
+    await ouvrirOutil(page, 'activity');
+    await expect(page.getByTestId('ide-service-panel')).toBeVisible({ timeout: 20_000 });
+    await page.waitForTimeout(800);
+
+    const geometrie = await page.evaluate(() => {
+      const nav = document.querySelector<HTMLElement>('.bolt-mobile-replit-nav')!;
+      const voile = nav.querySelector<HTMLElement>('.bolt-mobile-replit-nav-bg')!;
+      const pastille = nav.querySelector<HTMLElement>('.bolt-mobile-replit-nav-inner')!;
+      const hautVoile = voile.getBoundingClientRect().top;
+      const hautPastille = pastille.getBoundingClientRect().top;
+      const sous = document.elementFromPoint(innerWidth / 2, hautPastille - 6) as HTMLElement | null;
+
+      let floute = false;
+
+      for (let el: HTMLElement | null = sous; el; el = el.parentElement) {
+        const style = getComputedStyle(el);
+
+        if ((style.backdropFilter && style.backdropFilter !== 'none') || el === voile) {
+          floute = true;
+          break;
+        }
+      }
+
+      return {
+        hautVoile,
+        hautPastille,
+        dansLePanneau: Boolean(sous?.closest('[data-testid="ide-service-panel"]')),
+        floute,
+      };
+    });
+
+    expect(
+      Math.abs(geometrie.hautVoile - geometrie.hautPastille),
+      `voile à ${geometrie.hautVoile}, pastille à ${geometrie.hautPastille}`,
+    ).toBeLessThanOrEqual(1);
+    expect(geometrie.dansLePanneau, '6 px au-dessus de la pastille, c’est le panneau').toBe(true);
+    expect(geometrie.floute, '… et il n’est pas flouté').toBe(false);
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,
