@@ -155,10 +155,23 @@ describe('BaseChat strengthened-AST catalog', () => {
      * l'en-tête de la coque mobile gelée — n'est PAS touché : mêmes valeurs,
      * mêmes classes, même rendu.
      *
+     *   4. BUG-TAB-CLOSE-CONTRAST-001, à la demande d'Avi (07/09 : « la croix
+     *      est blanche sur du clair, il faut la même couleur que le contenu ») :
+     *      dans le sélecteur d'onglets, la croix de fermeture enveloppe son
+     *      icône `i-ph:x` dans un span `bolt-mobile-tab-switcher-close-chip`.
+     *      L'icône est un masque peint par sa `background-color` ; la pastille
+     *      posée sur l'icône elle-même la peignait en couleur de fond.
+     *
+     * Vérifié pour ce re-scellement : la tranche diffère de `d484982` (dernier
+     * `main` vert) par UN hunk de 9 lignes, celui-là seul — l'enveloppe et son
+     * commentaire. En-tête mobile, socle, Terminal : identiques au caractère
+     * près. Mesuré par `difflib` sur la tranche [frozenStartOffset,
+     * frozenEndOffset) des deux versions.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('aaf047770a225ef9be205c2a3f921ffaaa84d0b855e07db51762c5b9b70a99aa');
+    expect(frozenHash).toBe('fdeec54d672bc8d340c0a0e4de6e6112faaf8edb418d2409d9ec765e3adb8652');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
