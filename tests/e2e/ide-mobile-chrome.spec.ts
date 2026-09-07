@@ -1948,6 +1948,155 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     ).toBeLessThanOrEqual(24);
   });
 
+  test('onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    /*
+     * Avi, 07/09 14:19–14:20, cinq captures de l'onglet Secrets de Replit :
+     * « voici comment il faut faire la tab secret ». Avant : deux champs
+     * empilés, un gros bouton plein, « Importer .env », et, par secret,
+     * quatre boutons pleine largeur empilés (Révéler / Copier / Copier la
+     * valeur / Modifier).
+     */
+    await ouvrirOutil(page, 'secrets');
+
+    const panneau = page.getByTestId('secrets-panel');
+
+    await expect(panneau).toBeVisible({ timeout: 20_000 });
+
+    // RP-SEC-01 — titre, ⋮ et « + New Secret » sur UNE ligne, dans l'écran.
+    const entete = await page.evaluate(() => {
+      const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+      const titre = r('.bolt-secrets-title');
+      const menu = r('[data-testid="secrets-menu"]');
+      const nouveau = r('[data-testid="secrets-new"]');
+
+      const centre = (b: DOMRect) => b.top + b.height / 2;
+
+      return {
+        titreY: centre(titre),
+        menuY: centre(menu),
+        nouveauY: centre(nouveau),
+        nouveauDroite: nouveau.right,
+        largeur: innerWidth,
+        hMenu: menu.height,
+        hNouveau: nouveau.height,
+      };
+    });
+
+    // Centres verticaux alignés : le titre fait 22 px, les boutons 44.
+    expect(Math.abs(entete.titreY - entete.nouveauY), 'titre et bouton sur la même ligne').toBeLessThanOrEqual(4);
+    expect(Math.abs(entete.menuY - entete.nouveauY)).toBeLessThanOrEqual(4);
+    expect(entete.nouveauDroite).toBeLessThanOrEqual(entete.largeur);
+    expect(entete.hMenu).toBeGreaterThanOrEqual(44);
+    expect(entete.hNouveau).toBeGreaterThanOrEqual(44);
+
+    // RP-SEC-02 — le filtre, pleine largeur.
+    const filtre = page.getByTestId('secrets-filter');
+
+    await expect(filtre).toBeVisible();
+    expect((await filtre.boundingBox())!.width).toBeGreaterThan(entete.largeur * 0.8);
+
+    // RP-SEC-04 — ajout EN LIGNE : Clé et Valeur côte à côte, « Ajouter » grisé tant qu'il manque quelque chose.
+    await page.getByTestId('secrets-new').tap();
+
+    const formulaire = page.getByTestId('secrets-form');
+
+    await expect(formulaire).toBeVisible();
+
+    const champs = await page.evaluate(() => {
+      const cle = document.querySelector('[data-testid="secrets-form-key"]')!.getBoundingClientRect();
+      const valeur = document.querySelector('[data-testid="secrets-form-value"]')!.getBoundingClientRect();
+
+      return {
+        cleY: cle.top,
+        valeurY: valeur.top,
+        cleH: cle.height,
+        policeCle: getComputedStyle(document.querySelector('[data-testid="secrets-form-key"]')!).fontSize,
+      };
+    });
+
+    expect(Math.abs(champs.cleY - champs.valeurY), 'Clé et Valeur sur une rangée').toBeLessThanOrEqual(2);
+    expect(champs.cleH).toBeGreaterThanOrEqual(44);
+    expect(parseFloat(champs.policeCle), 'plancher iOS : pas de zoom au focus').toBeGreaterThanOrEqual(16);
+
+    const ajouter = page.getByTestId('secrets-form-add');
+
+    await expect(ajouter).toBeDisabled();
+    await page.getByTestId('secrets-form-key').fill('SLACK_API_KEY');
+    await expect(ajouter).toBeDisabled();
+    await page.getByTestId('secrets-form-value').fill('xoxb-test');
+    await expect(ajouter).toBeEnabled();
+    await ajouter.tap();
+
+    // RP-SEC-03 — la ligne : puce clé, puce valeur (points + œil), ⋮ — trois éléments de 44 px sur une rangée.
+    const ligne = page.getByTestId('secret-row-SLACK_API_KEY');
+
+    await expect(ligne).toBeVisible({ timeout: 20_000 });
+    await expect(formulaire).toBeHidden();
+
+    const geometrie = await ligne.evaluate((el) => {
+      const [cle, valeur, menu] = [
+        el.querySelector('.bolt-secrets-chip--key')!,
+        el.querySelector('.bolt-secrets-chip--value')!,
+        el.querySelector('.bolt-secrets-row-menu')!,
+      ].map((n) => n.getBoundingClientRect());
+
+      return {
+        cle: { y: cle.top, h: cle.height, l: cle.width },
+        valeur: {
+          y: valeur.top,
+          h: valeur.height,
+          l: valeur.width,
+          texte: el.querySelector('.bolt-secrets-chip--value .bolt-secrets-chip-text')!.textContent,
+        },
+        menu: { y: menu.top, h: menu.height, l: menu.width, droite: menu.right },
+        largeur: innerWidth,
+      };
+    });
+
+    expect(Math.abs(geometrie.cle.y - geometrie.valeur.y)).toBeLessThanOrEqual(2);
+    expect(Math.abs(geometrie.cle.y - geometrie.menu.y)).toBeLessThanOrEqual(2);
+    expect(geometrie.cle.h).toBeGreaterThanOrEqual(44);
+    expect(geometrie.valeur.h).toBeGreaterThanOrEqual(44);
+    expect(geometrie.menu.l).toBeGreaterThanOrEqual(44);
+    expect(geometrie.menu.droite).toBeLessThanOrEqual(geometrie.largeur);
+    expect(geometrie.valeur.texte, 'la valeur est masquée par défaut').toMatch(/^•+$/);
+
+    // Le filtre agit.
+    await filtre.fill('zzz');
+    await expect(ligne).toBeHidden();
+    await filtre.fill('slack');
+    await expect(ligne).toBeVisible();
+
+    // RP-SEC-08 — le menu ⋮ : Modifier / Trouver les usages / Supprimer, flottant, dans l'écran.
+    await page.getByTestId('secret-menu-SLACK_API_KEY').tap();
+
+    const menu = page.getByTestId('secrets-floating-menu');
+
+    await expect(menu).toBeVisible();
+
+    const entrees = await menu.locator('[role="menuitem"]').allTextContents();
+
+    expect(entrees.map((e) => e.trim())).toEqual(['Edit', 'Find Usages', 'Delete']);
+
+    const boiteMenu = (await menu.boundingBox())!;
+
+    expect(boiteMenu.x).toBeGreaterThanOrEqual(0);
+    expect(boiteMenu.x + boiteMenu.width).toBeLessThanOrEqual(geometrie.largeur);
+    expect(boiteMenu.y + boiteMenu.height).toBeLessThanOrEqual(844);
+
+    // Supprimer, depuis le menu : la ligne disparaît.
+    await menu.locator('[role="menuitem"]', { hasText: 'Delete' }).tap();
+    await expect(ligne).toBeHidden({ timeout: 20_000 });
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,

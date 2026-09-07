@@ -9549,6 +9549,431 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 /*
+ * Onglet Secrets — parité pixel Replit (RP-SEC-01 à 08, captures d'Avi du
+ * 07/09). Trois puces grises arrondies de 44 px par ligne (clé, valeur, ⋮),
+ * un filtre pleine largeur, un formulaire d'ajout en ligne, des menus
+ * flottants. Même gabarit sur bureau et téléphone ; les largeurs s'adaptent.
+ */
+.bolt-secrets {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bolt-secrets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Spécificité et `!important` : la remise à zéro des polices de la coque IDE s'applique aux boutons et aux titres. */
+.bolt-project-ide-shell .bolt-secrets-title,
+.bolt-secrets-title {
+  margin: 0;
+  font-size: 24px !important;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.bolt-secrets-icon-button {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 20px;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-icon-button:hover,
+.bolt-secrets-icon-button:focus-visible,
+.bolt-secrets-icon-button[aria-expanded='true'] {
+  background: var(--vc-ide-bg-card-hover);
+}
+
+.bolt-secrets-new {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vc-ide-accent-action, #2563eb);
+  color: #fff;
+  font-size: 15px !important;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-new > span[class*='i-'] {
+  width: 18px;
+  height: 18px;
+}
+
+.bolt-secrets-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.bolt-secrets-filter input {
+  width: 100%;
+  height: 48px;
+  padding: 0 44px 0 14px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-size: 16px;
+  outline: none;
+}
+
+.bolt-secrets-filter input:focus-visible {
+  border-color: var(--vc-ide-accent-action, #2563eb);
+}
+
+.bolt-secrets-filter > span[class*='i-'] {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  color: var(--vc-ide-text-secondary);
+  pointer-events: none;
+}
+
+.bolt-secrets-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px 12px;
+}
+
+.bolt-secrets-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bolt-secrets-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  /* Même hauteur avec ou sans l'œil : les deux champs restent sur une rangée. */
+  height: 28px;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-secrets-field input {
+  width: 100%;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-code);
+  font-size: 16px;
+  outline: none;
+}
+
+.bolt-secrets-field input:focus-visible {
+  border-color: var(--vc-ide-accent-action, #2563eb);
+}
+
+.bolt-secrets-field input[aria-invalid='true'] {
+  border-color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-secrets-eye {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 18px;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-eye:hover,
+.bolt-secrets-eye:focus-visible {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--vc-ide-accent-danger, #dc2626);
+  font-size: 13px;
+}
+
+.bolt-secrets-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bolt-secrets-cancel,
+.bolt-secrets-add {
+  display: inline-flex;
+  height: 44px;
+  align-items: center;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-cancel {
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-add {
+  background: var(--vc-ide-accent-action, #2563eb);
+  color: #fff;
+}
+
+.bolt-secrets-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bolt-secrets-message {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-secrets-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bolt-secrets-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
+  gap: 8px;
+  align-items: center;
+  min-width: 0;
+}
+
+.bolt-secrets-chip {
+  display: flex;
+  height: 44px;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-chip > span[class*='i-'],
+.bolt-secrets-chip-copy > span[class*='i-'] {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-secrets-chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-secrets-chip--value {
+  padding-right: 4px;
+}
+
+.bolt-secrets-chip-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-chip--value.is-revealed .bolt-secrets-chip-copy {
+  font-family: var(--vc-font-code);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.bolt-secrets-row-menu {
+  background: var(--vc-ide-bg-card);
+}
+
+.bolt-secrets-hidden-form {
+  display: none;
+}
+
+.bolt-secrets-menu {
+  position: fixed;
+  z-index: 12045;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 14px;
+  background: var(--vc-ide-bg-app);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 0.18);
+}
+
+.bolt-secrets-menu-item {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 16px;
+  text-align: left;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-menu-item > span[class*='i-'] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.bolt-secrets-menu-item:hover,
+.bolt-secrets-menu-item:focus-visible {
+  background: var(--vc-ide-bg-card-hover);
+}
+
+.bolt-secrets-menu-item--danger {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-secrets-menu-item:disabled {
+  opacity: 0.5;
+}
+
+.bolt-secrets-editor-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 12059;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(15 23 42 / 0.35);
+}
+
+.bolt-secrets-editor {
+  display: grid;
+  width: min(100%, 760px);
+  max-height: min(90dvh, 720px);
+  gap: 10px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bolt-secrets-editor-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bolt-secrets-editor-help {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-secrets-editor textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-code);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.bolt-secrets-editor-errors {
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--vc-ide-accent-danger, #dc2626);
+  font-size: 13px;
+}
+
+@media (min-width: 761px) {
+  .bolt-secrets-editor-veil {
+    align-items: center;
+  }
+
+  .bolt-secrets-editor {
+    border-radius: 18px;
+    padding-bottom: 16px;
+  }
+}
+
+/*
  * BUG-VOICE-INPUT-001 — la dictée se voit. Pendant l'écoute, le bouton passe
  * en couleur d'alerte avec un halo qui pulse ; pendant la demande d'accès au
  * micro, le halo est fixe. Rien ne dépend du survol : c'est ce que voit un

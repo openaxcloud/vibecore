@@ -3,6 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
   hasUnsavedEdits,
@@ -49,6 +50,7 @@ export function Search() {
    */
   const runtimeAdapter = useRuntimeAdapter();
   const [searchQuery, setSearchQuery] = useState('');
+  const demande = useStore(rechercheDemandee);
   const [replaceQuery, setReplaceQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [isRegex, setIsRegex] = useState(false);
@@ -193,6 +195,21 @@ export function Search() {
   useEffect(() => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
+
+  /*
+   * « Trouver les usages » d'un secret (RP-SEC-08) : un autre panneau a posé
+   * la requête ; on la prend, on cherche, et on remet l'atome à zéro pour que
+   * la prochaine ouverture du panneau ne la rejoue pas.
+   */
+  useEffect(() => {
+    if (!demande) {
+      return;
+    }
+
+    setSearchQuery(demande);
+    rechercheDemandee.set(null);
+    void handleSearch(demande);
+  }, [demande, handleSearch]);
 
   const handleResultClick = (filePath: string, line?: number) => {
     workbenchStore.setSelectedFile(resolveWorkbenchPath(filePath) ?? filePath);
