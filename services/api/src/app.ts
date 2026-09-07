@@ -29110,6 +29110,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { projects: await store.listAdminProjects() };
   });
 
+  /*
+   * SUPPRESSION DÉFINITIVE D'UN PROJET PAR UN ADMINISTRATEUR DE PLATEFORME.
+   *
+   * POURQUOI ELLE EXISTE. `DELETE /projects/:projectId/permanent` fait déjà le
+   * bon travail — démontage des ressources externes, puis suppression de la
+   * ligne — mais elle exige une APPARTENANCE RÉELLE à l'organisation du projet
+   * (`requireOrg`). C'est juste pour un utilisateur, et impraticable pour le
+   * propriétaire de la plateforme : au 2026-09-07 la production porte 399
+   * projets répartis sur 277 organisations, dont 347 hors de la sienne.
+   *
+   * Sans cette route, la seule façon d'y arriver serait de FORGER une session
+   * par organisation. C'est exactement ce qu'on refuse : une opération
+   * destructive ne doit pas passer par la fabrication d'identifiants d'autrui,
+   * et la trace d'audit désignerait alors des utilisateurs qui n'ont rien fait.
+   * Ici l'administrateur agit sous SA propre identité, et l'audit le dit.
+   *
+   * CE QU'ELLE NE CHANGE PAS. Elle appelle le MÊME démontage et la MÊME
+   * suppression que la route utilisateur, dans le même ordre, avec la même trace
+   * d'audit portant le résultat du démontage — y compris ses échecs. Une seule
+   * chose diffère : le contrôle d'accès. Dupliquer la logique de destruction
+   * aurait créé deux chemins à maintenir, et c'est ainsi qu'on obtient un
+   * chemin qui oublie de démonter (AUDX-171).
+   *
+   * PAS DE SUPPRESSION EN LOT, volontairement. Un lot est une seule faute de
+   * frappe entre l'intention et 399 destructions irréversibles. L'appelant
+   * boucle ; chaque projet a sa requête, sa réponse et sa ligne d'audit.
+   */
+  app.delete('/admin/projects/:projectId', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * `getProject` rend AUSSI les projets déjà supprimés en douceur — c'est
+     * `requireProject` qui filtre ensuite. On veut précisément les deux : un
+     * projet dans la corbeille garde ses ressources externes, et c'est celles-là
+     * qu'on vient démonter.
+     */
+    const project = await store.getProject(projectId);
+
+    if (!project) {
+      return reply.code(404).send({ error: appPublicEnglish('PROJECT_NOT_FOUND'), code: 'PROJECT_NOT_FOUND' });
+    }
+
+    /*
+     * Même garde de confirmation par le nom que la route utilisateur : quand le
+     * client en envoie une, elle doit correspondre. Une suppression d'admin porte
+     * plus loin, pas moins — la garde reste.
+     */
+    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
+
+    if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+        statusCode: 400,
+        code: 'PROJECT_NAME_MISMATCH',
+      });
+    }
+
+    const teardown = await teardownProjectExternalResources(
+      {
+        databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+      },
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        persistentVolumeClaim: project.persistentVolumeClaim,
+      },
+    );
+
+    await store.hardDeleteProject(project.id);
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.hard_delete',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: {
+        name: project.name,
+        byPlatformAdmin: true,
+        externalTeardown: { complete: teardown.complete, outcomes: teardown.outcomes },
+      },
+    });
+
+    /*
+     * Le démontage partiel est rendu à l'appelant, pas avalé : c'est ce qui
+     * permet de savoir QUELLE ressource est restée en place, au lieu de la
+     * découvrir des mois plus tard sur une facture.
+     */
+    return { deleted: true, teardown: { complete: teardown.complete, failed: teardown.failed } };
+  });
+
   app.get('/admin/workspaces', async (request) => {
     await requirePlatformAdmin(request);
     return { workspaces: await store.listAdminWorkspaces() };
