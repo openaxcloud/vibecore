@@ -317,3 +317,48 @@ n'est pas le code qui manque, c'est la sonde qui ne regarde pas au bon endroit.
 
 **Le geste** : ne jamais poser une question à une sonde sans lui poser, dans le
 même souffle, une question dont on connaît déjà la réponse.
+
+---
+
+## 42. « Impossible sans refactor » est presque toujours un obstacle d'INSTALLATION
+
+**2026-09-07, deux sessions, la même erreur de diagnostic le même jour.**
+
+La session QA avait écrit qu'un test de comportement était impossible sur une de
+ses cibles, et qu'il faudrait « un refactor du code de production » pour l'écrire.
+Elle s'est rétractée après mesure : l'obstacle était de **mise en place** — un
+harnais à monter — et le patron existait déjà dans le dépôt, à
+`services/api/src/tests/security-routes.spec.ts`.
+
+Le même jour, sur le sujet du 429, j'ai écrit que discriminer les deux causes
+exigeait de rendre `panelEnvelopeError` asynchrone, « donc 21 sites d'appel à
+toucher — trop invasif ». C'était vrai de la voie que j'avais imaginée, et faux
+de la question posée : le limiteur pose `x-ratelimit-remaining` sur la réponse,
+et cet en-tête se lit **de façon synchrone**. Zéro site d'appel touché.
+
+**Les deux fautes ont la même forme.** On mesure le coût de *la première solution
+qui vient à l'esprit*, on le trouve élevé, et on transfère ce coût à *la
+question*. « C'est cher » devient « c'est impossible », puis « il faudrait
+refactorer » — c'est-à-dire : quelqu'un d'autre devra payer, plus tard.
+
+**Ce n'est pas la même dette, et ce n'est pas au même de la payer.** Un obstacle
+d'architecture est une dette du code : elle se planifie, elle s'arbitre, elle
+appartient à l'équipe. Un obstacle d'installation est une dette de la tâche en
+cours : elle appartient à celui qui écrit le test, et elle se paie en une heure.
+Les confondre déplace un travail d'une heure vers une file où il ne sera jamais
+priorisé.
+
+**Le geste, avant d'écrire « impossible » :**
+
+1. **Chercher le patron dans le dépôt.** Un harnais comparable existe presque
+   toujours ; `grep` sur le nom du mécanisme, pas sur celui du fichier.
+2. **Nommer la voie qu'on a écartée, et pourquoi.** « Asynchrone : 21 sites » est
+   une mesure. « Impossible » n'en est pas une, et elle ferme la porte à la
+   deuxième voie — qui existait dans les deux cas ci-dessus.
+3. **Se demander ce que la question exige VRAIMENT.** Ici : distinguer deux
+   causes. Pas : lire un corps de réponse. La deuxième formulation était une
+   contrainte que je m'étais donnée, pas une contrainte du problème.
+
+**Le signal qui doit alerter** : toute phrase de la forme « il faudrait d'abord
+refactorer X » écrite par quelqu'un qui n'a pas encore cherché de patron
+existant. Sur ces deux cas, elle était fausse deux fois sur deux.
