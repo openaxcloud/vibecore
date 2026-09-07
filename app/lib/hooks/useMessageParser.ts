@@ -1,8 +1,7 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
-import { ArbitreDesLanes } from '~/lib/runtime/agent-lane-arbiter';
-import { decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
+import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
@@ -19,70 +18,6 @@ const logger = createScopedLogger('useMessageParser');
  * donc pas en deduire ou ecrire. L'arbitrage se fait ici, au site d'ecriture,
  * sur les chemins d'origine.
  */
-const ARBITRES_CONSERVES = 32;
-
-const arbitres = new Map<string, ArbitreDesLanes>();
-
-/*
- * UN ARBITRE PAR MESSAGE, pas un pour la session.
- *
- * La preemption a besoin de l'etat des AUTRES lanes du meme message — c'est ce
- * qui rend l'etat final independant de l'ordre d'arrivee. Mais un arbitre unique
- * pour toute la session garderait les attributions de la generation precedente :
- * le second prompt d'un utilisateur verrait ses ecritures refusees par des roles
- * qui ont fini il y a dix minutes.
- */
-function arbitreDe(messageId: string): ArbitreDesLanes {
-  const existant = arbitres.get(messageId);
-
-  if (existant) {
-    return existant;
-  }
-
-  const neuf = new ArbitreDesLanes();
-  arbitres.set(messageId, neuf);
-
-  /*
-   * Borne. Un fil de discussion long accumulerait un arbitre par message pour
-   * la duree de vie de la page. On garde les plus recents ; les plus anciens
-   * retombent a `undefined`, ce qui est exactement l'etat « aucune trace » que
-   * la lecture ci-dessus distingue de « rien ecrit ».
-   */
-  while (arbitres.size > ARBITRES_CONSERVES) {
-    const plusAncien = arbitres.keys().next();
-
-    if (plusAncien.done) {
-      break;
-    }
-
-    arbitres.delete(plusAncien.value);
-  }
-
-  return neuf;
-}
-
-/**
- * Les chemins que les sous-agents ont reellement ecrits pour ce message.
- *
- * Ce sont les attributions de l'arbitre, donc des actions APPLIQUEES — pas une
- * seconde declaration des roles, qui ne prouverait rien.
- *
- * `undefined` et `[]` ne veulent PAS dire la meme chose, et les confondre
- * produit une fausse alerte :
- *
- *  - `[]` — on a arbitre ce message et rien n'a ete ecrit. C'est un ecart reel.
- *  - `undefined` — on n'a AUCUNE trace de ce message. Au rechargement de la
- *    page, l'historique se reaffiche alors que la carte des arbitres est vide :
- *    sans cette distinction, chaque ancien message annoncerait « Livraison
- *    incomplete » pour la totalite de ses fichiers, y compris ceux qui sont
- *    bel et bien sur le disque. Un avertissement qui crie a tort sur
- *    l'historique est pire que pas d'avertissement du tout.
- */
-export function cheminsEcritsParLesLanes(messageId: string): string[] | undefined {
-  const arbitre = arbitres.get(messageId);
-
-  return arbitre ? [...arbitre.attributions().keys()] : undefined;
-}
 
 /**
  * Une action de fichier venant d'une lane peut-elle s'appliquer ?

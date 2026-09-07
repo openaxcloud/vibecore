@@ -17,7 +17,8 @@ vi.mock('~/lib/stores/workbench', () => ({
   },
 }));
 
-const { useMessageParser, cheminsEcritsParLesLanes } = await import('./useMessageParser');
+const { useMessageParser } = await import('./useMessageParser');
+const { cheminsEcritsParLesLanes } = await import('~/lib/runtime/agent-lane-writes');
 
 /** Un flux de lane : un fichier ecrit, puis le rapport JSON de cloture. */
 const fluxDeLane = (chemin: string, corps: string) =>
