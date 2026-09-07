@@ -27,7 +27,6 @@ import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequir
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
-import { cheminsEcritsParLesLanes } from '~/lib/hooks/useMessageParser';
 import {
   formatAssistantCost,
   formatAssistantDuration,
@@ -40,6 +39,7 @@ import {
 } from '~/lib/i18n/catalogs/assistant-message';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
+import { cheminsEcritsParLesLanes } from '~/lib/runtime/agent-lane-writes';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';

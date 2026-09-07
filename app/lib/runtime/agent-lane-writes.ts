@@ -104,3 +104,77 @@ export function textesDesLanes(annotations: unknown): Map<string, string> {
 
   return textes;
 }
+
+/*
+ * LE REGISTRE DES ARBITRES VIT ICI, PAS DANS LE HOOK.
+ *
+ * La surface qui affiche l'écart (`AssistantMessage`) doit lire ce qui a été
+ * écrit. Quand ce registre vivait dans `useMessageParser`, l'importer depuis le
+ * composant y faisait entrer TOUTE la chaîne du hook : un parseur construit au
+ * chargement du module, et `workbenchStore` avec ses dépendances de navigateur
+ * (`js-cookie`, `file-saver`, `jszip`). Un module d'affichage n'a aucune raison
+ * de tirer le moteur d'écriture pour lire un compte.
+ *
+ * Ce fichier n'importe rien d'autre que lui-même : le composant peut le lire
+ * sans conséquence sur le graphe de modules.
+ */
+
+import { ArbitreDesLanes } from './agent-lane-arbiter';
+
+const ARBITRES_CONSERVES = 32;
+
+const arbitres = new Map<string, ArbitreDesLanes>();
+
+/**
+ * L'arbitre de ce message, créé au besoin.
+ *
+ * UN PAR MESSAGE, pas un pour la session : la préemption a besoin de l'état des
+ * autres lanes du même message — c'est ce qui rend l'état final indépendant de
+ * l'ordre d'arrivée — mais un arbitre unique garderait les attributions de la
+ * génération précédente, et le second prompt d'un utilisateur verrait ses
+ * écritures refusées par des rôles qui ont fini dix minutes plus tôt.
+ */
+export function arbitreDe(messageId: string): ArbitreDesLanes {
+  const existant = arbitres.get(messageId);
+
+  if (existant) {
+    return existant;
+  }
+
+  const neuf = new ArbitreDesLanes();
+  arbitres.set(messageId, neuf);
+
+  /*
+   * Borne. Un fil long accumulerait un arbitre par message pour la durée de vie
+   * de la page. Les plus anciens retombent à `undefined`, qui est exactement
+   * l'état « aucune trace » que la lecture ci-dessous distingue de « rien
+   * écrit » — l'éviction ne peut donc pas produire de fausse alerte.
+   */
+  while (arbitres.size > ARBITRES_CONSERVES) {
+    const plusAncien = arbitres.keys().next();
+
+    if (plusAncien.done) {
+      break;
+    }
+
+    arbitres.delete(plusAncien.value);
+  }
+
+  return neuf;
+}
+
+/**
+ * Les chemins que les sous-agents ont réellement écrits pour ce message.
+ *
+ * `undefined` et `[]` ne veulent PAS dire la même chose :
+ *  - `[]` — on a arbitré ce message et rien n'a été écrit. Écart réel.
+ *  - `undefined` — aucune trace. Au rechargement de la page, l'historique se
+ *    réaffiche alors que la carte est vide ; sans cette distinction, chaque
+ *    ancien message annoncerait « Livraison incomplète » pour la totalité de
+ *    ses fichiers, y compris ceux qui sont sur le disque.
+ */
+export function cheminsEcritsParLesLanes(messageId: string): string[] | undefined {
+  const arbitre = arbitres.get(messageId);
+
+  return arbitre ? [...arbitre.attributions().keys()] : undefined;
+}
