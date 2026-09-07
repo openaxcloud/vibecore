@@ -16,6 +16,7 @@ import { cleDeChemin } from './agent-lane-arbiter';
 export interface RapportDeLane {
   roleId: string;
   status: 'complete' | 'partial' | 'failed';
+
   /** Les chemins que le rôle a DÉCLARÉS dans son rapport. */
   files?: string[];
 }
@@ -25,6 +26,7 @@ export interface EcartDeLane {
   status: 'complete' | 'partial' | 'failed';
   annonces: number;
   ecrits: number;
+
   /** Les chemins annoncés qu'aucune écriture n'a couverts, dans l'ordre d'annonce. */
   manquants: string[];
 }
@@ -51,6 +53,7 @@ export function ecartsDesLanes(rapports: RapportDeLane[], cheminsEcrits: Iterabl
 
   return rapports.map((rapport) => {
     const annonces = rapport.files ?? [];
+
     const manquants = annonces.filter((chemin) => {
       const cle = cleDeChemin(chemin);
       return Boolean(cle) && !ecrits.has(cle);

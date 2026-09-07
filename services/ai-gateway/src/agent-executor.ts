@@ -484,8 +484,10 @@ export function buildRoleMessages(request: AgentRunRequest, role: AgentRunRole):
   return [
     // 1) Shared preamble — identical across lanes (cacheable prefix).
     { role: 'system', content: SHARED_AGENT_SYSTEM_PREAMBLE },
+
     // 2) Shared context (system + user + specs) — identical across lanes.
     ...request.messages,
+
     // 3) The ONLY per-lane part, kept LAST so it doesn't break the shared prefix.
     {
       role: 'user',
@@ -564,8 +566,7 @@ function normalizeAgentOutput(
     return {
       roleId,
       status: 'partial',
-      summary:
-        horsActions.slice(0, LONGUEUR_MAX_RESUME) || aiGatewayMessage('agentEmptyResponse', locale),
+      summary: horsActions.slice(0, LONGUEUR_MAX_RESUME) || aiGatewayMessage('agentEmptyResponse', locale),
     };
   }
 
@@ -651,6 +652,7 @@ export async function executeAgentRun(input: {
    */
   try {
     const sharedContextTokens = countTokens(input.request.messages);
+
     const tokenUsage = summarizeRunTokenUsage(
       laneOutputs.map((output) => output.usage),
       sharedContextTokens,
@@ -884,6 +886,7 @@ export async function* executeAgentRunStream(input: {
     locale: input.request.locale,
     threshold: input.request.consensusThreshold,
   });
+
   const response: AgentRunResponse = { runId, status, results: ordered, consensus };
 
   if (input.persistence && (status !== 'failed' || !input.signal?.aborted)) {

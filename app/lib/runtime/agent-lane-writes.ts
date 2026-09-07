@@ -36,6 +36,7 @@ export function identifiantDeLane(messageId: string, roleId: string): string {
 export interface LaneDecodee {
   messageId: string;
   roleId: string;
+
   /** Rang de priorité ; les rôles inconnus passent DERRIÈRE tous les connus. */
   rang: number;
 }

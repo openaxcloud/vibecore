@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import type { Message } from 'ai';
 import { renderHook } from '@testing-library/react';
+import type { Message } from 'ai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const actionsExecutees: Array<{ filePath?: string; messageId: string }> = [];
@@ -50,7 +50,11 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
   it("ecrit le fichier qu'une lane a produit", () => {
     const { result } = renderHook(() => useMessageParser());
     result.current.parseMessages(
-      [messageAvecLanes('m1', [{ roleId: 'frontend', text: fluxDeLane('src/Panier.tsx', 'export const Panier = 1;') }])],
+      [
+        messageAvecLanes('m1', [
+          { roleId: 'frontend', text: fluxDeLane('src/Panier.tsx', 'export const Panier = 1;') },
+        ]),
+      ],
       false,
     );
 
@@ -122,6 +126,7 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
    */
   it('laisse passer sans arbitrage un message ordinaire du coordinateur', () => {
     const { result } = renderHook(() => useMessageParser());
+
     const coordinateur = {
       id: 'm3',
       role: 'assistant',
@@ -131,6 +136,7 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
     result.current.parseMessages([coordinateur], false);
     expect(actionsExecutees.map((a) => a.filePath)).toContain('src/Coordinateur.tsx');
   });
+
   /*
    * UN ARBITRE PAR MESSAGE, PAS UN POUR LA SESSION.
    *

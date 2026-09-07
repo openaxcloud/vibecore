@@ -140,6 +140,7 @@ const messageParser = new EnhancedStreamingMessageParser({
       if (!ecritureAutorisee(data)) {
         return;
       }
+
       workbenchStore.runAction(data, true);
     },
   },
@@ -237,7 +238,7 @@ export function useMessageParser() {
         if (message.role === 'assistant') {
           for (const [roleId, texte] of textesDesLanes(message.annotations)) {
             const idDeLane = identifiantDeLane(message.id, roleId);
-        
+
             try {
               messageParser.parse(idDeLane, texte);
             } catch (error) {
@@ -245,7 +246,7 @@ export function useMessageParser() {
               messageParser.resetMessage(idDeLane);
               continue;
             }
-        
+
             /*
              * Meme filet de fin de flux que pour le coordinateur : une lane
              * tronquee laisserait son artefact ouvert pour toujours, et tout ce

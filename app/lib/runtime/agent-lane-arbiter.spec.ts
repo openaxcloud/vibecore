@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ArbitreDesLanes, cleDeChemin } from './agent-lane-arbiter';
 
 describe('ArbitreDesLanes', () => {
-  it("attribue un fichier libre au premier demandeur", () => {
+  it('attribue un fichier libre au premier demandeur', () => {
     const arbitre = new ArbitreDesLanes();
     expect(arbitre.peutEcrire('src/App.tsx', 2).autorisee).toBe(true);
   });
@@ -50,7 +50,7 @@ describe('ArbitreDesLanes', () => {
     expect(arbitre.attributions().size).toBe(1);
   });
 
-  it("laisse passer des chemins distincts sans arbitrage", () => {
+  it('laisse passer des chemins distincts sans arbitrage', () => {
     const arbitre = new ArbitreDesLanes();
     expect(arbitre.peutEcrire('src/A.tsx', 1).autorisee).toBe(true);
     expect(arbitre.peutEcrire('src/B.tsx', 4).autorisee).toBe(true);

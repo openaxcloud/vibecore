@@ -43,6 +43,7 @@ export function cleDeChemin(chemin: string): string {
 export interface DecisionDArbitrage {
   /** L'écriture est-elle autorisée ? */
   autorisee: boolean;
+
   /** Rang du rôle qui détient déjà le fichier, quand l'écriture est refusée. */
   detenuPar?: number;
 }

@@ -16,17 +16,14 @@ describe('ecartsDesLanes', () => {
    * ecrit doit compter comme incomplet — c'est exactement le defaut du
    * 2026-09-07 : quatre rapports « complete » pour 90 chemins, 9 fichiers.
    */
-  it("compte comme incomplet un role qui se DIT complet sans avoir ecrit", () => {
+  it('compte comme incomplet un role qui se DIT complet sans avoir ecrit', () => {
     const ecarts = ecartsDesLanes([{ roleId: 'backend', status: 'complete', files: ['src/api.ts'] }], []);
     expect(ecarts[0]).toMatchObject({ annonces: 1, ecrits: 0, manquants: ['src/api.ts'] });
     expect(livraisonIncomplete(ecarts)).toBe(true);
   });
 
   it('nomme les fichiers manquants dans leur ordre d annonce', () => {
-    const ecarts = ecartsDesLanes(
-      [{ roleId: 'qa', status: 'partial', files: ['a.ts', 'b.ts', 'c.ts'] }],
-      ['b.ts'],
-    );
+    const ecarts = ecartsDesLanes([{ roleId: 'qa', status: 'partial', files: ['a.ts', 'b.ts', 'c.ts'] }], ['b.ts']);
     expect(ecarts[0].manquants).toEqual(['a.ts', 'c.ts']);
   });
 
@@ -36,7 +33,7 @@ describe('ecartsDesLanes', () => {
    * manquant qui est en fait sur le disque — un faux positif qui detruirait la
    * confiance dans l'avertissement lui-meme.
    */
-  it("reconnait le meme fichier ecrit sous une autre graphie", () => {
+  it('reconnait le meme fichier ecrit sous une autre graphie', () => {
     const ecarts = ecartsDesLanes(
       [{ roleId: 'architect', status: 'complete', files: ['./src/App.tsx'] }],
       ['/src//App.tsx'],

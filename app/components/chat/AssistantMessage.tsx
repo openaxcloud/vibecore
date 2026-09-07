@@ -19,8 +19,6 @@ import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
-import { cheminsEcritsParLesLanes } from '~/lib/hooks/useMessageParser';
-import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
 import { extractLaneStreamSummary, resolveLaneState } from './agent-lane-state';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
@@ -29,6 +27,7 @@ import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequir
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
+import { cheminsEcritsParLesLanes } from '~/lib/hooks/useMessageParser';
 import {
   formatAssistantCost,
   formatAssistantDuration,
@@ -40,6 +39,7 @@ import {
   selectAssistantMessagePlural,
 } from '~/lib/i18n/catalogs/assistant-message';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -141,6 +141,7 @@ export const AssistantMessage = memo(
     const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
+
     /*
      * L'ÉCART ENTRE CE QUI A ÉTÉ ANNONCÉ ET CE QUI A ÉTÉ ÉCRIT.
      *
