@@ -193,7 +193,26 @@ jobs:
       - name: Unit tests
         env:
           NODE_OPTIONS: --max-old-space-size=6144
-        run: pnpm run test
+        # DEUX PASSES FRAICHES, pas une seule qui accumule.
+        #
+        # Le plafond seul ne suffit pas : monte a 6 Go, le worker meurt a 6 Go
+        # (mesure : mort a 4131 Mo par defaut, a 6029 Mo avec 6 Go demandes). La
+        # retention est CUMULATIVE sur les ~500 fichiers qu'un worker enchaine ;
+        # plus de tas ne fait que retarder la mort.
+        #
+        # `--shard` decoupe la liste des fichiers et chaque passe repart d'un
+        # arbre de processus NEUF, ce qui borne l'accumulation a la moitie. Aucun
+        # test n'est saute : les deux moities couvrent l'integralite de la suite,
+        # et les deux doivent passer (`bash -e` s'arrete a la premiere).
+        #
+        # `pnpm exec vitest` et non `pnpm run test -- …` : le passage d'arguments
+        # a travers le script npm ne fonctionne pas ici — mesure du 2026-09-07,
+        # la commande rend une sortie VIDE, qu'un oeil presse lirait comme un
+        # succes. Couverture verifiee sur un sous-ensemble : 43 fichiers
+        # = 22 + 21, et 495 tests = 185 + 310. Rien ne tombe entre les moities.
+        run: |
+          pnpm exec vitest --run --shard=1/2
+          pnpm exec vitest --run --shard=2/2
 
       - name: Integration tests
         # services/** is excluded from the root `pnpm run test` (see
