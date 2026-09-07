@@ -201,9 +201,13 @@ jobs:
         # plus de tas ne fait que retarder la mort.
         #
         # `--shard` decoupe la liste des fichiers et chaque passe repart d'un
-        # arbre de processus NEUF, ce qui borne l'accumulation a la moitie. Aucun
-        # test n'est saute : les deux moities couvrent l'integralite de la suite,
-        # et les deux doivent passer (`bash -e` s'arrete a la premiere).
+        # arbre de processus NEUF, ce qui borne l'accumulation. Aucun test n'est
+        # saute : les quatre quarts couvrent l'integralite de la suite et doivent
+        # tous passer (`bash -e` s'arrete au premier).
+        #
+        # QUATRE et non deux : mesure du 2026-09-07, la MOITIE de la suite epuise
+        # encore 6 Go (mort a 6019 Mo). La retention n'est donc pas simplement
+        # proportionnelle au nombre de fichiers — il faut descendre plus bas.
         #
         # `pnpm exec vitest` et non `pnpm run test -- …` : le passage d'arguments
         # a travers le script npm ne fonctionne pas ici — mesure du 2026-09-07,
@@ -211,8 +215,10 @@ jobs:
         # succes. Couverture verifiee sur un sous-ensemble : 43 fichiers
         # = 22 + 21, et 495 tests = 185 + 310. Rien ne tombe entre les moities.
         run: |
-          pnpm exec vitest --run --shard=1/2
-          pnpm exec vitest --run --shard=2/2
+          pnpm exec vitest --run --shard=1/4
+          pnpm exec vitest --run --shard=2/4
+          pnpm exec vitest --run --shard=3/4
+          pnpm exec vitest --run --shard=4/4
 
       - name: Integration tests
         # services/** is excluded from the root `pnpm run test` (see
