@@ -1,114 +1,106 @@
-# Preuve de génération réelle — protocole
+# Preuve de génération réelle — protocole figé
 
-**Objet.** Établir qu'un prompt produit une application **qui démarre**, et non
-un décompte de fichiers ou un test unitaire vert.
+**Écrit AVANT la mesure, et non modifiable après.** Une seule génération sera
+lancée (elle coûte ~11 € de jetons au propriétaire) : elle doit donc tout
+mesurer du premier coup, et l'interprétation de chaque issue doit être fixée
+d'avance. Un protocole écrit après coup s'ajuste au résultat sans qu'on s'en
+aperçoive.
 
-**Pourquoi ce document.** Le 2026-09-07, une génération a livré 9 fichiers sur
-90 annoncés, pour 209 018 jetons de sortie facturés 11,84 €. Les rôles
-n'écrivaient rien : la consigne ne leur demandait qu'un rapport. Le correctif
-leur fait écrire. Reste à le prouver **en réel**, ce qu'aucun test ne peut faire
-à la place.
+## Environnement (règle 11)
 
----
-
-## Ce qu'il faut avant de commencer
-
-* Un compte de production ordinaire (pas d'accès administrateur nécessaire).
-* Un projet **neuf** — pas un projet rouvert : un projet existant porte déjà des
-  fichiers, et on ne saurait plus distinguer ce que la génération a produit.
-* Le SHA déployé, à noter **avant** (règle 11 — une mesure sans son
-  environnement consigné n'est pas une mesure) :
+À consigner **avant** de lancer :
 
 ```bash
-kubectl -n vibecore get deploy vibecore-web -o jsonpath='{.spec.template.spec.containers[0].image}'
+kubectl -n vibecore get deploy vibecore-vibecore-platform-web \
+  -o jsonpath='{.spec.template.spec.containers[0].image}'
 ```
 
----
+Le SHA doit être celui de la fusion de #496. **Si ce n'est pas le cas, la mesure
+ne mesure pas le correctif** — c'est le premier contrôle, avant tout le reste.
 
-## Le prompt
+## Accès
 
-Un prompt qui exige plusieurs fichiers et plusieurs domaines — sinon un
-coordinateur seul suffirait et l'on ne testerait pas les sous-agents :
+Session frappée en base sur le compte du **propriétaire**, avec son accord
+explicite. Le jeton brut ne transite par aucune sortie : il va du pod vers un
+fichier local, et seule son empreinte est affichée. Révocation en fin de mesure,
+avec contre-épreuve à 401.
+
+## Le prompt, exact
 
 > Crée une boutique en ligne avec un catalogue de produits, un panier, et une
 > page de paiement.
 
+Choisi parce qu'il exige **plusieurs domaines** — sans quoi un coordinateur seul
+suffirait et les sous-agents ne seraient pas exercés. C'est aussi le prompt de
+la génération du 2026-09-07 08h36, ce qui rend le avant/après comparable.
+
+## État « avant », mesuré le 2026-09-07 (coût nul)
+
+| Projet | Runs | Chemins annoncés | Fichiers sur disque |
+|---|---|---|---|
+| Boutique en ligne (08h36) | 5 | ~200 | **9** |
+| PWA de fitness (11h22) | 2 | 74 | **1** (un README de remplissage) |
+
+Conflits mesurés sur ces deux projets : **35 chevauchements de fichiers**, dont 4
+de sévérité haute (`package.json` revendiqué par 3 rôles). `agreementScore` =
+**0,25** sur tous les runs.
+
 ---
 
-## Les trois mesures qui tranchent
+## Les trois mesures
 
-Elles sont **indépendantes**. Aucune ne se déduit d'une autre : c'est la règle
-qui a fait tomber les six conclusions hâtives de cette campagne.
+Elles sont **indépendantes**. Aucune ne se déduit d'une autre.
 
-### Mesure 1 — fichiers écrits contre fichiers annoncés
+### Mesure 1 — fichiers écrits contre fichiers déclarés
 
-**À l'écran.** Le panneau « Agents parallèles » liste les rôles. S'il affiche
-l'encadré **« Livraison incomplète »**, il nomme les fichiers non écrits : c'est
-la mesure, directement lisible.
+* **Déclarés** : `SELECT "roleId", jsonb_array_length(files) FROM "AgentRunResult"`
+  joint sur `AgentRun."projectId"`.
+* **Écrits** : l'arborescence réelle du projet (`GET /projects/:id/files`).
+* **L'encadré** : le panneau « Agents parallèles » affiche-t-il
+  « Livraison incomplète » (`data-testid="agent-lanes-shortfall"`) ?
 
-**En base**, pour le même projet :
-
-```sql
-SELECT r."roleId", r.status, jsonb_array_length(r.files) AS annonces
-FROM "AgentRunResult" r
-JOIN "AgentRun" a ON a.id = r."runId"
-WHERE a."projectId" = '<PROJECT_ID>'
-ORDER BY r."roleId";
-```
-
-Puis le nombre de fichiers réellement présents dans le projet (arborescence de
-l'IDE, ou l'API `/files/tree`).
-
-**Verdict.** Écrits ≈ annoncés → succès. Écrits ≪ annoncés **sans** encadré
-« Livraison incomplète » → le correctif d'avertissement ne tient pas, et c'est
-un défaut à part entière.
-
-### Mesure 2 — l'issue du consensus
+### Mesure 2 — consensus et arbitrage
 
 ```sql
-SELECT c.outcome, c."agreementScore", jsonb_array_length(c.conflicts) AS conflits
-FROM "ConsensusRecord" c
-JOIN "AgentRun" a ON a.id = c."runId"
-WHERE a."projectId" = '<PROJECT_ID>';
+SELECT outcome, "agreementScore", jsonb_array_length(conflicts) FROM "ConsensusRecord" …
 ```
 
-**Verdict.** `ACCEPTED` avec 0 conflit `file-overlap` → les rôles se sont
-partagé le travail. Des conflits `file-overlap` ne sont **pas** un échec :
-l'arbitre les tranche, priorité à l'ordre canonique
-`architect → frontend → backend → devops → qa`. Ce qu'il faut vérifier alors,
-c'est que le fichier disputé porte bien la version du rôle prioritaire.
+Des `file-overlap` **ne sont pas un échec** : l'arbitre les tranche, priorité à
+l'ordre `architect → frontend → backend → devops → qa`. Ce qu'il faut vérifier,
+c'est que le fichier disputé porte la version du rôle prioritaire.
 
 ### Mesure 3 — l'aperçu affiche
 
-**C'est la seule qui compte, et elle ne se déduit d'aucune des deux autres.**
-
-Ouvrir l'onglet Aperçu. L'application doit **s'afficher** — pas « Prêt », pas un
-cadre blanc, pas un écran de chargement figé.
-
-Contrôles si elle ne s'affiche pas, dans cet ordre :
-
-1. la console du navigateur (une erreur de module manquant nomme le fichier qui
-   manque — à recouper avec la mesure 1) ;
-2. le terminal du projet (le serveur de développement a-t-il démarré) ;
-3. `docs/DEPLOY_RUNBOOK.md` pour les défauts d'infrastructure connus.
-
-**Verdict.** L'application s'affiche → la preuve est faite. Tout le reste est un
-indice, pas une preuve.
+**La seule qui compte.** L'application doit s'afficher dans l'onglet Aperçu —
+pas « Prêt », pas un cadre blanc, pas un chargement figé.
 
 ---
+
+## Ce que je fais selon le résultat — fixé d'avance
+
+L'instrument qui départage les cas est la **capture du texte des lanes depuis la
+page** : les annotations `agentLaneStream` contiennent-elles `<boltAction` ?
+C'est ce qui distingue « le modèle n'a pas suivi la consigne » de « le correctif
+n'est pas déployé » de « l'écriture a échoué ».
+
+| Issue | Signature | Verdict, et ce que j'en dis |
+|---|---|---|
+| **A — succès** | écrits ≈ déclarés, aperçu affiche | Le produit fonctionne. C'est le point final. |
+| **B — écrit mais ne démarre pas** | écrits ≈ déclarés, aperçu vide | **Le correctif tient** : les rôles écrivent. L'application ne démarre pour une **autre** raison, que je nomme (console, terminal, dépendances). Deux défauts distincts, annoncés comme tels — je ne présente pas B comme un échec du correctif ni comme un succès du produit. |
+| **C — partiel annoncé** | écrits < déclarés, encadré présent | Le correctif tient **et** l'avertissement tient. Je donne le compte exact et les fichiers nommés. C'est un demi-succès honnête, pas un succès. |
+| **D — partiel muet** | écrits < déclarés, **pas** d'encadré | **Défaut de mon propre correctif.** Je le dis sans l'atténuer et je le corrige avant toute autre chose. |
+| **E — rien écrit** | 0 fichier de rôle | Départage obligatoire avant toute conclusion : (1) le SHA déployé porte-t-il #496 ? (2) le texte des lanes contient-il `<boltAction` ? Si oui aux deux, le défaut est dans le chemin d'écriture ; si non au (2), le modèle n'a pas suivi la consigne et c'est le **contrat** qu'il faut reprendre, pas la plomberie. |
+
+**Règle qui prime sur toutes les autres** : je ne relance pas la génération pour
+obtenir un meilleur résultat. Une seconde tentative après un résultat décevant
+transforme une mesure en tirage. Si une relance devient nécessaire, elle est
+annoncée comme telle et les deux résultats sont rapportés.
 
 ## Ce qui ne prouve rien
 
 * Un test unitaire vert — aucun ne monte un vrai fournisseur de modèle.
 * Un décompte de fichiers seul — 90 fichiers qui ne compilent pas ne valent pas
   9 fichiers qui démarrent.
-* Un `ConsensusRecord` en `ACCEPTED` — il dit que les rôles se sont accordés,
-  pas que le code fonctionne.
+* Un `ConsensusRecord` en `ACCEPTED` — les rôles se sont accordés, pas le code.
 * Une génération sur un projet rouvert — les fichiers préexistants masquent ce
-  que la génération a réellement produit.
-
-## À consigner
-
-Le SHA déployé, l'identifiant du projet, l'horodatage, et le verdict de chacune
-des trois mesures — séparément. Une mesure déduite d'une autre est une mesure
-perdue.
+  que la génération a produit. **Projet neuf, obligatoirement.**
