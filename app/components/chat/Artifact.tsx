@@ -420,7 +420,25 @@ const ActionList = memo(({ actions }: ActionListProps) => {
                       type="button"
                       onClick={(e) => {
                         e.preventDefault();
+
+                        /*
+                         * LE BOUTON DÉMARRE, IL NE SE CONTENTE PLUS DE REGARDER.
+                         *
+                         * Il ne faisait que basculer la vue sur l'aperçu. L'action `start`
+                         * de l'artefact — celle qui lance le serveur de développement —
+                         * n'était jamais exécutée : l'utilisateur cliquait « Démarrer
+                         * l'application », arrivait sur un aperçu vide, et rien ne se
+                         * lançait. C'est la moitié de la plainte d'Avi, et le libellé
+                         * promettait ce que le geste ne faisait pas.
+                         *
+                         * `startPreviewServer()` est publique, gardée et idempotente
+                         * (promesse en vol + court-circuit de réattachement) : la rappeler
+                         * sur un serveur déjà lancé ne relance rien. On bascule la vue
+                         * D'ABORD, pour que l'utilisateur voie le démarrage se produire
+                         * plutôt qu'un écran figé.
+                         */
                         workbenchStore.currentView.set('preview');
+                        void workbenchStore.startPreviewServer();
                       }}
                       className="bolt-action-target flex min-w-0 flex-1 items-center rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive"
                     >
