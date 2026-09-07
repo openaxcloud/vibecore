@@ -170,55 +170,8 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      # LE LANCEUR DE TESTS MOURAIT FAUTE DE MEMOIRE, ET CE N'ETAIT PAS UN TEST.
-      #
-      # Mesure du 2026-09-07 : `Production CI` echoue 5 fois sur 15 sur `main`,
-      # toujours par `FATAL ERROR: Ineffective mark-compacts near heap limit` dans
-      # un worker vitest a ~4 Go — le plafond par defaut de Node. Aucun test ne
-      # rougit : le processus meurt avant de rendre un verdict, et la porte de
-      # livraison de la plateforme refuse alors des lots sains.
-      #
-      # Le pire est la LECTURE : `pnpm run test | grep -c 'error'` rend zero sur ce
-      # crash, parce qu'il n'y a aucune ligne a compter. Un plantage se lit comme
-      # un succes.
-      #
-      # On donne donc au lanceur de quoi finir. Cela n'assouplit aucun controle,
-      # ne saute ni ne dispense aucun test : aujourd'hui la suite NE FINIT PAS,
-      # donc elle ne prouve rien. Les runners GitHub ont 16 Go ; 6 Go laissent une
-      # marge confortable au-dessus du pic observe.
-      #
-      # Contribution du lot qui a revele le probleme, mesuree et non supposee :
-      # ses 4 fichiers de test culminent a 252 Mo contre 292 Mo pour quatre specs
-      # existants comparables, sur un plancher de lanceur de ~280 Mo. Nulle.
       - name: Unit tests
-        env:
-          NODE_OPTIONS: --max-old-space-size=6144
-        # DEUX PASSES FRAICHES, pas une seule qui accumule.
-        #
-        # Le plafond seul ne suffit pas : monte a 6 Go, le worker meurt a 6 Go
-        # (mesure : mort a 4131 Mo par defaut, a 6029 Mo avec 6 Go demandes). La
-        # retention est CUMULATIVE sur les ~500 fichiers qu'un worker enchaine ;
-        # plus de tas ne fait que retarder la mort.
-        #
-        # `--shard` decoupe la liste des fichiers et chaque passe repart d'un
-        # arbre de processus NEUF, ce qui borne l'accumulation. Aucun test n'est
-        # saute : les quatre quarts couvrent l'integralite de la suite et doivent
-        # tous passer (`bash -e` s'arrete au premier).
-        #
-        # QUATRE et non deux : mesure du 2026-09-07, la MOITIE de la suite epuise
-        # encore 6 Go (mort a 6019 Mo). La retention n'est donc pas simplement
-        # proportionnelle au nombre de fichiers — il faut descendre plus bas.
-        #
-        # `pnpm exec vitest` et non `pnpm run test -- …` : le passage d'arguments
-        # a travers le script npm ne fonctionne pas ici — mesure du 2026-09-07,
-        # la commande rend une sortie VIDE, qu'un oeil presse lirait comme un
-        # succes. Couverture verifiee sur un sous-ensemble : 43 fichiers
-        # = 22 + 21, et 495 tests = 185 + 310. Rien ne tombe entre les moities.
-        run: |
-          pnpm exec vitest --run --shard=1/4
-          pnpm exec vitest --run --shard=2/4
-          pnpm exec vitest --run --shard=3/4
-          pnpm exec vitest --run --shard=4/4
+        run: pnpm run test
 
       - name: Integration tests
         # services/** is excluded from the root `pnpm run test` (see
