@@ -9518,6 +9518,58 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 /*
+ * BUG-VOICE-INPUT-001 — la dictée se voit. Pendant l'écoute, le bouton passe
+ * en couleur d'alerte avec un halo qui pulse ; pendant la demande d'accès au
+ * micro, le halo est fixe. Rien ne dépend du survol : c'est ce que voit un
+ * doigt sur iPhone.
+ */
+.bolt-dictee-bouton .bolt-dictee-icone {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bolt-dictee-bouton .bolt-dictee-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.bolt-dictee-bouton .bolt-dictee-halo[data-phase='ecoute'] {
+  animation: bolt-dictee-pulse 1.2s ease-out infinite;
+}
+
+.bolt-chatbox-toolbar-button.bolt-dictee-active,
+.bolt-chatbox-toolbar-button.bolt-dictee-active:hover:not(:disabled),
+.bolt-chatbox-toolbar-button.bolt-dictee-active:focus-visible {
+  border-color: var(--vc-ide-accent-danger, #dc2626);
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 12%, transparent);
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+@keyframes bolt-dictee-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bolt-dictee-bouton .bolt-dictee-halo[data-phase='ecoute'] {
+    animation: none;
+  }
+}
+
+/*
  * Combined Agent/Plan/Assistant mode dropdown (replaces the old Agent/Assistant
  * segmented control + standalone Plan toggle). Three-tab structure modelled on
  * Replit's agent-mode popup; opens upward over the composer. ecode-accented.

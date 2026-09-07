@@ -495,6 +495,9 @@ export const chatEn = {
   'chat.copy.memoryContent_66fe7c72': 'Memory content',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+  'chat.copy.dictationNoSpeech': 'No speech detected. Tap the microphone and speak.',
+  'chat.copy.dictationNoMicrophone': 'No microphone was found.',
+  'chat.copy.dictationNetwork': 'Dictation needs a network connection.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': 'Minimum 8 characters',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Missing project id. Reload the IDE and try again.',
@@ -2068,6 +2071,9 @@ export const chatFr = {
   'chat.copy.memoryContent_66fe7c72': 'Contenu de la mémoire',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'L’accès au microphone est bloqué. Autorisez ce site à utiliser le microphone dans les paramètres de votre navigateur pour activer la reconnaissance vocale.',
+  'chat.copy.dictationNoSpeech': 'Aucune parole détectée. Appuyez sur le micro et parlez.',
+  'chat.copy.dictationNoMicrophone': 'Aucun micro détecté.',
+  'chat.copy.dictationNetwork': 'La dictée a besoin d’une connexion réseau.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': '8 caractères minimum',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Identifiant du projet manquant. Rechargez l’IDE et réessayez.',

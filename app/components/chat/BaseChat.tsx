@@ -20,6 +20,15 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import {
+  composerLaSaisie,
+  langueDeDictee,
+  messageDErreurDeDictee,
+  reduireLaDictee,
+  transcriptionDepuisResultats,
+  type EvenementDictee,
+  type PhaseDictee,
+} from '~/components/chat/dictee-vocale';
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -3404,8 +3413,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
-    const [isListening, setIsListening] = useState(false);
+
+    /*
+     * BUG-VOICE-INPUT-001 — la dictée est une machine à trois phases (repos,
+     * demande, écoute) pilotée par `reduireLaDictee` : le bouton, le champ et
+     * le moteur lisent la même phase, et le moteur qui s'arrête seul (silence,
+     * Safari iOS) ramène l'interface au repos.
+     */
+    const [phaseDictee, setPhaseDictee] = useState<PhaseDictee>('repos');
+    const isListening = phaseDictee !== 'repos';
+    const phaseDicteeRef = useRef<PhaseDictee>('repos');
+    phaseDicteeRef.current = phaseDictee;
+
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+
+    // Le texte tapé avant la dictée : la dictée s'y ajoute, elle ne l'efface pas.
+    const prefixeDicteeRef = useRef('');
+    const inputCourantRef = useRef(input);
+    inputCourantRef.current = input;
+
+    const handleInputChangeRef = useRef(handleInputChange);
+    handleInputChangeRef.current = handleInputChange;
+
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -6464,25 +6494,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
+        const transiter = (evenement: EvenementDictee) => {
+          const { phase } = reduireLaDictee(phaseDicteeRef.current, evenement);
+          phaseDicteeRef.current = phase;
+          setPhaseDictee(phase);
+        };
 
-          if (handleInputChange) {
-            const syntheticEvent = {
-              target: { value: transcript },
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            handleInputChange(syntheticEvent);
-          }
+        // Le moteur confirme qu'il capte : c'est là que l'on passe « en écoute », pas à l'appui.
+        recognition.onstart = () => transiter({ type: 'start' });
+
+        /*
+         * Le moteur s'arrête seul : silence, limite de durée (Safari iOS coupe
+         * après quelques secondes sans parole), perte du micro. Mesuré avant
+         * correction : sans ce gestionnaire, l'interface restait « en écoute »
+         * et il fallait deux appuis pour relancer.
+         */
+        recognition.onend = () => transiter({ type: 'end' });
+
+        recognition.onresult = (event) => {
+          const transcription = transcriptionDepuisResultats(event.results);
+
+          handleInputChangeRef.current?.({
+            target: { value: composerLaSaisie(prefixeDicteeRef.current, transcription) },
+          } as React.ChangeEvent<HTMLTextAreaElement>);
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
+          transiter({ type: 'erreur' });
 
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          const message = messageDErreurDeDictee(event.error);
+
+          if (message === 'permission') {
             /*
              * Mic permission is blocked at the browser level — explain it once
              * per session (sessionStorage guard), not on every click.
@@ -6504,9 +6546,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 toastId: 'mic-permission-blocked',
               });
             }
+          } else if (message === 'micro-absent') {
+            toast.error(t('chat.copy.dictationNoMicrophone'), { toastId: 'dictation-no-microphone' });
+          } else if (message === 'reseau') {
+            toast.error(t('chat.copy.dictationNetwork'), { toastId: 'dictation-network' });
+          } else if (message === 'silence') {
+            toast.info(t('chat.copy.dictationNoSpeech'), { toastId: 'dictation-no-speech' });
+          } else {
+            console.error('Speech recognition error:', event.error);
           }
         };
 
+        recognitionRef.current = recognition;
         setRecognition(recognition);
 
         return () => {
@@ -6514,8 +6565,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * Tear down the recognizer on unmount so it stops capturing the mic
            * and releases the underlying SpeechRecognition resource.
            */
+          recognition.onstart = null;
+          recognition.onend = null;
           recognition.onresult = null;
           recognition.onerror = null;
+          recognitionRef.current = null;
 
           try {
             recognition.abort();
@@ -6604,33 +6658,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const startListening = () => {
-      if (!recognition) {
+      const moteur = recognitionRef.current;
+
+      if (!moteur) {
         // The mic button hides itself when the API is absent, but never let a click be inert.
         toast.error(t('chat.copy.speechRecognitionIsNotAvailableIn_af2b2f6a'), { toastId: 'speech-unavailable' });
         return;
       }
 
+      const transition = reduireLaDictee(phaseDicteeRef.current, { type: 'appui' });
+
+      if (transition.action !== 'start') {
+        stopListening();
+        return;
+      }
+
+      // La langue de l'interface, et le texte déjà tapé que la dictée prolongera.
+      moteur.lang = langueDeDictee(i18n.resolvedLanguage ?? i18n.language);
+      prefixeDicteeRef.current = inputCourantRef.current;
+
       try {
-        recognition.start();
+        moteur.start();
+        phaseDicteeRef.current = transition.phase;
+        setPhaseDictee(transition.phase);
       } catch (error) {
         /*
          * start() throws InvalidStateError when recognition is already
-         * running — swallow it and let the state below resync the UI so the
-         * click still has a visible effect.
+         * running — the engine is live, so show « écoute » and let the user stop it.
          */
         console.error('Speech recognition start failed:', error);
+        phaseDicteeRef.current = 'ecoute';
+        setPhaseDictee('ecoute');
       }
-
-      setIsListening(true);
     };
 
     const stopListening = () => {
-      if (recognition) {
-        recognition.stop();
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // stop() on a recognizer that never started: nothing to stop.
       }
 
       // Always resync the UI, even if the recognizer is gone.
-      setIsListening(false);
+      phaseDicteeRef.current = 'repos';
+      setPhaseDictee('repos');
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
@@ -6644,7 +6715,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setIsListening(false);
+          phaseDicteeRef.current = 'repos';
+          setPhaseDictee('repos');
 
           // Clear the input by triggering handleInputChange with empty value
           if (handleInputChange) {
@@ -7491,6 +7563,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 enhancingPrompt={enhancingPrompt}
                 enhancePrompt={enhancePrompt}
                 isListening={isListening}
+                dictationPhase={phaseDictee}
                 startListening={startListening}
                 stopListening={stopListening}
                 chatStarted={chatStarted}

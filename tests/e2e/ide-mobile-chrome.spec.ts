@@ -178,6 +178,30 @@ async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'ga
   return { x, y };
 }
 
+/*
+ * Un moteur de dictée factice, piloté par le test : ni Chromium sans service
+ * ni WebKitGTK (pas d'API Web Speech) ne peuvent transcrire ; ce qui se
+ * vérifie ici, c'est ce que l'INTERFACE fait de ce que le moteur lui dit.
+ * Le moteur réel de Safari iOS n'est pas exercé — à confirmer sur iPhone.
+ */
+const FAUX_MOTEUR_DE_DICTEE = `(() => {
+  const instances = [];
+  class FauxReconnaissance {
+    constructor() { this.continuous = false; this.interimResults = false; this.lang = ''; this.appels = []; instances.push(this); }
+    start() { this.appels.push('start'); }
+    stop() { this.appels.push('stop'); }
+    abort() { this.appels.push('abort'); }
+    _emettre(type, detail) { const h = this['on' + type]; if (h) h(Object.assign({ type }, detail)); }
+    _resultat(textes, final) {
+      const results = textes.map((t) => { const r = [{ transcript: t, confidence: 0.9 }]; r.isFinal = final; return r; });
+      this._emettre('result', { results, resultIndex: 0 });
+    }
+  }
+  window.webkitSpeechRecognition = FauxReconnaissance;
+  window.SpeechRecognition = FauxReconnaissance;
+  window.__sr = instances;
+})();`;
+
 /* Le vrai chemin : la feuille « + », puis l'outil. */
 async function ouvrirOutil(page: Page, id: string) {
   await page.getByTestId('button-add-tab').click();
@@ -1667,6 +1691,80 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       expect(mesure.taille, 'glyphe de 18 px, pas ramenée à 1em par la coque').toBeGreaterThanOrEqual(18);
     });
   }
+
+  test('dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await page.addInitScript(FAUX_MOTEUR_DE_DICTEE);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(800);
+
+    /*
+     * Avi, 07/09 08:18 : « il faut améliorer l'enregistrement de voix et le
+     * comportement quand on clique dessus, on comprend rien ». Mesuré avant
+     * correction (Chromium 390, moteur factice) : start() sans langue, icône
+     * « micro barré » pendant l'écoute, rien d'autre ne change, le texte tapé
+     * est effacé par la dictée, et le moteur qui s'arrête seul laisse
+     * l'interface « en écoute » — deux appuis pour relancer.
+     */
+    const champ = page.locator('.bolt-project-agent-composer textarea');
+
+    const micro = page
+      .locator('.bolt-project-agent-composer button')
+      .filter({ has: page.locator('[class*="i-ph:microphone"]') })
+      .first();
+
+    await expect(micro).toBeVisible({ timeout: 15_000 });
+    await champ.fill('Bonjour');
+
+    // La dernière instance est la vivante : la ré-hydratation en démonte une première (abort seul).
+    const moteur = () =>
+      page.evaluate(() => {
+        const m = (window as any).__sr.at(-1);
+        return { lang: m.lang, appels: m.appels as string[], ecouteLaFin: typeof m.onend === 'function' };
+      });
+
+    await micro.tap();
+    await expect.poll(async () => (await moteur()).appels).toEqual(['start']);
+
+    const demarre = await moteur();
+
+    expect(demarre.lang, 'la langue de l’interface est donnée au moteur').toBe('en-US');
+    expect(demarre.ecouteLaFin, 'le moteur qui s’arrête seul doit être entendu').toBe(true);
+    await expect(champ, 'pendant la demande d’accès, le champ le dit').toHaveAttribute(
+      'placeholder',
+      /microphone access/i,
+    );
+
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('start'));
+    await expect(champ, 'pendant l’écoute, le champ dit comment arrêter').toHaveAttribute('placeholder', /Listening/);
+    await expect(micro).toHaveAttribute('aria-pressed', 'true');
+    expect(await micro.locator('[class*="microphone-slash"]').count(), 'pas de micro barré pendant l’écoute').toBe(0);
+    await expect(micro.locator('.bolt-dictee-halo')).toBeVisible();
+
+    const couleurEcoute = await micro.evaluate((el) => getComputedStyle(el).color);
+
+    await page.evaluate(() => (window as any).__sr.at(-1)._resultat(['I want a contact page'], false));
+    await expect(champ, 'le texte tapé reste, la dictée s’y ajoute').toHaveValue('Bonjour I want a contact page');
+
+    // Le moteur s'arrête seul (silence, Safari iOS) : l'interface revient au repos.
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('end'));
+    await expect(micro).toHaveAttribute('aria-pressed', 'false');
+    await expect(champ).not.toHaveAttribute('placeholder', /Listening/);
+    expect(await micro.evaluate((el) => getComputedStyle(el).color)).not.toBe(couleurEcoute);
+
+    // Un seul appui relance — pas un stop() dans le vide, puis un troisième appui.
+    await micro.tap();
+    await expect.poll(async () => (await moteur()).appels).toEqual(['start', 'start']);
+
+    // Silence : on le dit, et on revient au repos.
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('error', { error: 'no-speech' }));
+    await expect(page.getByText(/No speech detected/)).toBeVisible({ timeout: 5_000 });
+    await expect(micro).toHaveAttribute('aria-pressed', 'false');
+  });
 
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,

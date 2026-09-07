@@ -15,6 +15,7 @@ import { ChatBoxModeDropdown } from './ChatBoxModeDropdown';
 import { ComposerMentionsOverlay } from './ComposerMentionsOverlay';
 import { ComposerSlashOverlay } from './ComposerSlashOverlay';
 import { SpeechRecognitionButton } from '~/components/chat/SpeechRecognition';
+import type { PhaseDictee } from '~/components/chat/dictee-vocale';
 import styles from './BaseChat.module.scss';
 import FilePreview from './FilePreview';
 import { MAX_IMAGE_ATTACHMENTS } from './image-attachments';
@@ -70,6 +71,7 @@ interface ChatBoxProps {
   isStreaming: boolean;
   handleSendMessage: (event: React.UIEvent, messageInput?: string) => void;
   isListening: boolean;
+  dictationPhase?: PhaseDictee;
   startListening: () => void;
   stopListening: () => void;
   chatStarted: boolean;
@@ -411,6 +413,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
        */}
       <SpeechRecognitionButton
         isListening={props.isListening}
+        phase={props.dictationPhase}
         onStart={props.startListening}
         onStop={props.stopListening}
         disabled={props.isStreaming}
@@ -510,6 +513,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 {!props.projectIdeMode ? (
                   <SpeechRecognitionButton
                     isListening={props.isListening}
+                    phase={props.dictationPhase}
                     onStart={() => {
                       props.startListening();
                       setIsToolsMenuOpen(false);
@@ -750,6 +754,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             posait 63 px au repos au lieu d'une. Le composer autonome garde sa
             taille plus ample.
           */}
+          {/* BUG-VOICE-INPUT-001 : pendant la dictée, le placeholder dit ce qui se passe et comment arrêter. */}
           <textarea
             ref={props.textareaRef}
             rows={props.projectIdeMode ? 1 : undefined}
@@ -800,10 +805,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               maxHeight: props.TEXTAREA_MAX_HEIGHT,
             }}
             placeholder={
-              props.placeholder ??
-              (props.chatMode === 'build'
-                ? copy['chatBox.prompt.buildPlaceholder']
-                : copy['chatBox.prompt.discussPlaceholder'])
+              props.dictationPhase === 'ecoute'
+                ? copy['chatBox.speech.listeningPlaceholder']
+                : props.dictationPhase === 'demande'
+                  ? copy['chatBox.speech.requestingPlaceholder']
+                  : (props.placeholder ??
+                    (props.chatMode === 'build'
+                      ? copy['chatBox.prompt.buildPlaceholder']
+                      : copy['chatBox.prompt.discussPlaceholder']))
             }
             title={props.projectIdeMode ? copy['chatBox.shortcuts.newLine'] : undefined}
             translate="no"
