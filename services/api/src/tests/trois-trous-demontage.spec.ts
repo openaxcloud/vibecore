@@ -202,7 +202,7 @@ describe('la suppression des fichiers, sur un vrai arbre', () => {
      * On lève, on ne tente pas.
      */
     for (const mauvais of ['', '..', '../..', 'a/b']) {
-      await expect(supprimerFichiersDuProjet(mauvais)).rejects.toThrow(/hors motif/);
+      await expect(supprimerFichiersDuProjet(mauvais)).rejects.toThrow(/does not match the expected pattern/);
     }
   });
 

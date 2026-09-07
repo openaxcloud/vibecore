@@ -1,3 +1,4 @@
+import { appPublicEnglish } from './app-public-copy.js';
 import type { DatabaseProvisioner } from './database-provisioner.js';
 import type { ObjectStorage } from './object-storage.js';
 
@@ -136,7 +137,7 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
          * la seule faute pire que d'en laisser un.
          */
         if (!/^ws-[a-z0-9]+$/.test(workspaceId)) {
-          throw new Error(`identifiant de workspace hors motif, démontage refusé : ${JSON.stringify(workspaceId)}`);
+          throw new Error(`${appPublicEnglish('TEARDOWN_WORKSPACE_ID_INVALID')} (${JSON.stringify(workspaceId)})`);
         }
 
         await deps.demonterWorkspace(workspaceId);
@@ -158,7 +159,7 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
          * qu'on refuse de courir.
          */
         if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(deploymentId)) {
-          throw new Error(`identifiant de déploiement hors motif, démontage refusé : ${JSON.stringify(deploymentId)}`);
+          throw new Error(`${appPublicEnglish('TEARDOWN_DEPLOYMENT_ID_INVALID')} (${JSON.stringify(deploymentId)})`);
         }
 
         await deps.demonterApplicationPubliee(deploymentId);

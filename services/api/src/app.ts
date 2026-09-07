@@ -7354,7 +7354,7 @@ async function deleteWorkspaceViaManager(workspaceId: string): Promise<void> {
   });
 
   if (!response.ok && response.status !== 404) {
-    throw new Error(`le manager a refusé de démonter le workspace ${workspaceId} (${response.status})`);
+    throw new Error(`${appPublicEnglish('TEARDOWN_WORKSPACE_REFUSED')} (${workspaceId}, ${response.status})`);
   }
 }
 

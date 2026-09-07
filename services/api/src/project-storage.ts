@@ -301,7 +301,7 @@ function storageRoot() {
  */
 export async function supprimerFichiersDuProjet(projectId: string): Promise<void> {
   if (!SAFE_PROJECT_ID.test(projectId)) {
-    throw new Error(`identifiant de projet hors motif, suppression refusée : ${JSON.stringify(projectId)}`);
+    throw new Error(`${appPublicEnglish('TEARDOWN_PROJECT_ID_INVALID')} (${JSON.stringify(projectId)})`);
   }
 
   const racine = storageRoot();
