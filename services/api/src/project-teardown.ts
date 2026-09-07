@@ -54,7 +54,6 @@ export interface TeardownDeps {
   readonly databaseProvisioner?: Pick<DatabaseProvisioner, 'teardown'>;
   readonly objectStorage?: Pick<ObjectStorage, 'deleteBucket'>;
   /** Supprime un PVC via le plan de contrôle workspace-manager (l'api n'a pas le RBAC). */
-  readonly deletePersistentVolumeClaim?: (name: string) => Promise<void>;
 }
 
 /**
@@ -86,17 +85,6 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
       await deps.objectStorage.deleteBucket(project.id);
     },
   },
-  {
-    id: 'persistent-volume-claim',
-    describes: 'PVC des fichiers du projet',
-    async remove(deps, project) {
-      if (!deps.deletePersistentVolumeClaim || !project.persistentVolumeClaim) {
-        return;
-      }
-
-      await deps.deletePersistentVolumeClaim(project.persistentVolumeClaim);
-    },
-  },
 ] as const;
 
 /**
@@ -109,15 +97,31 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
  */
 export const KNOWN_UNCOVERED_PROJECT_RESOURCES: ReadonlyArray<{ id: string; why: string }> = [
   {
+    id: 'workspace-pvc',
+    why:
+      "Le volume vif du workspace SURVIT. Cette entrée était dans l'inventaire ci-dessus " +
+      'et rapportait `removed: true` sans rien toucher — précisément le mensonge que la ' +
+      'note de cette liste décrit comme pire que le trou. Mesuré le 2026-09-07 en production : ' +
+      '`Project.persistentVolumeClaim` vaut `pvc-<organizationId>-<slug>` (posé à la création, ' +
+      'prisma-store.ts), alors que le volume réellement créé est `pvc-<workspaceId>` ' +
+      '(workspace-manager/manager.ts). Sur les 21 PVC du cluster, ZÉRO ne correspond au motif ' +
+      'enregistré : 12 volumes CNPG `db-<projectId>-1`, le Filestore partagé, et 5 `pvc-ws-<empreinte>`. ' +
+      "Le nom enregistré ne désigne donc aucun volume existant, et le vrai nom n'est connu que du " +
+      'workspace-manager — son propre code le dit : « only this store knows the real pvcName ». ' +
+      'Câbler la suppression sur le nom du projet aurait détruit zéro volume tout en affichant un ' +
+      'démontage complet. Le combler demande un appel au workspace-manager : un contrat entre ' +
+      'services, à concevoir et à prouver à part.',
+  },
+  {
     id: 'cnpg-backups-gcs',
     why:
-      "Les sauvegardes barman de `gs://<backupBucket>/db/<projectId>` survivent. " +
-      "`teardown()` supprime les CR (Cluster / Database / ScheduledBackup), pas les octets. " +
-      "La `spec.backup.retentionPolicy` ne les élague QUE tant que le Cluster vit : " +
-      "supprimer le Cluster gèle les sauvegardes pour toujours. " +
+      'Les sauvegardes barman de `gs://<backupBucket>/db/<projectId>` survivent. ' +
+      '`teardown()` supprime les CR (Cluster / Database / ScheduledBackup), pas les octets. ' +
+      'La `spec.backup.retentionPolicy` ne les élague QUE tant que le Cluster vit : ' +
+      'supprimer le Cluster gèle les sauvegardes pour toujours. ' +
       "Il n'existe aujourd'hui aucun accès en suppression au seau de sauvegarde depuis l'api " +
-      "(`ObjectStorage` ne parle que du seau `vc-<projectId>` du projet). " +
-      "À traiter par une règle de cycle de vie sur le seau de sauvegarde, ou un accès dédié.",
+      '(`ObjectStorage` ne parle que du seau `vc-<projectId>` du projet). ' +
+      'À traiter par une règle de cycle de vie sur le seau de sauvegarde, ou un accès dédié.',
   },
 ] as const;
 
