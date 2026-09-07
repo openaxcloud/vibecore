@@ -81,7 +81,7 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
 
     expect(regle, 'sur téléphone la pastille est au milieu').toMatch(/margin-inline:\s*auto/);
     expect(regle, 'juste au-dessus de la zone de saisie').toMatch(
-      /bottom:\s*calc\(var\(--mobile-nav-height\) \+ 10px \+ 2px\)/,
+      /bottom:\s*calc\(var\(--mobile-nav-height\) \+ 8px \+ 8px\)/,
     );
 
     const gouttiere = INDEX.indexOf(

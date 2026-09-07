@@ -1124,6 +1124,59 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       'la pastille est JUSTE au-dessus de la zone de saisie',
     ).toBeLessThanOrEqual(16);
   });
+
+  test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+
+    /*
+     * Avi, 07/09 07:59, capture entourée en rouge : « c'est de l'espace mort,
+     * on peut redescendre, et on voit pas la bordure de la zone de saisie ».
+     * Mesuré avant correction (Chromium et WebKitGTK, 390) : bordure à 754 px
+     * pour un socle à 772 — 18 px de vide — et un composeur défilable en
+     * interne (141 px de contenu pour 125 de boîte) à cause du svg d'effet
+     * qui débordait de 25 px.
+     */
+    await expect(page.locator('.bolt-chat-message-row').last()).toBeVisible({ timeout: 60_000 });
+    await page.waitForTimeout(1500);
+
+    const geometrie = await page.evaluate(() => {
+      const composeur = document.querySelector<HTMLElement>('.bolt-project-agent-composer')!;
+
+      const cadre = [...composeur.querySelectorAll<HTMLElement>('div')].find(
+        (el) => parseFloat(getComputedStyle(el).borderBottomWidth) >= 1 && el.getBoundingClientRect().height > 60,
+      );
+
+      const socle = document.querySelector('.bolt-mobile-replit-nav')?.getBoundingClientRect();
+      const boiteCadre = cadre?.getBoundingClientRect();
+
+      const peintSousLaBordure = boiteCadre
+        ? document.elementsFromPoint((boiteCadre.left + boiteCadre.right) / 2, boiteCadre.bottom - 0.5)
+        : [];
+
+      return {
+        defilementInterne: composeur.scrollHeight - composeur.clientHeight,
+        cadreBas: boiteCadre ? Math.round(boiteCadre.bottom) : null,
+        composeurBas: Math.round(composeur.getBoundingClientRect().bottom),
+        socleHaut: socle ? Math.round(socle.top) : null,
+        bordurePeinte: Boolean(cadre && peintSousLaBordure.includes(cadre)),
+      };
+    });
+
+    expect(geometrie.cadreBas, 'le cadre bordé de la zone de saisie doit exister').not.toBeNull();
+    expect(geometrie.socleHaut).not.toBeNull();
+    expect(geometrie.defilementInterne, 'le composeur ne doit pas défiler en interne quand tout tient').toBe(0);
+    expect(geometrie.bordurePeinte, 'la bordure basse du cadre est peinte dans la boîte du composeur').toBe(true);
+    expect(geometrie.cadreBas, 'plus de rembourrage transparent sous le cadre').toBe(geometrie.composeurBas);
+
+    const vide = geometrie.socleHaut! - geometrie.cadreBas!;
+
+    expect(vide, `${vide}px de vide entre la bordure et le socle`).toBeLessThanOrEqual(10);
+    expect(vide, 'le cadre ne touche pas le socle').toBeGreaterThanOrEqual(4);
+  });
 });
 
 /*

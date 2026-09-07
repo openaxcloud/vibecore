@@ -122,7 +122,8 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
     const composeur = regle(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
     const remontee = (composeur.match(/bottom:\s*calc\((.+?)\)\s*!important;/)?.[1] ?? '').trim();
 
-    expect(remontee).toMatch(/var\(--mobile-nav-height\)\s*\+\s*10px/);
+    // 8 px depuis le 07/09 (BUG-COMPOSER-DEAD-SPACE-001) : la bordure du cadre à 8 px du socle, plus de rembourrage bas.
+    expect(remontee).toMatch(/var\(--mobile-nav-height\)\s*\+\s*8px/);
 
     const pastille = regle(
       ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,\n  .bolt-responsive-ide-mobile[data-mobile-panel='chat']\n    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true'])",
@@ -137,7 +138,9 @@ describe('2. pastille « descendre » — juste au-dessus de la zone de saisie',
      * visibles avec 12 px de marge — trop pour « juste au-dessus ».
      */
     expect(bas).toContain(remontee);
-    expect(bas).toMatch(/\+\s*2px/);
+
+    // Le composeur n'a plus de rembourrage bas : les 8 px entre la pastille et le cadre sont tous visibles.
+    expect(bas).toMatch(/\+\s*8px\s*\+\s*8px$/);
     expect(bas).not.toMatch(/measured-height/);
   });
 

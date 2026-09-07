@@ -717,3 +717,29 @@ describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — l
     expect(regle).toMatch(/border-radius:\s*var\(--vc-mobile-sheet-radius\)\s*!important/);
   });
 });
+
+describe('20. capture iPhone 07/09 07:59 : espace mort sous la zone de saisie, bordure basse invisible', () => {
+  it('le composeur n’a plus de rembourrage bas, s’ancre à 8 px du socle, et son effet lumineux ne déborde plus', () => {
+    /*
+     * Mesuré (Chromium et WebKitGTK, 390) : 18 px de vide entre la bordure du
+     * cadre et le socle, et un composeur défilable en interne (141 px de
+     * contenu pour 125 de boîte) à cause du svg d'effet débordant de 25 px.
+     */
+    // Le PREMIER bloc : le dernier est la variante « clavier ouvert », qui colle le composeur au clavier.
+    const composeur = bloc(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
+
+    expect(composeur).toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/);
+    expect(composeur).toMatch(/padding-bottom:\s*0\b/);
+    expect(composeur).not.toMatch(/padding-bottom:\s*8px/);
+
+    const effet = bloc(".bolt-responsive-ide-mobile .bolt-project-agent-composer svg[class*='PromptEffectContainer']");
+
+    expect(effet).toMatch(/--prompt-container-offset:\s*0px/);
+
+    // Le module dimensionne bien le svg et son trait depuis cette variable : la remettre à zéro suffit.
+    const module = readFileSync(join(__dirname, '..', 'components', 'chat', 'BaseChat.module.scss'), 'utf8');
+
+    expect(module).toMatch(/\.PromptEffectContainer \{[\s\S]*?inset:\s*calc\(var\(--prompt-container-offset\) \/ -2\)/);
+    expect(module).toMatch(/\.PromptEffectLine \{[\s\S]*?x:\s*calc\(var\(--prompt-container-offset\) \/ 2/);
+  });
+});

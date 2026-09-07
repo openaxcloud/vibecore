@@ -22994,10 +22994,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * dead space above the dock on notched screens.
    */
   .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {
-    bottom: calc(var(--mobile-nav-height) + 10px) !important;
+    /*
+     * Avi, 07/09 07:59 (capture entourée en rouge) : « c'est de l'espace mort,
+     * on peut redescendre, et on voit pas la bordure de la zone de saisie ».
+     * Mesuré (Chromium et WebKitGTK, 390, f6c7ff5) : bordure du cadre à 754,
+     * socle à 772 — 18 px de vide, dont 8 px de rembourrage bas transparent
+     * du composeur et 10 px d'ancrage. Et le composeur DÉFILAIT en interne :
+     * 141 px de contenu pour 125 de boîte, parce que le svg d'effet lumineux
+     * déborde de 25 px de chaque côté (règle ci-dessous) — un défilement
+     * interne qui, sur iPhone, laisse la bordure basse hors de la boîte.
+     * Désormais : plus de rembourrage bas, 8 px entre la bordure et le socle.
+     */
+    bottom: calc(var(--mobile-nav-height) + 8px) !important;
     z-index: 50;
     margin-bottom: 0 !important;
-    padding-bottom: 8px;
+    padding-bottom: 0;
   }
 
   /*
@@ -23028,7 +23039,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * (règle ci-dessous). Chromium 390 et 768 rendaient exactement les mêmes
      * 28 px : la mesure locale ne visait que le conteneur, pas ce qu'on voit.
      */
-    bottom: calc(var(--mobile-nav-height) + 10px + 2px);
+    bottom: calc(var(--mobile-nav-height) + 8px + 8px);
 
     /*
      * CENTRÉE, et le fil ne bouge pas — décision d'Avi, 07/09 07:58 : « l'icône
@@ -23046,6 +23057,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   .bolt-responsive-ide-mobile .bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {
     padding-inline-end: 0;
+  }
+
+  /*
+   * L'effet lumineux du composeur (`PromptEffectContainer`, module BaseChat)
+   * se dessine dans un svg agrandi de `--prompt-container-offset` (50 px) et
+   * décalé de la moitié : 25 px hors du composeur de chaque côté. Sur bureau
+   * le composeur ne borne rien ; sur téléphone il est `overflow-y: auto`
+   * (max-height 58dvh) et ce svg devient du contenu défilable — 16 px de
+   * course interne pour rien. Avec un décalage nul, le svg vaut exactement le
+   * composeur et le trait se dessine sur son bord, comme avant. (Le svg est
+   * l'enfant du CADRE, pas du composeur : mesuré avec `>`, 24 px de course
+   * interne restaient — la règle ne touchait rien.)
+   */
+  .bolt-responsive-ide-mobile .bolt-project-agent-composer svg[class*='PromptEffectContainer'] {
+    --prompt-container-offset: 0px;
   }
 
   /*
