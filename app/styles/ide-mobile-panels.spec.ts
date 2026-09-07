@@ -925,3 +925,25 @@ describe('§25 — les onglets de la barre du bas sont centrés dans leur rangé
     expect(rangee).not.toContain('justify-content: center');
   });
 });
+
+describe('§26 — l’état de départ du panneau Agent se pose sous l’en-tête, sans marge morte', () => {
+  /*
+   * BUG-THREAD-TOP-GAP-001 (état de départ). Capture iPhone du 07/09 14:22 :
+   * ~50 px de vide entre l'en-tête et la carte « Agent prêt ». Mesuré Chromium
+   * 390 : marge haute de 55 px, héritée de la bascule de langue retirée
+   * depuis. La marge est une gouttière, plus la barre de contexte si elle est
+   * affichée — jamais un nombre en dur.
+   */
+  const bloc = INDEX.match(/\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+
+  it('la marge haute est la gouttière plus la barre de contexte', () => {
+    expect(bloc).toContain(
+      'margin: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) auto 0;',
+    );
+  });
+
+  it('plus de 55 px en dur ni de réserve de bascule de langue', () => {
+    expect(bloc).not.toMatch(/55px/);
+    expect(bloc).not.toMatch(/language-switch-reserved-height/);
+  });
+});

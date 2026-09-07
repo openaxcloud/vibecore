@@ -29446,7 +29446,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: min(100%, calc(100vw - 20px));
     max-width: var(--chat-max-width);
     gap: 10px;
-    margin: calc(55px + var(--vc-mobile-language-switch-reserved-height, 58px)) auto 0;
+
+    /*
+     * BUG-THREAD-TOP-GAP-001, état de départ. Avi, 07/09 14:22 (capture
+     * iPhone) : ~50 px de vide entre l'en-tête et la carte « Agent prêt ».
+     * Mesuré Chromium 390 : en-tête jusqu'à 49, carte à 103 — 54 px, dont
+     * une marge de 55 px héritée de la bascule de langue flottante, retirée
+     * depuis (la réserve vaut 0, les 55 px étaient restés). La carte se pose
+     * à une gouttière de l'en-tête, plus la barre de contexte quand elle est
+     * affichée.
+     */
+    margin: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) auto 0;
   }
 
   .bolt-mobile-agent-start-card {

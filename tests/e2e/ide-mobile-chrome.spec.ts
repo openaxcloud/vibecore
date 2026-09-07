@@ -1912,6 +1912,42 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     });
   }
 
+  test('panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(800);
+
+    /*
+     * Avi, 07/09 14:22, capture iPhone : ~50 px de vide entre l'en-tête et la
+     * carte « Agent prêt ». Mesuré avant correction (Chromium 390) : en-tête
+     * jusqu'à 49, carte à 103 — 54 px, une marge de 55 px héritée de la
+     * bascule de langue flottante retirée depuis.
+     */
+    const geometrie = await page.evaluate(() => {
+      const entete = document.querySelector('.bolt-mobile-ecode-header')!.getBoundingClientRect();
+      const depart = document.querySelector('.bolt-mobile-agent-start-state')!.getBoundingClientRect();
+      const contexte = document.querySelector('.bolt-mobile-agent-context-bar')?.getBoundingClientRect();
+
+      return {
+        enteteBas: Math.round(entete.bottom),
+        departHaut: Math.round(depart.top),
+        contexteBas: contexte ? Math.round(contexte.bottom) : null,
+      };
+    });
+
+    const plancher = Math.max(geometrie.enteteBas, geometrie.contexteBas ?? 0);
+
+    expect(geometrie.departHaut, 'sous l’en-tête (et la barre de contexte)').toBeGreaterThanOrEqual(plancher);
+    expect(
+      geometrie.departHaut - plancher,
+      `${geometrie.departHaut - plancher}px de vide sous l’en-tête`,
+    ).toBeLessThanOrEqual(24);
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,
