@@ -20,7 +20,6 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
-import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
   composerLaSaisie,
   langueDeDictee,
@@ -88,7 +87,7 @@ import {
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { devServerStatusText } from './dev-server-status';
-
+import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import {
   TAB_DRAG_PANE_MIME,
   TAB_DRAG_TAB_MIME,
@@ -13834,16 +13833,7 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
-    return (
-      <ProjectSecretsPanel
-        projectId={projectId}
-        data={data}
-        onSubmit={onSubmit}
-        busy={busy}
-        reload={reload}
-        language={resolvedBaseChatLanguage(i18n)}
-      />
-    );
+    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
   }
 
   if (panel === 'collaborators') {
@@ -22787,6 +22777,408 @@ function formatLogTime(language: string, value?: string) {
     minute: '2-digit',
     second: '2-digit',
   });
+}
+
+function ProjectSecretsPanel({
+  projectId,
+  data,
+  onSubmit,
+  busy,
+  reload,
+}: {
+  projectId?: string;
+  data: any;
+  onSubmit: any;
+  busy: boolean;
+  reload?: () => void | Promise<void>;
+}) {
+  const { t, i18n } = useTranslation();
+  const language = resolvedBaseChatLanguage(i18n);
+  const [revealed, setRevealed] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState('');
+  const [editingKey, setEditingKey] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
+  const [importFailures, setImportFailures] = useState<Array<{ key: string; error: string }>>([]);
+  const secrets = data.secrets ?? [];
+
+  // Live preview of the pasted .env block: parsed entries + honestly-reported skipped lines.
+  const importPreview = useMemo(() => parseDotEnv(importText), [importText]);
+  const existingSecretKeys = useMemo(() => new Set<string>(secrets.map((secret: any) => secret.key)), [secrets]);
+  const overwriteCount = importPreview.entries.filter((entry) => existingSecretKeys.has(entry.key)).length;
+
+  // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
+  async function fetchSecretValue(key: string): Promise<string | undefined> {
+    if (!projectId) {
+      return undefined;
+    }
+
+    const response = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
+        key,
+      )}`,
+      { headers: { accept: 'application/json' } },
+    );
+
+    const result = (await response.json().catch(() => null)) as any;
+
+    return response.ok && typeof result?.data?.secret?.value === 'string' ? result.data.secret.value : undefined;
+  }
+
+  /*
+   * Replit-style bulk .env import: the pasted block is parsed live into the
+   * preview table; confirming upserts each entry sequentially via the existing
+   * secrets intent (real per-project secrets API), surfacing per-key failures
+   * and progress, then refreshes the list.
+   */
+  async function handleImport() {
+    if (!projectId) {
+      return;
+    }
+
+    const { entries } = importPreview;
+
+    if (!entries.length) {
+      setMessage(t('baseChatAst.secrets.noEntries'));
+      return;
+    }
+
+    setImporting(true);
+    setImportProgress({ done: 0, total: entries.length });
+    setImportFailures([]);
+
+    const failures: Array<{ key: string; error: string }> = [];
+
+    try {
+      for (const [index, { key, value }] of entries.entries()) {
+        const form = new FormData();
+        form.append('intent', 'upsert');
+        form.append('key', key);
+        form.append('value', value);
+
+        try {
+          const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
+            method: 'POST',
+            body: form,
+          });
+
+          if (!response.ok) {
+            const result = (await response.json().catch(() => null)) as any;
+            failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
+          }
+        } catch (error) {
+          console.error('Secret import request failed', { key, error });
+          failures.push({ key, error: t('baseChatAst.secrets.networkError') });
+        }
+
+        setImportProgress({ done: index + 1, total: entries.length });
+      }
+
+      const ok = entries.length - failures.length;
+
+      if (failures.length) {
+        // Keep the section open so the user can see and retry what failed.
+        setImportFailures(failures);
+        setMessage(
+          t('baseChatAst.secrets.importPartial', {
+            count: entries.length,
+            imported: ok,
+            failed: failures.length,
+          }),
+        );
+      } else {
+        setMessage(t('baseChatAst.secrets.importComplete', { count: entries.length, imported: ok }));
+        setImportText('');
+        setImportOpen(false);
+      }
+
+      await reload?.();
+    } finally {
+      setImporting(false);
+      setImportProgress(null);
+    }
+  }
+
+  async function copySecretValue(key: string) {
+    const value = revealed[key] ?? (await fetchSecretValue(key));
+
+    if (typeof value !== 'string') {
+      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
+      return;
+    }
+
+    try {
+      await navigator.clipboard?.writeText(value);
+      setMessage(t('baseChatAst.secrets.valueCopied', { key }));
+    } catch (error) {
+      console.error('Secret value copy failed', { key, error });
+      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
+    }
+  }
+
+  function revealSecret(key: string) {
+    if (!projectId) {
+      return;
+    }
+
+    if (revealed[key]) {
+      setRevealed((current) => {
+        const next = { ...current };
+        delete next[key];
+
+        return next;
+      });
+      return;
+    }
+
+    /*
+     * Reveal in place immediately, like a password field's eye toggle — no
+     * blocking confirmation dialog. The value is still fetched only on reveal
+     * (never listed by default) and only kept for this browser session; the
+     * "revealed for this session" notice is surfaced non-blockingly as a toast.
+     */
+    void performRevealSecret(key);
+  }
+
+  async function performRevealSecret(key: string) {
+    if (!projectId) {
+      return;
+    }
+
+    const response = await fetch(
+      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
+        key,
+      )}`,
+      { headers: { accept: 'application/json' } },
+    );
+
+    const result = (await response.json().catch(() => null)) as any;
+    const value = response.ok ? result?.data?.secret?.value : undefined;
+
+    if (typeof value === 'string') {
+      setRevealed((current) => ({ ...current, [key]: value }));
+      setMessage(t('baseChatAst.secrets.revealed', { key }));
+    } else {
+      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
+    }
+  }
+
+  async function copySecret(key: string) {
+    const value = revealed[key] ?? key;
+
+    try {
+      await navigator.clipboard?.writeText(value);
+      setMessage(
+        t('baseChatAst.secrets.copied', {
+          label: t(revealed[key] ? 'baseChatAst.secrets.secretValue' : 'baseChatAst.secrets.secretKey'),
+        }),
+      );
+    } catch (error) {
+      console.error('Secret copy failed', { key, error });
+      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
+    }
+  }
+
+  return (
+    <div className="bolt-project-secrets-tool">
+      <form onSubmit={onSubmit} className="bolt-project-inline-form">
+        <input name="intent" value="upsert" type="hidden" />
+        {/*
+         * `key` forces the uncontrolled inputs to remount whenever the user
+         * clicks "Edit" (which sets editingKey). Without it, defaultValue is only
+         * read on first mount, so clicking Edit changed the button label to
+         * "Update secret" but never populated the key field — forcing the user to
+         * retype the key from scratch.
+         */}
+        <PanelInput
+          key={`secret-key-${editingKey}`}
+          name="key"
+          placeholder={t('chat.copy.stripeSecretKey_b147aa52')}
+          required
+          defaultValue={editingKey}
+        />
+        <PanelInput
+          key={`secret-value-${editingKey}`}
+          name="value"
+          placeholder={t('chat.copy.secretValue_50fbacc0')}
+          type="password"
+          required
+        />
+        <PanelButton disabled={busy}>
+          {editingKey ? t('chat.copy.updateSecret_77d1a1a5') : t('chat.copy.newSecret_57764d66')}
+        </PanelButton>
+        <PanelButton
+          type="button"
+          variant="outline"
+          onClick={() => {
+            setImportOpen((open) => !open);
+            setImportFailures([]);
+          }}
+        >
+          {t('chat.copy.importEnv_f0940267')}
+        </PanelButton>
+      </form>
+
+      {importOpen ? (
+        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
+            {t('chat.copy.pasteAEnvFileOne_7111ba2a')}
+            <span className="font-mono">{t('chat.copy.keyValue_a4409af0')}</span>
+            {t('chat.copy.perLineCommentsAndBlankLines_9af5356e')}
+            <textarea
+              value={importText}
+              onChange={(event) => {
+                setImportText(event.target.value);
+                setImportFailures([]);
+              }}
+              placeholder={t('chat.copy.databaseUrlPostgresStripeSecretKey_1e39ac87')}
+              spellCheck={false}
+              style={{ fontFamily: 'var(--vc-font-code)' }}
+              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+            />
+          </label>
+
+          {importPreview.entries.length ? (
+            <div className="grid gap-1">
+              <span className="text-xs text-bolt-elements-textSecondary">
+                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
+                {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
+              </span>
+              <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
+                {importPreview.entries.map((entry) => (
+                  <div key={entry.key} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="font-medium text-bolt-elements-textPrimary"
+                      style={{ fontFamily: 'var(--vc-font-code)' }}
+                    >
+                      {entry.key}
+                    </span>
+                    <span className="text-bolt-elements-textTertiary" aria-label={t('chat.copy.valueHidden_4dff2356')}>
+                      •••
+                    </span>
+                    {existingSecretKeys.has(entry.key) ? (
+                      <span
+                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
+                        style={{
+                          background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+                          borderLeft: '3px solid var(--vc-ide-accent-warning)',
+                          color: 'var(--vc-ide-accent-warning)',
+                        }}
+                      >
+                        {t('chat.copy.overwritesExisting_b450bd78')}
+                      </span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {importPreview.skipped.length ? (
+            <div
+              className="grid gap-1 rounded-md p-2 text-xs"
+              style={{
+                background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
+                borderLeft: '3px solid var(--vc-ide-accent-warning)',
+              }}
+            >
+              <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
+                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
+              </span>
+              {importPreview.skipped.map((skippedLine) => (
+                <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
+                  {t('chat.copy.line_ea967600')}
+                  {skippedLine.line} ({describeSkipReason(skippedLine.reason, language)}):{' '}
+                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          {importFailures.length ? (
+            <div className="grid gap-1 text-xs text-bolt-elements-icon-error">
+              {importFailures.map((failure) => (
+                <span key={failure.key}>
+                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{failure.key}</span>: {failure.error}
+                </span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="flex items-center gap-2">
+            <PanelButton
+              type="button"
+              onClick={() => void handleImport()}
+              disabled={importing || !importPreview.entries.length}
+            >
+              {importing && importProgress
+                ? t('chat.copy.importingValue0Value1_df968922', {
+                    value0: importProgress.done,
+                    value1: importProgress.total,
+                  })
+                : importPreview.entries.length
+                  ? t('baseChatAst.secrets.importAction', { count: importPreview.entries.length })
+                  : t('chat.copy.importSecrets_9deaeb2d')}
+            </PanelButton>
+            <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
+              {t('chat.copy.cancel_77dfd213')}
+            </PanelButton>
+          </div>
+        </div>
+      ) : null}
+
+      {message && <div className="bolt-project-empty-panel">{message}</div>}
+      <div className="bolt-project-secret-list">
+        {secrets.length ? (
+          secrets.map((secret: any) => (
+            <div key={secret.key} className="bolt-project-secret-row">
+              <strong>{secret.key}</strong>
+              <span>{revealed[secret.key] ?? '••••••'}</span>
+              <button
+                type="button"
+                aria-label={t('chat.copy.revealValue0_e5d8efb3', { value0: secret.key })}
+                onClick={() => revealSecret(secret.key)}
+              >
+                {revealed[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
+              </button>
+              <button
+                type="button"
+                aria-label={t('chat.copy.copyValue0Name_64ac36a4', { value0: secret.key })}
+                onClick={() => void copySecret(secret.key)}
+              >
+                {t('chat.copy.copy_af74f7c5')}
+              </button>
+              <button
+                type="button"
+                aria-label={t('chat.copy.copyValue0Value_8ab75412', { value0: secret.key })}
+                onClick={() => void copySecretValue(secret.key)}
+              >
+                {t('chat.copy.copyValue_4c924dcb')}
+              </button>
+              <button
+                type="button"
+                aria-label={t('chat.copy.editValue0_fad75899', { value0: secret.key })}
+                onClick={() => setEditingKey(secret.key)}
+              >
+                {t('chat.copy.edit_5301648d')}
+              </button>
+              <form onSubmit={onSubmit}>
+                <input name="intent" value="delete" type="hidden" />
+                <input name="key" value={secret.key} type="hidden" />
+                <PanelButton disabled={busy} variant="outline">
+                  {t('chat.copy.delete_f6fdbe48')}
+                </PanelButton>
+              </form>
+            </div>
+          ))
+        ) : (
+          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
+        )}
+      </div>
+    </div>
+  );
 }
 
 /*

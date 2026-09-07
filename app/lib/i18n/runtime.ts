@@ -140,7 +140,6 @@ import { repositoryCardEn, repositoryCardFr } from './catalogs/repository-card';
 import { repositorySelectorEn, repositorySelectorFr } from './catalogs/repository-selector';
 import { scimTokenSettingsEn, scimTokenSettingsFr } from './catalogs/scim-token-settings';
 import { screenshotSelectorEn, screenshotSelectorFr } from './catalogs/screenshot-selector';
-import { secretsPanelEn, secretsPanelFr } from './catalogs/secrets-panel';
 import { securitySettingsEn, securitySettingsFr } from './catalogs/security-settings';
 import { sessionSecurityEn, sessionSecurityFr } from './catalogs/session-security';
 import { settingsEn, settingsFr } from './catalogs/settings';
@@ -261,7 +260,6 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...workspaceMiscEn,
       ...chatEn,
       ...chatBoxEn,
-      ...secretsPanelEn,
       ...chatBoxChildrenEn,
       ...chatClientEn,
       ...chatConnectorsEn,
@@ -415,7 +413,6 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...workspaceMiscFr,
       ...chatFr,
       ...chatBoxFr,
-      ...secretsPanelFr,
       ...chatBoxChildrenFr,
       ...chatClientFr,
       ...chatConnectorsFr,
