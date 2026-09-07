@@ -19,7 +19,40 @@ const logger = createScopedLogger('useMessageParser');
  * donc pas en deduire ou ecrire. L'arbitrage se fait ici, au site d'ecriture,
  * sur les chemins d'origine.
  */
-const arbitre = new ArbitreDesLanes();
+const arbitres = new Map<string, ArbitreDesLanes>();
+
+/*
+ * UN ARBITRE PAR MESSAGE, pas un pour la session.
+ *
+ * La preemption a besoin de l'etat des AUTRES lanes du meme message — c'est ce
+ * qui rend l'etat final independant de l'ordre d'arrivee. Mais un arbitre unique
+ * pour toute la session garderait les attributions de la generation precedente :
+ * le second prompt d'un utilisateur verrait ses ecritures refusees par des roles
+ * qui ont fini il y a dix minutes.
+ */
+function arbitreDe(messageId: string): ArbitreDesLanes {
+  const existant = arbitres.get(messageId);
+
+  if (existant) {
+    return existant;
+  }
+
+  const neuf = new ArbitreDesLanes();
+  arbitres.set(messageId, neuf);
+
+  return neuf;
+}
+
+/**
+ * Les chemins que les sous-agents ont reellement ecrits pour ce message.
+ *
+ * Lu par la surface qui confronte l'annonce a la livraison
+ * (`ecartsDesLanes`). Ce sont les attributions de l'arbitre, donc des actions
+ * APPLIQUEES — pas une seconde declaration des roles, qui ne prouverait rien.
+ */
+export function cheminsEcritsParLesLanes(messageId: string): string[] {
+  return [...(arbitres.get(messageId)?.attributions().keys() ?? [])];
+}
 
 /**
  * Une action de fichier venant d'une lane peut-elle s'appliquer ?
@@ -35,7 +68,7 @@ function ecritureAutorisee(data: { messageId: string; action: { type: string; fi
     return true;
   }
 
-  const decision = arbitre.peutEcrire(data.action.filePath, lane.rang);
+  const decision = arbitreDe(lane.messageId).peutEcrire(data.action.filePath, lane.rang);
 
   if (!decision.autorisee) {
     logger.trace('ecriture refusee par arbitrage', data.action.filePath, lane.roleId);

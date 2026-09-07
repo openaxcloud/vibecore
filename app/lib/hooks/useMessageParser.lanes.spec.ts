@@ -17,7 +17,7 @@ vi.mock('~/lib/stores/workbench', () => ({
   },
 }));
 
-const { useMessageParser } = await import('./useMessageParser');
+const { useMessageParser, cheminsEcritsParLesLanes } = await import('./useMessageParser');
 
 /** Un flux de lane : un fichier ecrit, puis le rapport JSON de cloture. */
 const fluxDeLane = (chemin: string, corps: string) =>
@@ -130,5 +130,43 @@ describe('useMessageParser — les fichiers ecrits par les sous-agents', () => {
 
     result.current.parseMessages([coordinateur], false);
     expect(actionsExecutees.map((a) => a.filePath)).toContain('src/Coordinateur.tsx');
+  });
+  /*
+   * UN ARBITRE PAR MESSAGE, PAS UN POUR LA SESSION.
+   *
+   * Sans cloisonnement, les attributions de la generation precedente survivent :
+   * le second prompt d'un utilisateur verrait ses ecritures REFUSEES par des
+   * roles qui ont fini il y a dix minutes. Le meme chemin, reclame par un role
+   * secondaire dans un NOUVEAU message, doit donc passer.
+   */
+  it('ne fait pas porter les attributions d un message sur le suivant', () => {
+    const { result } = renderHook(() => useMessageParser());
+
+    result.current.parseMessages(
+      [messageAvecLanes('m5', [{ roleId: 'frontend', text: fluxDeLane('src/Cloison.tsx', 'export const A = 1;') }])],
+      false,
+    );
+    result.current.parseMessages(
+      [messageAvecLanes('m6', [{ roleId: 'qa', text: fluxDeLane('src/Cloison.tsx', 'export const B = 1;') }])],
+      false,
+    );
+
+    const parMessage = actionsExecutees
+      .filter((a) => a.filePath === 'src/Cloison.tsx')
+      .map((a) => a.messageId.split('::lane:')[0]);
+
+    expect(parMessage).toContain('m5');
+    expect(parMessage).toContain('m6');
+  });
+
+  it('rend les chemins reellement ecrits, par message', () => {
+    const { result } = renderHook(() => useMessageParser());
+    result.current.parseMessages(
+      [messageAvecLanes('m7', [{ roleId: 'architect', text: fluxDeLane('src/Vu.tsx', 'export const V = 1;') }])],
+      false,
+    );
+
+    expect(cheminsEcritsParLesLanes('m7')).toEqual(['src/vu.tsx']);
+    expect(cheminsEcritsParLesLanes('message-sans-lane')).toEqual([]);
   });
 });

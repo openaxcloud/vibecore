@@ -19,6 +19,8 @@ import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
 import { ToolInvocations } from './ToolInvocations';
+import { cheminsEcritsParLesLanes } from '~/lib/hooks/useMessageParser';
+import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
 import { extractLaneStreamSummary, resolveLaneState } from './agent-lane-state';
 import { ConnectionFailedNote } from './connector-cards/ConnectionFailedNote';
 import { ConnectionRequestCard } from './connector-cards/ConnectionRequestCard';
@@ -139,6 +141,24 @@ export const AssistantMessage = memo(
     const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
+    /*
+     * L'ÉCART ENTRE CE QUI A ÉTÉ ANNONCÉ ET CE QUI A ÉTÉ ÉCRIT.
+     *
+     * Mesuré sur les chemins que l'arbitre a réellement attribués — donc sur
+     * des actions APPLIQUÉES — et jamais sur une seconde déclaration des rôles.
+     * C'est toute la différence : le 2026-09-07, quatre rapports se disaient
+     * « complete » pour 90 chemins dont 9 seulement existaient.
+     *
+     * On n'affiche l'avertissement qu'une fois le résultat agrégé arrivé : en
+     * cours de flux, un fichier « manquant » est simplement un fichier pas
+     * encore écrit, et le signaler ferait clignoter une alerte fausse.
+     */
+    const ecartsIncomplets = ecartsAAvertir(
+      agentExecution?.results,
+      messageId ? cheminsEcritsParLesLanes(messageId) : [],
+      Boolean(agentExecution && messageId),
+    );
+
     const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
       | Extract<ContextAnnotation, { type: 'agentMemory' }>
       | undefined;
@@ -835,6 +855,46 @@ export const AssistantMessage = memo(
                       : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
+              {/*
+                 LIVRAISON INCOMPLÈTE, NOMMÉE.
+              
+                 Un rôle qui tombe laisse une application à moitié cohérente : elle
+                 *paraît* finie, elle ne démarre pas, et rien ne dit ce qui manque.
+                 C'est l'espèce dangereuse — le défaut du 2026-09-07 était honnête par
+                 accident (9 fichiers sur 90, l'écart sautait aux yeux) ; 60 sur 90 se
+                 diagnostiquerait beaucoup plus longtemps.
+              
+                 L'écart se mesure sur les chemins RÉELLEMENT écrits — les attributions
+                 de l'arbitre — jamais sur une seconde déclaration des rôles : un
+                 rapport qui se dit complet ne prouve rien sur le disque.
+              */}
+              {ecartsIncomplets.length > 0 && (
+                <div
+                  className="mb-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-[11px] text-bolt-elements-textSecondary"
+                  data-testid="agent-lanes-shortfall"
+                >
+                  <div className="mb-1 flex items-center gap-1.5 font-medium text-bolt-elements-textPrimary">
+                    <span className="i-ph:warning-circle" aria-hidden />
+                    <span>{copy['assistantMessage.lanes.shortfallTitle']}</span>
+                  </div>
+                  {ecartsIncomplets.map((ecart) => (
+                    <div key={ecart.roleId} className="mt-1">
+                      <div>
+                        {text(copy['assistantMessage.lanes.shortfallRole'], {
+                          role: ecart.roleId,
+                          written: String(ecart.ecrits),
+                          announced: String(ecart.annonces),
+                        })}
+                      </div>
+                      {ecart.manquants.length > 0 && (
+                        <div className="break-words opacity-80">
+                          {text(copy['assistantMessage.lanes.shortfallMissing'], { files: ecart.manquants.join(', ') })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {lanePanelRoles.map((role) => {
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
