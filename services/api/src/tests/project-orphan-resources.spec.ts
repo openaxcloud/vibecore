@@ -72,6 +72,7 @@ function recorder() {
 async function setup(overrides: Record<string, unknown> = {}) {
   const rec = recorder();
   const store = new TestApiStore();
+
   const app = await buildApiApp({
     store,
     emailProvider: new QuietEmailProvider(),
@@ -85,8 +86,10 @@ async function setup(overrides: Record<string, unknown> = {}) {
     name: 'O',
     passwordHash: hashPassword('password123'),
   });
+
   const org = await store.createOrganization({ name: 'Orph', slug: 'orph', ownerUserId: user.id });
   await store.createSession({ userId: user.id, token: 'orph-token', expiresAt: new Date(Date.now() + 3_600_000) });
+
   const project = await store.createProject({ organizationId: org.id, name: 'Doomed', slug: 'doomed' });
 
   return { app, store, org, project, rec, auth: { authorization: 'Bearer orph-token' } };
@@ -199,10 +202,7 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      * `pvc-<workspaceId>` — et il rapportait pourtant `removed: true`. C'est
      * exactement le mensonge que la note du second cas décrit.
      */
-    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual([
-      'database',
-      'object-storage-bucket',
-    ]);
+    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual(['database', 'object-storage-bucket']);
 
     /*
      * Sans aucune dépendance branchée, le démontage doit être un no-op RÉUSSI et
