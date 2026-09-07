@@ -26,7 +26,7 @@ const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http
 /* 487 px de texte pour 204 px de boîte, mesurés avant : coupé à « src/components/ver… ». */
 const CHEMIN_PROFOND = 'src/components/very/deep/directory/structure/ProductCardWithVariants.tsx';
 
-async function preparerUnProjet(request: APIRequestContext, options: { fil: boolean }) {
+async function preparerUnProjet(request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
   const suffixe = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
   let dernier = '';
@@ -66,6 +66,21 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
           headers: entetes,
           data: {
             messages: [
+              // Un fil LONG quand le test doit remonter la conversation : à 390 px, deux messages ne défilent pas.
+              ...(options.long
+                ? Array.from({ length: 5 }, (_, i) => [
+                    {
+                      clientId: `u0${i}`,
+                      role: 'user',
+                      content: `Analysez les derniers journaux de l'environnement d'exécution, identifiez la cause première et corrigez le projet afin que l'aperçu s'exécute correctement (${i}).`,
+                    },
+                    {
+                      clientId: `a0${i}`,
+                      role: 'assistant',
+                      content: `Tour ${i} : un catalogue, un panier, une page produit, et une longue explication qui occupe plusieurs lignes pour que le fil défile réellement sur un téléphone.`,
+                    },
+                  ]).flat()
+                : []),
               { clientId: 'u1', role: 'user', content: 'Ajoute une page de contact.' },
               {
                 clientId: 'a1',
@@ -106,7 +121,7 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
   throw new Error(`Impossible de préparer un projet : ${dernier}`);
 }
 
-async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil: boolean }) {
+async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
   const { token, projectId } = await preparerUnProjet(request, options);
 
   await page
@@ -1021,6 +1036,93 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     expect(telephone.left).toBe(0);
     expect(telephone.width, 'sur téléphone la feuille vaut l’écran').toBe(390);
+  });
+
+  test('fil de l’agent : en remontant, le texte garde sa largeur et la pastille « descendre » est centrée au-dessus de la zone de saisie', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+
+    /*
+     * Avi, 07/09 07:58 : « l'icône scroll se met à droite et tout le texte se
+     * met à droite ». Mesuré avant correction (Chromium 390) : en remontant,
+     * la bulle passait de 380 à 316 px de bord droit, la pastille à 12 px du
+     * bord. Attendu : le fil ne bouge pas, la pastille au milieu, juste
+     * au-dessus de la zone de saisie.
+     */
+    const rangee = page.locator('.bolt-chat-message-row').last();
+
+    await expect(rangee).toBeVisible({ timeout: 60_000 });
+    await page.waitForTimeout(1500);
+
+    const geometrie = () =>
+      page.evaluate(() => {
+        const rows = [...document.querySelectorAll<HTMLElement>('.bolt-chat-message-row')];
+        const derniere = rows[rows.length - 1];
+        const transcript = document.querySelector('.bolt-project-agent-transcript')?.getBoundingClientRect();
+        const pastille = document.querySelector('.bolt-agent-scroll-to-bottom')?.getBoundingClientRect();
+        const composeur = document.querySelector('.bolt-project-agent-composer')?.getBoundingClientRect();
+
+        return {
+          rangeeDroite: Math.round(derniere.getBoundingClientRect().right),
+          rembourrage: getComputedStyle(derniere).paddingInlineEnd,
+          transcript: transcript ? { left: transcript.left, right: transcript.right } : null,
+          pastille: pastille
+            ? {
+                centre: (pastille.left + pastille.right) / 2,
+                bottom: Math.round(pastille.bottom),
+                top: Math.round(pastille.top),
+              }
+            : null,
+          composeurTop: composeur ? Math.round(composeur.top) : null,
+        };
+      });
+
+    const enBas = await geometrie();
+
+    expect(enBas.pastille, 'en bas du fil, pas de pastille').toBeNull();
+
+    // Remonter le fil : la boîte qui défile est celle qui contient les messages.
+    await page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+        const style = getComputedStyle(el);
+
+        return (
+          /(auto|scroll)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          el.querySelector('.bolt-chat-message-row')
+        );
+      });
+
+      if (boite) {
+        boite.scrollTop = Math.max(0, boite.scrollTop - 600);
+      }
+    });
+
+    const pastille = page.locator('.bolt-agent-scroll-to-bottom');
+
+    await expect(pastille, 'la pastille apparaît quand on remonte').toBeVisible({ timeout: 10_000 });
+
+    const remonte = await geometrie();
+
+    expect(remonte.rembourrage, 'le fil ne rétrécit pas quand la pastille est là').toBe(enBas.rembourrage);
+    expect(remonte.rangeeDroite, 'le bord droit du fil ne bouge pas').toBe(enBas.rangeeDroite);
+    expect(remonte.pastille).not.toBeNull();
+    expect(remonte.transcript).not.toBeNull();
+
+    const centreFil = (remonte.transcript!.left + remonte.transcript!.right) / 2;
+
+    expect(Math.abs(remonte.pastille!.centre - centreFil), 'la pastille est centrée sur le fil').toBeLessThanOrEqual(2);
+    expect(remonte.composeurTop).not.toBeNull();
+    expect(remonte.pastille!.bottom, 'la pastille ne recouvre pas la zone de saisie').toBeLessThanOrEqual(
+      remonte.composeurTop!,
+    );
+    expect(
+      remonte.composeurTop! - remonte.pastille!.bottom,
+      'la pastille est JUSTE au-dessus de la zone de saisie',
+    ).toBeLessThanOrEqual(16);
   });
 });
 

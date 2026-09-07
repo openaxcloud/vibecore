@@ -23029,6 +23029,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * 28 px : la mesure locale ne visait que le conteneur, pas ce qu'on voit.
      */
     bottom: calc(var(--mobile-nav-height) + 10px + 2px);
+
+    /*
+     * CENTRÉE, et le fil ne bouge pas — décision d'Avi, 07/09 07:58 : « l'icône
+     * scroll se met à droite et tout le texte se met à droite, au lieu qu'il
+     * reste comme il est et que l'icône se positionne juste au-dessus de la
+     * zone de saisie ». Mesuré (Chromium 390, b858bdb) : en remontant, la
+     * bulle passait de 380 à 316 px de bord droit — 64 px de gouttière — et la
+     * pastille se posait à 12 px du bord. Sur téléphone, la gouttière est
+     * retirée (règle ci-dessous) et la pastille revient au milieu, au-dessus
+     * de la zone de saisie ; elle est translucide, le texte reste lisible
+     * dessous. Le bureau garde la gouttière et le bord.
+     */
+    margin-inline: auto;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {
+    padding-inline-end: 0;
   }
 
   /*

@@ -62,6 +62,36 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
     );
   });
 
+  it('sur téléphone, elle est centrée au-dessus de la zone de saisie et le fil ne rétrécit pas', () => {
+    /*
+     * Avi, 07/09 07:58 : « l'icône scroll se met à droite et tout le texte se
+     * met à droite, au lieu qu'il reste comme il est et que l'icône se
+     * positionne juste au-dessus de la zone de saisie ». Mesuré (Chromium 390,
+     * b858bdb) : bulle de 380 à 316 px de bord droit en remontant, pastille à
+     * 12 px du bord. La gouttière et le bord restent la règle du bureau ; le
+     * téléphone fait exception, au-dessus de la zone de saisie.
+     */
+    const debut = INDEX.indexOf(
+      ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,\n  .bolt-responsive-ide-mobile[data-mobile-panel='chat']\n    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {",
+    );
+
+    expect(debut, 'la règle mobile de la pastille est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('\n  }\n', debut)).replace(/\/\*[\s\S]*?\*\//g, '');
+
+    expect(regle, 'sur téléphone la pastille est au milieu').toMatch(/margin-inline:\s*auto/);
+    expect(regle, 'juste au-dessus de la zone de saisie').toMatch(
+      /bottom:\s*calc\(var\(--mobile-nav-height\) \+ 10px \+ 2px\)/,
+    );
+
+    const gouttiere = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {',
+    );
+
+    expect(gouttiere, 'la gouttière doit être retirée sur téléphone').toBeGreaterThan(-1);
+    expect(INDEX.slice(gouttiere, INDEX.indexOf('}', gouttiere))).toMatch(/padding-inline-end:\s*0\b/);
+  });
+
   it('respecte le plancher tactile, exprimé en PIXELS', () => {
     const code = pillCode();
     const floor = code.match(/min-height:\s*([^;]+);/)?.[1] ?? '';
