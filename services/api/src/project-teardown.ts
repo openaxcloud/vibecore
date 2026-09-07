@@ -48,11 +48,46 @@ export interface TeardownTarget {
   readonly id: string;
   readonly organizationId: string;
   readonly persistentVolumeClaim?: string;
+
+  /*
+   * Identifiants LUS SUR LES LIGNES avant que la suppression ne les emporte.
+   * Jamais reconstruits : ce sont les seules poignées fiables vers les ressources
+   * vivantes, et elles disparaissent avec les lignes.
+   */
+  readonly workspaceIds?: readonly string[];
+  readonly deploymentIds?: readonly string[];
 }
 
 export interface TeardownDeps {
   readonly databaseProvisioner?: Pick<DatabaseProvisioner, 'teardown'>;
   readonly objectStorage?: Pick<ObjectStorage, 'deleteBucket'>;
+
+  /*
+   * TROIS CAPACITÉS QUI EXISTAIENT DÉJÀ, ET QUE PERSONNE N'APPELAIT.
+   *
+   * C'est la forme exacte d'AUDX-171, une couche plus bas : le démontage était
+   * écrit, correct et testé — il n'était simplement jamais invoqué à la
+   * suppression d'un projet. Mesuré le 2026-09-07 en démontant à la main ce que
+   * le produit aurait laissé : 5 volumes de workspace (500 Gi), 28 déploiements
+   * et 30 services d'applications publiées, 428 arbres de fichiers et 208
+   * charges d'instantanés (2,1 Go).
+   *
+   * Les deux premières passent par le workspace-manager, qui POSSÈDE ces
+   * ressources. L'API n'a délibérément pas d'accès Kubernetes au namespace
+   * `workspaces` : son port est restreint par `dbResourceGuard` au namespace des
+   * bases et à cinq types CNPG. Élargir cette garde pour supprimer des volumes
+   * serait une régression — la bonne réponse est de demander au propriétaire,
+   * pas de s'octroyer sa clé.
+   */
+
+  /** `DELETE /workspaces/:id` du manager — Pod, Service, Secret ET le PVC. */
+  readonly demonterWorkspace?: (workspaceId: string) => Promise<void>;
+
+  /** `POST /server-deployments/:id/stop` — Ingress, Service, Deployment, Secret. */
+  readonly demonterApplicationPubliee?: (deploymentId: string) => Promise<void>;
+
+  /** Arbres de fichiers du projet sur le volume partagé (local à l'API). */
+  readonly supprimerFichiersDuProjet?: (projectId: string) => Promise<void>;
   /** Supprime un PVC via le plan de contrôle workspace-manager (l'api n'a pas le RBAC). */
 }
 
@@ -85,6 +120,62 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
       await deps.objectStorage.deleteBucket(project.id);
     },
   },
+  {
+    id: 'workspace-runtime',
+    describes: 'Pod, Service, Secret et VOLUME de chaque workspace du projet',
+    async remove(deps, project) {
+      if (!deps.demonterWorkspace || !project.workspaceIds?.length) {
+        return;
+      }
+
+      for (const workspaceId of project.workspaceIds) {
+        /*
+         * La poignée vient de la ligne, mais sa FORME est vérifiée quand même : un
+         * identifiant vide ou hors motif ferait viser un objet arbitraire du
+         * namespace. On LÈVE plutôt que de tenter — supprimer le mauvais volume est
+         * la seule faute pire que d'en laisser un.
+         */
+        if (!/^ws-[a-z0-9]+$/.test(workspaceId)) {
+          throw new Error(`identifiant de workspace hors motif, démontage refusé : ${JSON.stringify(workspaceId)}`);
+        }
+
+        await deps.demonterWorkspace(workspaceId);
+      }
+    },
+  },
+  {
+    id: 'published-app',
+    describes: 'Ingress, Service, Deployment et Secret de chaque application publiée',
+    async remove(deps, project) {
+      if (!deps.demonterApplicationPubliee || !project.deploymentIds?.length) {
+        return;
+      }
+
+      for (const deploymentId of project.deploymentIds) {
+        /*
+         * Même garde. Les objets s'appellent `app-<deploymentId>` : un identifiant
+         * hors motif viserait un voisin partageant ce préfixe — exactement le risque
+         * qu'on refuse de courir.
+         */
+        if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(deploymentId)) {
+          throw new Error(`identifiant de déploiement hors motif, démontage refusé : ${JSON.stringify(deploymentId)}`);
+        }
+
+        await deps.demonterApplicationPubliee(deploymentId);
+      }
+    },
+  },
+  {
+    id: 'project-files',
+    describes: "arbre des fichiers du projet et ses archives d'instantanés",
+    async remove(deps, project) {
+      if (!deps.supprimerFichiersDuProjet) {
+        return;
+      }
+
+      await deps.supprimerFichiersDuProjet(project.id);
+    },
+  },
 ] as const;
 
 /**
@@ -96,22 +187,6 @@ export const PROJECT_EXTERNAL_RESOURCES: readonly ProjectExternalResource[] = [
  * toujours vivante.
  */
 export const KNOWN_UNCOVERED_PROJECT_RESOURCES: ReadonlyArray<{ id: string; why: string }> = [
-  {
-    id: 'workspace-pvc',
-    why:
-      "Le volume vif du workspace SURVIT. Cette entrée était dans l'inventaire ci-dessus " +
-      'et rapportait `removed: true` sans rien toucher — précisément le mensonge que la ' +
-      'note de cette liste décrit comme pire que le trou. Mesuré le 2026-09-07 en production : ' +
-      '`Project.persistentVolumeClaim` vaut `pvc-<organizationId>-<slug>` (posé à la création, ' +
-      'prisma-store.ts), alors que le volume réellement créé est `pvc-<workspaceId>` ' +
-      '(workspace-manager/manager.ts). Sur les 21 PVC du cluster, ZÉRO ne correspond au motif ' +
-      'enregistré : 12 volumes CNPG `db-<projectId>-1`, le Filestore partagé, et 5 `pvc-ws-<empreinte>`. ' +
-      "Le nom enregistré ne désigne donc aucun volume existant, et le vrai nom n'est connu que du " +
-      'workspace-manager — son propre code le dit : « only this store knows the real pvcName ». ' +
-      'Câbler la suppression sur le nom du projet aurait détruit zéro volume tout en affichant un ' +
-      'démontage complet. Le combler demande un appel au workspace-manager : un contrat entre ' +
-      'services, à concevoir et à prouver à part.',
-  },
   {
     id: 'cnpg-backups-gcs',
     why:

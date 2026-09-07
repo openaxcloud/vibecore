@@ -370,6 +370,7 @@ import {
   type ProjectStorage,
   type StoredArchive,
   sonderEcritureStockage,
+  supprimerFichiersDuProjet,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -546,6 +547,15 @@ export interface ApiAppOptions {
    * ne serait prouvable qu'en théorie.
    */
   databaseProvisioner?: DatabaseProvisioner;
+
+  /*
+   * Les trois démontages ajoutés le 2026-09-07, injectables pour que les tests
+   * prouvent le CHAÎNAGE sans cluster : chaque défaut mesuré était une capacité
+   * correcte que personne n'appelait, donc c'est l'appel qu'il faut tenir.
+   */
+  demonterWorkspace?: (workspaceId: string) => Promise<void>;
+  demonterApplicationPubliee?: (deploymentId: string) => Promise<void>;
+  supprimerFichiersDuProjet?: (projectId: string) => Promise<void>;
 
   /**
    * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
@@ -7319,6 +7329,33 @@ async function startServerDeploymentViaManager(payload: {
   }
 
   return (await response.json()) as { ready: boolean; url: string; name: string; readyReplicas: number };
+}
+
+/*
+ * Démonter un workspace via le manager — Pod, Service, Secret ET le PVC.
+ *
+ * Le manager est le seul à connaître le vrai nom du volume (`workspace.pvcName`
+ * dans SON magasin) : l'API ne peut pas le deviner, et son port Kubernetes est
+ * volontairement restreint au namespace des bases par `dbResourceGuard`. On
+ * demande donc au propriétaire de la ressource plutôt que de s'octroyer sa clé.
+ *
+ * L'échec REMONTE (contrairement à l'arrêt d'un déploiement, best-effort) : un
+ * volume de 100 Gi qui survit en silence est précisément ce qu'on corrige ici.
+ * Le rapport de démontage le nomme, et la suppression du projet aboutit quand
+ * même — c'est le contrat de `teardownProjectExternalResources`.
+ */
+async function deleteWorkspaceViaManager(workspaceId: string): Promise<void> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+    method: 'DELETE',
+    headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+    signal: AbortSignal.timeout(30_000),
+  });
+
+  if (!response.ok && response.status !== 404) {
+    throw new Error(`le manager a refusé de démonter le workspace ${workspaceId} (${response.status})`);
+  }
 }
 
 /* Tear down a server deployment (Deployment/Service/Secret/Ingress) best-effort. */
@@ -24815,15 +24852,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Fait AVANT la suppression de la ligne : le nom du PVC vit sur cette ligne,
      * et une fois la ligne partie la poignée est perdue avec elle.
      */
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
@@ -29168,15 +29219,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * Les POIGNÉES d'abord, la ligne ensuite. Les identifiants des workspaces et
+     * des déploiements vivent sur des lignes qui cascadent avec le projet : les
+     * lire après, c'est démonter sans poignée — la même raison qui impose déjà de
+     * démonter avant de supprimer.
+     */
+    const workspaceIds = (await store.listWorkspaces(project.id)).map((workspace) => workspace.id);
+    const deploymentIds = (await store.listDeployments(project.id)).map((deployment) => deployment.id);
+
     const teardown = await teardownProjectExternalResources(
       {
         databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
         objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+        demonterWorkspace: options.demonterWorkspace ?? deleteWorkspaceViaManager,
+        demonterApplicationPubliee: options.demonterApplicationPubliee ?? stopServerDeploymentViaManager,
+        supprimerFichiersDuProjet: options.supprimerFichiersDuProjet ?? supprimerFichiersDuProjet,
       },
       {
         id: project.id,
         organizationId: project.organizationId,
         persistentVolumeClaim: project.persistentVolumeClaim,
+        workspaceIds,
+        deploymentIds,
       },
     );
 
