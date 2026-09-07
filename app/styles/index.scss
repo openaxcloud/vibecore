@@ -9568,14 +9568,145 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
 }
 
-/* Spécificité et `!important` : la remise à zéro des polices de la coque IDE s'applique aux boutons et aux titres. */
-.bolt-project-ide-shell .bolt-secrets-title,
+/*
+ * TAILLES MESURÉES SUR LES CAPTURES REPLIT D'AVI (07/09, 1260 px de large pour
+ * 393 px CSS, soit ~3,2 px par px CSS) : titre « Secrets » ≈ 22 px, texte des
+ * lignes ≈ 13 px, puces ≈ 30 px de haut, bouton « + New Secret » ≈ 30 px,
+ * filtre ≈ 30 px, libellés « Key / Value » ≈ 13 px. Chez nous, mesuré avant
+ * cette passe : titre rendu à 13 px (la règle de 24 px perdait contre la
+ * remise à zéro des polices de la coque, plus spécifique), puces de 44 px à
+ * 14 px. Les tailles de police sont posées ci-dessous avec une spécificité
+ * qui dépasse la coque ; les cibles tactiles restent de 44 px par un
+ * prolongement invisible (`::before`), la boîte visible fait la taille Replit.
+ */
 .bolt-secrets-title {
   margin: 0;
-  font-size: 24px !important;
   font-weight: 600;
   line-height: 1.2;
   color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-title,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-title {
+  font-size: 22px !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-text,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-text,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add {
+  font-size: 13px !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field > span,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field > span,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-message,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-message {
+  font-size: 13px !important;
+}
+
+/* Les champs restent à 16 px : en dessous, Safari iOS zoome au focus (IOS-ZOOM-001). Le placeholder, lui, suit Replit. */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field input {
+  font-size: 16px !important;
+}
+
+.bolt-secrets-filter input::placeholder {
+  font-size: 14px;
+}
+
+/*
+ * Les boîtes visibles font la taille Replit ; la coque mobile impose
+ * `min-height: 44px` aux boutons et champs des panneaux de service
+ * (spécificité (0,3,0) et plus), on la dépasse ici avec la même méthode que
+ * pour les polices. La cible tactile de 44 px est rendue par `::before`.
+ */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-icon-button,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-icon-button,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add {
+  height: 32px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-copy,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-copy {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-eye,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-eye {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field input {
+  height: 36px !important;
+  min-height: 0 !important;
+}
+
+/* Cible tactile de 44 px sans grossir la boîte visible : un prolongement invisible au-dessus et au-dessous. */
+.bolt-secrets-chip,
+.bolt-secrets-chip-copy,
+.bolt-secrets-eye,
+.bolt-secrets-icon-button,
+.bolt-secrets-new,
+.bolt-secrets-cancel,
+.bolt-secrets-add {
+  position: relative;
+}
+
+.bolt-secrets-chip::before,
+.bolt-secrets-icon-button::before,
+.bolt-secrets-new::before,
+.bolt-secrets-cancel::before,
+.bolt-secrets-add::before,
+.bolt-secrets-eye::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.bolt-secrets-eye::before {
+  inset: -10px;
+}
+
+/* La coque éteint les pseudo-éléments des boutons (`content: none`) : mesuré, le prolongement n'existait pas. */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-icon-button::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-icon-button::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-eye::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-eye::before {
+  content: '' !important;
+  display: block !important;
 }
 
 .bolt-secrets-header-actions {
@@ -9587,8 +9718,8 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-icon-button {
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
   border: 0;
@@ -9607,15 +9738,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-new {
   display: inline-flex;
-  height: 44px;
+  height: 32px;
   align-items: center;
   gap: 6px;
-  padding: 0 14px;
+  padding: 0 12px;
   border: 0;
   border-radius: 10px;
   background: var(--vc-ide-accent-action, #2563eb);
   color: #fff;
-  font-size: 15px !important;
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -9623,8 +9753,8 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-secrets-new > span[class*='i-'] {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 .bolt-secrets-filter {
@@ -9634,13 +9764,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-filter input {
   width: 100%;
-  height: 48px;
-  padding: 0 44px 0 14px;
+  height: 36px;
+  padding: 0 40px 0 12px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 10px;
   background: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-primary);
-  font-size: 16px;
   outline: none;
 }
 
@@ -9651,9 +9780,9 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-filter > span[class*='i-'] {
   position: absolute;
   top: 50%;
-  right: 14px;
-  width: 20px;
-  height: 20px;
+  right: 12px;
+  width: 18px;
+  height: 18px;
   transform: translateY(-50%);
   color: var(--vc-ide-text-secondary);
   pointer-events: none;
@@ -9677,21 +9806,19 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 
   /* Même hauteur avec ou sans l'œil : les deux champs restent sur une rangée. */
-  height: 28px;
+  height: 24px;
   color: var(--vc-ide-text-secondary);
-  font-size: 13px;
 }
 
 .bolt-secrets-field input {
   width: 100%;
-  height: 44px;
-  padding: 0 12px;
+  height: 36px;
+  padding: 0 10px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 10px;
   background: var(--vc-ide-bg-app);
   color: var(--vc-ide-text-primary);
   font-family: var(--vc-font-code);
-  font-size: 16px;
   outline: none;
 }
 
@@ -9705,15 +9832,15 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-secrets-eye {
   display: inline-flex;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   align-items: center;
   justify-content: center;
   border: 0;
   border-radius: 999px;
   background: transparent;
   color: var(--vc-ide-text-secondary);
-  font-size: 18px;
+  font-size: 16px;
   touch-action: manipulation;
 }
 
@@ -9739,12 +9866,11 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-cancel,
 .bolt-secrets-add {
   display: inline-flex;
-  height: 44px;
+  height: 32px;
   align-items: center;
-  padding: 0 16px;
+  padding: 0 14px;
   border: 0;
   border-radius: 10px;
-  font-size: 15px;
   font-weight: 500;
   touch-action: manipulation;
 }
@@ -9767,7 +9893,6 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-message {
   margin: 0;
   color: var(--vc-ide-text-secondary);
-  font-size: 13px;
 }
 
 .bolt-secrets-list {
@@ -9781,24 +9906,23 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-row {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 6px;
   align-items: center;
   min-width: 0;
 }
 
 .bolt-secrets-chip {
   display: flex;
-  height: 44px;
+  height: 32px;
   min-width: 0;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
-  font-size: 15px;
   text-align: left;
   touch-action: manipulation;
 }
@@ -9806,8 +9930,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-chip > span[class*='i-'],
 .bolt-secrets-chip-copy > span[class*='i-'] {
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   color: var(--vc-ide-text-secondary);
 }
 
@@ -9847,7 +9971,9 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-secrets-row-menu {
+  border-radius: 8px;
   background: var(--vc-ide-bg-card);
+  font-size: 18px;
 }
 
 .bolt-secrets-hidden-form {
@@ -9868,7 +9994,7 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-secrets-menu-item {
   display: flex;
   width: 100%;
-  height: 44px;
+  height: 40px;
   align-items: center;
   gap: 12px;
   padding: 0 12px;
@@ -9876,7 +10002,7 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 10px;
   background: transparent;
   color: var(--vc-ide-text-primary);
-  font-size: 16px;
+  font-size: 15px;
   text-align: left;
   text-decoration: none;
   touch-action: manipulation;

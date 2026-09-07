@@ -50,10 +50,26 @@ describe('onglet Secrets — le panneau branché est le nouveau', () => {
 });
 
 describe('onglet Secrets — le gabarit', () => {
-  it('trois éléments de 44 px par ligne : clé, valeur, ⋮', () => {
-    expect(scss).toMatch(/\.bolt-secrets-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) 44px;/);
-    expect(scss).toMatch(/\.bolt-secrets-chip \{[\s\S]*?height: 44px;/);
-    expect(scss).toMatch(/\.bolt-secrets-icon-button \{[\s\S]*?width: 44px;\s*height: 44px;/);
+  it('trois éléments par ligne aux tailles Replit (puces de 32 px, ⋮ de 32 px), avec une cible de 44 px prolongée', () => {
+    /*
+     * Mesuré sur les captures Replit d'Avi (07/09, ~3,2 px par px CSS) : puces
+     * ≈ 30 px, texte des lignes ≈ 13 px, titre ≈ 22 px. La cible tactile de
+     * 44 px tient par un prolongement invisible (`::before`, −6 px en haut et
+     * en bas), pas par la boîte visible.
+     */
+    expect(scss).toMatch(/\.bolt-secrets-row \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) 32px;/);
+    expect(scss).toMatch(/\.bolt-secrets-chip \{[\s\S]*?height: 32px;/);
+    expect(scss).toMatch(/\.bolt-secrets-icon-button \{[\s\S]*?width: 32px;\s*height: 32px;/);
+    expect(scss).toMatch(/\.bolt-secrets-chip::before,[\s\S]*?inset: -6px 0;/);
+    expect(scss).toMatch(
+      /\.bolt-project-ide-shell \.bolt-responsive-ide-mobile \.bolt-secrets \.bolt-secrets-title \{\s*font-size: 22px !important;/,
+    );
+    expect(scss).toMatch(
+      /\.bolt-project-ide-shell \.bolt-responsive-ide-mobile \.bolt-secrets \.bolt-secrets-chip-text,[\s\S]*?font-size: 13px !important;/,
+    );
+    expect(scss).toMatch(
+      /\.bolt-responsive-ide-mobile \.bolt-secrets \.bolt-secrets-field input \{\s*font-size: 16px !important;/,
+    );
   });
 
   it('les libellés Clé / Valeur ont la même hauteur, œil ou pas', () => {

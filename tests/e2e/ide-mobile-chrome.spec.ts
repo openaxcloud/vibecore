@@ -1994,8 +1994,10 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(Math.abs(entete.titreY - entete.nouveauY), 'titre et bouton sur la même ligne').toBeLessThanOrEqual(4);
     expect(Math.abs(entete.menuY - entete.nouveauY)).toBeLessThanOrEqual(4);
     expect(entete.nouveauDroite).toBeLessThanOrEqual(entete.largeur);
-    expect(entete.hMenu).toBeGreaterThanOrEqual(44);
-    expect(entete.hNouveau).toBeGreaterThanOrEqual(44);
+
+    // Tailles Replit (mesurées sur les captures d'Avi) : ⋮ et bouton d'environ 30 px, cible tactile prolongée à 44.
+    expect(entete.hMenu).toBeGreaterThanOrEqual(30);
+    expect(entete.hNouveau).toBeGreaterThanOrEqual(30);
 
     // RP-SEC-02 — le filtre, pleine largeur.
     const filtre = page.getByTestId('secrets-filter');
@@ -2023,7 +2025,7 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     });
 
     expect(Math.abs(champs.cleY - champs.valeurY), 'Clé et Valeur sur une rangée').toBeLessThanOrEqual(2);
-    expect(champs.cleH).toBeGreaterThanOrEqual(44);
+    expect(champs.cleH).toBeGreaterThanOrEqual(34);
     expect(parseFloat(champs.policeCle), 'plancher iOS : pas de zoom au focus').toBeGreaterThanOrEqual(16);
 
     const ajouter = page.getByTestId('secrets-form-add');
@@ -2063,9 +2065,31 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     expect(Math.abs(geometrie.cle.y - geometrie.valeur.y)).toBeLessThanOrEqual(2);
     expect(Math.abs(geometrie.cle.y - geometrie.menu.y)).toBeLessThanOrEqual(2);
-    expect(geometrie.cle.h).toBeGreaterThanOrEqual(44);
-    expect(geometrie.valeur.h).toBeGreaterThanOrEqual(44);
-    expect(geometrie.menu.l).toBeGreaterThanOrEqual(44);
+    expect(geometrie.cle.h).toBeGreaterThanOrEqual(30);
+    expect(geometrie.valeur.h).toBeGreaterThanOrEqual(30);
+    expect(geometrie.menu.l).toBeGreaterThanOrEqual(30);
+
+    // La police des lignes suit Replit (≈ 13 px), le titre aussi (≈ 22 px) — mesuré, pas déclaré.
+    const polices = await page.evaluate(() => ({
+      ligne: parseFloat(
+        getComputedStyle(document.querySelector('.bolt-secrets-chip--key .bolt-secrets-chip-text')!).fontSize,
+      ),
+      titre: parseFloat(getComputedStyle(document.querySelector('.bolt-secrets-title')!).fontSize),
+    }));
+
+    expect(polices.ligne).toBe(13);
+    expect(polices.titre).toBe(22);
+
+    // La cible tactile reste de 44 px : 5 px au-dessus de la puce, c'est encore elle.
+    const dessus = await page.evaluate(() => {
+      const puce = document.querySelector<HTMLElement>('.bolt-secrets-chip--key')!;
+      const r = puce.getBoundingClientRect();
+      const touche = document.elementFromPoint(r.left + r.width / 2, r.top - 5);
+
+      return touche === puce || puce.contains(touche);
+    });
+
+    expect(dessus, 'la puce répond 5 px au-dessus de sa boîte').toBe(true);
     expect(geometrie.menu.droite).toBeLessThanOrEqual(geometrie.largeur);
     expect(geometrie.valeur.texte, 'la valeur est masquée par défaut').toMatch(/^•+$/);
 
