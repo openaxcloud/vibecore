@@ -369,6 +369,7 @@ import {
   type ProjectFile,
   type ProjectStorage,
   type StoredArchive,
+  sonderEcritureStockage,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -9746,6 +9747,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     } else {
       checks.redis = { status: 'unconfigured' };
+    }
+
+    /*
+     * LE STOCKAGE PARTAGÉ, parce qu'une sonde qui ne l'écrit pas ne dit rien de
+     * la capacité à écrire.
+     *
+     * Mesuré le 2026-09-07 sur le banc : `mkdir` sur `_locks` en **errno -116
+     * (ESTALE)**, poignée NFS périmée sur UNE des deux répliques. Une création de
+     * projet sur deux rendait 500 — et `readyReplicas` disait 2/2, le compteur de
+     * redémarrages 0, `/health` `ok`, et ce `/ready` ne regardait que la base et
+     * Redis. La réplique est restée dans la rotation, en bonne santé apparente.
+     *
+     * La production a le MÊME montage : PVC `vibecore-shared-csi`, pilote
+     * `filestore.csi.storage.gke.io` (donc NFS), RWX, et
+     * `PROJECT_STORAGE_DIR=/data/vibecore/projects`. Rien n'aurait vu la même
+     * panne ici.
+     *
+     * SEUL un montage mort sort la réplique de la rotation (voir
+     * `CODES_MONTAGE_MORT`). Un délai dépassé ou un `ENOSPC` est signalé dans le
+     * corps mais ne dégrade pas : ces causes-là sont globales, et sortir TOUTES
+     * les répliques transformerait une dégradation en panne totale — y compris
+     * pour les routes qui ne touchent pas le stockage.
+     *
+     * Ce que cette sonde ne fait PAS : elle ne répare rien. Un redémarrage de
+     * conteneur réutilise le même montage ; seule la recréation du POD le
+     * rétablit. Elle arrête l'hémorragie et rend la panne visible — la remise en
+     * état reste un geste d'exploitation.
+     */
+    {
+      const verdict = await sonderEcritureStockage();
+
+      if (verdict.ok) {
+        checks.storage = { status: 'ok', latencyMs: verdict.latencyMs };
+      } else {
+        request.log.error(
+          { code: verdict.code, fatal: verdict.fatal, latencyMs: verdict.latencyMs },
+          'readiness storage probe failed',
+        );
+
+        checks.storage = {
+          status: 'down',
+          latencyMs: verdict.latencyMs,
+          detail: verdict.fatal ? `mount-dead:${verdict.code}` : `transient:${verdict.code}`,
+        };
+
+        if (verdict.fatal) {
+          degraded = true;
+        }
+      }
     }
 
     if (degraded) {

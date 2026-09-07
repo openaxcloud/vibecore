@@ -328,6 +328,100 @@ function locksRoot() {
   return join(storageRoot(), '_locks');
 }
 
+/*
+ * SONDE D'ÉCRITURE SUR LE STOCKAGE PARTAGÉ.
+ *
+ * POURQUOI ELLE EXISTE. Le 2026-09-07, sur le banc d'essai, une création de
+ * projet sur deux rendait 500 : `mkdir` sur `/data/vibecore/projects/_locks`
+ * échouait avec **errno -116 (ESTALE)** — poignée NFS périmée — sur UNE des deux
+ * répliques de l'API.
+ *
+ * Et rien ne le voyait. `readyReplicas` disait 2/2, le compteur de redémarrages
+ * disait 0, `/health` rendait `ok` inconditionnellement et `/ready` ne vérifiait
+ * que la base et Redis. La réplique est restée dans la rotation, en bonne santé
+ * apparente, pendant qu'une requête sur deux échouait. Il a fallu la recréer.
+ *
+ * La production a exactement le même montage : PVC `vibecore-shared-csi`, pilote
+ * `filestore.csi.storage.gke.io` (donc NFS), `ReadWriteMany`, monté sur
+ * `/data/vibecore` par le déploiement `api`, avec
+ * `PROJECT_STORAGE_DIR=/data/vibecore/projects`. Le mode de panne est
+ * reproductible tel quel.
+ *
+ * CE QUE LA SONDE FAIT, et pourquoi ainsi. Elle refait **l'opération qui a
+ * échoué** — `mkdir` sur `_locks` — puis écrit et supprime un fichier propre à
+ * ce pod. Une lecture ne suffirait pas : un `stat` peut réussir sur une entrée
+ * encore en cache alors que toute écriture échoue. C'est l'écriture qui révèle
+ * la poignée périmée, et c'est l'écriture dont dépend la création de projet.
+ *
+ * Le fichier porte le nom d'hôte : deux répliques ne se marchent pas dessus, et
+ * une sonde qui échoue désigne SA réplique.
+ */
+export type VerdictStockage = {
+  ok: boolean;
+
+  /** `ESTALE`, `EIO`, `ENOSPC`… tel que rendu par le noyau. */
+  code?: string;
+
+  /**
+   * Vrai quand la panne est PROPRE À CE POD et ne se répare pas d'elle-même :
+   * seule la recréation du pod remonte le volume. C'est le seul cas qui doit
+   * sortir la réplique de la rotation.
+   */
+  fatal?: boolean;
+  latencyMs: number;
+};
+
+/*
+ * Les codes qui ne guérissent JAMAIS seuls.
+ *
+ * `ESTALE` est le cas mesuré : le serveur NFS a invalidé la poignée, et le
+ * client la gardera périmée jusqu'au remontage. `EIO` et `ENOTCONN` sont de la
+ * même famille — le montage est cassé, pas occupé.
+ *
+ * Tout le reste (délai dépassé, `ENOSPC`, `EACCES`) est signalé mais NE sort PAS
+ * la réplique de la rotation : ces causes-là sont globales ou transitoires, et
+ * sortir toutes les répliques transformerait une dégradation en panne totale —
+ * y compris pour les routes qui ne touchent pas le stockage.
+ */
+const CODES_MONTAGE_MORT = new Set(['ESTALE', 'EIO', 'ENOTCONN']);
+
+/**
+ * Exportée pour être TENUE par un test sur le code exact de l'incident.
+ *
+ * On ne peut pas fabriquer un `ESTALE` sans un vrai montage NFS : le classement
+ * est donc éprouvé ici, et le CHEMIN qui en découle (`/ready` → 503) est éprouvé
+ * au site d'appel. Deux moitiés, deux tests — plutôt qu'une seule assertion qui
+ * n'aurait couvert ni l'une ni l'autre.
+ */
+export function estMontageMort(code: string | undefined): boolean {
+  return code !== undefined && CODES_MONTAGE_MORT.has(code);
+}
+
+export async function sonderEcritureStockage(): Promise<VerdictStockage> {
+  const debut = Date.now();
+  const racine = locksRoot();
+  const temoin = join(racine, `.readiness-${hostname()}`);
+
+  try {
+    await mkdir(racine, { recursive: true }); // l'opération EXACTE qui a échoué en errno -116
+
+    // puis une écriture réelle : `mkdir` seul peut réussir sur un cache
+    await writeFile(temoin, String(Date.now()), 'utf8');
+    await unlink(temoin);
+
+    return { ok: true, latencyMs: Date.now() - debut };
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+
+    return {
+      ok: false,
+      code: code ?? 'UNKNOWN',
+      fatal: estMontageMort(code),
+      latencyMs: Date.now() - debut,
+    };
+  }
+}
+
 const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 async function acquireFileLock(projectId: string): Promise<() => Promise<void>> {
