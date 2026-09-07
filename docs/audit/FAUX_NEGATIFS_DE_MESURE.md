@@ -362,3 +362,63 @@ priorisé.
 **Le signal qui doit alerter** : toute phrase de la forme « il faudrait d'abord
 refactorer X » écrite par quelqu'un qui n'a pas encore cherché de patron
 existant. Sur ces deux cas, elle était fausse deux fois sur deux.
+
+---
+
+## 43. Le piège qui protège, et l'ordre des opérations de démontage
+
+**2026-09-07, purge complète de la production.** Deux leçons d'une même heure,
+et la première est agréable pour une fois.
+
+### Le piège qui, cette fois, a protégé
+
+Première commande de la purge : supprimer neuf clusters PostgreSQL.
+
+```sh
+cibles=$(kubectl get cluster -o name | grep -E '^db-cm')
+for c in $cibles; do kubectl delete cluster "$c"; done
+```
+
+zsh ne découpe pas une variable non quotée. La boucle a donc tourné **une seule
+fois**, avec un « nom de cluster » contenant les neuf noms séparés par des sauts
+de ligne. L'API Kubernetes a répondu `BadRequest` et **rien n'a été supprimé**.
+
+C'est exactement le piège consigné à l'entrée sur les faux résultats — celui qui
+m'avait fait lire `--include=*.ts` comme un motif et rendre de faux zéros. Ici il
+s'est retourné : sur une commande **destructive**, le non-découpage a produit un
+nom invalide, et l'invalidité a sauvé la mise.
+
+**Ce qu'il faut en retenir, et ce n'est pas « on a eu de la chance ».** Un nom
+mal formé est refusé par une API stricte ; un nom *bien formé mais faux* ne l'est
+pas. Le vrai enseignement est que la protection venait de la **validation côté
+serveur**, pas de ma prudence. Sur une opération irréversible, itérer avec
+`while IFS= read -r` et vérifier le compte de cibles AVANT la boucle reste la
+seule garantie — ce jour-là, `retenus : 9 exclus : shared-pg-0` était la ligne
+qui comptait, pas la boucle.
+
+### Couper la source avant de démonter
+
+Deuxième moment. En supprimant les volumes de workspace, l'un d'eux refusait de
+partir : `deletionTimestamp` posé, finaliseur `kubernetes.io/pvc-protection`
+actif. Un pod le montait — un pod **recréé 52 secondes plus tôt**, alors que je
+venais de le supprimer.
+
+La réconciliation repartait de la base : la ligne `Workspace` disait `RUNNING`,
+donc quelque chose reprovisionnait. Je luttais contre un système qui faisait
+exactement son travail.
+
+**La règle : sur une ressource réconciliée, l'ordre n'est pas « ressources puis
+lignes », c'est « couper la source de vérité, puis les ressources, puis les
+lignes ».** Ici : supprimer les lignes `Workspace` (300), puis le pod, puis le
+volume — qui s'est libéré seul.
+
+C'est un raffinement de l'ordre qu'on croyait bon. « Ressources d'abord, lignes
+ensuite » évite les orphelines quand la ligne porte la POIGNÉE. Mais quand la
+ligne porte aussi l'INTENTION — « ce workspace doit tourner » —, la garder
+pendant le démontage fait recréer ce qu'on retire. Les deux besoins coexistent :
+lire la poignée avant, effacer l'intention avant, supprimer la ligne après.
+
+**Le signal qui l'annonce** : une ressource qui réapparaît, ou un finaliseur qui
+ne se libère pas. Ce n'est pas un blocage à forcer — c'est un réconciliateur qui
+travaille, et forcer le finaliseur aurait laissé le disque orphelin côté GCP tout
+en effaçant sa trace côté Kubernetes.
