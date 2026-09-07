@@ -54,7 +54,6 @@ async function monter(options: Record<string, unknown> = {}) {
     organizationId: org.id,
     name: 'Projet',
     slug: 'projet',
-    createdByUserId: quidam.id,
   });
 
   return { app, store, projet, org };
