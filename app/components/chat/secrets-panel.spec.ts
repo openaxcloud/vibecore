@@ -13,6 +13,12 @@ import {
 const secrets = [{ key: 'ADMIN_PASSWORD' }, { key: 'STRIPE_SECRET_KEY' }, { key: 'DATABASE_URL' }];
 
 describe('onglet Secrets — filtre et validité', () => {
+  it('trie par nom, comme Replit — l’API rend l’ordre d’écriture, qui bouge à chaque modification', () => {
+    expect(
+      filtrerLesSecrets([{ key: 'DATABASE_URL' }, { key: 'admin_token' }, { key: 'API_KEY' }], '').map((s) => s.key),
+    ).toEqual(['admin_token', 'API_KEY', 'DATABASE_URL']);
+  });
+
   it('filtre par nom, sans casse, sur une sous-chaîne', () => {
     expect(filtrerLesSecrets(secrets, 'stripe').map((s) => s.key)).toEqual(['STRIPE_SECRET_KEY']);
     expect(filtrerLesSecrets(secrets, '_').map((s) => s.key)).toHaveLength(3);

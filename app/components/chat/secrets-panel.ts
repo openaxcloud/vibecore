@@ -19,15 +19,21 @@ export interface EntreeSecret {
 
 const CLE_VALIDE = /^[A-Za-z_][A-Za-z0-9_]*$/u;
 
-/* Le filtre de Replit : « Filter Secrets by name », sans casse, sur une sous-chaîne. */
+/*
+ * Le filtre de Replit : « Filter Secrets by name », sans casse, sur une
+ * sous-chaîne — et la liste est triée par nom, comme la sienne. L'API rend
+ * les secrets dans l'ordre de leur dernière écriture (mesuré : ADMIN, API,
+ * BACKUP, ALLOWED, APP…), ce qui déplace une ligne à chaque modification.
+ */
 export function filtrerLesSecrets<T extends SecretListe>(secrets: readonly T[], filtre: string): T[] {
   const aiguille = filtre.trim().toLowerCase();
+  const tries = [...secrets].sort((a, b) => a.key.localeCompare(b.key, 'en', { sensitivity: 'base' }));
 
   if (!aiguille) {
-    return [...secrets];
+    return tries;
   }
 
-  return secrets.filter((secret) => secret.key.toLowerCase().includes(aiguille));
+  return tries.filter((secret) => secret.key.toLowerCase().includes(aiguille));
 }
 
 export function cleValide(cle: string): boolean {
