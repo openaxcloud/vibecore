@@ -201,15 +201,28 @@ export function Search() {
    * la requête ; on la prend, on cherche, et on remet l'atome à zéro pour que
    * la prochaine ouverture du panneau ne la rejoue pas.
    */
+  const handleSearchRef = useRef(handleSearch);
+  handleSearchRef.current = handleSearch;
+
+  const demandeTraiteeRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (!demande) {
+    /*
+     * Garde-fou mesuré : un harnais de test remplace `useStore` par une valeur
+     * qui n'est pas une chaîne et change à chaque rendu ; sans ce filtre et
+     * sans mémoire de la dernière demande, l'effet relançait une recherche à
+     * chaque rendu et le test ne finissait jamais (CI 4282df9, worker vitest
+     * à court de mémoire après 8 min).
+     */
+    if (typeof demande !== 'string' || !demande.trim() || demandeTraiteeRef.current === demande) {
       return;
     }
 
+    demandeTraiteeRef.current = demande;
     setSearchQuery(demande);
     rechercheDemandee.set(null);
-    void handleSearch(demande);
-  }, [demande, handleSearch]);
+    void handleSearchRef.current(demande);
+  }, [demande]);
 
   const handleResultClick = (filePath: string, line?: number) => {
     workbenchStore.setSelectedFile(resolveWorkbenchPath(filePath) ?? filePath);
