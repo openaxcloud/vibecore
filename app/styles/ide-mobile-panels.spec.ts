@@ -680,3 +680,40 @@ describe('18. audit WebKitGTK du 06/09 : chemins coupés dans le Studio et dans 
     expect(git).toContain('className="bolt-git-tab h-full overflow-auto"');
   });
 });
+
+describe('19. capture iPhone 07/09 07:58 : « ça me paraît bien large » — les feuilles du composeur sur tablette', () => {
+  const SELECTEUR =
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,\n' +
+    '.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover';
+
+  it('pleine largeur sur téléphone, plafonnée et centrée au-delà — le même plafond que les autres feuilles', () => {
+    /*
+     * Mesuré sur Chromium avant correction : 820 px de feuille sur un iPad
+     * portrait, 844 px sur un Pixel en paysage, pour un menu de deux lignes.
+     * Le gabarit mobile sert aussi ces formats ; `width: 100%` y étirait tout.
+     */
+    const regle = bloc(SELECTEUR);
+
+    expect(regle).toMatch(/width:\s*min\(100vw,\s*var\(--vc-mobile-sheet-max-width\)\)\s*!important/);
+    expect(regle).toMatch(
+      /left:\s*max\(0px,\s*calc\(\(100vw - var\(--vc-mobile-sheet-max-width\)\) \/ 2\)\)\s*!important/,
+    );
+    expect(regle).toMatch(/right:\s*auto\s*!important/);
+    expect(regle).not.toMatch(/max-width:\s*none/);
+
+    // Le plafond est partagé avec les feuilles « + » et menus, jamais une valeur locale.
+    expect(INDEX).toMatch(/--vc-mobile-sheet-max-width:\s*760px/);
+    expect(bloc('.bolt-mobile-more-sheet')).toMatch(/var\(--vc-mobile-sheet-max-width\)/);
+  });
+
+  it('plus étroite que l’écran, la feuille arrondit ses quatre coins', () => {
+    const debut = INDEX.indexOf(`@media (min-width: 761px) {\n  ${SELECTEUR.replace(/\n/g, '\n  ')} {`);
+
+    expect(debut, 'la règle des coins sur écran large est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('}', debut) + 1);
+
+    expect(regle).toMatch(/border-radius:\s*var\(--vc-mobile-sheet-radius\)\s*!important/);
+  });
+});

@@ -953,6 +953,75 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       }
     }
   });
+
+  test('zone de saisie : la feuille prend l’écran sur téléphone, et s’arrête à 760 px centrée sur tablette', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+
+    /*
+     * Avi, 07/09 07:58 : « ça me paraît bien large ». Sur téléphone la feuille
+     * vaut l'écran, c'est voulu. Le gabarit mobile sert aussi les tablettes et
+     * les téléphones en paysage : mesuré avant correction, 820 px de feuille
+     * sur un iPad portrait pour un menu de deux lignes. Même plafond que les
+     * autres feuilles mobiles, centré.
+     */
+    const ouvrirLaFeuille = async () => {
+      const declencheur = page.locator('.bolt-chatbox-mode-trigger').first();
+      const menu = page.locator('.bolt-chatbox-mode-menu').first();
+
+      await expect(declencheur).toBeEnabled({ timeout: 30_000 });
+
+      /*
+       * Le composeur se remonte une fois, vers 13 s après le chargement (fin de
+       * l'hydratation) : un appui à coordonnées figées peut tomber sur ce
+       * remontage. `tap()` attend un élément attaché et stable, et réessaie.
+       */
+      for (let essai = 0; essai < 3 && !(await menu.isVisible().catch(() => false)); essai += 1) {
+        await declencheur.tap({ timeout: 10_000 }).catch(() => undefined);
+        await page.waitForTimeout(700);
+      }
+
+      expect(page.url(), 'l’IDE a quitté sa page pendant l’appui').toContain('/ide');
+      await expect(menu).toBeVisible({ timeout: 10_000 });
+
+      const mesure = await menu.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+
+        return {
+          left: Math.round(r.left),
+          right: Math.round(r.right),
+          width: Math.round(r.width),
+          top: Math.round(r.top),
+          vw: innerWidth,
+        };
+      });
+
+      // La feuille recouvre son déclencheur : on la ferme comme au doigt, par un appui au-dessus d'elle, dans le fil.
+      await page.touchscreen.tap(mesure.vw / 2, Math.max(120, mesure.top - 40));
+      await expect(menu, 'un appui hors de la feuille la ferme').toBeHidden({ timeout: 5_000 });
+
+      return mesure;
+    };
+
+    await page.setViewportSize({ width: 820, height: 1180 });
+    await ouvrirIde(page, request, { fil: false });
+    await expect(page.locator('.bolt-responsive-ide-mobile'), 'la tablette utilise le gabarit mobile').toHaveCount(1);
+
+    const tablette = await ouvrirLaFeuille();
+
+    expect(tablette.width, `feuille de ${tablette.width}px sur ${tablette.vw}px`).toBe(760);
+    expect(Math.abs(tablette.left - (tablette.vw - 760) / 2), 'la feuille est centrée').toBeLessThanOrEqual(1);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(600);
+
+    const telephone = await ouvrirLaFeuille();
+
+    expect(telephone.left).toBe(0);
+    expect(telephone.width, 'sur téléphone la feuille vaut l’écran').toBe(390);
+  });
 });
 
 /*

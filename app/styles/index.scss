@@ -7723,13 +7723,27 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
-  right: 0 !important;
+  right: auto !important;
   bottom: calc(
     var(--mobile-nav-height, 72px) + env(safe-area-inset-bottom, 0px) + var(--vc-mobile-visual-viewport-bottom, 0px)
   ) !important;
-  left: 0 !important;
-  width: 100% !important;
-  max-width: none !important;
+
+  /*
+   * PLEINE LARGEUR SUR TÉLÉPHONE, PLAFONNÉE AU-DELÀ.
+   *
+   * Avi, 07/09 07:58, devant la feuille sur son iPhone : « es-tu sûr que c'est
+   * adapté pour tout type de screen mobile ? Ça me paraît bien large. »
+   * Mesuré sur Chromium, six formats de 320 à 430 px : la feuille vaut la
+   * largeur de l'écran, sans débordement — c'est la forme voulue. Mais le
+   * gabarit mobile sert AUSSI les tablettes et les téléphones en paysage
+   * (`useMobileIde = isMobile || isTablet`, jusqu'à 1366 px au doigt), et là
+   * `width: 100%` étirait un menu de deux lignes sur 820 px (iPad) et 844 px
+   * (Pixel en paysage), alors que les autres feuilles mobiles (« + », menus)
+   * s'arrêtent à `--vc-mobile-sheet-max-width`. Même plafond, même centrage.
+   */
+  left: max(0px, calc((100vw - var(--vc-mobile-sheet-max-width)) / 2)) !important;
+  width: min(100vw, var(--vc-mobile-sheet-max-width)) !important;
+  max-width: var(--vc-mobile-sheet-max-width) !important;
   min-width: 0 !important;
   max-height: min(
     calc(0.56 * var(--vc-mobile-espace-utile)),
@@ -7757,6 +7771,15 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-panel);
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* Plus étroite que l'écran, la feuille flotte au-dessus du socle : ses quatre coins s'arrondissent. */
+@media (min-width: 761px) {
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu,
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-chatbox-mode-menu,
+  .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-agent-power-popover {
+    border-radius: var(--vc-mobile-sheet-radius) !important;
+  }
 }
 
 /*
