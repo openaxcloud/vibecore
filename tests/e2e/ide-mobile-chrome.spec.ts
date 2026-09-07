@@ -1452,6 +1452,89 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     });
   }
 
+  test('Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment', async ({ page, request }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true });
+    await ouvrirOutil(page, 'preview');
+
+    const barre = page.locator('.bolt-preview-addressbar');
+
+    await expect(barre).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.bolt-preview-port-button')).toBeVisible({ timeout: 30_000 });
+
+    /*
+     * Avi, 07/09 08:19 : « tu as réduis la police du contenu comme le reste,
+     * où il y a l'URL ». Le champ garde 16 px (plancher iOS, IOS-ZOOM-001) ;
+     * hors édition, c'est un bouton en 13 px qui montre l'adresse.
+     */
+    const lecture = barre.locator('.bolt-preview-url-text');
+    const champ = barre.locator('input');
+
+    await expect(lecture).toBeVisible();
+
+    const polices = await page.evaluate(() => ({
+      lecture: getComputedStyle(document.querySelector('.bolt-preview-url-text')!).fontSize,
+      champ: getComputedStyle(document.querySelector('.bolt-preview-addressbar input')!).fontSize,
+      champVisible: getComputedStyle(document.querySelector('.bolt-preview-addressbar input')!).opacity !== '0',
+    }));
+
+    expect(polices.lecture, 'l’URL se lit à l’échelle du reste').toBe('13px');
+    expect(polices.champ, 'le champ garde le plancher iOS').toBe('16px');
+    expect(polices.champVisible, 'hors édition, le champ est retiré de la vue').toBe(false);
+
+    // Un appui sur l'adresse révèle le champ et le focalise, à 16 px.
+    if (await lecture.isEnabled()) {
+      await lecture.tap();
+      await expect(champ).toBeFocused({ timeout: 5_000 });
+
+      const enEdition = await champ.evaluate((el) => ({
+        largeur: el.getBoundingClientRect().width,
+        police: getComputedStyle(el).fontSize,
+      }));
+
+      expect(enEdition.largeur).toBeGreaterThan(80);
+      expect(enEdition.police).toBe('16px');
+      await champ.blur();
+      await expect(lecture).toBeVisible();
+    }
+
+    /*
+     * « Quand j'ouvre les journaux je ne peux pas les fermer » : « Ancrer à
+     * droite » est caché sur téléphone et rien ne refermait le panneau.
+     */
+    // Le chemin d'Avi : « Afficher les journaux » sur la carte de démarrage ; à défaut (carte absente), le bouton de la barre d'outils.
+    const boutonCarte = page
+      .locator('.bolt-preview-splash button')
+      .filter({ hasText: /journaux|logs/i })
+      .first();
+
+    if (await boutonCarte.isVisible().catch(() => false)) {
+      await boutonCarte.tap();
+    } else {
+      await page
+        .locator(
+          '.bolt-project-webview-toolbar button[title*="ournaux"], .bolt-project-webview-toolbar button[title*="logs" i]',
+        )
+        .first()
+        .evaluate((el) => (el as HTMLElement).click());
+    }
+
+    const journaux = page.locator('.bolt-preview-logs-panel');
+
+    await expect(journaux).toBeVisible({ timeout: 10_000 });
+
+    const croix = journaux.locator('.bolt-preview-logs-close');
+
+    await expect(croix, 'la croix qui referme les journaux').toBeVisible();
+
+    const boiteCroix = await croix.boundingBox();
+
+    expect(boiteCroix!.width, 'cible tactile').toBeGreaterThanOrEqual(44);
+    expect(boiteCroix!.x + boiteCroix!.width).toBeLessThanOrEqual(390);
+    await croix.tap();
+    await expect(journaux, 'les journaux se referment').toBeHidden({ timeout: 5_000 });
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,

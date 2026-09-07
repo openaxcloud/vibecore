@@ -848,3 +848,40 @@ describe('22. captures iPhone 07/09 08:07 : le menu « ••• » du composeur
     expect(palette).not.toMatch(/max-h-\[min\(620px,calc\(100dvh-64px\)\)\]/);
   });
 });
+
+describe('23. capture iPhone 07/09 08:19 : Webview — URL en grande police, journaux qu’on ne referme pas', () => {
+  it('sur téléphone, l’URL se lit en 13 px hors édition et le champ garde son plancher de 16 px', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-url-text"/);
+    expect(preview).toMatch(/data-edition=\{adresseEnEdition \? 'true' : 'false'\}/);
+    expect(preview).toMatch(/onBlur=\{\(\) => setAdresseEnEdition\(false\)\}/);
+    expect(bloc('.bolt-preview-url-text')).toMatch(/display:\s*none/);
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/font-size:\s*13px !important/);
+
+    // Mesuré : le plancher tactile de 44 px des boutons gonflait la barre à 50 px.
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/min-height:\s*28px !important/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input')).toMatch(
+      /font-size:\s*16px/,
+    );
+  });
+
+  it('les journaux de la Webview ont une croix qui les referme, visible sur téléphone', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+    const catalogue = readFileSync(join(__dirname, '..', 'lib', 'i18n', 'catalogs', 'ide-panels.ts'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-logs-close"[\s\S]{0,200}onClick=\{\(\) => setLogsOpen\(false\)\}/);
+    expect(catalogue).toContain("'idePanels.preview.hideLogs': 'Masquer les journaux'");
+    expect(
+      bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button.bolt-preview-logs-close'),
+    ).toMatch(/display:\s*inline-flex/);
+  });
+});

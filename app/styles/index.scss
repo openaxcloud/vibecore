@@ -12330,6 +12330,22 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: min(220px, 42%);
 }
 
+/* Hors téléphone, l'URL est le champ lui-même : le bouton de lecture n'existe pas. */
+.bolt-preview-url-text {
+  display: none;
+}
+
+/* Les journaux se referment partout : une croix, à droite d'« Ancrer à droite ». */
+.bolt-preview-logs-panel header > button:first-of-type {
+  margin-inline-start: auto;
+}
+
+.bolt-preview-logs-panel .bolt-preview-logs-close {
+  min-width: 32px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
 .bolt-preview-logs-panel header,
 .bolt-preview-devtools-panel header {
   display: flex;
@@ -23298,6 +23314,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none;
   }
 
+  /*
+   * … sauf la croix qui referme : sans elle, sur téléphone, les journaux ne se
+   * refermaient plus (Avi, 07/09 08:19). 44 px de large, 36 de haut.
+   */
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button.bolt-preview-logs-close {
+    display: inline-flex;
+    min-width: 44px;
+    height: 36px;
+    margin-inline-start: auto;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-logs-panel [role='tablist'] button {
     white-space: nowrap;
   }
@@ -23385,6 +23412,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar {
+    position: relative; /* le champ retiré de la vue hors édition se positionne par rapport à la barre */
     min-height: 36px;
     gap: 4px;
     padding: 2px;
@@ -23399,6 +23427,45 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input {
     height: 28px;
     font-size: 16px; /* plancher iOS */
+  }
+
+  /*
+   * L'URL SE LIT EN 13 PX, S'ÉDITE EN 16 PX (Avi, 07/09 08:19 : « tu as réduit
+   * la police du contenu comme le reste, où il y a l'URL »). Le plancher de
+   * 16 px du champ est un plancher d'accessibilité (IOS-ZOOM-001), pas un
+   * style : on ne le baisse pas. Hors édition, le champ est retiré de la vue
+   * (pas de `display: none` : il doit rester focalisable) et un bouton montre
+   * l'adresse à l'échelle du reste ; un appui bascule vers le champ.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar[data-edition='false'] input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile
+    .bolt-preview-addressbar[data-edition='false']
+    .bolt-preview-url-text {
+    display: block;
+    min-width: 0;
+    /* Le plancher tactile de 44 px des boutons du téléphone gonflait la barre à 50 px : ce bouton fait la hauteur du champ. */
+    height: 28px !important;
+    min-height: 28px !important;
+    flex: 1 1 auto;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: 13px !important;
+    line-height: 28px;
+    text-align: start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Carte de démarrage : deux colonnes, numéro à gauche, libellé entier à 11px. */

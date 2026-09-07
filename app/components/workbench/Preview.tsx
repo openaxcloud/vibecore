@@ -776,6 +776,17 @@ export const Preview = memo(
     const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
     const previewLoadIdentityRef = useRef<string | undefined>();
     const [logsOpen, setLogsOpen] = useState(false);
+
+    /*
+     * SUR TÉLÉPHONE, L'URL SE LIT EN 13 PX ET S'ÉDITE EN 16 PX. Le champ garde
+     * le plancher iOS de 16 px (IOS-ZOOM-001 : en dessous, Safari zoome au focus
+     * et ne dézoome jamais) ; mais Avi, 07/09 08:19 : « tu as réduit la police
+     * du contenu comme le reste, où il y a l'URL ». Hors édition, c'est un
+     * bouton en 13 px qui montre l'adresse ; un appui révèle le champ, à 16 px,
+     * et le focalise — la police rendue au focus reste au plancher, donc pas de
+     * zoom. Sur bureau, le bouton n'existe pas (CSS) et le champ reste seul.
+     */
+    const [adresseEnEdition, setAdresseEnEdition] = useState(false);
     const [activeLogTab, setActiveLogTab] = useState<PreviewLogTab>('webview');
     const [devToolsOpen, setDevToolsOpen] = useState(false);
     const [capturingThumbnail, setCapturingThumbnail] = useState(false);
@@ -2470,7 +2481,10 @@ export const Preview = memo(
             />
           </div>
 
-          <div className="bolt-preview-addressbar flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
+          <div
+            className="bolt-preview-addressbar flex-grow flex items-center gap-1 bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-1 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover hover:focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within-border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive"
+            data-edition={adresseEnEdition ? 'true' : 'false'}
+          >
             <PortDropdown
               activePreviewIndex={Math.max(normalizedActivePreviewIndex, 0)}
               setActivePreviewIndex={setActivePreviewIndex}
@@ -2479,6 +2493,18 @@ export const Preview = memo(
               setIsDropdownOpen={setIsPortDropdownOpen}
               previews={previews}
             />
+            <button
+              type="button"
+              className="bolt-preview-url-text"
+              aria-label={t('idePanels.preview.url')}
+              disabled={!activePreview}
+              onClick={() => {
+                setAdresseEnEdition(true);
+                window.requestAnimationFrame(() => inputRef.current?.focus());
+              }}
+            >
+              {addressInput}
+            </button>
             <input
               title={t('idePanels.preview.url')}
               aria-label={t('idePanels.preview.url')}
@@ -2495,6 +2521,7 @@ export const Preview = memo(
                   resolveAddressInput();
                 }
               }}
+              onBlur={() => setAdresseEnEdition(false)}
               disabled={!activePreview}
             />
             <button
@@ -3026,6 +3053,21 @@ export const Preview = memo(
               >
                 <span className="i-ph:sidebar-simple" aria-hidden />
                 {t('idePanels.preview.dockRight')}
+              </button>
+              {/*
+               * FERMER, partout. Sur téléphone « Ancrer à droite » est caché (pas de
+               * volet de droite) et il ne restait AUCUN moyen de refermer les
+               * journaux — Avi, 07/09 08:19 : « quand j'ouvre les journaux je ne
+               * peux pas les fermer ». Une croix, visible sur tous les formats.
+               */}
+              <button
+                type="button"
+                className="bolt-preview-logs-close"
+                aria-label={t('idePanels.preview.hideLogs')}
+                title={t('idePanels.preview.hideLogs')}
+                onClick={() => setLogsOpen(false)}
+              >
+                <span className="i-ph:x" aria-hidden />
               </button>
             </header>
             <pre>
