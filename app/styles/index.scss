@@ -23092,6 +23092,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   /*
+   * UN DIALOGUE PASSE DEVANT LES FEUILLES. Les feuilles du téléphone (menu
+   * « ••• », « Agent », « Économique », « + ») sont à z-index 12021–12022 ; les
+   * dialogues Radix (Supabase, outils MCP…) sont à 9999 et se rendent dans
+   * <body>. Mesuré sur WebKitGTK le 07/09 (capture wk-390-outil-1) : le
+   * dialogue « Outils MCP » ouvert depuis le menu « ••• » était coupé par la
+   * feuille restée ouverte dessous. Un dialogue est modal : rien ne passe
+   * devant lui, son voile compris.
+   */
+  body .bolt-dialog-overlay {
+    z-index: 12059;
+  }
+
+  body .bolt-dialog-content {
+    z-index: 12060;
+  }
+
+  /*
    * LE MENU D'UN MESSAGE EST UNE BARRE D'ICÔNES sur téléphone — décision
    * d'Avi, 07/09 08:03 : « ça affiche une boîte trop grosse, on n'a pas besoin
    * du contenu, il faut que les icônes ». Mesuré sur WebKitGTK : 305 × 253 px

@@ -1237,6 +1237,221 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(haut.menu!.bottom).toBeLessThanOrEqual(haut.composeurTop! - 8);
   });
 
+  for (const [format, largeur, hauteur] of [
+    ['téléphone 390', 390, 844],
+    ['tablette 820', 820, 1180],
+  ] as const) {
+    test(`zone de saisie : le menu « ••• » se rend hors du composeur, entier, et chacune de ses entrées s’ouvre dans l’écran — ${format}`, async ({
+      page,
+      request,
+    }) => {
+      test.setTimeout(200_000);
+      await page.setViewportSize({ width: largeur, height: hauteur });
+      await ouvrirIde(page, request, { fil: false });
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(800);
+
+      /*
+       * Avi, 07/09 08:07 : « la boîte de dialogue qui s'ouvre n'est toujours
+       * pas fixée, on ne voit rien » — « Ouvrir Supabase » en haut d'une
+       * feuille tranchée, posée sur le composeur. Même mécanique que les menus
+       * « Agent » et « Économique » : rendu dans le composeur, borné par ses
+       * ancêtres. Et « assure-toi que chaque item s'ouvre parfaitement » :
+       * chaque entrée est ouverte, sa surface mesurée dans l'écran.
+       */
+      const declencheur = page.locator('.bolt-chatbox-tools-menu-anchor button').first();
+      const menu = page.getByTestId('composer-tools-menu');
+
+      const ouvrirLeMenu = async () => {
+        for (let essai = 0; essai < 3 && !(await menu.isVisible().catch(() => false)); essai += 1) {
+          await declencheur.tap({ timeout: 10_000 }).catch(() => undefined);
+          await page.waitForTimeout(600);
+        }
+
+        await expect(menu, 'le menu « ••• »').toBeVisible({ timeout: 10_000 });
+      };
+
+      await ouvrirLeMenu();
+
+      const feuille = await menu.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+
+        const entrees = [...el.querySelectorAll<HTMLElement>('.bolt-chatbox-tools-menu-item')].map((b) => {
+          const q = b.getBoundingClientRect();
+
+          return {
+            texte: b.textContent?.trim().slice(0, 30) ?? '',
+            dedans: q.top >= r.top - 1 && q.bottom <= r.bottom + 1,
+          };
+        });
+
+        return {
+          dansComposeur: Boolean(el.closest('.bolt-project-agent-composer, .bolt-project-chatbox')),
+          dansRacineMobile: Boolean(el.closest('.bolt-responsive-ide-mobile')),
+          top: Math.round(r.top),
+          bottom: Math.round(r.bottom),
+          left: Math.round(r.left),
+          right: Math.round(r.right),
+          vw: innerWidth,
+          vh: innerHeight,
+          composeurTop: Math.round(document.querySelector('.bolt-project-agent-composer')!.getBoundingClientRect().top),
+          entrees,
+        };
+      });
+
+      expect(feuille.dansComposeur, 'le menu est encore rendu dans le composeur').toBe(false);
+      expect(feuille.dansRacineMobile).toBe(true);
+      expect(feuille.top).toBeGreaterThanOrEqual(0);
+      expect(feuille.left).toBeGreaterThanOrEqual(0);
+      expect(feuille.right).toBeLessThanOrEqual(feuille.vw);
+
+      // Une feuille ancrée sur le socle, comme « Agent » et « Économique » : elle recouvre le composeur, jamais l'écran.
+      expect(feuille.bottom, `feuille jusqu’à ${feuille.bottom}px pour ${feuille.vh}px d’écran`).toBeLessThanOrEqual(
+        feuille.vh,
+      );
+      expect(feuille.top, 'la feuille commence sous l’en-tête').toBeGreaterThanOrEqual(48);
+      expect(feuille.entrees.length, 'les entrées du menu').toBeGreaterThanOrEqual(5);
+
+      for (const entree of feuille.entrees) {
+        expect(entree.dedans, `entrée « ${entree.texte} » tranchée par la feuille`).toBe(true);
+      }
+
+      /*
+       * Chaque entrée, à son tour : ce qu'elle ouvre doit tenir dans l'écran.
+       * « Améliorer le prompt » est inerte sans texte (et appelle un modèle) :
+       * on vérifie seulement qu'il est désactivé à vide.
+       */
+      const surfaces = '[role="dialog"], [data-radix-popper-content-wrapper], .bolt-chatbox-tools-menu [role="group"]';
+      const nombreEntrees = feuille.entrees.length;
+
+      for (let index = 0; index < nombreEntrees; index += 1) {
+        await ouvrirLeMenu();
+
+        const entree = menu.locator('.bolt-chatbox-tools-menu-item').nth(index);
+        const texte = (await entree.textContent())?.trim().slice(0, 30) ?? `entrée ${index}`;
+
+        if (await entree.isDisabled()) {
+          expect(texte, 'seule « Améliorer le prompt » peut être inerte à vide').toMatch(/Améliorer|Enhance/);
+          await page.keyboard.press('Escape');
+          continue;
+        }
+
+        // On marque les surfaces déjà là : celle qui s'ouvre est celle qui n'est pas marquée (un compte se trompe quand une surface précédente finit de disparaître).
+        await page.locator(surfaces).evaluateAll((els) => {
+          els.forEach((el) => el.setAttribute('data-vc-avant', '1'));
+        });
+
+        await entree.tap({ timeout: 10_000 });
+        await page.waitForTimeout(700);
+
+        const ouverture = await page.evaluate(
+          ({ surfaces }) => {
+            const candidats = [...document.querySelectorAll<HTMLElement>(surfaces)].filter(
+              (el) => el.getBoundingClientRect().height > 0 && !el.hasAttribute('data-vc-avant'),
+            );
+
+            const surface = candidats.length > 0 ? candidats[candidats.length - 1] : null;
+            const composeur = document.querySelector('.bolt-project-agent-composer')!.getBoundingClientRect();
+            const r = surface?.getBoundingClientRect();
+            const entete = document.querySelector('.bolt-mobile-ecode-header')?.getBoundingClientRect();
+
+            // Ce qui est peint au centre de la surface doit être la surface : rien ne passe devant (feuille, en-tête).
+            const dessus = r ? document.elementFromPoint((r.left + r.right) / 2, (r.top + r.bottom) / 2) : null;
+
+            return {
+              enteteBas: entete ? Math.round(entete.bottom) : 0,
+              peinteDessus: Boolean(surface && dessus && surface.contains(dessus)),
+              surface: r
+                ? {
+                    top: Math.round(r.top),
+                    bottom: Math.round(r.bottom),
+                    left: Math.round(r.left),
+                    right: Math.round(r.right),
+                  }
+                : null,
+              composeur: {
+                top: Math.round(composeur.top),
+                bottom: Math.round(composeur.bottom),
+                left: Math.round(composeur.left),
+                right: Math.round(composeur.right),
+              },
+              vw: innerWidth,
+              vh: innerHeight,
+            };
+          },
+          { surfaces },
+        );
+
+        /*
+         * Une surface neuve, ou (paramètres de l'agent) le composeur lui-même
+         * qui grandit : dans les deux cas, dans l'écran. Hors « paramètres »,
+         * la surface est EXIGÉE : mesuré le 07/09, « Ouvrir Supabase »
+         * n'ouvrait rien (le menu se fermait à l'ouverture et démontait son
+         * dialogue), sur téléphone comme sur bureau.
+         */
+        if (!/param|settings/i.test(texte)) {
+          expect(ouverture.surface, `« ${texte} » n’a rien ouvert`).not.toBeNull();
+        }
+
+        const boite = ouverture.surface ?? ouverture.composeur;
+
+        expect(boite.left, `« ${texte} » : bord gauche à ${boite.left}px`).toBeGreaterThanOrEqual(0);
+
+        // Sous l'en-tête fixé, jamais dessous (la palette avait son titre caché par l'en-tête) ; et rien devant elle.
+        expect(
+          boite.top,
+          `« ${texte} » : haut à ${boite.top}px pour un en-tête jusqu’à ${ouverture.enteteBas}px`,
+        ).toBeGreaterThanOrEqual(ouverture.enteteBas);
+
+        if (ouverture.surface) {
+          expect(
+            ouverture.peinteDessus,
+            `« ${texte} » : quelque chose passe devant la surface (feuille, en-tête)`,
+          ).toBe(true);
+        }
+
+        expect(boite.right, `« ${texte} » : bord droit à ${boite.right}px pour ${ouverture.vw}px`).toBeLessThanOrEqual(
+          ouverture.vw,
+        );
+        expect(boite.bottom, `« ${texte} » : bas à ${boite.bottom}px pour ${ouverture.vh}px`).toBeLessThanOrEqual(
+          ouverture.vh,
+        );
+
+        // Un appui DANS la surface ne la fait pas disparaître (mesuré : un clic dans le dialogue MCP le démontait).
+        if (ouverture.surface) {
+          await page.touchscreen.tap(
+            (ouverture.surface.left + ouverture.surface.right) / 2,
+            Math.min(ouverture.surface.top + 24, ouverture.surface.bottom - 4),
+          );
+          await page.waitForTimeout(400);
+
+          const encoreLa = await page
+            .locator(surfaces)
+            .evaluateAll(
+              (els) =>
+                els.filter((el) => el.getBoundingClientRect().height > 0 && !el.hasAttribute('data-vc-avant')).length,
+            );
+
+          expect(encoreLa, `« ${texte} » : la surface a disparu après un appui dedans`).toBeGreaterThan(0);
+        }
+
+        // Refermer ce qui s'est ouvert, puis le menu s'il est resté ouvert.
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
+        if (await menu.isVisible().catch(() => false)) {
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(300);
+        }
+
+        if (await menu.isVisible().catch(() => false)) {
+          await page.touchscreen.tap(largeur / 2, 120);
+          await page.waitForTimeout(300);
+        }
+      }
+    });
+  }
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,

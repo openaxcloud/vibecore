@@ -799,3 +799,52 @@ describe('21. captures iPhone 07/09 08:03 : menu d’un message — barre d’ic
     expect(composant).toMatch(/removeEventListener\('keydown', surEchappement, true\)/);
   });
 });
+
+describe('22. captures iPhone 07/09 08:07 : le menu « ••• » du composeur, tranché sur le composeur', () => {
+  it('le menu des outils se rend par portail à la racine mobile, comme « Agent » et « Économique »', () => {
+    const chatBox = readFileSync(join(__dirname, '..', 'components', 'chat', 'ChatBox.tsx'), 'utf8');
+
+    expect(chatBox).toMatch(
+      /porterSurTelephone\(\s*<div\s+ref=\{toolsPanelRef\}\s+className="bolt-chatbox-tools-menu"/,
+    );
+    expect(chatBox).toMatch(/cibleFeuilleMobile\(document\)/);
+    expect(chatBox).toMatch(
+      /!toolsMenuRef\.current\?\.contains\(cible\) && !toolsPanelRef\.current\?\.contains\(cible\)/,
+    );
+  });
+
+  it('une surface ouverte depuis le menu survit à un appui dedans, et « Ouvrir Supabase » ouvre vraiment', () => {
+    const chatBox = readFileSync(join(__dirname, '..', 'components', 'chat', 'ChatBox.tsx'), 'utf8');
+
+    // Mesuré le 07/09 : un clic dans le dialogue MCP le faisait disparaître ; « Ouvrir Supabase » n'ouvrait rien.
+    expect(chatBox).toMatch(
+      /closest\('\[role="dialog"\], \[data-radix-popper-content-wrapper\], \.bolt-chatbox-tools-menu'\)/,
+    );
+    expect(chatBox).toMatch(/<SupabaseConnection triggerVariant="menu" \/>/);
+    expect(chatBox).not.toMatch(/onOpen=\{\(\) => setIsToolsMenuOpen\(false\)\}/);
+  });
+
+  it('un dialogue ouvert depuis une feuille passe devant elle, voile compris', () => {
+    // WebKitGTK 07/09 : le dialogue « Outils MCP » (z 9999) coupé par la feuille « ••• » (z 12022).
+    const dialog = readFileSync(join(__dirname, '..', 'components', 'ui', 'Dialog.tsx'), 'utf8');
+
+    expect(dialog).toMatch(/'bolt-dialog-overlay fixed inset-0/);
+    expect(dialog).toMatch(/'bolt-dialog-content fixed top-1\/2/);
+    expect(bloc('body .bolt-dialog-overlay')).toMatch(/z-index:\s*12059/);
+    expect(bloc('body .bolt-dialog-content')).toMatch(/z-index:\s*12060/);
+  });
+
+  it('la palette de design se borne à la place réelle au-dessus du menu, pas à l’écran', () => {
+    // E2E 07/09 à 390 : 620 px de contenu pour 469 px disponibles — la palette sortait de 85 px par le haut.
+    const palette = readFileSync(join(__dirname, '..', 'components', 'ui', 'ColorSchemeDialog.tsx'), 'utf8');
+
+    expect(palette).toMatch(
+      /max-h-\[min\(620px,var\(--radix-popover-content-available-height,calc\(100dvh-64px\)\)\)\]/,
+    );
+    expect(palette).toMatch(/max-h-\[inherit\]/);
+
+    // Et elle ne passe pas sous l'en-tête fixé du téléphone : 64 px de marge de collision en haut.
+    expect(palette).toMatch(/collisionPadding=\{\{ top: 64, right: 12, bottom: 12, left: 12 \}\}/);
+    expect(palette).not.toMatch(/max-h-\[min\(620px,calc\(100dvh-64px\)\)\]/);
+  });
+});
