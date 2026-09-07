@@ -25,6 +25,7 @@ import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.se
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
+import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import {
   anchoredHistoryDrop,
@@ -421,6 +422,37 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * on each continuation and capped at MAX_RESPONSE_SEGMENTS.
    */
   let continuationSegments = 0;
+
+  /*
+   * LA CHAÎNE DE GÉNÉRATION DOIT SURVIVRE À `execute`.
+   *
+   * Défaut mesuré le 2026-09-07 et reproduit sur un harnais local : le SDK ferme
+   * le flux dès qu'`execute` a rendu la main ET que les flux déjà fusionnés sont
+   * épuisés. Or la continuation (`onFinish` → `streamText` →
+   * `mergeIntoDataStream`) fusionne son segment APRÈS ce moment. Le SDK avale
+   * alors la fusion en silence — son `safeEnqueue` attrape et jette — pendant
+   * que le fournisseur continue de générer et que l'organisation est facturée.
+   *
+   * Harnais : un `merge()` appelé 1,5 s après le retour d'`execute` n'est jamais
+   * livré, sans erreur ni exception.
+   *
+   * Sur sept générations réelles, les trois qui dépassaient la limite de jetons
+   * — donc qui continuaient — ont vu leur réponse HTTP se terminer 6 à 9 minutes
+   * AVANT la fin de la génération : 457 à 64 881 octets livrés pour 46 208 à
+   * 65 390 jetons produits. Les deux qui tenaient en un seul segment se sont
+   * terminées à la seconde près avec leur génération. L'utilisateur voyait
+   * « Generating Response 50 % » figé.
+   *
+   * On compte donc les générations EN VOL : `execute` ne rend la main que
+   * lorsqu'il n'en reste aucune.
+   */
+  /*
+   * 12 minutes : la plus longue génération saine mesurée tenait 215 s, et huit
+   * segments peuvent légitimement s'enchaîner. La borne vise l'anomalie, pas le
+   * cas normal — et elle existe pour qu'un `onFinish` qui ne vient jamais ne
+   * transforme pas un écran figé en requête sans fin.
+   */
+  const suiviDeChaine = creerSuiviDeChaine(12 * 60 * 1000);
 
   /*
    * Model routing (Vague C) continuation consistency. When the request opted into
@@ -1741,6 +1773,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                */
               try {
                 providerCallStartedAt = Date.now();
+                suiviDeChaine.debut();
 
                 const result = await streamText({
                   messages: [...processedMessages],
@@ -1776,12 +1809,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                   // Client went away mid-continuation — expected, just clean up.
+                  suiviDeChaine.fin();
                   await safeCloseMcp();
 
                   return;
                 }
 
                 logger.error(`continuation streamText failed: ${error instanceof Error ? error.message : error}`);
+
+                /*
+                 * `streamText` a levé : SON `onFinish` ne se déclenchera jamais, donc
+                 * le compteur ne redescendrait pas et `execute` attendrait jusqu'au
+                 * délai maximal. On solde ici la génération qu'on vient de compter.
+                 */
+                suiviDeChaine.fin();
                 await safeCloseMcp();
                 dataStream.writeData({
                   type: 'progress',
@@ -1800,6 +1841,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                */
               logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
               await safeCloseMcp();
+            } finally {
+              /*
+               * Cette génération est terminée, quelle qu'en soit l'issue. Si elle a
+               * lancé une continuation, celle-ci s'est déjà comptée AVANT son
+               * `streamText` — le compteur ne retombe donc pas à zéro entre deux
+               * segments et le flux reste ouvert pour le suivant. C'est tout le
+               * correctif : sans cela le SDK ferme entre les segments et jette
+               * silencieusement tout ce qui suit.
+               */
+              suiviDeChaine.fin();
             }
           },
         };
@@ -1906,6 +1957,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         }
 
         providerCallStartedAt = Date.now();
+        suiviDeChaine.debut();
 
         const result = await streamText({
           messages: [...processedMessages],
@@ -1951,6 +2003,39 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * ou `execute` rend la main pour le comparer au premier octet de contenu.
          */
         chronoFlux.executeRenduA = Date.now() - chronoFlux.debut;
+
+        /*
+         * ON NE REND LA MAIN QU'À LA FIN DE LA CHAÎNE.
+         *
+         * Dès qu'`execute` rend la main ET que les flux déjà fusionnés sont
+         * épuisés, le SDK FERME. La continuation, elle, fusionne son segment plus
+         * tard, depuis `onFinish` : elle arrive après la fermeture et se fait
+         * avaler en silence par le `safeEnqueue` du SDK.
+         *
+         * Attendre la fin de la chaîne garde le flux ouvert d'un segment au suivant.
+         * La course avec le délai maximal garantit qu'on rend la main même si un
+         * `onFinish` ne vient jamais — un silence ne doit pas devenir une attente
+         * sans fin.
+         */
+        const delaiDepasse = await suiviDeChaine.attendre();
+
+        if (delaiDepasse) {
+          logger.error(
+            JSON.stringify({
+              event: 'chat.chaine.delai-depasse',
+              projectId,
+              enVol: suiviDeChaine.enVol(),
+            }),
+          );
+
+          dataStream.writeData({
+            type: 'progress',
+            label: API_CHAT_PROGRESS_LABELS.response,
+            status: 'complete',
+            order: progressCounter++,
+            message: copy.responseInterrupted,
+          } satisfies ProgressAnnotation);
+        }
       },
       onError: (error: any) => {
         /*
