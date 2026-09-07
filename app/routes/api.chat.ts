@@ -41,7 +41,6 @@ import {
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
-import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
@@ -163,18 +162,59 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   };
 
-  const streamRecovery = new StreamRecoveryManager({
-    timeout: 45000,
-    maxRetries: 2,
-    onTimeout: () => {
-      logger.warn('Stream timeout - attempting recovery');
-    },
-  });
+  /*
+   * LE DETECTEUR DE FLUX EST RETIRE, PAS REPARE.
+   *
+   * L'ancien surveillant d'inactivite (45 s, deux tentatives) avait deux
+   * defauts qui se cumulaient :
+   *
+   *  - sa methode de rafraichissement n'etait appelee NULLE PART. Son horloge
+   *    ne repartait jamais : il criait « Stream timeout detected » a 45, 90 et
+   *    135 s sur TOUTE generation longue, saine ou non. Mesure du 2026-09-07
+   *    sur une generation terminee normalement (`finishReason: stop`, 46 208
+   *    jetons) : trois alertes, puis « Max retries reached ».
+   *  - et sur expiration il ne faisait qu'ecrire dans le journal : son `stop()`
+   *    eteignait la surveillance sans toucher au flux. Aucune recuperation n'a
+   *    jamais eu lieu — le nom promettait ce que le code ne faisait pas.
+   *
+   * Un detecteur qui alerte systematiquement a tort est PIRE qu'absent : il
+   * apprend a ignorer ses propres alertes, et il a coute deux enquetes ou on
+   * l'a pris pour une cause. Le reparer aurait donne un detecteur juste qui ne
+   * fait toujours rien. On le retire ; l'instrumentation posee plus bas mesure
+   * ce qui compte reellement — et elle, elle rend des chiffres.
+   */
+
+  /*
+   * CHRONOMETRE DU FLUX SORTANT.
+   *
+   * Mesure du 2026-09-07 : sur trois generations sur sept, la reponse HTTP s'est
+   * terminee apres ~460 octets en 3 a 7 secondes — les six annotations de
+   * progression et rien d'autre — pendant que le serveur continuait a generer
+   * sept minutes et facturait 46 208 jetons. L'ecran reste sur « Generating
+   * Response 50 % », qui est l'etape 3 sur 6.
+   *
+   * Ce qui est deja ECARTE, mesure et non suppose :
+   *  - nginx : `upstream_response_time` 6,739 s pour un `proxy-read-timeout` de
+   *    180 s, statut amont 200 — l'infrastructure n'a pas coupe ;
+   *  - la fusion non attendue : un harnais local reproduisant `createDataStream`
+   *    avec un premier jeton a 8 s garde le flux OUVERT et livre tout ;
+   *  - l'ancien detecteur d'inactivite, qui n'agissait pas.
+   *
+   * Ces compteurs repondent a la seule question qui reste : l'instant ou
+   * `execute` rend la main, compare a l'instant du PREMIER octet de contenu.
+   */
+  const chronoFlux = {
+    debut: Date.now(),
+    premierContenuA: 0,
+    dernierChunkA: 0,
+    octets: 0,
+    chunks: 0,
+    executeRenduA: 0,
+  };
 
   if (request.signal) {
     const abortHandler = () => {
       clientDisconnected = true;
-      streamRecovery.stop();
       logger.warn('Client disconnected - cancelling stream');
     };
     request.signal.addEventListener('abort', abortHandler, { once: true });
@@ -497,8 +537,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          */
         anthropicCacheStore.enterWith({ read: 0, write: 0 });
 
-        streamRecovery.startMonitoring();
-
         /*
          * C1.b.4 — Pre-flight quota check. We over-estimate (×1.2) on
          * char/4 so a chat that would clip the limit by a hair is
@@ -546,7 +584,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 message: quotaMessage,
               },
             });
-            streamRecovery.stop();
 
             /*
              * Release this request's MCP clients before the throw below, mirroring
@@ -664,7 +701,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             await new Promise((resolve) => setTimeout(resolve, 0));
           }
 
-          streamRecovery.stop();
           dataStream.writeMessageAnnotation({
             type: 'usage',
             value: zeroUsage,
@@ -917,8 +953,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             needsApproval: true,
             tasks: agentPlanTasks,
           } satisfies ContextAnnotation);
-
-          streamRecovery.stop();
 
           dataStream.writeData({
             type: 'progress',
@@ -1603,8 +1637,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              */
             try {
               if (finishReason !== 'length') {
-                streamRecovery.stop();
-
                 await flushUsage(finishReason);
 
                 warnIfNoFilesGenerated();
@@ -1637,7 +1669,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                  * throw here surfaces as a stream error to the client). Without
                  * this bound the 'length' continuation recursed forever.
                  */
-                streamRecovery.stop();
                 await flushUsage('length');
                 warnIfNoFilesGenerated();
                 dataStream.writeData({
@@ -1661,7 +1692,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * cap, burning quota for zero output. Treat it as a terminal response.
                */
               if (content.trim().length === 0) {
-                streamRecovery.stop();
                 await flushUsage('length');
                 warnIfNoFilesGenerated();
                 dataStream.writeData({
@@ -1746,14 +1776,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               } catch (error) {
                 if (error instanceof Error && error.name === 'AbortError') {
                   // Client went away mid-continuation — expected, just clean up.
-                  streamRecovery.stop();
                   await safeCloseMcp();
 
                   return;
                 }
 
                 logger.error(`continuation streamText failed: ${error instanceof Error ? error.message : error}`);
-                streamRecovery.stop();
                 await safeCloseMcp();
                 dataStream.writeData({
                   type: 'progress',
@@ -1771,7 +1799,6 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                * here tear down the data stream or leak resources.
                */
               logger.error(`onFinish failed: ${error instanceof Error ? error.message : error}`);
-              streamRecovery.stop();
               await safeCloseMcp();
             }
           },
@@ -1917,10 +1944,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         });
 
         result.mergeIntoDataStream(dataStream);
+
+        /*
+         * `mergeIntoDataStream` n'est pas attendu — c'est le contrat du SDK, qui
+         * inscrit le flux fusionne dans ses promesses en cours. On note l'instant
+         * ou `execute` rend la main pour le comparer au premier octet de contenu.
+         */
+        chronoFlux.executeRenduA = Date.now() - chronoFlux.debut;
       },
       onError: (error: any) => {
-        streamRecovery.stop();
-
         /*
          * Release this request's MCP clients (stdio child processes / HTTP
          * transports) on the error path too. The success/terminal paths close
@@ -2021,7 +2053,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
           // Convert the string stream to a byte stream
           const str = typeof transformedChunk === 'string' ? transformedChunk : JSON.stringify(transformedChunk);
-          controller.enqueue(encoder.encode(str));
+          const octets = encoder.encode(str);
+
+          /*
+           * Le premier octet de CONTENU (partie `0:`), distingue des annotations
+           * (`2:`, `8:`) : c'est lui qui manque dans les reponses tronquees, et
+           * son horodatage tranche la question.
+           */
+          chronoFlux.chunks += 1;
+          chronoFlux.octets += octets.length;
+          chronoFlux.dernierChunkA = Date.now() - chronoFlux.debut;
+
+          if (!chronoFlux.premierContenuA && str.startsWith('0:')) {
+            chronoFlux.premierContenuA = chronoFlux.dernierChunkA;
+          }
+
+          controller.enqueue(octets);
         },
         flush: (controller) => {
           /*
@@ -2033,6 +2080,25 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           if (typeof lastChunk === 'string' && lastChunk.startsWith('g')) {
             controller.enqueue(encoder.encode(`0: "</div>\\n"\n`));
           }
+
+          /*
+           * LE VERDICT DU FLUX. Une reponse saine porte des milliers d'octets et un
+           * `premierContenuMs` non nul ; une reponse tronquee porte quelques
+           * centaines d'octets et `premierContenuMs: 0` — le contenu n'est jamais
+           * parti. `executeRenduMs` dit si la fonction avait deja rendu la main.
+           */
+          logger.info(
+            JSON.stringify({
+              event: 'chat.stream.closed',
+              projectId,
+              octets: chronoFlux.octets,
+              chunks: chronoFlux.chunks,
+              premierContenuMs: chronoFlux.premierContenuA,
+              dernierChunkMs: chronoFlux.dernierChunkA,
+              executeRenduMs: chronoFlux.executeRenduA,
+              dureeMs: Date.now() - chronoFlux.debut,
+            }),
+          );
         },
       }),
     );
