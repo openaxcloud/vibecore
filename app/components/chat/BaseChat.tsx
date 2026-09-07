@@ -9992,7 +9992,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           data-testid={`button-close-tab-${tab.id}`}
                           onClick={() => closeMobileOpenTab(tab.id)}
                         >
-                          <span className="i-ph:x" aria-hidden />
+                          {/*
+                           * La pastille et la glyphe sont deux éléments : l'icône est un
+                           * MASQUE, dont la couleur de trait est sa `background-color`.
+                           * Peindre la pastille sur l'icône elle-même peignait la croix
+                           * en couleur de fond — blanche en thème clair (BUG-TAB-CLOSE-CONTRAST-001).
+                           */}
+                          <span className="bolt-mobile-tab-switcher-close-chip">
+                            <span className="i-ph:x" aria-hidden />
+                          </span>
                         </button>
                       ) : null}
                     </div>

@@ -77,10 +77,36 @@ describe('AV-UX point 4 — croix de fermeture visible en clair ET en sombre', (
   });
 
   it('la pastille de la croix est opaque et bordée (détachée de la tuile)', () => {
-    const chipBlock = scss.match(/\.bolt-mobile-tab-switcher-close > span \{[\s\S]*?\n\}/)?.[0] ?? '';
+    const chipBlock = scss.match(/\.bolt-mobile-tab-switcher-close-chip \{[\s\S]*?\n\}/)?.[0] ?? '';
 
     expect(chipBlock).toContain('background: var(--vc-ide-bg-app);');
     expect(chipBlock).toContain('border: 1px solid var(--mobile-nav-border);');
+  });
+
+  /*
+   * BUG-TAB-CLOSE-CONTRAST-001 (Avi, 07/09 : « avec le thème light la croix est
+   * blanche sur du clair »). Une icône `i-ph:*` est un MASQUE : sa couleur de
+   * trait est sa `background-color`. La pastille était posée sur le span de
+   * l'icône — mesuré Chromium 390, thème clair : croix peinte en
+   * rgb(246, 248, 251), la couleur de fond, sur la tuile orange « Secrets ».
+   * La version précédente de ce test verrouillait exactement ce défaut.
+   */
+  const baseChatSource = readFileSync(new URL('../components/chat/BaseChat.tsx', import.meta.url), 'utf8');
+
+  it('la pastille est un élément à part : la glyphe n’est jamais le support du fond', () => {
+    expect(scss, 'un sélecteur `> span` sur la croix repeindrait l’icône masquée').not.toMatch(
+      /\.bolt-mobile-tab-switcher-close(?::[\w-]+)? > span\b/,
+    );
+    expect(baseChatSource).toMatch(
+      /className="bolt-mobile-tab-switcher-close"[\s\S]{0,900}?<span className="bolt-mobile-tab-switcher-close-chip">\s*<span className="i-ph:x" aria-hidden \/>\s*<\/span>/,
+    );
+  });
+
+  it('la glyphe se peint en couleur du contenu (currentColor), sur tous les thèmes', () => {
+    const glyphBlock = scss.match(/\.bolt-mobile-tab-switcher-close-chip > span \{[\s\S]*?\n\}/)?.[0] ?? '';
+
+    expect(glyphBlock).toContain('background-color: currentColor;');
+    expect(glyphBlock).not.toMatch(/var\(--vc-ide-bg-/);
   });
 
   /*

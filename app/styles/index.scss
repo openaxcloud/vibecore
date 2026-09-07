@@ -5574,7 +5574,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 // The visible chip is a smaller element centred inside the larger tap target so
 // the corner control stays compact while remaining easy to hit on touch.
-.bolt-mobile-tab-switcher-close > span {
+//
+// BUG-TAB-CLOSE-CONTRAST-001 — la pastille n'est PAS le span de l'icône. Une
+// icône `i-ph:*` est un masque : sa couleur de trait est sa `background-color`
+// (`currentColor` par défaut). Posée sur l'icône, `background: var(--vc-ide-bg-app)`
+// peignait la croix EN COULEUR DE FOND — mesuré rgb(246, 248, 251) sur la tuile
+// orange « Secrets » en thème clair, invisible. Le sélecteur vise donc une
+// classe propre, et ne doit jamais redevenir `> span`.
+.bolt-mobile-tab-switcher-close-chip {
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -5592,10 +5599,19 @@ body :where(.lucide, svg[data-lucide]) {
     color 150ms ease;
 }
 
-.bolt-mobile-tab-switcher-close:hover > span,
-.bolt-mobile-tab-switcher-close:focus-visible > span {
+.bolt-mobile-tab-switcher-close:hover .bolt-mobile-tab-switcher-close-chip,
+.bolt-mobile-tab-switcher-close:focus-visible .bolt-mobile-tab-switcher-close-chip {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+// La glyphe se peint dans la couleur du contenu de la tuile, sur tous les thèmes.
+// Taille en px : la remise à zéro des polices de la coque IDE ramène la pastille
+// à 14 px, et une glyphe en `1em` suivrait (mesuré 14 px au lieu de 18).
+.bolt-mobile-tab-switcher-close-chip > span {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
 }
 
 .bolt-mobile-tab-switcher-empty {

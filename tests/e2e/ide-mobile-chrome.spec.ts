@@ -121,12 +121,19 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
   throw new Error(`Impossible de préparer un projet : ${dernier}`);
 }
 
-async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
+async function ouvrirIde(
+  page: Page,
+  request: APIRequestContext,
+  options: { fil: boolean; long?: boolean; theme?: 'light' | 'dark' },
+) {
   const { token, projectId } = await preparerUnProjet(request, options);
 
-  await page
-    .context()
-    .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+  await page.context().addCookies([
+    { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
+
+    // Le cookie partagé est la source de vérité du thème (app/lib/stores/theme.ts).
+    ...(options.theme ? [{ name: 'ecode_theme', value: options.theme, url: appBaseUrl }] : []),
+  ]);
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
 
@@ -1573,6 +1580,93 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
       expect(m.sw, `raccourci « ${m.text} » tronqué`).toBeLessThanOrEqual(m.cw + 1);
     }
   });
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème ${theme}`, async ({
+      page,
+      request,
+    }) => {
+      test.setTimeout(150_000);
+      await ouvrirIde(page, request, { fil: false, theme });
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(600);
+
+      /*
+       * Avi, 07/09 : « avec le thème light la croix est blanche sur du clair, on
+       * voit pas bien, il faut la même couleur que le contenu ». Mesuré avant
+       * correction (Chromium 390, clair) : glyphe masquée peinte en
+       * rgb(246, 248, 251) — la couleur de FOND — sur la tuile « Secrets ».
+       */
+      await ouvrirOutil(page, 'secrets');
+      await page.waitForTimeout(800);
+      await page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher').tap();
+      await expect(page.getByTestId('mobile-tab-switcher')).toBeVisible({ timeout: 10_000 });
+
+      const croix = page.getByTestId('button-close-tab-secrets');
+
+      await expect(croix).toBeVisible();
+
+      const mesure = await croix.evaluate((bouton) => {
+        const luminance = (couleur: string) => {
+          const m = couleur.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+
+          if (!m) {
+            throw new Error(`couleur illisible : ${couleur}`);
+          }
+
+          const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
+
+          const [r, g, b] = [m[1], m[2], m[3]].map((v) => {
+            const c = parseInt(v, 10) / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+          });
+
+          return { l: 0.2126 * r + 0.7152 * g + 0.0722 * b, alpha };
+        };
+        const contraste = (a: string, b: string) => {
+          const la = luminance(a).l;
+          const lb = luminance(b).l;
+
+          return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+        };
+
+        const carte = bouton.closest<HTMLElement>('.bolt-mobile-tab-switcher-card')!;
+        const contenu = carte.querySelector<HTMLElement>('.bolt-mobile-tab-switcher-card-main')!;
+        const glyphe = [...bouton.querySelectorAll<HTMLElement>('span')].find((el) => el.className.includes('i-ph:'))!;
+        const pastille = glyphe.parentElement!;
+        const styleGlyphe = getComputedStyle(glyphe);
+        const stylePastille = getComputedStyle(pastille);
+        const masque = styleGlyphe.maskImage !== 'none' || styleGlyphe.webkitMaskImage !== 'none';
+
+        // Une icône masquée se peint avec sa `background-color`.
+        const peinture = masque ? styleGlyphe.backgroundColor : styleGlyphe.color;
+
+        const fondPastille =
+          luminance(stylePastille.backgroundColor).alpha > 0.5
+            ? stylePastille.backgroundColor
+            : getComputedStyle(carte).backgroundColor;
+
+        return {
+          theme: document.documentElement.getAttribute('data-theme'),
+          masque,
+          peinture,
+          couleurContenu: getComputedStyle(contenu).color,
+          fondPastille,
+          contraste: contraste(peinture, fondPastille),
+          taille: glyphe.getBoundingClientRect().width,
+        };
+      });
+
+      expect(mesure.theme).toBe(theme);
+      expect(mesure.masque, 'la glyphe Phosphor est un masque').toBe(true);
+      expect(mesure.peinture, 'la croix a la couleur du contenu').toBe(mesure.couleurContenu);
+      expect(
+        mesure.contraste,
+        `contraste ${mesure.contraste.toFixed(1)}:1 (${mesure.peinture} sur ${mesure.fondPastille})`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(mesure.taille, 'glyphe de 18 px, pas ramenée à 1em par la coque').toBeGreaterThanOrEqual(18);
+    });
+  }
 
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
