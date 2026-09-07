@@ -208,6 +208,40 @@ async function ouvrirOutil(page: Page, id: string) {
   await page.getByTestId(`tool-item-${id}`).click({ timeout: 15_000 });
 }
 
+/*
+ * Le fil est « stable » quand sa hauteur de contenu et sa position ne bougent
+ * plus pendant une seconde (quatre lectures à 250 ms). Bornée à 20 s : au-delà,
+ * on mesure quand même, et l'assertion dira ce qu'elle voit.
+ */
+async function attendreLeFilStable(page: Page) {
+  const lire = () =>
+    page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+        const style = getComputedStyle(el);
+
+        return (
+          /(auto|scroll)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          el.querySelector('.bolt-chat-message-row')
+        );
+      });
+
+      return boite ? `${boite.scrollHeight}:${Math.round(boite.scrollTop)}` : 'aucune';
+    });
+
+  let precedent = await lire();
+  let stable = 0;
+
+  for (let i = 0; i < 80 && stable < 4; i += 1) {
+    await page.waitForTimeout(250);
+
+    const courant = await lire();
+
+    stable = courant === precedent ? stable + 1 : 0;
+    precedent = courant;
+  }
+}
+
 type Mesure = { text: string; font: number; w: number; h: number; sw: number; cw: number; sh: number; ch: number };
 
 async function mesurer(page: Page, selecteur: string): Promise<Mesure[]> {
@@ -1226,6 +1260,19 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
           dansLaRacine: Boolean(document.querySelector('.bolt-responsive-ide-mobile > .bolt-message-context-menu')),
         };
       });
+
+    /*
+     * Porte E2E, runs 1594 et 1608 (runner CI, 3 tentatives sur 3) : « le fil
+     * ne doit pas bouger » — 388 → 548, puis 420 → 388. Ce n'est pas le menu
+     * qui bouge le fil : c'est le fil qui finit de se rendre entre les deux
+     * mesures (hauteur de contenu +160 puis −32 px), ce que 1 200 ms ne
+     * couvrent pas sur un runner lent. En local, même bridé ×4 CPU, il est
+     * stable à 1 200 ms — d'où le vert 3/3 ici. On attend la fin réelle du
+     * chargement, puis un fil dont la hauteur et la position ne changent
+     * plus pendant une seconde.
+     */
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
 
     const avant = await etat();
 
