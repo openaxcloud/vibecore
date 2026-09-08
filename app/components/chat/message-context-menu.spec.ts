@@ -6,6 +6,7 @@ import {
   placerLeMenu,
   ramenerDansLEcran,
   TOLERANCE_DEPLACEMENT_PX,
+  pointDOuverture,
 } from './message-context-menu';
 
 const depart = { x: 100, y: 200, pointerId: 1 };
@@ -118,5 +119,19 @@ describe('placerLaBarre — la barre d’icônes du téléphone', () => {
     const { x } = placerLaBarre({ x: 380, y: 400 }, taille, bornes);
 
     expect(x + taille.largeur).toBeLessThanOrEqual(bornes.largeur - 12);
+  });
+});
+
+describe('pointDOuverture — BUG-MESSAGE-MENU-IOS-001', () => {
+  const ligne = { left: 10, top: 300, width: 370 };
+
+  it('sur téléphone, au-dessus de la ligne et centré : le même endroit pour chaque message, pas sous le doigt', () => {
+    expect(pointDOuverture(ligne, { x: 55, y: 412 }, true)).toEqual({ x: 195, y: 300 });
+    expect(pointDOuverture(ligne, { x: 330, y: 380 }, true)).toEqual({ x: 195, y: 300 });
+  });
+
+  it('à la souris, sous le pointeur ; sans ligne mesurable, sous le doigt', () => {
+    expect(pointDOuverture(ligne, { x: 55, y: 412 }, false)).toEqual({ x: 55, y: 412 });
+    expect(pointDOuverture(null, { x: 55, y: 412 }, true)).toEqual({ x: 55, y: 412 });
   });
 });

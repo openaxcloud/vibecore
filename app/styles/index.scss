@@ -7916,23 +7916,6 @@ body :where(.lucide, svg[data-lucide]) {
  * Ce sont les MÊMES boutons, déplacés ici : mêmes gestionnaires, mêmes
  * libellés traduits.
  */
-.bolt-message-context-menu-veil {
-  position: fixed;
-  z-index: 12040;
-  inset: 0;
-
-  /*
-   * TRANSPARENT, et il faut le DIRE : la règle de thème des bulles peint tout
-   * élément dont la classe contient « message » (`body :where([class*='message']
-   * …) { background-color: var(--vc-ide-bg-card) }`), et ce voile en fait
-   * partie. Mesuré sur WebKitGTK (07/09) : fond calculé rgb(238 242 247) sur
-   * 390 × 844 — l'écran entier repeint en couleur de carte derrière le menu.
-   * C'est la capture d'Avi, 07/09 08:03 : « on ne voit plus le contenu à
-   * l'arrière-plan ». Le voile ne se voit pas, il ne fait que fermer.
-   */
-  background: transparent;
-}
-
 .bolt-message-context-menu {
   position: fixed;
   z-index: 12041;
@@ -22436,6 +22419,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      */
     padding: calc(var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)) 0
       calc(var(--mobile-nav-height) + 8px) !important;
+
+    /*
+     * Ce conteneur NE DOIT PAS défiler : `modern-scrollbar` lui donnait
+     * `overflow: auto`, et dès que son contenu dépassait (Production E2E 1680,
+     * runner CI : la boîte extérieure débordait, le test faisait défiler
+     * celle-là et la pastille « descendre » n'apparaissait jamais), c'est lui
+     * que le navigateur faisait défiler — composeur emporté hors de vue, fil
+     * immobile. `hidden` reste un contexte de défilement (le composeur
+     * collant s'y accroche exactement pareil) sans jamais bouger.
+     */
+    overflow: hidden !important;
     scroll-padding-top: calc(
       var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)
     );
@@ -24126,6 +24120,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * Spécificité : les règles du menu sont à (0,3,0) avec la coquille ; la
    * racine mobile ajoute une classe, (0,4,0).
    */
+  /*
+   * BUG-MESSAGE-MENU-IOS-001 — sur téléphone, l'appui long sur un message
+   * ouvre NOTRE menu, et lui seul : Safari ne doit ni sélectionner le texte
+   * ni afficher sa bulle « Copier » par-dessus (« je comprends pas ce que je
+   * copie »). Copier passe par le menu.
+   */
+  .bolt-responsive-ide-mobile .bolt-chat-message-row {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* La barre est centrée sur l'abscisse posée (le centre de la ligne du message) — voir MenuContextuel. */
+  .bolt-responsive-ide-mobile .bolt-message-context-menu[data-centre='true'] {
+    transform: translateX(-50%);
+  }
+
   .bolt-responsive-ide-mobile .bolt-message-context-menu {
     width: max-content;
     min-width: 0;

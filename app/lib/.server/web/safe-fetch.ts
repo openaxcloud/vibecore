@@ -155,10 +155,16 @@ export function armDeadline(
   const remaining = deadlineAt - now();
 
   /*
-   * No message on these errors, exactly like the SSRF_BLOCKED / TimeoutError
-   * ones below: the caller reads `name`/`code` and maps it to localized copy
-   * (describeWebReferenceError). A hardcoded English message here is user-facing
-   * copy the i18n source scanner rejects — rightly, since nothing translates it.
+   * `new Error()` NU, comme les deux abandons voisins (`SSRF_BLOCKED` ligne ~202,
+   * `TimeoutError` ligne ~266) : c'est le `name` qui porte le sens, et c'est lui
+   * que lisent les consommateurs (`name === 'AbortError'`). Le message 'aborted'
+   * n'etait lu par personne et declenchait le garde i18n `error-message`
+   * (`new-file-debt`, baseline=0 current=1), lequel refusait tout deploiement —
+   * la porte de release exige `Production CI` verte pour le commit exact.
+   *
+   * `DeadlineError` est nu pour la meme raison : il echappe au scanner par son
+   * NOM (la regle ne voit que `new Error(...)`), pas parce que son message
+   * servirait a quelque chose — personne ne le lit. Epingle par safe-fetch.spec.
    */
   const onAbort = () => target.destroy(Object.assign(new Error(), { name: 'AbortError' }));
 

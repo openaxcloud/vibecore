@@ -80,7 +80,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
    * rendu, et un hook appelé dans une seule d'entre elles casserait l'ordre des
    * hooks au premier message contenant une image.
    */
-  const menuContextuel = useMenuContextuelDeMessage();
+  const menuContextuel = useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined);
 
   if (Array.isArray(content)) {
     const textItem = content.find((item) => item.type === 'text');

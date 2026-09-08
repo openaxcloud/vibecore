@@ -1178,17 +1178,16 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     expect(enBas.pastille, 'en bas du fil, pas de pastille').toBeNull();
 
-    // Remonter le fil : la boîte qui défile est celle qui contient les messages.
+    /*
+     * Remonter le fil : la boîte qui défile est la plus PROFONDE des boîtes défilantes contenant les messages
+     * (StickToBottom en intercale une ; un conteneur extérieur qui déborde ne ferait pas apparaître la pastille).
+     */
     await page.evaluate(() => {
-      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
-        const style = getComputedStyle(el);
-
-        return (
-          /(auto|scroll)/.test(style.overflowY) &&
-          el.scrollHeight > el.clientHeight + 50 &&
-          el.querySelector('.bolt-chat-message-row')
-        );
-      });
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
 
       if (boite) {
         boite.scrollTop = Math.max(0, boite.scrollTop - 600);
@@ -2003,6 +2002,66 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.bulleHaut - geometrie.enteteBas, 'la bulle se pose juste sous le trait').toBeGreaterThanOrEqual(3);
     expect(geometrie.bulleHaut - geometrie.enteteBas, 'sans bande morte').toBeLessThanOrEqual(10);
     expect(geometrie.hautDeBulleTouchable, 'le haut de la première bulle n’est pas rogné').toBe(true);
+  });
+
+  test('menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+
+    const lignes = page.locator('.bolt-chat-message-row');
+
+    await expect(lignes.last()).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    /*
+     * Avi, 08/09 07:47 : « pas toujours au même endroit pour chaque message,
+     * jamais l'icône disparaît » — deux menus ouverts ensemble sur ses
+     * captures (barre de l'agent + rond « Modifier »), à des hauteurs
+     * différentes, et la page à recharger.
+     */
+    const utilisateur = page.locator('.bolt-chat-message-row-user').last();
+    const agent = page.locator('.bolt-chat-message-row-assistant').last();
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await appuiLong(page, utilisateur, 'droite');
+    await expect(menu).toHaveCount(1, { timeout: 15_000 });
+
+    const premier = await page.evaluate(() => {
+      const m = document.querySelector('.bolt-message-context-menu')!.getBoundingClientRect();
+      const rangees = document.querySelectorAll('.bolt-chat-message-row-user');
+      const ligne = rangees[rangees.length - 1]!.getBoundingClientRect();
+
+      return {
+        menuBas: Math.round(m.bottom),
+        menuCentre: Math.round(m.left + m.width / 2),
+        ligneHaut: Math.round(ligne.top),
+        ligneCentre: Math.round(ligne.left + ligne.width / 2),
+      };
+    });
+
+    expect(premier.menuBas, 'au-dessus de la ligne du message').toBeLessThanOrEqual(premier.ligneHaut);
+    expect(Math.abs(premier.menuCentre - premier.ligneCentre), 'centré sur la ligne').toBeLessThanOrEqual(24);
+
+    // Un appui long sur un autre message : UN menu, celui du nouveau message.
+    await appuiLong(page, agent, 'gauche');
+    await expect(menu).toHaveCount(1, { timeout: 15_000 });
+    await expect(menu.locator('.bolt-assistant-message-footer')).toHaveCount(1);
+
+    // Faire défiler le fil le ferme.
+    await page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
+
+      boite.scrollTop = Math.max(0, boite.scrollTop - 80);
+    });
+    await expect(menu).toHaveCount(0, { timeout: 5_000 });
   });
 
   test('fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit', async ({
