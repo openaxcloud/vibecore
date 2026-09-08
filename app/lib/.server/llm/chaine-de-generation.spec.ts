@@ -61,4 +61,39 @@ describe('creerSuiviDeChaine', () => {
     await expect(suivi.attendre()).resolves.toBe(false);
     await expect(suivi.attendre()).resolves.toBe(false);
   });
+
+  /*
+   * LE CHEMIN D'ABANDON. Sur `STREAM_ABORTED`, c'est `onError` qui s'exécute et
+   * jamais `onFinish` — donc le `finally` qui solde le compteur ne tourne pas.
+   *
+   * Chronologie mesurée le 2026-09-07 :
+   *   23:50:47  Client disconnected
+   *   23:50:49  stream onError code=STREAM_ABORTED
+   *   00:02:49  chat.chaine.delai-depasse  enVol: 1   (12 min plus tard)
+   *
+   * Un client parti ne doit pas coûter douze minutes de connexion retenue.
+   */
+  it("rend la main tout de suite quand la génération se solde sur le chemin d'erreur", async () => {
+    const suivi = creerSuiviDeChaine(60_000);
+    suivi.debut();
+    setTimeout(() => suivi.fin(), 20); // onError, pas onFinish
+    await expect(suivi.attendre()).resolves.toBe(false);
+  });
+
+  /*
+   * L'IDEMPOTENCE QUE LE COMMENTAIRE DU CORRECTIF AFFIRME.
+   *
+   * Si `onError` ET `onFinish` se soldent tous deux pour un même segment, le
+   * compteur passe sous zéro. La garde est `<= 0`, pas `=== 0` : le second
+   * appel ne doit rien casser ni rouvrir quoi que ce soit.
+   */
+  it('supporte un solde de trop sans rien casser', async () => {
+    const suivi = creerSuiviDeChaine(60_000);
+    suivi.debut();
+    suivi.fin();
+    suivi.fin();
+
+    expect(suivi.enVol()).toBe(-1);
+    await expect(suivi.attendre()).resolves.toBe(false);
+  });
 });
