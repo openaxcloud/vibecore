@@ -3554,22 +3554,56 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
  * failure block — they simply never received it, so an action failure tore the
  * whole panel out of the DOM and left a blank IDE.
  */
-export const ACTIONABLE_PANEL_CODES = new Set(['DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']);
+/*
+ * BUG-DEPLOY-DEAD-001 — le même défaut que pour la base de données, jamais
+ * généralisé (règle 7 : viser la règle, pas la première occurrence).
+ *
+ * Avi, 08/09 : « le déploiement ne marche pour aucun fournisseur », devant
+ * « Le service du panneau est temporairement indisponible. Veuillez
+ * réessayer. » et son bouton Réessayer. MESURÉ contre l'API : six
+ * fournisseurs sur huit répondent `PROVIDER_NOT_CONFIGURED` en nommant très
+ * exactement ce qui manque (`VERCEL_DEPLOY_HOOK_URL`,
+ * `CLOUD_RUN_BUILD_TRIGGER_URL, GCP_OAUTH_TOKEN`, …) ; en production la même
+ * condition sort en 503 `DEPLOYMENT_PROVIDER_NOT_CONFIGURED`. Rien de
+ * temporaire, rien à réessayer — et l'utilisateur ne voyait aucun des deux.
+ */
+export const ACTIONABLE_PANEL_CODES = new Set([
+  'DATABASE_PROVISION_UNAVAILABLE',
+  'FEATURE_NOT_ENABLED',
+  'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+  'PROVIDER_NOT_CONFIGURED',
+  'ENTERPRISE_DEPLOYMENT_REQUIRED',
+]);
 
 export function actionablePanelFailure(upstream: unknown) {
-  const code = (upstream as { code?: unknown } | undefined)?.code;
+  const brut = upstream as { code?: unknown; error?: unknown; message?: unknown; reason?: unknown } | undefined;
 
-  if (typeof code !== 'string' || !ACTIONABLE_PANEL_CODES.has(code)) {
+  /*
+   * DEUX formes de charge utile, mesurées sur l'API le 08/09 :
+   *   503 → { error: '<phrase lisible>', code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED' }
+   *   400 → { error: 'PROVIDER_NOT_CONFIGURED', message: '<phrase lisible>' }
+   * Le jeton d'identité est donc tantôt dans `code`, tantôt dans `error`, et
+   * la phrase lisible tantôt dans `error`, tantôt dans `message`. Ne lire que
+   * `code` laissait passer la seconde — et c'est celle que rend la plupart des
+   * environnements.
+   */
+  const codeConnu = (valeur: unknown) => typeof valeur === 'string' && ACTIONABLE_PANEL_CODES.has(valeur);
+  const code = codeConnu(brut?.code) ? (brut!.code as string) : codeConnu(brut?.error) ? (brut!.error as string) : null;
+
+  if (!code) {
     return undefined;
   }
 
-  const error = (upstream as { error?: unknown }).error;
-  const reason = (upstream as { reason?: unknown }).reason;
+  const lisible = [brut?.error, brut?.message].find(
+    (valeur): valeur is string => typeof valeur === 'string' && valeur.trim().length > 0 && valeur !== code,
+  );
+
+  const reason = brut?.reason;
 
   return {
     ok: false as const,
     code,
-    error: typeof error === 'string' && error.trim() ? error : code,
+    error: lisible ?? code,
     ...(typeof reason === 'string' && reason ? { reason } : {}),
   };
 }

@@ -159,9 +159,33 @@ export function assertDeploymentProviderConfigured(
     return;
   }
 
+  /*
+   * BUG-DEPLOY-DEAD-001 — Avi, 08/09 : « le déploiement ne marche pour aucun
+   * fournisseur ». Il voyait « Le service du panneau est temporairement
+   * indisponible. Veuillez réessayer. », avec un bouton Réessayer.
+   *
+   * Rien n'était temporaire, et rien ne pouvait réussir en réessayant : le
+   * fournisseur n'a tout simplement pas ses identifiants. Deux masquages
+   * s'ajoutaient. Ici le premier : pour un statut >= 500, le gestionnaire
+   * d'erreurs de l'API remplace `error.message` par un texte générique, sauf
+   * si l'erreur porte un `publicMessage`. Le nom du fournisseur et la liste
+   * des variables manquantes étaient donc jetés avant même de sortir de l'API.
+   *
+   * On porte donc le message canonique — la MÊME phrase que la garde jumelle
+   * `deployProviderConfigError` rend en 400 hors production, pour que le
+   * produit dise la même chose des deux côtés. `localizeAppPublicMessage` la
+   * retraduit ensuite dans la langue de la requête.
+   *
+   * Ce sont des NOMS de variables, jamais des valeurs (règle 12) : c'est ce
+   * qu'il faut pour agir, et cela ne divulgue aucun secret.
+   */
   throw Object.assign(new Error(`Deployment provider "${provider}" is not configured for production use`), {
     statusCode: 503,
     code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+    publicMessage: appPublicEnglish('DEPLOY_PROVIDER_CONFIG_REQUIRED', {
+      provider: providerDisplayName[provider] ?? provider,
+      missing: missing.join(', '),
+    }),
     details: { provider, missingEnv: missing },
   });
 }
@@ -1568,8 +1592,11 @@ export async function restoreStaticSnapshotInto(
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    // The source index.html was rewritten for the OLD id's base path; re-point it
-    // to the new id's base so assets resolve under /static-deployments/<newId>/.
+
+    /*
+     * The source index.html was rewritten for the OLD id's base path; re-point it
+     * to the new id's base so assets resolve under /static-deployments/<newId>/.
+     */
     const restored = original.replaceAll(
       `/static-deployments/${fromDeploymentId}/`,
       `/static-deployments/${toDeploymentId}/`,
@@ -1662,7 +1689,8 @@ export function createDeploymentLogs(
   }));
 }
 
-/* ---------------------------------------------------------------------------
+/*
+ * ---------------------------------------------------------------------------
  * LAUNCH-BLOCKER (2026-08-01): a deployed static app rendered BLANK for
  * anonymous visitors.
  *
