@@ -294,6 +294,7 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { PublicationReplit } from '~/components/deploy/PublicationReplit';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -2793,8 +2794,41 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               details?: string;
               severity?: string;
               source?: string;
+              prompt?: string;
+              envoyer?: boolean;
             }
           | undefined;
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001 — Avi, 08/09 : « quand je clique sur le
+         * bouton réparer avec l'agent ça doit me remettre sur le panneau agent
+         * et démarrer l'agent avec le prompt en question ».
+         *
+         * L'invite était bien déposée dans la zone de saisie… du panneau
+         * Agent, que l'utilisateur ne voyait pas : il restait sur Sécurité (ou
+         * Git, ou Publication) et rien ne semblait se passer. Basculer fait
+         * partie de l'action, quel que soit le `kind` — une seule règle pour
+         * les trois surfaces qui émettent cet événement (règle 7).
+         */
+        /*
+         * `activateMobileTool` attend l'identifiant D'OUTIL (`agent`) et non le
+         * nom du panneau (`chat`) : c'est lui qui traduit l'un en l'autre. Un
+         * `panel: 'chat'` ne déclenchait rien — mesuré, le panneau restait sur
+         * Déploiements, et le test E2E l'a dit.
+         */
+        const allerAuPanneauAgent = () => {
+          window.dispatchEvent(
+            new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'agent', toolId: 'agent' } }),
+          );
+        };
+
+        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
+        if (detail?.kind === 'fix-publication' && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          allerAuPanneauAgent();
+          insertIntoComposer(detail.prompt, { replace: true });
+
+          return;
+        }
 
         if (detail?.kind === 'resolve-git-conflicts') {
           const files = Array.isArray(detail.files) ? detail.files : [];
@@ -2813,6 +2847,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
+          allerAuPanneauAgent();
           insertIntoComposer(prompt, { replace: true });
 
           return;
@@ -2832,6 +2867,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
+          allerAuPanneauAgent();
           insertIntoComposer(prompt, { replace: true });
         }
       };
@@ -22948,8 +22984,25 @@ function ProjectDeploymentsPanel({
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
 
+  /*
+   * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
+   * `vibecore:agent-task`, qui bascule désormais sur le panneau Agent et y
+   * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
+   * seule règle pour les deux surfaces.
+   */
+  const demanderReparationParLAgent = useCallback((invite: string) => {
+    window.dispatchEvent(
+      new CustomEvent('vibecore:agent-task', { detail: { kind: 'fix-publication', prompt: invite } }),
+    );
+  }, []);
+
+  /* La même mise en mots que la fin de tour : une seule implémentation. */
+  const ilYADepuis = useCallback(
+    (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
+    [],
+  );
+
   // Real Overview data wired from the deployments loader.
-  const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
   return (
@@ -22969,102 +23022,27 @@ function ProjectDeploymentsPanel({
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.latestStatus_d9f96f98')}</span>
-              <strong>
-                {latestDeployment?.status
-                  ? platformStateLabel(t, latestDeployment.status)
-                  : t('chat.copy.noDeployment_26885551')}
-              </strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.environment_d443a118')}</span>
-              <strong>{platformStateLabel(t, latestDeployment?.environment ?? 'preview')}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.framework_fb001b2c')}</span>
-              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
-            </div>
-          </div>
-
           {/*
-           * Replit Overview widgets. Real values where the backend has them
-           * (Type = provider, Database = live project connections); a graceful
-           * "—" only where the data genuinely does not exist (we run no
-           * Autoscale compute tier, so vCPU/memory resources and compute usage
-           * have no backend). Never mocked.
+           * RP-PUBLISH-01…06 — la vue d'ensemble est désormais le panneau
+           * « Publishing » de Replit (captures d'Avi, 08/09 21:00-21:02),
+           * piloté par NOS données : statut réel du déploiement, journaux
+           * réels, domaines réellement joignables. Les étapes de migration de
+           * base de données que montre Replit ne sont PAS reprises — nous
+           * n'avons pas ce pipeline, et les afficher ferait mentir le produit
+           * sur son propre état.
+           *
+           * L'historique des commits reste dessous : il est réel, utile, et
+           * n'a pas d'équivalent chez Replit.
            */}
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.type_3deb7456')}</span>
-              <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.resources_87df60de')}</span>
-              <strong title={t('chat.copy.vcpuMemoryNoAutoscaleComputeBackend_a18a66c2')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.usage_0bb18642')}</span>
-              <strong title={t('chat.copy.computeUsageThisBillingPeriodNo_c6482992')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.database_61074f1c')}</span>
-              <strong>
-                {connections.length
-                  ? t('chat.copy.connectedValue0_4e4f1431', { value0: connections.length })
-                  : t('chat.copy.notConnected_8b02f3de')}
-              </strong>
-            </div>
-          </div>
-
-          {deployments.length ? (
-            deployments.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
-                    </strong>
-                    <span>
-                      {deployment.url ??
-                        deployment.customDomain ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                        t('chat.copy.urlPending_6c60f919')}
-                    </span>
-                  </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
-                </header>
-                {deployment.url ? (
-                  <div className="bolt-project-deploy-actions">
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      {t('chat.copy.open_cf9b7706')}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          ?.writeText(deployment.url)
-                          .catch(() => toast.error(t('chat.copy.clipboardUnavailable_bec46a29')))
-                      }
-                    >
-                      {t('chat.copy.copyLink_2f84eea5')}
-                    </button>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <EmptyState
-              variant="compact"
-              icon="i-ph:rocket-launch"
-              title={t('chat.copy.noDeploymentsYet_b00d97cd')}
-              description={t('chat.copy.shipThisProjectToALive_40d39230')}
-              actionLabel={t('baseChatAst.deploy.goManage')}
-              onAction={() => setTab('manage')}
-            />
-          )}
+          <PublicationReplit
+            deployments={deployments}
+            language={language}
+            ilYA={(date) => ilYADepuis(date, language)}
+            onRepublier={() => setTab('manage')}
+            onAjusterLesReglages={() => setTab('manage')}
+            onAjouterUnDomaine={() => setTab('domains')}
+            onReparerAvecAgent={demanderReparationParLAgent}
+          />
 
           {/* Real commit history (hash + author + date) from the git graph. */}
           <div className="grid gap-1">

@@ -2821,3 +2821,132 @@ test.describe('agent — la pastille « descendre » ne déborde sur aucun autre
     }
   });
 });
+
+/*
+ * RP-PUBLISH-01…06 — le panneau Publication à la Replit (captures d'Avi,
+ * 08/09 21:00-21:02), et BUG-SECURITY-FIX-AGENT-001 — « Réparer avec l'agent »
+ * doit ramener sur le panneau Agent.
+ *
+ * Ce que ce test tient, c'est ce qui a réellement cassé pendant la mise au
+ * point : la coquille de l'IDE impose ses tailles en `!important`, et une
+ * première correction n'a pas suffi parce que les deux sélecteurs étaient à
+ * ÉGALITÉ de spécificité (0,2,0) — le `:not([class*="i-"])` de la coquille
+ * compte pour une classe, et à égalité l'ordre du fichier tranche. Mesuré : le
+ * titre sortait à 13 px au lieu de 30, le bouton d'action à 14 au lieu de 17.
+ * Un vert sur « le bloc est visible » n'aurait rien vu de tout cela.
+ */
+test.describe('publication à la Replit — le panneau et ses tailles', () => {
+  for (const format of [
+    { nom: 'téléphone', width: 390, height: 844 },
+    { nom: 'tablette', width: 820, height: 1180 },
+  ]) {
+    test.describe(`format ${format.nom}`, () => {
+      test.use({
+        viewport: { width: format.width, height: format.height },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      });
+
+      test('le bloc se rend aux bonnes tailles, sans rien déborder', async ({ page, request }) => {
+        test.setTimeout(180_000);
+
+        const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+        // Un déploiement réel : la carte d'étapes et l'historique ont de quoi s'afficher.
+        const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+          headers: { authorization: `Bearer ${token}` },
+          data: { provider: 'static', timeoutSeconds: 30 },
+        });
+
+        expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+        await ouvrirOutil(page, 'deployments');
+
+        const bloc = page.getByTestId('publication');
+        await expect(bloc).toBeVisible({ timeout: 30_000 });
+
+        // Les pièces maîtresses de la maquette.
+        await expect(page.getByTestId('publication-etapes')).toBeVisible();
+        await expect(page.getByTestId('publication-pastille')).toBeVisible();
+        await expect(page.getByTestId('publication-republier')).toBeVisible();
+
+        const mesures = await page.evaluate(() => {
+          const taille = (sel: string) => {
+            const el = document.querySelector<HTMLElement>(sel);
+
+            return el ? Math.round(parseFloat(getComputedStyle(el).fontSize)) : null;
+          };
+
+          const racine = document.querySelector<HTMLElement>('.bolt-publication');
+          const rr = racine?.getBoundingClientRect();
+
+          const deborde =
+            racine && rr
+              ? [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+                  const r = el.getBoundingClientRect();
+
+                  return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+                }).length
+              : 0;
+
+          return {
+            titre: taille('.bolt-publication-entete h2'),
+            sousTitre: taille('.bolt-publication-entete p'),
+            titreDeCarte: taille('.bolt-publication-carte-entete h3'),
+            segment: taille('.bolt-publication-segment'),
+            bouton: taille('.bolt-publication-republier'),
+            deborde,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+          };
+        });
+
+        // Les tailles de la maquette Replit, à l'échelle 3,0 px par px CSS.
+        expect(mesures.titre, 'le titre résiste au reset de police de la coquille').toBe(30);
+        expect(mesures.sousTitre).toBe(15);
+        expect(mesures.titreDeCarte).toBe(17);
+        expect(mesures.segment).toBe(15);
+        expect(mesures.bouton, 'le bouton d’action résiste lui aussi').toBe(17);
+
+        expect(mesures.deborde, 'rien ne sort du panneau').toBe(0);
+        expect(mesures.scrollWidth, 'et la page ne défile pas latéralement').toBeLessThanOrEqual(mesures.innerWidth);
+      });
+    });
+  }
+
+  test.describe('« Réparer avec l’agent » ramène sur l’agent', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('depuis n’importe quel panneau, la demande bascule sur le panneau Agent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      await ouvrirIde(page, request, { fil: true });
+      await ouvrirOutil(page, 'deployments');
+
+      const coque = page.locator('.bolt-responsive-ide-mobile');
+      await expect(coque).toHaveAttribute('data-mobile-panel', /deploy/, { timeout: 30_000 });
+
+      /*
+       * On émet l'événement que les trois surfaces émettent (Sécurité, Git,
+       * Publication). Avant correctif, l'invite partait dans une zone de
+       * saisie que l'utilisateur ne voyait pas : il restait sur son panneau.
+       */
+      await page.evaluate(() =>
+        window.dispatchEvent(
+          new CustomEvent('vibecore:agent-task', {
+            detail: { kind: 'fix-publication', prompt: 'Corrige la publication.' },
+          }),
+        ),
+      );
+
+      await expect(coque, 'la demande doit ramener sur le panneau Agent').toHaveAttribute('data-mobile-panel', 'chat', {
+        timeout: 15_000,
+      });
+
+      // Et l'invite est bien déposée dans la zone de saisie, prête à partir.
+      const composeur = page.locator('.bolt-project-agent-composer textarea').first();
+      await expect(composeur).toHaveValue(/Corrige la publication\./, { timeout: 15_000 });
+    });
+  });
+});
