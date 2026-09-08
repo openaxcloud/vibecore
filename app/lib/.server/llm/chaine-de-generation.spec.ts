@@ -96,4 +96,30 @@ describe('creerSuiviDeChaine', () => {
     expect(suivi.enVol()).toBe(-1);
     await expect(suivi.attendre()).resolves.toBe(false);
   });
+
+  /*
+   * `premierDebutMs` DÉPARTAGE LES DEUX DERNIÈRES EXPLICATIONS.
+   *
+   * Si aucune génération ne s'est comptée, `execute` a attendu une chaîne qui
+   * n'avait pas commencé — l'attente est alors correcte et INOPÉRANTE, et le
+   * SDK ferme sur un compteur à zéro. `undefined` est donc une réponse en soi,
+   * pas une absence de mesure.
+   */
+  it('reste indéfini tant qu aucune génération ne s est comptée', () => {
+    expect(creerSuiviDeChaine(60_000).premierDebutMs()).toBeUndefined();
+  });
+
+  it('retient le PREMIER début, pas le dernier', async () => {
+    const suivi = creerSuiviDeChaine(60_000);
+    await tic(30);
+    suivi.debut();
+
+    const premier = suivi.premierDebutMs();
+
+    await tic(40);
+    suivi.debut();
+
+    expect(premier).toBeGreaterThanOrEqual(25);
+    expect(suivi.premierDebutMs(), 'un second début ne doit pas écraser le premier').toBe(premier);
+  });
 });
