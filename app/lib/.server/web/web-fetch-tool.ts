@@ -14,9 +14,9 @@
 import { tool } from 'ai';
 import { z } from 'zod';
 
-import { acquireWebReferenceSlot } from './chat-web-reference';
 import type { SafeFetch } from './safe-fetch';
 import { collectWebReference } from './web-reference';
+import { acquireSharedWebReferenceSlot, type WebReferenceRateLimitRedis } from './web-reference-rate-limit';
 import { formatWebReferenceBlock } from '~/lib/web-page-digest';
 
 export const WEB_FETCH_TOOL_NAME = 'fetch_web_page';
@@ -34,6 +34,17 @@ export function isWebFetchToolEnabled(env?: Record<string, string | undefined> |
 export interface CreateWebFetchToolInput {
   /** Project id — the rate-limit tenant (the tool is never registered without one). */
   rateLimitKey: string;
+
+  /*
+   * Le MÊME client Redis que la référence automatique, et donc la MÊME clé de
+   * plafond. Sans lui, l'outil comptait dans la mémoire du processus : un
+   * projet disposait de 12 lectures automatiques PLUS 12 lectures par outil,
+   * chacune multipliée par le nombre de replicas. Les deux chemins font la
+   * même chose — des requêtes sortantes vers un site tiers — donc ils partagent
+   * un seul budget. `null` (Redis absent) retombe sur le compteur par pod,
+   * jamais sur « autorisé sans compter ».
+   */
+  redis?: WebReferenceRateLimitRedis | null;
   language?: string | null;
   signal?: AbortSignal;
 
@@ -65,7 +76,13 @@ export async function executeWebFetch(
 ): Promise<string> {
   const now = input.now ?? (() => Date.now());
 
-  if (!acquireWebReferenceSlot(input.rateLimitKey, now())) {
+  const slot = await acquireSharedWebReferenceSlot({
+    key: input.rateLimitKey,
+    redis: input.redis,
+    now: now(),
+  });
+
+  if (!slot.allowed) {
     return webFetchFailureBlock(args.url, 'RATE_LIMITED');
   }
 
@@ -101,6 +118,7 @@ export function createWebFetchTool(input: CreateWebFetchToolInput) {
 export function webFetchToolSet(input: {
   env?: Record<string, string | undefined> | null;
   rateLimitKey?: string;
+  redis?: WebReferenceRateLimitRedis | null;
   language?: string | null;
   signal?: AbortSignal;
 }): Record<string, ReturnType<typeof createWebFetchTool>> {
@@ -111,6 +129,7 @@ export function webFetchToolSet(input: {
   return {
     [WEB_FETCH_TOOL_NAME]: createWebFetchTool({
       rateLimitKey: input.rateLimitKey,
+      redis: input.redis,
       language: input.language,
       signal: input.signal,
     }),

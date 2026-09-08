@@ -17,12 +17,26 @@ const streamText = readFileSync(join(__dirname, '..', 'lib', '.server', 'llm', '
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 
 describe('api.chat.ts — la référence web atteint le modèle, le planificateur et les lanes', () => {
-  it('le plafond est PARTAGÉ entre replicas : le client Redis est passé à chaque appel', () => {
+  it('le plafond est PARTAGÉ entre replicas, et UN SEUL client sert les DEUX chemins de lecture', () => {
     expect(chat).toContain(
       "import { getWebReferenceRateLimitRedis } from '~/lib/.server/web/rate-limit-redis.server';",
     );
-    expect(chat).toContain('rateLimitRedis: await getWebReferenceRateLimitRedis(');
+
+    /*
+     * Le client est résolu UNE fois et réutilisé : la référence automatique et
+     * l'outil `fetch_web_page` doivent partager la même clé Redis, donc un seul
+     * budget par projet. Deux résolutions séparées passeraient ce test à l'œil
+     * nu tout en ouvrant deux budgets — d'où le compte exact.
+     */
+    expect(chat).toContain('const webReferenceRedis = await getWebReferenceRateLimitRedis(');
+    expect(count(chat, 'await getWebReferenceRateLimitRedis(')).toBe(1);
+
+    // Chemin 1 — la référence automatique.
+    expect(chat).toContain('rateLimitRedis: webReferenceRedis,');
     expect(count(chat, 'rateLimitRedis:')).toBe(1);
+
+    // Chemin 2 — l'outil appelable par le modèle.
+    expect(chat).toContain('redis: webReferenceRedis,');
   });
 
   it('lit le site via prepareWebReferenceForChat, sur le chemin quota (projectId comme clé)', () => {
@@ -69,11 +83,19 @@ describe('api.chat.ts — outil fetch_web_page (RP-WEB-03, derrière drapeau)', 
   it('fusionne webFetchToolSet aux outils MCP, avec projectId comme clé de limitation', () => {
     expect(chat).toContain("import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';");
 
-    const tools = chat.slice(chat.indexOf('tools: {'), chat.indexOf('tools: {') + 400);
+    const tools = chat.slice(chat.indexOf('tools: {'), chat.indexOf('tools: {') + 700);
 
     expect(tools).toContain('...mcpService.toolsWithoutExecute,');
     expect(tools).toContain('...webFetchToolSet({');
     expect(tools).toContain('rateLimitKey: projectId,');
+
+    /*
+     * Sans ce client, l'outil retombait sur le compteur EN MÉMOIRE du pod :
+     * mesuré, zéro appel à Redis. Un projet disposait alors de 12 lectures
+     * automatiques PLUS 12 lectures par outil, chacune multipliée par le nombre
+     * de replicas.
+     */
+    expect(tools).toContain('redis: webReferenceRedis,');
   });
 });
 

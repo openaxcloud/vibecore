@@ -846,6 +846,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * reported an analysis of pages nobody had fetched. Fail-open: an
          * unreachable site is reported in the block, never an error here.
          */
+        /*
+         * Un SEUL client Redis pour les DEUX chemins de lecture de sites : la
+         * référence automatique ci-dessous et l'outil `fetch_web_page` plus bas.
+         * Le même client veut dire la même clé, donc un seul budget par projet —
+         * pas un budget par chemin.
+         */
+        const webReferenceRedis = await getWebReferenceRateLimitRedis(
+          context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+        );
+
         const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } =
           await prepareWebReferenceForChat({
             messages: processedMessages,
@@ -863,9 +873,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
              * REDIS_URL est absent → compteur par pod, jamais illimité.
              */
-            rateLimitRedis: await getWebReferenceRateLimitRedis(
-              context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-            ),
+            rateLimitRedis: webReferenceRedis,
           });
 
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
@@ -1512,6 +1520,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             ...webFetchToolSet({
               env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
               rateLimitKey: projectId,
+
+              /* Même client, donc même clé : l'outil et la référence automatique partagent un seul plafond. */
+              redis: webReferenceRedis,
               language,
               signal: request.signal,
             }),

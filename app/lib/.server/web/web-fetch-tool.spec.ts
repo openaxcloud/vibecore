@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetWebReferenceRateLimiter, WEB_REFERENCE_RATE_LIMIT } from './chat-web-reference';
+import { acquireWebReferenceSlot, resetWebReferenceRateLimiter, WEB_REFERENCE_RATE_LIMIT } from './chat-web-reference';
 import type { SafeFetch } from './safe-fetch';
 import {
   createWebFetchTool,
@@ -9,6 +9,11 @@ import {
   WEB_FETCH_TOOL_PARAMETERS,
   webFetchToolSet,
 } from './web-fetch-tool';
+import {
+  acquireSharedWebReferenceSlot,
+  WEB_REFERENCE_RATE_LIMIT_PREFIX,
+  type WebReferenceRateLimitRedis,
+} from './web-reference-rate-limit';
 
 /*
  * RP-WEB-03 — the model-callable page reader. Same guards as the automatic
@@ -151,5 +156,121 @@ describe('executeWebFetch', () => {
     const out = await t.execute!({ url: 'https://volt-watt.com/contact' }, { toolCallId: 'c1', messages: [] });
 
     expect(out).toContain('h1: Contact');
+  });
+});
+
+/*
+ * Le plafond de l'outil doit être le MÊME que celui de la référence automatique,
+ * et il doit être PARTAGÉ entre replicas. Mesuré avant correctif : l'outil
+ * n'appelait Redis 0 fois — il comptait dans la mémoire du pod, donc un projet
+ * disposait de 12 lectures automatiques PLUS 12 lectures par outil, chacune
+ * multipliée par le nombre de pods.
+ */
+describe('executeWebFetch — plafond partagé avec la référence automatique', () => {
+  beforeEach(() => resetWebReferenceRateLimiter());
+
+  /** Double de Redis : un ensemble par clé, fenêtre glissante, mêmes arguments. */
+  function fakeRedis() {
+    const sets = new Map<string, number[]>();
+    const keys: string[] = [];
+
+    const redis: WebReferenceRateLimitRedis = {
+      async eval(_script, _numKeys, ...args) {
+        const [key, now, window, maximum] = args as [string, string, string, string];
+        const at = Number(now);
+
+        keys.push(key);
+
+        const kept = (sets.get(key) ?? []).filter((stamp) => stamp > at - Number(window));
+
+        if (kept.length >= Number(maximum)) {
+          sets.set(key, kept);
+
+          return [0, kept.length];
+        }
+
+        kept.push(at);
+        sets.set(key, kept);
+
+        return [1, kept.length];
+      },
+    };
+
+    return { redis, keys };
+  }
+
+  it('compte dans Redis, sous la clé du projet — pas dans la mémoire du pod', async () => {
+    const { redis, keys } = fakeRedis();
+
+    await executeWebFetch({ rateLimitKey: 'p6', redis, fetchPage: site }, { url: 'https://volt-watt.com/' });
+
+    expect(keys).toEqual([`${WEB_REFERENCE_RATE_LIMIT_PREFIX}p6`]);
+
+    // Le compteur PAR POD n'a pas bougé : c'est Redis qui a compté.
+    expect(acquireWebReferenceSlot('p6')).toBe(true);
+  });
+
+  it('un seul budget pour les deux chemins : la référence automatique épuise le plafond de l’outil', async () => {
+    const { redis } = fakeRedis();
+    const now = 7_000_000;
+
+    let fetched = 0;
+
+    const counting: SafeFetch = async (url, lang, options) => {
+      fetched += 1;
+
+      return site(url, lang, options);
+    };
+
+    // La référence automatique consomme tout le plafond du projet…
+    for (let i = 0; i < WEB_REFERENCE_RATE_LIMIT.maxCollections; i += 1) {
+      const decision = await acquireSharedWebReferenceSlot({ key: 'p7', redis, now: now + i });
+
+      expect(decision.allowed).toBe(true);
+    }
+
+    // …et l'outil n'a plus de place : il ne sort AUCUNE requête.
+    const refus = await executeWebFetch(
+      { rateLimitKey: 'p7', redis, fetchPage: counting, now: () => now + 50 },
+      { url: 'https://volt-watt.com/' },
+    );
+
+    expect(refus).toContain('RATE_LIMITED');
+    expect(fetched).toBe(0);
+
+    // Un autre projet n'est pas entamé.
+    const autre = await executeWebFetch(
+      { rateLimitKey: 'p8', redis, fetchPage: counting, now: () => now + 50 },
+      { url: 'https://volt-watt.com/' },
+    );
+
+    expect(autre).toContain('h1: Accueil');
+  });
+
+  it('Redis absent : repli sur le compteur par pod, jamais « autorisé sans compter »', async () => {
+    let fetched = 0;
+
+    const counting: SafeFetch = async (url, lang, options) => {
+      fetched += 1;
+
+      return site(url, lang, options);
+    };
+
+    for (let i = 0; i < WEB_REFERENCE_RATE_LIMIT.maxCollections; i += 1) {
+      await executeWebFetch(
+        { rateLimitKey: 'p9', redis: null, fetchPage: counting },
+        { url: 'https://volt-watt.com/' },
+      );
+    }
+
+    const before = fetched;
+
+    const refus = await executeWebFetch(
+      { rateLimitKey: 'p9', redis: null, fetchPage: counting },
+      { url: 'https://volt-watt.com/' },
+    );
+
+    expect(refus).toContain('RATE_LIMITED');
+    expect(fetched).toBe(before);
   });
 });
