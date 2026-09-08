@@ -236,3 +236,78 @@ export function invitePourReparerLaPublication(input: {
     .join(' ')
     .trim();
 }
+
+/* ------------------------------------------------------------------ */
+/* RP-PUBLISH-10 — « Configuration de la machine », et son prix RÉEL.  */
+/* ------------------------------------------------------------------ */
+
+export interface GabaritDeMachine {
+  key: string;
+  label: string;
+  vcpu?: number;
+  ramGb?: number;
+  computeUnitsPerSecond?: number;
+  available?: boolean;
+}
+
+export interface CarteTarifaire {
+  currency?: string;
+  defaultMachineSize?: string;
+  machineSizes?: readonly GabaritDeMachine[];
+  compute?: {
+    unitCents?: number;
+    baseCentsPerMonth?: number;
+  };
+}
+
+/** Les gabarits que le plan autorise vraiment — jamais ceux qu'il refuse. */
+export function gabaritsDisponibles(carte: CarteTarifaire | null | undefined): GabaritDeMachine[] {
+  return (carte?.machineSizes ?? []).filter((gabarit) => gabarit && gabarit.available !== false);
+}
+
+/*
+ * Le coût d'un gabarit, calculé depuis la carte tarifaire active :
+ *
+ *   unités/seconde × cents/unité       = cents par seconde
+ *   × 3600                             = cents par heure
+ *   × 730 h + abonnement de base       = cents par mois s'il tourne en continu
+ *
+ * Les 730 heures sont la convention d'un mois moyen — c'est la même que celle
+ * qui permet à Replit d'écrire « $15 per month ($0.0208/hour) ». On l'énonce
+ * dans le libellé (« s'il tourne en continu ») parce que la facturation est à
+ * l'usage : afficher un forfait sans le dire serait faux.
+ *
+ * Sans carte tarifaire, on ne rend RIEN — pas de prix inventé.
+ */
+export const HEURES_PAR_MOIS = 730;
+
+export function tarifDuGabarit(
+  carte: CarteTarifaire | null | undefined,
+  cleDuGabarit: string | undefined,
+): { centsParHeure: number; centsParMois: number } | null {
+  const gabarit = gabaritsDisponibles(carte).find((candidat) => candidat.key === cleDuGabarit);
+  const unites = gabarit?.computeUnitsPerSecond;
+  const centsParUnite = carte?.compute?.unitCents;
+
+  if (!gabarit || typeof unites !== 'number' || typeof centsParUnite !== 'number') {
+    return null;
+  }
+
+  const centsParHeure = unites * centsParUnite * 3600;
+
+  return {
+    centsParHeure,
+    centsParMois: centsParHeure * HEURES_PAR_MOIS + (carte?.compute?.baseCentsPerMonth ?? 0),
+  };
+}
+
+export function formaterMontant(cents: number, langue: string | null | undefined, decimales = 2): string {
+  const locale = (langue ?? '').toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
+
+  return new Intl.NumberFormat(locale, {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: decimales,
+    maximumFractionDigits: decimales,
+  }).format(cents / 100);
+}

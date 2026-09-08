@@ -23039,9 +23039,32 @@ function ProjectDeploymentsPanel({
             language={language}
             ilYA={(date) => ilYADepuis(date, language)}
             onRepublier={() => setTab('manage')}
-            onAjusterLesReglages={() => setTab('manage')}
             onAjouterUnDomaine={() => setTab('domains')}
             onReparerAvecAgent={demanderReparationParLAgent}
+            carteTarifaire={(data as any).rateCard ?? null}
+            onOuvrirLesSecrets={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'secrets', toolId: 'secrets' } }),
+              )
+            }
+            onOuvrirLaBaseDeDonnees={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', {
+                  detail: { panel: 'database', toolId: 'database' },
+                }),
+              )
+            }
+            onAction={(intent, deploymentId) => {
+              /*
+               * RP-PUBLISH-12 — les gestes de « Gérer votre application »
+               * passent par les MÊMES intentions que l'onglet Gérer : rien de
+               * neuf côté serveur, donc rien qui puisse diverger.
+               */
+              const donnees = new FormData();
+              donnees.set('intent', intent);
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
           />
 
           {/* Real commit history (hash + author + date) from the git graph. */}

@@ -626,7 +626,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * history scoping the deployment — hash + author + date). Each enrichment
        * is best-effort so the panel never fails if git/db is unavailable.
        */
-      const [deployments, databases, commitGraph] = await Promise.all([
+      const [deployments, databases, commitGraph, rateCard] = await Promise.all([
         apiRequest<{ deployments?: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/deployments`),
         apiRequest<{ connections?: unknown[] }>(request, `/projects/${projectId}/databases`).catch(() => ({
           connections: [],
@@ -635,6 +635,15 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           request,
           `/projects/${projectId}/git/graph${selectedWorkspaceId ? `?workspaceId=${encodeURIComponent(selectedWorkspaceId)}` : ''}`,
         ).catch(() => ({ commits: [] })),
+
+        /*
+         * RP-PUBLISH-10 — la carte tarifaire ACTIVE : gabarits de machine
+         * réellement disponibles pour le plan, et le coût unitaire du calcul.
+         * C'est ce qui permet d'afficher un prix VRAI sous « Configuration de
+         * la machine » plutôt qu'un chiffre recopié de la capture Replit.
+         * Au pire elle manque, et l'écran n'affiche simplement pas de prix.
+         */
+        apiRequest<Record<string, unknown>>(request, `/projects/${projectId}/deployments/rate-card`).catch(() => null),
       ]);
 
       const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
@@ -647,6 +656,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           allDeployments: deploymentList,
           connections: Array.isArray(databases.connections) ? databases.connections : [],
           gitCommits: Array.isArray(commitGraph.commits) ? commitGraph.commits : [],
+          rateCard,
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,

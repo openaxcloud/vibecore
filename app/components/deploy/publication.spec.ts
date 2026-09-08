@@ -2,6 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   domainesConnectes,
+  formaterMontant,
+  gabaritsDisponibles,
+  HEURES_PAR_MOIS,
+  tarifDuGabarit,
   etapeCourante,
   etapesDePublication,
   etatDePastille,
@@ -156,5 +160,51 @@ describe('« Réparer avec l’agent »', () => {
 
     expect(invite).toContain('ligne 49');
     expect(invite).not.toContain('ligne 29');
+  });
+});
+
+describe('tarif d’un gabarit de machine (RP-PUBLISH-10)', () => {
+  /* La carte réellement servie par l'API locale le 08/09. */
+  const carte = {
+    currency: 'usd',
+    defaultMachineSize: 'shared-0.5',
+    compute: { unitCents: 0.00032, baseCentsPerMonth: 100 },
+    machineSizes: [
+      { key: 'shared-0.25', label: '0.25 vCPU · 1 GiB', vcpu: 0.25, ramGb: 1, computeUnitsPerSecond: 6.5 },
+      { key: 'shared-0.5', label: '0.5 vCPU · 2 GiB', vcpu: 0.5, ramGb: 2, computeUnitsPerSecond: 13 },
+      { key: 'dedicated-8', label: '8 vCPU', vcpu: 8, ramGb: 32, computeUnitsPerSecond: 208, available: false },
+    ],
+  };
+
+  it('ne propose que les gabarits que le plan autorise', () => {
+    expect(gabaritsDisponibles(carte).map((g) => g.key)).toEqual(['shared-0.25', 'shared-0.5']);
+    expect(gabaritsDisponibles(null)).toEqual([]);
+  });
+
+  it('calcule le prix depuis la carte, il ne le recopie pas', () => {
+    const tarif = tarifDuGabarit(carte, 'shared-0.5');
+
+    // 13 unités/s × 0,00032 cent × 3600 s = 14,976 cents l'heure.
+    expect(tarif?.centsParHeure).toBeCloseTo(14.976, 3);
+
+    // × 730 h + 100 cents d'abonnement de base.
+    expect(tarif?.centsParMois).toBeCloseTo(14.976 * HEURES_PAR_MOIS + 100, 2);
+  });
+
+  it('sans carte tarifaire, on n’affiche AUCUN prix plutôt qu’un prix faux', () => {
+    expect(tarifDuGabarit(null, 'shared-0.5')).toBeNull();
+    expect(tarifDuGabarit(undefined, 'shared-0.5')).toBeNull();
+    expect(tarifDuGabarit(carte, 'gabarit-inconnu')).toBeNull();
+    expect(tarifDuGabarit({ machineSizes: [{ key: 'x', label: 'X' }] }, 'x')).toBeNull();
+  });
+
+  it('un gabarit refusé par le plan n’a pas de prix affichable', () => {
+    expect(tarifDuGabarit(carte, 'dedicated-8')).toBeNull();
+  });
+
+  it('met en forme selon la langue', () => {
+    expect(formaterMontant(1500, 'en')).toBe('$15.00');
+    expect(formaterMontant(1500, 'fr').replace(/ | /gu, ' ')).toBe('15,00 $US');
+    expect(formaterMontant(14.976, 'en', 4)).toBe('$0.1498');
   });
 });

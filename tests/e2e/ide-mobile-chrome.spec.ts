@@ -2915,6 +2915,79 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
     });
   }
 
+  /*
+   * RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ».
+   *
+   * Ce qu'il tient surtout : le PRIX est CALCULÉ depuis la carte tarifaire
+   * active, jamais recopié de la capture Replit (« $15 per month »). Et le
+   * panneau ne doit pas se démonter en basculant — premier essai, « Ajuster
+   * les réglages » changeait aussi d'onglet et la vue disparaissait.
+   */
+  test.describe('écran des réglages', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('les gabarits portent un prix calculé, et les gestes sont ceux qui existent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      await page.getByTestId('publication-reglages').click();
+
+      const corps = page.getByTestId('publication-reglages-corps');
+      await expect(corps, 'la bascule ne doit pas démonter le panneau').toBeVisible({ timeout: 15_000 });
+
+      const gabarits = page.locator('[data-testid="publication-gabarits"] li');
+      await expect(gabarits.first()).toBeVisible();
+
+      const textes = await gabarits.allTextContents();
+
+      expect(textes.length, 'les gabarits viennent de la carte tarifaire').toBeGreaterThan(0);
+
+      /*
+       * Un prix par heure à quatre décimales, dérivé des unités de calcul —
+       * c'est la signature d'un calcul, pas d'une constante.
+       */
+      expect(textes.join(' ')).toMatch(/\$\d+\.\d{4}/u);
+
+      // Et le gabarit du déploiement est marqué comme courant.
+      await expect(page.locator('[data-testid="publication-gabarits"] li[data-courant="true"]')).toHaveCount(1);
+
+      // Les gestes proposés sont ceux que l'API sait faire, pas ceux de Replit.
+      const gestes = await page.locator('[data-testid="publication-gestes"] li button').allTextContents();
+
+      expect(gestes.length).toBeGreaterThan(0);
+      expect(gestes.join(' ')).not.toMatch(/Unpublish|Dépublier/u);
+
+      // Rien ne déborde du panneau.
+      const deborde = await page.evaluate(() => {
+        const racine = document.querySelector<HTMLElement>('.bolt-publication');
+        const rr = racine?.getBoundingClientRect();
+
+        if (!racine || !rr) {
+          return -1;
+        }
+
+        return [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+          const r = el.getBoundingClientRect();
+
+          return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+        }).length;
+      });
+
+      expect(deborde).toBe(0);
+    });
+  });
+
   test.describe('« Réparer avec l’agent » ramène sur l’agent', () => {
     test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 

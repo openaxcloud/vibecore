@@ -17918,6 +17918,15 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 17px !important;
 }
 
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gestes li > button {
+  font-size: 15px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gabarits li > span,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gestes li > p {
+  font-size: 14px !important;
+}
+
 .bolt-project-ide-shell .bolt-publication .bolt-publication-journal {
   font-size: 13px !important;
   line-height: 1.5 !important;
@@ -18312,6 +18321,80 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-publication-infra dd {
   margin: 2px 0 0;
   font-size: 15px;
+}
+
+/* RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ». */
+.bolt-publication-reglages-corps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bolt-publication-gabarits,
+.bolt-publication-gestes {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  margin: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.bolt-publication-gabarits li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding: 10px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  gap: 4px 10px;
+}
+
+.bolt-publication-gabarits li[data-courant='true'] {
+  border-color: #0079f2;
+}
+
+.bolt-publication-gabarits li > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.bolt-publication-gabarits em {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #e6f0fb;
+  color: #0079f2;
+  font-size: 12px;
+  font-style: normal;
+}
+
+.bolt-publication-gabarits li > span {
+  flex: 1;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+  text-align: end;
+}
+
+.bolt-publication-gestes li > button {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  gap: 8px;
+}
+
+.bolt-publication-gestes li > p {
+  margin: 6px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
 }
 
 /* Le bouton d'action principal, collant en bas comme sur la capture. */
