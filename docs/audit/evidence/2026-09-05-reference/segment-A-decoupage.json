@@ -1,0 +1,149 @@
+[
+  {
+    "run": 1,
+    "premiereApi": 11429,
+    "departPanneau": 11904,
+    "docResponseEnd": 64,
+    "domInteractive": 0,
+    "domContentLoaded": 0,
+    "loadEvent": 6631,
+    "paints": {
+      "first-contentful-paint": 6657
+    },
+    "lcp": null,
+    "marks": [
+      {
+        "n": "ecode-theme-applied",
+        "t": 92
+      }
+    ],
+    "nbJs": 63,
+    "jsTotalDur": 96577,
+    "jsPlusLents": [
+      {
+        "n": "runtime-DcAI60pY.js",
+        "d": 5099,
+        "e": 6173
+      },
+      {
+        "n": "gitlabApiService-BK9xSQzO.js",
+        "d": 4949,
+        "e": 6024
+      },
+      {
+        "n": "markdown-vbYFN1Jy.js",
+        "d": 4946,
+        "e": 6022
+      },
+      {
+        "n": "workbench-DS6rykzw.js",
+        "d": 4881,
+        "e": 5957
+      },
+      {
+        "n": "BaseChat-D_Sr5LUN.js",
+        "d": 4814,
+        "e": 5889
+      }
+    ],
+    "dernierJsFini": 7143
+  },
+  {
+    "run": 2,
+    "premiereApi": 6018,
+    "departPanneau": 6375,
+    "docResponseEnd": 3,
+    "domInteractive": 0,
+    "domContentLoaded": 0,
+    "loadEvent": 4178,
+    "paints": {
+      "first-contentful-paint": 4191
+    },
+    "lcp": null,
+    "marks": [
+      {
+        "n": "ecode-theme-applied",
+        "t": 9
+      }
+    ],
+    "nbJs": 63,
+    "jsTotalDur": 77912,
+    "jsPlusLents": [
+      {
+        "n": "BaseChat-D_Sr5LUN.js",
+        "d": 3310,
+        "e": 3813
+      },
+      {
+        "n": "markdown-vbYFN1Jy.js",
+        "d": 3070,
+        "e": 3574
+      },
+      {
+        "n": "vendor-codemirror-56E1kEqv.js",
+        "d": 3024,
+        "e": 3527
+      },
+      {
+        "n": "workbench-DS6rykzw.js",
+        "d": 2840,
+        "e": 3344
+      },
+      {
+        "n": "runtime-DcAI60pY.js",
+        "d": 2826,
+        "e": 3327
+      }
+    ],
+    "dernierJsFini": 4638
+  },
+  {
+    "run": 3,
+    "premiereApi": 6510,
+    "departPanneau": 6970,
+    "docResponseEnd": 4,
+    "domInteractive": 0,
+    "domContentLoaded": 0,
+    "loadEvent": 4052,
+    "paints": {
+      "first-contentful-paint": 4072
+    },
+    "lcp": null,
+    "marks": [
+      {
+        "n": "ecode-theme-applied",
+        "t": 22
+      }
+    ],
+    "nbJs": 63,
+    "jsTotalDur": 74945,
+    "jsPlusLents": [
+      {
+        "n": "BaseChat-D_Sr5LUN.js",
+        "d": 2688,
+        "e": 3582
+      },
+      {
+        "n": "runtime-DcAI60pY.js",
+        "d": 2509,
+        "e": 3400
+      },
+      {
+        "n": "workbench-DS6rykzw.js",
+        "d": 2436,
+        "e": 3330
+      },
+      {
+        "n": "vendor-codemirror-56E1kEqv.js",
+        "d": 2418,
+        "e": 3312
+      },
+      {
+        "n": "vendor-react-CeeemnHX.js",
+        "d": 2347,
+        "e": 3237
+      }
+    ],
+    "dernierJsFini": 4730
+  }
+]
