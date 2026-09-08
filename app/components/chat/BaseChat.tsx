@@ -4275,7 +4275,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch((error) => {
+        void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch((error) => {
           setMobilePreviewRunFeedbackState(null);
           console.error('Preview server stop failed', error);
           toast.error(t('baseChatAst.preview.stopFailed'));
@@ -9400,7 +9400,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             void workbenchStore.startPreviewServer();
           } else if (entry.command === 'stop') {
-            void workbenchStore.stopPreviewServer();
+            void workbenchStore.stopPreviewServer({ raison: 'utilisateur' });
 
             if (useMobileIde) {
               activateMobileTool('logs');

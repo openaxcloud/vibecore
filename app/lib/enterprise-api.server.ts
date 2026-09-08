@@ -348,16 +348,48 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
       errorHeaders.set('retry-after', retryAfter);
     }
 
-    const upstreamError =
-      typeof payload === 'object' && payload && typeof (payload as { error?: unknown }).error === 'string'
-        ? (payload as { error: string }).error.trim()
+    const champ = (nom: 'error' | 'message') =>
+      typeof payload === 'object' && payload && typeof (payload as Record<string, unknown>)[nom] === 'string'
+        ? (payload as Record<string, string>)[nom].trim()
         : '';
+
+    /*
+     * BUG-DEPLOY-DEAD-001 — certaines routes de l'API mettent le JETON dans
+     * `error` et la PHRASE dans `message` :
+     *
+     *   { error: 'PROVIDER_NOT_CONFIGURED',
+     *     message: 'Deploying to Vercel requires the following configuration:
+     *               VERCEL_DEPLOY_HOOK_URL. Contact your administrator.' }
+     *
+     * En ne gardant que `error`, on jetait ici la seule phrase utile — et
+     * l'utilisateur se retrouvait devant un jeton en majuscules, ou devant le
+     * message générique de son appelant. Mesuré sur le chemin réel le 08/09 :
+     * l'action de déploiement rendait « PROVIDER_NOT_CONFIGURED » tout court.
+     *
+     * Un `error` déjà rédigé n'est jamais touché : la substitution ne vaut que
+     * lorsqu'il ressemble à un identifiant machine (MAJUSCULES et tirets bas).
+     */
+    const jetonSeul = /^[A-Z][A-Z0-9_]*$/u;
+    const brutError = champ('error');
+    const brutMessage = champ('message');
+    const jetonDansError = jetonSeul.test(brutError) ? brutError : '';
+    const upstreamError = jetonDansError && brutMessage ? brutMessage : brutError;
+
+    /*
+     * Et le jeton ne se PERD pas en chemin : sur ces réponses, `code` vaut
+     * « API_ERROR » — l'identité réelle n'existe que dans `error`. En y
+     * substituant la phrase sans reclasser le jeton, on rendait la panne
+     * lisible mais anonyme, et les appelants qui la reconnaissent au code
+     * (`actionablePanelFailure`) ne la voyaient plus. Mesuré : les six
+     * fournisseurs non configurés étaient retombés sur le message générique.
+     */
+    const codeEffectif = jetonDansError && (!payloadCode || payloadCode === 'API_ERROR') ? jetonDansError : payloadCode;
 
     throw jsonResponse(
       {
         ok: false,
         error: upstreamError || copy.requestFailed,
-        code: payloadCode,
+        code: codeEffectif,
       },
       { status: response.status, headers: errorHeaders },
     );
