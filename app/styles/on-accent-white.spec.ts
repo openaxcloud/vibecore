@@ -234,9 +234,19 @@ function aplatsSensiblesDeLaLigne(ligne: string): string[] {
   return trouves;
 }
 
-/** Résout un jeton tel que le voit `.vc-user-area-shell`, en retombant sur la racine. */
+/**
+ * Résout un jeton tel que le voit `.vc-user-area-shell`, en retombant sur la racine.
+ *
+ * ⚠️ La surcharge de thème de la coque est lue EN PREMIER, et la clé est SANS
+ * guillemets : sass compile `[data-theme='light']` en `[data-theme=light]`. Un
+ * premier jet interrogeait la forme citée — la recherche ne trouvait jamais rien,
+ * retombait en silence sur le bloc sombre, et une encre de coque cassée restait
+ * VERTE. La contre-épreuve qui met #111827 ici doit rougir : c'est elle qui prouve
+ * que cette lecture atteint vraiment le bloc clair.
+ */
 function jetonShell(theme: 'light' | 'dark', nom: string, profondeur = 0): string | undefined {
-  const brut = BLOCS.get('.vc-user-area-shell')?.get(nom);
+  const brut =
+    BLOCS.get(`:root[data-theme=${theme}] .vc-user-area-shell`)?.get(nom) ?? BLOCS.get('.vc-user-area-shell')?.get(nom);
 
   if (brut === undefined || profondeur > 6) {
     return jeton(theme, nom, profondeur);
