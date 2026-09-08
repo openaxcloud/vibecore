@@ -1,5 +1,13 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { clavierProbablementOuvert, recouvrementBasDuNavigateur, SEUIL_CLAVIER_PX } from './visual-viewport-bottom';
+
+import {
+  clavierProbablementOuvert,
+  decalageAAnnulerClavierOuvert,
+  recouvrementBasDuNavigateur,
+  retrecissementDeLaVue,
+  SEUIL_CLAVIER_PX,
+} from './visual-viewport-bottom';
 
 /*
  * La fonction est IMPORTÉE du module que le composant utilise. Une première
@@ -42,5 +50,43 @@ describe('clavier probablement ouvert', () => {
     expect(clavierProbablementOuvert(SEUIL_CLAVIER_PX)).toBe(true);
     expect(clavierProbablementOuvert(260)).toBe(true);
     expect(clavierProbablementOuvert(340)).toBe(true);
+  });
+});
+
+describe('BUG-KEYBOARD-ZOOM-001 — clavier iOS : détection par le rétrécissement, décalage annulé', () => {
+  /*
+   * Capture d'Avi du 08/09 07:58 : clavier levé, Safari a fait défiler le
+   * document (offsetTop 475 sur une mise en page de 844, vue de 369). Le
+   * recouvrement bas vaut 0 : l'ancienne détection disait « pas de clavier ».
+   */
+  it('voit le clavier même quand Safari a fait défiler le document', () => {
+    const vue = { height: 369, offsetTop: 475 };
+
+    expect(recouvrementBasDuNavigateur(844, vue)).toBe(0);
+    expect(clavierProbablementOuvert(recouvrementBasDuNavigateur(844, vue))).toBe(false);
+    expect(retrecissementDeLaVue(844, vue)).toBe(475);
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(844, vue))).toBe(true);
+  });
+
+  it('ne prend pas la barre Safari (87 px) pour un clavier, ni un défilement sans clavier', () => {
+    expect(clavierProbablementOuvert(retrecissementDeLaVue(852, { height: 765, offsetTop: 0 }))).toBe(false);
+    expect(decalageAAnnulerClavierOuvert(852, { height: 765, offsetTop: 200 })).toBe(0);
+    expect(decalageAAnnulerClavierOuvert(844, undefined)).toBe(0);
+  });
+
+  it('rend le décalage à annuler quand le clavier est ouvert', () => {
+    expect(decalageAAnnulerClavierOuvert(844, { height: 369, offsetTop: 475 })).toBe(475);
+    expect(decalageAAnnulerClavierOuvert(844, { height: 369, offsetTop: 0 })).toBe(0);
+    expect(decalageAAnnulerClavierOuvert(844, { height: 369, offsetTop: 12.6 })).toBe(13);
+  });
+
+  it('BaseChat détecte par le rétrécissement et remonte le document quand le clavier est ouvert', () => {
+    const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url).pathname, 'utf8');
+
+    expect(baseChat).toContain(
+      'clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))',
+    );
+    expect(baseChat).toContain('decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined)');
+    expect(baseChat).toContain('window.scrollTo(0, 0);');
   });
 });

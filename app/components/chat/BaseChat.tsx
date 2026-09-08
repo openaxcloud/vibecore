@@ -144,7 +144,12 @@ import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
-import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import {
+  clavierProbablementOuvert,
+  decalageAAnnulerClavierOuvert,
+  recouvrementBasDuNavigateur,
+  retrecissementDeLaVue,
+} from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -3039,8 +3044,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
          * attribut — voir « CLAVIER LEVÉ » dans index.scss.
          */
-        if (clavierProbablementOuvert(recouvrementBas)) {
+        /*
+         * BUG-KEYBOARD-ZOOM-001 (Avi, 08/09 07:58) — la détection se fait sur
+         * le RÉTRÉCISSEMENT de la fenêtre visuelle, pas sur le recouvrement
+         * bas : quand Safari fait défiler le document pour garder le champ
+         * visible, le recouvrement bas tombe à 0 clavier levé. Et ce
+         * défilement est annulé : la coque tient dans la fenêtre visuelle et
+         * se lit depuis le haut du document — décalée, elle sort de l'écran
+         * (page blanche, socle flottant, zone de saisie invisible).
+         */
+        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+
+          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+            window.scrollTo(0, 0);
+          }
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
