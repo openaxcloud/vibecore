@@ -3208,9 +3208,33 @@ export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): De
 
     const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
 
-    if (!ports.size && /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)) {
-      ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
-    }
+    /*
+     * UN PORT SE CONSTATE, IL NE SE POSTULE PAS.
+     *
+     * Ici se trouvait une supposition : pour toute commande ressemblant a un
+     * serveur de developpement, on AJOUTAIT 5173 (ou 3000 pour Next) sans la
+     * moindre preuve qu'un socket ecoute. C'etait un port invente.
+     *
+     * Ce qu'il produisait, mesure le 2026-09-08 en production sur le workspace
+     * ws-4e6d3c6c540f6a8a : aucun processus vite, rien en ecoute sur 5173, et
+     * l'interface affichait « Stop running ». Le port invente remontait jusqu'au
+     * client, qui le lisait comme `ready === true` ; l'iframe pointait sur
+     * ws-…-5173.preview.e-code.ai, et le proxy journalisait
+     * `preview.proxy.unreachable` en boucle contre un port que personne ne servait.
+     *
+     * Pire : ce port satisfaisait aussi `shouldUseExistingPreviewServer`, donc
+     * chaque demarrage suivant se court-circuitait en « reattache » et NE
+     * RELANCAIT RIEN. C'est la boucle qui obligeait a lancer le serveur a la main.
+     *
+     * `detectPorts()` ne retombe ici que lorsque /proc n'a rien donne — c'est-a-dire
+     * exactement quand rien n'ecoute. Repondre « 5173 » a ce moment-la est le
+     * contraire d'une detection. On ne rend desormais que les ports REELLEMENT
+     * ecrits par la commande ou sa sortie (`--port 5173`, `http://localhost:5173/`,
+     * `LISTEN 5173`) : ceux-la sont une trace, pas une hypothese.
+     *
+     * Rien n'est affaibli : aucun port constate ne disparait. Seule l'invention
+     * disparait, et un ensemble vide dit la verite — aucun serveur n'ecoute.
+     */
 
     return [...ports].map((port) => ({ port, processId: record.id }));
   });
