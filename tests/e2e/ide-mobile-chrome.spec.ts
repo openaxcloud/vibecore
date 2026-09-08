@@ -3023,3 +3023,74 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
     });
   });
 });
+
+/*
+ * RP-DB-05 — « Tables », avec « N rows » (captures d'Avi, 08/09 21:07).
+ *
+ * Défaut MESURÉ le 08/09 : la vue lisait `t.name` / `t.rowCount`, l'API rend
+ * `table_name` / `rowsEstimate`. Les deux formes ne se rencontraient jamais —
+ * chaque table sortait avec un nom VIDE, et la clé React valait ce vide pour
+ * toutes. Relevé à l'écran : 0 table rendue. Après : 127.
+ *
+ * Ce test frappe une VRAIE base (celle de la pile) : c'est ce qui distingue un
+ * mappage juste d'un mappage qui compile.
+ */
+test.describe('base de données — les tables portent leur nom et leur compte', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('la liste des tables n’est pas vide, et chaque ligne est nommée', async ({ page, request }) => {
+    test.setTimeout(180_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    /*
+     * On ATTEND la carte de la base avant de cliquer. Une première version
+     * balayait tous les boutons après un délai fixe : quand la liste n'était
+     * pas encore chargée elle ne cliquait rien, et le test devenait
+     * intermittent (vu une fois sur la suite complète, passé au réessai).
+     * Un délai n'est pas une condition (règle 17).
+     */
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    const lignes = page.getByTestId('db-table');
+
+    await expect(lignes.first(), 'les tables de la base doivent s’afficher').toBeVisible({ timeout: 30_000 });
+
+    const noms = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 10).map((el) => (el.querySelector('span')?.textContent ?? '').trim()),
+    );
+
+    expect(noms.length, 'une vraie base a des tables').toBeGreaterThan(0);
+
+    // Le défaut exact : des noms VIDES, tous identiques.
+    expect(
+      noms.every((nom) => nom.length > 0),
+      `noms relevés : ${JSON.stringify(noms)}`,
+    ).toBe(true);
+    expect(new Set(noms).size, 'et des noms distincts, pas la même clé partout').toBe(noms.length);
+
+    // Le compte de lignes est rendu, y compris « 0 » pour une table vide.
+    const comptes = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 5).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    expect(
+      comptes.some((compte) => /\d/u.test(compte)),
+      `comptes relevés : ${JSON.stringify(comptes)}`,
+    ).toBe(true);
+  });
+});

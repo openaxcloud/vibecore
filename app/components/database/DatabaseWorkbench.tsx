@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseSettings } from './DatabaseSettings';
 import { DatabaseStudio } from './DatabaseStudio';
+import { tablesDuSchema } from './tables-du-schema';
 import {
   formatDatabaseSettingsBytes,
   formatDatabaseStudioPlural,
@@ -187,6 +188,7 @@ function UsageCard({
 
   return (
     <button
+      data-testid="db-carte"
       type="button"
       onClick={onOpen}
       className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-left hover:border-bolt-elements-item-contentAccent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
@@ -492,16 +494,15 @@ function OverviewTab({
     fetcher.load(`${base}?schemaKey=${encodeURIComponent(connectionKey)}`);
   }, [connectionKey]);
 
-  const tables = useMemo(() => {
-    const c = container(fetcher.data);
-    const schema = (c.schema && typeof c.schema === 'object' ? c.schema : c) as Record<string, unknown>;
-
-    return asArray(schema.tables ?? c.tables).map((t) => {
-      const o = (t && typeof t === 'object' ? t : {}) as Record<string, unknown>;
-
-      return { name: String(o.name ?? o.table ?? ''), rows: typeof o.rowCount === 'number' ? o.rowCount : undefined };
-    });
-  }, [fetcher.data]);
+  /*
+   * RP-DB-05 — la normalisation vit dans `tables-du-schema.ts`, seule et
+   * testée. Elle lisait ici `t.name` / `t.rowCount` alors que l'API rend
+   * `table_name` / `rowsEstimate` : les deux formes ne se rencontraient
+   * jamais, donc chaque table s'affichait avec un nom VIDE et sans compte de
+   * lignes — et la clé React valait ce vide pour toutes. Relevé à l'écran le
+   * 08/09 : 0 table rendue.
+   */
+  const tables = useMemo(() => tablesDuSchema(container(fetcher.data)), [fetcher.data]);
 
   return (
     <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
@@ -516,18 +517,22 @@ function OverviewTab({
         <div className="grid gap-2 sm:grid-cols-2">
           {tables.map((t) => (
             <button
-              key={t.name}
+              key={`${t.schema ?? ''}.${t.nom}`}
               type="button"
               onClick={onPickTable}
+              data-testid="db-table"
               className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-left hover:border-bolt-elements-item-contentAccent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
             >
-              <span className="truncate font-mono text-[13px] text-bolt-elements-textPrimary">{t.name}</span>
+              <span className="truncate font-mono text-[13px] text-bolt-elements-textPrimary">{t.nom}</span>
               <span className="shrink-0 text-[12px] text-bolt-elements-textTertiary">
-                {typeof t.rows === 'number'
-                  ? formatDatabaseStudioPlural(language, t.rows, {
+                {typeof t.lignes === 'number'
+                  ? formatDatabaseStudioPlural(language, t.lignes, {
                       one: copy['databaseWorkbench.rows_one'],
                       other: copy['databaseWorkbench.rows_other'],
                     })
+                  : ''}
+                {typeof t.octets === 'number' && t.octets > 0
+                  ? ` · ${formatDatabaseSettingsBytes(t.octets, language)}`
                   : ''}
               </span>
             </button>
