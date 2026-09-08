@@ -1643,13 +1643,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 }),
               );
 
+              /*
+               * RP-CKPT-02 — le coût facturé par le registre remonte dans
+               * l'annotation `usage` du message (« Agent usage $3.21 »), avec
+               * la durée du tour : c'est ce que Replit montre sous chaque
+               * réponse, et ce que la sonde d'Avi ne voyait nulle part.
+               */
+              let factureDuTour: Awaited<ReturnType<typeof recordChatUsage>>;
+
               if (projectId) {
                 /*
                  * Fire-and-log: a billing/quota write failure must never break the
                  * data stream or abort the rest of onFinish (cleanup still runs).
                  */
                 try {
-                  await recordChatUsage({
+                  factureDuTour = await recordChatUsage({
                     projectId,
                     provider: completionProvider,
                     model: completionModel,
@@ -1703,6 +1711,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                     completionTokens: cumulativeUsage.completionTokens,
                     promptTokens: cumulativeUsage.promptTokens,
                     totalTokens: cumulativeUsage.totalTokens,
+                    durationMs: Date.now() - chronoFlux.debut,
+                    ...(typeof factureDuTour?.costCents === 'number' ? { costCents: factureDuTour.costCents } : {}),
                   },
                 });
               } catch (error) {

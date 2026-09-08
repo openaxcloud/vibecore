@@ -22,6 +22,14 @@
  */
 import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
 import {
+  formaterLaDateDuPoint,
+  ilYA,
+  pointsDeRestaurationParMessage,
+  type PointDeRestauration,
+} from '~/components/chat/fin-de-tour';
+import { commitDemande } from '~/components/workbench/commit-demande';
+import { getFinDeTourCopy } from '~/lib/i18n/catalogs/fin-de-tour';
+import {
   composerLaSaisie,
   langueDeDictee,
   messageDErreurDeDictee,
@@ -136,7 +144,12 @@ import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
-import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import {
+  clavierProbablementOuvert,
+  decalageAAnnulerClavierOuvert,
+  recouvrementBasDuNavigateur,
+  retrecissementDeLaVue,
+} from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -3031,8 +3044,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
          * attribut — voir « CLAVIER LEVÉ » dans index.scss.
          */
-        if (clavierProbablementOuvert(recouvrementBas)) {
+        /*
+         * BUG-KEYBOARD-ZOOM-001 (Avi, 08/09 07:58) — la détection se fait sur
+         * le RÉTRÉCISSEMENT de la fenêtre visuelle, pas sur le recouvrement
+         * bas : quand Safari fait défiler le document pour garder le champ
+         * visible, le recouvrement bas tombe à 0 clavier levé. Et ce
+         * défilement est annulé : la coque tient dans la fenêtre visuelle et
+         * se lit depuis le haut du document — décalée, elle sort de l'écran
+         * (page blanche, socle flottant, zone de saisie invisible).
+         */
+        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+
+          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+            window.scrollTo(0, 0);
+          }
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
@@ -3836,7 +3862,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     >([]);
 
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
-    const [rollbackDatabase, setRollbackDatabase] = useState(false);
+
+    /*
+     * RP-CKPT-05 — la feuille Replit ne propose pas de case : le retour
+     * arrière remet TOUJOURS les fichiers, la base de données de
+     * développement et la mémoire de l'agent. Le serveur dit ce qu'il a pu
+     * faire ; un échec de la base remonte en avertissement, jamais en silence.
+     */
+    const rollbackDatabase = true;
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
 
@@ -4872,10 +4905,72 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       void loadProjectSnapshots();
 
+      /*
+       * RP-CKPT-04 — un point de restauration vient d'être pris en fin de
+       * tour (workbench) : la liste se recharge, le bloc « Checkpoint made … »
+       * apparaît sous la réponse sans recharger la page.
+       */
+      const handleSnapshotsChanged = () => {
+        void loadProjectSnapshots();
+      };
+
+      window.addEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
+
       return () => {
         cancelled = true;
+        window.removeEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
       };
     }, [projectIdeMode, projectId]);
+
+    /*
+     * RP-CKPT-02/03 — les points de restauration de fin de tour, par message
+     * de l'agent, et les deux gestes du bloc FinDeTour : « Rollback here »
+     * ouvre la feuille de retour arrière sur CE point (état d'après le tour),
+     * « Changes » ouvre l'onglet Git directement sur son commit.
+     */
+    const pointsDeRestaurationParMessageId = useMemo(
+      () =>
+        pointsDeRestaurationParMessage(projectSnapshots, {
+          messages: messages ?? [],
+          conversationId: currentAiConversationId,
+        }),
+      [currentAiConversationId, messages, projectSnapshots],
+    );
+
+    const revenirAuPointDeRestauration = useCallback(
+      (point: PointDeRestauration) => {
+        const source = messages ?? [];
+        const index = source.findIndex((message) => message.id === point.messageId);
+
+        setRollbackTarget({
+          id: `point:${point.snapshotId}`,
+          title: point.commitMessage || t('baseChatAst.conversation.checkpoint'),
+          description: formaterLaDateDuPoint(point.createdAt, language),
+          messageId: point.messageId,
+          messageIndex: index >= 0 ? index : source.length - 1,
+          conversationId: `project:${projectId}`,
+          conversationTitle: t('chat.copy.currentProjectConversation_1df5a771'),
+          createdAt: point.createdAt,
+          ageLabel: ilYA(point.createdAt, language),
+          commitSha: point.commitSha?.slice(0, 8),
+          snapshot: projectSnapshots.find((snapshot) => snapshot.id === point.snapshotId),
+          messages: index >= 0 ? source.slice(0, index + 1) : source,
+          backendConversationId: currentAiConversationId,
+        });
+      },
+      [currentAiConversationId, language, messages, projectId, projectSnapshots, t],
+    );
+
+    const ouvrirLesChangementsDuPoint = useCallback((point: PointDeRestauration) => {
+      if (!point.commitSha) {
+        return;
+      }
+
+      commitDemande.set(point.commitSha);
+      window.dispatchEvent(
+        new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git', toolId: 'git' } }),
+      );
+    }, []);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId) {
@@ -7018,6 +7113,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           form.set('intent', 'restore');
           form.set('snapshotId', rollbackTarget.snapshot.id);
           form.set('restoreDatabase', rollbackDatabase ? 'true' : 'false');
+          form.set('restoreAgentMemory', 'true');
+
+          if (rollbackTarget.createdAt) {
+            form.set('since', rollbackTarget.createdAt);
+          }
 
           const response = await fetch(`/api/projects/${projectId}/ide-panel/snapshots`, {
             method: 'POST',
@@ -7287,7 +7387,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         disabled={!rollbackAvailable}
                         aria-label={t('chat.copy.rollbackToCheckpointValue0_2131e13b', { value0: checkpoint.title })}
                         onClick={() => {
-                          setRollbackDatabase(false);
                           setRollbackTarget(checkpoint);
                         }}
                       >
@@ -7411,6 +7510,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <Messages
                       className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
                       messages={messages}
+                      finDeTour={{
+                        pointsParMessage: pointsDeRestaurationParMessageId,
+                        language,
+                        onRollback: revenirAuPointDeRestauration,
+                        onChanges: ouvrirLesChangementsDuPoint,
+                      }}
                       isStreaming={isStreaming}
                       append={append}
                       chatMode={chatMode}
@@ -9084,7 +9189,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                     value0: checkpoint.title,
                                   })}
                                   onClick={() => {
-                                    setRollbackDatabase(false);
                                     setRollbackTarget(checkpoint);
                                   }}
                                 >
@@ -10679,65 +10783,69 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             role="dialog"
             aria-modal="true"
             aria-labelledby="rollback-title"
+            data-testid="rollback-dialog"
           >
+            {/*
+             * RP-CKPT-05 — la feuille de Replit (capture d'Avi du 08/09, 07:51) :
+             * un titre, le message du commit et sa date, « What will be
+             * impacted » en trois blocs — Files / Database / Agent memory —,
+             * puis Cancel et un bouton bleu. Pas de case à cocher, pas de
+             * capture d'écran fictive : chaque ligne annonce quelque chose que
+             * le serveur fait vraiment (fichiers, base via PITR, mémoire
+             * archivée après le point).
+             */}
             <div className="bolt-project-rollback-dialog">
+              <button
+                type="button"
+                className="bolt-project-rollback-fermer"
+                onClick={() => setRollbackTarget(null)}
+                disabled={rollbackBusy}
+                aria-label={getFinDeTourCopy(language)['finDeTour.rollbackDialog.close']}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
               <div className="bolt-project-rollback-body">
-                <h2 id="rollback-title">{t('chat.copy.rollbackToCheckpoint_b3cc16a0')}</h2>
-                {/*
-                 * No per-checkpoint screenshot is captured or stored, so a static
-                 * 'Screenshot — Preview expired' placeholder would misrepresent the
-                 * state being reverted to in this destructive confirmation. Only
-                 * truthful checkpoint metadata is shown below.
-                 */}
-                <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.targetCheckpoint_8dfbabe1')}</span>
+                <h2 id="rollback-title">{getFinDeTourCopy(language)['finDeTour.rollbackDialog.title']}</h2>
+                <section className="bolt-project-rollback-cible">
                   <h3>{rollbackTarget.title}</h3>
                   <p>{rollbackTarget.description}</p>
-                  <small>
-                    {rollbackTarget.ageLabel}
-                    {rollbackTarget.commitSha ? ` • ${rollbackTarget.commitSha}` : ''}
-                  </small>
                 </section>
                 <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.whatWillBeImpacted_e370579d')}</span>
-                  <div className="bolt-project-rollback-impact">
-                    <strong>{t('chat.copy.files_6ce6c512')}</strong>
+                  <h4 className="bolt-project-rollback-impact-titre">
+                    {getFinDeTourCopy(language)['finDeTour.rollbackDialog.impact']}
+                  </h4>
+                  <div className="bolt-project-rollback-impact" data-testid="rollback-impact">
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.files']}</strong>
                     {rollbackTarget.snapshot?.id ? (
-                      <p>{t('chat.copy.allFilesInYourAppWill_216ac181')}</p>
+                      <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.filesDetail']}</p>
                     ) : (
                       <p>{t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0')}</p>
                     )}
-                    <strong>{t('chat.copy.agentMemory_bcf5354f')}</strong>
-                    <p>{t('chat.copy.theAgentSMemoryWillReset_1cccfbd1')}</p>
-                    <strong>{t('chat.copy.tasks_090ec5f5')}</strong>
-                    <p>{t('chat.copy.allInProgressTasksWillFinish_8502f56c')}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.database']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.databaseDetail']}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memory']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memoryDetail']}</p>
                   </div>
-                </section>
-                <section>
-                  <span className="bolt-project-rollback-label">
-                    {t('chat.copy.additionalRollbackOptions_0a728603')}
-                  </span>
-                  <label className="bolt-project-rollback-option">
-                    <input
-                      type="checkbox"
-                      checked={rollbackDatabase}
-                      onChange={(event) => setRollbackDatabase(event.currentTarget.checked)}
-                    />
-                    <span>
-                      <strong>{t('chat.copy.database_61074f1c')}</strong>
-                      <small>{t('chat.copy.yourDevelopmentDatabaseWillBeRestored_5db4609a')}</small>
-                    </span>
-                  </label>
                 </section>
               </div>
               <footer>
-                <button type="button" onClick={() => setRollbackTarget(null)} disabled={rollbackBusy}>
-                  {t('chat.copy.cancel_77dfd213')}
+                <button
+                  type="button"
+                  onClick={() => setRollbackTarget(null)}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-cancel"
+                >
+                  {getFinDeTourCopy(language)['finDeTour.rollbackDialog.cancel']}
                 </button>
-                <button type="button" onClick={confirmProjectRollback} disabled={rollbackBusy}>
+                <button
+                  type="button"
+                  onClick={confirmProjectRollback}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-confirm"
+                >
                   {rollbackBusy
-                    ? t('chat.copy.rollingBack_1accbd2a')
-                    : t('chat.copy.rollbackToThisCheckpoint_7d8b2a6c')}
+                    ? getFinDeTourCopy(language)['finDeTour.rollbackDialog.busy']
+                    : getFinDeTourCopy(language)['finDeTour.rollbackDialog.confirm']}
                 </button>
               </footer>
             </div>

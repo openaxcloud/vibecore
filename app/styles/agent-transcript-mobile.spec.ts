@@ -75,11 +75,48 @@ describe('transcript de l’agent en mobile', () => {
    */
   it('ne met aucune gouttière sur `.bolt-project-agent-scroll`, qui ne défile pas', () => {
     const scroll = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-scroll {');
-    const padding = /padding:\s*calc\(([^;]+)\)\s*0\s+0 !important/.exec(scroll)?.[1];
+    const padding = /padding:\s*calc\(([^;]+?)\)\s*0\s+(calc\([^;]+\)|0) !important/.exec(scroll);
 
-    expect(padding, 'le rembourrage haut est un calc() qui ne porte que les réserves conditionnelles').toBeDefined();
-    expect(padding).not.toContain('--vc-mobile-panel-gutter');
-    expect(padding).toContain('--vc-mobile-agent-context-height');
+    expect(padding, 'le rembourrage est un calc() qui ne porte que les réserves conditionnelles').toBeTruthy();
+    expect(padding![1]).not.toContain('--vc-mobile-panel-gutter');
+    expect(padding![1]).toContain('--vc-mobile-agent-context-height');
+
+    /*
+     * RP-CKPT-01 — le bas de la boîte réserve EXACTEMENT le soulèvement du
+     * composeur collant (`--mobile-nav-height + 8px`), sinon le pied du
+     * dernier message passe dessous (mesuré : 677 pour un composeur à 642).
+     */
+    expect(padding![2]).toBe('calc(var(--mobile-nav-height) + 8px)');
+
+    /*
+     * Et le composeur collant ne porte PLUS ce soulèvement : son rectangle de
+     * collage est la boîte de contenu du conteneur ; à 80 des deux côtés, il
+     * remontait de 80 de trop et recouvrait encore la boîte (mesuré : 562
+     * pour une boîte finissant à 642).
+     */
+    const composeur = bloc(
+      source,
+      ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer {",
+    );
+
+    expect(composeur).toContain('bottom: 0 !important;');
+    expect(composeur).not.toContain('bottom: calc(');
+
+    /*
+     * Et la pastille « descendre », collante dans la boîte qui défile, n'a plus
+     * rien à compenser non plus : 2 px au-dessus du bas de la boîte. Avec
+     * l'ancien `barre + 8 + 2`, elle flottait à 82 px du composeur (E2E).
+     */
+    const pastille = bloc(
+      source,
+      ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,",
+    );
+
+    expect(pastille).toContain('bottom: 2px;');
+    expect(pastille).not.toContain('bottom: calc(var(--mobile-nav-height)');
+    expect(source).toContain(
+      "html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-scroll {\n    padding-bottom: 0 !important;",
+    );
   });
 
   it('met la respiration sous l’en-tête dans le transcript, qui défile avec elle', () => {

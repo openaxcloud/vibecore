@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 /**
  * Lot IDE-MOBILE-2026-09-06 — « fixe tous les panneaux, tout sans exception ».
@@ -54,13 +55,15 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
 
       const projectId = (await projet.json()).project.id as string;
 
+      let conversationId: string | undefined;
+
       if (options.fil) {
         const conversation = await request.post(`${apiBaseUrl}/projects/${projectId}/ai/conversations`, {
           headers: entetes,
           data: { title: 'Chrome mobile' },
         });
 
-        const conversationId = (await conversation.json()).conversation.id as string;
+        conversationId = (await conversation.json()).conversation.id as string;
 
         await request.put(`${apiBaseUrl}/projects/${projectId}/ai/conversations/${conversationId}/transcript`, {
           headers: entetes,
@@ -107,7 +110,7 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
         });
       }
 
-      return { token: auth.token, projectId };
+      return { token: auth.token, projectId, conversationId };
     }
 
     if (inscription.status() === 429 && essai < 3) {
@@ -126,7 +129,7 @@ async function ouvrirIde(
   request: APIRequestContext,
   options: { fil: boolean; long?: boolean; theme?: 'light' | 'dark' },
 ) {
-  const { token, projectId } = await preparerUnProjet(request, options);
+  const { token, projectId, conversationId } = await preparerUnProjet(request, options);
 
   await page.context().addCookies([
     { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
@@ -137,7 +140,7 @@ async function ouvrirIde(
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
 
-  return { token, projectId };
+  return { token, projectId, conversationId };
 }
 
 /*
@@ -2000,6 +2003,172 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     expect(geometrie.bulleHaut - geometrie.enteteBas, 'la bulle se pose juste sous le trait').toBeGreaterThanOrEqual(3);
     expect(geometrie.bulleHaut - geometrie.enteteBas, 'sans bande morte').toBeLessThanOrEqual(10);
     expect(geometrie.hautDeBulleTouchable, 'le haut de la première bulle n’est pas rogné').toBe(true);
+  });
+
+  test('fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000);
+
+    const { token, projectId, conversationId } = await ouvrirIde(page, request, { fil: true });
+    const entetes = { authorization: `Bearer ${token}` };
+
+    /*
+     * Avi, 08/09 07:48–07:51, quatre captures : chez nous « Léger · ×0.530 k
+     * jetons » sous la zone de saisie ; chez Replit deux lignes repliables
+     * sous la réponse — « Worked for 2 minutes » (Time worked / Work done /
+     * Items read / Agent usage) et « Checkpoint made 25 days ago » (message du
+     * commit, date, Rollback here, Changes), la feuille « Rollback to this
+     * checkpoint? » (Files / Database / Agent memory) et « Changes » qui
+     * ouvre le commit dans l'onglet Git.
+     *
+     * Le point de restauration est pris ici comme la fin de tour le prend
+     * (RP-CKPT-04) : un commit Git, puis un instantané `automatic` dont le
+     * manifeste relie le tout au message `a1` et garde les statistiques.
+     */
+    // Un projet neuf n'a rien dans son stockage : le fichier que le tour a écrit y est importé d'abord.
+    const archive = new JSZip();
+
+    archive.file(CHEMIN_PROFOND, '// contact\n');
+    archive.file('package.json', '{ "name": "chrome-mobile", "private": true }\n');
+
+    const importation = await request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+      headers: entetes,
+      data: { zipBase64: await archive.generateAsync({ type: 'base64' }), replaceExisting: true },
+    });
+
+    expect(importation.ok(), await importation.text()).toBe(true);
+
+    const commit = await request.post(`${apiBaseUrl}/projects/${projectId}/git/commit`, {
+      headers: entetes,
+      data: { message: 'Page de contact' },
+    });
+
+    expect(commit.ok(), await commit.text()).toBe(true);
+
+    const sha = String((await commit.json()).commit?.sha ?? '').trim();
+
+    expect(sha).toMatch(/^[0-9a-f]{40}$/u);
+
+    const instantane = await request.post(`${apiBaseUrl}/projects/${projectId}/snapshots`, {
+      headers: entetes,
+      data: {
+        label: 'Page de contact',
+        kind: 'automatic',
+        manifest: {
+          checkpoint: {
+            // Comme la fin de tour : l'identifiant client ET le rang du tour dans la conversation (stable au relu).
+            messageId: 'a1',
+            conversationId,
+            turnIndex: 0,
+            commitSha: sha,
+            commitMessage: 'Page de contact',
+            statistiques: { dureeMs: 120_000, actions: 15, lignesLues: 218, coutCents: 321 },
+          },
+        },
+      },
+    });
+
+    expect(instantane.ok(), await instantane.text()).toBe(true);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
+
+    // Au relu, le message porte son identifiant serveur (`aimsg_…`) : on prend le bloc de la dernière réponse.
+    const bloc = page
+      .locator('.bolt-chat-message-row-assistant')
+      .last()
+      .locator('[data-testid^="fin-de-tour-"]')
+      .first();
+
+    await expect(bloc).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    // RP-CKPT-01 — en bas du fil, ni le bloc ni le dernier message ne passent sous la zone de saisie.
+    const geometrie = await page.evaluate(() => {
+      // La boîte qui défile est la plus PROFONDE des boîtes défilantes contenant le fil (StickToBottom en intercale une).
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
+
+      if (boite) {
+        boite.scrollTop = boite.scrollHeight;
+      }
+
+      const rangees = document.querySelectorAll('.bolt-chat-message-row');
+      const derniere = rangees[rangees.length - 1]!.getBoundingClientRect();
+      const bloc = document.querySelector('.bolt-fin-de-tour')!.getBoundingClientRect();
+      const composeur = document.querySelector('.bolt-project-agent-composer')!.getBoundingClientRect();
+      const boiteRect = boite?.getBoundingClientRect();
+
+      return {
+        derniereBas: Math.round(derniere.bottom),
+        blocBas: Math.round(bloc.bottom),
+        composeurHaut: Math.round(composeur.top),
+        boiteBas: boiteRect ? Math.round(boiteRect.bottom) : null,
+      };
+    });
+
+    expect(geometrie.boiteBas, 'la boîte qui défile s’arrête où la zone de saisie commence').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+    expect(geometrie.blocBas, 'le bloc de fin de tour reste au-dessus de la zone de saisie').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+    expect(geometrie.derniereBas, 'le dernier message reste au-dessus de la zone de saisie').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+
+    // RP-CKPT-07 — fermées par défaut ; RP-CKPT-02 — les quatre lignes de Replit.
+    await expect(page.getByTestId('fin-de-tour-travail-detail')).toHaveCount(0);
+    await expect(page.getByTestId('fin-de-tour-travail')).toHaveText(/Worked for 2 minutes|A travaillé 2 minutes/u);
+    await page.getByTestId('fin-de-tour-travail').click();
+    await expect(page.getByTestId('fin-de-tour-timeWorked')).toContainText('2 minutes');
+    await expect(page.getByTestId('fin-de-tour-workDone')).toContainText('15 actions');
+    await expect(page.getByTestId('fin-de-tour-itemsRead')).toContainText(/218 (lines|lignes)/u);
+    await expect(page.getByTestId('fin-de-tour-agentUsage')).toContainText(/\$3\.21|3,21 \$/u);
+
+    // RP-CKPT-03 — le point de restauration : message du commit, date, deux boutons.
+    await expect(page.getByTestId('fin-de-tour-point')).toHaveText(/Checkpoint made|Point de restauration créé/u);
+    await page.getByTestId('fin-de-tour-point').click();
+
+    const detailDuPoint = page.getByTestId('fin-de-tour-point-detail');
+
+    await expect(detailDuPoint).toContainText('Page de contact');
+    await expect(detailDuPoint).toContainText(/2026/u);
+    await expect(page.getByTestId('fin-de-tour-rollback')).toBeVisible();
+    await expect(page.getByTestId('fin-de-tour-changes')).toBeVisible();
+
+    // RP-CKPT-05 — la feuille Replit : Files / Database / Agent memory, Cancel.
+    await page.getByTestId('fin-de-tour-rollback').click();
+
+    const feuille = page.getByTestId('rollback-dialog');
+
+    await expect(feuille).toBeVisible();
+    await expect(feuille).toContainText(/Rollback to this checkpoint\?|Revenir à ce point de restauration \?/u);
+    await expect(feuille).toContainText('Page de contact');
+
+    const impact = page.getByTestId('rollback-impact');
+
+    await expect(impact.locator('strong')).toHaveCount(3);
+    await expect(impact).toContainText(/Files|Fichiers/u);
+    await expect(impact).toContainText(/Database|Base de données/u);
+    await expect(impact).toContainText(/Agent memory|Mémoire de l’agent/u);
+    await expect(feuille.locator('input[type="checkbox"]')).toHaveCount(0);
+    await page.getByTestId('rollback-cancel').click();
+    await expect(feuille).toHaveCount(0);
+
+    // RP-CKPT-06 — « Changes » ouvre l'onglet Git directement sur le commit du point.
+    await page.getByTestId('fin-de-tour-changes').click();
+
+    const detailDuCommit = page.getByTestId('git-commit-detail');
+
+    await expect(detailDuCommit).toBeVisible({ timeout: 30_000 });
+    await expect(detailDuCommit).toContainText(sha.slice(0, 8));
   });
 
   test('onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit', async ({

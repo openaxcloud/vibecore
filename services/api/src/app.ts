@@ -953,6 +953,13 @@ const projectActivityQuerySchema = z.object({
 const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
 const agentMemoryTypeSchema = z.enum(['episodic', 'semantic', 'procedural', 'working', 'cache']);
 
+const agentMemoryRollbackSchema = z.object({
+  since: z
+    .string()
+    .min(1)
+    .refine((value) => Number.isFinite(Date.parse(value))),
+});
+
 const agentMemoryWriteSchema = z.object({
   scope: agentMemoryScopeSchema.default('user'),
   content: z.string().min(1).max(12000),
@@ -11565,6 +11572,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(result.memory ? (result.updated ? 200 : 201) : 202).send(result);
+  });
+
+  /*
+   * RP-CKPT-05 — « Rollback to this checkpoint » : la mémoire de l'agent
+   * revient à ce qu'il savait du projet au moment du point. Les souvenirs
+   * appris après sont archivés (`archivedAt`), jamais effacés.
+   */
+  app.post('/projects/:projectId/agent-memory/rollback', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(agentMemoryRollbackSchema, request.body);
+    const since = new Date(body.since);
+
+    const service = requireAgentMemoryService(agentMemory);
+    const result = await service.rollbackProject({ projectId: project.id, since });
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'agent_memory.rollback',
+      metadata: { since: since.toISOString(), archived: result.archived },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'agent_memory.rollback',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { since: since.toISOString(), archived: result.archived },
+    });
+
+    return result;
   });
 
   app.post('/agent-memory/search', async (request) => {

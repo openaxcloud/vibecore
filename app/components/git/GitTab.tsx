@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPane
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { commitDemande } from '~/components/workbench/commit-demande';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -1000,6 +1002,37 @@ export function GitTab({ projectId }: GitTabProps) {
     },
     [astCopy, projectId, resolvedWorkspaceId],
   );
+
+  /*
+   * RP-CKPT-06 — « Changes » sous un point de restauration du fil : l'onglet
+   * s'ouvre DIRECTEMENT sur le commit demandé, détail chargé et amené à
+   * l'écran. Même garde anti-boucle que la recherche demandée : une demande
+   * n'est traitée qu'une fois, et l'atome est remis à zéro aussitôt.
+   */
+  const commitDemandeCourant = useStore(commitDemande);
+  const loadCommitRef = useRef(loadCommit);
+  loadCommitRef.current = loadCommit;
+
+  const commitTraiteRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof commitDemandeCourant !== 'string' || !commitDemandeCourant.trim()) {
+      return;
+    }
+
+    if (commitTraiteRef.current === commitDemandeCourant) {
+      return;
+    }
+
+    commitTraiteRef.current = commitDemandeCourant;
+    commitDemande.set(null);
+
+    void loadCommitRef.current(commitDemandeCourant).then(() => {
+      window.requestAnimationFrame(() => {
+        document.querySelector('[data-testid="git-commit-detail"]')?.scrollIntoView({ block: 'start' });
+      });
+    });
+  }, [commitDemandeCourant]);
 
   const loadConflictFile = useCallback(
     async (path: string) => {

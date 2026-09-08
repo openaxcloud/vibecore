@@ -265,14 +265,20 @@ export async function checkChatQuota(input: CheckChatQuotaInput): Promise<CheckC
   }
 }
 
-export async function recordChatUsage(input: RecordChatUsageInput): Promise<void> {
+/** Ce que le registre rend après avoir facturé l'appel — le coût sert au bloc « Worked for » du fil (RP-CKPT-02). */
+export interface RecordChatUsageResult {
+  costCents?: number;
+  creditCents?: number;
+}
+
+export async function recordChatUsage(input: RecordChatUsageInput): Promise<RecordChatUsageResult | undefined> {
   if (!input.projectId) {
-    return;
+    return undefined;
   }
 
   if (input.inputTokens === 0 && input.outputTokens === 0) {
     // Nothing to bill, no point bouncing through api.
-    return;
+    return undefined;
   }
 
   const url = `${apiBaseUrl().replace(/\/+$/, '')}/projects/${encodeURIComponent(input.projectId)}/ai/record-usage`;
@@ -290,7 +296,7 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         projectId: input.projectId,
       }),
     );
-    return;
+    return undefined;
   }
 
   try {
@@ -323,8 +329,13 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
           outputTokens: input.outputTokens,
         }),
       );
-      return;
+      return undefined;
     }
+
+    const facture = (await response.json().catch(() => null)) as {
+      costCents?: unknown;
+      creditCents?: unknown;
+    } | null;
 
     /*
      * Trace-level acknowledgement so we can correlate the local C1.a log
@@ -340,6 +351,11 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
         outputTokens: input.outputTokens,
       }),
     );
+
+    return {
+      costCents: typeof facture?.costCents === 'number' ? facture.costCents : undefined,
+      creditCents: typeof facture?.creditCents === 'number' ? facture.creditCents : undefined,
+    };
   } catch (error) {
     logger.warn(
       JSON.stringify({
@@ -349,6 +365,8 @@ export async function recordChatUsage(input: RecordChatUsageInput): Promise<void
       }),
     );
   }
+
+  return undefined;
 }
 
 /** Input to {@link recordProviderMetric} (F18 admin p95/error-rate metrics). */
