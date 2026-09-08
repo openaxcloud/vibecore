@@ -119,6 +119,64 @@ export async function assertHostAllowed(
   return { ok: true };
 }
 
+export interface ResolvedAddress {
+  address: string;
+  family: number;
+}
+
+type DnsLookupAll = (
+  hostname: string,
+  options: { all: true },
+  callback: (err: NodeJS.ErrnoException | null, addresses: ResolvedAddress[]) => void,
+) => void;
+
+/**
+ * The `lookup` hook Node calls before connecting. Two things it must get right,
+ * and the second one was wrong for as long as this guard existed:
+ *
+ * 1. SSRF — every resolved address is re-validated at CONNECT time, so a
+ *    public→private DNS rebind between the pre-flight check and the socket
+ *    cannot reach an internal host. One private address in the set rejects all.
+ *
+ * 2. THE CALLBACK SHAPE FOLLOWS `options.all`. Node passes `{ hints, all: true }`
+ *    here (measured 08/09 on node 22: `LOOKUP CALLED options={"hints":32,"all":true}`)
+ *    and then expects `callback(err, addresses[])`. The previous code always
+ *    replied `callback(err, address, family)` — a string where an array was
+ *    expected — so every request died with `TypeError: Invalid IP address:
+ *    undefined` and the route answered 502 FETCH_FAILED. The manual 🌐 widget
+ *    was therefore broken in production, and the agent's automatic
+ *    <web_reference> inherited the same defect: it could never read any site.
+ *    Found by running the real route against a real URL on a local stack.
+ */
+export function createValidatingLookup(dnsLookup: DnsLookupAll) {
+  return (
+    hostname: string,
+    options: unknown,
+    callback: (err: NodeJS.ErrnoException | null, address?: string | ResolvedAddress[], family?: number) => void,
+  ): void => {
+    dnsLookup(hostname, { all: true }, (err, addresses) => {
+      if (err) {
+        callback(err);
+        return;
+      }
+
+      const list = Array.isArray(addresses) ? addresses : [];
+
+      if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
+        callback(Object.assign(new Error(), { code: 'SSRF_BLOCKED' }));
+        return;
+      }
+
+      if ((options as { all?: boolean } | undefined)?.all) {
+        callback(null, list);
+        return;
+      }
+
+      callback(null, list[0].address, list[0].family);
+    });
+  };
+}
+
 /**
  * One HTTP(S) GET with connect-time DNS validation. The custom `lookup`
  * re-validates EVERY resolved address at the moment of connection, so a
@@ -198,27 +256,7 @@ async function httpGetOnce(
     import('node:https'),
   ]);
 
-  const validatingLookup = (
-    hostname: string,
-    _options: unknown,
-    callback: (err: NodeJS.ErrnoException | null, address?: string, family?: number) => void,
-  ): void => {
-    dnsLookup(hostname, { all: true }, (err, addresses) => {
-      if (err) {
-        callback(err);
-        return;
-      }
-
-      const list = Array.isArray(addresses) ? addresses : [];
-
-      if (list.length === 0 || list.some((entry) => isPrivateIp(entry.address))) {
-        callback(Object.assign(new Error(), { code: 'SSRF_BLOCKED' }));
-        return;
-      }
-
-      callback(null, list[0].address, list[0].family);
-    });
-  };
+  const validatingLookup = createValidatingLookup(dnsLookup);
 
   return new Promise((resolve, reject) => {
     const requestImpl = new URL(targetUrl).protocol === 'https:' ? httpsRequest : httpRequest;

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { armDeadline, decodeBody, FETCH_HEADERS, safeFetch } from './safe-fetch';
+import { armDeadline, createValidatingLookup, decodeBody, FETCH_HEADERS, safeFetch } from './safe-fetch';
 
 /*
  * BUG-AGENT-WEBCLONE-001 — the hard deadline. Node's request `timeout` is an
@@ -146,5 +146,83 @@ describe('safeFetch pre-flight', () => {
       status: 504,
       code: 'TIMEOUT',
     });
+  });
+});
+
+/*
+ * Le contrat du hook `lookup` de Node, et le defaut qu'il cachait.
+ *
+ * Mesure du 08/09 sur la pile locale (node 22) : Node appelle le hook avec
+ * `options = {"hints":32,"all":true}` et attend alors `callback(err, adresses[])`.
+ * Le code repondait TOUJOURS `callback(err, adresse, famille)` — une chaine la
+ * ou un tableau etait attendu — donc chaque requete mourait sur
+ * `TypeError: Invalid IP address: undefined` et la route rendait 502
+ * FETCH_FAILED. Present a l'identique dans la version d'origine
+ * (`0f578f4:app/routes/api.web-search.ts:154`) : le widget 🌐 etait donc casse
+ * en production, et la reference web automatique de l'agent en heritait — elle
+ * n'aurait jamais rien lu. Trouve en lancant la vraie route sur une vraie URL.
+ */
+describe('createValidatingLookup', () => {
+  const publicAddrs = [
+    { address: '104.16.213.131', family: 4 },
+    { address: '2606:4700::6810:d483', family: 6 },
+  ];
+  const lookupOk = ((_h: string, _o: unknown, cb: (e: null, a: typeof publicAddrs) => void) =>
+    cb(null, publicAddrs)) as never;
+
+  it('rend un TABLEAU quand Node demande all:true (la forme que Node exige)', () => {
+    const lookup = createValidatingLookup(lookupOk);
+
+    let result: unknown;
+    lookup('nodejs.org', { hints: 32, all: true }, (err, value) => {
+      result = value;
+      expect(err).toBeNull();
+    });
+
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).toEqual(publicAddrs);
+  });
+
+  it('rend adresse + famille quand all est absent ou faux', () => {
+    const lookup = createValidatingLookup(lookupOk);
+    const seen: unknown[] = [];
+
+    lookup('nodejs.org', { hints: 32 }, (_e, address, family) => seen.push([address, family]));
+    lookup('nodejs.org', { all: false }, (_e, address, family) => seen.push([address, family]));
+    lookup('nodejs.org', undefined, (_e, address, family) => seen.push([address, family]));
+
+    expect(seen).toEqual([
+      ['104.16.213.131', 4],
+      ['104.16.213.131', 4],
+      ['104.16.213.131', 4],
+    ]);
+  });
+
+  it('refuse le lot entier si UNE adresse est privee, quelle que soit la forme demandee', () => {
+    const rebind = ((_h: string, _o: unknown, cb: (e: null, a: { address: string; family: number }[]) => void) =>
+      cb(null, [
+        { address: '104.16.213.131', family: 4 },
+        { address: '169.254.169.254', family: 4 },
+      ])) as never;
+
+    const lookup = createValidatingLookup(rebind);
+
+    for (const options of [{ all: true }, { all: false }]) {
+      lookup('rebind.example', options, (err, value) => {
+        expect((err as { code?: string })?.code).toBe('SSRF_BLOCKED');
+        expect(value).toBeUndefined();
+      });
+    }
+  });
+
+  it('refuse une resolution vide et propage une erreur DNS', () => {
+    const empty = ((_h: string, _o: unknown, cb: (e: null, a: never[]) => void) => cb(null, [])) as never;
+    createValidatingLookup(empty)('x.example', { all: true }, (err) =>
+      expect((err as { code?: string })?.code).toBe('SSRF_BLOCKED'),
+    );
+
+    const dnsError = Object.assign(new Error(), { code: 'ENOTFOUND' });
+    const failing = ((_h: string, _o: unknown, cb: (e: unknown) => void) => cb(dnsError)) as never;
+    createValidatingLookup(failing)('x.example', { all: true }, (err) => expect(err).toBe(dnsError));
   });
 });
