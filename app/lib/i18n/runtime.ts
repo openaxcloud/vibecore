@@ -134,6 +134,7 @@ import { projectSnapshotsEn, projectSnapshotsFr } from './catalogs/project-snaps
 import { publicGalleryEn, publicGalleryFr } from './catalogs/public-gallery';
 import { publicRouteSeoEn, publicRouteSeoFr } from './catalogs/public-route-seo';
 import { publicTemplateTagLabelsEn, publicTemplateTagLabelsFr } from './catalogs/public-template-tags';
+import { publicationEn, publicationFr } from './catalogs/publication';
 import { recoveryCodesEn, recoveryCodesFr } from './catalogs/recovery-codes';
 import { remainingApiRoutesEn, remainingApiRoutesFr } from './catalogs/remaining-api-routes';
 import { remainingRouteShellsEn, remainingRouteShellsFr } from './catalogs/remaining-route-shells';
@@ -264,6 +265,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...chatBoxEn,
       ...secretsPanelEn,
       ...finDeTourEn,
+      ...publicationEn,
       ...chatBoxChildrenEn,
       ...chatClientEn,
       ...chatConnectorsEn,
@@ -419,6 +421,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...chatBoxFr,
       ...secretsPanelFr,
       ...finDeTourFr,
+      ...publicationFr,
       ...chatBoxChildrenFr,
       ...chatClientFr,
       ...chatConnectorsFr,
