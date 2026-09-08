@@ -779,6 +779,84 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    */
   const orphelins = new Map<ChildProcessWithoutNullStreams, ReturnType<typeof setTimeout>>();
 
+  const tuerLeGroupe = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
+    if (child.pid === undefined) {
+      return;
+    }
+
+    /*
+     * Les commandes du flux sont lancees DETACHEES (groupe de processus propre) :
+     * un `child.kill()` nu ne signale que le lanceur et laisse ses enfants — le
+     * serveur de dev, un compilateur lance par `make` — orphelins, a retenir des
+     * emplacements de `maxProcesses` et des ports. On vise le groupe par le pid
+     * negatif, avec repli sur le kill direct si le leader est deja reape.
+     */
+    try {
+      process.kill(-child.pid, signal);
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        // Deja sorti — rien a tuer.
+      }
+    }
+  };
+
+  const armerLaMoisson = (child: ChildProcessWithoutNullStreams) => {
+    const moisson = setTimeout(() => {
+      orphelins.delete(child);
+      tuerLeGroupe(child, 'SIGTERM');
+
+      /*
+       * Un enfant qui piege ou ignore SIGTERM (serveurs de dev, shells) resterait
+       * sinon a retenir un emplacement. On escalade a SIGKILL — mais on ANNULE le
+       * minuteur des qu'il sort, sinon le SIGKILL part 5 s plus tard contre
+       * `-child.pid` et, si le systeme a recycle ce pid, frappe le MAUVAIS groupe.
+       */
+      const sigkill = setTimeout(() => tuerLeGroupe(child, 'SIGKILL'), 5000);
+      sigkill.unref();
+      child.once('exit', () => clearTimeout(sigkill));
+    }, devServerGraceMs);
+
+    moisson.unref();
+    orphelins.set(child, moisson);
+  };
+
+  /*
+   * LE PIEGE DU DECOUPLAGE, ET IL ETAIT REEL.
+   *
+   * L'adoption n'etait accrochee qu'a « un nouveau flux de commande s'ouvre ».
+   * Or un utilisateur qui revient sur un serveur DEJA VIVANT n'en ouvre aucun —
+   * precisement parce que le client detecte correctement qu'il tourne et
+   * court-circuite le relancement. Plus la detection est juste, plus surement le
+   * serveur etait moissonne SOUS LES YEUX de son utilisateur : les deux moities
+   * du correctif se contredisaient.
+   *
+   * Ce que fait reellement un client qui regarde, c'est interroger `/ports`, en
+   * boucle. C'est donc ce signal qui re-arme la fenetre. Il a la bonne
+   * propriete : c'est du HTTP, il ne passe PAS par la WebSocket qu'on vient de
+   * decoupler — la sonde de vivacite ne depend pas de ce qu'elle mesure.
+   *
+   * RE-ARMER, ET NON ANNULER : un seul coup d'oeil ne doit pas rendre le serveur
+   * immortel. La fenetre glisse, de sorte qu'elle signifie « dix minutes sans
+   * que PERSONNE ne regarde » — ce qui est l'intention. `/health` en est
+   * volontairement exclu : c'est la sonde du kubelet, elle ne prouve la presence
+   * d'aucun utilisateur, et la brancher ici serait echanger la fuite contre une
+   * autre.
+   */
+  const quelquUnRegarde = () => {
+    for (const child of [...orphelins.keys()]) {
+      const enCours = orphelins.get(child);
+
+      if (enCours) {
+        clearTimeout(enCours);
+      }
+
+      armerLaMoisson(child);
+    }
+  };
+
+  /* Reattache pleine : l'enfant repasse sous la garde d'un flux vivant. */
   const adopterLesOrphelins = () => {
     for (const [, minuteur] of orphelins) {
       clearTimeout(minuteur);
@@ -1146,7 +1224,12 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { killed: Boolean(record), id };
   });
 
-  app.get('/ports', async () => ({ ports: await detectPorts(processes) }));
+  app.get('/ports', async () => {
+    /* Quelqu'un regarde : la fenetre de grace glisse. Voir `quelquUnRegarde`. */
+    quelquUnRegarde();
+
+    return { ports: await detectPorts(processes) };
+  });
 
   /**
    * RPL-IDE-001.7 — real RAM / CPU / Storage for the Resources panel, read from
@@ -1473,31 +1556,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         socketClosed = true;
 
         /*
-         * Streamed commands are spawned detached (own process group), so a bare
-         * child.kill() signals only the shell/launcher and leaves its children
-         * (a dev server, a `make`-spawned compiler, etc.) orphaned — leaking
-         * processes and holding maxProcesses slots + ports. Signal the whole
-         * process group via the negative pid, exactly like runCommandStream's
-         * killTree; fall back to a direct kill if the group send fails (e.g. the
-         * leader already reaped).
-         */
-        const killChildGroup = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
-          if (child.pid === undefined) {
-            return;
-          }
-
-          try {
-            process.kill(-child.pid, signal);
-          } catch {
-            try {
-              child.kill(signal);
-            } catch {
-              // Already exited — nothing to kill.
-            }
-          }
-        };
-
-        /*
          * LA FERMETURE DE LA SOCKET N'EST PLUS UN ARRET.
          *
          * Ici, chaque enfant etait tue immediatement. La duree de vie du serveur
@@ -1511,24 +1569,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
          * borne est stricte, et strictement sous l'inactivite du workspace.
          */
         for (const child of activeChildren) {
-          const moisson = setTimeout(() => {
-            orphelins.delete(child);
-            killChildGroup(child, 'SIGTERM');
-
-            /*
-             * Un enfant qui piege ou ignore SIGTERM (serveurs de dev, shells)
-             * resterait sinon a retenir un emplacement de `maxProcesses`. On
-             * escalade a SIGKILL — mais on ANNULE le minuteur des qu'il sort,
-             * sinon le SIGKILL part 5 s plus tard contre `-child.pid` et, si le
-             * systeme a recycle ce pid, frappe le MAUVAIS groupe.
-             */
-            const sigkillTimer = setTimeout(() => killChildGroup(child, 'SIGKILL'), 5000);
-            sigkillTimer.unref();
-            child.once('exit', () => clearTimeout(sigkillTimer));
-          }, devServerGraceMs);
-
-          moisson.unref();
-          orphelins.set(child, moisson);
+          armerLaMoisson(child);
 
           // Sorti de lui-meme avant la fin de la fenetre : plus rien a moissonner.
           child.once('exit', () => {

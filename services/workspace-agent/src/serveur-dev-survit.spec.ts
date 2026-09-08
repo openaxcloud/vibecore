@@ -156,6 +156,41 @@ async function lancerLeServeurDeDev(port: number, token: string, portBoutique: n
 }
 
 describe('le serveur de dev survit au verrouillage du telephone', () => {
+  it("l'utilisateur revient et REGARDE : le serveur ne doit pas etre moissonne sous ses yeux", async () => {
+    /*
+     * LE PIEGE DU DECOUPLAGE, ET IL EST REEL.
+     *
+     * L'adoption des orphelins etait accrochee a « un nouveau flux de commande
+     * s'ouvre ». Or un utilisateur qui revient sur un serveur DEJA VIVANT n'en
+     * ouvre aucun — precisement parce que le client detecte correctement qu'il
+     * tourne et court-circuite le relancement.
+     *
+     * Consequence : plus la detection est juste, plus surement le serveur est
+     * moissonne SOUS LES YEUX de son utilisateur. Les deux correctifs se
+     * contredisaient.
+     *
+     * Ce que fait vraiment un client qui revient, c'est interroger `/ports`, en
+     * boucle. C'est ce signal qui prouve qu'on regarde, et c'est donc lui qui
+     * doit annuler la moisson. Il a la bonne propriete : c'est du HTTP, il ne
+     * passe PAS par la WebSocket qu'on vient de decoupler — la sonde de
+     * vivacite ne depend pas de ce qu'elle mesure.
+     */
+    const portBoutique = await portLibre();
+    const { app, port, token } = await agentEnEcoute(1_500);
+    const verrouillerLeTelephone = await lancerLeServeurDeDev(port, token, portBoutique);
+
+    verrouillerLeTelephone();
+
+    const regarder = setInterval(() => {
+      void app.inject({ method: 'GET', url: '/ports', headers: { authorization: `Bearer ${token}` } });
+    }, 300);
+    fermer.push(() => clearInterval(regarder));
+
+    await new Promise((r) => setTimeout(r, 4_500)); // trois fois la fenetre de grace
+
+    await expect(laBoutiqueRepond(portBoutique)).resolves.toBe(true);
+  }, 30_000);
+
   it("Avi verrouille son iPhone, revient — SA BOUTIQUE S'AFFICHE", async () => {
     const portBoutique = await portLibre();
     const { port, token } = await agentEnEcoute(60_000);
@@ -169,6 +204,35 @@ describe('le serveur de dev survit au verrouillage du telephone', () => {
 
     // LA SEULE ASSERTION QUI COMPTE : l'application repond.
     await expect(laBoutiqueRepond(portBoutique)).resolves.toBe(true);
+  }, 30_000);
+
+  it("il regarde, puis s'en va pour de bon : le serveur finit par s'arreter quand meme", async () => {
+    /*
+     * LA FENETRE GLISSANTE NE DOIT PAS DEVENIR UN SURSIS PERPETUEL.
+     *
+     * `/ports` re-arme la moisson ; si un seul coup d'oeil la repoussait pour
+     * toujours, on aurait rétabli la fuite qu'on venait de fermer. La fenetre
+     * doit signifier « dix minutes sans que PERSONNE ne regarde », donc repartir
+     * du DERNIER regard — et expirer quand ils cessent.
+     */
+    const portBoutique = await portLibre();
+    const { app, port, token } = await agentEnEcoute(1_500);
+    const verrouillerLeTelephone = await lancerLeServeurDeDev(port, token, portBoutique);
+
+    verrouillerLeTelephone();
+
+    // Il regarde un moment...
+    for (let i = 0; i < 5; i += 1) {
+      await app.inject({ method: 'GET', url: '/ports', headers: { authorization: `Bearer ${token}` } });
+      await new Promise((r) => setTimeout(r, 300));
+    }
+
+    await expect(laBoutiqueRepond(portBoutique)).resolves.toBe(true);
+
+    // ...puis il s'en va. Plus aucun regard : la fenetre doit expirer.
+    await expect
+      .poll(async () => !(await laBoutiqueRepond(portBoutique)), { timeout: 15_000, interval: 250 })
+      .toBe(true);
   }, 30_000);
 
   it("mais passe la fenetre de grace sans retour, il s'arrete — pas de fuite", async () => {
