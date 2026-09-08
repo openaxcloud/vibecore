@@ -34,12 +34,8 @@ describe('FilterChip actif — texte sur une teinte de sa propre couleur', () =>
     const puce = screen.getByRole('button', { name: /All/ });
     const classes = puce.className;
 
-    expect(classes, 'le texte doit prendre la variante durcie').toContain(
-      'text-[var(--vc-ide-accent-action-on-tint)]',
-    );
-    expect(classes, 'le texte ne doit PAS rester sur l’accent nu').not.toContain(
-      'text-[var(--vc-ide-accent-action)]',
-    );
+    expect(classes, 'le texte doit prendre la variante durcie').toContain('text-[var(--vc-ide-accent-action-on-tint)]');
+    expect(classes, 'le texte ne doit PAS rester sur l’accent nu').not.toContain('text-[var(--vc-ide-accent-action)]');
   });
 
   /*
