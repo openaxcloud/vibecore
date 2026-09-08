@@ -2080,6 +2080,27 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       },
       onError: (error: any) => {
         /*
+         * SUR ABANDON, `onFinish` NE S'EXÉCUTE PAS — `onError` OUI.
+         *
+         * Trou de mon propre correctif, nommé par la chronologie du 2026-09-07 :
+         *
+         *   23:50:47  Client disconnected — cancelling stream
+         *   23:50:49  stream onError code=STREAM_ABORTED
+         *   00:02:49  chat.chaine.delai-depasse  enVol: 1
+         *
+         * Douze minutes exactement après l'abandon. Le compteur ne se soldait
+         * que dans le `finally` d'`onFinish` ; sur le chemin d'erreur il restait
+         * à 1, et `execute` attendait la borne entière avant de rendre la main.
+         * La borne a fait son travail — elle a rendu le trou visible au lieu de
+         * laisser la requête ouverte sans fin — mais un client parti ne doit pas
+         * coûter douze minutes de connexion retenue.
+         *
+         * `fin()` est idempotent vis-à-vis du verdict : si `onFinish` s'exécute
+         * aussi, le compteur passe sous zéro et la garde `<= 0` a déjà résolu.
+         */
+        suiviDeChaine.fin();
+
+        /*
          * Release this request's MCP clients (stdio child processes / HTTP
          * transports) on the error path too. The success/terminal paths close
          * them in onFinish and the abort handler covers client disconnects, but a
