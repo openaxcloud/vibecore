@@ -791,13 +791,11 @@ describe('21. captures iPhone 07/09 08:03 : menu d’un message — barre d’ic
     );
   });
 
-  it('le voile du menu est transparent — la règle de thème des bulles le peignait en couleur de carte', () => {
-    /*
-     * `[class*='message']` attrape `bolt-message-context-menu-veil`. Mesuré sur
-     * WebKitGTK : rgb(238 242 247) sur tout l'écran — le fil disparaissait.
-     */
-    expect(bloc('.bolt-message-context-menu-veil')).toMatch(/background:\s*transparent/);
-    expect(INDEX).toMatch(/\[class\*='message'\]:not\(svg\)/);
+  it('plus de voile derrière le menu : c’est lui qui avalait le geste suivant et bloquait le défilement (BUG-MESSAGE-MENU-IOS-001)', () => {
+    expect(INDEX).not.toContain('.bolt-message-context-menu-veil');
+    expect(
+      readFileSync(new URL('../components/chat/MessageContextMenu.tsx', import.meta.url).pathname, 'utf8'),
+    ).not.toContain('bolt-message-context-menu-veil');
   });
 
   it('le menu se rend à la racine mobile, se place dans la zone utile, et le focus ne fait pas défiler le fil', () => {

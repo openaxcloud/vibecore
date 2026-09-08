@@ -21,7 +21,37 @@
  */
 
 /** Durée au-delà de laquelle un appui devient un appui long. */
+import { atom } from 'nanostores';
+
 export const DELAI_APPUI_LONG_MS = 500;
+
+/*
+ * BUG-MESSAGE-MENU-IOS-001 (Avi, 08/09 07:47) — UN SEUL menu de message ouvert
+ * à la fois, dans tout le fil. Chaque message tenait son propre état : un
+ * appui long sur un second message ouvrait un second menu sans fermer le
+ * premier — la barre de l'agent ET le rond « Modifier » du message utilisateur
+ * flottaient ensemble sur ses captures. Le magasin porte l'identifiant du seul
+ * message dont le menu est ouvert ; en ouvrir un autre ferme le précédent.
+ */
+export const menuDeMessageOuvert = atom<string | null>(null);
+
+/**
+ * Où s'ouvre le menu. Sur téléphone, TOUJOURS au même endroit par rapport au
+ * message — au-dessus de sa ligne, centré —, pas sous le doigt : « ça
+ * s'affiche pas toujours au même endroit pour chaque message » (Avi, 08/09).
+ * À la souris, sous le pointeur, comme tout menu contextuel.
+ */
+export function pointDOuverture(
+  ligne: { left: number; top: number; width: number } | null | undefined,
+  pointeur: { x: number; y: number },
+  surTelephone: boolean,
+): { x: number; y: number } {
+  if (!surTelephone || !ligne) {
+    return { x: pointeur.x, y: pointeur.y };
+  }
+
+  return { x: Math.round(ligne.left + ligne.width / 2), y: Math.round(ligne.top) };
+}
 
 /**
  * Tolérance de déplacement, en pixels.

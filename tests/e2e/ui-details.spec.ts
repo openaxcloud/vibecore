@@ -1194,6 +1194,7 @@ async function readMobileAgentComposerDetails(page: Page) {
       patchListHeight: patchListRect.height,
       patchReviewHeight: patchReviewRect.height,
       scrollPaddingBottom: scrollStyle.scrollPaddingBottom,
+      scrollWrapperPaddingBottom: scrollStyle.paddingBottom,
       suggestionButtons: Array.from(suggestions.querySelectorAll<HTMLElement>('button')).map((button) => {
         const rect = button.getBoundingClientRect();
 
@@ -1242,9 +1243,19 @@ function expectMobileAgentComposerConstrained(
   label: string,
 ) {
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
-  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
-    details.navHeight + 6,
-  );
+
+  /*
+   * 08/09 (RP-CKPT-01) : le soulèvement du composeur au-dessus du socle est
+   * porté par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`,
+   * le composeur collant restant à `bottom: 0` — à `barre + 8` des deux
+   * côtés, il remontait de 80 px de trop et recouvrait la boîte qui défile.
+   * L'invariant reste « soulevé d'au moins barre + 6 », quel qu'en soit le
+   * porteur.
+   */
+  expect(
+    Number.parseFloat(details.bottomOffset) + Number.parseFloat(details.scrollWrapperPaddingBottom),
+    `${label} composer lift above the nav`,
+  ).toBeGreaterThanOrEqual(details.navHeight + 6);
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
   expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
   expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);

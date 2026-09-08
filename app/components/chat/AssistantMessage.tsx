@@ -334,7 +334,7 @@ export const AssistantMessage = memo(
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
-    const menuContextuel = useMenuContextuelDeMessage();
+    const menuContextuel = useMenuContextuelDeMessage(messageId ? `assistant:${messageId}` : undefined);
 
     return (
       <div

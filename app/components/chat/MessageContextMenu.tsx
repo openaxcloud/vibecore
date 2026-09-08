@@ -1,6 +1,8 @@
+import { useStore } from '@nanostores/react';
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -15,8 +17,10 @@ import {
   DELAI_APPUI_LONG_MS,
   fautIlArmerLAppuiLong,
   leDeplacementAnnuleLAppui,
+  menuDeMessageOuvert,
   placerLaBarre,
   placerLeMenu,
+  pointDOuverture,
   ramenerDansLEcran,
   type AppuiEnCours,
 } from './message-context-menu';
@@ -55,8 +59,16 @@ export interface MenuContextuelDeMessage {
  * pas un. C'est le piège qui a déjà coûté une révélation d'actions au toucher
  * dans ce produit.
  */
-export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
-  const [ouvert, setOuvert] = useState(false);
+export function useMenuContextuelDeMessage(identifiant?: string): MenuContextuelDeMessage {
+  /*
+   * BUG-MESSAGE-MENU-IOS-001 — l'état « ouvert » vit dans un magasin partagé,
+   * clé par message : un seul menu à la fois dans tout le fil. Sans
+   * identifiant fourni (tests, messages sans id), l'instance reçoit le sien.
+   */
+  const identifiantInterne = useId();
+  const id = identifiant ?? identifiantInterne;
+  const ouvertPour = useStore(menuDeMessageOuvert);
+  const ouvert = ouvertPour === id;
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const appui = useRef<AppuiEnCours | null>(null);
   const minuterie = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,21 +85,48 @@ export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
 
   useEffect(() => annuler, [annuler]);
 
-  const ouvrirEn = useCallback((x: number, y: number) => {
-    /*
-     * La taille réelle du menu n'est connue qu'après le rendu ; on place sur une
-     * estimation, puis la feuille de style borne le reste (`max-height`,
-     * `overflow`). L'important est de ne jamais ouvrir hors écran.
-     */
-    setPosition(
-      placerLeMenu(
-        { x, y },
-        { largeur: 232, hauteur: 260 },
-        { largeur: window.innerWidth, hauteur: window.innerHeight },
-      ),
-    );
-    setOuvert(true);
-  }, []);
+  const ouvrirEn = useCallback(
+    (x: number, y: number) => {
+      /*
+       * La taille réelle du menu n'est connue qu'après le rendu ; on place sur une
+       * estimation, puis la feuille de style borne le reste (`max-height`,
+       * `overflow`). L'important est de ne jamais ouvrir hors écran.
+       */
+      /*
+       * SUR TÉLÉPHONE, le point est gardé BRUT : c'est le centre de la ligne,
+       * et la barre se centre dessus par transformation. L'estimation de
+       * bureau (232 px) le rabattait à 168 sur un écran de 412 — la barre
+       * finissait 38 px à gauche du centre (mesuré le 08/09).
+       */
+      setPosition(
+        typeof document !== 'undefined' && cibleFeuilleMobile(document)
+          ? { x: Math.round(x), y: Math.round(y) }
+          : placerLeMenu(
+              { x, y },
+              { largeur: 232, hauteur: 260 },
+              { largeur: window.innerWidth, hauteur: window.innerHeight },
+            ),
+      );
+      menuDeMessageOuvert.set(id);
+    },
+    [id],
+  );
+
+  /*
+   * Au doigt, le menu s'ouvre AU-DESSUS DE LA LIGNE du message, centré — le
+   * même endroit pour chaque message —, jamais sous le doigt (BUG-MESSAGE-MENU-
+   * IOS-001). À la souris (clic droit), sous le pointeur.
+   */
+  const ouvrirDepuisLaLigne = useCallback(
+    (ligne: Element | null | undefined, pointeur: { x: number; y: number }) => {
+      const surTelephone = typeof document !== 'undefined' && Boolean(cibleFeuilleMobile(document));
+      const boite = ligne?.getBoundingClientRect();
+      const point = pointDOuverture(boite ?? null, pointeur, surTelephone);
+
+      ouvrirEn(point.x, point.y);
+    },
+    [ouvrirEn],
+  );
 
   const onPointerDown = useCallback(
     (evenement: ReactPointerEvent<HTMLElement>) => {
@@ -98,16 +137,17 @@ export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
       appui.current = { x: evenement.clientX, y: evenement.clientY, pointerId: evenement.pointerId };
 
       const { clientX, clientY } = evenement;
+      const ligne = (evenement.currentTarget as HTMLElement | null)?.closest('.bolt-chat-message-row');
 
       minuterie.current = setTimeout(() => {
         if (appui.current) {
-          ouvrirEn(clientX, clientY);
+          ouvrirDepuisLaLigne(ligne, { x: clientX, y: clientY });
         }
 
         annuler();
       }, DELAI_APPUI_LONG_MS);
     },
-    [annuler, ouvrirEn],
+    [annuler, ouvrirDepuisLaLigne],
   );
 
   const onPointerMove = useCallback(
@@ -166,8 +206,10 @@ export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
       appui.current = { x: clientX, y: clientY, pointerId: pointeur.pointerId };
       minuterie.current = setTimeout(() => {
         if (appui.current) {
-          ouvrirEn(clientX, clientY);
+          ouvrirDepuisLaLigne(ligne, { x: clientX, y: clientY });
         }
+
+        annuler();
       }, DELAI_APPUI_LONG_MS);
     };
 
@@ -199,7 +241,7 @@ export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
       ligne.removeEventListener('pointercancel', annuler);
       ligne.removeEventListener('contextmenu', surContextMenu);
     };
-  }, [annuler, ouvrirEn]);
+  }, [annuler, ouvrirDepuisLaLigne, ouvrirEn]);
 
   /*
    * OUVERTURE AU CLAVIER.
@@ -240,7 +282,11 @@ export function useMenuContextuelDeMessage(): MenuContextuelDeMessage {
     gestes: { onPointerDown, onPointerMove, onPointerUp: annuler, onPointerCancel: annuler, onContextMenu },
     ouvert,
     position,
-    fermer: useCallback(() => setOuvert(false), []),
+    fermer: useCallback(() => {
+      if (menuDeMessageOuvert.get() === id) {
+        menuDeMessageOuvert.set(null);
+      }
+    }, [id]),
   };
 }
 
@@ -286,13 +332,25 @@ export function MenuContextuel({
      * dernier message, le menu passait sous le composeur). Sur bureau, le menu
      * garde son ancrage au point de clic, ramené dans l'écran.
      */
-    const corrige = cibleFeuilleMobile(document)
-      ? placerLaBarre(position, taille, {
-          largeur: window.innerWidth,
-          haut: document.querySelector('.bolt-mobile-ecode-header')?.getBoundingClientRect().bottom ?? 0,
-          bas:
-            document.querySelector('.bolt-project-agent-composer')?.getBoundingClientRect().top ?? window.innerHeight,
-        })
+    const surTelephone = Boolean(cibleFeuilleMobile(document));
+
+    /*
+     * SUR TÉLÉPHONE, l'abscisse est le CENTRE de la ligne (`pointDOuverture`) et
+     * la feuille de style centre la barre dessus (`translateX(-50%)`) : sa
+     * largeur n'entre pas dans le calcul. Mesuré le 08/09 (Chromium 412) :
+     * placée depuis une largeur mesurée avant que ses icônes ne se posent
+     * (130 px puis 54), la barre finissait 38 px à côté du centre.
+     */
+    const corrige = surTelephone
+      ? {
+          x: position.x,
+          y: placerLaBarre(position, taille, {
+            largeur: window.innerWidth,
+            haut: document.querySelector('.bolt-mobile-ecode-header')?.getBoundingClientRect().bottom ?? 0,
+            bas:
+              document.querySelector('.bolt-project-agent-composer')?.getBoundingClientRect().top ?? window.innerHeight,
+          }).y,
+        }
       : ramenerDansLEcran(position, taille, { largeur: window.innerWidth, hauteur: window.innerHeight });
 
     setPositionReelle(corrige.x === position.x && corrige.y === position.y ? null : corrige);
@@ -344,8 +402,37 @@ export function MenuContextuel({
 
     window.addEventListener('keydown', surEchappement, true);
 
+    /*
+     * BUG-MESSAGE-MENU-IOS-001 — « jamais l'icône disparaît » : le menu se
+     * ferme aussi au premier DÉFILEMENT du fil (en capture : la boîte qui
+     * défile n'émet pas vers `window`) et à tout appui hors du panneau, même
+     * si le voile n'est pas touché — sur iPhone, le geste qui suit l'appui
+     * long commence souvent par un défilement, et un menu resté ouvert
+     * bloquait ensuite la page (« je dois recharger »).
+     */
+    const surDefilement = (evenement: Event) => {
+      if (panneau.current && evenement.target instanceof Node && panneau.current.contains(evenement.target)) {
+        return;
+      }
+
+      fermer();
+    };
+
+    const surAppuiDehors = (evenement: Event) => {
+      if (panneau.current && evenement.target instanceof Node && panneau.current.contains(evenement.target)) {
+        return;
+      }
+
+      fermer();
+    };
+
+    window.addEventListener('scroll', surDefilement, true);
+    document.addEventListener('pointerdown', surAppuiDehors, true);
+
     return () => {
       window.removeEventListener('keydown', surEchappement, true);
+      window.removeEventListener('scroll', surDefilement, true);
+      document.removeEventListener('pointerdown', surAppuiDehors, true);
       focusAvant.current?.focus?.();
     };
   }, [fermer, ouvert]);
@@ -354,17 +441,23 @@ export function MenuContextuel({
     return null;
   }
 
+  const racineMobile = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
+
   const menu = (
     <>
       {/*
-       * Le voile ferme le menu au premier geste ailleurs. Il est sous le menu,
-       * jamais au-dessus : un voile qui intercepte les appuis DU menu rendrait
-       * ses entrées inertes, exactement le défaut qu'on corrige ici.
+       * PLUS DE VOILE (BUG-MESSAGE-MENU-IOS-001). Il avalait le geste suivant :
+       * un appui long sur un AUTRE message tombait dessus, le menu se fermait,
+       * et rien ne s'ouvrait — deux gestes pour changer de message ; et il
+       * bloquait le défilement du fil tant qu'un menu restait ouvert (« ça
+       * fait bugger la page »). L'écouteur de `pointerdown` en capture sur le
+       * document ferme le menu à tout appui hors du panneau, ET laisse le même
+       * appui atteindre la ligne visée, qui arme son propre appui long.
        */}
-      <div className="bolt-message-context-menu-veil" onPointerDown={fermer} aria-hidden />
       <div
         ref={panneau}
         className="bolt-message-context-menu"
+        data-centre={racineMobile ? 'true' : undefined}
         role="menu"
         aria-label={etiquette}
         tabIndex={-1}
@@ -383,7 +476,5 @@ export function MenuContextuel({
    * « Utile » et « À améliorer » cachés sous la zone de saisie sur le dernier
    * message. Hors de cette chaîne, son z-index vaut pour tout l'écran.
    */
-  const racineMobile = typeof document === 'undefined' ? null : cibleFeuilleMobile(document);
-
   return racineMobile ? createPortal(menu, racineMobile) : menu;
 }

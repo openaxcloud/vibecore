@@ -87,6 +87,9 @@ describe('transcript de l’agent en mobile', () => {
      * dernier message passe dessous (mesuré : 677 pour un composeur à 642).
      */
     expect(padding![2]).toBe('calc(var(--mobile-nav-height) + 8px)');
+    expect(scroll, 'la boîte extérieure ne défile jamais (Production E2E 1680)').toContain(
+      'overflow: hidden !important;',
+    );
 
     /*
      * Et le composeur collant ne porte PLUS ce soulèvement : son rectangle de
