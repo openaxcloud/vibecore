@@ -153,6 +153,7 @@ export function armDeadline(
   now: () => number = Date.now,
 ): () => void {
   const remaining = deadlineAt - now();
+
   /*
    * `new Error()` NU, comme les deux abandons voisins (`SSRF_BLOCKED` ligne ~202,
    * `TimeoutError` ligne ~266) : c'est le `name` qui porte le sens, et c'est lui
