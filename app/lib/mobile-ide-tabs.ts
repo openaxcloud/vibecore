@@ -281,7 +281,36 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
   },
 ];
 
-export const ECODE_MOBILE_MORE_ITEMS: readonly string[] = [
+/*
+ * OUTILS TRAITES PAR UNE BRANCHE NOMMEE de `activateMobileTool`, et non par la
+ * table de routage : `agent` bascule sur le panneau de discussion, `commands`
+ * ouvre la palette, `share` copie le lien puis ouvre Collaborators, et les
+ * panneaux d'espace de travail (`files`, `editor`, `preview`, `search`,
+ * `locks`, `terminal`) ont leur propre bascule.
+ *
+ * Declares ICI, une seule fois, parce que DEUX specs en avaient besoin et que
+ * la seconde copie a derive : `share` manquait a celle de
+ * `mobile-ide-tabs.spec.ts`, si bien qu'ajouter `share` au menu « More » la
+ * faisait rougir a tort. Une liste d'exceptions dupliquee est une divergence
+ * qui attend son heure — exactement le defaut que ce lot corrige par ailleurs.
+ */
+export const MOBILE_TOOLS_HORS_ROUTAGE: readonly string[] = [
+  'agent',
+  'commands',
+  'share',
+  'files',
+  'editor',
+  'preview',
+  'search',
+  'locks',
+  'terminal',
+];
+
+/*
+ * ORDRE PREFERE du menu « More ». Ce n'est plus la LISTE : c'est seulement
+ * l'ordre dans lequel on souhaite voir ce qui est deja connu.
+ */
+const ORDRE_PREFERE_MORE: readonly string[] = [
   'preview',
   'agent',
   'overview',
@@ -314,6 +343,32 @@ export const ECODE_MOBILE_MORE_ITEMS: readonly string[] = [
   'security',
   'settings',
 ];
+
+/*
+ * UNE SEULE SOURCE, ET RIEN NE SE PERD.
+ *
+ * Cette liste etait tenue A LA MAIN, en parallele de `ECODE_MOBILE_TOOLS`.
+ * Mesure du 2026-09-08 : elle avait derive de DEUX entrees — `domains` et
+ * `share` etaient proposes par la liste d'outils (`+`) et absents du menu
+ * « … ». Selon la surface empruntee, l'utilisateur perdait deux panneaux.
+ *
+ * Avi : « la barre du bas, le selecteur d'onglets et la liste d'outils doivent
+ * afficher exactement la meme liste, sans en perdre un seul. »
+ *
+ * On DERIVE donc de `ECODE_MOBILE_TOOLS`, qui etait deja la reference de fait
+ * (BaseChat.tsx fait ses `find` dedans). L'ordre curatorial est conserve, mais
+ * il ne decide plus de l'appartenance : tout outil absent de l'ordre est
+ * AJOUTE a la fin. Ajouter un outil ne peut donc plus l'oublier ici, et le
+ * retirer de la liste d'outils le retire des deux surfaces a la fois.
+ *
+ * Tenu par `app/lib/panneaux-surfaces.spec.ts`.
+ */
+export const ECODE_MOBILE_MORE_ITEMS: readonly string[] = (() => {
+  const connus = ECODE_MOBILE_TOOLS.map((outil) => outil.id);
+  const prefere = ORDRE_PREFERE_MORE.filter((id) => connus.includes(id));
+
+  return [...prefere, ...connus.filter((id) => !prefere.includes(id))];
+})();
 
 /**
  * Maps a mobile tool/menu id (including aliases) to the IDE management panel it opens.
