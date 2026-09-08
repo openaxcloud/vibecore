@@ -1226,7 +1226,8 @@ export class WorkbenchStore {
     if (!doitArreterLePreview(options.raison)) {
       console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
 
-      return;
+      /* Zero processus arrete : la valeur de retour reste homogene avec le cas nominal. */
+      return 0;
     }
 
     console.info(JSON.stringify({ event: 'preview.arret.demande', raison: options.raison ?? 'historique' }));
