@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { SafeFetch, SafeFetchResult } from './safe-fetch';
-import { collectWebReference, lastUserMessageText, resolveWebReferenceForTurn } from './web-reference';
+import {
+  collectWebReference,
+  lastUserMessageText,
+  resolveReferenceText,
+  resolveWebReferenceForTurn,
+  WEB_REFERENCE_DEFAULTS,
+  WEB_REFERENCE_USER_AGENT,
+} from './web-reference';
 
 /*
  * BUG-AGENT-WEBCLONE-001 — the server half: given a message naming a URL, the
@@ -148,7 +155,7 @@ describe('collectWebReference', () => {
     };
 
     const result = await collectWebReference({
-      text: 'https://a.io/boom https://a.io/gone https://a.io/doc.pdf',
+      text: 'https://a.io/boom https://a.io/gone https://a.io/doc',
       fetchPage,
       maxPages: 3,
       maxExplicitUrls: 3,
@@ -157,7 +164,7 @@ describe('collectWebReference', () => {
     expect(result?.errors).toEqual([
       { url: 'https://a.io/boom', code: 'FETCH_FAILED' },
       { url: 'https://a.io/gone', code: 'HTTP_410' },
-      { url: 'https://a.io/doc.pdf', code: 'UNSUPPORTED_CONTENT_TYPE' },
+      { url: 'https://a.io/doc', code: 'UNSUPPORTED_CONTENT_TYPE' },
     ]);
   });
 
@@ -204,6 +211,243 @@ describe('collectWebReference', () => {
   });
 });
 
+describe('collectWebReference — explicit URLs, deadlines, digest failures', () => {
+  it('reads EVERY explicit URL (up to 3) even without clone intent, and only crawls on clone intent', async () => {
+    const { fetchPage, calls } = fakeSite();
+
+    const result = await collectWebReference({
+      text: 'utilise la page https://volt-watt.com/ et la page https://volt-watt.com/contact',
+      fetchPage,
+      maxStylesheets: 0,
+    });
+
+    expect(result?.cloneIntent).toBe(false);
+    expect(result?.pages.map((p) => p.title)).toEqual(['Accueil', 'Contact']);
+    expect(calls).toEqual(['https://volt-watt.com/', 'https://volt-watt.com/contact']);
+  });
+
+  it('passes a hard per-fetch deadline bounded by the remaining budget, the caller signal and a 2 MB cap', async () => {
+    const seen: Array<{ url: string; options?: Parameters<SafeFetch>[2] }> = [];
+
+    let clock = 0;
+
+    const controller = new AbortController();
+
+    const fetchPage: SafeFetch = async (url, _lang, options) => {
+      seen.push({ url, options });
+      clock += 6_000;
+
+      return page('X', '<a href="/next">n</a>')
+        ? { ...page('X', '<a href="/next">n</a>'), url }
+        : { ok: false, status: 502, code: 'FETCH_FAILED' };
+    };
+
+    await collectWebReference({
+      text: 'clone https://a.io/',
+      fetchPage,
+      now: () => clock,
+      timeBudgetMs: 10_000,
+      maxStylesheets: 0,
+      signal: controller.signal,
+    });
+
+    expect(seen[0].options?.deadlineMs).toBe(10_000); // min(fetchDeadlineMs=10 000, remaining=10 000)
+    expect(seen[0].options?.maxBytes).toBe(2 * 1024 * 1024);
+    expect(seen[0].options?.signal).toBe(controller.signal);
+    expect(seen[1].options?.deadlineMs).toBe(4_000); // remaining budget after the first 6 s
+  });
+
+  it('stylesheets are requested with a CSS Accept header', async () => {
+    const { fetchPage } = fakeSite();
+    const seen: Array<Parameters<SafeFetch>> = [];
+
+    const spy: SafeFetch = (...args) => {
+      seen.push(args);
+
+      return fetchPage(...args);
+    };
+
+    await collectWebReference({ text: 'https://volt-watt.com/', fetchPage: spy });
+
+    const css = seen.find(([url]) => url.endsWith('.css'));
+
+    expect(css?.[2]?.accept).toBe('text/css,*/*;q=0.1');
+    expect(seen[0][2]?.accept).toBeUndefined();
+  });
+
+  it('an out-of-range numeric entity in the page is not fatal (it used to throw inside the digest)', async () => {
+    const fetchPage: SafeFetch = async (url) => ({
+      ok: true,
+      url,
+      status: 200,
+      statusText: 'OK',
+      contentType: 'text/html',
+      html: '<html><head><title>T &#x110000; &#99999999999; &#xD800;</title></head><body><h1>ok</h1></body></html>',
+    });
+
+    const result = await collectWebReference({ text: 'clone https://a.io/', fetchPage, maxStylesheets: 0 });
+
+    expect(result?.errors).toEqual([]);
+    expect(result?.pages[0].title).toBe('T &#x110000; &#99999999999; &#xD800;');
+  });
+
+  it('an http:// URL is fetched over https (port 80 is blocked in production)', async () => {
+    const { fetchPage, calls } = fakeSite();
+
+    await collectWebReference({ text: 'regarde http://volt-watt.com/', fetchPage, maxStylesheets: 0 });
+
+    expect(calls).toEqual(['https://volt-watt.com/']);
+  });
+});
+
+describe('collectWebReference — defaults', () => {
+  it('pins the default crawl budget: 6 pages, 2 stylesheets, 20 s (no overrides)', async () => {
+    const { fetchPage, calls } = fakeSite();
+    const result = await collectWebReference({ text: 'clone https://volt-watt.com/', fetchPage });
+
+    expect(WEB_REFERENCE_DEFAULTS.maxPages).toBe(6);
+    expect(WEB_REFERENCE_DEFAULTS.maxStylesheets).toBe(2);
+    expect(WEB_REFERENCE_DEFAULTS.timeBudgetMs).toBe(20_000);
+    expect(result?.pages).toHaveLength(6);
+    expect(calls.filter((url) => url.endsWith('.css'))).toHaveLength(2);
+    expect(calls).not.toContain('https://volt-watt.com/mentions'); // 7th navigation entry, beyond the budget
+  });
+
+  it('a bare domain followed by a comma is still read (the old pre-filter dropped it)', async () => {
+    const { fetchPage } = fakeSite();
+
+    const result = await resolveWebReferenceForTurn({
+      messages: [{ role: 'user', content: 'Clone volt-watt.com, avec toutes les pages' }],
+      chatMode: 'build',
+      fetchPage,
+    });
+
+    expect(result?.pages.length).toBeGreaterThan(0);
+  });
+});
+
+describe('collectWebReference — crawl etiquette', () => {
+  it('honours robots.txt for crawled pages only, identifies itself, and never crawls with crawl=false', async () => {
+    const { fetchPage } = fakeSite();
+    const calls: string[] = [];
+    const seenAgents = new Set<string | undefined>();
+
+    const withRobots: SafeFetch = async (url, lang, options) => {
+      calls.push(url);
+      seenAgents.add(options?.userAgent);
+
+      if (url === 'https://volt-watt.com/robots.txt') {
+        return {
+          ok: true,
+          url,
+          status: 200,
+          statusText: 'OK',
+          contentType: 'text/plain',
+          html: 'User-agent: *\nDisallow: /blog\nDisallow: /simulateur',
+        };
+      }
+
+      return fetchPage(url, lang, options);
+    };
+
+    const result = await collectWebReference({
+      text: 'clone https://volt-watt.com/',
+      fetchPage: withRobots,
+      maxPages: 4,
+      maxStylesheets: 0,
+    });
+
+    expect(calls).toContain('https://volt-watt.com/robots.txt');
+    expect(calls).not.toContain('https://volt-watt.com/blog');
+    expect(calls).not.toContain('https://volt-watt.com/simulateur');
+    expect(result?.pages.map((p) => p.title)).toEqual(['Accueil', 'Solutions', 'Contact', 'À propos']);
+    expect(result?.errors).toEqual(
+      expect.arrayContaining([
+        { url: 'https://volt-watt.com/simulateur', code: 'ROBOTS_DISALLOWED' },
+        { url: 'https://volt-watt.com/blog', code: 'ROBOTS_DISALLOWED' },
+      ]),
+    );
+    expect([...seenAgents]).toEqual([WEB_REFERENCE_USER_AGENT]);
+    expect(WEB_REFERENCE_USER_AGENT).toContain('E-CodeBot');
+
+    // The user's own URL is fetched even when robots.txt forbids it.
+    const { fetchPage: site2, calls: calls2 } = fakeSite();
+
+    const forbidAll: SafeFetch = async (url, lang, options) =>
+      url.endsWith('/robots.txt')
+        ? {
+            ok: true,
+            url,
+            status: 200,
+            statusText: 'OK',
+            contentType: 'text/plain',
+            html: 'User-agent: *\nDisallow: /',
+          }
+        : site2(url, lang, options);
+
+    const own = await collectWebReference({
+      text: 'clone https://volt-watt.com/',
+      fetchPage: forbidAll,
+      maxStylesheets: 0,
+    });
+
+    expect(own?.pages.map((p) => p.title)).toEqual(['Accueil']);
+    expect(calls2.filter((u) => !u.endsWith('robots.txt'))).toEqual(['https://volt-watt.com/']);
+
+    // crawl=false: explicit page only, no robots.txt either.
+    const { fetchPage: site3, calls: calls3 } = fakeSite();
+    await collectWebReference({
+      text: 'clone https://volt-watt.com/',
+      fetchPage: site3,
+      crawl: false,
+      maxStylesheets: 0,
+    });
+    expect(calls3).toEqual(['https://volt-watt.com/']);
+  });
+});
+
+describe('resolveReferenceText', () => {
+  it('uses the current message when it names a URL', () => {
+    expect(resolveReferenceText([{ role: 'user', content: 'clone https://a.io' }])).toEqual({
+      text: 'clone https://a.io',
+      lookedBack: false,
+    });
+  });
+
+  it('looks back to the last user message with a URL when the current one refers to « le site »', () => {
+    const messages = [
+      { role: 'user' as const, content: 'clone https://a.io' },
+      { role: 'assistant' as const, content: 'ok' },
+      { role: 'user' as const, content: 'ajoute un footer' },
+      { role: 'assistant' as const, content: 'ok' },
+      { role: 'user' as const, content: "[Model: m]\n\nreprends les couleurs de l'original" },
+    ];
+
+    expect(resolveReferenceText(messages)).toEqual({
+      text: "reprends les couleurs de l'original\nhttps://a.io/",
+      lookedBack: true,
+    });
+  });
+
+  it('does not look back without a site-referring phrase, nor beyond the window', () => {
+    const messages = [
+      { role: 'user' as const, content: 'clone https://a.io' },
+      { role: 'user' as const, content: 'ajoute un footer' },
+    ];
+
+    expect(resolveReferenceText(messages).lookedBack).toBe(false);
+
+    const far = [
+      { role: 'user' as const, content: 'clone https://a.io' },
+      ...Array.from({ length: 10 }, () => ({ role: 'user' as const, content: 'x' })),
+      { role: 'user' as const, content: 'comme sur le site' },
+    ];
+
+    expect(resolveReferenceText(far, 10).lookedBack).toBe(false);
+    expect(resolveReferenceText(far, 11).lookedBack).toBe(true);
+  });
+});
+
 describe('lastUserMessageText', () => {
   it('strips the [Model:]/[Provider:] tags and picks the LAST user message', () => {
     const text = lastUserMessageText([
@@ -217,17 +461,17 @@ describe('lastUserMessageText', () => {
 });
 
 describe('resolveWebReferenceForTurn', () => {
-  it('is build-mode only', async () => {
+  it('runs for build and discuss (Ask/Plan « analyse ce site ») and for nothing else', async () => {
     const { fetchPage, calls } = fakeSite();
+    const messages = [{ role: 'user' as const, content: 'clone https://volt-watt.com/' }];
 
-    const result = await resolveWebReferenceForTurn({
-      messages: [{ role: 'user', content: 'clone https://volt-watt.com/' }],
-      chatMode: 'discuss',
-      fetchPage,
-    });
-
-    expect(result).toBeUndefined();
+    expect(await resolveWebReferenceForTurn({ messages, chatMode: 'other', fetchPage })).toBeUndefined();
+    expect(await resolveWebReferenceForTurn({ messages, chatMode: undefined, fetchPage })).toBeUndefined();
     expect(calls).toEqual([]);
+
+    const discuss = await resolveWebReferenceForTurn({ messages, chatMode: 'discuss', fetchPage });
+
+    expect(discuss?.pages.map((p) => p.title)).toContain('Accueil');
   });
 
   it('collects for a build turn and never throws when the collector fails', async () => {

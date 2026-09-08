@@ -8,6 +8,7 @@ import {
   REMOTE_KUBERNETES_SYSTEM_CONSTRAINTS,
   resolvePromptRuntimeMode,
   WEB_REFERENCE_INSTRUCTIONS,
+  WEB_REFERENCE_INSTRUCTIONS_DISCUSS,
 } from './runtime-constraints';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 
@@ -123,7 +124,7 @@ describe('remote-kubernetes wording', () => {
 
 describe('<web_reference_instructions>', () => {
   it('forbids the two observed failure modes: « no network » and inventing a site analysis', () => {
-    expect(WEB_REFERENCE_INSTRUCTIONS).toMatch(/Never say you cannot access the web/u);
+    expect(WEB_REFERENCE_INSTRUCTIONS).toMatch(/Never claim the platform could not read a site the user named/u);
     expect(WEB_REFERENCE_INSTRUCTIONS).toMatch(
       /Never describe, summarise or "analyse" a site you were not given a <web_reference> for/u,
     );
@@ -131,7 +132,23 @@ describe('<web_reference_instructions>', () => {
     expect(WEB_REFERENCE_INSTRUCTIONS).toMatch(/specialist lanes only count as observations/u);
   });
 
-  it('is present once in every BUILD prompt, in both runtimes; absent from discuss', () => {
+  it('the production default prompt lets observed image URLs override the Pexels rule', () => {
+    const prompt = getFineTunedPrompt(cwd, sb);
+
+    expect(prompt).toContain(
+      'Unless the user or a <web_reference> supplies image URLs, E-Code ALWAYS uses stock photos',
+    );
+    expect(WEB_REFERENCE_INSTRUCTIONS).toContain(
+      'Observed image URLs take precedence over the stock-photo (Pexels) rule',
+    );
+  });
+
+  it('never tells a WebContainer deployment to deny its own constraints: the rule is about the platform fetch, not the runtime', () => {
+    expect(WEB_REFERENCE_INSTRUCTIONS).not.toMatch(/run without network access/u);
+    expect(WEB_REFERENCE_INSTRUCTIONS).toContain('Never claim the platform could not read a site the user named');
+  });
+
+  it('is present once in every BUILD prompt, in both runtimes; the discuss prompt carries its own flavour', () => {
     const builds = [
       getSystemPrompt(cwd, sb, undefined, true, true),
       getSystemPrompt(cwd, sb, undefined, true, true, 'remote-kubernetes'),
@@ -146,6 +163,10 @@ describe('<web_reference_instructions>', () => {
       expect(prompt).toContain(WEB_REFERENCE_INSTRUCTIONS);
     }
 
-    expect(discussPrompt()).not.toContain('<web_reference_instructions>');
+    for (const discuss of [discussPrompt(), discussPrompt('remote-kubernetes')]) {
+      expect(discuss.match(/<web_reference_instructions>/gu)).toHaveLength(1);
+      expect(discuss).toContain(WEB_REFERENCE_INSTRUCTIONS_DISCUSS);
+      expect(discuss).not.toContain('Rebuild the same page structure');
+    }
   });
 });

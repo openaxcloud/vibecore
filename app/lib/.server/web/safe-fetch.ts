@@ -2,8 +2,10 @@
  * SSRF-guarded HTTP(S) GET shared by the manual 🌐 widget (`/api/web-search`)
  * and the agent's automatic web reference (`web-reference.ts`).
  *
- * Extracted verbatim from `app/routes/api.web-search.ts` so both callers keep
- * ONE guard: scheme/host allow-list before every hop, connect-time DNS
+ * Extracted from `app/routes/api.web-search.ts` (same guard, same headers;
+ * additions: a hard wall-clock deadline, caller abort, per-call byte cap and
+ * Accept override — all opt-in, so the widget's behaviour is unchanged) so both
+ * callers keep ONE guard: scheme/host allow-list before every hop, connect-time DNS
  * re-validation (rebinding), manual redirect following with re-validation,
  * byte cap, timeout. `node:*` modules are imported DYNAMICALLY — a static
  * top-level import makes the vite client build fail ("externalized for browser
@@ -16,11 +18,34 @@ export const MAX_FETCH_BYTES = 5 * 1024 * 1024;
 export const MAX_REDIRECTS = 5;
 export const FETCH_TIMEOUT_MS = 10_000;
 
+/** Unchanged from the original /api/web-search route (a WAF may fingerprint the exact Chrome Accept string). */
 export const FETCH_HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,text/css;q=0.8,*/*;q=0.7',
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 };
+
+export interface SafeFetchOptions {
+  /** Caller abort (the chat request's signal). */
+  signal?: AbortSignal;
+
+  /**
+   * HARD wall-clock deadline for the whole fetch (all redirect hops, headers and
+   * body). Node's `timeout` option is only an idle timer: a server that trickles
+   * one byte every few seconds never trips it, which would hang a chat request
+   * for as long as the byte cap allows. Defaults to FETCH_TIMEOUT_MS.
+   */
+  deadlineMs?: number;
+
+  /** Body cap. Defaults to MAX_FETCH_BYTES. */
+  maxBytes?: number;
+
+  /** Accept header override (e.g. text/css for a stylesheet). */
+  accept?: string;
+
+  /** User-Agent override (the agent's crawl identifies itself; the widget keeps the browser string). */
+  userAgent?: string;
+}
 
 export type WebFetchErrorCode =
   | 'FETCH_FAILED'
@@ -35,7 +60,35 @@ export type SafeFetchResult =
   | { ok: true; url: string; status: number; statusText: string; contentType: string; html: string }
   | { ok: false; status: number; code: WebFetchErrorCode };
 
-export type SafeFetch = (url: string, acceptLanguage: string) => Promise<SafeFetchResult>;
+export type SafeFetch = (url: string, acceptLanguage: string, options?: SafeFetchOptions) => Promise<SafeFetchResult>;
+
+/**
+ * Decode a response body with the charset the site declares (Content-Type
+ * header, else a <meta charset> / http-equiv sniff of the first 2 KB), falling
+ * back to UTF-8. Older French SMB sites — exactly what users ask to clone — are
+ * still served as ISO-8859-1 / windows-1252; decoded as UTF-8 every accent
+ * became U+FFFD in the title, headings and copy.
+ */
+export function decodeBody(buffer: Buffer, contentType: string): string {
+  const fromHeader = contentType.match(/charset\s*=\s*"?([\w.:-]+)/iu)?.[1];
+  const head = buffer.subarray(0, 2048).toString('latin1');
+
+  const fromMeta =
+    head.match(/<meta[^>]+charset\s*=\s*["']?\s*([\w.:-]+)/iu)?.[1] ??
+    head.match(/<meta[^>]+content\s*=\s*["'][^"']*charset\s*=\s*([\w.:-]+)/iu)?.[1];
+
+  const label = (fromHeader ?? fromMeta ?? 'utf-8').toLowerCase();
+
+  if (label === 'utf-8' || label === 'utf8') {
+    return buffer.toString('utf8');
+  }
+
+  try {
+    return new TextDecoder(label, { fatal: false }).decode(buffer);
+  } catch {
+    return buffer.toString('utf8');
+  }
+}
 
 /**
  * Reject a URL whose host resolves to an internal address. The string-level
@@ -74,9 +127,53 @@ export async function assertHostAllowed(
  * — closing the TOCTOU that global fetch (no per-connection lookup hook) left
  * open.
  */
+interface HopOptions {
+  signal?: AbortSignal;
+
+  /** Absolute epoch-ms deadline shared by every hop. */
+  deadlineAt: number;
+  maxBytes: number;
+  accept: string;
+  userAgent: string;
+}
+
+class DeadlineError extends Error {
+  override name = 'DeadlineError';
+}
+
+/**
+ * Attach a hard deadline + caller abort to an outgoing request: whichever fires
+ * first destroys the socket with a typed error. Returns the cleanup to call once
+ * the request settled (so a finished request never keeps a timer alive).
+ */
+export function armDeadline(
+  target: { destroy: (error?: Error) => void },
+  deadlineAt: number,
+  signal: AbortSignal | undefined,
+  now: () => number = Date.now,
+): () => void {
+  const remaining = deadlineAt - now();
+  const onAbort = () => target.destroy(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+
+  if (signal?.aborted) {
+    onAbort();
+
+    return () => undefined;
+  }
+
+  const timer = setTimeout(() => target.destroy(new DeadlineError('deadline exceeded')), Math.max(0, remaining));
+  signal?.addEventListener('abort', onAbort, { once: true });
+
+  return () => {
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+  };
+}
+
 async function httpGetOnce(
   targetUrl: string,
   acceptLanguage: string,
+  hop: HopOptions,
 ): Promise<
   | { kind: 'redirect'; location: string }
   | { kind: 'body'; status: number; statusText: string; contentType: string; html: string }
@@ -117,7 +214,12 @@ async function httpGetOnce(
       targetUrl,
       {
         method: 'GET',
-        headers: { ...FETCH_HEADERS, 'Accept-Language': acceptLanguage },
+        headers: {
+          ...FETCH_HEADERS,
+          'User-Agent': hop.userAgent,
+          Accept: hop.accept,
+          'Accept-Language': acceptLanguage,
+        },
         lookup: validatingLookup as never,
         timeout: FETCH_TIMEOUT_MS,
       },
@@ -134,14 +236,14 @@ async function httpGetOnce(
 
         const declaredLength = Number(res.headers['content-length'] ?? '');
 
-        if (Number.isFinite(declaredLength) && declaredLength > MAX_FETCH_BYTES) {
+        if (Number.isFinite(declaredLength) && declaredLength > hop.maxBytes) {
           res.destroy();
           resolve({ kind: 'too-large' });
 
           return;
         }
 
-        collectCappedBody(res, MAX_FETCH_BYTES).then((collected) => {
+        collectCappedBody(res, hop.maxBytes).then((collected) => {
           if (collected.kind === 'too-large') {
             resolve({ kind: 'too-large' });
 
@@ -153,14 +255,17 @@ async function httpGetOnce(
             status,
             statusText: res.statusMessage ?? '',
             contentType: (res.headers['content-type'] as string | undefined) ?? '',
-            html: collected.buffer.toString('utf8'),
+            html: decodeBody(collected.buffer, (res.headers['content-type'] as string | undefined) ?? ''),
           });
         }, reject);
       },
     );
 
+    const disarm = armDeadline(req, hop.deadlineAt, hop.signal);
+
     req.on('timeout', () => req.destroy(Object.assign(new Error(), { name: 'TimeoutError' })));
     req.on('error', reject);
+    req.on('close', disarm);
     req.end();
   });
 }
@@ -171,10 +276,26 @@ async function httpGetOnce(
  * IP), closing both the open-redirect and DNS-rebinding windows. `url` in the
  * success branch is the FINAL url after redirects.
  */
-export async function safeFetch(initialUrl: string, acceptLanguage: string): Promise<SafeFetchResult> {
+export async function safeFetch(
+  initialUrl: string,
+  acceptLanguage: string,
+  options: SafeFetchOptions = {},
+): Promise<SafeFetchResult> {
   let currentUrl = initialUrl;
 
+  const hopOptions: HopOptions = {
+    signal: options.signal,
+    deadlineAt: Date.now() + (options.deadlineMs ?? FETCH_TIMEOUT_MS),
+    maxBytes: options.maxBytes ?? MAX_FETCH_BYTES,
+    accept: options.accept ?? FETCH_HEADERS.Accept,
+    userAgent: options.userAgent ?? FETCH_HEADERS['User-Agent'],
+  };
+
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (options.signal?.aborted || Date.now() >= hopOptions.deadlineAt) {
+      return { ok: false, status: 504, code: 'TIMEOUT' };
+    }
+
     const guard = await assertHostAllowed(currentUrl);
 
     if (!guard.ok) {
@@ -184,13 +305,20 @@ export async function safeFetch(initialUrl: string, acceptLanguage: string): Pro
     let result;
 
     try {
-      result = await httpGetOnce(currentUrl, acceptLanguage);
+      result = await httpGetOnce(currentUrl, acceptLanguage, hopOptions);
     } catch (error) {
       if ((error as { code?: string })?.code === 'SSRF_BLOCKED') {
         return { ok: false, status: 400, code: 'INTERNAL_ADDRESS' };
       }
 
-      if ((error as Error)?.name === 'TimeoutError') {
+      const name = (error as Error)?.name;
+
+      if (name === 'TimeoutError' || name === 'DeadlineError' || name === 'AbortError') {
+        return { ok: false, status: 504, code: 'TIMEOUT' };
+      }
+
+      // The deadline destroyed the socket mid-body: collectCappedBody rejects with STREAM_CLOSED.
+      if ((error as { code?: string })?.code === 'STREAM_CLOSED' && Date.now() >= hopOptions.deadlineAt) {
         return { ok: false, status: 504, code: 'TIMEOUT' };
       }
 

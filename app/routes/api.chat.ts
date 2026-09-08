@@ -21,8 +21,7 @@ import {
   type AgentRoleId,
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
-import { resolveWebReferenceForTurn } from '~/lib/.server/web/web-reference';
-import { appendWebReferenceToMessages } from '~/lib/web-page-digest';
+import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
@@ -845,53 +844,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * reported an analysis of pages nobody had fetched. Fail-open: an
          * unreachable site is reported in the block, never an error here.
          */
-        let webReferenceProgressOrder: number | undefined;
+        const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } =
+          await prepareWebReferenceForChat({
+            messages: processedMessages,
+            chatMode,
+            language,
+            signal: request.signal,
+            dataStream,
+            nextProgressOrder: () => progressCounter++,
 
-        const webReference = await resolveWebReferenceForTurn({
-          messages: processedMessages,
-          chatMode,
-          language,
-          signal: request.signal,
-          onStart: ({ host }) => {
-            webReferenceProgressOrder = progressCounter++;
-            dataStream.writeData({
-              type: 'progress',
-              label: API_CHAT_PROGRESS_LABELS.webReference,
-              status: 'in-progress',
-              order: webReferenceProgressOrder,
-              message: formatApiChatCopy(language, 'readingWebsite', { host }),
-            } satisfies ProgressAnnotation);
-          },
-        });
-
-        if (webReference && webReferenceProgressOrder !== undefined) {
-          const host = webReference.host ?? 'site';
-
-          const message =
-            webReference.pages.length > 0
-              ? formatApiChatCopy(language, 'websiteRead', {
-                  host,
-                  pages: webReference.pages.length,
-                  stylesheets: webReference.stylesheetsRead,
-                })
-              : formatApiChatCopy(language, 'websiteUnreachable', {
-                  host,
-                  code: webReference.errors[0]?.code ?? 'FETCH_FAILED',
-                });
-
-          dataStream.writeData({
-            type: 'progress',
-            label: API_CHAT_PROGRESS_LABELS.webReference,
-            status: 'complete',
-            order: webReferenceProgressOrder,
-            message,
-          } satisfies ProgressAnnotation);
-        }
-
-        /* The planner and the specialist lanes receive the observed site inline. */
-        const messagesForAgents = webReference
-          ? appendWebReferenceToMessages(processedMessages, webReference.block)
-          : processedMessages;
+            /* Only a project chat (the quota-gated path) may make the web pod fetch. */
+            rateLimitKey: projectId,
+          });
 
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
 
@@ -1900,7 +1864,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   agentMemoryContext: agentMemory?.context,
                   projectRulesContext: projectRules?.context,
                   skillsContext: projectSkills?.context,
-                  webReferenceContext: webReference?.block,
+                  webReferenceContext: webReferenceContextForContinuation,
                   chatId: conversationId,
                   onModelDecision: (decidedModel, decidedProvider) => {
                     routedTurnModel = decidedModel;
@@ -2091,7 +2055,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
           skillsContext: projectSkills?.context,
-          webReferenceContext: webReference?.block,
+          webReferenceContext,
           chatId: conversationId,
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;

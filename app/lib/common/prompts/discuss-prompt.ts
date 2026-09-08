@@ -2,6 +2,7 @@ import {
   normalizePromptRuntimeMode,
   type PromptRuntimeMode,
   REMOTE_KUBERNETES_DISCUSS_CONSTRAINTS,
+  WEB_REFERENCE_INSTRUCTIONS_DISCUSS,
 } from './runtime-constraints';
 
 export const discussPrompt = (runtimeMode?: PromptRuntimeMode) => `
@@ -166,6 +167,8 @@ ${
     - Available shell commands: cat, chmod, cp, echo, hostname, kill, ln, ls, mkdir, mv, ps, pwd, rm, rmdir, xxd, alias, cd, clear, curl, env, false, getconf, head, sort, tail, touch, true, uptime, which, code, jq, loadenv, node, python, python3, wasm, xdg-open, command, exit, export, source
 </system_constraints>`
 }
+
+${WEB_REFERENCE_INSTRUCTIONS_DISCUSS}
 
 <technology_preferences>
   - Use Vite for web servers
