@@ -2735,3 +2735,89 @@ test.describe('agent — le fil ne se recrée pas pendant le streaming (téléph
     expect(clignotements, 'un bloc de code ne doit pas apparaître et disparaître en boucle').toBeLessThanOrEqual(8);
   });
 });
+
+/*
+ * BUG-PILL-LEAKS-PANELS-001 — « parfois je vois dans la tab preview le scroll
+ * icon de l'agent » (Avi, 08/09 20:53, capture iPhone : le disque ↓ posé en bas
+ * à droite du cadre d'aperçu).
+ *
+ * Mesuré à 390 AVANT correctif : sur les panneaux Aperçu ET Déploiements, la
+ * pastille restait `display: flex` / `visible` / `opacity: 1` à [324, 708], et
+ * `elementFromPoint` en son centre la rendait — elle se peignait donc bien
+ * par-dessus l'autre panneau. Sur 164 éléments du fil, elle était la SEULE à
+ * s'échapper : le panneau actif est un calque `position: absolute; inset: 0` en
+ * `z-index: auto`, la pastille est `sticky` en `z-index: 20`, et toute la
+ * chaîne jusqu'à `body` est en `z-index: auto` — vingt bat zéro.
+ *
+ * Le test tient les DEUX moitiés, sans quoi supprimer la pastille suffirait à
+ * le faire passer : elle doit se peindre au-dessus du fil DANS le panneau
+ * Agent, et ne plus rien disputer aux autres panneaux.
+ */
+test.describe('agent — la pastille « descendre » ne déborde sur aucun autre panneau', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('elle se peint sur le fil, et sur rien d’autre', async ({ page, request }) => {
+    test.setTimeout(150_000);
+
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    // Remonter le fil : la pastille n'existe que lorsqu'on n'est PAS en bas.
+    await page.evaluate(() => {
+      const candidats = [...document.querySelectorAll<HTMLElement>('*')].filter(
+        (el) =>
+          /(auto|scroll)/.test(getComputedStyle(el).overflowY) &&
+          el.scrollHeight > el.clientHeight + 4 &&
+          el.querySelector('.bolt-chat-message-row'),
+      );
+
+      const sc = candidats.find((el) => !candidats.some((a) => a !== el && el.contains(a))) ?? candidats[0];
+
+      if (sc) {
+        sc.scrollTop = 0;
+      }
+    });
+
+    const pastille = page.locator('.bolt-agent-scroll-to-bottom');
+    await expect(pastille, 'la pastille doit apparaître quand on remonte le fil').toBeVisible({ timeout: 20_000 });
+
+    /* Se peint-elle au point qu'elle occupe ? C'est la seule question qui compte. */
+    const sePeint = () =>
+      page.evaluate(() => {
+        const p = document.querySelector<HTMLElement>('.bolt-agent-scroll-to-bottom');
+
+        if (!p) {
+          return { existe: false, dessus: false, quoi: null as string | null };
+        }
+
+        const r = p.getBoundingClientRect();
+        const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+
+        return {
+          existe: true,
+          dessus: Boolean(el && (el === p || p.contains(el))),
+          quoi: el ? `${el.tagName}.${String(el.className).slice(0, 40)}` : null,
+        };
+      });
+
+    // MOITIÉ 1 — dans le panneau Agent, elle est bien là et cliquable.
+    const surLeFil = await sePeint();
+
+    expect(surLeFil.existe, 'la pastille doit exister dans le panneau Agent').toBe(true);
+    expect(surLeFil.dessus, 'dans le panneau Agent elle se peint au-dessus du fil').toBe(true);
+
+    // MOITIÉ 2 — sur les autres panneaux, elle ne dispute plus rien.
+    for (const outil of ['preview', 'git']) {
+      await ouvrirOutil(page, outil);
+      await page.waitForTimeout(1500);
+
+      const ailleurs = await sePeint();
+
+      expect(
+        ailleurs.dessus,
+        `la pastille de l’agent ne doit rien peindre par-dessus le panneau ${outil} (trouvé : ${ailleurs.quoi})`,
+      ).toBe(false);
+    }
+  });
+});

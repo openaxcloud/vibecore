@@ -22392,6 +22392,30 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100% !important;
     min-height: 0;
     flex-direction: column;
+
+    /*
+     * BUG-PILL-LEAKS-PANELS-001 — Avi, 08/09 20:53 : « parfois je vois dans la
+     * tab preview le scroll icon de l'agent », capture à l'appui, le disque ↓
+     * posé en bas à droite du cadre d'aperçu.
+     *
+     * MESURÉ à 390 : sur les panneaux Aperçu ET Déploiements, la pastille était
+     * encore `display: flex`, `visibility: visible`, `opacity: 1`, à [324, 708]
+     * — et `elementFromPoint` en son centre rendait la pastille, donc elle se
+     * peignait bien PAR-DESSUS le contenu de l'autre panneau. Sur 164 éléments
+     * du fil, elle était la SEULE à s'échapper.
+     *
+     * Pourquoi elle seule : le panneau actif est un calque `position: absolute;
+     * inset: 0` en `z-index: auto`, et il partage le contexte d'empilement de
+     * la pastille (`position: sticky; z-index: 20`) — toute la chaîne jusqu'à
+     * `body` est en `z-index: auto`. Vingt bat zéro.
+     *
+     * La règle posée n'est donc pas « cacher cette pastille » mais « les
+     * `z-index` du fil ne sortent pas du fil » : le conteneur devient son
+     * propre contexte d'empilement. La pastille garde son rang AU-DESSUS des
+     * messages, et ne peut plus rien disputer au panneau qui recouvre le fil —
+     * pas plus qu'aucun futur enfant surélevé.
+     */
+    isolation: isolate;
     /*
      * Push the transcript below the agent context bar so the first prompt isn't
      * hidden behind the fixed header. The context-bar height is 0 unless the bar
