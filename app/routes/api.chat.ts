@@ -22,6 +22,7 @@ import {
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
 import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';
+import { getWebReferenceRateLimitRedis } from '~/lib/.server/web/rate-limit-redis.server';
 import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
@@ -856,6 +857,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             /* Only a project chat (the quota-gated path) may make the web pod fetch. */
             rateLimitKey: projectId,
+
+            /*
+             * Plafond PARTAGÉ entre les replicas du pod web : sans lui, « 12
+             * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
+             * REDIS_URL est absent → compteur par pod, jamais illimité.
+             */
+            rateLimitRedis: await getWebReferenceRateLimitRedis(
+              context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+            ),
           });
 
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });

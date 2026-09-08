@@ -17,6 +17,14 @@ const streamText = readFileSync(join(__dirname, '..', 'lib', '.server', 'llm', '
 const count = (haystack: string, needle: string) => haystack.split(needle).length - 1;
 
 describe('api.chat.ts — la référence web atteint le modèle, le planificateur et les lanes', () => {
+  it('le plafond est PARTAGÉ entre replicas : le client Redis est passé à chaque appel', () => {
+    expect(chat).toContain(
+      "import { getWebReferenceRateLimitRedis } from '~/lib/.server/web/rate-limit-redis.server';",
+    );
+    expect(chat).toContain('rateLimitRedis: await getWebReferenceRateLimitRedis(');
+    expect(count(chat, 'rateLimitRedis:')).toBe(1);
+  });
+
   it('lit le site via prepareWebReferenceForChat, sur le chemin quota (projectId comme clé)', () => {
     expect(chat).toContain("import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';");
     expect(chat).toMatch(
