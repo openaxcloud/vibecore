@@ -189,3 +189,127 @@ describe('ON-ACCENT-002 — encre sur aplat d’accent plein', () => {
     expect(contraste('#111827', sombre), 'l’encre sombre n’y tiendrait PAS').toBeLessThan(AA_BODY_TEXT);
   });
 });
+
+/**
+ * ON-ACCENT-003 — l'aplat peut être en position de REPLI dans `var()`.
+ *
+ * ON-ACCENT-002 cherche `bg-[var(--APLAT` : le jeton doit être le PREMIER
+ * argument. Or la forme réellement employée par le CTA partagé est
+ *
+ *   bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]
+ *
+ * où l'aplat sanctionné est le SECOND. La garde passait donc au vert sur trois
+ * sites qui peignent bel et bien du blanc sur l'orange de marque.
+ *
+ * Mesuré en production le 2026-09-08 (WebKit, iPhone 13, 390 px, thème sombre,
+ * web `e4b2d7d183` / Helm rev. 1186), sur PIXELS RENDUS et non sur les classes :
+ * « Nouveau secret », « Nouvelle variable », « Activer le stockage d'objets »,
+ * « Exécuter une analyse complète », « Nouveau flux de travail », « Exécuter
+ * maintenant », « + Nouveau point de contrôle » → blanc `rgb(255,255,254)` sur
+ * `rgb(249,115,22)` = **2,79:1**. Et « Démarrage » (éditeur) → blanc sur
+ * `rgb(248,81,73)` = **3,34:1**. Les deux chiffres retombent sur les lignes ✗
+ * du tableau d'ON-ACCENT-002.
+ *
+ * ⚠️ Le piège que cette garde doit éviter à son tour : `.vc-user-area-shell`
+ * remappe `--vc-cta-accent` sur `--vc-action-primary-strong` (#c2410c), où le
+ * blanc TIENT (5,18) et où l'encre sombre le casserait (3,43). L'encre doit
+ * donc suivre la même structure de repli que l'aplat, jamais être imposée.
+ */
+
+/** Aplats sur lesquels le blanc ne tient pas dans au moins un thème. */
+const APLATS_SENSIBLES = ['--vc-ide-accent-action', '--vc-ide-accent-error', '--vc-cta-accent'] as const;
+
+/** Rend les aplats sensibles cités dans un `bg-[…]`, à N'IMPORTE QUELLE position du `var()`. */
+function aplatsSensiblesDeLaLigne(ligne: string): string[] {
+  const trouves: string[] = [];
+
+  for (const [, contenu] of ligne.matchAll(/bg-\[([^\]]*)\]/g)) {
+    for (const aplat of APLATS_SENSIBLES) {
+      if (contenu.includes(aplat)) {
+        trouves.push(aplat);
+      }
+    }
+  }
+
+  return trouves;
+}
+
+/** Résout un jeton tel que le voit `.vc-user-area-shell`, en retombant sur la racine. */
+function jetonShell(theme: 'light' | 'dark', nom: string, profondeur = 0): string | undefined {
+  const brut = BLOCS.get('.vc-user-area-shell')?.get(nom);
+
+  if (brut === undefined || profondeur > 6) {
+    return jeton(theme, nom, profondeur);
+  }
+
+  const alias = brut.match(/^var\(\s*(--[\w-]+)/);
+
+  return alias ? jetonShell(theme, alias[1], profondeur + 1) : brut;
+}
+
+describe('ON-ACCENT-003 — aplat en position de repli', () => {
+  it('témoin : la sonde voit la forme à repli et sait déjà lire le bloc de coque', () => {
+    /*
+     * Sans ce témoin, un motif mal échappé rendrait « 0 fautif » sans rien
+     * mesurer — et un 0 se lit comme un succès.
+     */
+    expect(aplatsSensiblesDeLaLigne('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white')).toContain(
+      '--vc-cta-accent',
+    );
+    expect(aplatsSensiblesDeLaLigne('bg-bolt-elements-background-depth-2 text-white')).toEqual([]);
+    expect(BLOCS.get('.vc-user-area-shell'), 'bloc .vc-user-area-shell lu').toBeDefined();
+  });
+
+  it('MÉCANISME 3 — aucun `text-white` en dur sur un aplat sensible, même en repli', () => {
+    const fautifs: string[] = [];
+
+    for (const chemin of fichiers(RACINE)) {
+      for (const [index, ligne] of readFileSync(chemin, 'utf8').split('\n').entries()) {
+        if (/\btext-white\b/.test(ligne) && aplatsSensiblesDeLaLigne(ligne).length > 0) {
+          fautifs.push(`${chemin.replace(RACINE, 'app')}:${index + 1}`);
+        }
+      }
+    }
+
+    expect(fautifs, `blanc en dur sur un aplat sensible :\n${fautifs.join('\n')}`).toEqual([]);
+  });
+
+  it('la mesure qui justifie la garde : le blanc ne tient pas sur `--vc-cta-accent` en sombre', () => {
+    expect(contraste('#ffffff', jeton('dark', '--vc-cta-accent')!), 'blanc sur le CTA en sombre').toBeLessThan(
+      AA_BODY_TEXT,
+    );
+  });
+
+  it('l’encre appariée du CTA tient AA dans les DEUX thèmes ET dans les DEUX coques', () => {
+    for (const theme of ['light', 'dark'] as const) {
+      // Coque IDE : pas de `--vc-cta-accent-ink`, donc le repli `--vc-ide-on-accent-action` s'applique.
+      expect(
+        contraste(jeton(theme, '--vc-ide-on-accent-action')!, jeton(theme, '--vc-cta-accent')!),
+        `encre de repli sur le CTA de l’IDE en ${theme}`,
+      ).toBeGreaterThanOrEqual(AA_BODY_TEXT);
+
+      // Coque user area : l'aplat est le ton renforcé, l'encre DOIT y rester blanche.
+      const encreShell = jetonShell(theme, '--vc-cta-accent-ink');
+      expect(encreShell, `--vc-cta-accent-ink défini pour la coque user area (${theme})`).toBeDefined();
+      expect(
+        contraste(encreShell!, jetonShell(theme, '--vc-cta-accent')!),
+        `encre de coque sur le CTA user area en ${theme}`,
+      ).toBeGreaterThanOrEqual(AA_BODY_TEXT);
+    }
+  });
+
+  it('l’aplat d’arrêt ne porte pas de blanc — il ne bascule pas, l’encre non plus', () => {
+    const clair = jeton('light', '--vc-run-stop-bg')!;
+    const sombre = jeton('dark', '--vc-run-stop-bg')!;
+
+    expect(sombre, '--vc-run-stop-bg ne bascule pas').toBe(clair);
+    expect(contraste('#ffffff', sombre), 'le blanc n’y tient pas').toBeLessThan(AA_BODY_TEXT);
+
+    const encre = jeton('dark', '--vc-run-stop-ink');
+    expect(encre, '--vc-run-stop-ink défini').toBeDefined();
+    expect(contraste(encre!, sombre), 'l’encre d’arrêt tient AA').toBeGreaterThanOrEqual(AA_BODY_TEXT);
+    expect(CSS, 'la règle d’arrêt ne code plus le blanc en dur').not.toMatch(
+      /background:\s*var\(--vc-run-stop-bg\);\s*color:\s*#ffffff/,
+    );
+  });
+});
