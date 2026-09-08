@@ -62,6 +62,13 @@ export interface AssistantMessageProps {
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+
+  /*
+   * RP-CKPT-01 — dans l'IDE projet, les puces « Léger · ×0.5 » et « 12,4 k
+   * jetons » sont remplacées par le bloc « Worked for … » (FinDeTour) rendu
+   * par la liste des messages ; on ne les pose pas deux fois.
+   */
+  masquerLesPuces?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -102,6 +109,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    masquerLesPuces = false,
   }: AssistantMessageProps) => {
     const { i18n } = useTranslation();
     const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -1022,7 +1030,7 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
-        {agentModeChipText ? (
+        {agentModeChipText && !masquerLesPuces ? (
           <div
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"
             style={{ fontFamily: 'var(--vc-font-code)' }}
@@ -1032,7 +1040,7 @@ export const AssistantMessage = memo(
             {agentModeChipText}
           </div>
         ) : null}
-        {usageChipText ? (
+        {usageChipText && !masquerLesPuces ? (
           <Link
             to="/usage"
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textSecondary"

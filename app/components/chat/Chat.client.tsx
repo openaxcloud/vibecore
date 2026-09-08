@@ -29,6 +29,7 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
 import {
   consommerPrompt,
   countWorkspaceFiles,
@@ -803,6 +804,39 @@ export const ChatImpl = memo(
             void persistMessageHistory(snapshot);
           }
         }, 0);
+
+        /*
+         * RP-CKPT-04 — point de restauration automatique, à la Replit : dès
+         * que le tour a écrit des fichiers, un commit + un instantané reliés
+         * à ce message sont pris en arrière-plan (après la synchronisation du
+         * stockage). Le bloc « Checkpoint made … » sous la réponse en vit.
+         * Le message reçu ici porte déjà l'annotation `usage` (durée, coût).
+         */
+        if (projectIdeMode && projectId && message.role === 'assistant' && message.id) {
+          const messageComplet = latestMessagesRef.current.find((candidate) => candidate.id === message.id) ?? message;
+
+          if (leTourAEcritDesFichiers(messageComplet)) {
+            const conversationId = backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId;
+            const fil = latestMessagesRef.current;
+            const position = fil.findIndex((candidate) => candidate.id === message.id);
+
+            const turnIndex = (position >= 0 ? fil.slice(0, position) : fil).filter(
+              (candidate) => candidate.role === 'assistant',
+            ).length;
+
+            void workbenchStore
+              .creerLePointDeRestaurationDuTour({
+                messageId: message.id,
+                conversationId: conversationId ?? undefined,
+                turnIndex,
+                label: messageDeCommitDuTour(messageComplet.content, ''),
+                statistiques: statistiquesDuTour(messageComplet),
+              })
+              .catch((checkpointError) => {
+                logger.warn('Point de restauration de fin de tour non créé', checkpointError);
+              });
+          }
+        }
 
         const generation = pendingGenerationRef.current;
 

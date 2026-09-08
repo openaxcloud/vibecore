@@ -728,7 +728,18 @@ describe('20. capture iPhone 07/09 07:59 : espace mort sous la zone de saisie, b
     // Le PREMIER bloc : le dernier est la variante « clavier ouvert », qui colle le composeur au clavier.
     const composeur = bloc(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
 
-    expect(composeur).toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/);
+    /*
+     * 08/09 (RP-CKPT-01) : les 8 px au-dessus du socle sont désormais portés
+     * par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`, et le
+     * composeur colle à 0 — le rectangle de collage étant la boîte de contenu
+     * du conteneur, un `bottom` à `barre + 8px` le faisait remonter de 80 px
+     * de trop, par-dessus la boîte qui défile.
+     */
+    expect(composeur).toMatch(/bottom:\s*0\s*!important/);
+    expect(composeur).not.toMatch(/bottom:\s*calc\(/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-agent-scroll')).toMatch(
+      /padding:[^;]*\bcalc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/,
+    );
     expect(composeur).toMatch(/padding-bottom:\s*0\b/);
     expect(composeur).not.toMatch(/padding-bottom:\s*8px/);
 

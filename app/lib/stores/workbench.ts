@@ -1965,6 +1965,81 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * Rend la main quand tout ce qui est en file — clôtures d'artefact, attente
+   * des actions, synchronisation du stockage — est passé. Bornée : une action
+   * « start » qui ne rend jamais la main ne doit pas retenir un point de
+   * restauration pour toujours.
+   */
+  attendreLaFinDesTaches(delaiMaxMs = 90_000): Promise<void> {
+    return Promise.race([
+      this.#globalExecutionQueue,
+      new Promise<void>((resoudre) => {
+        setTimeout(resoudre, delaiMaxMs);
+      }),
+    ]);
+  }
+
+  /**
+   * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
+   * Replit : attend que les fichiers du tour soient dans le stockage du
+   * projet, puis demande un commit + un instantané reliés au message de
+   * l'agent. Rien n'est demandé à l'utilisateur ; l'échec est journalisé,
+   * jamais montré comme une erreur du tour.
+   */
+  async creerLePointDeRestaurationDuTour(input: {
+    messageId: string;
+    conversationId?: string;
+    turnIndex?: number;
+    label: string;
+    statistiques: unknown;
+  }): Promise<{ ok: boolean; commitSha?: string }> {
+    const projectId = this.#projectId;
+
+    if (!projectId || !input.messageId) {
+      return { ok: false };
+    }
+
+    await this.attendreLaFinDesTaches();
+
+    const form = new FormData();
+    form.set('intent', 'checkpoint');
+    form.set('messageId', input.messageId);
+    form.set('label', input.label);
+
+    if (input.conversationId) {
+      form.set('conversationId', input.conversationId);
+    }
+
+    if (typeof input.turnIndex === 'number' && input.turnIndex >= 0) {
+      form.set('turnIndex', String(input.turnIndex));
+    }
+
+    try {
+      form.set('statistiques', JSON.stringify(input.statistiques ?? {}));
+    } catch {
+      form.set('statistiques', '{}');
+    }
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/snapshots`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw Object.assign(new Error(), { code: 'CHECKPOINT_ENDPOINT_HTTP_ERROR', status: response.status });
+    }
+
+    const payload = (await response.json().catch(() => ({}))) as { commitSha?: string | null };
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vibecore:snapshots-changed', { detail: { messageId: input.messageId } }));
+    }
+
+    return { ok: true, commitSha: payload.commitSha ?? undefined };
+  }
+
   addToExecutionQueue(callback: () => Promise<void>) {
     /*
      * Swallow per-task rejections here: a rejected queue promise would skip the `.then`

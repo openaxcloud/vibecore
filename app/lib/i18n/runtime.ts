@@ -64,6 +64,7 @@ import { enterpriseSsoSettingsEn, enterpriseSsoSettingsFr } from './catalogs/ent
 import { errorSurfacesEn, errorSurfacesFr } from './catalogs/error-surfaces';
 import { featuresSettingsEn, featuresSettingsFr } from './catalogs/features-settings';
 import { fileHistoryEn, fileHistoryFr } from './catalogs/file-history';
+import { finDeTourEn, finDeTourFr } from './catalogs/fin-de-tour';
 import { gitCloneEn, gitCloneFr } from './catalogs/git-clone';
 import { gitMergeEditorEn, gitMergeEditorFr } from './catalogs/git-merge-editor';
 import { gitProviderConnectEn, gitProviderConnectFr } from './catalogs/git-provider-connect';
@@ -262,6 +263,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...chatEn,
       ...chatBoxEn,
       ...secretsPanelEn,
+      ...finDeTourEn,
       ...chatBoxChildrenEn,
       ...chatClientEn,
       ...chatConnectorsEn,
@@ -416,6 +418,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...chatFr,
       ...chatBoxFr,
       ...secretsPanelFr,
+      ...finDeTourFr,
       ...chatBoxChildrenFr,
       ...chatClientFr,
       ...chatConnectorsFr,

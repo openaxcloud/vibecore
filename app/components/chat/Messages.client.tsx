@@ -6,7 +6,14 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
+import { FinDeTour } from './FinDeTour';
 import { UserMessage } from './UserMessage';
+import {
+  fusionnerLesStatistiques,
+  leBlocAQuelqueChoseAMontrer,
+  statistiquesDuTour,
+  type PointDeRestauration,
+} from './fin-de-tour';
 import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { forkChat } from '~/lib/persistence/db';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
@@ -32,6 +39,18 @@ interface MessagesProps {
    */
   onRewindToMessage?: (messageId: string) => void;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+
+  /*
+   * RP-CKPT-02/03 — sous chaque réponse de l'agent dans l'IDE projet, le bloc
+   * « Worked for … » / « Checkpoint made … » (FinDeTour). Les points de
+   * restauration viennent des instantanés du projet, indexés par message.
+   */
+  finDeTour?: {
+    pointsParMessage: ReadonlyMap<string, PointDeRestauration>;
+    language?: string | null;
+    onRollback?: (point: PointDeRestauration) => void;
+    onChanges?: (point: PointDeRestauration) => void;
+  };
 }
 
 export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
@@ -85,6 +104,7 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
               const { role, content, id: messageId, annotations, parts } = message;
               const isUserMessage = role === 'user';
               const isFirst = index === 0;
+              const isLast = index === messages.length - 1;
               const isHidden = annotations?.includes('hidden') || role === 'system';
               const rowKey = messageId ?? `${role}-${index}`;
 
@@ -158,8 +178,30 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
                         provider={props.provider}
                         parts={parts}
                         addToolResult={props.addToolResult}
+                        masquerLesPuces={Boolean(props.projectIdeMode)}
                       />
                     )}
+                    {!isUserMessage && props.projectIdeMode && messageId && !(isStreaming && isLast)
+                      ? (() => {
+                          const point = props.finDeTour?.pointsParMessage.get(messageId) ?? null;
+
+                          const statistiques = fusionnerLesStatistiques(
+                            statistiquesDuTour(message),
+                            point?.statistiques,
+                          );
+
+                          return leBlocAQuelqueChoseAMontrer(statistiques, point) ? (
+                            <FinDeTour
+                              messageId={messageId}
+                              statistiques={statistiques}
+                              point={point}
+                              language={props.finDeTour?.language}
+                              onRollback={props.finDeTour?.onRollback}
+                              onChanges={props.finDeTour?.onChanges}
+                            />
+                          ) : null;
+                        })()
+                      : null}
                   </div>
                 </div>
               );

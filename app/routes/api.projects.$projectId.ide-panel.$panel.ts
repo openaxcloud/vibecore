@@ -1485,7 +1485,97 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         }
       }
 
+      /*
+       * RP-CKPT-05 — la feuille Replit annonce trois choses restaurées :
+       * fichiers, base de données, mémoire de l'agent. La mémoire suit ici :
+       * ce que l'agent a appris APRÈS le point est archivé. Son échec ne
+       * bloque pas le retour des fichiers, déjà fait ; il est journalisé.
+       */
+      if (body.restoreAgentMemory === 'true' && (body.since ?? '').trim()) {
+        try {
+          await apiRequest(request, `/projects/${projectId}/agent-memory/rollback`, {
+            method: 'POST',
+            body: JSON.stringify({ since: body.since.trim() }),
+          });
+        } catch (error) {
+          console.error('Agent memory rollback failed:', error instanceof Response ? error.status : error);
+        }
+      }
+
       return json(foldRestoreResponse(databaseOutcome));
+    } else if (intent === 'checkpoint') {
+      /*
+       * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
+       * Replit : un commit Git portant le message du tour, puis un instantané
+       * du projet dont le manifeste relie le tout au message de l'agent (et
+       * garde les statistiques du tour, que l'annotation de flux ne conserve
+       * pas au rechargement). Rien n'est demandé à l'utilisateur.
+       */
+      const messageId = (body.messageId ?? '').trim();
+
+      if (!messageId) {
+        throw json({ error: copy['apiRuntime.panel.invalidBody'], code: 'MESSAGE_REQUIRED' }, { status: 400 });
+      }
+
+      const label = (body.label ?? '').trim() || copy['apiRuntime.panel.updateProjectFiles'];
+
+      let commitSha: string | undefined;
+
+      try {
+        const committed = (await apiRequest(request, `/projects/${projectId}/git/commit`, {
+          method: 'POST',
+          body: JSON.stringify({ message: label }),
+        })) as { commit?: { sha?: string } };
+
+        commitSha = committed.commit?.sha?.trim() || undefined;
+      } catch (error) {
+        /*
+         * « Rien à valider » n'est pas une erreur : le tour a réécrit des
+         * fichiers à l'identique. L'instantané se prend quand même — c'est
+         * lui qui porte le retour arrière.
+         */
+        const code =
+          error instanceof Response
+            ? (
+                (await error
+                  .clone()
+                  .json()
+                  .catch(() => ({}))) as { code?: string }
+              ).code
+            : undefined;
+
+        if (code !== 'GIT_NOTHING_TO_COMMIT') {
+          console.error('Checkpoint commit failed:', error instanceof Response ? error.status : error);
+        }
+      }
+
+      let statistiques: unknown;
+
+      try {
+        statistiques = body.statistiques ? JSON.parse(body.statistiques) : undefined;
+      } catch {
+        statistiques = undefined;
+      }
+
+      const created = (await apiRequest(request, `/projects/${projectId}/snapshots`, {
+        method: 'POST',
+        body: JSON.stringify({
+          label,
+          kind: 'automatic',
+          manifest: {
+            checkpoint: {
+              messageId,
+              conversationId: (body.conversationId ?? '').trim() || undefined,
+              turnIndex: /^\d+$/u.test((body.turnIndex ?? '').trim()) ? Number(body.turnIndex) : undefined,
+              commitSha,
+              commitMessage: label,
+              statistiques,
+            },
+          },
+        }),
+      })) as { snapshot?: unknown };
+
+      return json({ ok: true, snapshot: created.snapshot ?? null, commitSha: commitSha ?? null });
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
