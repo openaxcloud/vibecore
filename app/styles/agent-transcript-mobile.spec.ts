@@ -60,6 +60,50 @@ describe('transcript de l’agent en mobile', () => {
     expect(Number(valeur)).toBeLessThanOrEqual(24);
   });
 
+  /*
+   * BUG-THREAD-TOP-GAP-001 — Avi, capture iPhone du 07/09 08:06 (renvoyée le
+   * 08/09) : « retire cette espace, ça cache le contenu et perd de la place ».
+   * Mesuré le 08/09 à 390 (Chromium) : en-tête jusqu'à 49, boîte de défilement
+   * à partir de 62 — 13 px de bande morte, le `padding-top` de
+   * `.bolt-project-agent-scroll`, qui ne défile pas ; et la première bulle à 47,
+   * ses 15 premiers pixels rognés par le quai vide de la ligne d'état
+   * (`-mt-6` = -21 px, plus l'écart de colonne de 6 px).
+   *
+   * Trois moitiés d'un même invariant : pas de gouttière sur la boîte qui ne
+   * défile pas, la respiration dans celle qui défile, et un quai sans marge
+   * négative rendu seulement quand il a quelque chose à montrer.
+   */
+  it('ne met aucune gouttière sur `.bolt-project-agent-scroll`, qui ne défile pas', () => {
+    const scroll = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-scroll {');
+    const padding = /padding:\s*calc\(([^;]+)\)\s*0\s+0 !important/.exec(scroll)?.[1];
+
+    expect(padding, 'le rembourrage haut est un calc() qui ne porte que les réserves conditionnelles').toBeDefined();
+    expect(padding).not.toContain('--vc-mobile-panel-gutter');
+    expect(padding).toContain('--vc-mobile-agent-context-height');
+  });
+
+  it('met la respiration sous l’en-tête dans le transcript, qui défile avec elle', () => {
+    const transcript = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-transcript {');
+    const valeur = /padding-top:\s*([0-9]+)px/.exec(transcript)?.[1];
+
+    expect(valeur).toBeDefined();
+    expect(Number(valeur)).toBeGreaterThanOrEqual(4);
+    expect(Number(valeur)).toBeLessThanOrEqual(8);
+
+    const quai = bloc(source, '.bolt-responsive-ide-mobile .bolt-agent-statusline-dock {');
+
+    expect(quai, 'le quai remonte exactement de la respiration, jamais plus').toContain(`margin-top: -${valeur}px`);
+  });
+
+  it('ne rend le quai de la ligne d’état que s’il a quelque chose à montrer, sans marge négative', () => {
+    const baseChat = readFileSync(new URL('../components/chat/BaseChat.tsx', import.meta.url).pathname, 'utf8');
+
+    expect(baseChat).toContain('{progressAnnotations.length > 0 && (');
+    expect(baseChat).not.toContain('{progressAnnotations && (');
+    expect(baseChat).toContain('className="bolt-agent-statusline-dock sticky top-0 z-10"');
+    expect(baseChat).not.toMatch(/bolt-agent-statusline-dock[^"]*-mt-/);
+  });
+
   it('laisse `scroll-padding-bottom` faire l’ancrage du défilement', () => {
     /*
      * Distinction volontaire : `scroll-padding-bottom` ne décale que la cible du

@@ -22142,12 +22142,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * Push the transcript below the agent context bar so the first prompt isn't
      * hidden behind the fixed header. The context-bar height is 0 unless the bar
      * is actually shown (see [data-mobile-agent-context='true']).
+     *
+     * BUG-THREAD-TOP-GAP-001 — PAS de gouttière ici. Ce conteneur ne défile
+     * pas : la boîte qui défile est le `div` interne de StickToBottom, posée À
+     * L'INTÉRIEUR de ce rembourrage. Chaque pixel de `padding-top` devenait
+     * donc une bande morte entre le bas de l'en-tête et le début du fil — 13 px
+     * à 390 (mesuré le 08/09, capture iPhone d'Avi du 07/09 08:06 : « retire
+     * cette espace, ça cache le contenu et perd de la place »). L'espace de
+     * respiration est rendu au transcript (`padding-top` ci-dessous), où il
+     * défile AVEC les messages au lieu de les cacher.
      */
-    padding: calc(
-        var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px) +
-          var(--vc-mobile-language-switch-reserved-height, 58px)
-      )
-      0 0 !important;
+    padding: calc(var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)) 0
+      0 !important;
     scroll-padding-top: calc(
       var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)
     );
@@ -22160,6 +22166,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-width: 0;
     flex: 1 0 auto;
     margin-inline: auto;
+
+    /*
+     * BUG-THREAD-TOP-GAP-001 — la respiration sous l'en-tête vit ICI, dans la
+     * boîte qui défile : 6 px, le même écart qu'entre deux messages, pour que
+     * la première bulle se pose sous le trait de l'en-tête au lieu de
+     * commencer 13 px plus bas avec ses 15 premiers pixels rognés.
+     */
+    padding-top: 6px;
 
     /*
      * Réserve la hauteur du composeur QUAND celui-ci recouvre le transcript,
@@ -22196,6 +22210,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     > div:not(.bolt-project-agent-transcript)
     .bolt-project-agent-transcript {
     padding-bottom: 12px;
+  }
+
+  /*
+   * Quai de la ligne d'état de l'agent (« Agent · Génération 67 % »), collant en
+   * haut du fil. Il remonte de la respiration du transcript pour se coller sous
+   * l'en-tête — sans jamais dépasser le haut de la boîte de défilement, ce que
+   * faisait le `-mt-6` d'origine (BUG-THREAD-TOP-GAP-001).
+   */
+  .bolt-responsive-ide-mobile .bolt-agent-statusline-dock {
+    margin-top: -6px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {

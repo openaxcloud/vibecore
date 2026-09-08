@@ -7366,12 +7366,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             {/*
              * Thin agent status line, sticky at the TOP of the panel (agent-panel
-             * UX refonte, point 2). Full-bleed via negative margins that cancel the
-             * scroll container's pt-6/px padding; stays pinned while the transcript
-             * scrolls underneath it.
+             * UX refonte, point 2); stays pinned while the transcript scrolls
+             * underneath it.
+             *
+             * BUG-THREAD-TOP-GAP-001 — deux pièges retirés ici :
+             * 1. `progressAnnotations && …` rendait TOUJOURS le quai (un tableau
+             *    vide est vrai) : un enfant flex de 0 px, plus l'écart de la
+             *    colonne, s'intercalait avant le premier message.
+             * 2. `-mt-6 -mx-2` prétendait annuler le `pt-6` du conteneur — mais la
+             *    boîte qui DÉFILE est le `div` interne de StickToBottom, à
+             *    l'intérieur de ce rembourrage : une marge négative y déborde en
+             *    territoire de défilement négatif, inatteignable, et rognait les
+             *    15 premiers pixels de la première bulle à 390 (mesuré le 08/09).
+             * Le quai ne se rend donc que s'il a quelque chose à montrer, sans
+             * marge négative ; sa place sous l'en-tête est réglée en CSS
+             * (`.bolt-agent-statusline-dock`).
              */}
-            {progressAnnotations && (
-              <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+            {progressAnnotations.length > 0 && (
+              <div className="bolt-agent-statusline-dock sticky top-0 z-10">
                 {/*
                  * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
                  * fichiers — il peut valoir 100 sur un projet cassé. `degraded`

@@ -1948,6 +1948,60 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     ).toBeLessThanOrEqual(24);
   });
 
+  test('fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await expect(page.locator('.bolt-chat-message-row').first()).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    /*
+     * Avi, capture iPhone du 07/09 08:06, renvoyée le 08/09 : « retire cette
+     * espace, ça cache le contenu et perd de la place ». Mesuré avant
+     * correction (Chromium 390) : en-tête jusqu'à 49, boîte de défilement à
+     * partir de 62 — 13 px de bande morte — et la première bulle à 47, ses 15
+     * premiers pixels rognés (un point à 2 px sous son haut touchait le
+     * conteneur, pas la bulle).
+     */
+    const geometrie = await page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+        const style = getComputedStyle(el);
+
+        return (
+          /(auto|scroll)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          el.querySelector('.bolt-chat-message-row')
+        );
+      })!;
+
+      boite.scrollTop = 0;
+
+      const entete = document.querySelector('.bolt-mobile-ecode-header')!.getBoundingClientRect();
+      const bulle = document.querySelector('.bolt-chat-message-row')!.getBoundingClientRect();
+      const x = Math.round(bulle.left + 40);
+      const sous = (y: number) => document.elementFromPoint(x, y);
+
+      return {
+        enteteBas: Math.round(entete.bottom),
+        boiteHaut: Math.round(boite.getBoundingClientRect().top),
+        bulleHaut: Math.round(bulle.top),
+        sousEnteteDansLeFil: Boolean(sous(Math.round(entete.bottom) + 2)?.closest('.bolt-project-agent-transcript')),
+        hautDeBulleTouchable: Boolean(sous(Math.round(bulle.top) + 2)?.closest('.bolt-chat-message-row')),
+      };
+    });
+
+    expect(geometrie.boiteHaut, 'la boîte qui défile commence sous l’en-tête, pas plus bas').toBeLessThanOrEqual(
+      geometrie.enteteBas,
+    );
+    expect(geometrie.sousEnteteDansLeFil, '2 px sous l’en-tête, on touche déjà le fil').toBe(true);
+    expect(geometrie.bulleHaut - geometrie.enteteBas, 'la bulle se pose juste sous le trait').toBeGreaterThanOrEqual(3);
+    expect(geometrie.bulleHaut - geometrie.enteteBas, 'sans bande morte').toBeLessThanOrEqual(10);
+    expect(geometrie.hautDeBulleTouchable, 'le haut de la première bulle n’est pas rogné').toBe(true);
+  });
+
   test('onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit', async ({
     page,
     request,
