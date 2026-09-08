@@ -153,7 +153,14 @@ export function armDeadline(
   now: () => number = Date.now,
 ): () => void {
   const remaining = deadlineAt - now();
-  const onAbort = () => target.destroy(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+
+  /*
+   * No message on these errors, exactly like the SSRF_BLOCKED / TimeoutError
+   * ones below: the caller reads `name`/`code` and maps it to localized copy
+   * (describeWebReferenceError). A hardcoded English message here is user-facing
+   * copy the i18n source scanner rejects — rightly, since nothing translates it.
+   */
+  const onAbort = () => target.destroy(Object.assign(new Error(), { name: 'AbortError' }));
 
   if (signal?.aborted) {
     onAbort();
@@ -161,7 +168,7 @@ export function armDeadline(
     return () => undefined;
   }
 
-  const timer = setTimeout(() => target.destroy(new DeadlineError('deadline exceeded')), Math.max(0, remaining));
+  const timer = setTimeout(() => target.destroy(new DeadlineError()), Math.max(0, remaining));
   signal?.addEventListener('abort', onAbort, { once: true });
 
   return () => {

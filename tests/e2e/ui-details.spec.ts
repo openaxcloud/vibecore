@@ -1173,6 +1173,7 @@ async function readMobileAgentComposerDetails(page: Page) {
 
     return {
       bottomOffset: composerStyle.bottom,
+      scrollBoxPaddingBottom: scrollStyle.paddingBottom,
       chatboxBottom: chatboxRect.bottom,
       chatboxTop: chatboxRect.top,
       composerChildBottom,
@@ -1242,9 +1243,21 @@ function expectMobileAgentComposerConstrained(
   label: string,
 ) {
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
-  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
-    details.navHeight + 6,
-  );
+
+  /*
+   * RP-CKPT-01 (08/09) : le composeur ne se soulève PLUS lui-même au-dessus du
+   * socle — il colle à 0 et c'est le `padding-bottom` du conteneur qui défile
+   * qui porte le dégagement (`.bolt-project-agent-composer` dans index.scss,
+   * « bottom vaut 0, PAS barre + 8px »). L'ancienne assertion lisait le `bottom`
+   * du composeur et rougissait sur un invariant qui a changé de porteur.
+   * Mesuré ici (Chromium, les cinq formats) : conteneur 80 px = socle 72 + 8,
+   * composeur `bottom: 0px`, bas du composeur 1100 pour un socle à 1108.
+   */
+  expect(details.bottomOffset, `${label} composer sticks to the scroll box`).toBe('0px');
+  expect(
+    Number.parseFloat(details.scrollBoxPaddingBottom),
+    `${label} scroll container carries the bottom-nav clearance`,
+  ).toBeGreaterThanOrEqual(details.navHeight + 6);
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
   expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
   expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);

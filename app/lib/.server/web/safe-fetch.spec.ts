@@ -14,6 +14,35 @@ describe('armDeadline', () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  /*
+   * Les erreurs internes ne portent AUCUN message : l'appelant lit `name`/`code`
+   * et le traduit (describeWebReferenceError). Un message anglais en dur ici est
+   * de la copie visible que le scanner i18n de la CI refuse — mesuré le 08/09 :
+   * `new Error('aborted')` a fait échouer Production CI (i18n:scan:source,
+   * « new-file-debt baseline=0 current=1 ») et donc la barrière de release.
+   */
+  it('les erreurs internes portent un name, jamais un message en dur', () => {
+    const destroy = vi.fn();
+    const controller = new AbortController();
+
+    armDeadline({ destroy }, Date.now() + 500, controller.signal);
+    controller.abort();
+
+    const abortError = destroy.mock.calls[0][0] as Error;
+
+    expect(abortError.name).toBe('AbortError');
+    expect(abortError.message).toBe('');
+
+    const other = vi.fn();
+    armDeadline({ destroy: other }, Date.now() + 1, undefined);
+    vi.advanceTimersByTime(2);
+
+    const deadlineError = other.mock.calls[0][0] as Error;
+
+    expect(deadlineError.name).toBe('DeadlineError');
+    expect(deadlineError.message).toBe('');
+  });
+
   it('destroys the request with a DeadlineError when the wall clock passes the deadline', () => {
     const destroy = vi.fn();
     const disarm = armDeadline({ destroy }, Date.now() + 500, undefined);
