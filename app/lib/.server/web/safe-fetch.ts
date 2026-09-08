@@ -153,7 +153,16 @@ export function armDeadline(
   now: () => number = Date.now,
 ): () => void {
   const remaining = deadlineAt - now();
-  const onAbort = () => target.destroy(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+
+  /*
+   * `new Error()` NU, comme les deux abandons voisins (`SSRF_BLOCKED` ligne ~202,
+   * `TimeoutError` ligne ~266) : c'est le `name` qui porte le sens, et c'est lui
+   * que lisent les consommateurs (`name === 'AbortError'`). Le message 'aborted'
+   * n'etait lu par personne et declenchait le garde i18n `error-message`
+   * (`new-file-debt`, baseline=0 current=1), lequel refusait tout deploiement —
+   * la porte de release exige `Production CI` verte pour le commit exact.
+   */
+  const onAbort = () => target.destroy(Object.assign(new Error(), { name: 'AbortError' }));
 
   if (signal?.aborted) {
     onAbort();
