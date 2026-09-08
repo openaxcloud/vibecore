@@ -52,3 +52,31 @@ describe('<AppliedFilesToast /> i18n', () => {
     expect(screen.getByRole('button', { name: 'Undo all' })).toBeTruthy();
   });
 });
+
+describe('<AppliedFilesToast /> — une génération tronquée ne s’annonce pas comme réussie', () => {
+  const constatCasse = { tronquee: true, entreesManquantes: ['src/main.tsx'] };
+  const constatSain = { tronquee: false, entreesManquantes: [] };
+
+  it('remplace le message de succès et NOMME le module manquant', () => {
+    render(
+      <AppliedFilesToast
+        files={['src/components/ProductGrid.tsx']}
+        onUndoAll={vi.fn()}
+        onDismissAll={vi.fn()}
+        constat={constatCasse}
+      />,
+    );
+
+    expect(screen.queryByText(/applied successfully/i), 'le succès ne doit plus être promis').toBeNull();
+    expect(screen.getByText(/stopped early/i)).toBeTruthy();
+    expect(screen.getByText(/src\/main\.tsx/)).toBeTruthy();
+  });
+
+  it('TÉMOIN POSITIF — une génération saine garde le message d’origine', () => {
+    render(
+      <AppliedFilesToast files={['src/App.tsx']} onUndoAll={vi.fn()} onDismissAll={vi.fn()} constat={constatSain} />,
+    );
+
+    expect(screen.getByText(/applied successfully/i)).toBeTruthy();
+  });
+});
