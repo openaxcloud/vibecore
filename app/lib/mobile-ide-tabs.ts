@@ -271,14 +271,6 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     icon: 'i-ph:command',
     tone: 'info',
   },
-  {
-    id: 'share',
-    section: 'tools',
-    titleKey: 'mobileIdeTabs.share.title',
-    descriptionKey: 'mobileIdeTabs.share.description',
-    icon: 'i-ph:share-network',
-    tone: 'info',
-  },
 ];
 
 /*

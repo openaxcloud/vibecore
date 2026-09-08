@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { IDE_WORKSPACE_PANELS } from './ide/panel-registry';
 import { ECODE_MOBILE_MORE_ITEMS, ECODE_MOBILE_TOOLS, MOBILE_TOOL_TO_MANAGEMENT_PANEL } from './mobile-ide-tabs';
+import { ECODE_MOBILE_TAB_META_BASE } from './mobile-tab-meta';
 
 /*
  * AUCUNE SURFACE NE DOIT PERDRE UN PANNEAU.
@@ -34,6 +35,45 @@ import { ECODE_MOBILE_MORE_ITEMS, ECODE_MOBILE_TOOLS, MOBILE_TOOL_TO_MANAGEMENT_
 const TRAITES_PAR_UNE_BRANCHE_NOMMEE = new Set(['agent', 'commands', 'share']);
 
 describe('les surfaces qui pretendent lister listent la meme chose', () => {
+  it("liste d'outils et menu « More » sont STRICTEMENT egaux, dans les deux sens", () => {
+    /*
+     * Avi tranche : « liste d'outils ou menu c'est le même usage », donc même
+     * contenu. Ce n'est plus « l'une contient l'autre » — c'est l'egalite. Un
+     * outil visible ici et absent la, c'est le panneau qu'on perd selon par ou
+     * l'on passe.
+     */
+    const outils = [...ECODE_MOBILE_TOOLS.map((tool) => tool.id)].sort();
+    const menu = [...ECODE_MOBILE_MORE_ITEMS].sort();
+
+    expect(
+      menu,
+      `manquants dans « More » : ${outils.filter((id) => !menu.includes(id)).join(', ')} | en trop : ${menu.filter((id) => !outils.includes(id)).join(', ')}`,
+    ).toEqual(outils);
+  });
+
+  it("`share` n'est pas un panneau : il ne figure pas dans la liste", () => {
+    /*
+     * `share` copie le lien puis ouvre Collaborators — c'est une ACTION sur un
+     * panneau existant, pas un panneau. Le laisser dans la liste des panneaux,
+     * c'est y compter deux fois la meme destination.
+     */
+    expect(ECODE_MOBILE_TOOLS.map((tool) => tool.id)).not.toContain('share');
+    expect(ECODE_MOBILE_MORE_ITEMS).not.toContain('share');
+  });
+
+  it('un seul libelle par panneau : aucune entree de metadonnees qui ne soit un outil reel', () => {
+    /*
+     * `ECODE_MOBILE_TAB_META_BASE` portait des ALIAS (`actions`, `assistant`,
+     * `console`, `debug`, `developer`, `app-storage`, `auth`, `publishing`,
+     * `deploy`) — des etiquettes differentes pour un meme panneau. Ce sont ces
+     * conversions dispersees qui font diverger les surfaces.
+     */
+    const outils = new Set(ECODE_MOBILE_TOOLS.map((tool) => tool.id));
+    const alias = Object.keys(ECODE_MOBILE_TAB_META_BASE).filter((id) => !outils.has(id));
+
+    expect(alias, `alias restants dans les metadonnees : ${alias.join(', ')}`).toEqual([]);
+  });
+
   it("le menu « More » propose TOUT ce que propose la liste d'outils", () => {
     const outils = ECODE_MOBILE_TOOLS.map((tool) => tool.id);
     const manquants = outils.filter((id) => !ECODE_MOBILE_MORE_ITEMS.includes(id));
