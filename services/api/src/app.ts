@@ -3726,6 +3726,12 @@ function serverRuntimeDetectionMessage(
   return appPublicEnglish(keyByCode[code]);
 }
 
+/**
+ * Plafond de page de la liste d'instantanés. Une limite absurde (`?limit=99999`)
+ * ne doit pas rendre la borne inopérante — c'est le cas que la garde couvre.
+ */
+const SNAPSHOT_LIST_MAX_PAGE = 200;
+
 function localizeSnapshotRecord<T extends Pick<SnapshotRecord, 'kind' | 'label'>>(
   snapshot: T,
   locale: TransactionalLocale,
@@ -26547,8 +26553,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
+    /*
+     * PANEL-PERF — bornage et projection, tous deux OPT-IN.
+     *
+     * Sans `limit` ni `fields`, la réponse est celle d'avant, à l'octet près :
+     * `BaseChat.tsx` lit `manifest.files` (écran des fichiers d'un instantané et
+     * diff entre deux instantanés) et perdrait cet écran si le défaut changeait.
+     *
+     * Mesuré en production le 2026-09-08, projet de 355 instantanés :
+     * 1 281 Ko, 2,85 à 4,41 s au total mais 0,43 à 1,09 s de TTFB — le
+     * transfert pèse donc 80 à 85 % du temps. SQL : 29 à 47 ms. Sérialisation :
+     * 14,1 ms. Le levier est la TAILLE de la réponse, pas le calcul.
+     */
+    const query = (request.query ?? {}) as { limit?: string; cursor?: string; fields?: string };
+    const limitDemandee = Number.parseInt(query.limit ?? '', 10);
+    const limit = Number.isFinite(limitDemandee)
+      ? Math.min(Math.max(limitDemandee, 1), SNAPSHOT_LIST_MAX_PAGE)
+      : undefined;
+    const manifest =
+      query.fields === 'summary' ? 'omit' : query.fields === 'list' ? 'without-files' : ('full' as const);
+
+    /*
+     * On demande UNE ligne de plus que la page : sa présence dit « il en reste »
+     * sans payer un second aller-retour de comptage.
+     */
+    const lignes = await store.listSnapshots(project.id, {
+      ...(limit ? { take: limit + 1 } : {}),
+      ...(query.cursor ? { cursor: query.cursor } : {}),
+      manifest,
+    });
+    const page = limit ? lignes.slice(0, limit) : lignes;
+    const nextCursor = limit && lignes.length > limit ? page[page.length - 1]?.id : undefined;
+
     return {
-      snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      snapshots: page.map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      ...(nextCursor ? { nextCursor } : {}),
     };
   });
   app.post('/projects/:projectId/snapshots', async (request, reply) => {
