@@ -37,13 +37,18 @@ const CAR_PAR_SEGMENT = 8_000;
 const TAILLE_MORCEAU = 400;
 
 /** Un « streamText » simule : il emet, puis appelle `onFinish` APRES la fin du flux — comme le SDK. */
-function fauxStreamText(segment: number, segments: number, onFinish: (e: { finishReason: string; segment: number }) => void) {
+function fauxStreamText(
+  segment: number,
+  segments: number,
+  onFinish: (e: { finishReason: string; segment: number }) => void,
+) {
   let emis = 0;
 
   const flux = new ReadableStream({
     pull(c) {
       if (emis >= CAR_PAR_SEGMENT) {
         c.close();
+
         const finishReason = segment + 1 < segments ? 'length' : 'stop';
         setTimeout(() => onFinish({ finishReason, segment }), 0);
 
@@ -88,6 +93,7 @@ async function octetsRecus({ segments, avecCorrectif }: { segments: number; avec
 
   // On lit jusqu'a la FIN DU FLUX. Jamais de minuterie.
   const lecteur = flux.getReader();
+
   let octets = 0;
 
   for (;;) {
@@ -129,8 +135,10 @@ describe('la continuation est livree au client', () => {
   });
 
   it("TEMOIN — un seul segment n'a jamais souffert, avec ou sans correctif", async () => {
-    // Sans ce temoin, un harnais qui perdrait TOUT passerait les deux premiers
-    // tests et ne prouverait rien. Il ancre l'echelle de la mesure.
+    /*
+     * Sans ce temoin, un harnais qui perdrait TOUT passerait les deux premiers
+     * tests et ne prouverait rien. Il ancre l'echelle de la mesure.
+     */
     expect(pourcentage(await octetsRecus({ segments: 1, avecCorrectif: false }))).toBeGreaterThan(95);
     expect(pourcentage(await octetsRecus({ segments: 1, avecCorrectif: true }))).toBeGreaterThan(95);
   });
