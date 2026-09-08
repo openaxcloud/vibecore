@@ -590,6 +590,92 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const app = Fastify({ logger: options.logger ?? false });
 
   /*
+   * LE PROXY NE DOIT JAMAIS MOURIR D'UNE REPONSE MAL FORMEE.
+   *
+   * Mesure du 2026-09-08, production. Les deux pods `preview-proxy` portaient
+   * SEPT redemarrages. Le journal du conteneur mort, dans l'ordre :
+   *
+   *   GET /@vite/client   -> "Route GET:/@vite/client not found"
+   *                       -> 404, "stream closed prematurely"
+   *   FastifyError: Attempted to send payload of invalid type 'object'.
+   *     code: 'FST_ERR_REP_INVALID_PAYLOAD_TYPE'   -> exit 1
+   *
+   * L'enchainement : le crochet `onRequest` appelle `handlePreviewRequest` puis
+   * laisse la requete poursuivre son cycle. Quand l'amont ferme le flux
+   * prematurement — precisement ce que fait un serveur de dev instable — la
+   * reponse n'est pas terminee, Fastify retombe sur son 404 par defaut, et ce
+   * 404 envoie un OBJET alors que le `content-type` copie de l'amont n'est pas
+   * du JSON. Fastify leve ; il n'y avait ni `setErrorHandler` ni
+   * `setNotFoundHandler` dans tout ce service ; le rejet non gere tue le
+   * processus.
+   *
+   * CONSEQUENCE MESUREE : un seul espace de travail au serveur de dev instable
+   * faisait tomber l'apercu de TOUS les utilisateurs. Le pod redemarre, nginx
+   * n'a plus d'amont sain, et l'URL publique rend 503 — meme pour les apercus
+   * qui, eux, fonctionnaient. C'est la seconde couche du defaut d'apercu, et
+   * elle est INDEPENDANTE du demarrage du serveur de dev.
+   *
+   * Les deux gardes ci-dessous n'ajoutent aucune permissivite : elles ne
+   * changent aucun code de statut ni aucune decision d'autorisation. Elles
+   * garantissent seulement qu'une reponse d'erreur est TOUJOURS une chaine, et
+   * qu'une reponse deja commencee se termine au lieu de lever.
+   */
+  const repondreSansJamaisLever = (reply: FastifyReply, statut: number, texte: string) => {
+    /*
+     * Reponse deja commencee (l'amont avait pousse des octets avant de couper) :
+     * il n'y a plus rien a negocier, on ferme. Tenter un `send` ici leverait.
+     */
+    if (reply.raw.headersSent) {
+      reply.raw.destroy();
+
+      return reply;
+    }
+
+    /*
+     * Le `content-type` peut avoir ete recopie de l'amont (`text/javascript`
+     * pour `/@vite/client`). C'est LUI qui rend le payload objet invalide. On le
+     * remplace explicitement — jamais on ne laisse celui de l'amont decider du
+     * format d'un message d'erreur du proxy.
+     */
+    reply.raw.removeHeader?.('content-type');
+    reply.header('content-type', 'text/plain; charset=utf-8');
+    reply.header('cache-control', 'no-store');
+
+    return reply.code(statut).send(texte);
+  };
+
+  app.setNotFoundHandler((request, reply) => {
+    app.log.warn(
+      JSON.stringify({
+        event: 'preview.proxy.route.absente',
+        method: request.method,
+        path: request.url.split('?')[0],
+        headersDejaEnvoyes: reply.raw.headersSent,
+      }),
+    );
+
+    return repondreSansJamaisLever(reply, 404, 'Not Found');
+  });
+
+  app.setErrorHandler((erreur: unknown, request, reply) => {
+    const error = erreur as { code?: string; message?: string; statusCode?: number };
+    app.log.error(
+      JSON.stringify({
+        event: 'preview.proxy.erreur.capturee',
+        method: request.method,
+        path: request.url.split('?')[0],
+        code: error.code,
+        message: error.message,
+        headersDejaEnvoyes: reply.raw.headersSent,
+      }),
+    );
+
+    const statut = typeof error.statusCode === 'number' && error.statusCode >= 400 ? error.statusCode : 502;
+
+    return repondreSansJamaisLever(reply, statut, 'Preview temporarily unavailable');
+  });
+
+  /*
    * We stream request.raw straight to the upstream agent, so Fastify's default
    * application/json and text/plain parsers must NOT consume the body first.
    * A catch-all no-op parser leaves request.raw intact for every content type;
