@@ -15,6 +15,7 @@ import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
   isTransientCommandFailure,
+  previewServerLooksRunning,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -818,7 +819,7 @@ export class WorkbenchStore {
      * lagging manager status / stale client beacon — otherwise the status bar
      * sat on "Dev: blocked" over a serving app.
      */
-    if (this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)) {
+    if (previewServerLooksRunning(this.previews.get())) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -1134,9 +1135,7 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)
-              ? 'running'
-              : 'idle',
+            status: previewServerLooksRunning(this.previews.get()) ? 'running' : 'idle',
             command: command.label,
           });
         }
@@ -1166,7 +1165,7 @@ export class WorkbenchStore {
      * project shapes), preserving the prior behaviour for those.
      */
     if (!pkgEntry || pkgEntry[1]?.type !== 'file') {
-      return this.previews.get().some((preview) => preview.ready !== false);
+      return previewServerLooksRunning(this.previews.get());
     }
 
     let pkg: PreviewPackageManifest = {};
