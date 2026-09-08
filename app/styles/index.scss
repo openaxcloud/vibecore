@@ -24059,7 +24059,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * compenser : 2 px au-dessus du bas de la boîte = 2 px au-dessus du
      * conteneur du composeur. Avec l'ancien `barre + 8 + 2`, elle flottait à
      * 82 px du composeur (mesuré Chromium 390, E2E « la pastille est JUSTE
-     * au-dessus de la zone de saisie » : 82 pour ≤ 16).
+     * au-dessus de la zone de saisie » : 82 pour ≤ 16). Gardes :
+     * agent-transcript-mobile.spec.ts, agent-action-list-density.spec.ts §2,
+     * agent-scroll-to-latest.spec.ts, ide-mobile-panels.spec.ts §20.
      */
     bottom: 2px;
 

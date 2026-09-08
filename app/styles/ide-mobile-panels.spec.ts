@@ -384,8 +384,13 @@ describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’acti
   });
 
   it('l’attribut est posé par BaseChat depuis la mesure de la fenêtre visuelle, et retiré au démontage', () => {
-    expect(BASE_CHAT).toContain('import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from');
-    expect(BASE_CHAT).toContain('if (clavierProbablementOuvert(recouvrementBas)) {');
+    // 08/09 (BUG-KEYBOARD-ZOOM-001) : détection par le RÉTRÉCISSEMENT de la fenêtre visuelle, insensible au défilement de Safari.
+    expect(BASE_CHAT).toMatch(
+      /import \{[^}]*clavierProbablementOuvert,[^}]*retrecissementDeLaVue,[^}]*\} from '\.\/visual-viewport-bottom';/u,
+    );
+    expect(BASE_CHAT).toContain(
+      'if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {',
+    );
     expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
     expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
   });
