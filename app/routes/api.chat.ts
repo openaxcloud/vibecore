@@ -22,6 +22,7 @@ import {
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
 import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';
+import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
@@ -1490,7 +1491,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const options: StreamingOptions = {
           supabaseConnection: supabase,
           toolChoice: 'auto',
-          tools: mcpService.toolsWithoutExecute,
+
+          /*
+           * RP-WEB-03 — `fetch_web_page`, server-executed, behind
+           * ECODE_WEB_FETCH_TOOL_ENABLED and only on a project (rate-limit
+           * tenant). Empty object when off: the request shape is unchanged.
+           */
+          tools: {
+            ...mcpService.toolsWithoutExecute,
+            ...webFetchToolSet({
+              env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+              rateLimitKey: projectId,
+              language,
+              signal: request.signal,
+            }),
+          },
           maxSteps: resolvedMaxSteps,
           onStepFinish: ({ toolCalls }) => {
             // add tool call annotations for frontend processing

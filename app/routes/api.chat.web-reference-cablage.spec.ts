@@ -57,6 +57,18 @@ describe('api.chat.ts — la référence web atteint le modèle, le planificateu
   });
 });
 
+describe('api.chat.ts — outil fetch_web_page (RP-WEB-03, derrière drapeau)', () => {
+  it('fusionne webFetchToolSet aux outils MCP, avec projectId comme clé de limitation', () => {
+    expect(chat).toContain("import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';");
+
+    const tools = chat.slice(chat.indexOf('tools: {'), chat.indexOf('tools: {') + 400);
+
+    expect(tools).toContain('...mcpService.toolsWithoutExecute,');
+    expect(tools).toContain('...webFetchToolSet({');
+    expect(tools).toContain('rateLimitKey: projectId,');
+  });
+});
+
 describe('stream-text.ts — mode runtime et bloc <web_reference>', () => {
   it('résout le runtime réel et le passe au prompt de build ET au prompt discuss', () => {
     expect(streamText).toContain('const promptRuntimeMode = resolvePromptRuntimeMode(');

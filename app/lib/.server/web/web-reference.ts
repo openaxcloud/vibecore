@@ -47,6 +47,9 @@ export interface CollectWebReferenceInput {
   /** Follow same-site navigation on a clone intent (default true; off when the URL came from an earlier turn). */
   crawl?: boolean;
 
+  /** Treat the request as a clone even without a clone verb (the fetch_web_page tool's follow_links). */
+  forceCloneIntent?: boolean;
+
   /** Honour robots.txt for crawled pages (default true; the user's own URL is never subject to it). */
   robots?: boolean;
 
@@ -122,7 +125,8 @@ function isCss(contentType: string, url: string): boolean {
  * the message names no URL (the common case — zero cost).
  */
 export async function collectWebReference(input: CollectWebReferenceInput): Promise<WebReferenceResult | undefined> {
-  const request = detectWebReferenceRequest(input.text);
+  const detected = detectWebReferenceRequest(input.text);
+  const request = input.forceCloneIntent ? { ...detected, cloneIntent: true } : detected;
 
   if (request.urls.length === 0) {
     return undefined;
