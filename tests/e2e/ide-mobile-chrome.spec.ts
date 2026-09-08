@@ -2145,6 +2145,16 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     await page.waitForLoadState('load');
     await attendreLeFilStable(page);
 
+    /*
+     * Le testid apparaît sur une LIGNE du bloc ; la racine `.bolt-fin-de-tour`,
+     * elle, pouvait n'être pas encore posée au moment de la mesure — d'où un
+     * `getBoundingClientRect` de `null` vu une fois sur ce test (run local du
+     * 08/09, passé au réessai). On attend la racine elle-même : ce que la
+     * mesure suivante déréférence.
+     */
+    await page.waitForSelector('.bolt-fin-de-tour', { state: 'attached', timeout: 30_000 });
+    await page.waitForSelector('.bolt-project-agent-composer', { state: 'attached', timeout: 30_000 });
+
     // RP-CKPT-01 — en bas du fil, ni le bloc ni le dernier message ne passent sous la zone de saisie.
     const geometrie = await page.evaluate(() => {
       // La boîte qui défile est la plus PROFONDE des boîtes défilantes contenant le fil (StickToBottom en intercale une).
@@ -2567,5 +2577,161 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
     await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(6000);
     await expect(lignes, 'après rechargement, la conversation reste neuve').toHaveCount(0);
+  });
+});
+
+/*
+ * BUG-STREAM-JUMP-001 — « le contenu de l'agent n'arrête pas de sauter, c'est
+ * impossible de suivre le streaming proprement » (Avi, 08/09).
+ *
+ * Mesuré à 390 sur le build de production, tour streamé, sonde
+ * MutationObserver : `append` vient de `useChat` et change d'identité à chaque
+ * lot de jetons ; la table `components` de react-markdown en dépendait, donc
+ * chacune de ses entrées changeait de TYPE à chaque lot et react-markdown
+ * remontait tout le sous-arbre. Le markdown de TOUS les messages du fil — y
+ * compris des tours terminés depuis longtemps — était recréé toutes les 25 à
+ * 65 ms : 387 recréations sur 400 mutations relevées, un bloc de code qui
+ * apparaissait et disparaissait 39 fois, un à-coup de défilement de −159 px.
+ * Après correctif, même sonde et même build : 3 recréations sur 135 mutations,
+ * 3 clignotements, plus aucun à-coup négatif.
+ *
+ * Le flux est piloté DANS la page : `route.fulfill` livrerait le corps d'un
+ * seul coup — ce ne serait pas un flux, et le défaut ne se produirait pas.
+ */
+test.describe('agent — le fil ne se recrée pas pendant le streaming (téléphone)', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('un tour streamé ne recrée pas le markdown des messages déjà affichés', async ({ page, request }) => {
+    test.setTimeout(180_000);
+
+    await page.addInitScript(() => {
+      const prose =
+        'Voici une explication détaillée de ce que je viens de faire, avec assez de ' +
+        'texte pour que le fil dépasse la fenêtre de lecture d’un téléphone. ';
+
+      const bouts: string[] = [];
+
+      for (let tour = 0; tour < 4; tour += 1) {
+        bouts.push(prose, prose, '\n\n```ts\n', `export const v${tour} = ${tour};\n`, '```\n\n');
+      }
+
+      // Morceaux de 12 caractères : la granularité d'un vrai modèle.
+      const fins: string[] = [];
+
+      for (const bout of bouts) {
+        for (let i = 0; i < bout.length; i += 12) {
+          fins.push(bout.slice(i, i + 12));
+        }
+      }
+
+      const vrai = window.fetch.bind(window);
+
+      window.fetch = ((entree: any, init?: any) => {
+        const url = typeof entree === 'string' ? entree : (entree?.url ?? '');
+
+        if (!String(url).includes('/api/chat')) {
+          return vrai(entree, init);
+        }
+
+        const encodeur = new TextEncoder();
+
+        const corps = new ReadableStream({
+          start(controleur) {
+            let i = 0;
+            controleur.enqueue(encodeur.encode('f:' + JSON.stringify({ messageId: 'msg-flux' }) + '\n'));
+
+            const pousser = () => {
+              if (i >= fins.length) {
+                controleur.enqueue(encodeur.encode('d:' + JSON.stringify({ finishReason: 'stop', usage: {} }) + '\n'));
+                controleur.close();
+
+                return;
+              }
+
+              controleur.enqueue(encodeur.encode('0:' + JSON.stringify(fins[i]) + '\n'));
+              i += 1;
+              setTimeout(pousser, 25);
+            };
+
+            setTimeout(pousser, 25);
+          },
+        });
+
+        return Promise.resolve(
+          new Response(corps, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream; charset=utf-8', 'x-vercel-ai-data-stream': 'v1' },
+          }),
+        );
+      }) as typeof window.fetch;
+    });
+
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(2500);
+
+    const composeur = page
+      .locator('.bolt-project-agent-composer textarea, .bolt-project-agent-composer [contenteditable]')
+      .first();
+    await expect(composeur).toBeVisible({ timeout: 30_000 });
+
+    // On compte les recréations de markdown ET les allers-retours des blocs de code.
+    await page.evaluate(() => {
+      const w = window as any;
+      w.__recrees = 0;
+      w.__pre = [];
+
+      const cible = document.querySelector('.bolt-project-agent-transcript');
+
+      if (cible) {
+        new MutationObserver((enregistrements) => {
+          for (const enr of enregistrements) {
+            for (const n of enr.addedNodes) {
+              if (n instanceof HTMLElement && /MarkdownContent/.test(String(n.className || ''))) {
+                w.__recrees += 1;
+              }
+            }
+          }
+
+          w.__pre.push(document.querySelectorAll('.bolt-project-agent-transcript pre').length);
+        }).observe(cible, { childList: true, subtree: true });
+      }
+    });
+
+    const lignesAvant = await page.locator('.bolt-chat-message-row').count();
+
+    await composeur.click();
+    await composeur.fill('Explique-moi ce que tu as fait.');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(8000);
+
+    const { recrees, clignotements, pre } = await page.evaluate(() => {
+      const w = window as any;
+      const suite: number[] = w.__pre;
+
+      let n = 0;
+
+      for (let i = 1; i < suite.length; i += 1) {
+        if (suite[i] !== suite[i - 1]) {
+          n += 1;
+        }
+      }
+
+      return { recrees: w.__recrees as number, clignotements: n, pre: suite[suite.length - 1] ?? 0 };
+    });
+
+    // Le flux a bien eu lieu : sans cela, « 0 recréation » ne dirait rien (règle 14).
+    const lignesApres = await page.locator('.bolt-chat-message-row').count();
+
+    expect(lignesApres, 'le tour streamé doit avoir ajouté des messages').toBeGreaterThan(lignesAvant);
+    expect(pre, 'le flux doit avoir rendu au moins un bloc de code').toBeGreaterThan(0);
+
+    /*
+     * Mesuré : 387 avant correctif, 3 après. Le seuil laisse la place aux
+     * montages légitimes (le message neuf) tout en restant vingt fois sous le
+     * défaut.
+     */
+    expect(recrees, 'le markdown des messages déjà affichés ne doit pas être recréé').toBeLessThanOrEqual(20);
+    expect(clignotements, 'un bloc de code ne doit pas apparaître et disparaître en boucle').toBeLessThanOrEqual(8);
   });
 });
