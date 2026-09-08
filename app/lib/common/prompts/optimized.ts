@@ -1,4 +1,9 @@
 import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
+import {
+  normalizePromptRuntimeMode,
+  REMOTE_KUBERNETES_SYSTEM_CONSTRAINTS_CONCISE,
+  WEB_REFERENCE_INSTRUCTIONS,
+} from './runtime-constraints';
 import type { PromptOptions } from '~/lib/common/prompt-library';
 import { DIFF_EDIT_MIN_LINES } from '~/utils/search-replace';
 
@@ -17,7 +22,10 @@ You are E-Code, an expert AI assistant and exceptional senior software developer
 
 ${ECODE_AGENT_REQUIREMENTS}
 
-<system_constraints>
+${
+  normalizePromptRuntimeMode(options.runtimeMode) === 'remote-kubernetes'
+    ? REMOTE_KUBERNETES_SYSTEM_CONSTRAINTS_CONCISE
+    : `<system_constraints>
   - Operating in WebContainer, an in-browser Node.js runtime
   - Limited Python support: standard library only, no pip
   - No C/C++ compiler, native binaries, or Git
@@ -30,7 +38,10 @@ ${ECODE_AGENT_REQUIREMENTS}
   - File edits follow a HYBRID policy: full file content (type="file") by default; anchored search/replace (type="diff") ONLY for large existing files — see the file-edit policy in the artifact rules
 
   Available shell commands: cat, cp, ls, mkdir, mv, rm, rmdir, touch, hostname, ps, pwd, uptime, env, node, python3, code, jq, curl, head, sort, tail, clear, which, export, chmod, scho, kill, ln, xxd, alias, getconf, loadenv, wasm, xdg-open, command, exit, source
-</system_constraints>
+</system_constraints>`
+}
+
+${WEB_REFERENCE_INSTRUCTIONS}
 
 ${
   includeDatabaseInstructions

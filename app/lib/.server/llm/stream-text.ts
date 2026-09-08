@@ -25,6 +25,7 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
+import { resolvePromptRuntimeMode } from '~/lib/common/prompts/runtime-constraints';
 import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { DesignScheme } from '~/types/design-scheme';
@@ -357,6 +358,13 @@ export async function streamText(props: {
   projectRulesContext?: string;
 
   /*
+   * BUG-AGENT-WEBCLONE-001: the observed <web_reference> block (site fetched
+   * server-side because the user's message named a URL). Per-turn volatile →
+   * carried in the trailing context message, never in the cached system.
+   */
+  webReferenceContext?: string;
+
+  /*
    * A7 (Wave A): stable per-conversation id threaded from the chat route. Used
    * only as a provider cache-affinity hint (never in the prompt bytes).
    */
@@ -399,6 +407,7 @@ export async function streamText(props: {
     agentMemoryContext,
     skillsContext,
     projectRulesContext,
+    webReferenceContext,
     chatId,
   } = props;
 
@@ -649,6 +658,15 @@ export async function streamText(props: {
   const includeMobileInstructions =
     /expo|react[ -]?native|mobile app|\bios\b|\bandroid\b/i.test(contextSignalHaystack) || looksLikeExpoProject;
 
+  /*
+   * BUG-AGENT-WEBCLONE-001: describe the runtime the actions REALLY run in.
+   * Production is remote-kubernetes (bash, git, curl, outbound HTTPS); telling the
+   * model it is in WebContainer made it refuse to read a public site.
+   */
+  const promptRuntimeMode = resolvePromptRuntimeMode(
+    effectiveServerEnv as Record<string, string | undefined> | undefined,
+  );
+
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
@@ -662,6 +680,7 @@ export async function streamText(props: {
       },
       includeDatabaseInstructions,
       includeMobileInstructions,
+      runtimeMode: promptRuntimeMode,
     }) ?? getSystemPrompt();
 
   /*
@@ -810,6 +829,11 @@ ${props.summary}
     volatileTailBlocks.push(contextBufferBlock);
   }
 
+  // BUG-AGENT-WEBCLONE-001: the observed site, after the project context and before the lanes' reports.
+  if (webReferenceContext && webReferenceContext.trim()) {
+    volatileTailBlocks.push(webReferenceContext);
+  }
+
   if (orchestrationTailBlock) {
     volatileTailBlocks.push(orchestrationTailBlock);
   }
@@ -926,7 +950,7 @@ ${props.summary}
    * appended to systemPrompt above). Re-append them here so persistent memory and
    * enabled skills actually inform discuss-mode answers too, not just builds.
    */
-  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext, projectRulesContext]
+  const discussSystem = [discussPrompt(promptRuntimeMode), agentMemoryContext, skillsContext, projectRulesContext]
     .filter(Boolean)
     .join('\n\n');
 

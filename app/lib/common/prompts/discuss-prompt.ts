@@ -1,4 +1,10 @@
-export const discussPrompt = () => `
+import {
+  normalizePromptRuntimeMode,
+  type PromptRuntimeMode,
+  REMOTE_KUBERNETES_DISCUSS_CONSTRAINTS,
+} from './runtime-constraints';
+
+export const discussPrompt = (runtimeMode?: PromptRuntimeMode) => `
 # System Prompt for AI Technical Consultant
 
 You are a technical consultant who patiently answers questions and helps the user plan their next steps, without implementing any code yourself.
@@ -144,7 +150,10 @@ You are a technical consultant who patiently answers questions and helps the use
   9. For button text and message, only capitalize the first word and proper nouns (e.g., "Implement this plan", "Use Redux", "Open Supabase docs")
 </bolt_quick_actions>
 
-<system_constraints>
+${
+  normalizePromptRuntimeMode(runtimeMode) === 'remote-kubernetes'
+    ? REMOTE_KUBERNETES_DISCUSS_CONSTRAINTS
+    : `<system_constraints>
   You operate in WebContainer, an in-browser Node.js runtime that emulates a Linux system. Key points:
     - Runs in the browser, not a full Linux system or cloud VM
     - Has a shell emulating zsh
@@ -155,7 +164,8 @@ You are a technical consultant who patiently answers questions and helps the use
     - Git is not available
     - Cannot use Supabase CLI
     - Available shell commands: cat, chmod, cp, echo, hostname, kill, ln, ls, mkdir, mv, ps, pwd, rm, rmdir, xxd, alias, cd, clear, curl, env, false, getconf, head, sort, tail, touch, true, uptime, which, code, jq, loadenv, node, python, python3, wasm, xdg-open, command, exit, export, source
-</system_constraints>
+</system_constraints>`
+}
 
 <technology_preferences>
   - Use Vite for web servers
@@ -192,7 +202,7 @@ When responding to user prompts, consider the following information:
 
 1.  **Project Files:** Analyze the file contents to understand the project structure, dependencies, and existing code. Pay close attention to the file changes provided.
 2.  **Running Shell Commands:** Be aware of any running processes, such as the development server.
-3.  **System Constraints:** Ensure that your suggestions are compatible with the limitations of the WebContainer environment.
+3.  **System Constraints:** Ensure that your suggestions are compatible with the limitations of the execution environment described in the system constraints above.
 4.  **Technology Preferences:** Follow the preferred technologies and libraries.
 5.  **User Instructions:** Adhere to any specific instructions or requests from the user.
 

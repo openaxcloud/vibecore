@@ -21,6 +21,8 @@ import {
   type AgentRoleId,
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
+import { resolveWebReferenceForTurn } from '~/lib/.server/web/web-reference';
+import { appendWebReferenceToMessages } from '~/lib/web-page-digest';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
 import { apiRequest } from '~/lib/enterprise-api.server';
@@ -832,6 +834,65 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          */
         const conversationId = projectId || processedMessages[0]?.id;
 
+        /*
+         * BUG-AGENT-WEBCLONE-001 — « clone volt-watt.com » : read the site FIRST.
+         * When the last user message names a public URL, fetch it server-side
+         * (SSRF-guarded, same guard as /api/web-search), crawl its navigation on a
+         * clone request, and hand the observed content to the generating model
+         * (trailing context) AND to the planner + specialist lanes (appended to
+         * the last user message — they only see message text). Before this, no
+         * path ever read the site: the model claimed « no network », and the lanes
+         * reported an analysis of pages nobody had fetched. Fail-open: an
+         * unreachable site is reported in the block, never an error here.
+         */
+        let webReferenceProgressOrder: number | undefined;
+
+        const webReference = await resolveWebReferenceForTurn({
+          messages: processedMessages,
+          chatMode,
+          language,
+          signal: request.signal,
+          onStart: ({ host }) => {
+            webReferenceProgressOrder = progressCounter++;
+            dataStream.writeData({
+              type: 'progress',
+              label: API_CHAT_PROGRESS_LABELS.webReference,
+              status: 'in-progress',
+              order: webReferenceProgressOrder,
+              message: formatApiChatCopy(language, 'readingWebsite', { host }),
+            } satisfies ProgressAnnotation);
+          },
+        });
+
+        if (webReference && webReferenceProgressOrder !== undefined) {
+          const host = webReference.host ?? 'site';
+
+          const message =
+            webReference.pages.length > 0
+              ? formatApiChatCopy(language, 'websiteRead', {
+                  host,
+                  pages: webReference.pages.length,
+                  stylesheets: webReference.stylesheetsRead,
+                })
+              : formatApiChatCopy(language, 'websiteUnreachable', {
+                  host,
+                  code: webReference.errors[0]?.code ?? 'FETCH_FAILED',
+                });
+
+          dataStream.writeData({
+            type: 'progress',
+            label: API_CHAT_PROGRESS_LABELS.webReference,
+            status: 'complete',
+            order: webReferenceProgressOrder,
+            message,
+          } satisfies ProgressAnnotation);
+        }
+
+        /* The planner and the specialist lanes receive the observed site inline. */
+        const messagesForAgents = webReference
+          ? appendWebReferenceToMessages(processedMessages, webReference.block)
+          : processedMessages;
+
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
 
         if (agentMemory?.memories.length) {
@@ -972,7 +1033,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             selectedRoleIds = [...new Set(approvedPlanTasks.map((task) => task.roleId))];
           } else {
             const plan = await createAgentPlan({
-              messages: processedMessages,
+              messages: messagesForAgents,
               env: context.cloudflare?.env,
               apiKeys,
               providerSettings,
@@ -1104,7 +1165,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 execution = await executeAgentOrchestrationStream({
                   env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
                   plan: orchestrationPlan,
-                  messages: processedMessages,
+                  messages: messagesForAgents,
                   provider: orchestrationProvider,
                   model: orchestrationModel,
 
@@ -1161,7 +1222,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 execution = await executeAgentOrchestration({
                   env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
                   plan: orchestrationPlan,
-                  messages: processedMessages,
+                  messages: messagesForAgents,
                   provider: orchestrationProvider,
                   model: orchestrationModel,
                   rateLimitKey: projectId,
@@ -1839,6 +1900,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   agentMemoryContext: agentMemory?.context,
                   projectRulesContext: projectRules?.context,
                   skillsContext: projectSkills?.context,
+                  webReferenceContext: webReference?.block,
                   chatId: conversationId,
                   onModelDecision: (decidedModel, decidedProvider) => {
                     routedTurnModel = decidedModel;
@@ -2029,6 +2091,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
           skillsContext: projectSkills?.context,
+          webReferenceContext: webReference?.block,
           chatId: conversationId,
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;

@@ -1,4 +1,10 @@
 import { ECODE_AGENT_REQUIREMENTS } from './ecode-requirements';
+import {
+  normalizePromptRuntimeMode,
+  type PromptRuntimeMode,
+  REMOTE_KUBERNETES_SYSTEM_CONSTRAINTS_CONCISE,
+  WEB_REFERENCE_INSTRUCTIONS,
+} from './runtime-constraints';
 import type { DesignScheme } from '~/types/design-scheme';
 import { WORK_DIR } from '~/utils/constants';
 import { allowedHTMLElements } from '~/utils/markdown';
@@ -21,6 +27,9 @@ export const getFineTunedPrompt = (
    */
   includeDatabaseInstructions: boolean = true,
   includeMobileInstructions: boolean = true,
+
+  /** BUG-AGENT-WEBCLONE-001: which runtime the actions really execute in (default: WebContainer text, byte-identical). */
+  runtimeMode?: PromptRuntimeMode,
 ) => `
 You are E-Code, an expert AI assistant and exceptional senior software developer with vast knowledge across multiple programming languages, frameworks, and best practices.
 
@@ -46,7 +55,10 @@ ${ECODE_AGENT_REQUIREMENTS}
      Do not pad — four honest sentences beat a page. But never emit nothing.
 </response_requirements>
 
-<system_constraints>
+${
+  normalizePromptRuntimeMode(runtimeMode) === 'remote-kubernetes'
+    ? REMOTE_KUBERNETES_SYSTEM_CONSTRAINTS_CONCISE
+    : `<system_constraints>
   You operate in WebContainer, an in-browser Node.js runtime that emulates a Linux system:
     - Runs in browser, not full Linux system or cloud VM
     - Shell emulating zsh
@@ -56,7 +68,10 @@ ${ECODE_AGENT_REQUIREMENTS}
     - Git not available
     - Cannot use Supabase CLI
     - Available commands: cat, chmod, cp, echo, hostname, kill, ln, ls, mkdir, mv, ps, pwd, rm, rmdir, xxd, alias, cd, clear, curl, env, false, getconf, head, sort, tail, touch, true, uptime, which, code, jq, loadenv, node, python, python3, wasm, xdg-open, command, exit, export, source
-</system_constraints>
+</system_constraints>`
+}
+
+${WEB_REFERENCE_INSTRUCTIONS}
 
 <technology_preferences>
   - Use Vite for web servers

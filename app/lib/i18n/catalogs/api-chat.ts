@@ -7,6 +7,7 @@ export const API_CHAT_PROGRESS_LABELS = {
   quotaExceeded: 'quota-exceeded',
   response: 'response',
   summary: 'summary',
+  webReference: 'web-reference',
 } as const;
 
 export const apiChatCatalog = {
@@ -39,6 +40,9 @@ export const apiChatCatalog = {
     contextOptimizationSkipped: 'Context optimization skipped',
     determiningFilesToRead: 'Determining Files to Read',
     executingSpecialistLanes: 'Executing specialist agent lanes',
+    readingWebsite: 'Reading {host}',
+    websiteRead: '{host} read: {pages} page(s), {stylesheets} stylesheet(s)',
+    websiteUnreachable: '{host} could not be read ({code})',
     generatingResponse: 'Generating Response',
     invalidApiKey: 'Invalid or missing API key',
     invalidJsonBody: 'Invalid JSON body',
@@ -121,6 +125,9 @@ export const apiChatCatalog = {
     contextOptimizationSkipped: 'Optimisation du contexte ignorée',
     determiningFilesToRead: 'Sélection des fichiers à lire',
     executingSpecialistLanes: 'Exécution des agents spécialisés',
+    readingWebsite: 'Lecture de {host}',
+    websiteRead: '{host} lu : {pages} page(s), {stylesheets} feuille(s) de style',
+    websiteUnreachable: '{host} illisible ({code})',
     generatingResponse: 'Génération de la réponse',
     invalidApiKey: 'Clé API absente ou invalide',
     invalidJsonBody: 'Corps JSON invalide',
