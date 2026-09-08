@@ -3031,16 +3031,55 @@ async function inspectPostgresSchema(connectionString: string) {
   await client.connect();
 
   try {
-    const [tables, columns] = await Promise.all([
+    /*
+     * RP-DB-05 — Replit affiche « N rows » sous chaque table et la taille de la
+     * base sous son nom. Nous ne les avions pas ; les voici, RÉELS.
+     *
+     * `n_live_tup` est l'estimation entretenue par le collecteur de
+     * statistiques : c'est ce qu'on obtient en UNE requête pour toutes les
+     * tables. Un `count(*)` exact demanderait une requête PAR table — 200
+     * allers-retours sur la base de l'utilisateur pour afficher une liste.
+     * Elle est exacte sur une table vide ou petite, le cas qui compte à
+     * l'écran, et se nomme `rowsEstimate` pour que personne ne la prenne un
+     * jour pour un compte exact.
+     *
+     * La TAILLE, elle, est exacte : `pg_total_relation_size` inclut index et
+     * données annexes, comme le fait Replit.
+     */
+    const [tables, columns, statistiques, taille] = await Promise.all([
       client.query(
         "select table_schema, table_name, table_type from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200",
       ),
       client.query(
         "select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name, ordinal_position limit 1000",
       ),
+      client
+        .query(
+          "select c.relnamespace::regnamespace::text as table_schema, c.relname as table_name, greatest(coalesce(s.n_live_tup, 0), 0) as rows_estimate, pg_total_relation_size(c.oid) as size_bytes from pg_class c left join pg_stat_user_tables s on s.relid = c.oid where c.relkind in ('r', 'p') and c.relnamespace::regnamespace::text not in ('pg_catalog', 'information_schema', 'pg_toast') limit 200",
+        )
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
+      client
+        .query('select pg_database_size(current_database()) as size_bytes')
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
     ]);
 
-    return { tables: tables.rows, columns: columns.rows };
+    const parCle = new Map<string, { rowsEstimate: number; sizeBytes: number }>();
+
+    for (const ligne of statistiques.rows as Array<Record<string, unknown>>) {
+      parCle.set(`${String(ligne.table_schema)}.${String(ligne.table_name)}`, {
+        rowsEstimate: Number(ligne.rows_estimate ?? 0),
+        sizeBytes: Number(ligne.size_bytes ?? 0),
+      });
+    }
+
+    return {
+      tables: (tables.rows as Array<Record<string, unknown>>).map((table) => ({
+        ...table,
+        ...(parCle.get(`${String(table.table_schema)}.${String(table.table_name)}`) ?? {}),
+      })),
+      columns: columns.rows,
+      databaseSizeBytes: Number((taille.rows as Array<Record<string, unknown>>)[0]?.size_bytes ?? 0) || undefined,
+    };
   } finally {
     await client.end();
   }
@@ -23561,7 +23600,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
     }
 
-    const connections = await listDatabaseConnections(store, project.id);
+    const connectionsBrutes = await listDatabaseConnections(store, project.id);
+
+    /*
+     * RP-DB-02 — « regarde qu'on suit la même logique » (Avi, 08/09).
+     *
+     * Replit sépare franchement la base de DÉVELOPPEMENT et celle de
+     * PRODUCTION. Nous avons cette séparation, mais les deux moitiés du code
+     * se contredisaient :
+     *
+     *   - le provisionneur ÉCRIT l'URI de développement dans `DATABASE_URL`
+     *     (et celle de production dans `PROD_DATABASE_URL`) ;
+     *   - `inferSecretEnvironment` RELIT cette même clé nue et rend
+     *     « shared », faute de préfixe.
+     *
+     * Une base bel et bien de développement était donc présentée comme
+     * indéterminée. On tranche par la source la plus sûre — l'instance GÉRÉE,
+     * qui sait pour quel environnement elle a été créée. Une connexion que
+     * l'utilisateur a collée lui-même reste « shared » : là, nous ne savons
+     * effectivement pas, et le deviner serait pire que l'avouer.
+     */
+    const instanceGeree = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
+    const environnementGere = (instanceGeree as { environment?: string } | undefined)?.environment;
+    const cleGeree = environnementGere === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
+
+    const connections = connectionsBrutes.map((connexion) =>
+      instanceGeree && connexion.key === cleGeree && environnementGere
+        ? { ...connexion, environment: environnementGere as typeof connexion.environment }
+        : connexion,
+    );
 
     /*
      * Une base EN COURS de provisionnement n'a pas encore de secret, donc aucune
@@ -23579,7 +23646,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * On ne l'expose que si aucune connexion n'existe : dès que le secret est
      * semé, la connexion réelle est la meilleure description de la base.
      */
-    const instanceEnCours = connections.length === 0 ? await store.getDatabaseInstanceByProject(project.id) : undefined;
+    const instanceEnCours = connections.length === 0 ? instanceGeree : undefined;
 
     const databases =
       instanceEnCours && instanceEnCours.status !== 'ACTIVE'
