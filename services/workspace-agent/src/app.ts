@@ -3198,6 +3198,19 @@ function localPreviewHosts(): string[] {
  * exposes unrelated listening sockets), so the output-parsing logic can only be
  * exercised deterministically by calling it directly.
  */
+/*
+ * Fenetre pendant laquelle le port conventionnel d'un serveur de developpement
+ * peut etre suppose faute de sortie exploitable. Au-dela, seule une trace REELLE
+ * compte. Voir le commentaire dans `detectPortsFromOutput`.
+ */
+const DEV_SERVER_BOOT_GUESS_MS = 60_000;
+
+/* Le plus specifique d'abord : `next dev` matcherait aussi un motif generique. */
+const DEV_SERVER_DEFAULT_PORTS: ReadonlyArray<readonly [RegExp, number]> = [
+  [/\bnext dev\b/i, 3000],
+  [/\b(vite|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i, 5173],
+];
+
 export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
   return [...processes.values()].flatMap((record) => {
     const source = `${record.command}\n${record.output ?? ''}`;
@@ -3208,8 +3221,46 @@ export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): De
 
     const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
 
-    if (!ports.size && /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)) {
-      ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
+    /*
+     * LA SUPPOSITION EST BORNEE A LA FENETRE QU'ELLE PRETEND COUVRIR.
+     *
+     * Ici, tout serveur de developpement se voyait attribuer son port
+     * conventionnel (5173, ou 3000 pour Next) des que la commande y ressemblait,
+     * SANS AUCUNE PREUVE qu'un socket ecoute — et pour toujours.
+     *
+     * L'intention d'origine est legitime et on la garde : entre l'instant ou la
+     * commande demarre et celui ou vite imprime son URL, il n'y a rien a lire,
+     * et supposer le port conventionnel permet d'afficher l'aperçu (la page
+     * « Starting your app… ») au lieu d'un vide. C'est le « when output has none
+     * YET » du test d'origine.
+     *
+     * CE QUI N'ETAIT PAS VOULU, c'est que la supposition survive a cette
+     * fenetre. `detectPorts()` ne retombe sur cette heuristique que lorsque
+     * /proc n'a rien donne — c'est-a-dire exactement quand rien n'ecoute. Passe
+     * le demarrage, la supposition ne decrit donc plus un serveur qui arrive :
+     * elle decrit un serveur MORT, et elle l'annonce vivant.
+     *
+     * Mesure du 2026-09-08, production, workspace ws-4e6d3c6c540f6a8a : aucun
+     * processus vite, rien en ecoute sur 5173, et l'interface affichait
+     * « Stop running ». Pire — ce port satisfaisait `shouldUseExistingPreviewServer`,
+     * donc chaque demarrage suivant se court-circuitait en « reattache » et NE
+     * RELANCAIT RIEN. C'est le verrou qui obligeait a lancer le serveur a la main.
+     *
+     * Une minute couvre largement le demarrage d'un serveur de developpement
+     * (vite est pret en ~500 ms, mesure dans le pod ; le reste est l'install,
+     * qui precede la commande). Au-dela, l'ensemble vide dit la verite : rien
+     * n'ecoute. Et une reponse vide est vraie.
+     */
+    if (!ports.size && DEV_SERVER_DEFAULT_PORTS.some(([motif]) => motif.test(record.command))) {
+      const demarreIlYA = Date.now() - Date.parse(record.startedAt);
+
+      if (Number.isFinite(demarreIlYA) && demarreIlYA >= 0 && demarreIlYA <= DEV_SERVER_BOOT_GUESS_MS) {
+        const trouve = DEV_SERVER_DEFAULT_PORTS.find(([motif]) => motif.test(record.command));
+
+        if (trouve) {
+          ports.add(trouve[1]);
+        }
+      }
     }
 
     return [...ports].map((port) => ({ port, processId: record.id }));

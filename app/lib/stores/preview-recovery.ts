@@ -57,7 +57,43 @@ export function resolvePreviewBootOverlay(input: {
 }
 
 export interface PreviewReadiness {
-  ready: boolean;
+  /*
+   * OPTIONNEL A DESSEIN : `undefined` est un etat REEL — un port detecte dont
+   * personne n'a encore verifie qu'il sert. Le typer comme obligatoire poussait
+   * les appelants a ecrire `ready !== false`, qui traite cet inconnu comme un
+   * oui. Le rendre optionnel oblige a decider quoi en faire.
+   */
+  ready?: boolean;
+  serving?: boolean;
+}
+
+/**
+ * Whether the preview state may be reported as `running`.
+ *
+ * L'ANCIEN PREDICAT ETAIT `ready !== false`, ET IL MENTAIT.
+ *
+ * `ready` vaut `undefined` pour un port simplement DETECTE, jamais verifie —
+ * et `undefined !== false` est vrai. Trois endroits distincts affichaient donc
+ * « running » sur un port dont personne n'avait constate qu'il servait :
+ * `refreshRuntimePorts()` (appele par six minuteries et a chaque ligne de
+ * sortie), le `finally` du flux de commande, et le repli sans `package.json`.
+ *
+ * Mesure du 2026-09-08 en production : aucun processus vite, rien en ecoute sur
+ * 5173, et le bouton affichait « Stop running ». Un produit qui affirme un etat
+ * qu'il n'a pas verifie empeche l'utilisateur de comprendre ce qui se passe —
+ * c'est ce qui a conduit a demarrer le serveur a la main.
+ *
+ * `serving === true` reste accepte : c'est la sonde SERVEUR (le port repond en
+ * HTTP avec un processus vivant), donc un signal positif — il faut le garder,
+ * sinon la barre d'etat retombe sur « Dev: blocked » au-dessus d'une app qui
+ * sert (BUG-UX-DEV-BLOCKED-STUCK). Ce qui change, et seulement cela :
+ * `undefined` ne compte plus comme un oui.
+ *
+ * La documentation de `shouldUseExistingPreviewServer` condamnait deja
+ * `ready !== false` ; la lecon avait ete tiree a UN endroit et pas aux autres.
+ */
+export function previewServerLooksRunning(previews: readonly PreviewReadiness[]): boolean {
+  return previews.some((preview) => preview.ready === true || preview.serving === true);
 }
 
 /**
