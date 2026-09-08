@@ -2058,7 +2058,50 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * `onFinish` ne vient jamais — un silence ne doit pas devenir une attente
          * sans fin.
          */
+        const enVolAvantAttente = suiviDeChaine.enVol();
         const delaiDepasse = await suiviDeChaine.attendre();
+
+        /*
+         * LE VERDICT DU FLUX, JOURNALISÉ INCONDITIONNELLEMENT.
+         *
+         * `chat.stream.closed` vit dans le `flush` du transform de sortie — et
+         * ce `flush` NE S'EXÉCUTE JAMAIS : zéro occurrence en production alors
+         * que la chaîne est bien dans l'image servie. Un flux avorté ne passe
+         * pas par `flush`. Cette ligne-ci ne dépend d'aucune fermeture propre :
+         * elle part à la fin d'`execute`, quoi qu'il arrive.
+         *
+         * `premierDebutMs` départage les deux dernières explications. Si la
+         * première génération se compte APRÈS le retour d'`execute`, le
+         * compteur vaut zéro au contrôle, le SDK ferme, et l'attente est
+         * correcte mais inopérante — ce qui expliquerait une livraison partielle
+         * plutôt que complète.
+         *
+         * `enVolAvantAttente` à zéro et `premierDebutMs` indéfini disent la même
+         * chose sous deux angles : on a attendu une chaîne qui n'avait pas
+         * commencé.
+         *
+         * `mode` sur la ligne parce que cinq cas sur cinq alignaient l'échec sur
+         * `economy`/opus (plusieurs segments) et le succès sur `lite`/haiku (un
+         * seul). Sans lui, il faudrait recouper deux journaux pour le savoir.
+         */
+        logger.info(
+          JSON.stringify({
+            event: 'chat.flux.verdict',
+            projectId,
+            mode: agentSelection?.mode,
+            octets: chronoFlux.octets,
+            chunks: chronoFlux.chunks,
+            premierContenuMs: chronoFlux.premierContenuA,
+            dernierChunkMs: chronoFlux.dernierChunkA,
+            executeRenduMs: chronoFlux.executeRenduA,
+            premierDebutMs: suiviDeChaine.premierDebutMs(),
+            enVolAvantAttente,
+            enVolApres: suiviDeChaine.enVol(),
+            segments: continuationSegments,
+            delaiDepasse,
+            dureeMs: Date.now() - chronoFlux.debut,
+          }),
+        );
 
         if (delaiDepasse) {
           logger.error(

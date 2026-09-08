@@ -30,6 +30,17 @@ export interface SuiviDeChaine {
   enVol(): number;
 
   /**
+   * Millisecondes entre la création du suivi et le PREMIER `debut()`.
+   *
+   * C'est la mesure qui départage les deux dernières explications : si la
+   * première génération se compte APRÈS que `execute` ait rendu la main, le
+   * compteur vaut zéro au moment du contrôle, le SDK ferme, et l'attente est
+   * correcte mais inopérante. Rend `undefined` si aucune génération n'a jamais
+   * été comptée — ce qui est déjà une réponse.
+   */
+  premierDebutMs(): number | undefined;
+
+  /**
    * Se résout quand la chaîne est finie, ou quand le délai maximal est atteint.
    *
    * Rend `true` si le délai a été atteint — c'est-à-dire si un `onFinish` n'est
@@ -42,6 +53,10 @@ export interface SuiviDeChaine {
 
 export function creerSuiviDeChaine(delaiMaxMs: number): SuiviDeChaine {
   let enVol = 0;
+  let premierDebut: number | undefined;
+
+  const cree = Date.now();
+
   let resoudre: () => void = () => {};
 
   const terminee = new Promise<void>((r) => {
@@ -50,6 +65,10 @@ export function creerSuiviDeChaine(delaiMaxMs: number): SuiviDeChaine {
 
   return {
     debut() {
+      if (premierDebut === undefined) {
+        premierDebut = Date.now() - cree;
+      }
+
       enVol += 1;
     },
     fin() {
@@ -61,6 +80,9 @@ export function creerSuiviDeChaine(delaiMaxMs: number): SuiviDeChaine {
     },
     enVol() {
       return enVol;
+    },
+    premierDebutMs() {
+      return premierDebut;
     },
     async attendre() {
       let borne: ReturnType<typeof setTimeout> | undefined;
