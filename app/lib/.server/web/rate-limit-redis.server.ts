@@ -15,6 +15,7 @@
  * en « autorisé sans compter ».
  */
 import type { WebReferenceRateLimitRedis } from './web-reference-rate-limit';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('web-reference');
@@ -22,9 +23,28 @@ const logger = createScopedLogger('web-reference');
 let client: WebReferenceRateLimitRedis | null | undefined;
 let pending: Promise<WebReferenceRateLimitRedis | null> | undefined;
 
+/*
+ * `readRuntimeEnv`, JAMAIS `process.env` nu — le piège est déjà documenté dans
+ * `app/lib/modules/llm/runtime-env.ts` et je suis tombé dedans.
+ *
+ * MESURÉ sur le build de production local, sonde dans cette fonction même :
+ *
+ *     {"event":"probe.redisUrl","envArg":"undefined","processHasKey":false,
+ *      "processLen":0,"resolvedLen":0}
+ *
+ * alors que le processus qui sert la page portait bien `REDIS_URL` (longueur 23
+ * dans `/proc/<pid>/environ`). `vite-plugin-node-polyfills`
+ * (`vite.config.ts`, `globals.process = true`) injecte un `process` de
+ * navigateur dans le bundle SSR, dont `env` est `{}` — une lecture nue rend
+ * donc `undefined` dans le pod web même quand Kubernetes a posé la variable.
+ * `globalThis.process` n'est PAS réécrit par le polyfill.
+ *
+ * Conséquence si on l'oublie : `getWebReferenceRateLimitRedis` rend `null`, le
+ * plafond retombe sur le compteur par pod, et tout le correctif « plafond
+ * partagé » est INERTE en production sans qu'aucun test ne rougisse.
+ */
 function readRedisUrl(env?: Record<string, string | undefined> | null): string | undefined {
-  const processEnv = typeof process !== 'undefined' ? process.env : undefined;
-  const raw = env?.REDIS_URL ?? processEnv?.REDIS_URL;
+  const raw = env?.REDIS_URL ?? readRuntimeEnv('REDIS_URL');
 
   return raw && raw.trim() !== '' ? raw.trim() : undefined;
 }
