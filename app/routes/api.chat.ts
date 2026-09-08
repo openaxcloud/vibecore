@@ -455,6 +455,40 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const suiviDeChaine = creerSuiviDeChaine(12 * 60 * 1000);
 
   /*
+   * JALONS DE `onFinish` — NOMMER L'`await` QUI NE REND JAMAIS LA MAIN.
+   *
+   * Mesuré le 2026-09-08 : `chat.completion.usage` à 23:56:58 avec
+   * `finishReason: stop`, puis SEPT MINUTES de silence jusqu'à la garde de
+   * chaîne (`enVol: 1`). Le fournisseur avait fini ; c'est `onFinish` qui
+   * n'atteignait jamais son `finally`.
+   *
+   * Trois candidats visibles ont été écartés par lecture de leurs bornes —
+   * `recordChatUsage` (15 s), `persistAgentMemoryCandidate` → `apiRequest`
+   * (30 s), et la fermeture MCP (non bornée, mais liste vide : zéro trace MCP
+   * dans les journaux de la soirée). Aucune quatrième hypothèse n'a été
+   * fabriquée pour combler le trou — on mesure.
+   *
+   * Un jalon À L'ENTRÉE, avant tout `await`, et un après chaque étape. Sans
+   * celui d'entrée, un blocage entre l'entrée et le relevé d'usage rendrait le
+   * même silence qu'aujourd'hui et on aurait instrumenté pour rien.
+   *
+   * Le nom d'événement est une CHAÎNE LITTÉRALE, pas un identifiant : un nom de
+   * fonction ne survit pas à la minification et ne prouverait rien dans l'image
+   * servie.
+   */
+  const jalonOnFinish = (etape: string, extra?: Record<string, unknown>) => {
+    logger.info(
+      JSON.stringify({
+        event: 'chat.onfinish.jalon',
+        projectId,
+        segment: continuationSegments,
+        etape,
+        ...(extra ?? {}),
+      }),
+    );
+  };
+
+  /*
    * Model routing (Vague C) continuation consistency. When the request opted into
    * Auto, the first segment's `streamText` resolves 'auto' to a CONCRETE model and
    * reports it here via `onModelDecision`. Every auto-continuation segment then
@@ -1440,6 +1474,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             });
           },
           onFinish: async ({ text: content, finishReason, usage, ...rest }) => {
+            jalonOnFinish('entree', { finishReason, caracteres: (content ?? '').length });
             logger.debug('usage', JSON.stringify(usage));
 
             if (usage) {
@@ -1669,7 +1704,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              */
             try {
               if (finishReason !== 'length') {
+                jalonOnFinish('avant-flushUsage');
                 await flushUsage(finishReason);
+                jalonOnFinish('apres-flushUsage');
 
                 warnIfNoFilesGenerated();
 
@@ -1681,14 +1718,18 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   message: copy.responseGenerated,
                 } satisfies ProgressAnnotation);
                 await new Promise((resolve) => setTimeout(resolve, 0));
+                jalonOnFinish('avant-memoire');
                 await persistAgentMemoryCandidate(request, {
                   messages: processedMessages,
                   assistantText: content,
                   projectId,
                 });
 
+                jalonOnFinish('apres-memoire');
+
                 // Release this request's MCP clients (idempotent with the abort handler).
                 await safeCloseMcp();
+                jalonOnFinish('apres-mcp');
 
                 // stream.close();
                 return;
