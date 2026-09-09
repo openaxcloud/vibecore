@@ -17,6 +17,12 @@ import {
 } from '~/lib/chat/composer-send-guard';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
+import {
+  caracteresDuFil,
+  evenementPersistance,
+  type CiblePersistance,
+  type EtapePersistance,
+} from '~/lib/persistence/journal-persistance';
 import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -447,6 +453,7 @@ export const ChatImpl = memo(
     const handledCompletionsRef = useRef(0);
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
+    const rangPersistanceRef = useRef(0);
 
     /*
      * GÉNÉRATION DU FIL — incrémentée à chaque « Effacer l'historique ».
@@ -590,8 +597,59 @@ export const ChatImpl = memo(
             const snapshot = pendingPersistRef.current;
             const generation = generationDuFilRef.current;
             pendingPersistRef.current = null;
-            await storeMessageHistory(snapshot);
-            void syncProjectAiTranscript(snapshot, generation);
+
+            /*
+             * TROIS HYPOTHÈSES, LE MÊME PROFIL OBSERVABLE.
+             *
+             * `storeMessageHistory` est ATTENDU et `syncProjectAiTranscript` est
+             * en `void` : si le premier ne se résout jamais, la boucle ne repart
+             * pas et le verrou de passage unique reste fermé ; si le second est
+             * rejeté, personne ne l'apprend. Et si la LONGUEUR transportée
+             * plafonne pendant que le flux continue, la perte n'est ni dans l'un
+             * ni dans l'autre mais dans l'assemblage.
+             *
+             * Rien dans les journaux actuels ne sépare ces trois mondes. On
+             * journalise donc entrée, sortie et rejet, avec le rang de l'appel et
+             * le nombre de caractères : une entrée sans sortie est un blocage, un
+             * rejet est un échec silencieux, une longueur qui n'augmente plus est
+             * un défaut d'assemblage.
+             */
+
+            const rang = (rangPersistanceRef.current += 1);
+            const caracteres = caracteresDuFil(snapshot);
+
+            const journal = (cible: CiblePersistance, etape: EtapePersistance, extra?: Record<string, unknown>) =>
+              console.info(
+                evenementPersistance({ rang, cible, etape, caracteres, messages: snapshot.length, ...extra }),
+              );
+
+            const departLocal = Date.now();
+            journal('local', 'entree');
+
+            try {
+              await storeMessageHistory(snapshot);
+              journal('local', 'sortie', { dureeMs: Date.now() - departLocal });
+            } catch (erreur) {
+              journal('local', 'rejet', { dureeMs: Date.now() - departLocal, erreur: String(erreur).slice(0, 200) });
+              throw erreur;
+            }
+
+            const departServeur = Date.now();
+            journal('serveur', 'entree');
+
+            /*
+             * Toujours pas `await` : sérialiser l'écriture durable dans la boucle
+             * changerait le comportement qu'on est en train de mesurer. Mais son
+             * issue n'est plus muette.
+             */
+            void syncProjectAiTranscript(snapshot, generation).then(
+              () => journal('serveur', 'sortie', { dureeMs: Date.now() - departServeur }),
+              (erreur) =>
+                journal('serveur', 'rejet', {
+                  dureeMs: Date.now() - departServeur,
+                  erreur: String(erreur).slice(0, 200),
+                }),
+            );
           }
         };
 

@@ -97,6 +97,7 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
+import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -484,6 +485,7 @@ import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline
 import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -15450,6 +15452,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Fire the reseed reconciliation without ever letting it break the start/restart
    * response. Records a metric so the flaky-loop fix is observable in prod.
    */
+  /*
+   * Un workspace n'est réconcilié qu'UNE FOIS tant qu'il n'a pas été
+   * reprovisionné : la limitation porte sur l'ÉVÉNEMENT, pas sur le temps. Un
+   * minuteur raterait précisément l'ouverture qui compte.
+   */
+  const reconciliationUneFois = new ReconciliationUneFois();
+
   const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
     try {
       const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
@@ -17074,6 +17083,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
        * already carries its files. Best-effort; never blocks the start response.
        */
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17295,6 +17305,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17412,6 +17423,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
     );
+
+    /*
+     * AUTO-RÉPARATION À L'OUVERTURE.
+     *
+     * `reconcileRuntimeSeedFromPersisted` sait poser dans le workspace les
+     * fichiers que le stockage durable possède et que lui n'a pas — mesuré le
+     * 2026-09-09 : `src/App.tsx` et `src/main.tsx` présents en stockage,
+     * absents du pod, application impossible à démarrer. Mais elle n'était
+     * appelée qu'au provisionnement et au redémarrage : un workspace déjà
+     * `RUNNING` n'était donc JAMAIS réparé.
+     *
+     * EN ARRIÈRE-PLAN, jamais dans la réponse : elle lit un fichier par fichier
+     * déjà présent, ~105 ms l'unité au médian en production, soit ~3,4 s pour
+     * 32 fichiers. La mettre sur le chemin d'ouverture rendrait à l'utilisateur
+     * la latence qu'on lui a retirée la veille. Les fichiers manquants
+     * apparaissent une seconde plus tard — sans conséquence pour un projet
+     * qu'on vient d'ouvrir.
+     */
+    if (path === '.' && authorized.projectId && reconciliationUneFois.doitReconcilier(authorized.workspaceId)) {
+      void reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
+    }
 
     return mapRuntimeNodes(nodes);
   });
@@ -27161,13 +27193,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiTranscriptSchema, request.body ?? {});
-    const existingIds = new Set(await store.listAiMessageIds(conversationId));
+    const existants = await store.listAiMessages(conversationId);
+    const existingIds = new Set(existants.map((existant) => existant.id));
+    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+    let instantanesPerimes = 0;
+    let caracteresProteges = 0;
 
     for (const message of body.messages) {
+      const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
+      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
+
+      /*
+       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
+       *
+       * La transcription est persistée PENDANT le flux, en `upsert` sur un
+       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
+       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
+       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
+       * tronqué.
+       *
+       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
+       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
+       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
+       * s'est passé détruit ce qu'il en restait.
+       *
+       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
+       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
+       * perte : ça l'empêche de s'aggraver.
+       */
+      if (!decision.ecrire) {
+        instantanesPerimes += 1;
+        caracteresProteges += decision.perdus ?? 0;
+        request.log.warn(
+          { conversationId, messageId: id, perdus: decision.perdus },
+          'transcript sync refused: a stale snapshot would have shortened a persisted message',
+        );
+
+        const conserve = existants.find((existant) => existant.id === id);
+
+        if (conserve) {
+          messages.push(conserve);
+        }
+
+        continue;
+      }
+
       messages.push(
         await store.createAiMessage({
-          id: aiTranscriptMessageId(conversationId, message.clientId, existingIds),
+          id,
           conversationId,
           role: message.role,
           content: message.content,
@@ -27183,6 +27257,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: {
         projectId: project.id,
         messageCount: messages.length,
+        instantanesPerimes,
+        caracteresProteges,
       },
     });
 
