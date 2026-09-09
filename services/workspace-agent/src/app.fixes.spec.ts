@@ -47,6 +47,37 @@ describe('workspace-agent fix batch', () => {
     await app.close();
   });
 
+  /*
+   * BUG-CREATE-007 — « l'IDE demande la lecture d'un DOSSIER comme si c'était
+   * un fichier » : `GET /files/read?path=src` rendait un 400 nu, que l'IDE
+   * affichait comme une erreur de lecture. Le garde existe dans le code
+   * (`fileStat.isDirectory()` → `EISDIR`) mais RIEN ne le tenait : c'est la
+   * garde manquante de la règle 15.
+   *
+   * Le test exige un code MACHINE (`EISDIR`), pas une phrase : c'est lui qui
+   * permet à l'appelant de distinguer « ce chemin est un dossier » d'une
+   * panne, et une phrase se réécrit sans que rien ne rougisse.
+   */
+  it('/files/read refuse un DOSSIER avec un code distinct, pas une erreur générique', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    await mkdir(join(root, 'src'), { recursive: true });
+    await writeFile(join(root, 'src', 'index.ts'), 'export const ok = true;\n');
+
+    const dossier = await app.inject({ method: 'GET', url: '/files/read?path=src', headers });
+
+    expect(dossier.statusCode, 'un dossier n’est pas une panne du serveur').toBe(400);
+    expect(JSON.parse(dossier.body).code, 'le code doit dire QUE c’est un dossier').toBe('EISDIR');
+
+    /* TÉMOIN POSITIF : le même point d'entrée lit bien un vrai fichier. */
+    const fichier = await app.inject({ method: 'GET', url: '/files/read?path=src/index.ts', headers });
+
+    expect(fichier.statusCode, 'sans quoi le test passerait sur un serveur cassé').toBe(200);
+
+    await app.close();
+  });
+
   // Bug 1: /files/create must decode base64 binary content, not write the literal base64 text.
   it('/files/create decodes base64 content losslessly', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
