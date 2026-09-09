@@ -194,6 +194,25 @@ data:
   ECODE_PARALLEL_SUBAGENTS_ENABLED: "1"
   ECODE_SUBAGENT_EXECUTOR_URL: {{ .Values.platformEnv.runtime.aiGatewayUrl | quote }}
   {{- end }}
+  # Outil `fetch_web_page` : le modèle peut lire UNE page publique de plus PENDANT
+  # sa génération (la référence <web_reference> automatique ne couvre que l'URL
+  # tapée par l'utilisateur). Mêmes gardes que la référence automatique : fetch
+  # protégé contre le SSRF, échéance murale, plafond de 2 Mo par document,
+  # robots.txt, plafond partagé par projet dans Redis, contenu tiers neutralisé.
+  #
+  # POSÉ HORS de tout bloc conditionnel, et avec `default "0"` : c'est
+  # exactement le piège documenté vingt lignes plus haut. Une clé de valeurs AJOUTÉE est
+  # ignorée par `helm upgrade --reuse-values` (ce que fait la CD), donc elle est
+  # `nil` au rendu. Dans un bloc conditionnel, l'entrée ne serait JAMAIS rendue ;
+  # rendue sans garde, elle vaudrait `""`. Le `default` la rend donc toujours,
+  # toujours à une valeur explicite, et « 0 » vaut ÉTEINT.
+  #
+  # Sans cette entrée, le drapeau n'était pas posable du tout : la
+  # fonctionnalité était livrée, testée, et inatteignable. Pour l'allumer :
+  # `helm upgrade … --reuse-values --set platformEnv.webFetchToolEnabled=1`
+  # (une valeur posée par `--set` PERSISTE dans les valeurs de la release, donc
+  # elle survit aux `--reuse-values` suivants).
+  ECODE_WEB_FETCH_TOOL_ENABLED: {{ .Values.platformEnv.webFetchToolEnabled | default "0" | quote }}
   WORKSPACE_RUNTIME_NAMESPACE: {{ .Values.platformEnv.runtime.workspaceRuntimeNamespace | quote }}
   WORKSPACE_STORAGE_CLASS: {{ .Values.platformEnv.runtime.workspaceStorageClass | quote }}
   WORKSPACE_AGENT_IMAGE: {{ .Values.platformEnv.runtime.workspaceAgentImage | quote }}
