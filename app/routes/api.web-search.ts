@@ -7,6 +7,7 @@ import {
   type ApiRuntimeRoutesKey,
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { extraireContenuLisible } from '~/lib/web/contenu-lisible';
 
 const MAX_CONTENT_LENGTH = 8000;
 
@@ -26,24 +27,6 @@ function extractMetaDescription(html: string): string {
   const altMatch = html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/i);
 
   return altMatch ? altMatch[1].trim() : '';
-}
-
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-    .replace(/<nav\b[^<]*(?:(?!<\/nav>)<[^<]*)*<\/nav>/gi, ' ')
-    .replace(/<header\b[^<]*(?:(?!<\/header>)<[^<]*)*<\/header>/gi, ' ')
-    .replace(/<footer\b[^<]*(?:(?!<\/footer>)<[^<]*)*<\/footer>/gi, ' ')
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#x27;/g, "'")
-    .replace(/\s+/g, ' ')
-    .trim();
 }
 
 /*
@@ -126,7 +109,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const title = extractTitle(html);
     const description = extractMetaDescription(html);
-    const content = extractTextContent(html);
+    const content = extraireContenuLisible(html);
 
     return localizedJson({
       success: true,
