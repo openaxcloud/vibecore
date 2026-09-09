@@ -21,6 +21,8 @@ import {
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
+import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
+import { objectStorageResultOrDisabled } from '~/lib/ide/panneau-stockage-objets';
 import {
   extractGrepMatchLines,
   isGrepMatchLine,
@@ -1427,47 +1429,6 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
   } catch (error) {
     return json(panelEnvelopeError(panel, project.project, error, language));
   }
-}
-
-/*
- * Object Storage (GCS) is flag-gated (OBJECT_STORAGE_ENABLED): every internal
- * route 404s with code FEATURE_NOT_ENABLED while the flag is off. Translate that
- * into a structured `{ enabled: false }` payload so the IDE panel can render a
- * clear "not enabled" state instead of a 502; any other error is re-thrown.
- *
- * BUG-STORAGE-001 — LE FOURRE-TOUT QUI FAISAIT MENTIR LE PANNEAU.
- *
- * La condition portait aussi `payload.code === undefined` : N'IMPORTE QUEL 404
- * sans champ `code` était traduit en « le stockage d'objets n'a pas été activé
- * par un administrateur ». Une panne amont — passerelle, route absente pendant
- * un déploiement, proxy — devenait donc, à l'écran, une phrase qui DÉSIGNE UNE
- * CAUSE PRÉCISE ET FAUSSE, et envoie l'utilisateur demander à son
- * administrateur d'activer ce qui l'est déjà. C'est ce que l'audit du 15/08 a
- * vu : la fonctionnalité était bien active, et l'amont ne répondait pas.
- *
- * Vérifié avant de resserrer, plutôt que supposé : NOTRE API met TOUJOURS le
- * code quand la fonctionnalité est éteinte (`OBJECT_STORAGE_DISABLED` →
- * `code: 'FEATURE_NOT_ENABLED'`), et le seul autre 404 du domaine
- * (`BUCKET_NOT_PROVISIONED`) porte le sien. Aucun cas légitime ne passait donc
- * par la branche `undefined` — elle n'attrapait que des pannes, pour les
- * déguiser.
- *
- * Une erreur qu'on ne sait pas nommer se remonte comme une erreur. Un message
- * faux coûte plus cher qu'un message générique.
- */
-export async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
-  if (error instanceof Response && error.status === 404) {
-    const payload = (await error
-      .clone()
-      .json()
-      .catch(() => ({}))) as { code?: string };
-
-    if (payload.code === 'FEATURE_NOT_ENABLED') {
-      return json({ enabled: false, objects: [], folders: [] });
-    }
-  }
-
-  throw error;
 }
 
 async function actionHandler({ request, params }: EnterpriseActionArgs) {
@@ -4793,40 +4754,6 @@ async function runWorkspaceSshGit(input: {
   }
 
   return { output: run.output };
-}
-
-/**
- * BUG-IDE-005 — dire POURQUOI l'installation a échoué, pas seulement qu'elle a
- * échoué.
- *
- * La sortie de la commande porte la vraie cause (paquet introuvable, registre
- * injoignable, conflit de versions). On en rend la FIN : c'est là que les
- * gestionnaires de paquets écrivent leur diagnostic, alors que le début n'est
- * que du bruit de résolution.
- *
- * Bornée à 400 caractères — un message d'interface, pas un journal ; la sortie
- * complète reste dans l'historique des runs, écrit juste avant.
- */
-export function messageDEchecDInstallation(
-  run: { exitCode?: number; output?: string },
-  language?: string | null,
-): string {
-  const copy = getApiRuntimeRoutesCopy(language);
-  const code = String(run.exitCode ?? 1);
-
-  const fin = (run.output ?? '')
-    .split(/\r?\n/u)
-    .map((ligne) => ligne.trim())
-    .filter(Boolean)
-    .slice(-4)
-    .join(' · ')
-    .slice(-400);
-
-  if (!fin) {
-    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageRunFailed'], { code });
-  }
-
-  return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageRunFailedWithOutput'], { code, output: fin });
 }
 
 async function runTerminalCommand(

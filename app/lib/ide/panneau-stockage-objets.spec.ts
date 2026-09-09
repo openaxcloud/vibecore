@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { objectStorageResultOrDisabled } from './api.projects.$projectId.ide-panel.$panel';
+import { objectStorageResultOrDisabled } from './panneau-stockage-objets';
 
 /*
  * BUG-STORAGE-001 — le panneau « Stockage d'objets » annonçait une cause

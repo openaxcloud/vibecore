@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { messageDEchecDInstallation } from './api.projects.$projectId.ide-panel.$panel';
+import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
 
 /*
  * BUG-IDE-005 — le panneau Paquets répondait `HTTP 200 {ok:true}` alors que le
