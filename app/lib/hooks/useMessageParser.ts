@@ -3,6 +3,11 @@ import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
 import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
+import {
+  analyserGeneration,
+  fichiersDepuisArborescence,
+  generationEstHonnete,
+} from '~/lib/runtime/generation-incomplete';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -61,6 +66,44 @@ const messageParser = new EnhancedStreamingMessageParser({
        */
       if (data.fermetureDeSecours) {
         logger.warn('Artefact fermé par le filet de fin de flux (balise </boltArtifact> absente)', data.artifactId);
+
+        /*
+         * LA GARDE D'HONNÊTETÉ ÉTAIT ÉCRITE, TESTÉE, ET APPELÉE NULLE PART.
+         *
+         * `analyserGeneration` n'était importé que par son propre spec —
+         * vérifié avec témoin positif. Le module existait pour dire qu'une
+         * génération tronquée ne peut pas démarrer, et personne ne le lui
+         * demandait : le produit continuait donc d'annoncer une réussite sur un
+         * projet sans point d'entrée. Une règle juste que rien n'appelle ne
+         * protège de rien.
+         *
+         * On la branche ICI parce que c'est le seul endroit qui sait que le
+         * filet a fermé l'artefact — l'information ne survit nulle part
+         * ailleurs. La ligne est structurée et greppable : son comptage est
+         * précisément ce que l'en-tête du module réclame pour décider si le
+         * filet est un garde-fou ou une réparation majeure.
+         */
+        try {
+          const constat = analyserGeneration(fichiersDepuisArborescence(workbenchStore.files.get()), {
+            fermetureDeSecours: true,
+          });
+
+          logger.warn(
+            JSON.stringify({
+              event: 'generation.tronquee',
+              artifactId: data.artifactId,
+              honnete: generationEstHonnete(constat),
+              entreesManquantes: constat.entreesManquantes,
+            }),
+          );
+        } catch (erreur) {
+          /*
+           * Une garde d'observation ne doit JAMAIS casser l'écriture des
+           * fichiers qu'elle observe : le filet vient de sauver le travail de
+           * l'utilisateur, et un diagnostic raté ne peut pas le reprendre.
+           */
+          logger.warn('analyse de génération tronquée impossible', (erreur as Error)?.message);
+        }
       } else {
         logger.trace('onArtifactClose');
       }

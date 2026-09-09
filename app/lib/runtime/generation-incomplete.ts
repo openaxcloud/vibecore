@@ -26,6 +26,22 @@ export interface ConstatDeGeneration {
 
   /** Modules réclamés par `index.html` qu'aucun fichier écrit ne fournit. */
   entreesManquantes: string[];
+
+  /**
+   * La génération n'a écrit AUCUN fichier.
+   *
+   * Mesuré en production le 2026-09-09 : la clé Anthropic étant à court de
+   * crédit, le repli automatique bascule sur `gpt-4.1`, qui répond à une
+   * consigne substantielle par un plan d'architecture terminé par « Je passe
+   * maintenant à la phase d'implémentation complète » — puis s'arrête.
+   * `finishReason=stop`, `segments=0`, artefact 0 ouvert / 0 fermé, zéro
+   * fichier. Trois fois sur trois.
+   *
+   * Aucun des deux autres critères ne peut voir ce cas : il n'y a ni artefact à
+   * fermer, ni `index.html` à relire. Celui-ci ne dépend donc de rien d'autre
+   * que du compte — et c'est ce qui le rend robuste.
+   */
+  aucunFichier: boolean;
 }
 
 /** Extensions essayées quand `index.html` pointe un module sans extension. */
@@ -68,10 +84,36 @@ export function analyserGeneration(
     ? modulesReclames(index).filter((module) => !EXTENSIONS.some((extension) => present.has(module + extension)))
     : [];
 
-  return { tronquee: options.fermetureDeSecours, entreesManquantes };
+  return { tronquee: options.fermetureDeSecours, entreesManquantes, aucunFichier: present.size === 0 };
 }
 
 /** Vrai quand la génération peut honnêtement s'annoncer comme réussie. */
 export function generationEstHonnete(constat: ConstatDeGeneration): boolean {
-  return !constat.tronquee && constat.entreesManquantes.length === 0;
+  return !constat.tronquee && constat.entreesManquantes.length === 0 && !constat.aucunFichier;
+}
+
+/**
+ * Adapte l'arborescence du plan de travail à ce que `analyserGeneration` lit.
+ *
+ * La `FileMap` porte des dossiers, des fichiers binaires et des entrées
+ * `undefined` (un chemin connu mais pas encore chargé). Aucun des trois ne
+ * fournit un module : les confondre avec un fichier présent ferait taire la
+ * garde exactement quand elle doit parler. Les chemins sont normalisés comme
+ * ailleurs dans ce module, pour que `/index.html` et `index.html` soient le
+ * même fichier.
+ */
+export function fichiersDepuisArborescence(
+  arborescence: Readonly<Record<string, { type?: string; content?: string; isBinary?: boolean } | undefined>>,
+): Record<string, string> {
+  const fichiers: Record<string, string> = {};
+
+  for (const [chemin, entree] of Object.entries(arborescence)) {
+    if (!entree || entree.type !== 'file' || entree.isBinary) {
+      continue;
+    }
+
+    fichiers[normaliser(chemin)] = entree.content ?? '';
+  }
+
+  return fichiers;
 }
