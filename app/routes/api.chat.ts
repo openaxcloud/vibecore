@@ -2116,6 +2116,23 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
+
+          /*
+           * LES RÈGLES DE PROJET N'ARRIVAIENT QUE SUR UNE CONTINUATION.
+           *
+           * `projectRules` est calculé ligne 937 et l'appel de continuation le
+           * passait bien (1927) ; l'appel INITIAL — celui que fait la quasi-
+           * totalité des tours, puisqu'une continuation n'existe que si la
+           * réponse dépasse la limite de jetons — ne le passait pas. Les règles
+           * que l'utilisateur écrit dans son projet étaient donc lues, comptées,
+           * journalisées (« rules found », ligne 939) et JAMAIS remises au
+           * modèle, sauf sur les réponses assez longues pour être segmentées.
+           *
+           * Un journal qui annonce une lecture réussie pendant que la donnée
+           * n'atteint pas sa destination est la pire forme du défaut : il
+           * ressemble à une preuve que ça marche.
+           */
+          projectRulesContext: projectRules?.context,
           skillsContext: projectSkills?.context,
           webReferenceContext,
           chatId: conversationId,
