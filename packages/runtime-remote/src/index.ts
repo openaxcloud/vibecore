@@ -187,7 +187,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
 
     if (!requestedId && !projectIdDesMetadonnees) {
-      throw Object.assign(new Error('A workspace id or project id is required to start a workspace.'), {
+      throw new RuntimeError('A workspace id or project id is required to start a workspace.', {
         code: 'RUNTIME_WORKSPACE_ID_REQUIRED',
       });
     }
