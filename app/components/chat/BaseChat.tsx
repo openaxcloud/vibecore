@@ -295,6 +295,7 @@ import {
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import { PublicationReplit } from '~/components/deploy/PublicationReplit';
+import { causeDeLEchec } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -23209,6 +23210,15 @@ function ProjectDeploymentsPanel({
                     </div>
                     <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
                   </header>
+                  {causeDeLEchec(deployment) ? (
+                    <p
+                      className="bolt-project-deploy-cause break-words [overflow-wrap:anywhere]"
+                      data-testid="deploy-cause-echec"
+                      role="alert"
+                    >
+                      {causeDeLEchec(deployment)}
+                    </p>
+                  ) : null}
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">

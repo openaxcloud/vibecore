@@ -9575,6 +9575,24 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 /*
+ * BUG-DEPLOY-STATIC-FAIL-001 — la cause de l'échec, là où l'utilisateur la
+ * cherche. La carte affichait « Échec » et rien d'autre : pour savoir pourquoi,
+ * il fallait deviner qu'un onglet « Journaux » existe. La ligne se lit comme
+ * une alerte, pas comme du corps de texte, et elle revient à la ligne — un
+ * message de compilation est long et ne doit jamais être coupé (point 8).
+ */
+.bolt-project-deploy-cause {
+  margin-top: 6px;
+  border-left: 3px solid var(--vc-ide-accent-danger, #dc2626);
+  padding-left: 10px;
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/*
  * BUG-SECURITY-FONT-001 — Avi (point 5) : « pour la tab sécurité est-ce que
  * c'est la même taille de police que ce qu'on a fait partout ? »
  *

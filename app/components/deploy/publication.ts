@@ -311,3 +311,52 @@ export function formaterMontant(cents: number, langue: string | null | undefined
     maximumFractionDigits: decimales,
   }).format(cents / 100);
 }
+
+/**
+ * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+ *
+ * Avi, 09/09 : « impossible de déployer en réel, aucun fournisseur ne
+ * fonctionne ». Sa capture montre la carte « Export statique · Aperçu » avec
+ * la pastille Échec, trois boutons — et AUCUNE cause. Pour savoir pourquoi, il
+ * fallait deviner qu'un autre onglet (« Journaux ») existe et aller y lire.
+ *
+ * Or la cause voyage DÉJÀ avec l'enregistrement : la charge utile porte les
+ * journaux du déploiement, et le pipeline y écrit des codes précis
+ * (`INSTALL_FAILED`, `BUILD_FAILED`, `PACKAGE_JSON_MISSING`,
+ * `PROJECT_STORAGE_MISSING`, `BUILD_TIMEOUT`). Elle n'était simplement jamais
+ * affichée là où l'utilisateur regarde.
+ *
+ * On rend la DERNIÈRE ligne d'erreur, celle qui a tué le déploiement — pas la
+ * première, qui n'est souvent qu'un avertissement d'installation.
+ */
+export function causeDeLEchec(deploiement: Deploiement | undefined): string | null {
+  if (!deploiement || deploiement.status !== 'FAILED') {
+    return null;
+  }
+
+  const journaux = Array.isArray((deploiement as { logs?: unknown }).logs)
+    ? ((deploiement as { logs: Array<{ level?: unknown; message?: unknown }> }).logs ?? [])
+    : [];
+
+  const lignes = journaux
+    .filter((ligne) => typeof ligne?.message === 'string' && ligne.message.trim().length > 0)
+    .map((ligne) => ({ niveau: String(ligne.level ?? ''), message: String(ligne.message).trim() }));
+
+  const erreurs = lignes.filter((ligne) => ligne.niveau === 'error');
+  const derniere = erreurs.length > 0 ? erreurs[erreurs.length - 1] : undefined;
+
+  if (derniere) {
+    return derniere.message;
+  }
+
+  /*
+   * Aucune ligne n'est marquée `error` : certains chemins n'écrivent que le
+   * CODE. On le cherche alors dans le texte, plutôt que de ne rien dire.
+   */
+  const codes =
+    /(INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PACKAGE_JSON_MISSING|PROJECT_STORAGE_MISSING|AGENT_UNREACHABLE)/u;
+
+  const parCode = lignes.filter((ligne) => codes.test(ligne.message));
+
+  return parCode.length > 0 ? parCode[parCode.length - 1].message : null;
+}
