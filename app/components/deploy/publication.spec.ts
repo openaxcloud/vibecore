@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  domainesConnectes,
-  formaterMontant,
-  gabaritsDisponibles,
   HEURES_PAR_MOIS,
-  tarifDuGabarit,
+  causeDeLEchec,
+  domainesConnectes,
   etapeCourante,
   etapesDePublication,
   etatDePastille,
+  formaterMontant,
+  gabaritsDisponibles,
   invitePourReparerLaPublication,
   lignesDeJournal,
   publicationEnCours,
   resumeDesEchecs,
   revisionCourte,
+  tarifDuGabarit,
 } from './publication';
 
 /*
@@ -206,5 +207,45 @@ describe('tarif d’un gabarit de machine (RP-PUBLISH-10)', () => {
     expect(formaterMontant(1500, 'en')).toBe('$15.00');
     expect(formaterMontant(1500, 'fr').replace(/ | /gu, ' ')).toBe('15,00 $US');
     expect(formaterMontant(14.976, 'en', 4)).toBe('$0.1498');
+  });
+});
+
+describe('causeDeLEchec — BUG-DEPLOY-STATIC-FAIL-001', () => {
+  /*
+   * La forme RÉELLE d'un journal de déploiement : { timestamp, level, message }.
+   */
+  const echoue = (logs: Array<{ level: string; message: string }>) => ({ id: 'd1', status: 'FAILED', logs }) as never;
+
+  it('rend la DERNIÈRE erreur — celle qui a tué le déploiement', () => {
+    expect(
+      causeDeLEchec(
+        echoue([
+          { level: 'info', message: 'Static export: build started' },
+          { level: 'error', message: 'npm ERR! peer dep missing' },
+          { level: 'error', message: 'vite build failed: Cannot find module @vitejs/plugin-react' },
+        ]),
+      ),
+    ).toBe('vite build failed: Cannot find module @vitejs/plugin-react');
+  });
+
+  it('retombe sur le CODE quand aucune ligne n’est marquée « error »', () => {
+    expect(
+      causeDeLEchec(
+        echoue([
+          { level: 'info', message: 'Static export: install started' },
+          { level: 'info', message: 'BUILD_FAILED' },
+        ]),
+      ),
+    ).toBe('BUILD_FAILED');
+  });
+
+  it('ne dit rien d’un déploiement qui n’a pas échoué — pas de fausse alarme', () => {
+    expect(causeDeLEchec({ id: 'd', status: 'READY', logs: [{ level: 'error', message: 'x' }] } as never)).toBeNull();
+    expect(causeDeLEchec(undefined)).toBeNull();
+  });
+
+  it('rend null plutôt qu’une phrase inventée quand le journal ne dit rien', () => {
+    expect(causeDeLEchec(echoue([{ level: 'info', message: 'Static export: queued' }]))).toBeNull();
+    expect(causeDeLEchec({ id: 'd', status: 'FAILED' } as never)).toBeNull();
   });
 });
