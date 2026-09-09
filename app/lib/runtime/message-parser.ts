@@ -155,11 +155,45 @@ function cleanHighlightedCodeMarkup(content: string) {
    */
   const colorTokenSpans = content.match(/<span\b[^>]*\b(?:class|className)=["'][^"']*\btext-[a-z]+-\d{2,3}\b/gi);
 
+  /*
+   * MESURÉ, ET C'EST LE CŒUR DU CORRECTIF : exiger « 3 spans colorés + un
+   * <br/> » ne suffisait PAS. Un composant React parfaitement ordinaire
+   *
+   *     <span className="text-slate-500">Total</span>
+   *     <br />
+   *     <span className="text-green-600">{montant}</span>
+   *     <span className="text-gray-400">{devise}</span>
+   *
+   * franchit ce seuil, et le nettoyage lui ARRACHE ses balises : les trois
+   * `<span>` et le `<br />` disparaissent du fichier écrit. C'est la deuxième
+   * fois que ce même mécanisme mord — le commentaire au-dessus raconte la
+   * première, où un seul `text-*` suffisait. Monter le seuil ne fait que
+   * déplacer la frontière ; il en faut une qui ne dépende pas du nombre.
+   *
+   * LA VRAIE DIFFÉRENCE n'est pas la quantité de spans, c'est ce qu'il y a
+   * AUTOUR. Une sortie de coloration syntaxique enveloppe CHAQUE jeton : ses
+   * lignes commencent par `<span …>`, jamais par un mot-clé nu. Un module
+   * source, lui, porte sa structure en clair — `import`, `export`, une
+   * déclaration, une fermeture de bloc — hors de toute balise.
+   *
+   * Cette marque-là ne se contourne pas en ajoutant un span de plus, et elle
+   * n'affecte QUE la branche fragile : les deux signatures certaines (une
+   * classe de coloriseur connue, un `style="color:"` en ligne) continuent de
+   * décider seules, parce qu'elles ne se produisent pas dans du code écrit à
+   * la main.
+   */
+  const porteUneStructureDeModule =
+    /^\s*(?:import|export)\s/m.test(content) ||
+    /^\s*(?:const|let|var|function|class|async\s+function)\s/m.test(content) ||
+    /^\s*(?:def|package|using|#include)\s/m.test(content);
+
+  const signatureCertaine =
+    /(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
+    /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content);
+
   const looksLikeHighlightedSource =
     /&nbsp;|<br\s*\/?>/i.test(content) &&
-    (/(?:class|className)=["'][^"']*\b(?:shiki|hljs|token|highlight)\b/i.test(content) ||
-      /<span\b[^>]*\bstyle=["'][^"']*color\s*:/i.test(content) ||
-      (colorTokenSpans?.length ?? 0) >= 3);
+    (signatureCertaine || ((colorTokenSpans?.length ?? 0) >= 3 && !porteUneStructureDeModule));
 
   if (!looksLikeHighlightedSource) {
     return content;
