@@ -18173,19 +18173,37 @@ body :where(.lucide, svg[data-lucide]) {
   flex: 1;
 }
 
+/*
+ * BUG-PUBLISH-THEME-001 — LES COULEURS DU PANNEAU SUIVENT LE THÈME.
+ *
+ * Avi, 09/09 : « la police et les boutons sont trop gros ou pas comme le
+ * thème ». La police, c'était BUG-PUBLISH-SIZES-001 ; le thème, c'est ici.
+ *
+ * Ce panneau reprenait la palette de Replit EN DUR : son bleu #0079f2, et des
+ * pastels clairs (#e6f4ea, #fbe4e4, #e6f0fb) pensés pour un fond blanc. Or
+ * l'IDE est SOMBRE par défaut (`:root { color-scheme: dark; --vc-ide-bg-card:
+ * #1a2030 }`) et notre action primaire est ORANGE (`--vc-action-primary:
+ * #f97316`). Résultat mesurable : des pastilles presque blanches posées sur un
+ * fond sombre, et le bouton principal peint dans la couleur d'un concurrent.
+ *
+ * Un littéral ne bascule pas. Les jetons `--status-*` et `--vc-action-primary`
+ * existent déjà et sont déclarés dans les DEUX thèmes : on s'y branche.
+ * `app/styles/publication-jetons-de-theme.spec.ts` refuse désormais tout
+ * littéral de couleur dans ce bloc.
+ */
 .bolt-publication-segment[data-etat='encours'] {
-  background: #0079f2;
-  color: #fff;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
 }
 
 .bolt-publication-segment[data-etat='fait'] {
-  background: #e6f4ea;
-  color: #137333;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
 }
 
 .bolt-publication-segment[data-etat='echec'] {
-  background: #fbe4e4;
-  color: #b3261e;
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
 }
 
 .bolt-publication-journal {
@@ -18217,8 +18235,8 @@ body :where(.lucide, svg[data-lucide]) {
   height: 40px;
   flex: none;
   border-radius: 999px;
-  background: #fbe4e4;
-  color: #b3261e;
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
 }
 
 .bolt-publication-echec-texte {
@@ -18253,7 +18271,7 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 15px;
 }
 
-/* Le bouton à menu accolé : un seul bloc bleu, séparé d'un trait. */
+/* Le bouton à menu accolé : un seul bloc d'accent, séparé d'un trait. */
 .bolt-publication-reparer {
   position: relative;
   display: flex;
@@ -18262,8 +18280,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-publication-reparer > button {
   height: 40px;
   border: none;
-  background: #0079f2;
-  color: #fff;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
   font-size: 15px;
 }
 
@@ -18277,7 +18295,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-publication-reparer > button:nth-child(2) {
   width: 40px;
-  border-inline-start: 1px solid rgb(255 255 255 / 35%);
+  border-inline-start: 1px solid color-mix(in srgb, var(--vc-action-primary-foreground) 35%, transparent);
   border-radius: 0 10px 10px 0;
 }
 
@@ -18292,7 +18310,13 @@ body :where(.lucide, svg[data-lucide]) {
   border-radius: 12px;
   margin: 0;
   background: var(--bolt-elements-background-depth-1);
-  box-shadow: 0 12px 32px rgb(0 0 0 / 18%);
+
+  /*
+   * L'ombre est déclarée par thème (`--vc-ui-shadow-lg`) : en sombre elle est
+   * plus dense, sinon un menu flottant se confond avec le fond. La géométrie
+   * est identique à celle qui était écrite ici en dur.
+   */
+  box-shadow: var(--vc-ui-shadow-lg);
   list-style: none;
 }
 
@@ -18383,13 +18407,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-publication-pastille[data-etat='live'] {
-  background: #e6f4ea;
-  color: #137333;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
 }
 
 .bolt-publication-pastille[data-etat='echec'] {
-  background: #fbe4e4;
-  color: #b3261e;
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
 }
 
 .bolt-publication-quand,
@@ -18484,7 +18508,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-publication-gabarits li[data-courant='true'] {
-  border-color: #0079f2;
+  border-color: var(--vc-action-primary);
 }
 
 .bolt-publication-gabarits li > div {
@@ -18496,8 +18520,8 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-publication-gabarits em {
   padding: 2px 8px;
   border-radius: 999px;
-  background: #e6f0fb;
-  color: #0079f2;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
   font-size: 12px;
   font-style: normal;
 }
@@ -18567,15 +18591,21 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border: none;
   border-radius: 10px;
-  background: #0079f2;
-  color: #fff;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
   font-size: 15px;
   font-weight: 600;
   gap: 8px;
 }
 
+/*
+ * Le bleu délavé de Replit (#94c7f5) ne dit rien de notre accent : l'état
+ * inactif se DÉRIVE de la couleur active, pour rester juste dans les deux
+ * thèmes le jour où l'accent change.
+ */
 .bolt-publication-republier:disabled {
-  background: #94c7f5;
+  background: color-mix(in srgb, var(--vc-action-primary) 45%, transparent);
+  color: color-mix(in srgb, var(--vc-action-primary-foreground) 70%, transparent);
 }
 
 .bolt-fin-de-tour {

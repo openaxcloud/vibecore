@@ -98,6 +98,7 @@ import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
+import { refusalDetail } from './deploy-refus.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -513,10 +514,31 @@ declare module 'fastify' {
 }
 
 /**
+ * Why a workspace-pod static build never even started.
+ *
+ * BUG-DEPLOY-STATIC-FAIL-001 — Avi, 09/09: "impossible de déployer en réel,
+ * aucun fournisseur ne fonctionne", on a card that read "Échec" and NOTHING
+ * else. Five distinct give-up paths all returned a bare `{ handled: false }`,
+ * and the caller turned every one of them into the single message
+ * DEPLOY_WORKSPACE_UNREACHABLE. Four of the five are not "unreachable" at all —
+ * and three of them swallowed the real error in a bare `catch {}`, which is the
+ * one thing a diagnostic must never do (règle 13).
+ *
+ * These are machine CODES, never user copy: they are appended to the localized
+ * message so the deployment log names the actual give-up point.
+ */
+export type WorkspacePodBuildRefusal =
+  | 'NO_USER_CONTEXT'
+  | 'NO_WEBSOCKET_RUNTIME'
+  | 'WORKSPACE_UNREACHABLE'
+  | 'AGENT_TOKEN_UNAVAILABLE'
+  | 'BUILD_INVOCATION_THREW';
+
+/**
  * The workspace-pod static-build seam (#26 sub-part 2). Returns `{ handled: false }`
- * only when the project's workspace pod could not be reached even after a
- * provision + health-poll — in which case the deploy fails cleanly; the build is
- * NEVER retried in-process on the api pod.
+ * only when the build could not be started in the project's workspace pod — in
+ * which case the deploy fails cleanly; the build is NEVER retried in-process on
+ * the api pod. `refusal` (and `detail`, when an error was caught) say WHY.
  */
 export type WorkspacePodStaticBuild = (
   request: any,
@@ -524,7 +546,10 @@ export type WorkspacePodStaticBuild = (
   body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
-) => Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }>;
+) => Promise<
+  | { handled: false; refusal?: WorkspacePodBuildRefusal; detail?: string }
+  | { handled: true; result: RunStaticBuildResult; tempDir: string }
+>;
 
 export interface ApiAppOptions {
   store?: ApiStore;
@@ -14912,30 +14937,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const userId = request.currentUser?.id;
 
     if (!userId) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_USER_CONTEXT' };
     }
 
     const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
 
     if (!WebSocketCtor) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
     const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
+    /*
+     * BUG-DEPLOY-STATIC-FAIL-001 — ces `catch` étaient VIDES. Ils avalaient la
+     * seule phrase qui disait pourquoi le déploiement ne partait pas, et
+     * l'utilisateur recevait « Échec » sans rien d'autre (règle 13).
+     */
     try {
       await ensureWorkspaceReachable(request, authorized);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
     }
 
     let token: string;
 
     try {
       token = await agentToken(workspaceId);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'AGENT_TOKEN_UNAVAILABLE', detail: refusalDetail(error) };
     }
 
     const buildAgent = createWorkspaceBuildAgent({
@@ -14985,9 +15015,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         buildAgent,
       );
-    } catch {
+    } catch (error) {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'BUILD_INVOCATION_THREW', detail: refusalDetail(error) };
     }
 
     /*
@@ -14998,7 +15028,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (!result.ok && result.error === 'AGENT_UNREACHABLE') {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: 'AGENT_UNREACHABLE' };
     }
 
     return {
@@ -35128,13 +35158,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceBuildTempDir = workspaceAttempt.tempDir;
           staticBuild = workspaceAttempt.result;
         } else {
-          // Pod unreachable after provision + health-poll → clean failure, no api-pod build.
+          /*
+           * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+           *
+           * Cinq points d'abandon distincts rendaient tous le MÊME message, et
+           * quatre d'entre eux n'ont rien à voir avec un pod injoignable : pas
+           * de contexte utilisateur, pas de `WebSocket` dans l'exécution, jeton
+           * d'agent indisponible, appel du build qui lève. La carte de
+           * publication n'avait donc aucun moyen de dire ce qui s'était passé —
+           * et personne, Avi le premier, n'avait de quoi agir.
+           *
+           * Le message traduit reste ce que l'utilisateur lit ; le CODE d'abandon
+           * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
+           * dans le journal du déploiement, où il est réellement consultable.
+           */
           const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
-          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message });
+          const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+          const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
+          const ligne = `${message} [${refus}]${detail}`;
+
+          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message: ligne });
+          request.log?.error?.(
+            { deploymentId: queued.id, projectId: project.id, refusal: refus, detail: workspaceAttempt.detail },
+            'static deploy refused before the workspace build started',
+          );
           staticBuild = {
             ok: false,
             error: message,
-            logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
+            logs: [{ timestamp: new Date().toISOString(), level: 'error', message: ligne }],
           };
         }
       } else {
