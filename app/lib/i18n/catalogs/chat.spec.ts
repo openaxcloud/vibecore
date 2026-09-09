@@ -15,6 +15,15 @@ const approvedFrenchIdentity = [
   /^(?:--port|\/bucket|\/min|@scope\/|· v)/u,
   /^(?:[A-Z][A-Z0-9_]*(?:[=,].*)?)$/u,
   /^sha256:$/u,
+
+  /*
+   * BUG-I18N-006 — « Production » est identique dans les deux langues À
+   * DESSEIN. C'est le nom d'un environnement de déploiement, pas un mot
+   * courant : le traduire avait donné « Fabrication » (l'usine), affiché tel
+   * quel dans le sélecteur d'environnement de l'IDE. Le même choix vaut pour
+   * les bases (`databaseWorkbench.env.production` → « Base de production »).
+   */
+  /^Production$/u,
 ];
 
 describe('BaseChat EN/FR catalog', () => {

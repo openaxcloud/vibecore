@@ -2274,7 +2274,7 @@ export const chatFr = {
   'chat.copy.procedural_4fce7cb8': 'Procédure',
   'chat.copy.processesAndPorts_52df812f': 'Processus et ports',
   'chat.copy.prod_23dc0c60': 'prod /',
-  'chat.copy.production_df70fc79': 'Fabrication',
+  'chat.copy.production_df70fc79': 'Production',
   'chat.copy.productionApiKey_43fad6cd': 'Clé API de production',
   'chat.copy.productionBastion_786805c7': 'Bastion de la production',
   'chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2':
@@ -2500,7 +2500,7 @@ export const chatFr = {
   'chat.copy.srcServerTs_bcc09dcb': 'src/server.ts',
   'chat.copy.sshConnections_564ae345': 'Connexions SSH',
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
-  'chat.copy.staging_c9fb656c': 'Mise en scène',
+  'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
   'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
   'chat.copy.status_bae7d5be': 'Statut',
