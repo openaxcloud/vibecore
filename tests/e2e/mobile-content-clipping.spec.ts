@@ -44,14 +44,28 @@ function measureClip(page: Page) {
      * (it depends on platform font metrics driving min-content), so the CI run
      * IS the measurement. Name the outermost offending element and the grid
      * track that sized it, or the next person is left guessing the same way.
+     *
+     * ON MESURE LE BORD DROIT, PAS LA LARGEUR.
+     *
+     * Le critère précédent ne retenait qu'un élément PLUS LARGE que la fenêtre.
+     * Or un débordement se produit tout aussi bien avec un élément plus étroit
+     * qu'elle mais poussé trop à droite : 300 px de large à `left: 104` déborde
+     * de 14 px sur un écran de 390, et sa largeur ne déclenchait rien.
+     *
+     * Mesuré le 2026-09-09 : `/mobile` déborde de 14 px et la sonde rendait
+     * `Outermost offenders: []` — elle constatait le débordement sans savoir le
+     * nommer, ce qui condamne le lecteur à chercher à l'œil. Une garde qui dit
+     * « ça déborde » sans dire « à cause de quoi » ne vaut que la moitié de son
+     * prix.
      */
     const offenders = [];
+    const limite = document.documentElement.clientWidth;
 
     for (const element of document.querySelectorAll('body *')) {
       const rect = element.getBoundingClientRect();
       const style = getComputedStyle(element);
 
-      if (rect.width <= document.documentElement.clientWidth + 2 || rect.height < 4) {
+      if (rect.right <= limite + 2 || rect.height < 4 || rect.width < 1) {
         continue;
       }
 
@@ -78,6 +92,8 @@ function measureClip(page: Page) {
           className: String(element.className).slice(0, 120),
           width: Math.round(rect.width),
           right: Math.round(rect.right),
+          depassement: Math.round(rect.right - document.documentElement.clientWidth),
+          left: Math.round(rect.left),
           text: (element.textContent ?? '').trim().slice(0, 60),
           parentClassName: String(parent?.className ?? '').slice(0, 120),
           parentWidth: Math.round(parent?.getBoundingClientRect().width ?? 0),
