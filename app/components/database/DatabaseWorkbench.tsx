@@ -4,13 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseSettings } from './DatabaseSettings';
 import { DatabaseStudio } from './DatabaseStudio';
-import { tablesDuSchema } from './tables-du-schema';
+import { nomDeLaBase, tablesDuSchema, tailleDeLaBase } from './tables-du-schema';
 import {
   formatDatabaseSettingsBytes,
   formatDatabaseStudioPlural,
   getDatabaseStudioCopy,
   type DatabaseStudioCopy,
 } from '~/lib/i18n/catalogs/database-studio';
+import { revelerUnSecret } from '~/lib/reveler-un-secret';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -78,7 +79,7 @@ export function provisionFailureReason(data: { reason?: string } | undefined) {
   return reason && /^[A-Z][A-Z0-9_]{2,63}$/.test(reason) ? reason : undefined;
 }
 
-export function readEnvironments(data: unknown): DbEnv[] {
+export function readEnvironments(data: unknown, libelles: Readonly<Record<string, string>> = {}): DbEnv[] {
   const c = container(data);
 
   /*
@@ -111,7 +112,7 @@ export function readEnvironments(data: unknown): DbEnv[] {
       continue;
     }
 
-    const env: DbEnv = { key, name: String(o.name ?? o.label ?? o.displayName ?? key) };
+    const env: DbEnv = { key, name: nomDeLaBase({ ...o, key }, libelles) };
 
     if (typeof o.usedBytes === 'number') {
       env.usedBytes = o.usedBytes;
@@ -221,6 +222,8 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     reason?: string;
   }>();
 
+  const schemaFetcher = useFetcher();
+
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -271,9 +274,38 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
 
   const provisioning = provisionFetcher.state !== 'idle';
 
-  const environments = useMemo(() => readEnvironments(fetcher.data), [fetcher.data]);
+  const environments = useMemo(() => readEnvironments(fetcher.data, copy), [fetcher.data, copy]);
   const active = environments.find((e) => e.key === openKey) ?? null;
   const loading = fetcher.state !== 'idle';
+
+  /*
+   * RP-DB-10 — le schéma est chargé ICI, et non plus dans l'onglet Aperçu.
+   *
+   * Il porte DEUX choses : la liste des tables (Aperçu) et la taille de la base
+   * mesurée par `pg_database_size` (carte « Stockage » des Paramètres). Tant
+   * qu'il vivait dans l'onglet Aperçu, l'onglet Paramètres n'y avait pas accès
+   * et la carte lisait la liste des CONNEXIONS, qui ne porte aucune taille : la
+   * carte restait vide alors que la donnée existait. Un seul chargement sert
+   * désormais les deux onglets.
+   */
+  const cleDuSchema = active?.key ?? null;
+
+  useEffect(() => {
+    if (!cleDuSchema) {
+      return;
+    }
+
+    schemaFetcher.load(`${base}?schemaKey=${encodeURIComponent(cleDuSchema)}`);
+
+    // `schemaFetcher` est volontairement absent : son identité change à chaque rendu.
+  }, [base, cleDuSchema]);
+
+  /*
+   * La taille RÉELLE de la base, mesurée par l'API (`pg_database_size`) et
+   * rendue avec le schéma. La liste des connexions n'en porte aucune : lue
+   * là, la carte « Stockage » restait vide alors que la donnée existait.
+   */
+  const tailleOccupee = active?.usedBytes ?? tailleDeLaBase(container(schemaFetcher.data));
 
   /*
    * BUG-QA-DB-IDE-BRICK-001 — un provisionnement échoué rendait l'IDE inutilisable.
@@ -451,8 +483,8 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
       <div className="bolt-database-workbench-body min-h-0 flex-1 overflow-auto">
         {tab === 'overview' ? (
           <OverviewTab
-            base={base}
-            connectionKey={active.key}
+            schema={schemaFetcher.data}
+            chargement={schemaFetcher.state !== 'idle'}
             onPickTable={() => setTab('mydata')}
             copy={copy}
             language={language}
@@ -464,7 +496,8 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             name={active.name}
             active
             connectionString={readConnectionString(fetcher.data, active.key)}
-            storageUsedBytes={active.usedBytes}
+            reveler={() => revelerUnSecret(projectId, active.key)}
+            storageUsedBytes={tailleOccupee}
             storageQuotaBytes={active.quotaBytes}
             projectId={projectId}
           />
@@ -476,24 +509,18 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
 
 /* Overview — "Tables" cards (name + row count) from the connection schema. */
 function OverviewTab({
-  base,
-  connectionKey,
+  schema,
+  chargement,
   onPickTable,
   copy,
   language,
 }: {
-  base: string;
-  connectionKey: string;
+  schema: unknown;
+  chargement: boolean;
   onPickTable: () => void;
   copy: DatabaseStudioCopy;
   language: string;
 }) {
-  const fetcher = useFetcher();
-
-  useEffect(() => {
-    fetcher.load(`${base}?schemaKey=${encodeURIComponent(connectionKey)}`);
-  }, [connectionKey]);
-
   /*
    * RP-DB-05 — la normalisation vit dans `tables-du-schema.ts`, seule et
    * testée. Elle lisait ici `t.name` / `t.rowCount` alors que l'API rend
@@ -502,7 +529,7 @@ function OverviewTab({
    * lignes — et la clé React valait ce vide pour toutes. Relevé à l'écran le
    * 08/09 : 0 table rendue.
    */
-  const tables = useMemo(() => tablesDuSchema(container(fetcher.data)), [fetcher.data]);
+  const tables = useMemo(() => tablesDuSchema(container(schema)), [schema]);
 
   return (
     <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
@@ -511,7 +538,7 @@ function OverviewTab({
       </h3>
       {tables.length === 0 ? (
         <p className="break-words text-[12px] text-bolt-elements-textTertiary [overflow-wrap:anywhere]" role="status">
-          {fetcher.state !== 'idle' ? copy['databaseWorkbench.loadingSchema'] : copy['databaseWorkbench.noTables']}
+          {chargement ? copy['databaseWorkbench.loadingSchema'] : copy['databaseWorkbench.noTables']}
         </p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
