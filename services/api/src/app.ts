@@ -27161,13 +27161,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiTranscriptSchema, request.body ?? {});
-    const existingIds = new Set(await store.listAiMessageIds(conversationId));
+    const existants = await store.listAiMessages(conversationId);
+    const existingIds = new Set(existants.map((existant) => existant.id));
+    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+    let instantanesPerimes = 0;
+    let caracteresProteges = 0;
 
     for (const message of body.messages) {
+      const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
+      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
+
+      /*
+       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
+       *
+       * La transcription est persistée PENDANT le flux, en `upsert` sur un
+       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
+       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
+       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
+       * tronqué.
+       *
+       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
+       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
+       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
+       * s'est passé détruit ce qu'il en restait.
+       *
+       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
+       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
+       * perte : ça l'empêche de s'aggraver.
+       */
+      if (!decision.ecrire) {
+        instantanesPerimes += 1;
+        caracteresProteges += decision.perdus ?? 0;
+        request.log.warn(
+          { conversationId, messageId: id, perdus: decision.perdus },
+          'transcript sync refused: a stale snapshot would have shortened a persisted message',
+        );
+
+        const conserve = existants.find((existant) => existant.id === id);
+
+        if (conserve) {
+          messages.push(conserve);
+        }
+
+        continue;
+      }
+
       messages.push(
         await store.createAiMessage({
-          id: aiTranscriptMessageId(conversationId, message.clientId, existingIds),
+          id,
           conversationId,
           role: message.role,
           content: message.content,
@@ -27183,6 +27225,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: {
         projectId: project.id,
         messageCount: messages.length,
+        instantanesPerimes,
+        caracteresProteges,
       },
     });
 
