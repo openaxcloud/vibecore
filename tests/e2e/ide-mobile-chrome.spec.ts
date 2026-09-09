@@ -3017,9 +3017,24 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
         timeout: 15_000,
       });
 
-      // Et l'invite est bien déposée dans la zone de saisie, prête à partir.
+      /*
+       * ET L'AGENT DÉMARRE. Avi (point 5) : « ça doit me remettre sur le
+       * panneau agent et démarrer l'agent avec le prompt en question ENVOYÉ
+       * par le bouton ». Une invite simplement déposée laissait un geste de
+       * plus à faire — précisément celui que le bouton prétend épargner.
+       *
+       * On vérifie donc que l'invite est PARTIE : elle apparaît dans le fil
+       * comme message utilisateur, et la zone de saisie est vidée. Un test
+       * qui se contenterait de la lire dans le composeur passerait au vert
+       * sur le comportement d'AVANT.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Corrige la publication.' }).first(),
+        'l’invite doit être envoyée, pas seulement déposée',
+      ).toBeVisible({ timeout: 30_000 });
+
       const composeur = page.locator('.bolt-project-agent-composer textarea').first();
-      await expect(composeur).toHaveValue(/Corrige la publication\./, { timeout: 15_000 });
+      await expect(composeur, 'un envoi consomme le brouillon').toHaveValue('', { timeout: 15_000 });
     });
   });
 });
