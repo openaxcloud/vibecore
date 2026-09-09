@@ -626,7 +626,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * history scoping the deployment — hash + author + date). Each enrichment
        * is best-effort so the panel never fails if git/db is unavailable.
        */
-      const [deployments, databases, commitGraph, rateCard] = await Promise.all([
+      const [deployments, databases, commitGraph, rateCard, fournisseurs] = await Promise.all([
         apiRequest<{ deployments?: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/deployments`),
         apiRequest<{ connections?: unknown[] }>(request, `/projects/${projectId}/databases`).catch(() => ({
           connections: [],
@@ -644,6 +644,17 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
          * Au pire elle manque, et l'écran n'affiche simplement pas de prix.
          */
         apiRequest<Record<string, unknown>>(request, `/projects/${projectId}/deployments/rate-card`).catch(() => null),
+
+        /*
+         * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs peuvent réellement
+         * aboutir. Sans cette liste l'assistant les proposait tous, et six sur
+         * sept rendaient un 503 une fois le formulaire rempli. Au pire elle
+         * manque : on retombe alors sur l'ancien comportement plutôt que de
+         * masquer un fournisseur qui marche.
+         */
+        apiRequest<{ providers?: unknown[] }>(request, `/projects/${projectId}/deployments/providers`).catch(() => ({
+          providers: [],
+        })),
       ]);
 
       const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
@@ -657,6 +668,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           connections: Array.isArray(databases.connections) ? databases.connections : [],
           gitCommits: Array.isArray(commitGraph.commits) ? commitGraph.commits : [],
           rateCard,
+          providerAvailability: Array.isArray(fournisseurs.providers) ? fournisseurs.providers : [],
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,

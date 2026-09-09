@@ -2902,18 +2902,139 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
           };
         });
 
-        // Les tailles de la maquette Replit, à l'échelle 3,0 px par px CSS.
-        expect(mesures.titre, 'le titre résiste au reset de police de la coquille').toBe(30);
-        expect(mesures.sousTitre).toBe(15);
-        expect(mesures.titreDeCarte).toBe(17);
-        expect(mesures.segment).toBe(15);
-        expect(mesures.bouton, 'le bouton d’action résiste lui aussi').toBe(17);
+        /*
+         * BUG-PUBLISH-SIZES-001 — l'échelle a été REVUE À LA BAISSE le 09/09.
+         *
+         * La précédente (titre 30, corps 15, titre de carte 17) venait d'une
+         * lecture des captures Replit à 3,0 px par px CSS. Mesurée en réel à
+         * 390 px, elle donnait ceci — et Avi l'a vu avant moi : « tout le
+         * contenu est trop gros c'est pas comme Replit ». Relevé du jour, en
+         * français, AVANT correction :
+         *   titre « Republier votre application » ....  2 lignes, 69 px
+         *   bouton « Ajuster les réglages » ..........  2 lignes, 44 px
+         *   titre « Domaines connectés » .............  2 lignes, 48 px
+         *   bouton « Ajouter un domaine » ............  2 lignes, 44 px
+         *
+         * L'erreur de méthode est identifiable : j'ai calibré sur des libellés
+         * ANGLAIS, qui tiennent sur une ligne là où le français déborde d'un
+         * cinquième. D'où le second contrôle, plus bas, qui mesure en français.
+         */
+        expect(mesures.titre, 'le titre résiste au reset de police de la coquille').toBe(19);
+        expect(mesures.sousTitre).toBe(13);
+        expect(mesures.titreDeCarte).toBe(15);
+        expect(mesures.segment).toBe(13);
+        expect(mesures.bouton, 'le bouton d’action résiste lui aussi').toBe(15);
 
         expect(mesures.deborde, 'rien ne sort du panneau').toBe(0);
         expect(mesures.scrollWidth, 'et la page ne défile pas latéralement').toBeLessThanOrEqual(mesures.innerWidth);
       });
     });
   }
+
+  /*
+   * BUG-PUBLISH-SIZES-001 — la RÈGLE, et non la première occurrence.
+   *
+   * Fixer quatre tailles ne protège de rien : la prochaine traduction, ou le
+   * prochain libellé un peu plus long, ramènera les titres sur deux lignes
+   * sans qu'un seul test ne rougisse. Ce qu'Avi a vu, ce ne sont pas des
+   * pixels, ce sont des libellés repliés.
+   *
+   * Donc on mesure ce qui compte : dans la langue la PLUS LONGUE que nous
+   * servions — le français, celle d'Avi — aucun titre ni aucun bouton du
+   * panneau ne tient sur plus d'une ligne à 390 px. Les paragraphes, eux, ont
+   * le droit de se replier : c'est leur nature.
+   */
+  test.describe('rien ne se replie en français', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('titres et boutons tiennent sur une ligne à 390 px', async ({ page, request }) => {
+      test.setTimeout(180_000);
+
+      await page.context().addCookies([{ name: 'vibecore-lang', value: 'fr', url: appBaseUrl }]);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      const replies = await page.evaluate(() => {
+        const racine = document.querySelector('.bolt-publication');
+
+        if (!racine) {
+          return null;
+        }
+
+        const cibles = racine.querySelectorAll<HTMLElement>('h2, h3, button');
+        const trop: Array<{ texte: string; lignes: number; px: string }> = [];
+
+        cibles.forEach((el) => {
+          const texte = (el.textContent ?? '').trim();
+
+          if (!texte || el.childElementCount > 1) {
+            return;
+          }
+
+          /*
+           * Le VRAI nombre de lignes rendues : on compte les ORDONNÉES
+           * distinctes des rectangles d'un `Range` posé sur le contenu.
+           *
+           * DEUX mesures fausses avant celle-ci, et chacune accusait un
+           * élément parfaitement correct :
+           *   - hauteur ÷ interligne : deux boutons hauts de 44 px — la cible
+           *     tactile minimale d'iOS — passaient pour repliés ;
+           *   - nombre de rectangles : un rectangle par BOÎTE en ligne, donc
+           *     le bouton « Republier » et son icône de fusée en rendaient
+           *     deux… côte à côte, sur la même ligne ;
+           *   - ordonnées distinctes : la même icône, haute d'un cadratin et
+           *     centrée, ne commence pas au même pixel que le texte.
+           *
+           * Le critère qui tient : deux boîtes sont sur la MÊME ligne si elles
+           * se chevauchent verticalement. On compte donc les groupes qui ne se
+           * chevauchent pas (règle 4 : vérifier qu'une mesure mesure bien ce
+           * qu'on croit).
+           */
+          const plage = document.createRange();
+          plage.selectNodeContents(el);
+
+          const rects = [...plage.getClientRects()].filter((r) => r.height > 0).sort((a, b) => a.top - b.top);
+
+          let lignes = rects.length > 0 ? 1 : 1;
+          let basDeLigne = rects[0]?.bottom ?? 0;
+
+          for (const r of rects.slice(1)) {
+            if (r.top >= basDeLigne - 1) {
+              lignes += 1;
+              basDeLigne = r.bottom;
+            } else {
+              basDeLigne = Math.max(basDeLigne, r.bottom);
+            }
+          }
+
+          if (lignes > 1) {
+            trop.push({ texte: texte.slice(0, 40), lignes, px: getComputedStyle(el).fontSize });
+          }
+        });
+
+        return { trop, examines: cibles.length, langue: document.documentElement.lang };
+      });
+
+      expect(replies, 'le panneau ne s’est pas rendu').not.toBeNull();
+
+      /*
+       * Contrôle de la MESURE avant la conclusion (règle 14) : un relevé qui
+       * n'a rien examiné rendrait « zéro replié » sans rien prouver.
+       */
+      expect(replies!.examines, 'aucun titre ni bouton examiné : la mesure n’a rien mesuré').toBeGreaterThan(3);
+
+      expect(replies!.trop, `repliés sur plusieurs lignes : ${JSON.stringify(replies!.trop)}`).toEqual([]);
+    });
+  });
 
   /*
    * RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ».
@@ -3184,7 +3305,10 @@ test.describe('base de données — « Mes données » à la Replit', () => {
       els.slice(0, 6).map((el) => (el.textContent ?? '').trim()),
     );
 
-    expect(nomsDuRail.every((nom) => nom.length > 0), `rail : ${JSON.stringify(nomsDuRail)}`).toBe(true);
+    expect(
+      nomsDuRail.every((nom) => nom.length > 0),
+      `rail : ${JSON.stringify(nomsDuRail)}`,
+    ).toBe(true);
     expect(new Set(nomsDuRail).size, 'des noms distincts, pas la même clé partout').toBe(nomsDuRail.length);
 
     /*

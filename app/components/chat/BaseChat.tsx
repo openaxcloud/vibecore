@@ -295,6 +295,7 @@ import {
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import { PublicationReplit } from '~/components/deploy/PublicationReplit';
+import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
 import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
@@ -23075,6 +23076,18 @@ function ProjectDeploymentsPanel({
     [],
   );
 
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — ce que le serveur peut réellement déployer.
+   * Sans ce relevé, rien n'est masqué : on préfère un fournisseur offert à
+   * tort qu'un fournisseur qui marche et qu'on aurait caché.
+   */
+  const fournisseurs = useMemo(
+    () => fournisseursOffrables(BOLT_DEPLOY_PROVIDERS, (data as any).providerAvailability),
+    [data],
+  );
+
+  const fournisseurInitial = useMemo(() => fournisseurParDefaut(fournisseurs), [fournisseurs]);
+
   // Real Overview data wired from the deployments loader.
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
@@ -23283,10 +23296,26 @@ function ProjectDeploymentsPanel({
             <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
             <label>
               {t('chat.copy.provider_7ceee3f3')}
-              <select name="provider" defaultValue="static">
-                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
+              {/*
+               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+               * qu'elle peut tenir. Un hébergeur sans identifiants reste
+               * visible mais désactivé, en nommant ce qu'il manque : on ne
+               * remplit plus tout l'assistant pour se heurter à un 503.
+               */}
+              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                  <option
+                    key={fournisseur.id}
+                    value={fournisseur.id}
+                    disabled={!utilisable}
+                    data-configure={utilisable ? undefined : 'requis'}
+                  >
+                    {utilisable
+                      ? fournisseur.name
+                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                          provider: fournisseur.name,
+                          missing: manquantes.join(', '),
+                        })}
                   </option>
                 ))}
               </select>

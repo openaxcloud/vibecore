@@ -277,6 +277,7 @@ import {
   computeStaticSnapshotDigest,
   createDeploymentLogs,
   deployProviderConfigError,
+  disponibiliteDesFournisseurs,
   pollProviderDeploymentStatus,
   removeStaticDeploymentSnapshot,
   restoreStaticSnapshotInto,
@@ -35820,6 +35821,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * ceiling. The Deploy panel renders its size selector from this — prices and
    * sizes live in the card, never hard-coded in the UI.
    */
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs sont RÉELLEMENT utilisables.
+   *
+   * L'assistant proposait les sept, et six menaient à un 503 après coup :
+   * « les fournisseurs ne fonctionnent pas » (Avi, 09/09). Il lit désormais
+   * cette liste et n'offre que ce qui peut aboutir, en disant pour le reste ce
+   * qu'il manque.
+   *
+   * `missingEnv` ne porte que des NOMS de variables (règle 12), et la lecture
+   * exige `projects:read` : ce n'est pas un inventaire public.
+   */
+  app.get('/projects/:projectId/deployments/providers', async (request) => {
+    await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+
+    return { providers: disponibiliteDesFournisseurs() };
+  });
+
   app.get('/projects/:projectId/deployments/rate-card', async (request) => {
     const project = await requireProject(
       request,
