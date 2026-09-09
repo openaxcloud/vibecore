@@ -17436,25 +17436,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     /*
-     * AUTO-RÉPARATION À L'OUVERTURE.
+     * RÉCONCILIATION À L'OUVERTURE — RETIRÉE TEMPORAIREMENT.
      *
-     * `reconcileRuntimeSeedFromPersisted` sait poser dans le workspace les
-     * fichiers que le stockage durable possède et que lui n'a pas — mesuré le
-     * 2026-09-09 : `src/App.tsx` et `src/main.tsx` présents en stockage,
-     * absents du pod, application impossible à démarrer. Mais elle n'était
-     * appelée qu'au provisionnement et au redémarrage : un workspace déjà
-     * `RUNNING` n'était donc JAMAIS réparé.
+     * L'appel posé ici faisait tomber `ide-panel-smoke › renders every panel
+     * in-place without stale missing-import errors or full reloads`, qui garde un
+     * correctif réel : le rechargement plein écran à l'ouverture d'un panneau,
+     * subi par Avi et corrigé il y a des semaines.
      *
-     * EN ARRIÈRE-PLAN, jamais dans la réponse : elle lit un fichier par fichier
-     * déjà présent, ~105 ms l'unité au médian en production, soit ~3,4 s pour
-     * 32 fichiers. La mettre sur le chemin d'ouverture rendrait à l'utilisateur
-     * la latence qu'on lui a retirée la veille. Les fichiers manquants
-     * apparaissent une seconde plus tard — sans conséquence pour un projet
-     * qu'on vient d'ouvrir.
+     * `main` rouge signifie porte de version REFUSÉE, donc aucun déploiement : la
+     * garde anti-raccourcissement, le message honnête de génération incomplète et
+     * le journal de persistance restent non servis. À un moment le coût de
+     * l'immobilité dépasse celui du retrait.
+     *
+     * À GARANTIR AVANT DE LA REMETTRE : qu'elle soit un NON-ÉVÉNEMENT sur un
+     * workspace sain, y compris quand le pod démarre encore et que ses fichiers
+     * sont ABSENTS plutôt que divergents — cas que `portee-reconciliation.ts` ne
+     * couvre pas.
      */
-    if (path === '.' && authorized.projectId && reconciliationUneFois.doitReconcilier(authorized.workspaceId)) {
-      void reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
-    }
 
     return mapRuntimeNodes(nodes);
   });
