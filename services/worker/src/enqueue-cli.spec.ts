@@ -24,14 +24,62 @@ describe('enqueue-cli arg parsing', () => {
     vi.restoreAllMocks();
   });
 
-  it('rejects unknown queue names with a clear error', async () => {
-    process.env.REDIS_URL = 'redis://127.0.0.1:6379';
+  /*
+   * BUG-WORKER-002 — CE TEST PASSAIT POUR LA MAUVAISE RAISON.
+   *
+   * Il visait `redis://127.0.0.1:6379`, où rien n'écoute en CI, et n'exigeait
+   * qu'un rejet, SANS MOTIF. C'est l'échec de connexion qui le rendait vert,
+   * pas la validation qu'il prétendait couvrir. Mesuré en le rebranchant sur
+   * un Redis joignable : le même appel RÉSOUT et rend l'identifiant `"1"` —
+   * la file inexistante avait bel et bien reçu le travail.
+   *
+   * Deux corrections, et il faut les deux : exiger le MESSAGE exact, et
+   * retirer `REDIS_URL` pour que le test ne puisse plus emprunter le chemin
+   * de l'infrastructure. Si la garde disparaissait, il rougirait désormais sur
+   * « REDIS_URL is required » — un motif qui n'est pas celui attendu.
+   */
+  it('rejects unknown queue names with a clear error — AVANT toute connexion', async () => {
+    delete process.env.REDIS_URL;
 
     const { enqueue } = await import('./enqueue-cli.js');
 
     await expect(
       enqueue({ queue: 'imaginary-queue', job: 'whatever', data: {} } as Parameters<typeof enqueue>[0]),
-    ).rejects.toThrow();
+    ).rejects.toThrowError(/Unknown queue 'imaginary-queue'\. Known queues: /u);
+  });
+
+  it('le parseur refuse lui aussi, et avec le même message', async () => {
+    const { parseArgs } = (await import('./enqueue-cli.js')) as unknown as {
+      parseArgs?: (argv: string[]) => unknown;
+    };
+
+    /* `parseArgs` n'est pas exporté : on exerce alors le seul chemin public. */
+    if (typeof parseArgs !== 'function') {
+      const { enqueue } = await import('./enqueue-cli.js');
+      delete process.env.REDIS_URL;
+      await expect(
+        enqueue({ queue: '', job: 'whatever', data: {} } as Parameters<typeof enqueue>[0]),
+      ).rejects.toThrowError(/Unknown queue/u);
+
+      return;
+    }
+
+    expect(() => parseArgs(['--queue', 'imaginary-queue', '--job', 'x'])).toThrowError(/Unknown queue/u);
+  });
+
+  it('une file CONNUE passe la garde et va bien jusqu’à Redis', async () => {
+    /*
+     * Contrôle positif : sans lui, une garde trop stricte refuserait TOUT et
+     * les tests resteraient verts. On reconnaît le franchissement au message
+     * suivant de la chaîne.
+     */
+    delete process.env.REDIS_URL;
+
+    const { enqueue } = await import('./enqueue-cli.js');
+
+    await expect(enqueue({ queue: 'workspace-jobs', job: 'workspace.gc', data: {} })).rejects.toThrowError(
+      /REDIS_URL is required/u,
+    );
   });
 
   it('throws when REDIS_URL is missing', async () => {
