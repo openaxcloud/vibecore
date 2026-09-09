@@ -75,3 +75,29 @@ export function analyserGeneration(
 export function generationEstHonnete(constat: ConstatDeGeneration): boolean {
   return !constat.tronquee && constat.entreesManquantes.length === 0;
 }
+
+/**
+ * Adapte l'arborescence du plan de travail à ce que `analyserGeneration` lit.
+ *
+ * La `FileMap` porte des dossiers, des fichiers binaires et des entrées
+ * `undefined` (un chemin connu mais pas encore chargé). Aucun des trois ne
+ * fournit un module : les confondre avec un fichier présent ferait taire la
+ * garde exactement quand elle doit parler. Les chemins sont normalisés comme
+ * ailleurs dans ce module, pour que `/index.html` et `index.html` soient le
+ * même fichier.
+ */
+export function fichiersDepuisArborescence(
+  arborescence: Readonly<Record<string, { type?: string; content?: string; isBinary?: boolean } | undefined>>,
+): Record<string, string> {
+  const fichiers: Record<string, string> = {};
+
+  for (const [chemin, entree] of Object.entries(arborescence)) {
+    if (!entree || entree.type !== 'file' || entree.isBinary) {
+      continue;
+    }
+
+    fichiers[normaliser(chemin)] = entree.content ?? '';
+  }
+
+  return fichiers;
+}
