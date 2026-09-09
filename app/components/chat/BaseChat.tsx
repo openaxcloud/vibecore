@@ -295,7 +295,7 @@ import {
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import { PublicationReplit } from '~/components/deploy/PublicationReplit';
-import { causeDeLEchec } from '~/components/deploy/publication';
+import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -23047,6 +23047,28 @@ function ProjectDeploymentsPanel({
     );
   }, []);
 
+  /*
+   * BUG-PUBLISH-NOOP-001 — « Republier » DÉPLOIE. Il ne changeait que
+   * d'onglet : le bouton principal du panneau promettait une publication et
+   * n'en lançait aucune. Il rejoue maintenant l'intention `redeploy` sur le
+   * dernier déploiement — le MÊME chemin que l'onglet Gérer, donc rien qui
+   * puisse diverger. Sans historique il n'y a rien à rejouer : on ouvre
+   * l'assistant, et le libellé du bouton dit déjà « Publier » dans ce cas.
+   */
+  const republier = useCallback(() => {
+    const intention = intentionDeRepublication(deployments);
+
+    if (intention.geste === 'assistant') {
+      setTab('manage');
+      return;
+    }
+
+    const donnees = new FormData();
+    donnees.set('intent', 'redeploy');
+    donnees.set('deploymentId', intention.deploymentId);
+    onSubmit(donnees);
+  }, [deployments, onSubmit]);
+
   /* La même mise en mots que la fin de tour : une seule implémentation. */
   const ilYADepuis = useCallback(
     (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
@@ -23089,7 +23111,7 @@ function ProjectDeploymentsPanel({
             deployments={deployments}
             language={language}
             ilYA={(date) => ilYADepuis(date, language)}
-            onRepublier={() => setTab('manage')}
+            onRepublier={republier}
             onAjouterUnDomaine={() => setTab('domains')}
             onReparerAvecAgent={demanderReparationParLAgent}
             carteTarifaire={(data as any).rateCard ?? null}

@@ -360,3 +360,34 @@ export function causeDeLEchec(deploiement: Deploiement | undefined): string | nu
 
   return parCode.length > 0 ? parCode[parCode.length - 1].message : null;
 }
+
+/**
+ * BUG-PUBLISH-NOOP-001 — ce que fait le bouton principal du panneau.
+ *
+ * Il était câblé sur un simple changement d'onglet : il affichait
+ * « Republier », et ne republiait rien. Avi l'a mesuré à l'écran — « quand je
+ * clique sur publish ça lance pas le déploiement ça me renvoi vers gérer ».
+ *
+ * La règle tient en une phrase : **s'il existe un déploiement à rejouer, on le
+ * rejoue** — par l'intention `redeploy`, celle-là même que l'onglet Gérer
+ * envoie déjà, donc aucun second chemin serveur à maintenir. Sinon il n'y a
+ * rien à republier : on ouvre l'assistant de création, et le bouton dit
+ * « Publier », pas « Republier ».
+ *
+ * La décision vit ici, hors du composant, pour qu'un test la tienne sans avoir
+ * à monter le panneau entier.
+ */
+export type IntentionDeRepublication =
+  | { readonly geste: 'redeploy'; readonly deploymentId: string }
+  | { readonly geste: 'assistant' };
+
+export function intentionDeRepublication(deploiements: readonly Deploiement[] | undefined): IntentionDeRepublication {
+  const dernier = Array.isArray(deploiements) ? deploiements[0] : undefined;
+  const identifiant = typeof dernier?.id === 'string' ? dernier.id.trim() : '';
+
+  if (!identifiant) {
+    return { geste: 'assistant' };
+  }
+
+  return { geste: 'redeploy', deploymentId: identifiant };
+}
