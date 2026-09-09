@@ -97,6 +97,7 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
+import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import {
   redactSecrets,
@@ -15451,6 +15452,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Fire the reseed reconciliation without ever letting it break the start/restart
    * response. Records a metric so the flaky-loop fix is observable in prod.
    */
+  /*
+   * Un workspace n'est réconcilié qu'UNE FOIS tant qu'il n'a pas été
+   * reprovisionné : la limitation porte sur l'ÉVÉNEMENT, pas sur le temps. Un
+   * minuteur raterait précisément l'ouverture qui compte.
+   */
+  const reconciliationUneFois = new ReconciliationUneFois();
+
   const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
     try {
       const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
@@ -17075,6 +17083,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
        * already carries its files. Best-effort; never blocks the start response.
        */
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17296,6 +17305,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17413,6 +17423,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
     );
+
+    /*
+     * AUTO-RÉPARATION À L'OUVERTURE.
+     *
+     * `reconcileRuntimeSeedFromPersisted` sait poser dans le workspace les
+     * fichiers que le stockage durable possède et que lui n'a pas — mesuré le
+     * 2026-09-09 : `src/App.tsx` et `src/main.tsx` présents en stockage,
+     * absents du pod, application impossible à démarrer. Mais elle n'était
+     * appelée qu'au provisionnement et au redémarrage : un workspace déjà
+     * `RUNNING` n'était donc JAMAIS réparé.
+     *
+     * EN ARRIÈRE-PLAN, jamais dans la réponse : elle lit un fichier par fichier
+     * déjà présent, ~105 ms l'unité au médian en production, soit ~3,4 s pour
+     * 32 fichiers. La mettre sur le chemin d'ouverture rendrait à l'utilisateur
+     * la latence qu'on lui a retirée la veille. Les fichiers manquants
+     * apparaissent une seconde plus tard — sans conséquence pour un projet
+     * qu'on vient d'ouvrir.
+     */
+    if (path === '.' && authorized.projectId && reconciliationUneFois.doitReconcilier(authorized.workspaceId)) {
+      void reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
+    }
 
     return mapRuntimeNodes(nodes);
   });
