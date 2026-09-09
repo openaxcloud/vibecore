@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   IDE_ADDRESSABLE_PANELS,
@@ -13,6 +11,7 @@ import {
   resolveIdePanelKey,
   type IdeAddressablePanel,
 } from './panel-registry';
+import { ECODE_MOBILE_TAB_META_BASE } from '~/lib/mobile-tab-meta';
 
 /**
  * BUG-IDE-PANEL-RESOLUTION-001 — preuve exécutable : pour CHAQUE clé affichable
@@ -102,18 +101,24 @@ describe('registre des panneaux IDE', () => {
    * dans le méta d'onglets mobiles mais jamais dispatchée. Toute nouvelle clé
    * d'onglet doit être canonique, alias, ou déclarée non adressable.
    */
-  it('couvre toutes les clés d’onglets mobiles déclarées dans BaseChat', () => {
-    const source = fs.readFileSync(path.join(process.cwd(), 'app/components/chat/BaseChat.tsx'), 'utf8');
+  it('couvre toutes les clés d’onglets mobiles du méta partagé', () => {
+    /*
+     * ON IMPORTE LA CONSTANTE, ON NE LA CHERCHE PLUS AU GREP.
+     *
+     * Ce test lisait le TEXTE SOURCE de `BaseChat.tsx` pour y retrouver le bloc
+     * `ECODE_MOBILE_TAB_META_BASE` par expression régulière. Le bloc ayant été
+     * extrait dans `~/lib/mobile-tab-meta` — c'est tout l'objet de ce lot — la
+     * recherche rendait `null` et le test tombait, alors que la garde qu'il
+     * porte n'était pas en cause.
+     *
+     * Un test ancré sur la forme d'un fichier casse au premier déplacement,
+     * et son échec ne dit rien du contrat qu'il protège. L'import, lui, suit
+     * le code où qu'il aille — et il ne peut pas rendre silencieusement un
+     * objet vide, ce que le plancher de 40 clés servait à détecter.
+     */
+    const keys = Object.keys(ECODE_MOBILE_TAB_META_BASE);
 
-    const block = source.match(
-      /const ECODE_MOBILE_TAB_META_BASE: Record<string, \{ id: string; name: string; icon: string \}> = \{([\s\S]*?)\n\};/,
-    );
-
-    expect(block, 'bloc ECODE_MOBILE_TAB_META_BASE introuvable').not.toBeNull();
-
-    const keys = [...(block?.[1] ?? '').matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map((match) => match[1]);
-
-    expect(keys.length).toBeGreaterThan(40);
+    expect(keys.length, 'le méta ne peut pas être vide').toBeGreaterThan(20);
 
     const uncovered = keys.filter(
       (key) =>

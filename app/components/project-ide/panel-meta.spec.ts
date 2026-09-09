@@ -19,6 +19,13 @@ import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
 
 const baseChatSource = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
 
+/*
+ * `ECODE_MOBILE_TAB_META_BASE` ne vit plus dans `BaseChat.tsx` : il a été extrait
+ * pour que les autres surfaces et les tests puissent le consommer. Le bloc se lit
+ * donc désormais dans son module.
+ */
+const metaSource = readFileSync(join(__dirname, '..', '..', 'lib', 'mobile-tab-meta.ts'), 'utf8');
+
 /** Neutralise commentaires (blocs et lignes) pour ne matcher que du code. */
 const codeOnly = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ' ')).replace(/\/\/.*$/gm, '');
@@ -109,7 +116,10 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
   });
 
   it('les tuiles mobile référencent PANEL_ICONS (exceptions : agent + Terminal gelé)', () => {
-    const meta = extractBlock('const ECODE_MOBILE_TAB_META_BASE', '};');
+    const debut = metaSource.indexOf('const ECODE_MOBILE_TAB_META_BASE');
+    expect(debut, 'bloc du méta introuvable dans mobile-tab-meta.ts').toBeGreaterThan(-1);
+
+    const meta = metaSource.slice(debut, metaSource.indexOf('\n};', debut));
     const literalIcons = [...meta.matchAll(/icon: '([^']+)'/g)].map((entry) => entry[1]);
 
     /*
@@ -117,8 +127,15 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
      * Terminal mobile GELÉ (référence IMG_9149 d'Avi — il ne doit jamais
      * dériver via le registre), plus la tuile utilitaire `tools`.
      */
-    expect(new Set(literalIcons)).toEqual(new Set(['agent', 'i-ph:terminal-window', 'i-ph:stack']));
-    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(35);
+    expect(new Set(literalIcons)).toEqual(new Set(['agent', 'i-ph:terminal-window']));
+
+    /*
+     * Seuil ramené de 35 à 29 : la table comptait 47 entrées dont DIX-NEUF
+     * alias, retirés par ce lot. 29 est le nombre réel de panneaux qui tirent
+     * leur icône du registre — pas un seuil affaibli, le même contrat sur la
+     * table dégraissée.
+     */
+    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(29);
   });
 
   it('la palette nomme l’éditeur comme l’onglet (T2 — plus de « Code »)', () => {

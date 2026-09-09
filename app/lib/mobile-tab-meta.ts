@@ -24,7 +24,15 @@ import { PANEL_ICONS } from '~/components/project-ide/panel-meta';
 export const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
+
+  /*
+   * « Publish », pas « Deployments » : demande explicite d'Avi (« Deploy ou
+   * Publish au lieu de deployments »). Le catalogue i18n portait déjà
+   * `Publish`/`Publier` pendant que ce méta disait `Deployments` — une
+   * divergence À L'INTÉRIEUR du lot qui prétend unifier les libellés, donc le
+   * pire endroit où la laisser.
+   */
+  deployments: { id: 'deployments', name: 'Publish', icon: PANEL_ICONS.deployments },
   files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
   editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
   search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
