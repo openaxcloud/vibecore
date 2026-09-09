@@ -13723,12 +13723,18 @@ body :where(.lucide, svg[data-lucide]) {
   font-weight: 750;
 }
 
+/*
+ * Même règle pour la tâche en cours. C'est précisément la phrase qui explique
+ * l'attente à quelqu'un qui n'est pas ingénieur — « Installation de 1 248
+ * paquets, cela peut prendre une minute » — et la couper la vide de son sens.
+ */
 .bolt-preview-splash-task small {
-  overflow: hidden;
   color: var(--vc-ide-text-muted);
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-splash-task button {
@@ -13763,19 +13769,50 @@ body :where(.lucide, svg[data-lucide]) {
   transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/*
+ * BUG-PREVIEW-CUTOFF-001 (point 8 d'Avi) — « rien ne doit être coupé, et les
+ * écrans doivent être compréhensibles par quelqu'un qui n'est pas ingénieur ».
+ *
+ * ⚠️ CE QUI ÉTAIT RÉELLEMENT CASSÉ, ET OÙ. Une première mesure annonçait des
+ * coupures aux trois formats ; elle avait été prise sur la structure injectée
+ * dans une page NUE. Or un correctif mobile existait déjà — `.bolt-responsive-
+ * ide-mobile .bolt-preview-splash-steps strong`, sous `@media (max-width:
+ * 1199px)` — et n'avait aucune chance de s'y appliquer. Téléphone et tablette
+ * étaient donc DÉJÀ corrects.
+ *
+ * Le défaut vivait au-dessus de 1199 px, là où la règle mobile est inerte et
+ * où celle-ci, la règle de base, s'appliquait seule. Mesuré à 1280 px :
+ * « Démarrage du serveur de développement » = 259 px de texte dans une boîte
+ * de 102 px, « Préparation de l'espace de travail » = 211 px dans 102 px. Le
+ * `text-overflow: ellipsis` faisait son travail : il coupait. L'utilisateur
+ * lisait « Démarrage du serveur de dévelo… » et devait deviner le reste.
+ *
+ * La règle de base fait désormais ce que faisait l'override mobile : deux
+ * colonnes tant qu'on est étroit, et des libellés qui REVIENNENT À LA LIGNE.
+ * Contre-épreuve : en la remettant à l'état d'avant, seul le format web
+ * rougit — téléphone et tablette restent verts, tenus par l'override.
+ */
 .bolt-preview-splash-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-bg-panel) 35%);
   padding: 10px 14px;
 }
 
+@media (min-width: 640px) {
+  .bolt-preview-splash-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .bolt-preview-splash-steps div {
   display: flex;
   min-width: 0;
-  align-items: center;
+
+  /* Le numéro reste aligné sur la PREMIÈRE ligne du libellé, pas centré sur deux. */
+  align-items: flex-start;
   gap: 7px;
   color: var(--vc-ide-text-muted);
 }
@@ -13795,11 +13832,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-steps strong {
   min-width: 0;
-  overflow: hidden;
   font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-splash-steps div[data-state='active'] {
