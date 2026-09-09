@@ -14,6 +14,19 @@
 
 export const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
+/*
+ * LES ACTIONS SONT UNE CATEGORIE, PAS UNE EXCEPTION.
+ *
+ * Avi tranche : « hors du registre des panneaux, present dans la palette comme
+ * action ». `share` copie le lien puis ouvre Collaborators, `commands` ouvre la
+ * palette de commandes : ni l'un ni l'autre n'est un panneau, et pourtant tous
+ * deux sont proposes dans la liste d'outils.
+ *
+ * La categorie est portee par la DONNEE, sur l'outil lui-meme. C'est ce qui la
+ * distingue d'une liste d'exceptions tenue a cote : une liste parallele derive
+ * (mesure sur `MOBILE_TOOLS_HORS_ROUTAGE`, consomme par un test et par aucun
+ * code), un champ de l'entree ne peut pas diverger de l'entree.
+ */
 export type MobileToolItem = {
   id: string;
   section: 'search' | 'tools';
@@ -21,6 +34,9 @@ export type MobileToolItem = {
   descriptionKey: string;
   icon: string;
   tone?: string;
+
+  /** `action` : geste sur un panneau existant, jamais une destination de routage. */
+  kind?: 'action';
 };
 
 export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
@@ -184,6 +200,15 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     tone: 'info',
   },
   {
+    id: 'share',
+    section: 'tools',
+    titleKey: 'mobileIdeTabs.share.title',
+    descriptionKey: 'mobileIdeTabs.share.description',
+    icon: 'i-ph:share-network',
+    tone: 'info',
+    kind: 'action',
+  },
+  {
     id: 'preview',
     section: 'tools',
     titleKey: 'mobileIdeTabs.preview.title',
@@ -270,26 +295,32 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     descriptionKey: 'mobileIdeTabs.commands.description',
     icon: 'i-ph:command',
     tone: 'info',
+    kind: 'action',
   },
 ];
 
+/** Les ACTIONS, DERIVEES de la liste : une action ne route pas, elle agit. */
+export const MOBILE_TOOL_ACTIONS: readonly string[] = ECODE_MOBILE_TOOLS.filter((outil) => outil.kind === 'action').map(
+  (outil) => outil.id,
+);
+
 /*
- * OUTILS TRAITES PAR UNE BRANCHE NOMMEE de `activateMobileTool`, et non par la
- * table de routage : `agent` bascule sur le panneau de discussion, `commands`
- * ouvre la palette, `share` copie le lien puis ouvre Collaborators, et les
+ * PANNEAUX QUI ONT LEUR PROPRE BASCULE dans `activateMobileTool`, et ne passent
+ * donc pas par la table de routage : `agent` ouvre la discussion, et les
  * panneaux d'espace de travail (`files`, `editor`, `preview`, `search`,
- * `locks`, `terminal`) ont leur propre bascule.
+ * `locks`, `terminal`) sont montes par le plan de travail lui-meme.
  *
- * Declares ICI, une seule fois, parce que DEUX specs en avaient besoin et que
- * la seconde copie a derive : `share` manquait a celle de
- * `mobile-ide-tabs.spec.ts`, si bien qu'ajouter `share` au menu « More » la
- * faisait rougir a tort. Une liste d'exceptions dupliquee est une divergence
- * qui attend son heure — exactement le defaut que ce lot corrige par ailleurs.
+ * ⚠️ Avi, le 2026-09-09 : « consomme par un test et jamais par le code, c'est
+ * une declaration sans effet ». C'est exact, et ca reste vrai de cette liste :
+ * rien dans `activateMobileTool` ne la lit — elle DECRIT ses branches nommees
+ * au lieu de les commander. Consigne dans `BUG_INVENTORY_LIVE.md`.
+ *
+ * Ce qui change ici : les deux ACTIONS (`commands`, `share`) en sortent. Elles
+ * ne sont plus declarees a cote de la donnee mais DANS la donnee (`kind`), ou
+ * elles ne peuvent pas diverger de l'entree qu'elles decrivent.
  */
 export const MOBILE_TOOLS_HORS_ROUTAGE: readonly string[] = [
   'agent',
-  'commands',
-  'share',
   'files',
   'editor',
   'preview',

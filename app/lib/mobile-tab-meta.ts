@@ -61,6 +61,19 @@ export const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: stri
   domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
   overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
   studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
+
+  /*
+   * LES DEUX ACTIONS. Elles ne sont PAS des panneaux — d'ou l'icone en litteral,
+   * `PANEL_ICONS` ne les porte pas et ne doit pas les porter.
+   *
+   * Elles ont besoin d'un libelle pour la meme raison que les panneaux : la
+   * feuille d'outils lit le catalogue i18n, mais l'en-tete mobile, le selecteur
+   * d'onglets et l'acces rapide lisent CETTE table. `commands` etait rendu,
+   * fonctionnait, et n'avait pas de libelle ici : la seule surface qui le
+   * nommait le nommait « commands ».
+   */
+  commands: { id: 'commands', name: 'Commands', icon: 'i-ph:command' },
+  share: { id: 'share', name: 'Share', icon: 'i-ph:share-network' },
 };
 
 /*

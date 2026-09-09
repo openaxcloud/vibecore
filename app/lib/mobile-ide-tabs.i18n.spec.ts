@@ -51,9 +51,9 @@ describe('mobile IDE tabs i18n wiring', () => {
     expect(t('mobileIdeTabs.search.title')).toBe('Recherche');
     expect(t('mobileIdeTabs.deployments.title')).toBe('Publier');
     expect(t('mobileIdeTabs.database.title')).toBe('Base de données');
-    expect(t('mobileIdeTabs.env.title')).toBe('Variables');
+    expect(t('mobileIdeTabs.env.title')).toBe('Variables d’environnement');
     expect(t('mobileIdeTabs.git.title')).toBe('Git');
-    expect(t('mobileIdeTabs.preview.title')).toBe('Aperçu');
+    expect(t('mobileIdeTabs.preview.title')).toBe('Webview');
 
     // Frozen label, identical in both languages — and resolvable, not a raw literal.
     expect(t('mobileIdeTabs.terminal.title')).toBe(SHELL_TERMINAL_LABEL);
@@ -63,7 +63,7 @@ describe('mobile IDE tabs i18n wiring', () => {
     const en = createI18nInstance('en');
     expect(en.t('mobileIdeTabs.search.title')).toBe('Search');
     expect(en.t('mobileIdeTabs.deployments.title')).toBe('Publish');
-    expect(en.t('mobileIdeTabs.env.title')).toBe('Variables');
+    expect(en.t('mobileIdeTabs.env.title')).toBe('Environment variables');
     expect(en.t('mobileIdeTabs.terminal.title')).toBe(SHELL_TERMINAL_LABEL);
   });
 });

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { IDE_WORKSPACE_PANELS } from './ide/panel-registry';
-import { ECODE_MOBILE_MORE_ITEMS, ECODE_MOBILE_TOOLS, MOBILE_TOOL_TO_MANAGEMENT_PANEL } from './mobile-ide-tabs';
+import {
+  ECODE_MOBILE_MORE_ITEMS,
+  ECODE_MOBILE_TOOLS,
+  MOBILE_TOOLS_HORS_ROUTAGE,
+  MOBILE_TOOL_ACTIONS,
+  MOBILE_TOOL_TO_MANAGEMENT_PANEL,
+} from './mobile-ide-tabs';
 import { ECODE_MOBILE_TAB_META_BASE } from './mobile-tab-meta';
 
 /*
@@ -25,14 +31,12 @@ import { ECODE_MOBILE_TAB_META_BASE } from './mobile-tab-meta';
  */
 
 /*
- * Outils que `activateMobileTool` traite par une branche NOMMEE plutot que par
- * la table de routage. Ils sont volontairement hors registre : `commands` ouvre
- * la palette, `share` copie le lien puis ouvre Collaborators, `agent` bascule
- * sur le panneau de discussion. Les lister ici les rend EXPLICITES : en ajouter
- * un nouveau oblige a le declarer, plutot qu'a decouvrir en production qu'il
- * n'ouvre rien.
+ * Ce qui n'a pas besoin de la table de routage : les ACTIONS, lues dans la
+ * donnee (`kind`), et les panneaux qui ont leur propre bascule. Aucune liste
+ * recopiee ici — une exception recopiee dans un test finit par decrire un etat
+ * du code qui n'existe plus.
  */
-const TRAITES_PAR_UNE_BRANCHE_NOMMEE = new Set(['agent', 'commands', 'share']);
+const SANS_ROUTAGE = new Set([...MOBILE_TOOL_ACTIONS, ...MOBILE_TOOLS_HORS_ROUTAGE]);
 
 describe('les surfaces qui pretendent lister listent la meme chose', () => {
   it("liste d'outils et menu « More » sont STRICTEMENT egaux, dans les deux sens", () => {
@@ -51,14 +55,34 @@ describe('les surfaces qui pretendent lister listent la meme chose', () => {
     ).toEqual(outils);
   });
 
-  it("`share` n'est pas un panneau : il ne figure pas dans la liste", () => {
+  it('une ACTION est proposee dans la palette ET absente du registre des panneaux', () => {
     /*
-     * `share` copie le lien puis ouvre Collaborators — c'est une ACTION sur un
-     * panneau existant, pas un panneau. Le laisser dans la liste des panneaux,
-     * c'est y compter deux fois la meme destination.
+     * Avi tranche le 2026-09-09 : « `share` reste accessible dans la palette
+     * mobile […] hors du registre des panneaux, present dans la palette comme
+     * action ». Les deux moities comptent, et ce test les tient ENSEMBLE :
+     *
+     *   - retirer `share` de la palette (ce que faisait ce lot) fait rougir la
+     *     premiere assertion ;
+     *   - lui inventer une destination de panneau fait rougir la seconde.
+     *
+     * Ma faute d'hier etait de traiter « pas un panneau » comme « pas dans la
+     * liste ». Une action n'est pas un panneau EN MOINS, c'est une categorie a
+     * cote — et une categorie s'exclut du routage, pas de l'interface.
      */
-    expect(ECODE_MOBILE_TOOLS.map((tool) => tool.id)).not.toContain('share');
-    expect(ECODE_MOBILE_MORE_ITEMS).not.toContain('share');
+    const proposes = ECODE_MOBILE_TOOLS.map((tool) => tool.id);
+    const panneaux = new Set<string>(IDE_WORKSPACE_PANELS);
+
+    expect(MOBILE_TOOL_ACTIONS, 'les actions declarees').toEqual(['share', 'commands']);
+
+    for (const action of MOBILE_TOOL_ACTIONS) {
+      expect(proposes, `action absente de la liste d'outils : ${action}`).toContain(action);
+      expect(ECODE_MOBILE_MORE_ITEMS, `action absente du menu « More » : ${action}`).toContain(action);
+      expect(panneaux.has(action), `action declaree comme panneau : ${action}`).toBe(false);
+      expect(
+        Object.prototype.hasOwnProperty.call(MOBILE_TOOL_TO_MANAGEMENT_PANEL, action),
+        `action routee comme un panneau : ${action}`,
+      ).toBe(false);
+    }
   });
 
   it('un seul libelle par panneau : aucune entree de metadonnees qui ne soit un outil reel', () => {
@@ -72,6 +96,21 @@ describe('les surfaces qui pretendent lister listent la meme chose', () => {
     const alias = Object.keys(ECODE_MOBILE_TAB_META_BASE).filter((id) => !outils.has(id));
 
     expect(alias, `alias restants dans les metadonnees : ${alias.join(', ')}`).toEqual([]);
+  });
+
+  it('tout outil propose porte un libellé — dans les DEUX sens', () => {
+    /*
+     * LE DEFAUT QU'AVI A NOMME. `commands` etait rendu, il fonctionnait, et
+     * aucune entree du meta ne le nommait : l'en-tete mobile et le selecteur
+     * d'onglets affichaient donc « commands ». Le test voisin ne tenait qu'un
+     * sens (aucune entree en trop) ; celui-ci tient l'autre (aucun outil sans
+     * libelle), et c'est le sens qui manquait.
+     */
+    const sansLibelle = ECODE_MOBILE_TOOLS.map((tool) => tool.id).filter(
+      (id) => !Object.prototype.hasOwnProperty.call(ECODE_MOBILE_TAB_META_BASE, id),
+    );
+
+    expect(sansLibelle, `outils sans libelle dans le meta : ${sansLibelle.join(', ')}`).toEqual([]);
   });
 
   it("le menu « More » propose TOUT ce que propose la liste d'outils", () => {
@@ -97,7 +136,7 @@ describe('les surfaces qui pretendent lister listent la meme chose', () => {
 
     const perdus = ECODE_MOBILE_TOOLS.map((tool) => tool.id).filter(
       (id) =>
-        !TRAITES_PAR_UNE_BRANCHE_NOMMEE.has(id) &&
+        !SANS_ROUTAGE.has(id) &&
         !Object.prototype.hasOwnProperty.call(MOBILE_TOOL_TO_MANAGEMENT_PANEL, id) &&
         !panneaux.has(id),
     );
