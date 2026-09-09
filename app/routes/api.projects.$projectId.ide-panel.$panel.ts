@@ -21,6 +21,8 @@ import {
 } from '~/lib/i18n/catalogs/api-runtime-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
+import { messageDEchecDInstallation } from '~/lib/ide/message-echec-installation';
+import { objectStorageResultOrDisabled } from '~/lib/ide/panneau-stockage-objets';
 import {
   extractGrepMatchLines,
   isGrepMatchLine,
@@ -1429,47 +1431,6 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
   }
 }
 
-/*
- * Object Storage (GCS) is flag-gated (OBJECT_STORAGE_ENABLED): every internal
- * route 404s with code FEATURE_NOT_ENABLED while the flag is off. Translate that
- * into a structured `{ enabled: false }` payload so the IDE panel can render a
- * clear "not enabled" state instead of a 502; any other error is re-thrown.
- *
- * BUG-STORAGE-001 — LE FOURRE-TOUT QUI FAISAIT MENTIR LE PANNEAU.
- *
- * La condition portait aussi `payload.code === undefined` : N'IMPORTE QUEL 404
- * sans champ `code` était traduit en « le stockage d'objets n'a pas été activé
- * par un administrateur ». Une panne amont — passerelle, route absente pendant
- * un déploiement, proxy — devenait donc, à l'écran, une phrase qui DÉSIGNE UNE
- * CAUSE PRÉCISE ET FAUSSE, et envoie l'utilisateur demander à son
- * administrateur d'activer ce qui l'est déjà. C'est ce que l'audit du 15/08 a
- * vu : la fonctionnalité était bien active, et l'amont ne répondait pas.
- *
- * Vérifié avant de resserrer, plutôt que supposé : NOTRE API met TOUJOURS le
- * code quand la fonctionnalité est éteinte (`OBJECT_STORAGE_DISABLED` →
- * `code: 'FEATURE_NOT_ENABLED'`), et le seul autre 404 du domaine
- * (`BUCKET_NOT_PROVISIONED`) porte le sien. Aucun cas légitime ne passait donc
- * par la branche `undefined` — elle n'attrapait que des pannes, pour les
- * déguiser.
- *
- * Une erreur qu'on ne sait pas nommer se remonte comme une erreur. Un message
- * faux coûte plus cher qu'un message générique.
- */
-export async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
-  if (error instanceof Response && error.status === 404) {
-    const payload = (await error
-      .clone()
-      .json()
-      .catch(() => ({}))) as { code?: string };
-
-    if (payload.code === 'FEATURE_NOT_ENABLED') {
-      return json({ enabled: false, objects: [], folders: [] });
-    }
-  }
-
-  throw error;
-}
-
 async function actionHandler({ request, params }: EnterpriseActionArgs) {
   const language = resolveRequestLocale(request).language;
   const copy = getApiRuntimeRoutesCopy(language);
@@ -2494,6 +2455,36 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * BUG-IDE-005 — UN RUN QUI ÉCHOUE NE PEUT PLUS RÉPONDRE « ok ».
+     *
+     * Le bloc retombait sur le `return json({ ok: true })` commun quel que soit
+     * `run.exitCode`. Mesuré le 06/08 : `HTTP 200 {ok:true}` pendant que le run
+     * enregistré portait `exitCode 1 / status failed`, et que RIEN n'était
+     * installé. L'échec n'existait que dans la liste « Install & runtime
+     * checks » de la barre latérale — sous la ligne de flottaison, là où
+     * personne ne regarde après avoir cliqué « Installer ».
+     *
+     * MÊME MÉCANISME QUE BUG-GIT-001, corrigé le même jour : une action qui ne
+     * fait rien, ou qui rate, ne doit pas répondre comme si elle avait réussi.
+     * C'est la règle, pas l'occurrence.
+     *
+     * Le refus vient APRÈS l'écriture de l'historique : la trace du run et sa
+     * sortie restent consultables, ce qui est précisément ce qu'il faut pour
+     * diagnostiquer. Et le message porte la fin de la sortie — la cause réelle
+     * (module introuvable, registre injoignable…), pas un « échec » nu.
+     */
+    if (run.exitCode !== 0) {
+      throw json(
+        {
+          error: messageDEchecDInstallation(run, language),
+          code: 'PACKAGE_RUN_FAILED',
+          run: { id: run.id, exitCode: run.exitCode, status: run.status },
+        },
+        { status: 422 },
+      );
+    }
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real

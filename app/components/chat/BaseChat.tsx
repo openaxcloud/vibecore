@@ -186,7 +186,7 @@ import {
   defaultProjectAgentPanelWidth,
   projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
-import type { FileMap } from '~/lib/stores/files';
+import { CODE_CONFLIT_DISTANT, type FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -6126,10 +6126,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * runtime write error — left the user believing the file was saved when
      * it was not (silent data loss).
      */
+    /*
+     * BUG-IDE-004 — UN CONFLIT DOIT AVOIR UNE SORTIE.
+     *
+     * Le garde de concurrence protégeait le fichier distant en sacrifiant le
+     * travail de l'utilisateur : mesuré le 06/08, l'onglet restait sale après
+     * le bouton Save, Ctrl+S ET Cmd+S, et l'édition n'était persistée dans
+     * AUCUN des trois magasins. Chaque tentative échouait, indéfiniment, sur
+     * un message générique.
+     *
+     * Un conflit se distingue donc d'une panne d'écriture, il se NOMME, et il
+     * propose le seul geste qui sauve le travail : écrire quand même. Jamais
+     * automatiquement — c'est l'utilisateur qui tranche, en connaissance de
+     * cause.
+     */
     const handleSaveError = useCallback(
-      (error: unknown) => {
+      (error: unknown, filePath?: string) => {
         console.error('Project file save failed', error);
-        toast.error(t('baseChatAst.editor.saveFailed'));
+
+        const conflit = (error as { code?: string } | null)?.code === CODE_CONFLIT_DISTANT;
+        const chemin = filePath ?? (error as { filePath?: string } | null)?.filePath;
+
+        if (!conflit || !chemin) {
+          toast.error(t('baseChatAst.editor.saveFailed'));
+          return;
+        }
+
+        toast.error(
+          ({ closeToast }) => (
+            <div className="bolt-editor-conflit">
+              <p>{t('baseChatAst.editor.saveConflict', { file: chemin.split('/').pop() ?? chemin })}</p>
+              <button
+                type="button"
+                data-testid="editor-conflit-ecraser"
+                onClick={() => {
+                  closeToast?.();
+                  workbenchStore
+                    .saveFile(chemin, { onRemoteConflict: 'overwrite' })
+                    .catch(() => toast.error(t('baseChatAst.editor.saveFailed')));
+                }}
+              >
+                {t('baseChatAst.editor.saveConflictOverwrite')}
+              </button>
+            </div>
+          ),
+          { toastId: `save-conflict-${chemin}`, autoClose: false },
+        );
       },
       [t],
     );
@@ -6146,7 +6188,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFile(filePath).catch((error) => handleSaveError(error, filePath));
       },
       [handleSaveError],
     );

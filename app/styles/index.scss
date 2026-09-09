@@ -18023,6 +18023,37 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1.5 !important;
 }
 
+/*
+ * BUG-IDE-004 — l'invite de conflit de sauvegarde, dans une notification.
+ * Elle reste ouverte tant que l'utilisateur n'a pas tranché : c'est son
+ * travail qui est en jeu.
+ */
+.bolt-editor-conflit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bolt-editor-conflit p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-editor-conflit button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bolt-elements-button-primary-background, #0079f2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+
+  /* Cible tactile : l'iPhone d'Avi, pas seulement la souris. */
+  min-height: 32px;
+}
+
 .bolt-publication {
   display: flex;
   width: 100%;

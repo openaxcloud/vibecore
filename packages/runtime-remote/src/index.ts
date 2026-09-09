@@ -84,6 +84,13 @@ function parseRetryAfterMs(header: string | null): number | undefined {
   return undefined;
 }
 
+/**
+ * BUG-GIT-002 — code du refus émis SANS toucher au réseau quand aucun
+ * identifiant d'espace de travail n'est disponible. L'appelant le reconnaît
+ * et choisit le message à montrer.
+ */
+export const CODE_IDENTIFIANT_REQUIS = 'RUNTIME_WORKSPACE_ID_REQUIRED';
+
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly mode = 'remote-kubernetes' as const;
   readonly capabilities: RuntimeCapability[] = [
@@ -187,9 +194,14 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
 
     if (!requestedId && !projectIdDesMetadonnees) {
-      throw Object.assign(new Error('A workspace id or project id is required to start a workspace.'), {
-        code: 'RUNTIME_WORKSPACE_ID_REQUIRED',
-      });
+      /*
+       * Le message EST le code, et il n'y a qu'une seule source pour les deux.
+       * Les mots destinés à l'utilisateur vivent dans le catalogue
+       * (`gitClone.error.projectRequired`), traduits ; en écrire ici en dur
+       * les dédoublerait dans une seule langue — ce que le garde `i18n:check`
+       * refuse, à raison, et ce qui a fait échouer la CI du run 1579.
+       */
+      throw Object.assign(new Error(CODE_IDENTIFIANT_REQUIS), { code: CODE_IDENTIFIANT_REQUIS });
     }
 
     let payload: WorkspaceSession | undefined;
