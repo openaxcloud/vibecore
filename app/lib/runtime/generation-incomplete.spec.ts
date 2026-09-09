@@ -38,6 +38,36 @@ const BOUTIQUE_COMPLETE: Record<string, string> = {
 };
 
 describe('une génération qui ne peut pas démarrer ne s’annonce pas comme réussie', () => {
+  /*
+   * LE CAS QUE LES DEUX AUTRES CRITÈRES NE VOIENT PAS.
+   *
+   * Mesuré en production le 2026-09-09 : la clé Anthropic est à court de crédit,
+   * le repli automatique bascule sur `gpt-4.1`, et ce modèle répond à une
+   * consigne substantielle par un plan d'architecture terminé par « Je passe
+   * maintenant à la phase d'implémentation complète » — puis s'arrête.
+   * `finishReason=stop`, `segments=0`, artefact 0 ouvert / 0 fermé, ZÉRO fichier.
+   * Trois fois sur trois.
+   *
+   * Ni la fermeture de secours ni le contrôle d'`index.html` ne peuvent voir ça :
+   * il n'y a ni artefact à fermer, ni `index.html` à relire. L'utilisateur reçoit
+   * un plan et une application vide, sans le moindre signal.
+   *
+   * Le critère qui manquait ne dépend d'aucun des deux : une génération qui se
+   * termine sans avoir écrit UN SEUL fichier n'est pas une réussite.
+   */
+  it('AUCUN FICHIER — une génération qui n’écrit rien n’est pas une réussite', () => {
+    const constat = analyserGeneration({}, { fermetureDeSecours: false });
+
+    expect(constat.aucunFichier, 'zéro fichier écrit').toBe(true);
+    expect(generationEstHonnete(constat), 'un plan sans code n’est pas une app').toBe(false);
+  });
+
+  it('TÉMOIN POSITIF — un seul fichier écrit suffit à sortir de ce cas', () => {
+    const constat = analyserGeneration({ 'package.json': '{}' }, { fermetureDeSecours: false });
+
+    expect(constat.aucunFichier).toBe(false);
+  });
+
   it('nomme le module réclamé par index.html et absent du disque', () => {
     const constat = analyserGeneration(BOUTIQUE_TRONQUEE, { fermetureDeSecours: false });
 
