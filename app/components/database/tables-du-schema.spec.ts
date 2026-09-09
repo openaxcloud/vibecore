@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { tablesDuSchema, tailleDeLaBase } from './tables-du-schema';
+import { nomDeLaBase, tablesDuSchema, tailleDeLaBase } from './tables-du-schema';
 
 /*
  * RP-DB-05 — défaut MESURÉ le 08/09.
@@ -70,5 +70,26 @@ describe('tables du schéma', () => {
     expect(tailleDeLaBase(REPONSE_REELLE)).toBe(55606295);
     expect(tailleDeLaBase({ schema: {} })).toBeUndefined();
     expect(tailleDeLaBase(undefined)).toBeUndefined();
+  });
+});
+
+describe('nom d’une base', () => {
+  const libelles = {
+    'databaseWorkbench.env.development': 'Base de développement',
+    'databaseWorkbench.env.production': 'Base de production',
+  };
+
+  it('nomme par l’environnement, comme Replit', () => {
+    expect(nomDeLaBase({ key: 'DATABASE_URL', environment: 'development' }, libelles)).toBe('Base de développement');
+    expect(nomDeLaBase({ key: 'PROD_DATABASE_URL', environment: 'production' }, libelles)).toBe('Base de production');
+  });
+
+  it('un environnement INDÉTERMINÉ garde la clé : on ne prétend pas savoir', () => {
+    expect(nomDeLaBase({ key: 'DATABASE_URL', environment: 'shared' }, libelles)).toBe('DATABASE_URL');
+    expect(nomDeLaBase({ key: 'AUTRE_URL' }, libelles)).toBe('AUTRE_URL');
+  });
+
+  it('un nom explicite l’emporte sur tout le reste', () => {
+    expect(nomDeLaBase({ name: 'Ma base', key: 'DATABASE_URL', environment: 'development' }, libelles)).toBe('Ma base');
   });
 });

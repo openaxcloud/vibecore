@@ -14,7 +14,7 @@ import {
 } from './login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, projectSnapshotManifest } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -105,6 +105,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from './store.js';
 
 function now() {
@@ -2862,10 +2863,24 @@ export class PrismaApiStore implements ApiStore {
     return snapshot ? mapSnapshot(snapshot) : undefined;
   }
 
-  async listSnapshots(projectId: string) {
-    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
-      mapSnapshot,
-    );
+  /**
+   * PANEL-PERF — la requête est bornable et le manifeste projetable.
+   *
+   * Sans option, le comportement est celui d'avant, à l'identique : toutes les
+   * lignes, manifeste complet. Le tri secondaire sur `id` rend l'ordre TOTAL,
+   * sans quoi deux instantanés du même tour d'agent (même `createdAt` à la
+   * seconde) pourraient s'échanger entre deux pages — et la pagination perdrait
+   * ou dupliquerait une ligne.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const rows = await this.prisma.projectSnapshot.findMany({
+      where: { projectId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(options?.take ? { take: options.take } : {}),
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+    });
+
+    return rows.map((row) => projectSnapshotManifest(mapSnapshot(row), options?.manifest));
   }
 
   async putProjectStorageObject(input: {

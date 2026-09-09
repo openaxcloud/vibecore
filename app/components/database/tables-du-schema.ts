@@ -82,3 +82,34 @@ export function tailleDeLaBase(donnees: unknown): number | undefined {
 
   return nombre(schema.databaseSizeBytes ?? racine.databaseSizeBytes);
 }
+
+/*
+ * RP-DB-02 / RP-DB-08 — le NOM d'une base.
+ *
+ * Replit écrit « Development Database » et « Production Database ». Chez nous
+ * la carte affichait « DATABASE_URL » : les connexions rendues par l'API
+ * portent une `key` et un `environment`, jamais un `name`, et la vue retombait
+ * donc sur la clé.
+ *
+ * On nomme désormais par l'ENVIRONNEMENT — ce qui n'a de sens que depuis que
+ * celui-ci est juste (l'instance gérée fait foi pour sa clé, corrigé le même
+ * jour). Un environnement « shared », lui, ne se traduit pas : la clé reste le
+ * nom, parce que nous ne savons effectivement pas de quelle base il s'agit.
+ */
+export function nomDeLaBase(
+  entree: { name?: unknown; label?: unknown; displayName?: unknown; environment?: unknown; key?: unknown },
+  libelles: Readonly<Record<string, string>>,
+): string {
+  const explicite = [entree.name, entree.label, entree.displayName].find(
+    (valeur): valeur is string => typeof valeur === 'string' && valeur.trim().length > 0,
+  );
+
+  if (explicite) {
+    return explicite;
+  }
+
+  const environnement = typeof entree.environment === 'string' ? entree.environment : '';
+  const libelle = libelles[`databaseWorkbench.env.${environnement}`];
+
+  return libelle ?? (typeof entree.key === 'string' ? entree.key : '');
+}

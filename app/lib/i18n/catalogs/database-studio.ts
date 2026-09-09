@@ -20,6 +20,10 @@ export const databaseStudioEn = {
   'databaseStudio.productionTitle':
     'The active connection looks like a production database. Destructive statements require confirmation before they run.',
   'databaseStudio.production': 'Production',
+  'databaseWorkbench.env.development': 'Development Database',
+  'databaseWorkbench.env.production': 'Production Database',
+  'databaseWorkbench.env.staging': 'Staging Database',
+  'databaseWorkbench.env.preview': 'Preview Database',
   'databaseStudio.exportCsv': 'Export CSV',
   'databaseStudio.insertRow': '+ Insert row',
   'databaseStudio.editing': 'Editing — click a cell',
@@ -112,6 +116,10 @@ export const databaseStudioFr: DatabaseStudioCopy = {
   'databaseStudio.productionTitle':
     'La connexion active semble pointer vers une base de données de production. Les instructions destructrices nécessitent une confirmation.',
   'databaseStudio.production': 'Production',
+  'databaseWorkbench.env.development': 'Base de développement',
+  'databaseWorkbench.env.production': 'Base de production',
+  'databaseWorkbench.env.staging': 'Base de préproduction',
+  'databaseWorkbench.env.preview': 'Base d’aperçu',
   'databaseStudio.exportCsv': 'Exporter en CSV',
   'databaseStudio.insertRow': '+ Insérer une ligne',
   'databaseStudio.editing': 'Modification — cliquez sur une cellule',
