@@ -9574,6 +9574,41 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 22px !important;
 }
 
+/*
+ * BUG-SECURITY-FONT-001 — Avi (point 5) : « pour la tab sécurité est-ce que
+ * c'est la même taille de police que ce qu'on a fait partout ? »
+ *
+ * MESURÉ le 09/09 à 390 px, panneau contre panneau, plutôt que jugé à l'œil :
+ *
+ *   Secrets (la référence, déjà alignée) ... titre 22px, corps 13-14px
+ *   Sécurité ............................... titre 12px, et 12 éléments à 12px
+ *
+ * Le titre « Scanner de sécurité et confidentialité » était donc PLUS PETIT
+ * que le texte qu'il coiffe : son `h3` ne porte aucune classe, il tombait
+ * dans la remise à plat de la coque et personne ne l'avait relevé — Secrets
+ * avait eu son exception, Sécurité non.
+ *
+ * Les 12 px des lignes de détail (`.bolt-panel-row-detail`, `text-xs`) NE SONT
+ * PAS corrigés ici, et c'est délibéré. J'ai essayé, et je ne peux pas montrer
+ * que ça marche : une règle `!important` à (0,3,0) n'a AUCUN effet sur ces
+ * onze éléments. Vérifié le 09/09, dans la page :
+ *
+ *   sélecteur qui correspond (`el.matches`) .............. oui
+ *   règle présente dans la feuille SERVIE ................ oui
+ *   même règle réinjectée en DERNIER, `!important` ....... 12px, inchangé
+ *   `.bolt-panel-row-detail{font-size:41px!important}` ... 12px, inchangé
+ *   témoin positif : la même valeur EN LIGNE ............. 41px, appliqué
+ *
+ * Le témoin positif prouve que la mesure fonctionne : ce sont bien les règles
+ * de feuille qui ne prennent pas, et je n'ai pas trouvé pourquoi. Livrer une
+ * règle dont je ne peux pas démontrer l'effet reviendrait à écrire du CSS
+ * décoratif — la question reste donc ouverte, avec ses mesures.
+ */
+.bolt-project-ide-shell .bolt-project-security-summary h3,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-security-summary h3 {
+  font-size: 22px !important;
+}
+
 .bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-text,
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-text,
 .bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
