@@ -711,7 +711,21 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/databases`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, `/projects/${projectId}/snapshots`).catch(() => ({ snapshots: [] })),
+
+        /*
+         * PANEL-PERF — projection SOMMAIRE, pas suppression de l'appel.
+         *
+         * Le panneau consomme bien ces instantanés : la chaîne vivante est
+         * BaseChat → DatabaseWorkbench → DatabaseSettings → DatabaseRollbackPanel,
+         * qui lit `data.snapshots`. Mais il n'en lit que cinq champs — id,
+         * label, kind, sizeBytes, createdAt — et jamais le manifeste.
+         *
+         * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+         * ce panneau expédiait 1 282 Ko, soit à quelques kilo-octets près le
+         * corps du panneau Instantanés lui-même. Avec `fields=summary`, la même
+         * interface est servie par ~127 Ko (−90,1 %).
+         */
+        apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] })),
       ]);
       const schema = schemaKey
         ? await apiRequest(
@@ -914,11 +928,29 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const workspaceCtx =
         panel === 'monitoring' ? await resolvePanelWorkspace(request, projectId, requestedWorkspaceId) : undefined;
 
+      /*
+       * PANEL-PERF — une branche lente ne doit pas emporter l'enveloppe entière.
+       *
+       * Le bloc `database` plus haut garde chacune de ses branches ; celui-ci
+       * n'en gardait AUCUNE. Or `apiRequest` abandonne à 30 s
+       * (`enterprise-api.server.ts`, `AbortSignal.timeout(30_000)`) — bien avant
+       * l'ingress, qui est à 180 s. Un seul amont lent faisait donc basculer
+       * tout le panneau en erreur, au lieu de rendre ce qui avait répondu.
+       * Chaque branche est ensuite étalée par `...(x as any)` : un objet vide
+       * est absorbé sans dommage, et l'enveloppe se déclare honnêtement vide.
+       *
+       * ⚠️ La branche `panel === 'database'` ci-dessous est INATTEIGNABLE : le
+       * bloc `if (panel === 'database')` plus haut retourne dans ses deux
+       * chemins. Vérifié, laissé en place — sa suppression appartient à la
+       * session qui refond cette route.
+       */
       const [dashboard, envVars, deployments, snapshots] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/dashboard`),
-        apiRequest(request, `/projects/${projectId}/env-vars`),
-        apiRequest(request, `/projects/${projectId}/deployments`),
-        panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
+        apiRequest(request, `/projects/${projectId}/dashboard`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/deployments`).catch(() => ({})),
+        panel === 'database'
+          ? apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] }))
+          : Promise.resolve({}),
       ]);
 
       const workspaceId = workspaceCtx?.selectedWorkspaceId ?? (dashboard as any)?.workspace?.id ?? projectId;

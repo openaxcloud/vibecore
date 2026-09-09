@@ -9,7 +9,7 @@ import {
   type LoginThrottleConfig,
 } from '../login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
-import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import { DEFAULT_ENV_VAR_SCOPE, projectSnapshotManifest } from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -102,6 +102,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from '../store.js';
 
 function id(prefix: string) {
@@ -1819,8 +1820,24 @@ export class TestApiStore implements ApiStore {
     return this.snapshots.get(id);
   }
 
-  async listSnapshots(projectId: string) {
-    return [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId);
+  /*
+   * PANEL-PERF — même contrat que le magasin Prisma, et la projection vient de
+   * la MÊME fonction partagée : un garde-fou qui recopierait la règle ici
+   * resterait vert pendant que le produit diverge.
+   *
+   * `reverse()` avant le tri : `Array.prototype.sort` est stable, donc à
+   * `createdAt` égal (fréquent — plusieurs instantanés dans le même tour) les
+   * plus récemment insérés restent devant, comme le tri secondaire sur `id`
+   * côté Prisma.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const toutes = [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId).reverse();
+    toutes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const depart = options?.cursor ? toutes.findIndex((snapshot) => snapshot.id === options.cursor) + 1 : 0;
+    const fenetre = toutes.slice(depart, options?.take ? depart + options.take : undefined);
+
+    return fenetre.map((snapshot) => projectSnapshotManifest(snapshot, options?.manifest));
   }
 
   async putProjectStorageObject(input: {
