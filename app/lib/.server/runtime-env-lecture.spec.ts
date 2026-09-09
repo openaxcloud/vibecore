@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { isWebFetchToolEnabled } from './web-fetch-tool';
+import { isWebFetchToolEnabled } from './web/web-fetch-tool';
 
 /*
  * LE PIÈGE, MESURÉ SUR LE BUILD DE PRODUCTION LOCAL — pas déduit de la lecture.
@@ -29,7 +29,7 @@ import { isWebFetchToolEnabled } from './web-fetch-tool';
  * comme `api.chat.web-reference-cablage.spec.ts`.
  */
 
-const DIR = join(process.cwd(), 'app/lib/.server/web');
+const RACINE = join(process.cwd(), 'app/lib/.server');
 
 /**
  * `NODE_ENV` est la seule exception légitime : `vite.config.ts` l'inline au
@@ -38,10 +38,35 @@ const DIR = join(process.cwd(), 'app/lib/.server/web');
  */
 const AUTORISE = /^NODE_ENV$/;
 
+/**
+ * TOUS les modules serveur sous `app/lib/.server`, pas seulement ceux de la
+ * référence web. La première version de cette garde ne couvrait que le
+ * sous-dossier `web/`, et laissait donc vivre les trois lectures nues de
+ * `stream-text.ts` et `model-routing.ts` — le même défaut, dans le même bundle,
+ * hors du champ du scanner. Une garde qui ne regarde qu'où l'on a déjà corrigé
+ * ne garde rien (règle 7).
+ */
 function sourcesServeur(): Array<{ nom: string; texte: string }> {
-  return readdirSync(DIR)
-    .filter((nom) => nom.endsWith('.ts') && !nom.endsWith('.spec.ts'))
-    .map((nom) => ({ nom, texte: readFileSync(join(DIR, nom), 'utf8') }));
+  const fichiers: Array<{ nom: string; texte: string }> = [];
+
+  const descendre = (dossier: string, prefixe: string) => {
+    for (const entree of readdirSync(dossier, { withFileTypes: true })) {
+      const chemin = join(dossier, entree.name);
+
+      if (entree.isDirectory()) {
+        descendre(chemin, `${prefixe}${entree.name}/`);
+        continue;
+      }
+
+      if (entree.name.endsWith('.ts') && !entree.name.endsWith('.spec.ts')) {
+        fichiers.push({ nom: `${prefixe}${entree.name}`, texte: readFileSync(chemin, 'utf8') });
+      }
+    }
+  };
+
+  descendre(RACINE, '');
+
+  return fichiers;
 }
 
 /** Retire commentaires de bloc et de ligne : un piège EXPLIQUÉ n'est pas un piège commis. */
@@ -49,13 +74,17 @@ function sansCommentaires(texte: string): string {
   return texte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
-describe('lecture d’environnement dans les modules serveur de la référence web', () => {
+describe('lecture d’environnement dans TOUS les modules serveur (app/lib/.server)', () => {
   it('témoin positif : le scanner voit bien les fichiers et sait repérer une lecture nue', () => {
     const fichiers = sourcesServeur();
 
     // Sans ce témoin, un « 0 occurrence » pourrait venir d'un dossier vide (règle 14).
-    expect(fichiers.length).toBeGreaterThanOrEqual(6);
-    expect(fichiers.map((f) => f.nom)).toContain('rate-limit-redis.server.ts');
+    expect(fichiers.length).toBeGreaterThanOrEqual(20);
+
+    // Le scanner descend bien dans les sous-dossiers, pas seulement à la racine.
+    expect(fichiers.map((f) => f.nom)).toContain('web/rate-limit-redis.server.ts');
+    expect(fichiers.map((f) => f.nom)).toContain('llm/stream-text.ts');
+    expect(fichiers.map((f) => f.nom)).toContain('llm/model-routing.ts');
 
     // Le scanner doit voir les DEUX formes qui ont réellement mordu.
     expect(sansCommentaires('const a = process.env.REDIS_URL;')).toContain('process.env.REDIS_URL');
@@ -101,8 +130,8 @@ describe('lecture d’environnement dans les modules serveur de la référence w
   });
 
   it('les deux lecteurs d’environnement passent bien par readRuntimeEnv', () => {
-    const redis = readFileSync(join(DIR, 'rate-limit-redis.server.ts'), 'utf8');
-    const outil = readFileSync(join(DIR, 'web-fetch-tool.ts'), 'utf8');
+    const redis = readFileSync(join(RACINE, 'web/rate-limit-redis.server.ts'), 'utf8');
+    const outil = readFileSync(join(RACINE, 'web/web-fetch-tool.ts'), 'utf8');
 
     expect(redis).toContain("import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';");
     expect(redis).toContain("readRuntimeEnv('REDIS_URL')");
