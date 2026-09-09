@@ -2494,6 +2494,36 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * BUG-IDE-005 — UN RUN QUI ÉCHOUE NE PEUT PLUS RÉPONDRE « ok ».
+     *
+     * Le bloc retombait sur le `return json({ ok: true })` commun quel que soit
+     * `run.exitCode`. Mesuré le 06/08 : `HTTP 200 {ok:true}` pendant que le run
+     * enregistré portait `exitCode 1 / status failed`, et que RIEN n'était
+     * installé. L'échec n'existait que dans la liste « Install & runtime
+     * checks » de la barre latérale — sous la ligne de flottaison, là où
+     * personne ne regarde après avoir cliqué « Installer ».
+     *
+     * MÊME MÉCANISME QUE BUG-GIT-001, corrigé le même jour : une action qui ne
+     * fait rien, ou qui rate, ne doit pas répondre comme si elle avait réussi.
+     * C'est la règle, pas l'occurrence.
+     *
+     * Le refus vient APRÈS l'écriture de l'historique : la trace du run et sa
+     * sortie restent consultables, ce qui est précisément ce qu'il faut pour
+     * diagnostiquer. Et le message porte la fin de la sortie — la cause réelle
+     * (module introuvable, registre injoignable…), pas un « échec » nu.
+     */
+    if (run.exitCode !== 0) {
+      throw json(
+        {
+          error: messageDEchecDInstallation(run, language),
+          code: 'PACKAGE_RUN_FAILED',
+          run: { id: run.id, exitCode: run.exitCode, status: run.status },
+        },
+        { status: 422 },
+      );
+    }
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real
@@ -4763,6 +4793,40 @@ async function runWorkspaceSshGit(input: {
   }
 
   return { output: run.output };
+}
+
+/**
+ * BUG-IDE-005 — dire POURQUOI l'installation a échoué, pas seulement qu'elle a
+ * échoué.
+ *
+ * La sortie de la commande porte la vraie cause (paquet introuvable, registre
+ * injoignable, conflit de versions). On en rend la FIN : c'est là que les
+ * gestionnaires de paquets écrivent leur diagnostic, alors que le début n'est
+ * que du bruit de résolution.
+ *
+ * Bornée à 400 caractères — un message d'interface, pas un journal ; la sortie
+ * complète reste dans l'historique des runs, écrit juste avant.
+ */
+export function messageDEchecDInstallation(
+  run: { exitCode?: number; output?: string },
+  language?: string | null,
+): string {
+  const copy = getApiRuntimeRoutesCopy(language);
+  const code = String(run.exitCode ?? 1);
+
+  const fin = (run.output ?? '')
+    .split(/\r?\n/u)
+    .map((ligne) => ligne.trim())
+    .filter(Boolean)
+    .slice(-4)
+    .join(' · ')
+    .slice(-400);
+
+  if (!fin) {
+    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageRunFailed'], { code });
+  }
+
+  return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageRunFailedWithOutput'], { code, output: fin });
 }
 
 async function runTerminalCommand(
