@@ -296,6 +296,7 @@ import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/co
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import { PublicationReplit } from '~/components/deploy/PublicationReplit';
 import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
@@ -11327,7 +11328,13 @@ function ProjectIdeApiServicePanel({
     setError(undefined);
     setActionNotice(t('baseChatAst.panel.submitting'));
 
-    const formData = new FormData(form);
+    /*
+     * BUG-GIT-001 — l'intention voyage sur le BOUTON d'envoi, et
+     * `new FormData(form)` ne la contient pas. Sans cet appel, tout panneau
+     * dont l'action est portée par un `<button name="intent">` envoyait une
+     * intention vide et recevait un `200` sans que rien ne se passe.
+     */
+    const formData = donneesDuFormulaire(event);
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -12129,7 +12136,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       try {
         const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
           method: 'POST',
-          body: new FormData(form),
+          body: donneesDuFormulaire(event),
         });
 
         const result = (await response.json().catch(() => ({}))) as any;
@@ -12181,7 +12188,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     try {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         method: 'POST',
-        body: new FormData(form),
+        body: donneesDuFormulaire(event),
       });
 
       const result = (await response.json().catch(() => ({}))) as any;
@@ -15252,7 +15259,7 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
-      const formData = new FormData(event.currentTarget);
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? '');
 
       if (intent === 'preferences') {

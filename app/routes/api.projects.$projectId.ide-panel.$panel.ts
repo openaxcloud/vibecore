@@ -3447,6 +3447,27 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           workspaceId,
         }),
       });
+    } else {
+      /*
+       * BUG-GIT-001 — LA MOITIÉ QUI REND LE DÉFAUT IMPOSSIBLE À REVIVRE EN
+       * SILENCE.
+       *
+       * Cette chaîne n'avait pas de dernier `else`. Une intention qu'aucun cas
+       * ne reconnaissait ne déclenchait donc AUCUN appel git, tombait jusqu'au
+       * `return json({ ok: true })`, et le panneau annonçait « action
+       * effectuée ». C'est ce que l'audit du 15/08 a mesuré : un seul
+       * `POST …/ide-panel/git` → 200, et pas une seule route d'écriture git
+       * atteinte, sur 2 projets sur 2.
+       *
+       * Corriger l'appelant ne suffit pas : le prochain formulaire qui oublie
+       * son intention se tairait de la même façon. Un panneau Git n'a pas
+       * d'action par défaut — toute intention inconnue est une erreur, et elle
+       * se dit.
+       */
+      throw json(
+        { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION', intent },
+        { status: 400 },
+      );
     }
   } else {
     throw json(
