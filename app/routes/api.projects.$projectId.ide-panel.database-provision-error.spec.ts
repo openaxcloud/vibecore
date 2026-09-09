@@ -63,7 +63,27 @@ describe('IDE panel actions keep a failure the user can act on', () => {
     expect(actionablePanelFailure('not json')).toBeUndefined();
   });
 
+  /*
+   * La liste reste courte À DESSEIN, et ce test est là pour qu'on ne l'allonge
+   * pas sans y penser. Il a fait son travail le 08/09 : ajouter les trois codes
+   * de déploiement l'a fait rougir, et chacun doit donc se justifier ici.
+   *
+   * Le critère d'entrée n'est pas « c'est une erreur importante » mais : la
+   * panne est PERMANENTE tant qu'un humain n'agit pas, et le message dit quoi
+   * faire. Un fournisseur sans identifiants (BUG-DEPLOY-DEAD-001) nomme les
+   * variables absentes ; le refus de plan nomme l'offre requise. Réessayer n'y
+   * changera jamais rien — exactement le cas du provisionnement de base de
+   * données qui a ouvert cette liste.
+   *
+   * Une VRAIE panne, elle, reste masquée : c'est le test juste au-dessus.
+   */
   it('keeps the pass-through list deliberately small', () => {
-    expect([...ACTIONABLE_PANEL_CODES].sort()).toEqual(['DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']);
+    expect([...ACTIONABLE_PANEL_CODES].sort()).toEqual([
+      'DATABASE_PROVISION_UNAVAILABLE',
+      'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+      'ENTERPRISE_DEPLOYMENT_REQUIRED',
+      'FEATURE_NOT_ENABLED',
+      'PROVIDER_NOT_CONFIGURED',
+    ]);
   });
 });

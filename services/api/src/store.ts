@@ -147,6 +147,61 @@ export interface SnapshotRecord {
   createdAt: string;
 }
 
+/**
+ * PANEL-PERF — projection du manifeste dans une LISTE d'instantanés.
+ *
+ * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+ * la réponse complète pèse 1 281 Ko, dont 1 139 Ko pour le seul `manifest.files`.
+ * La requête SQL correspondante prend 29 à 47 ms — le coût est la charge utile,
+ * pas la base.
+ *
+ * - `full` (défaut) : contrat historique, INCHANGÉ. `BaseChat.tsx` lit
+ *   `manifest.files` dans `snapshotFiles()` pour l'écran des fichiers d'un
+ *   instantané et pour le diff entre deux instantanés.
+ * - `without-files` : garde le manifeste, retire `files` (−88,9 %).
+ * - `omit` : aucun manifeste (−90,1 %). Suffisant pour un écran qui ne lit que
+ *   id / label / kind / byteLength / createdAt, comme `DatabaseRollbackPanel`.
+ */
+export type SnapshotManifestProjection = 'full' | 'without-files' | 'omit';
+
+export interface SnapshotListOptions {
+  /** Taille de page. Absent = aucune troncature (contrat historique). */
+  take?: number;
+  /** Id du dernier instantané de la page précédente ; la suite commence APRÈS lui. */
+  cursor?: string;
+  manifest?: SnapshotManifestProjection;
+}
+
+/**
+ * Source UNIQUE de la projection, partagée par le magasin Prisma et le magasin
+ * de test — pour qu'un garde-fou ne puisse pas tenir sa propre copie de la
+ * règle et rester vert pendant que le produit diverge.
+ */
+export function projectSnapshotManifest<T extends { manifest?: unknown }>(
+  snapshot: T,
+  projection: SnapshotManifestProjection = 'full',
+): T {
+  if (projection === 'full') {
+    return snapshot;
+  }
+
+  if (projection === 'omit') {
+    const { manifest: _ignore, ...reste } = snapshot;
+
+    return reste as T;
+  }
+
+  const manifest = snapshot.manifest;
+
+  if (!manifest || typeof manifest !== 'object' || Array.isArray(manifest)) {
+    return snapshot;
+  }
+
+  const { files: _fichiers, ...manifestSansFichiers } = manifest as Record<string, unknown>;
+
+  return { ...snapshot, manifest: manifestSansFichiers };
+}
+
 export interface GalleryListingRecord {
   id: string;
   slug: string;
@@ -1888,7 +1943,7 @@ export interface ApiStore {
     turnIndex?: number;
   }): Promise<SnapshotRecord>;
   getSnapshot(id: string): Promise<SnapshotRecord | undefined>;
-  listSnapshots(projectId: string): Promise<SnapshotRecord[]>;
+  listSnapshots(projectId: string, options?: SnapshotListOptions): Promise<SnapshotRecord[]>;
   putProjectStorageObject(input: {
     projectId?: string;
     key: string;

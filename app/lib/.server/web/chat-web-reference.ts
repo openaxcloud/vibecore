@@ -18,6 +18,13 @@ import type { Message } from 'ai';
 
 import type { SafeFetch } from './safe-fetch';
 import { resolveReferenceText, resolveWebReferenceForTurn, type WebReferenceResult } from './web-reference';
+import {
+  acquireSharedWebReferenceSlot,
+  acquireWebReferenceSlot,
+  resetWebReferenceRateLimiter as resetSharedRateLimiter,
+  WEB_REFERENCE_RATE_LIMIT,
+  type WebReferenceRateLimitRedis,
+} from './web-reference-rate-limit';
 import { API_CHAT_PROGRESS_LABELS, formatApiChatCopy, type ApiChatCopyKey } from '~/lib/i18n/catalogs/api-chat';
 import {
   formatApiRuntimeRoutesCopy,
@@ -34,41 +41,10 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('web-reference');
 
+/* Le plafond vit maintenant dans web-reference-rate-limit (partagé Redis) ; re-exporté pour les appelants existants. */
+export { acquireWebReferenceSlot, WEB_REFERENCE_RATE_LIMIT };
+
 type ResolveWebReference = typeof resolveWebReferenceForTurn;
-
-/**
- * Soft per-tenant limiter for site reads (in-memory, per web pod). One chat
- * message can cost up to ~9 outbound fetches; without a ceiling a single
- * project could turn the web pod into a crawler. Sliding window, pruned on use.
- */
-export const WEB_REFERENCE_RATE_LIMIT = { maxCollections: 12, windowMs: 10 * 60 * 1000 } as const;
-
-const collectionsByKey = new Map<string, number[]>();
-
-export function acquireWebReferenceSlot(key: string, now: number = Date.now()): boolean {
-  const since = now - WEB_REFERENCE_RATE_LIMIT.windowMs;
-  const recent = (collectionsByKey.get(key) ?? []).filter((at) => at > since);
-
-  if (recent.length >= WEB_REFERENCE_RATE_LIMIT.maxCollections) {
-    collectionsByKey.set(key, recent);
-
-    return false;
-  }
-
-  recent.push(now);
-  collectionsByKey.set(key, recent);
-
-  // Keep the map bounded: drop keys idle for a whole window.
-  if (collectionsByKey.size > 5000) {
-    for (const [otherKey, stamps] of collectionsByKey) {
-      if (!stamps.some((at) => at > since)) {
-        collectionsByKey.delete(otherKey);
-      }
-    }
-  }
-
-  return true;
-}
 
 /**
  * Memo of recent collections per tenant: a follow-up turn that names the same
@@ -113,7 +89,7 @@ function writeMemo(key: string, result: WebReferenceResult, now: number): void {
 
 /** Test hook. */
 export function resetWebReferenceRateLimiter(): void {
-  collectionsByKey.clear();
+  resetSharedRateLimiter();
   memoByKey.clear();
 }
 
@@ -178,6 +154,12 @@ export interface PrepareWebReferenceInput<T extends Omit<Message, 'id'> | Messag
    * authenticated or metered and must not make the web pod fetch on its behalf.
    */
   rateLimitKey?: string;
+
+  /**
+   * Client Redis du plafond PARTAGÉ entre replicas. Absent → compteur par pod
+   * (le plafond reste réel, il est seulement multiplié par le nombre de pods).
+   */
+  rateLimitRedis?: WebReferenceRateLimitRedis | null;
 
   /** Injectable for tests. */
   fetchPage?: SafeFetch;
@@ -263,10 +245,22 @@ export async function prepareWebReferenceForChat<T extends Omit<Message, 'id'> |
   const memo = memoKey(input.rateLimitKey, request.urls, crawl);
   const cached = readMemo(memo, startedAt);
 
+  /*
+   * Le mémo ne consomme aucune place : relire le meme site dans les 10 minutes
+   * ne coute aucune requete sortante, donc rien a plafonner.
+   */
+  const slot = cached
+    ? { allowed: true, degraded: false }
+    : await acquireSharedWebReferenceSlot({
+        key: input.rateLimitKey,
+        redis: input.rateLimitRedis,
+        now: startedAt,
+      });
+
   if (cached) {
     webReference = cached;
     announce(cached.host ?? announcedHost);
-  } else if (!acquireWebReferenceSlot(input.rateLimitKey, startedAt)) {
+  } else if (!slot.allowed) {
     /* Over the ceiling: tell the user and the model, fetch nothing. */
     const errors = request.urls.map((url) => ({ url, code: 'RATE_LIMITED' }));
 
@@ -329,6 +323,7 @@ export async function prepareWebReferenceForChat<T extends Omit<Message, 'id'> |
         projectId: input.rateLimitKey,
         host,
         cached: Boolean(cached),
+        rateLimitDegraded: slot.degraded,
         crawl,
         cloneIntent: webReference?.cloneIntent ?? false,
         pages: webReference?.pages.length ?? 0,

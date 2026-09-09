@@ -301,8 +301,31 @@ export function shouldShowStartupOverlay(input: {
   isRefreshingPorts: boolean;
   workspaceReady: boolean;
   previewStatus?: string;
+
+  /**
+   * BUG-PREVIEW-REMOUNT-001 — cette application a DÉJÀ rendu dans cet onglet.
+   *
+   * Avi, 09/09 : l'application s'affichait, il change d'onglet, il revient, et
+   * l'écran de démarrage en quatre étapes recommence — « on va pas l'app fixe ».
+   *
+   * Le mécanisme n'est PAS un démontage (le keep-alive du Workbench tient
+   * déjà) : c'est l'URL du cadre qui se perd un instant au retour. L'effet qui
+   * la surveille repose alors `previewStatus` sur « Chargement de la webview… »,
+   * et ce simple statut suffisait à faire revenir TOUT l'écran de démarrage.
+   * D'où la capture : les trois premières étapes cochées, « Prêt » en attente,
+   * et un rouet — sur une application qui tournait déjà.
+   *
+   * Une réadoption n'est pas un démarrage à froid. Quand l'espace de travail
+   * est prêt et qu'aucun démarrage n'est en cours, on ne rejoue pas la séquence
+   * d'installation : le squelette léger de réattachement s'en charge.
+   */
+  hasServedBefore?: boolean;
 }): boolean {
   if (input.previewRunFailed || input.hasWorkspaceError) {
+    return false;
+  }
+
+  if (input.hasServedBefore && !input.isStartingPreview && input.workspaceReady) {
     return false;
   }
 
@@ -775,6 +798,20 @@ export const Preview = memo(
     const [previewFrameLoaded, setPreviewFrameLoaded] = useState(false);
     const [loadedPreviewUrl, setLoadedPreviewUrl] = useState<string | undefined>();
     const previewLoadIdentityRef = useRef<string | undefined>();
+
+    /*
+     * BUG-PREVIEW-REMOUNT-001 — « cette application a déjà rendu ici ».
+     * Remis à zéro quand on change de projet : un autre projet n'hérite pas
+     * du crédit du précédent, sinon son vrai démarrage à froid serait masqué.
+     */
+    const aDejaServiRef = useRef(false);
+    const projetServiRef = useRef<string | undefined>();
+
+    if (projetServiRef.current !== projectId) {
+      projetServiRef.current = projectId;
+      aDejaServiRef.current = false;
+    }
+
     const [logsOpen, setLogsOpen] = useState(false);
 
     /*
@@ -879,7 +916,19 @@ export const Preview = memo(
       overlayVisible: shouldShowPreviewLoadingOverlay,
       reattaching: reattachingRunningPreview,
     });
+
+    /*
+     * Mémoire de session : une fois qu'un aperçu vivant a été servi pour ce
+     * projet, la perte PASSAGÈRE de l'URL au retour d'onglet ne doit plus être
+     * confondue avec un démarrage à froid. Une ref, pas un état : ce fait ne
+     * doit pas provoquer de rendu, seulement être consulté.
+     */
+    if (activePreview) {
+      aDejaServiRef.current = true;
+    }
+
     const shouldShowPreviewStartupOverlay = shouldShowStartupOverlay({
+      hasServedBefore: aDejaServiRef.current,
       hasActivePreview: Boolean(activePreview),
       hasStaticPreview,
       autoStart,

@@ -294,6 +294,10 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { PublicationReplit } from '~/components/deploy/PublicationReplit';
+import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
+import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -2630,6 +2634,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * we simply leave the callback off the context and the command
      * no-ops gracefully (verified in slash-commands.spec.ts).
      */
+    /*
+     * Rappels tenus par RÉFÉRENCE, pas par dépendance.
+     *
+     * `sendMessage` et `isStreaming` changent d'identité à chaque lot de
+     * jetons pendant un tour. Les mettre en dépendance de l'effet ci-dessous
+     * réabonnerait l'écouteur `vibecore:agent-task` en boucle — c'est le
+     * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
+     * valeur COURANTE sans faire bouger l'effet.
+     */
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming });
+
+    useEffect(() => {
+      rappelsAgentTache.current = { sendMessage, isStreaming };
+    });
+
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
         if (!handleInputChange) {
@@ -2733,8 +2752,78 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               details?: string;
               severity?: string;
               source?: string;
+              prompt?: string;
+              envoyer?: boolean;
             }
           | undefined;
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001 — Avi, 08/09 : « quand je clique sur le
+         * bouton réparer avec l'agent ça doit me remettre sur le panneau agent
+         * et démarrer l'agent avec le prompt en question ».
+         *
+         * L'invite était bien déposée dans la zone de saisie… du panneau
+         * Agent, que l'utilisateur ne voyait pas : il restait sur Sécurité (ou
+         * Git, ou Publication) et rien ne semblait se passer. Basculer fait
+         * partie de l'action, quel que soit le `kind` — une seule règle pour
+         * les trois surfaces qui émettent cet événement (règle 7).
+         */
+        /*
+         * `activateMobileTool` attend l'identifiant D'OUTIL (`agent`) et non le
+         * nom du panneau (`chat`) : c'est lui qui traduit l'un en l'autre. Un
+         * `panel: 'chat'` ne déclenchait rien — mesuré, le panneau restait sur
+         * Déploiements, et le test E2E l'a dit.
+         */
+        const allerAuPanneauAgent = () => {
+          window.dispatchEvent(
+            new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'agent', toolId: 'agent' } }),
+          );
+        };
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001, seconde moitié — Avi (point 5) : « ça
+         * doit me remettre sur le panneau agent ET DÉMARRER l'agent avec le
+         * prompt en question ENVOYÉ par le bouton ».
+         *
+         * La bascule et le pré-remplissage étaient faits ; l'envoi, non.
+         * L'utilisateur arrivait donc sur l'agent devant une invite qu'il
+         * devait poster lui-même — un geste de plus, exactement celui que le
+         * bouton prétendait lui épargner.
+         *
+         * DEUX GARDES, et elles ne sont pas décoratives :
+         *   - `sendMessage` peut être absent (le composant sert aussi hors
+         *     IDE) : on retombe alors sur l'invite préremplie, ce qui reste
+         *     utilisable ;
+         *   - un tour DÉJÀ en cours ne doit pas être doublé. Envoyer par
+         *     dessus une génération en vol produirait deux tours concurrents
+         *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
+         *     l'utilisateur choisit son moment.
+         */
+        const lancerLAgent = (invite: string) => {
+          allerAuPanneauAgent();
+
+          const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+          if (!envoyer || tourEnCours) {
+            insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * L'envoi attend la bascule de panneau : le composeur de l'agent
+           * doit être monté quand le tour démarre, sinon la réponse arrive
+           * dans une surface que personne ne regarde — le défaut d'origine,
+           * par un autre chemin.
+           */
+          window.requestAnimationFrame(() => envoyer({} as unknown as React.UIEvent, invite));
+        };
+
+        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
+        if (detail?.kind === 'fix-publication' && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          lancerLAgent(detail.prompt);
+
+          return;
+        }
 
         if (detail?.kind === 'resolve-git-conflicts') {
           const files = Array.isArray(detail.files) ? detail.files : [];
@@ -2753,7 +2842,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
 
           return;
         }
@@ -2772,7 +2861,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
         }
       };
 
@@ -4215,7 +4304,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch((error) => {
+        void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch((error) => {
           setMobilePreviewRunFeedbackState(null);
           console.error('Preview server stop failed', error);
           toast.error(t('baseChatAst.preview.stopFailed'));
@@ -9340,7 +9429,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             void workbenchStore.startPreviewServer();
           } else if (entry.command === 'stop') {
-            void workbenchStore.stopPreviewServer();
+            void workbenchStore.stopPreviewServer({ raison: 'utilisateur' });
 
             if (useMobileIde) {
               activateMobileTool('logs');
@@ -11179,7 +11268,13 @@ function ProjectIdeApiServicePanel({
     setError(undefined);
     setActionNotice(t('baseChatAst.panel.submitting'));
 
-    const formData = new FormData(form);
+    /*
+     * BUG-GIT-001 — l'intention voyage sur le BOUTON d'envoi, et
+     * `new FormData(form)` ne la contient pas. Sans cet appel, tout panneau
+     * dont l'action est portée par un `<button name="intent">` envoyait une
+     * intention vide et recevait un `200` sans que rien ne se passe.
+     */
+    const formData = donneesDuFormulaire(event);
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -11981,7 +12076,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       try {
         const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
           method: 'POST',
-          body: new FormData(form),
+          body: donneesDuFormulaire(event),
         });
 
         const result = (await response.json().catch(() => ({}))) as any;
@@ -12033,7 +12128,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     try {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         method: 'POST',
-        body: new FormData(form),
+        body: donneesDuFormulaire(event),
       });
 
       const result = (await response.json().catch(() => ({}))) as any;
@@ -15104,7 +15199,7 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
-      const formData = new FormData(event.currentTarget);
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? '');
 
       if (intent === 'preferences') {
@@ -22888,8 +22983,59 @@ function ProjectDeploymentsPanel({
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
 
+  /*
+   * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
+   * `vibecore:agent-task`, qui bascule désormais sur le panneau Agent et y
+   * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
+   * seule règle pour les deux surfaces.
+   */
+  const demanderReparationParLAgent = useCallback((invite: string) => {
+    window.dispatchEvent(
+      new CustomEvent('vibecore:agent-task', { detail: { kind: 'fix-publication', prompt: invite } }),
+    );
+  }, []);
+
+  /*
+   * BUG-PUBLISH-NOOP-001 — « Republier » DÉPLOIE. Il ne changeait que
+   * d'onglet : le bouton principal du panneau promettait une publication et
+   * n'en lançait aucune. Il rejoue maintenant l'intention `redeploy` sur le
+   * dernier déploiement — le MÊME chemin que l'onglet Gérer, donc rien qui
+   * puisse diverger. Sans historique il n'y a rien à rejouer : on ouvre
+   * l'assistant, et le libellé du bouton dit déjà « Publier » dans ce cas.
+   */
+  const republier = useCallback(() => {
+    const intention = intentionDeRepublication(deployments);
+
+    if (intention.geste === 'assistant') {
+      setTab('manage');
+      return;
+    }
+
+    const donnees = new FormData();
+    donnees.set('intent', 'redeploy');
+    donnees.set('deploymentId', intention.deploymentId);
+    onSubmit(donnees);
+  }, [deployments, onSubmit]);
+
+  /* La même mise en mots que la fin de tour : une seule implémentation. */
+  const ilYADepuis = useCallback(
+    (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
+    [],
+  );
+
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — ce que le serveur peut réellement déployer.
+   * Sans ce relevé, rien n'est masqué : on préfère un fournisseur offert à
+   * tort qu'un fournisseur qui marche et qu'on aurait caché.
+   */
+  const fournisseurs = useMemo(
+    () => fournisseursOffrables(BOLT_DEPLOY_PROVIDERS, (data as any).providerAvailability),
+    [data],
+  );
+
+  const fournisseurInitial = useMemo(() => fournisseurParDefaut(fournisseurs), [fournisseurs]);
+
   // Real Overview data wired from the deployments loader.
-  const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
   return (
@@ -22909,102 +23055,50 @@ function ProjectDeploymentsPanel({
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.latestStatus_d9f96f98')}</span>
-              <strong>
-                {latestDeployment?.status
-                  ? platformStateLabel(t, latestDeployment.status)
-                  : t('chat.copy.noDeployment_26885551')}
-              </strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.environment_d443a118')}</span>
-              <strong>{platformStateLabel(t, latestDeployment?.environment ?? 'preview')}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.framework_fb001b2c')}</span>
-              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
-            </div>
-          </div>
-
           {/*
-           * Replit Overview widgets. Real values where the backend has them
-           * (Type = provider, Database = live project connections); a graceful
-           * "—" only where the data genuinely does not exist (we run no
-           * Autoscale compute tier, so vCPU/memory resources and compute usage
-           * have no backend). Never mocked.
+           * RP-PUBLISH-01…06 — la vue d'ensemble est désormais le panneau
+           * « Publishing » de Replit (captures d'Avi, 08/09 21:00-21:02),
+           * piloté par NOS données : statut réel du déploiement, journaux
+           * réels, domaines réellement joignables. Les étapes de migration de
+           * base de données que montre Replit ne sont PAS reprises — nous
+           * n'avons pas ce pipeline, et les afficher ferait mentir le produit
+           * sur son propre état.
+           *
+           * L'historique des commits reste dessous : il est réel, utile, et
+           * n'a pas d'équivalent chez Replit.
            */}
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.type_3deb7456')}</span>
-              <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.resources_87df60de')}</span>
-              <strong title={t('chat.copy.vcpuMemoryNoAutoscaleComputeBackend_a18a66c2')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.usage_0bb18642')}</span>
-              <strong title={t('chat.copy.computeUsageThisBillingPeriodNo_c6482992')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.database_61074f1c')}</span>
-              <strong>
-                {connections.length
-                  ? t('chat.copy.connectedValue0_4e4f1431', { value0: connections.length })
-                  : t('chat.copy.notConnected_8b02f3de')}
-              </strong>
-            </div>
-          </div>
-
-          {deployments.length ? (
-            deployments.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
-                    </strong>
-                    <span>
-                      {deployment.url ??
-                        deployment.customDomain ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                        t('chat.copy.urlPending_6c60f919')}
-                    </span>
-                  </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
-                </header>
-                {deployment.url ? (
-                  <div className="bolt-project-deploy-actions">
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      {t('chat.copy.open_cf9b7706')}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          ?.writeText(deployment.url)
-                          .catch(() => toast.error(t('chat.copy.clipboardUnavailable_bec46a29')))
-                      }
-                    >
-                      {t('chat.copy.copyLink_2f84eea5')}
-                    </button>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <EmptyState
-              variant="compact"
-              icon="i-ph:rocket-launch"
-              title={t('chat.copy.noDeploymentsYet_b00d97cd')}
-              description={t('chat.copy.shipThisProjectToALive_40d39230')}
-              actionLabel={t('baseChatAst.deploy.goManage')}
-              onAction={() => setTab('manage')}
-            />
-          )}
+          <PublicationReplit
+            deployments={deployments}
+            language={language}
+            ilYA={(date) => ilYADepuis(date, language)}
+            onRepublier={republier}
+            onAjouterUnDomaine={() => setTab('domains')}
+            onReparerAvecAgent={demanderReparationParLAgent}
+            carteTarifaire={(data as any).rateCard ?? null}
+            onOuvrirLesSecrets={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'secrets', toolId: 'secrets' } }),
+              )
+            }
+            onOuvrirLaBaseDeDonnees={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', {
+                  detail: { panel: 'database', toolId: 'database' },
+                }),
+              )
+            }
+            onAction={(intent, deploymentId) => {
+              /*
+               * RP-PUBLISH-12 — les gestes de « Gérer votre application »
+               * passent par les MÊMES intentions que l'onglet Gérer : rien de
+               * neuf côté serveur, donc rien qui puisse diverger.
+               */
+              const donnees = new FormData();
+              donnees.set('intent', intent);
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
+          />
 
           {/* Real commit history (hash + author + date) from the git graph. */}
           <div className="grid gap-1">
@@ -23098,6 +23192,15 @@ function ProjectDeploymentsPanel({
                     </div>
                     <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
                   </header>
+                  {causeDeLEchec(deployment) ? (
+                    <p
+                      className="bolt-project-deploy-cause break-words [overflow-wrap:anywhere]"
+                      data-testid="deploy-cause-echec"
+                      role="alert"
+                    >
+                      {causeDeLEchec(deployment)}
+                    </p>
+                  ) : null}
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
@@ -23140,10 +23243,26 @@ function ProjectDeploymentsPanel({
             <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
             <label>
               {t('chat.copy.provider_7ceee3f3')}
-              <select name="provider" defaultValue="static">
-                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
+              {/*
+               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+               * qu'elle peut tenir. Un hébergeur sans identifiants reste
+               * visible mais désactivé, en nommant ce qu'il manque : on ne
+               * remplit plus tout l'assistant pour se heurter à un 503.
+               */}
+              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                  <option
+                    key={fournisseur.id}
+                    value={fournisseur.id}
+                    disabled={!utilisable}
+                    data-configure={utilisable ? undefined : 'requis'}
+                  >
+                    {utilisable
+                      ? fournisseur.name
+                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                          provider: fournisseur.name,
+                          missing: manquantes.join(', '),
+                        })}
                   </option>
                 ))}
               </select>

@@ -2,6 +2,7 @@ import { normalizeSupportedLanguage } from '~/lib/i18n/language';
 
 export const gitCloneEn = {
   'gitClone.error.workspaceStart': 'Git tools could not start because the workspace is unavailable.',
+  'gitClone.error.projectRequired': 'Importing from a URL needs a project: open one, then use its Git panel.',
   'gitClone.error.runtimeNotReady': 'The workspace is not ready yet. Wait a moment, then try again.',
   'gitClone.auth.required': 'This repository requires authentication. Would you like to enter your GitHub credentials?',
   'gitClone.auth.username': 'Enter your username',
@@ -22,6 +23,8 @@ export type GitCloneCopy = Readonly<Record<GitCloneKey, string>>;
 
 export const gitCloneFr: GitCloneCopy = {
   'gitClone.error.workspaceStart': 'Impossible de démarrer les outils Git, car l’espace de travail est indisponible.',
+  'gitClone.error.projectRequired':
+    'L’import par URL a besoin d’un projet : ouvrez-en un, puis utilisez son panneau Git.',
   'gitClone.error.runtimeNotReady':
     'L’espace de travail n’est pas encore prêt. Patientez quelques instants, puis réessayez.',
   'gitClone.auth.required': 'Ce dépôt nécessite une authentification. Souhaitez-vous saisir vos identifiants GitHub ?',

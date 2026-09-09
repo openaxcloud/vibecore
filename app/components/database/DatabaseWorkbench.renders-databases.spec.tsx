@@ -74,7 +74,36 @@ describe('DatabaseWorkbench — ce que le panneau AFFICHE réellement', () => {
       screen.queryByText('Aucune base de données pour le moment'),
       'l’état vide ne doit PAS s’afficher quand le projet a une base',
     ).toBeNull();
+
+    /*
+     * RP-DB-02 / RP-DB-08 — la carte porte désormais le nom de son
+     * ENVIRONNEMENT, comme Replit (« Development Database »), et non plus le
+     * nom de la variable. Ce test épinglait « DATABASE_URL » : il a fait son
+     * travail en rougissant le jour où l'affichage a changé volontairement.
+     * Son intention — la base s'affiche au lieu de l'état vide — est
+     * inchangée ; seule l'étiquette attendue suit.
+     */
+    expect(screen.getByText('Base de développement')).toBeTruthy();
+  });
+
+  it('mais une base d’environnement INDÉTERMINÉ garde le nom de sa variable', () => {
+    /*
+     * La moitié qui protège l'honnêteté : une connexion collée par
+     * l'utilisateur ressort en « shared », et là nous ne savons PAS de quelle
+     * base il s'agit. On affiche donc la clé, pas une étiquette inventée.
+     */
+    fetchers = [
+      makeFetcher({
+        connections: [{ ...CHARGE_API.connections[0], environment: 'shared' }],
+        environments: CHARGE_API.environments,
+      }),
+      makeFetcher(),
+    ];
+
+    render(<DatabaseWorkbench projectId="project-1" />);
+
     expect(screen.getByText('DATABASE_URL')).toBeTruthy();
+    expect(screen.queryByText('Base de développement')).toBeNull();
   });
 
   it('affiche une base EN COURS de provisionnement au lieu de l’état vide', () => {

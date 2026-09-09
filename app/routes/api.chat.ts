@@ -22,6 +22,7 @@ import {
 } from '~/lib/.server/llm/agent-orchestration';
 import { createAgentPlan } from '~/lib/.server/llm/create-agent-plan';
 import { prepareWebReferenceForChat } from '~/lib/.server/web/chat-web-reference';
+import { getWebReferenceRateLimitRedis } from '~/lib/.server/web/rate-limit-redis.server';
 import { webFetchToolSet } from '~/lib/.server/web/web-fetch-tool';
 import { createConnectionRequestDataPart, detectConnectorNeeds } from '~/lib/.server/llm/connector-prompt';
 import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-error';
@@ -845,6 +846,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * reported an analysis of pages nobody had fetched. Fail-open: an
          * unreachable site is reported in the block, never an error here.
          */
+        /*
+         * Un SEUL client Redis pour les DEUX chemins de lecture de sites : la
+         * référence automatique ci-dessous et l'outil `fetch_web_page` plus bas.
+         * Le même client veut dire la même clé, donc un seul budget par projet —
+         * pas un budget par chemin.
+         */
+        const webReferenceRedis = await getWebReferenceRateLimitRedis(
+          context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+        );
+
         const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } =
           await prepareWebReferenceForChat({
             messages: processedMessages,
@@ -856,6 +867,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
             /* Only a project chat (the quota-gated path) may make the web pod fetch. */
             rateLimitKey: projectId,
+
+            /*
+             * Plafond PARTAGÉ entre les replicas du pod web : sans lui, « 12
+             * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
+             * REDIS_URL est absent → compteur par pod, jamais illimité.
+             */
+            rateLimitRedis: webReferenceRedis,
           });
 
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
@@ -1502,6 +1520,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             ...webFetchToolSet({
               env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
               rateLimitKey: projectId,
+
+              /* Même client, donc même clé : l'outil et la référence automatique partagent un seul plafond. */
+              redis: webReferenceRedis,
               language,
               signal: request.signal,
             }),

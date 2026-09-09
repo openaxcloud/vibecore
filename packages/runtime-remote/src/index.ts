@@ -170,6 +170,28 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
     const requestedId = session.id ?? this.#workspaceId;
 
+    /*
+     * BUG-GIT-002 — NE PAS ENVOYER UNE REQUÊTE QUI NE PEUT PAS ABOUTIR.
+     *
+     * `POST /api/runtime/workspaces` exige `projectId`, `metadata.projectId` ou
+     * `workspaceId` : sans aucun des trois, il rend 400
+     * `RUNTIME_WORKSPACE_ID_REQUIRED`, toujours. Or `useGit()` appelait
+     * `startWorkspace()` au montage sans identifiant, et `JSON.stringify`
+     * effaçant les `undefined`, le corps partait à `{}`. Mesuré le 17/08 sur
+     * les trois formats : DEUX 400 à chaque chargement de `/git`, et un
+     * « Impossible de démarrer l'espace de travail » qui n'aide personne.
+     *
+     * On refuse donc AVANT le réseau, avec un code que l'appelant peut
+     * reconnaître — plutôt que de faire dire au serveur ce qu'on savait déjà.
+     */
+    const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
+
+    if (!requestedId && !projectIdDesMetadonnees) {
+      throw Object.assign(new Error('A workspace id or project id is required to start a workspace.'), {
+        code: 'RUNTIME_WORKSPACE_ID_REQUIRED',
+      });
+    }
+
     let payload: WorkspaceSession | undefined;
 
     try {

@@ -626,7 +626,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * history scoping the deployment — hash + author + date). Each enrichment
        * is best-effort so the panel never fails if git/db is unavailable.
        */
-      const [deployments, databases, commitGraph] = await Promise.all([
+      const [deployments, databases, commitGraph, rateCard, fournisseurs] = await Promise.all([
         apiRequest<{ deployments?: Array<Record<string, unknown>> }>(request, `/projects/${projectId}/deployments`),
         apiRequest<{ connections?: unknown[] }>(request, `/projects/${projectId}/databases`).catch(() => ({
           connections: [],
@@ -635,6 +635,26 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           request,
           `/projects/${projectId}/git/graph${selectedWorkspaceId ? `?workspaceId=${encodeURIComponent(selectedWorkspaceId)}` : ''}`,
         ).catch(() => ({ commits: [] })),
+
+        /*
+         * RP-PUBLISH-10 — la carte tarifaire ACTIVE : gabarits de machine
+         * réellement disponibles pour le plan, et le coût unitaire du calcul.
+         * C'est ce qui permet d'afficher un prix VRAI sous « Configuration de
+         * la machine » plutôt qu'un chiffre recopié de la capture Replit.
+         * Au pire elle manque, et l'écran n'affiche simplement pas de prix.
+         */
+        apiRequest<Record<string, unknown>>(request, `/projects/${projectId}/deployments/rate-card`).catch(() => null),
+
+        /*
+         * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs peuvent réellement
+         * aboutir. Sans cette liste l'assistant les proposait tous, et six sur
+         * sept rendaient un 503 une fois le formulaire rempli. Au pire elle
+         * manque : on retombe alors sur l'ancien comportement plutôt que de
+         * masquer un fournisseur qui marche.
+         */
+        apiRequest<{ providers?: unknown[] }>(request, `/projects/${projectId}/deployments/providers`).catch(() => ({
+          providers: [],
+        })),
       ]);
 
       const deploymentList = Array.isArray(deployments.deployments) ? deployments.deployments : [];
@@ -647,6 +667,8 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           allDeployments: deploymentList,
           connections: Array.isArray(databases.connections) ? databases.connections : [],
           gitCommits: Array.isArray(commitGraph.commits) ? commitGraph.commits : [],
+          rateCard,
+          providerAvailability: Array.isArray(fournisseurs.providers) ? fournisseurs.providers : [],
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,
@@ -701,7 +723,21 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         apiRequest(request, `/projects/${projectId}/databases`),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, `/projects/${projectId}/snapshots`).catch(() => ({ snapshots: [] })),
+
+        /*
+         * PANEL-PERF — projection SOMMAIRE, pas suppression de l'appel.
+         *
+         * Le panneau consomme bien ces instantanés : la chaîne vivante est
+         * BaseChat → DatabaseWorkbench → DatabaseSettings → DatabaseRollbackPanel,
+         * qui lit `data.snapshots`. Mais il n'en lit que cinq champs — id,
+         * label, kind, sizeBytes, createdAt — et jamais le manifeste.
+         *
+         * Mesuré en production le 2026-09-08 sur un projet de 355 instantanés :
+         * ce panneau expédiait 1 282 Ko, soit à quelques kilo-octets près le
+         * corps du panneau Instantanés lui-même. Avec `fields=summary`, la même
+         * interface est servie par ~127 Ko (−90,1 %).
+         */
+        apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] })),
       ]);
       const schema = schemaKey
         ? await apiRequest(
@@ -904,11 +940,29 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const workspaceCtx =
         panel === 'monitoring' ? await resolvePanelWorkspace(request, projectId, requestedWorkspaceId) : undefined;
 
+      /*
+       * PANEL-PERF — une branche lente ne doit pas emporter l'enveloppe entière.
+       *
+       * Le bloc `database` plus haut garde chacune de ses branches ; celui-ci
+       * n'en gardait AUCUNE. Or `apiRequest` abandonne à 30 s
+       * (`enterprise-api.server.ts`, `AbortSignal.timeout(30_000)`) — bien avant
+       * l'ingress, qui est à 180 s. Un seul amont lent faisait donc basculer
+       * tout le panneau en erreur, au lieu de rendre ce qui avait répondu.
+       * Chaque branche est ensuite étalée par `...(x as any)` : un objet vide
+       * est absorbé sans dommage, et l'enveloppe se déclare honnêtement vide.
+       *
+       * ⚠️ La branche `panel === 'database'` ci-dessous est INATTEIGNABLE : le
+       * bloc `if (panel === 'database')` plus haut retourne dans ses deux
+       * chemins. Vérifié, laissé en place — sa suppression appartient à la
+       * session qui refond cette route.
+       */
       const [dashboard, envVars, deployments, snapshots] = await Promise.all([
-        apiRequest(request, `/projects/${projectId}/dashboard`),
-        apiRequest(request, `/projects/${projectId}/env-vars`),
-        apiRequest(request, `/projects/${projectId}/deployments`),
-        panel === 'database' ? apiRequest(request, `/projects/${projectId}/snapshots`) : Promise.resolve({}),
+        apiRequest(request, `/projects/${projectId}/dashboard`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/env-vars`).catch(() => ({})),
+        apiRequest(request, `/projects/${projectId}/deployments`).catch(() => ({})),
+        panel === 'database'
+          ? apiRequest(request, `/projects/${projectId}/snapshots?fields=summary`).catch(() => ({ snapshots: [] }))
+          : Promise.resolve({}),
       ]);
 
       const workspaceId = workspaceCtx?.selectedWorkspaceId ?? (dashboard as any)?.workspace?.id ?? projectId;
@@ -1380,15 +1434,35 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
  * route 404s with code FEATURE_NOT_ENABLED while the flag is off. Translate that
  * into a structured `{ enabled: false }` payload so the IDE panel can render a
  * clear "not enabled" state instead of a 502; any other error is re-thrown.
+ *
+ * BUG-STORAGE-001 — LE FOURRE-TOUT QUI FAISAIT MENTIR LE PANNEAU.
+ *
+ * La condition portait aussi `payload.code === undefined` : N'IMPORTE QUEL 404
+ * sans champ `code` était traduit en « le stockage d'objets n'a pas été activé
+ * par un administrateur ». Une panne amont — passerelle, route absente pendant
+ * un déploiement, proxy — devenait donc, à l'écran, une phrase qui DÉSIGNE UNE
+ * CAUSE PRÉCISE ET FAUSSE, et envoie l'utilisateur demander à son
+ * administrateur d'activer ce qui l'est déjà. C'est ce que l'audit du 15/08 a
+ * vu : la fonctionnalité était bien active, et l'amont ne répondait pas.
+ *
+ * Vérifié avant de resserrer, plutôt que supposé : NOTRE API met TOUJOURS le
+ * code quand la fonctionnalité est éteinte (`OBJECT_STORAGE_DISABLED` →
+ * `code: 'FEATURE_NOT_ENABLED'`), et le seul autre 404 du domaine
+ * (`BUCKET_NOT_PROVISIONED`) porte le sien. Aucun cas légitime ne passait donc
+ * par la branche `undefined` — elle n'attrapait que des pannes, pour les
+ * déguiser.
+ *
+ * Une erreur qu'on ne sait pas nommer se remonte comme une erreur. Un message
+ * faux coûte plus cher qu'un message générique.
  */
-async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
+export async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
   if (error instanceof Response && error.status === 404) {
     const payload = (await error
       .clone()
       .json()
       .catch(() => ({}))) as { code?: string };
 
-    if (payload.code === 'FEATURE_NOT_ENABLED' || payload.code === undefined) {
+    if (payload.code === 'FEATURE_NOT_ENABLED') {
       return json({ enabled: false, objects: [], folders: [] });
     }
   }
@@ -3393,6 +3467,27 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           workspaceId,
         }),
       });
+    } else {
+      /*
+       * BUG-GIT-001 — LA MOITIÉ QUI REND LE DÉFAUT IMPOSSIBLE À REVIVRE EN
+       * SILENCE.
+       *
+       * Cette chaîne n'avait pas de dernier `else`. Une intention qu'aucun cas
+       * ne reconnaissait ne déclenchait donc AUCUN appel git, tombait jusqu'au
+       * `return json({ ok: true })`, et le panneau annonçait « action
+       * effectuée ». C'est ce que l'audit du 15/08 a mesuré : un seul
+       * `POST …/ide-panel/git` → 200, et pas une seule route d'écriture git
+       * atteinte, sur 2 projets sur 2.
+       *
+       * Corriger l'appelant ne suffit pas : le prochain formulaire qui oublie
+       * son intention se tairait de la même façon. Un panneau Git n'a pas
+       * d'action par défaut — toute intention inconnue est une erreur, et elle
+       * se dit.
+       */
+      throw json(
+        { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION', intent },
+        { status: 400 },
+      );
     }
   } else {
     throw json(
@@ -3554,22 +3649,56 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
  * failure block — they simply never received it, so an action failure tore the
  * whole panel out of the DOM and left a blank IDE.
  */
-export const ACTIONABLE_PANEL_CODES = new Set(['DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']);
+/*
+ * BUG-DEPLOY-DEAD-001 — le même défaut que pour la base de données, jamais
+ * généralisé (règle 7 : viser la règle, pas la première occurrence).
+ *
+ * Avi, 08/09 : « le déploiement ne marche pour aucun fournisseur », devant
+ * « Le service du panneau est temporairement indisponible. Veuillez
+ * réessayer. » et son bouton Réessayer. MESURÉ contre l'API : six
+ * fournisseurs sur huit répondent `PROVIDER_NOT_CONFIGURED` en nommant très
+ * exactement ce qui manque (`VERCEL_DEPLOY_HOOK_URL`,
+ * `CLOUD_RUN_BUILD_TRIGGER_URL, GCP_OAUTH_TOKEN`, …) ; en production la même
+ * condition sort en 503 `DEPLOYMENT_PROVIDER_NOT_CONFIGURED`. Rien de
+ * temporaire, rien à réessayer — et l'utilisateur ne voyait aucun des deux.
+ */
+export const ACTIONABLE_PANEL_CODES = new Set([
+  'DATABASE_PROVISION_UNAVAILABLE',
+  'FEATURE_NOT_ENABLED',
+  'DEPLOYMENT_PROVIDER_NOT_CONFIGURED',
+  'PROVIDER_NOT_CONFIGURED',
+  'ENTERPRISE_DEPLOYMENT_REQUIRED',
+]);
 
 export function actionablePanelFailure(upstream: unknown) {
-  const code = (upstream as { code?: unknown } | undefined)?.code;
+  const brut = upstream as { code?: unknown; error?: unknown; message?: unknown; reason?: unknown } | undefined;
 
-  if (typeof code !== 'string' || !ACTIONABLE_PANEL_CODES.has(code)) {
+  /*
+   * DEUX formes de charge utile, mesurées sur l'API le 08/09 :
+   *   503 → { error: '<phrase lisible>', code: 'DEPLOYMENT_PROVIDER_NOT_CONFIGURED' }
+   *   400 → { error: 'PROVIDER_NOT_CONFIGURED', message: '<phrase lisible>' }
+   * Le jeton d'identité est donc tantôt dans `code`, tantôt dans `error`, et
+   * la phrase lisible tantôt dans `error`, tantôt dans `message`. Ne lire que
+   * `code` laissait passer la seconde — et c'est celle que rend la plupart des
+   * environnements.
+   */
+  const codeConnu = (valeur: unknown) => typeof valeur === 'string' && ACTIONABLE_PANEL_CODES.has(valeur);
+  const code = codeConnu(brut?.code) ? (brut!.code as string) : codeConnu(brut?.error) ? (brut!.error as string) : null;
+
+  if (!code) {
     return undefined;
   }
 
-  const error = (upstream as { error?: unknown }).error;
-  const reason = (upstream as { reason?: unknown }).reason;
+  const lisible = [brut?.error, brut?.message].find(
+    (valeur): valeur is string => typeof valeur === 'string' && valeur.trim().length > 0 && valeur !== code,
+  );
+
+  const reason = brut?.reason;
 
   return {
     ok: false as const,
     code,
-    error: typeof error === 'string' && error.trim() ? error : code,
+    error: lisible ?? code,
     ...(typeof reason === 'string' && reason ? { reason } : {}),
   };
 }
