@@ -41,11 +41,11 @@
     "  extraction de la section `NOT waived` de chaque run en echec — et d'elle",
     "  seule, un `grep` large compte les `flaky` rattrapes et gonfle le chiffre.",
     "",
-    "CE QUI N'EST PAS DEROGE, ET POURQUOI. `ide-panel-smoke` (6/9) et",
-    "`mobile-device-matrix` (2/9) sont eux aussi instables — `ide-panel-smoke`",
-    "echouait deja sur `main` le 2026-09-08 a 21:07, 21:25, 21:37, 22:20 et 22:26.",
-    "Ils restent BLOQUANTS ici parce que leur derogation n'a pas ete decidee. Les",
-    "sortir aussi est une decision produit, pas une decision technique.",
+    "CE QUI N'EST PAS DEROGE. Les autres appareils de `mobile-device-matrix` —",
+    "iphone-pro-max, pixel-compact, galaxy-large, android-landscape,",
+    "ipad-mini-portrait, ipad-landscape — restent BLOQUANTS : seule la variante",
+    "`iphone-se` a ete observee en echec, et on ne deroge pas une suite entiere",
+    "sur la foi d'un seul cas. `dashboard.spec.ts` (4/9) reste bloquant lui aussi.",
     "",
     "RIEN N'EST DESACTIVE. Les deux suites tournent, echouent visiblement, et la",
     "derogation EXPIRE — passe la date, la porte echoue SUR LA DEROGATION",
@@ -73,6 +73,16 @@
       "test": "rpl-ide-live-proof.spec.ts › RPL-IDE live proof (dark)",
       "unstable": true,
       "reason": "Variante sombre de la precedente, toujours en echec avec elle."
+    },
+    {
+      "test": "ide-panel-smoke.spec.ts › desktop IDE renders every panel in-place without stale missing-import errors or full reloads",
+      "unstable": true,
+      "reason": "Presente dans 6 des 9 echecs des 20 derniers Production E2E. Echouait deja sur `main` le 2026-09-08 a 21:07, 21:25, 21:37, 22:20 et 22:26 — donc AVANT toute livraison qui lui a ete imputee. Cette imputation erronee a coute plusieurs heures de production figee et l'annulation de deux rollouts sains."
+    },
+    {
+      "test": "mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-se",
+      "unstable": true,
+      "reason": "Presente dans 2 des 9 echecs. SEULE cette variante a ete observee en echec : les autres appareils de la matrice restent bloquants, on ne deroge pas une suite entiere sur la foi d'un seul cas."
     }
   ]
 }
