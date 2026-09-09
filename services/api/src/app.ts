@@ -97,7 +97,6 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
-import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
 import {
   redactSecrets,
@@ -486,6 +485,7 @@ import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline
 import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { ReconciliationUneFois } from './reconciliation-une-fois.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
