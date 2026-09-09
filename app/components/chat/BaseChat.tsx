@@ -2691,6 +2691,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * we simply leave the callback off the context and the command
      * no-ops gracefully (verified in slash-commands.spec.ts).
      */
+    /*
+     * Rappels tenus par RÉFÉRENCE, pas par dépendance.
+     *
+     * `sendMessage` et `isStreaming` changent d'identité à chaque lot de
+     * jetons pendant un tour. Les mettre en dépendance de l'effet ci-dessous
+     * réabonnerait l'écouteur `vibecore:agent-task` en boucle — c'est le
+     * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
+     * valeur COURANTE sans faire bouger l'effet.
+     */
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming });
+
+    useEffect(() => {
+      rappelsAgentTache.current = { sendMessage, isStreaming };
+    });
+
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
         if (!handleInputChange) {
@@ -2822,10 +2837,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           );
         };
 
+        /*
+         * BUG-SECURITY-FIX-AGENT-001, seconde moitié — Avi (point 5) : « ça
+         * doit me remettre sur le panneau agent ET DÉMARRER l'agent avec le
+         * prompt en question ENVOYÉ par le bouton ».
+         *
+         * La bascule et le pré-remplissage étaient faits ; l'envoi, non.
+         * L'utilisateur arrivait donc sur l'agent devant une invite qu'il
+         * devait poster lui-même — un geste de plus, exactement celui que le
+         * bouton prétendait lui épargner.
+         *
+         * DEUX GARDES, et elles ne sont pas décoratives :
+         *   - `sendMessage` peut être absent (le composant sert aussi hors
+         *     IDE) : on retombe alors sur l'invite préremplie, ce qui reste
+         *     utilisable ;
+         *   - un tour DÉJÀ en cours ne doit pas être doublé. Envoyer par
+         *     dessus une génération en vol produirait deux tours concurrents
+         *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
+         *     l'utilisateur choisit son moment.
+         */
+        const lancerLAgent = (invite: string) => {
+          allerAuPanneauAgent();
+
+          const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+          if (!envoyer || tourEnCours) {
+            insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * L'envoi attend la bascule de panneau : le composeur de l'agent
+           * doit être monté quand le tour démarre, sinon la réponse arrive
+           * dans une surface que personne ne regarde — le défaut d'origine,
+           * par un autre chemin.
+           */
+          window.requestAnimationFrame(() => envoyer({} as unknown as React.UIEvent, invite));
+        };
+
         /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
         if (detail?.kind === 'fix-publication' && typeof detail.prompt === 'string' && detail.prompt.trim()) {
-          allerAuPanneauAgent();
-          insertIntoComposer(detail.prompt, { replace: true });
+          lancerLAgent(detail.prompt);
 
           return;
         }
@@ -2847,8 +2899,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
-          allerAuPanneauAgent();
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
 
           return;
         }
@@ -2867,8 +2918,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
-          allerAuPanneauAgent();
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
         }
       };
 

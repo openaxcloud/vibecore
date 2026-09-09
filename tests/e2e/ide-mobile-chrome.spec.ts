@@ -3017,9 +3017,24 @@ test.describe('publication à la Replit — le panneau et ses tailles', () => {
         timeout: 15_000,
       });
 
-      // Et l'invite est bien déposée dans la zone de saisie, prête à partir.
+      /*
+       * ET L'AGENT DÉMARRE. Avi (point 5) : « ça doit me remettre sur le
+       * panneau agent et démarrer l'agent avec le prompt en question ENVOYÉ
+       * par le bouton ». Une invite simplement déposée laissait un geste de
+       * plus à faire — précisément celui que le bouton prétend épargner.
+       *
+       * On vérifie donc que l'invite est PARTIE : elle apparaît dans le fil
+       * comme message utilisateur, et la zone de saisie est vidée. Un test
+       * qui se contenterait de la lire dans le composeur passerait au vert
+       * sur le comportement d'AVANT.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Corrige la publication.' }).first(),
+        'l’invite doit être envoyée, pas seulement déposée',
+      ).toBeVisible({ timeout: 30_000 });
+
       const composeur = page.locator('.bolt-project-agent-composer textarea').first();
-      await expect(composeur).toHaveValue(/Corrige la publication\./, { timeout: 15_000 });
+      await expect(composeur, 'un envoi consomme le brouillon').toHaveValue('', { timeout: 15_000 });
     });
   });
 });
@@ -3091,6 +3106,121 @@ test.describe('base de données — les tables portent leur nom et leur compte',
     expect(
       comptes.some((compte) => /\d/u.test(compte)),
       `comptes relevés : ${JSON.stringify(comptes)}`,
+    ).toBe(true);
+  });
+});
+
+/*
+ * RP-DB-06 — l'onglet « Mes données » de Replit : un rail de tables à gauche,
+ * des en-têtes TYPÉS à droite (`id text`, `label varchar(255)`), et une
+ * pagination visible « 50 / 0 ».
+ *
+ * Les trois manquaient, et le rail était carrément VIDE. Deux causes
+ * distinctes, mesurées le 09/09 sur une vraie base de 127 tables :
+ *
+ *   1. le studio lisait `databases ?? connections` — or `??` ne retombe pas
+ *      sur un tableau VIDE, et `databases` vaut `[]` dans le cas normal. Il
+ *      n'avait donc aucune connexion, ne demandait aucun schéma, et affichait
+ *      « aucune table » sans jamais rien avoir demandé ;
+ *   2. son lecteur de schéma cherchait `table.name` / `table.columns`, quand
+ *      l'API rend `table_name` et une liste de colonnes PLATE — le même
+ *      défaut que RP-DB-05, à un second endroit.
+ *
+ * Ce test frappe une VRAIE base : c'est ce qui distingue un branchement juste
+ * d'un branchement qui compile.
+ */
+test.describe('base de données — « Mes données » à la Replit', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('le rail liste les tables, les en-têtes portent leur type, la page est annoncée', async ({ page, request }) => {
+    test.setTimeout(240_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    /*
+     * L'onglet « Mes données », par son libellé, dans les deux langues. On
+     * ATTEND qu'il existe avant de cliquer : la bande d'onglets n'apparaît
+     * qu'une fois la base ouverte, et un clic lancé avant ne touche rien —
+     * le test devenait alors intermittent sans rien dire du produit.
+     */
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll('button')).some((b) =>
+          ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+        ),
+      { timeout: 30_000 },
+    );
+
+    await page.evaluate(() => {
+      const cible = Array.from(document.querySelectorAll('button')).find((b) =>
+        ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+      );
+
+      (cible as HTMLButtonElement | undefined)?.click();
+    });
+
+    // 1. Le rail : le défaut exact était ZÉRO table sur une base qui en a 127.
+    const tablesDuRail = page.getByTestId('studio-table');
+
+    await expect(tablesDuRail.first(), 'le rail des tables doit se remplir').toBeVisible({ timeout: 60_000 });
+
+    const nomsDuRail = await tablesDuRail.evaluateAll((els) =>
+      els.slice(0, 6).map((el) => (el.textContent ?? '').trim()),
+    );
+
+    expect(nomsDuRail.every((nom) => nom.length > 0), `rail : ${JSON.stringify(nomsDuRail)}`).toBe(true);
+    expect(new Set(nomsDuRail).size, 'des noms distincts, pas la même clé partout').toBe(nomsDuRail.length);
+
+    /*
+     * 2. Parcourir une table : en-têtes typés + pagination annoncée.
+     *
+     * On vise `_prisma_migrations`, la seule table dont on SAIT qu'elle porte
+     * des lignes sur toute base migrée. La première du rail est
+     * alphabétique — `AbuseEvent`, vide — et sans ligne il n'y a pas de
+     * grille, donc pas d'en-tête : le test aurait échoué sur un produit
+     * correct.
+     */
+    const tableAvecLignes = tablesDuRail.filter({ hasText: '_prisma_migrations' }).first();
+
+    await expect(tableAvecLignes, 'une base migrée porte cette table').toBeVisible({ timeout: 30_000 });
+    await tableAvecLignes.click();
+
+    const pagination = page.getByTestId('studio-pagination');
+
+    await expect(pagination, 'la page parcourue doit être annoncée').toBeVisible({ timeout: 60_000 });
+    await expect(pagination, 'Replit écrit « 50 / 0 » : la limite et le décalage').toContainText('50 / 0');
+
+    const entetes = page.getByTestId('studio-entete');
+
+    await expect(entetes.first(), 'la grille doit rendre ses en-têtes').toBeVisible({ timeout: 60_000 });
+
+    const types = await entetes.evaluateAll((els) =>
+      els.slice(0, 8).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    /*
+     * Le TYPE est la valeur ajoutée de RP-DB-06 : sans lui, l'en-tête n'est
+     * qu'un nom de colonne, et c'est ce qu'il était.
+     */
+    expect(
+      types.some((type) => type.length > 0),
+      `types relevés : ${JSON.stringify(types)}`,
     ).toBe(true);
   });
 });
