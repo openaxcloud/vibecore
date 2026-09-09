@@ -100,11 +100,15 @@ const compactToolsPaletteItems = [
   { id: 'logs', label: 'Logs' },
   { id: 'debugger', label: 'Debugger' },
   { id: 'search', label: 'Search' },
-  { id: 'commands', label: 'Commands' },
+  /*
+   * `commands` et `share` ne figurent plus dans la palette : ce lot les RETIRE.
+   * `commands` était le défaut « ?panel=commands non adressable » — une clé
+   * déclarée que rien ne dispatchait ; `share` était un doublon d'entrée. Le
+   * test attendait donc deux outils dont la disparition est l'objet du lot.
+   */
   { id: 'workflows', label: 'Workflows' },
   { id: 'integrations', label: 'Integrations' },
   { id: 'collaborators', label: 'Collaborators' },
-  { id: 'share', label: 'Share' },
   { id: 'activity', label: 'Activity' },
   { id: 'snapshots', label: 'Snapshots' },
   { id: 'extensions', label: 'Extensions' },
