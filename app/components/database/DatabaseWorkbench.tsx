@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseSettings } from './DatabaseSettings';
 import { DatabaseStudio } from './DatabaseStudio';
+import { enregistrerLeRejet, noteEstPertinente, rejetEnregistre } from './note-dev-prod';
 import { nomDeLaBase, tablesDuSchema, tailleDeLaBase } from './tables-du-schema';
 import {
   formatDatabaseSettingsBytes,
@@ -224,6 +225,17 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
 
   const schemaFetcher = useFetcher();
 
+  /*
+   * RP-DB-07 — le rejet de la note dev/prod est relu au MONTAGE, pas au rendu :
+   * `localStorage` n'existe pas pendant le rendu serveur, et le lire là ferait
+   * diverger le premier rendu client de celui du serveur.
+   */
+  const [noteRejetee, setNoteRejetee] = useState(false);
+
+  useEffect(() => {
+    setNoteRejetee(rejetEnregistre(projectId));
+  }, [projectId]);
+
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -350,6 +362,40 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             {copy['databaseWorkbench.refresh']}
           </button>
         </header>
+        {noteEstPertinente({ environnements: environments, rejetee: noteRejetee }) ? (
+          <aside
+            data-testid="db-note-dev-prod"
+            className="flex min-w-0 flex-col gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <p className="break-words text-[13px] font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+              {copy['databaseWorkbench.note.title']}
+            </p>
+            <p className="break-words text-[12px] text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+              {copy['databaseWorkbench.note.body']}
+            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                data-testid="db-note-compris"
+                onClick={() => {
+                  enregistrerLeRejet(projectId);
+                  setNoteRejetee(true);
+                }}
+                className="inline-flex min-h-11 items-center rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-[13px] font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+              >
+                {copy['databaseWorkbench.note.gotIt']}
+              </button>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+              >
+                {copy['databaseWorkbench.note.learnMore']}
+              </a>
+            </div>
+          </aside>
+        ) : null}
         {loading && fetcher.data === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2" role="status" aria-live="polite">
             <span className="sr-only">{copy['databaseWorkbench.loading']}</span>
@@ -490,7 +536,9 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             language={language}
           />
         ) : null}
-        {tab === 'mydata' ? <DatabaseStudio projectId={projectId} /> : null}
+        {tab === 'mydata' ? (
+          <DatabaseStudio projectId={projectId} schemaFourni={schemaFetcher.data} connexionFournie={active.key} />
+        ) : null}
         {tab === 'settings' ? (
           <DatabaseSettings
             name={active.name}

@@ -3052,8 +3052,19 @@ async function inspectPostgresSchema(connectionString: string) {
       client.query(
         "select table_schema, table_name, table_type from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200",
       ),
+      /*
+       * RP-DB-06 — les colonnes des tables QU'ON REND, et pas les 1000
+       * premières de la base.
+       *
+       * Le plafond plat coupait par ordre alphabétique : sur une base de 127
+       * tables, `_prisma_migrations` tombait au-delà du millième, et ses
+       * en-têtes s'affichaient SANS TYPE — mesuré le 09/09. Un plafond plus
+       * haut n'aurait fait que déplacer la coupure. La jointure lie les
+       * colonnes aux 200 tables effectivement listées : les deux ensembles ne
+       * peuvent plus diverger.
+       */
       client.query(
-        "select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name, ordinal_position limit 1000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
       client
         .query(
@@ -3095,7 +3106,7 @@ async function inspectMysqlSchema(connectionString: string) {
       'select table_schema, table_name, table_type from information_schema.tables where table_schema = database() order by table_name limit 200',
     );
     const [columns] = await connection.query(
-      'select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
+      'select table_schema, table_name, column_name, data_type, character_maximum_length, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
     );
 
     return { tables: serializeDbRows(tables), columns: serializeDbRows(columns) };
