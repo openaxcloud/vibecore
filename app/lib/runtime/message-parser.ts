@@ -109,6 +109,27 @@ interface MessageState {
   currentArtifact?: BoltArtifactData;
   currentAction: BoltActionData;
   actionId: number;
+
+  /**
+   * Texte BRUT de l'action en cours, tel qu'il a streamé, tant qu'aucune
+   * balise `</boltAction>` n'a été trouvée.
+   *
+   * Pourquoi ce champ existe : la branche de streaming ci-dessous n'écrit
+   * JAMAIS dans `currentAction.content` — elle recalcule le contenu depuis
+   * `input.slice(i)` à chaque passe et sort par `break`, en laissant
+   * `state.position` au DÉBUT du contenu. `currentAction.content` ne reçoit
+   * quelque chose qu'au moment où la balise fermante est trouvée. Mesuré sur
+   * le parseur réel : à la coupure, `currentAction.content` vaut `''`.
+   *
+   * Conséquence : le filet de fin de flux, qui n'a pas `input`, n'avait aucun
+   * moyen de retrouver le travail déjà streamé — il aurait fermé l'action sur
+   * un fichier VIDE, ce qui est pire que de ne pas la fermer.
+   *
+   * L'affectation est idempotente : `state.position` ne bouge pas tant que
+   * l'action n'est pas fermée, donc chaque passe réécrit le même préfixe
+   * étendu. Remis à `undefined` à chaque fermeture ou redémarrage d'action.
+   */
+  contenuBrutEnCours?: string;
 }
 
 function cleanoutMarkdownSyntax(content: string) {
@@ -339,6 +360,7 @@ export class StreamingMessageParser {
           if (restartIndex !== -1 && (closeIndex === -1 || restartIndex < closeIndex)) {
             state.insideAction = false;
             state.currentAction = { content: '' };
+            state.contenuBrutEnCours = undefined;
             i = restartIndex;
 
             continue;
@@ -389,9 +411,20 @@ export class StreamingMessageParser {
 
             state.insideAction = false;
             state.currentAction = { content: '' };
+            state.contenuBrutEnCours = undefined;
 
             i = closeIndex + ARTIFACT_ACTION_TAG_CLOSE.length;
           } else {
+            /*
+             * Mémoriser le partiel BRUT avant toute mise en forme, et pour
+             * TOUS les types d'action — les deux branches ci-dessous ne
+             * couvrent que `file` et `diff`, une action `shell` tronquée ne
+             * passerait nulle part. Affectation et non concaténation : la
+             * position de reprise ne bouge pas tant que l'action est ouverte,
+             * chaque passe re-slice donc le même contenu, en plus long.
+             */
+            state.contenuBrutEnCours = input.slice(i);
+
             if ('type' in currentAction && currentAction.type === 'file') {
               /*
                * Hold back a trailing PARTIAL close tag (`</bo`, `</`, `<`, …) so a
@@ -629,6 +662,85 @@ export class StreamingMessageParser {
     }
 
     const artefact = state.currentArtifact;
+
+    /*
+     * FERMER D'ABORD L'ACTION, PUIS L'ARTEFACT — dans cet ordre, et pas
+     * l'inverse.
+     *
+     * Ce filet ne fermait que l'artefact. MESURÉ sur le parseur réel, flux
+     * coupé au milieu du second fichier :
+     *
+     *   ouvertes ..  actionOpen:src/App.tsx  +  actionOpen:src/main.tsx
+     *   fermées ...  actionClose:src/App.tsx  — SEULEMENT
+     *
+     * Le fichier en cours au moment de la coupure — le dernier écrit, donc
+     * très souvent le point d'entrée — n'était jamais finalisé : `onActionClose`
+     * est ce qui déclenche l'exécution NON streamée de l'action
+     * (`workbenchStore.runAction(data)`), et il ne partait pas. Cela explique
+     * la mesure de production « l'index.html réclame /src/main.tsx qui
+     * n'existe pas » : ce n'est pas le fichier qui manque au plan du modèle,
+     * c'est sa fermeture qui manque au nôtre.
+     *
+     * Le commentaire de cette méthode nommait déjà la parenté : « même
+     * mécanisme que le défaut de juillet sur </boltAction> ». Le filet avait
+     * été posé une balise trop haut.
+     *
+     * Le contenu subit EXACTEMENT le même traitement que sur le chemin normal
+     * — `trim`, nettoyage de fichier hors markdown, saut de ligne final — sans
+     * quoi le fichier finalisé par le filet différerait de celui finalisé par
+     * une balise reçue, et le filet introduirait sa propre corruption.
+     */
+    if (state.insideAction && state.currentAction) {
+      const action = state.currentAction as BoltAction & { content: string };
+
+      /*
+       * Récupérer le travail DÉJÀ STREAMÉ. `action.content` vaut `''` à cet
+       * instant — la branche de streaming de `parse` ne l'alimente jamais (voir
+       * `contenuBrutEnCours`). Fermer sans cette ligne écrirait un fichier VIDE
+       * par-dessus le code affiché à l'écran : une perte de données pire que
+       * l'action laissée ouverte.
+       *
+       * `withoutTrailingCloseTagPrefix` retire une balise fermante coupée en
+       * plein milieu (`</bo`, `</antml`, …) : sur un flux tronqué elle n'arrivera
+       * jamais, et sans ce retrait elle finirait littéralement dans le fichier.
+       */
+      action.content += withoutTrailingCloseTagPrefix(state.contenuBrutEnCours ?? '');
+
+      let content = action.content.trim();
+
+      if ('type' in action && action.type === 'file') {
+        if (!action.filePath?.endsWith('.md')) {
+          content = cleanFileActionContent(content, action.filePath);
+
+          /*
+           * La clôture ``` n'arrivera pas non plus : `cleanoutMarkdownSyntax`
+           * exige les DEUX barrières et laisse donc la première en place. Sur
+           * une fermeture normale c'est sans objet ; ici le fichier finalisé
+           * commencerait par une ligne ```lang. Même retrait que la branche de
+           * streaming, pour la même raison.
+           */
+          content = content.replace(/^\s*```[a-zA-Z0-9]*\n/, '');
+        }
+
+        content += '\n';
+      }
+
+      action.content = content;
+
+      state.insideAction = false;
+      state.currentAction = { content: '' };
+      state.contenuBrutEnCours = undefined;
+
+      this._options.callbacks?.onActionClose?.({
+        artifactId: artefact.id,
+        messageId,
+
+        /* Même décrément que le chemin normal : l'identifiant a déjà été incrémenté à l'ouverture. */
+        actionId: String(state.actionId - 1),
+
+        action,
+      });
+    }
 
     state.insideArtifact = false;
     state.currentArtifact = undefined;
