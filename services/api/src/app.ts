@@ -487,7 +487,7 @@ import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import { ReconciliationUneFois } from './reconciliation-une-fois.js';
-import { doitEcrireDansWorkspace } from './portee-reconciliation.js';
+import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -15390,6 +15390,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const present = flattenRuntimeTreeFilePaths(existingTree);
+
+    /*
+     * UN POD QUI DÉMARRE N'EST PAS UN POD AMPUTÉ.
+     *
+     * Un fichier absent pendant l'ensemencement n'est pas un fichier perdu :
+     * c'est un fichier pas encore arrivé. Cette fonction ne sait pas faire la
+     * différence — elle voit « absent » et elle écrit. Sur un pod chaud dont
+     * l'arbre est encore VIDE, elle écrirait donc tout, déclenchant le
+     * rechargement plein écran que `ide-panel-smoke` interdit, et pour rien :
+     * l'ensemencement allait livrer ces fichiers de lui-même.
+     *
+     * Rien ne presse. Un fichier réellement perdu le sera encore au prochain
+     * passage, et l'arbre sera alors non vide.
+     *
+     * À FROID le cas s'inverse : un pod neuf part de vide, c'est précisément
+     * l'état dans lequel l'ensemencement DOIT écrire — d'où la garde qui ne
+     * s'applique qu'au chemin chaud.
+     */
+    if (!espaceStabilise({ fichiersPresents: present.size, workspaceChaud: Boolean(options.chaud) })) {
+      return { seeded: false, reason: 'espace-non-stabilise' };
+    }
 
     let missing = 0;
     let diverged = 0;

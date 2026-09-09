@@ -60,3 +60,32 @@ export function doitEcrireDansWorkspace(etat: EtatDuFichier): boolean {
    */
   return !etat.workspaceChaud;
 }
+
+/**
+ * L'espace de travail est-il assez avancé pour qu'une ABSENCE de fichier
+ * signifie une perte ?
+ *
+ * Un fichier absent pendant que le pod démarre n'est pas un fichier perdu :
+ * c'est un fichier pas encore arrivé. La réconciliation ne sait pas faire la
+ * différence — elle voit « absent » et elle écrit. Sur un pod en cours
+ * d'ensemencement elle écrit donc TOUT, ce qui déclenche le rechargement plein
+ * écran que `ide-panel-smoke` interdit, et pour rien : l'ensemencement allait
+ * livrer ces fichiers de lui-même.
+ *
+ * Le signal retenu est le plus simple qui distingue les deux : un arbre VIDE
+ * sur un workspace chaud veut dire que rien n'est encore arrivé. Dès qu'un
+ * fichier est là, l'ensemencement a commencé à livrer et une absence redevient
+ * significative.
+ *
+ * À FROID le cas s'inverse : un pod neuf part de vide, c'est précisément l'état
+ * dans lequel l'ensemencement doit écrire.
+ *
+ * Rien ne presse. Un fichier réellement perdu le sera encore dans dix secondes.
+ */
+export function espaceStabilise(etat: { fichiersPresents: number; workspaceChaud: boolean }): boolean {
+  if (!etat.workspaceChaud) {
+    return true;
+  }
+
+  return etat.fichiersPresents > 0;
+}

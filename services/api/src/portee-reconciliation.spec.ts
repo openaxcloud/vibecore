@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { doitEcrireDansWorkspace } from './portee-reconciliation.js';
+import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 
 describe('la réconciliation ne remplace jamais un fichier vivant qui diffère', () => {
   it('LA GARDE — un fichier présent au contenu DIFFÉRENT n’est pas écrasé sur un workspace chaud', () => {
@@ -34,5 +34,33 @@ describe('la réconciliation ne remplace jamais un fichier vivant qui diffère',
 
   it('un absent est posé à froid aussi', () => {
     expect(doitEcrireDansWorkspace({ present: false, workspaceChaud: false })).toBe(true);
+  });
+
+  describe('un espace en cours de démarrage n’est pas un espace amputé', () => {
+    /*
+     * Un fichier ABSENT pendant que le pod démarre n'est pas un fichier perdu :
+     * c'est un fichier pas encore arrivé. La réconciliation ne sait pas faire la
+     * différence — elle voit « absent » et écrit. Sur un pod en cours
+     * d'ensemencement, elle écrit donc tout, et déclenche le rechargement que
+     * `ide-panel-smoke` interdit.
+     *
+     * Rien ne presse : un fichier réellement perdu le sera encore dans dix
+     * secondes.
+     */
+    it('un workspace VIDE n’est pas stabilisé — on ne réconcilie pas', () => {
+      expect(espaceStabilise({ fichiersPresents: 0, workspaceChaud: true })).toBe(false);
+    });
+
+    it('TÉMOIN POSITIF — dès qu’un fichier est arrivé, l’espace est stabilisé', () => {
+      expect(espaceStabilise({ fichiersPresents: 1, workspaceChaud: true })).toBe(true);
+    });
+
+    it('à FROID, un espace vide est au contraire le cas NORMAL de l’ensemencement', () => {
+      expect(espaceStabilise({ fichiersPresents: 0, workspaceChaud: false }), 'le pod part de vide').toBe(true);
+    });
+
+    it('le cas d’Avi reste couvert : 30 fichiers présents, 3 manquants', () => {
+      expect(espaceStabilise({ fichiersPresents: 30, workspaceChaud: true })).toBe(true);
+    });
   });
 });
