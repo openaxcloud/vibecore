@@ -1,0 +1,257 @@
+[
+ {
+  "route": "/community",
+  "vp": "mobile-390",
+  "theme": "light",
+  "clip": 150,
+  "bodySW": 540,
+  "clientW": 390,
+  "canScrollH": false,
+  "worst": {
+   "tag": "div",
+   "cls": "",
+   "w": 524,
+   "parentCls": "grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]",
+   "parentW": 358,
+   "parentCols": "524.469px",
+   "txt": "COMMUNITY FEED\n\nDiscussions, showcases and implementation he",
+   "n": 2
+  }
+ },
+ {
+  "route": "/mobile",
+  "vp": "mobile-390",
+  "theme": "light",
+  "clip": 32,
+  "bodySW": 422,
+  "clientW": 390,
+  "canScrollH": false,
+  "worst": {
+   "tag": "article",
+   "cls": "rounded-lg border p-5 shadow-sm border-bolt-elements-borderColor bg-bolt-elements-background-depth-1",
+   "w": 406,
+   "parentCls": "grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start",
+   "parentW": 358,
+   "parentCols": "406px",
+   "txt": "Full-Featured Editor\n\nEdit TypeScript, routes and configurat",
+   "n": 2
+  }
+ },
+ {
+  "route": "/organization-roles",
+  "vp": "mobile-390",
+  "theme": "light",
+  "clip": 266,
+  "bodySW": 656,
+  "clientW": 390,
+  "canScrollH": false,
+  "worst": {
+   "tag": "section",
+   "cls": "rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm",
+   "w": 642,
+   "parentCls": "grid gap-6",
+   "parentW": 362,
+   "parentCols": "642px",
+   "txt": "Permission matrix\n\nBuilt-in roles are read-only. Your role (",
+   "n": 3
+  }
+ },
+ {
+  "route": "/licensing",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/licensing\", waiting unti"
+ },
+ {
+  "route": "/login",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/login\", waiting until \"d"
+ },
+ {
+  "route": "/marketing/bounties",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/marketing/bounties\", wai"
+ },
+ {
+  "route": "/marketing/deployments",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/marketing/deployments\", "
+ },
+ {
+  "route": "/marketing/teams",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/marketing/teams\" is interrupted by another navigation to \"https://app.3"
+ },
+ {
+  "route": "/marketplace",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/marketplace\" is interrupted by another navigation to \"https://app.34.16"
+ },
+ {
+  "route": "/mcp",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/mcp\" is interrupted by another navigation to \"https://app.34.163.208.16"
+ },
+ {
+  "route": "/mfa-setup",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/mfa-setup\" is interrupted by another navigation to \"https://app.34.163."
+ },
+ {
+  "route": "/mobile",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/mobile\" is interrupted by another navigation to \"https://app.34.163.208"
+ },
+ {
+  "route": "/newsletter",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/newsletter\" is interrupted by another navigation to \"https://app.34.163"
+ },
+ {
+  "route": "/newsletter-confirmed",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/newsletter-confirmed\" is interrupted by another navigation to \"https://"
+ },
+ {
+  "route": "/notifications",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/notifications\" is interrupted by another navigation to \"https://app.34."
+ },
+ {
+  "route": "/organization-domains",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-domains\" is interrupted by another navigation to \"https://"
+ },
+ {
+  "route": "/organization-invitations",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-invitations\" is interrupted by another navigation to \"http"
+ },
+ {
+  "route": "/organization-members",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-members\" is interrupted by another navigation to \"https://"
+ },
+ {
+  "route": "/organization-roles",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-roles\" is interrupted by another navigation to \"https://ap"
+ },
+ {
+  "route": "/organization-security",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-security\" is interrupted by another navigation to \"https:/"
+ },
+ {
+  "route": "/organization-siem",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-siem\" is interrupted by another navigation to \"https://app"
+ },
+ {
+  "route": "/organization-switcher",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/organization-switcher\" is interrupted by another navigation to \"https:/"
+ },
+ {
+  "route": "/partners/",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/partners/\" is interrupted by another navigation to \"https://app.34.163."
+ },
+ {
+  "route": "/payment-method",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/payment-method\" is interrupted by another navigation to \"https://app.34"
+ },
+ {
+  "route": "/plan-comparison",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/plan-comparison\" is interrupted by another navigation to \"https://app.3"
+ },
+ {
+  "route": "/polyglot",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/polyglot\" is interrupted by another navigation to \"https://app.34.163.2"
+ },
+ {
+  "route": "/press",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/press\" is interrupted by another navigation to \"https://app.34.163.208."
+ },
+ {
+  "route": "/pricing",
+  "vp": "tablet-768",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/pricing\" is interrupted by another navigation to \"https://app.34.163.20"
+ },
+ {
+  "route": "/bounties",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/bounties\", waiting until"
+ },
+ {
+  "route": "/careers",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/careers\", waiting until "
+ },
+ {
+  "route": "/case-studies",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/case-studies\", waiting u"
+ },
+ {
+  "route": "/changelog",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/changelog\", waiting unti"
+ },
+ {
+  "route": "/collaboration",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/collaboration\", waiting "
+ },
+ {
+  "route": "/command-palette",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "TimeoutError: page.goto: Timeout 40000ms exceeded.\nCall log:\n  - navigating to \"https://app.34.163.208.161.sslip.io/command-palette\", waitin"
+ },
+ {
+  "route": "/commercial-agreement",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/commercial-agreement\" is interrupted by another navigation to \"https://"
+ },
+ {
+  "route": "/community",
+  "vp": "desktop-1024",
+  "theme": "light",
+  "fatal": "Error: page.goto: Navigation to \"https://app.34.163.208.161.sslip.io/community\" is interrupted by another navigation to \"https://app.34.163."
+ }
+]

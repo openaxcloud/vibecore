@@ -411,7 +411,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
-          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="container-responsive grid grid-cols-[minmax(0,1fr)] gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
                 {copy.foundations.eyebrow}
@@ -528,11 +528,11 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <section id="community-feed" className="container-responsive py-16 sm:py-24">
-          <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[minmax(0,1fr)_22rem]">
             <div>
               <SectionHeader eyebrow={copy.feed.eyebrow} title={copy.feed.title} description={copy.feed.description} />
 
-              <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
+              <div className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
                 <label className="relative block">
                   <span className="sr-only">{copy.searchLabel}</span>
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--ecode-text-muted)]" />
@@ -616,7 +616,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         </section>
 
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
-          <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+          <div className="container-responsive grid grid-cols-[minmax(0,1fr)] gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
               <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
                 {copy.events.eyebrow}

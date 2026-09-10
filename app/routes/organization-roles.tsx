@@ -201,7 +201,7 @@ export default function OrganizationRolesPage() {
 
   return (
     <AppShell title={copy['organizationAccess.roles.title']} description={copy['organizationAccess.roles.description']}>
-      <div className="grid gap-6">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6">
         {actionData?.status ? (
           <p
             role="status"
