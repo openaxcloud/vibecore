@@ -77,9 +77,32 @@ describe('THINKING-EFFECTIVITY-001 — pourquoi le contournement ne pouvait pas 
   });
 
   it('TÉMOIN — la version installée est bien celle qui porte le gain', () => {
-    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+    /*
+     * LE TÉMOIN LISAIT LA DÉCLARATION, PAS L'INSTALLATION — et il a menti.
+     *
+     * Il lisait `package.json`, c'est-à-dire ce que le dépôt DEMANDE. Mesuré le
+     * 2026-09-10 dans un bac à sable dont `node_modules` datait du 08-09 :
+     * déclaré `1.2.12`, INSTALLÉ `0.0.39`. Le témoin passait au vert en
+     * annonçant « la version installée est bien celle qui porte le gain »
+     * pendant que les deux cas au-dessus rougissaient sur des chaînes absentes
+     * du bundle — deux rouges incompréhensibles sous un vert rassurant, alors
+     * que la cause tenait en une ligne.
+     *
+     * C'est le défaut que ce fichier dénonce ailleurs, commis par lui-même : une
+     * sonde qui mesure autre chose que ce qu'elle affirme. On lit désormais le
+     * paquet RÉELLEMENT chargé, et le message nomme le geste de réparation.
+     */
+    const declaree = JSON.parse(readFileSync('package.json', 'utf8')).dependencies['@ai-sdk/anthropic'];
+    const installee = JSON.parse(readFileSync('node_modules/@ai-sdk/anthropic/package.json', 'utf8')).version;
 
-    expect(pkg.dependencies['@ai-sdk/anthropic']).not.toBe('0.0.39');
-    expect(pkg.dependencies['@ai-sdk/anthropic']).toMatch(/^1\.2\./u);
+    expect(
+      installee,
+      `@ai-sdk/anthropic installé en ${installee} alors que le dépôt demande ${declaree}. ` +
+        'Les deux cas ci-dessus lisent le bundle INSTALLÉ : ils rougiront tant que ' +
+        "l'arbre n'est pas à jour. Lancez `pnpm install --frozen-lockfile`.",
+    ).toMatch(/^1\.2\./u);
+
+    /* La déclaration reste vérifiée : une régression du `package.json` doit rougir aussi. */
+    expect(declaree).toMatch(/^1\.2\./u);
   });
 });

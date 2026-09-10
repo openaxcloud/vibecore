@@ -81,6 +81,24 @@ export const PROVIDER_UNHEALTHY_TTL_MS = 5 * 60 * 1000;
  */
 export const PROVIDER_PROBE_TIMEOUT_MS = 6_000;
 
+/*
+ * PORTÉE DE CETTE TABLE : UN POD, PAS LA PLATEFORME. À dire, parce que la lire
+ * comme globale surestime ce que le repli garantit.
+ *
+ * Mesuré le 2026-09-10 : `services.web.replicas: 2` dans `values-prod.yaml`, et
+ * cette `Map` vit dans la mémoire du processus. Un fournisseur écarté sur un pod
+ * reste donc candidat sur l'autre : le tour suivant a environ une chance sur
+ * deux de retomber sur un pod qui n'a rien appris, et de répéter l'échec une
+ * fois avant de l'apprendre à son tour.
+ *
+ * Ce n'est pas un défaut introduit par un motif en particulier — les six le
+ * partagent depuis l'origine — et la conséquence reste bornée : chaque pod
+ * apprend indépendamment, et la fenêtre de TTL les fait converger. Le rendre
+ * réellement global demanderait de porter la table dans Redis, ce qui est un
+ * lot à part : une table partagée écarte un fournisseur pour TOUS les
+ * utilisateurs d'un coup, et ce changement de rayon de souffle se décide, il ne
+ * se glisse pas dans un correctif.
+ */
 const health = new Map<string, ProviderHealthEntry>();
 
 /** Testable : remet la table de santé à zéro entre deux cas. */
