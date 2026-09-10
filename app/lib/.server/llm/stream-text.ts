@@ -603,7 +603,10 @@ export async function streamText(props: {
 
   /*
    * Replace `currentModel` with the concrete decided id BEFORE the modelDetails
-   * lookup — `'auto'` must never reach getStaticModelList / getModelInstance.
+   * lookup — `'auto'` must never reach the model-list lookup / getModelInstance.
+   * (Vérifié le 2026-09-10 : les appels réels sont
+   * `getStaticModelListFromProvider` et `getModelListFromProvider` — le nom
+   * `getStaticModelList` cité ici n'existe pas seul, il a dérivé.)
    */
   currentModel = turnModelResolution.model;
 

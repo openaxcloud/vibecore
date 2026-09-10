@@ -416,9 +416,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR.
    *
    * Le SDK génère `messageId: generateMessageId()` à CHAQUE appel `streamText`
-   * (node_modules/ai/dist/index.mjs:5989) et à chaque frontière d'étape outil
-   * (:5969), et pousse la part `start_step` dans le flux sans condition
-   * (:6217). Côté client, `processChatResponse` fait `message.id =
+   * et à chaque frontière d'étape outil, et pousse la part `start_step` dans le
+   * flux sans condition.
+   *
+   * Vérifié le 2026-09-10 sur `ai@4.3.16` : `node_modules/ai/dist/index.mjs`
+   * ligne 5989 (`messageId: generateMessageId()`), ligne 5969
+   * (`nextStepType === "continue" ? messageId : generateMessageId()`).
+   * ⚠️ Ces numéros valent POUR CETTE VERSION : une montée de `ai` les décale
+   * sans rien casser, et le lecteur suivant lirait autre chose. La version et la
+   * date sont donc portées ici — c'est ce qui rend la référence vérifiable au
+   * lieu de vieillissante. Côté client, `processChatResponse` fait `message.id =
    * value.messageId` en plein flux (@ai-sdk/ui-utils). Une continuation étant
    * un NOUVEL appel `streamText` fusionné dans le MÊME flux, l'identifiant du
    * message d'assistant CHANGEAIT à la couture.
