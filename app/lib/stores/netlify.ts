@@ -1,6 +1,7 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
+import { CONNECTION_SECRET_FIELDS, persistConnectionWithoutSecrets } from '~/lib/connections/serverConnections';
 import {
   formatClientRuntimeResidualCopy,
   getClientRuntimeResidualCopy,
@@ -83,7 +84,7 @@ export async function initializeNetlifyConnection() {
     };
 
     // Store in localStorage for persistence
-    localStorage.setItem('netlify_connection', JSON.stringify(connectionData));
+    persistConnectionWithoutSecrets('netlify_connection', connectionData, CONNECTION_SECRET_FIELDS.netlify);
 
     // Update the store
     updateNetlifyConnection(connectionData);
@@ -108,7 +109,7 @@ export const updateNetlifyConnection = (updates: Partial<NetlifyConnection>) => 
 
   // Persist to localStorage
   if (typeof window !== 'undefined') {
-    localStorage.setItem('netlify_connection', JSON.stringify(newState));
+    persistConnectionWithoutSecrets('netlify_connection', newState, CONNECTION_SECRET_FIELDS.netlify);
   }
 };
 
