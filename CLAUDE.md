@@ -210,6 +210,14 @@ généraux : ce sont des pièges qui ont déjà coûté.
     (`rouges=0 envol=0`) ne pouvait donc jamais être vraie. Elle n'aurait jamais
     fusionné, et rien dans son journal ne le disait.
 
+    **Quatrième forme, la plus traître, mesurée le 2026-09-10** : une PR
+    `CONFLICTING` n'exécute AUCUN workflow `pull_request` — GitHub ne peut pas
+    calculer son commit de fusion. Elle affiche donc « 0 rouge », **exactement
+    comme une PR verte**, avec un seul contrôle de titre attaché. Deux de mes PR
+    sont restées ainsi pendant une heure et j'ai failli les compter prêtes. Le
+    contrôle qui tranche : **compter les checks ATTACHÉS avant de lire leur
+    couleur** — moins de trois, c'est qu'on ne mesure rien.
+
     **La conséquence adoptée : plus de veille sur l'état d'un run.** L'état se
     lit à la source, au moment où on en a besoin. Quand une veille reste
     indispensable, deux exigences :
@@ -259,6 +267,24 @@ généraux : ce sont des pièges qui ont déjà coûté.
     son répertoire, AVANT d'écrire une ligne. Et quand on trouve le voisin, se
     demander **combien d'autres cas attendent** — corriger les deux pages rouges
     aurait laissé huit grilles attendre leur tour.
+
+24. **APRÈS TOUTE RÉSOLUTION DE CONFLIT, VÉRIFIER NOMMÉMENT QUE CE QU'ON AVAIT
+    ÉCRIT EST ENCORE LÀ.** Pas relire le diff : vérifier la PRÉSENCE du contenu,
+    par son identifiant.
+
+    **Une résolution qui protège les lignes NOUVELLES perd les lignes
+    MODIFIÉES.** C'est le piège de toute stratégie « je repars de l'amont et je
+    rajoute ce qui m'est propre » — la bonne stratégie, par ailleurs, quand
+    l'amont porte des réécritures qu'il ne faut pas figer.
+
+    Mesuré le 2026-09-10 : trois fermetures d'entrées du registre, posées une
+    heure plus tôt, étaient revenues à `☐` après une fusion de `main`. Elles
+    modifiaient des lignes existantes, elles n'en ajoutaient pas — ma résolution
+    a donc repris la version de `main` pour ces trois identifiants. **Rien ne
+    l'a signalé** : ni conflit, ni test, ni diff suspect.
+
+    Le geste : lister ce qu'on a écrit AVANT la fusion (identifiants, clés,
+    noms de fonction), et le regreper APRÈS. Ce qui manque se réapplique.
 
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
