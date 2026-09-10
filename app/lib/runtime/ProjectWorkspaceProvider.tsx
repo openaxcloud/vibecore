@@ -157,6 +157,10 @@ export function ProjectWorkspaceProvider({
          * Signal 1 — marqueur DURABLE. Une `Map` de portée module est vide à
          * chaque chargement de page, donc `seededThisSession` était toujours
          * faux à la réouverture : la réouverture reseedait quoi qu'il arrive.
+         *
+         * Épinglé par `app/lib/runtime/workspace-seed-marker.spec.ts`, qui REJOUE
+         * l'ancien marqueur (« une nouvelle Map par chargement de page ») pour que
+         * le défaut rougisse s’il revient.
          */
         const seedMarker = readSeedMarker(sessionId, Date.now());
         const sessionAlreadySeeded = seedMarker !== undefined;
