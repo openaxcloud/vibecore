@@ -239,6 +239,27 @@ généraux : ce sont des pièges qui ont déjà coûté.
     le jour où ce n'est plus vrai** — et l'écrire à la place. Le commentaire garde
     le POURQUOI ; le test garde le FAIT.
 
+23. **AVANT DE CONCEVOIR UN CORRECTIF, CHERCHER SI LE CAS VOISIN EST DÉJÀ
+    TRAITÉ.** Trois fois sur trois cette semaine, le remède était à portée de
+    regard — souvent dans le même fichier, quelques lignes plus haut.
+
+    * `EcodeProductMarketingPages.tsx` — le `<pre>` de la ligne 1623 portait
+      `overflow-x-auto`, celui de la ligne **1748** ne l'a jamais eu. 14 px
+      amputés sur `/mobile`.
+    * Les grilles marketing — deux portaient déjà `grid-cols-[minmax(0,1fr)]`,
+      **huit** ne l'avaient pas. 32 px et 150 px amputés.
+    * La réconciliation d'ouverture — appelée sur deux routes, absente de la
+      troisième.
+
+    **Chercher coûte moins que concevoir**, et c'est en plus le seul moyen de
+    rester cohérent avec ce que le fichier fait déjà : un second remède, écrit
+    sans voir le premier, diverge de lui au premier changement.
+
+    Le geste : `grep` le motif du correctif envisagé dans le fichier, puis dans
+    son répertoire, AVANT d'écrire une ligne. Et quand on trouve le voisin, se
+    demander **combien d'autres cas attendent** — corriger les deux pages rouges
+    aurait laissé huit grilles attendre leur tour.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
