@@ -9627,6 +9627,33 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 22px !important;
 }
 
+/*
+ * BUG-SECURITY-FONT-001, SECOND TOUR — LE TITRE ÉTAIT PLUS PETIT QUE SON TEXTE.
+ *
+ * Avi, point 5 : « pour la tab sécurité est-ce que c'est la même taille de
+ * police que ce qu'on a fait partout ? ». La réponse restait NON, et la mesure
+ * le chiffre — Chromium, 390 px, feuille compilée, DOM reconstitué à
+ * l'identique de la chaîne réelle :
+ *
+ *     Sécurité  h3 « Scanner de sécurité » ....... 22px  ✔ corrigé au 1er tour
+ *     Sécurité  h4 « Comparaison de scans » ....... 12px  ✖ défaut vivant
+ *     Sécurité  <p> juste sous ce h4 .............. 14px
+ *
+ * Un titre à 12 px au-dessus de son propre corps de texte à 14 px. La remise à
+ * plat de la coque (`:where(h3, h4, h5, h6)`, spécificité 0,2,0 + !important)
+ * les écrase tous ; le correctif du premier tour n'a ouvert l'exception que
+ * pour le `h3` du RÉSUMÉ, et laissé les titrailles de l'OUTIL derrière.
+ *
+ * On vise donc la règle et pas la seule occurrence (règle 7) : toutes les
+ * titrailles du panneau. 16 px est le palier entre le corps (14 px) et le titre
+ * principal (22 px) — l'invariant qui compte est qu'aucun titre ne passe sous
+ * le texte qu'il coiffe, et c'est lui que le test tient.
+ */
+.bolt-project-ide-shell .bolt-project-security-tool :where(h4, h5):not([class*='i-']),
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-security-tool :where(h4, h5):not([class*='i-']) {
+  font-size: 16px !important;
+}
+
 .bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-text,
 .bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-text,
 .bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
@@ -14100,7 +14127,18 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-loading-card {
   display: grid;
   width: min(460px, 100%);
+
+  /*
+   * BUG-PREVIEW-CUTOFF-001 — sans cela, on échange une troncature HORIZONTALE
+   * contre une VERTICALE. Des libellés qui se replient rendent la carte plus
+   * haute ; dans un volet d'aperçu court, le bas sortait du cadre sans moyen
+   * d'y accéder. L'override mobile portait déjà cette garde — elle manquait à
+   * la règle de base, donc à l'ordinateur et à la tablette.
+   */
+  max-height: 100%;
   gap: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 12px;
   background: color-mix(in srgb, var(--vc-ide-bg-card) 96%, transparent);
@@ -14168,20 +14206,47 @@ body :where(.lucide, svg[data-lucide]) {
   transition: width 360ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+/*
+ * BUG-PREVIEW-CUTOFF-001, SECOND TOUR — J'AVAIS CORRIGÉ LA CARTE QUI NE S'AFFICHE PAS.
+ *
+ * Avi, point 8 : « rien ne doit être coupé pour tous les types de devices ». Le
+ * correctif du 09/09 a visé `.bolt-preview-splash-steps`. Or l'écran de
+ * démarrage a DEUX implémentations qui s'excluent (Preview.tsx:3015-3044), et
+ * `shouldShowStartupOverlay` rend TRUE au démarrage à froid ordinaire —
+ * `autoStart` vaut `true` par défaut et `!workspaceReady` suffit. C'est donc
+ * `.bolt-preview-loading-*` qui est à l'écran, et `.bolt-preview-splash-*`
+ * n'est que le repli.
+ *
+ * J'avais donc corrigé la surface qui n'a pas le problème : un vert sur un
+ * écran que l'utilisateur ne voit pas — la pire espèce de faux vert, et
+ * exactement celle que le CLAUDE.md décrit pour Chromium contre Safari.
+ *
+ * Ce bloc aligne la carte RÉELLE sur ce qui a déjà été démontré sur l'autre.
+ */
 .bolt-preview-loading-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+
+  /* Deux colonnes sur téléphone : à quatre, un libellé de 36 caractères se replie sur trois lignes. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+@media (min-width: 640px) {
+  .bolt-preview-loading-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .bolt-preview-loading-steps li {
-  display: grid;
+  display: flex;
   min-width: 0;
-  justify-items: center;
-  gap: 5px;
+
+  /* Le numéro reste aligné sur la PREMIÈRE ligne du libellé, pas centré sur deux. */
+  align-items: flex-start;
+  gap: 7px;
   color: var(--vc-ide-text-muted);
 }
 
@@ -14189,6 +14254,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: inline-grid;
   width: 18px;
   height: 18px;
+  flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 999px;
@@ -14198,12 +14264,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-loading-steps strong {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 10px;
+  min-width: 0;
+  font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-loading-steps li[data-state='active'] {
