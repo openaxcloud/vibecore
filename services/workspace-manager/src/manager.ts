@@ -1331,7 +1331,19 @@ export class WorkspaceManager {
            */
           const podOrphelin = await this.k8s.getPod(namespace, workspace.podName);
 
-          if (podOrphelin) {
+          /*
+           * Un pod DÉJÀ en cours de suppression (finalizer en attente, nœud
+           * NotReady) reste visible de `getPod` tant que kube-apiserver ne l'a
+           * pas purgé. Sans ce filtre, la branche le « redécouvre » à CHAQUE
+           * balayage : une suppression de plus, un événement de plus, à chaque
+           * tour, pour un pod qui part déjà. On ne réconcilie que ce qui n'est
+           * pas déjà en train de disparaître.
+           */
+          const dejaEnCoursDeSuppression = Boolean(
+            (podOrphelin as { metadata?: { deletionTimestamp?: unknown } } | undefined)?.metadata?.deletionTimestamp,
+          );
+
+          if (podOrphelin && !dejaEnCoursDeSuppression) {
             console.log(
               JSON.stringify({
                 level: 'warn',

@@ -472,6 +472,26 @@ describe('WorkspaceManager', () => {
   });
 
   /*
+   * BUG-CREATE-003 — MATRICE DE COUPLAGE, mesurée le 2026-09-10.
+   *
+   * Un audit a conclu que trois de ces quatre cas étaient « vides » parce qu'un
+   * seul rougit quand on retire la branche de réconciliation. La conclusion est
+   * FAUSSE, et voici la mesure qui la corrige : chacun tient une mutation
+   * DIFFÉRENTE du correctif, et chacune a été exécutée dans les deux sens.
+   *
+   *   mutation appliquée à manager.ts              →  cas qui rougit
+   *   ─────────────────────────────────────────────────────────────────────
+   *   branche `STOPPED + pod vivant` retirée       →  « supprime le pod resté vivant »
+   *   `stopWorkspace` → `deleteWorkspace`          →  « ne touche NI au PVC NI au Secret »
+   *   garde optimiste de stopWorkspace neutralisée →  « renonce si la ligne a été rouverte »
+   *   `if (podOrphelin)` rendu inconditionnel      →  « ne réconcilie rien quand le pod est parti »
+   *
+   * Un cas qui ne rougit pas sur LA disparition du correctif n'est pas vide
+   * pour autant : il garde une autre moitié. Ce qui serait vide, c'est un cas
+   * qu'AUCUNE mutation ne fait rougir — et il n'y en a pas ici.
+   */
+
+  /*
    * BUG-CREATE-003 — un pod qui survit à l'arrêt de son enregistrement.
    * Trois lignes `STOPPED` avec un pod `Running`, dont une depuis six heures,
    * mesurées le 17/08. Le balayage ne réconciliait que l'inverse (RUNNING sans
@@ -545,6 +565,37 @@ describe('WorkspaceManager', () => {
     await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
 
     expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1'), 'le pod de la réouverture a été tué').toBe(true);
+
+    vi.restoreAllMocks();
+  });
+
+  it('ne re-supprime pas un pod DÉJÀ en cours de suppression', async () => {
+    /*
+     * Un pod bloqué en `Terminating` (finalizer, nœud NotReady) reste visible
+     * de `getPod`. Sans filtre, la branche le redécouvrirait à chaque balayage
+     * et empilerait suppressions et événements pour un pod qui part déjà.
+     */
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { status: 'STOPPED', lastActiveAt: new Date().toISOString() });
+
+    const vraiGetPod = k8s.getPod.bind(k8s);
+    vi.spyOn(k8s, 'getPod').mockImplementation(async (namespace: string, name: string) => {
+      const pod = await vraiGetPod(namespace, name);
+
+      return pod
+        ? ({ ...pod, metadata: { ...pod.metadata, deletionTimestamp: '2026-09-10T00:00:00Z' } } as typeof pod)
+        : pod;
+    });
+
+    const avant = k8s.events.filter((evenement) => evenement.startsWith('delete:Pod')).length;
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(k8s.events.filter((evenement) => evenement.startsWith('delete:Pod')).length).toBe(avant);
 
     vi.restoreAllMocks();
   });
