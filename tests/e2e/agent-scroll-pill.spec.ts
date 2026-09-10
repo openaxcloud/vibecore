@@ -140,6 +140,20 @@ test.describe('pilule « descendre au dernier message »', () => {
   let session: { token: string; projectId: string };
 
   test.beforeAll(async ({ request }) => {
+    /*
+     * MESURÉ LE 10/09, canari WebKit iPhone du run E2E de #527 :
+     * « "beforeAll" hook timeout of 30000ms exceeded » — le fil de test n'a
+     * jamais été semé, et le test a été compté `flaky` alors qu'AUCUNE
+     * assertion produit n'avait été tentée.
+     *
+     * Le délai de hook par défaut de `playwright.config.ts` vaut 30 s ; les
+     * tests, eux, s'accordent 180 s. Le montage — inscription, projet,
+     * conversation, transcription — n'a donc jamais eu le budget de ce qu'il
+     * doit faire, et `test.setTimeout` posé DANS un test ne l'atteint pas.
+     * Le budget porte sur la précondition, pas sur les assertions.
+     */
+    test.setTimeout(180_000);
+
     session = await seedLongueConversation(request);
   });
 
