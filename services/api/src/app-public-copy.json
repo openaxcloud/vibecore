@@ -131,6 +131,22 @@
     "en": "Invalid project path",
     "fr": "Chemin de projet invalide."
   },
+  "TEARDOWN_WORKSPACE_ID_INVALID": {
+    "en": "Workspace identifier does not match the expected pattern; its volume was not torn down",
+    "fr": "L’identifiant de l’espace de travail ne correspond pas au motif attendu ; son volume n’a pas été démonté."
+  },
+  "TEARDOWN_DEPLOYMENT_ID_INVALID": {
+    "en": "Deployment identifier does not match the expected pattern; the published app was not torn down",
+    "fr": "L’identifiant de déploiement ne correspond pas au motif attendu ; l’application publiée n’a pas été démontée."
+  },
+  "TEARDOWN_WORKSPACE_REFUSED": {
+    "en": "The workspace manager refused to tear down the workspace",
+    "fr": "Le gestionnaire d’espaces de travail a refusé de démonter l’espace de travail."
+  },
+  "TEARDOWN_PROJECT_ID_INVALID": {
+    "en": "Project identifier does not match the expected pattern; its files were not deleted",
+    "fr": "L’identifiant de projet ne correspond pas au motif attendu ; ses fichiers n’ont pas été supprimés."
+  },
   "IDE_STATE_CONTENDED": {
     "en": "IDE state is being modified too frequently; please retry",
     "fr": "L’état de l’IDE est modifié trop fréquemment. Veuillez réessayer."

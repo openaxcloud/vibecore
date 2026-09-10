@@ -281,6 +281,35 @@ function storageRoot() {
   );
 }
 
+/*
+ * SUPPRESSION DES FICHIERS D'UN PROJET, sur le volume partagé.
+ *
+ * Troisième famille que le démontage ne couvrait pas. Mesuré le 2026-09-07 en
+ * production, en démontant à la main ce que le produit aurait laissé : 428
+ * répertoires de projet (1,3 Go) et 208 charges d'instantanés (825 Mo)
+ * survivaient à la suppression de leurs projets. Personne ne les effaçait, et
+ * l'espace était payé indéfiniment.
+ *
+ * Deux arbres, parce que les instantanés ne vivent PAS sous le projet :
+ *   <racine>/<projectId>                     les fichiers du projet
+ *   <racine>/_objects/snapshots/<projectId>  les archives d'instantanés
+ *
+ * LA GARDE. L'identifiant est vérifié contre `SAFE_PROJECT_ID` — le même motif
+ * que `acquireFileLock`. Un identifiant vide, avec un `..`, ou hors motif fait
+ * LEVER plutôt que supprimer : effacer le mauvais arbre sous la racine partagée
+ * emporterait les fichiers de tous les projets.
+ */
+export async function supprimerFichiersDuProjet(projectId: string): Promise<void> {
+  if (!SAFE_PROJECT_ID.test(projectId)) {
+    throw new Error(`${appPublicEnglish('TEARDOWN_PROJECT_ID_INVALID')} (${JSON.stringify(projectId)})`);
+  }
+
+  const racine = storageRoot();
+
+  await rm(join(racine, projectId), { recursive: true, force: true });
+  await rm(join(racine, '_objects', 'snapshots', projectId), { recursive: true, force: true });
+}
+
 function safeProjectPath(projectId: string, filePath = '') {
   const root = join(storageRoot(), projectId);
   const target = normalize(join(root, filePath));
