@@ -58,14 +58,42 @@ function parseArgs(argv: string[]): Parsed {
     throw new Error('--job is required');
   }
 
-  if (!KNOWN_QUEUES.has(queue)) {
-    throw new Error(`Unknown queue '${queue}'. Known queues: ${[...KNOWN_QUEUES].join(', ')}`);
-  }
+  assertKnownQueue(queue);
 
   return { queue, job, data };
 }
 
+/**
+ * BUG-WORKER-002 — LA GARDE VIT LÀ OÙ L'ACTION SE PRODUIT.
+ *
+ * Elle n'existait que dans `parseArgs()`. Tout appelant qui construit l'objet
+ * `Parsed` lui-même — un test, un script, un futur ordonnanceur — contournait
+ * donc la validation, et `enqueue()` créait la `Queue` BullMQ avec n'importe
+ * quel nom. Une CronJob mal configurée empilait en silence dans une file que
+ * personne ne consomme, au lieu d'échouer et de réveiller quelqu'un.
+ *
+ * MESURÉ, et c'est le plus intéressant : le test censé couvrir ce cas
+ * PASSAIT — pour la mauvaise raison. Il vise `redis://127.0.0.1:6379`, où
+ * rien n'écoute en CI, et n'exigeait qu'un rejet, sans motif. C'est l'échec
+ * de CONNEXION qui le rendait vert. Rebranché sur un Redis joignable, le même
+ * appel RÉSOUT et rend l'identifiant de job `"1"` : la file inexistante avait
+ * bel et bien reçu le travail.
+ */
+function assertKnownQueue(queue: string): void {
+  if (!KNOWN_QUEUES.has(queue)) {
+    throw new Error(`Unknown queue '${queue}'. Known queues: ${[...KNOWN_QUEUES].join(', ')}`);
+  }
+}
+
 export async function enqueue(parsed: Parsed): Promise<string> {
+  /*
+   * Avant `REDIS_URL`, et avant toute connexion : une file inconnue est une
+   * erreur de configuration, pas un incident d'infrastructure. La refuser ici
+   * garantit qu'aucun travail ne part vers une file que personne ne consomme,
+   * quel que soit l'appelant.
+   */
+  assertKnownQueue(parsed.queue);
+
   const url = process.env.REDIS_URL;
 
   if (!url) {

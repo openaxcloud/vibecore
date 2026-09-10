@@ -50,6 +50,7 @@ import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
+import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
@@ -399,6 +400,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   let agentHardnessDecidedBy: 'heuristic' | 'llm' | undefined;
 
   let agentClassifierUsage: { provider: string; model: string; inputTokens: number; outputTokens: number } | undefined;
+
+  /*
+   * UNE SEULE FACTURE PAR TOUR. `onFinish` et `onError` peuvent s'exécuter tous
+   * les deux — la note du compteur de chaîne le dit — et depuis que le chemin
+   * d'abandon facture aussi, rien n'empêcherait plus le tour d'être porté deux
+   * fois au registre. La sous-facturation coûte à l'exploitant ; la double
+   * facturation coûte à l'utilisateur, ce qui est pire.
+   */
+  let tourDejaFacture = false;
 
   const cumulativeUsage = {
     completionTokens: 0,
@@ -846,6 +856,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * reported an analysis of pages nobody had fetched. Fail-open: an
          * unreachable site is reported in the block, never an error here.
          */
+        /*
+         * Un SEUL client Redis pour les DEUX chemins de lecture de sites : la
+         * référence automatique ci-dessous et l'outil `fetch_web_page` plus bas.
+         * Le même client veut dire la même clé, donc un seul budget par projet —
+         * pas un budget par chemin.
+         */
+        const webReferenceRedis = await getWebReferenceRateLimitRedis(
+          context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
+        );
+
         const { messagesForAgents, webReferenceContext, webReferenceContextForContinuation } =
           await prepareWebReferenceForChat({
             messages: processedMessages,
@@ -863,9 +883,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * lectures par 10 minutes » vaut 12 × nombre de pods. `null` quand
              * REDIS_URL est absent → compteur par pod, jamais illimité.
              */
-            rateLimitRedis: await getWebReferenceRateLimitRedis(
-              context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
-            ),
+            rateLimitRedis: webReferenceRedis,
           });
 
         const agentMemory = await retrieveMemoryForAgentContext(request, { messages: processedMessages, projectId });
@@ -1512,6 +1530,9 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             ...webFetchToolSet({
               env: context.cloudflare?.env as unknown as Record<string, string | undefined> | undefined,
               rateLimitKey: projectId,
+
+              /* Même client, donc même clé : l'outil et la référence automatique partagent un seul plafond. */
+              redis: webReferenceRedis,
               language,
               signal: request.signal,
             }),
@@ -1615,6 +1636,12 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * capped or empty generation were never billed (quota leak).
              */
             const flushUsage = async (terminalFinishReason: string) => {
+              if (tourDejaFacture) {
+                return;
+              }
+
+              tourDejaFacture = true;
+
               const lastUserMessageForUsage = processedMessages.filter((x) => x.role === 'user').slice(-1)[0];
 
               /*
@@ -2089,6 +2116,23 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           agentOrchestrationPlan: orchestrationPlan,
           agentOrchestrationContext,
           agentMemoryContext: agentMemory?.context,
+
+          /*
+           * LES RÈGLES DE PROJET N'ARRIVAIENT QUE SUR UNE CONTINUATION.
+           *
+           * `projectRules` est calculé ligne 937 et l'appel de continuation le
+           * passait bien (1927) ; l'appel INITIAL — celui que fait la quasi-
+           * totalité des tours, puisqu'une continuation n'existe que si la
+           * réponse dépasse la limite de jetons — ne le passait pas. Les règles
+           * que l'utilisateur écrit dans son projet étaient donc lues, comptées,
+           * journalisées (« rules found », ligne 939) et JAMAIS remises au
+           * modèle, sauf sur les réponses assez longues pour être segmentées.
+           *
+           * Un journal qui annonce une lecture réussie pendant que la donnée
+           * n'atteint pas sa destination est la pire forme du défaut : il
+           * ressemble à une preuve que ça marche.
+           */
+          projectRulesContext: projectRules?.context,
           skillsContext: projectSkills?.context,
           webReferenceContext,
           chatId: conversationId,
@@ -2229,6 +2273,57 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);
+
+        /*
+         * PORTER AU REGISTRE CE QUI A ÉTÉ RÉELLEMENT CONSOMMÉ AVANT L'ABANDON.
+         *
+         * `flushUsage` vit dans `onFinish`, qui ne s'exécute pas ici : un tour
+         * arrêté par l'utilisateur ne coûtait donc RIEN au quota et n'apparaissait
+         * nulle part dans le registre, alors que le fournisseur, lui, avait bien
+         * facturé. C'est la troisième occurrence du mécanisme que le commentaire
+         * de `flushUsage` décrit pour les deux sorties « length ».
+         *
+         * On n'enregistre que ce qu'on SAIT : les jetons du résumé et de la
+         * sélection de contexte, déjà accumulés parce que leurs propres
+         * `onFinish` se sont exécutés. Ceux de la génération interrompue ne nous
+         * sont pas rendus par le SDK sur ce chemin — on ne les devine pas.
+         */
+        const factureAbandon = decisionDeFacturationSurAbandon({
+          dejaFacture: tourDejaFacture,
+          projectId,
+          usage: cumulativeUsage,
+          abandonneParLeClient: code === 'STREAM_ABORTED',
+        });
+
+        if (factureAbandon.facturer) {
+          const projetFacture = factureAbandon.projectId;
+
+          tourDejaFacture = true;
+
+          logger.info(
+            JSON.stringify({
+              event: 'chat.completion.usage',
+              projectId,
+              chatMode,
+              finishReason: factureAbandon.finishReason,
+              partiel: true,
+              promptTokens: cumulativeUsage.promptTokens,
+              completionTokens: cumulativeUsage.completionTokens,
+              totalTokens: cumulativeUsage.totalTokens,
+            }),
+          );
+
+          void recordChatUsage({
+            projectId: projetFacture,
+            provider: routedTurnProvider ?? 'unknown',
+            model: routedTurnModel ?? 'unknown',
+            inputTokens: cumulativeUsage.promptTokens,
+            outputTokens: cumulativeUsage.completionTokens,
+            finishReason: factureAbandon.finishReason,
+            cookieHeader: request.headers.get('Cookie') ?? undefined,
+            source: 'chat',
+          }).catch(() => undefined);
+        }
 
         /*
          * Signaler la panne au repli multi-fournisseur. La sonde d'un jeton de

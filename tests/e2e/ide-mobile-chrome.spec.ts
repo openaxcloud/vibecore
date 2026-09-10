@@ -2821,3 +2821,530 @@ test.describe('agent — la pastille « descendre » ne déborde sur aucun autre
     }
   });
 });
+
+/*
+ * RP-PUBLISH-01…06 — le panneau Publication à la Replit (captures d'Avi,
+ * 08/09 21:00-21:02), et BUG-SECURITY-FIX-AGENT-001 — « Réparer avec l'agent »
+ * doit ramener sur le panneau Agent.
+ *
+ * Ce que ce test tient, c'est ce qui a réellement cassé pendant la mise au
+ * point : la coquille de l'IDE impose ses tailles en `!important`, et une
+ * première correction n'a pas suffi parce que les deux sélecteurs étaient à
+ * ÉGALITÉ de spécificité (0,2,0) — le `:not([class*="i-"])` de la coquille
+ * compte pour une classe, et à égalité l'ordre du fichier tranche. Mesuré : le
+ * titre sortait à 13 px au lieu de 30, le bouton d'action à 14 au lieu de 17.
+ * Un vert sur « le bloc est visible » n'aurait rien vu de tout cela.
+ */
+test.describe('publication à la Replit — le panneau et ses tailles', () => {
+  for (const format of [
+    { nom: 'téléphone', width: 390, height: 844 },
+    { nom: 'tablette', width: 820, height: 1180 },
+  ]) {
+    test.describe(`format ${format.nom}`, () => {
+      test.use({
+        viewport: { width: format.width, height: format.height },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      });
+
+      test('le bloc se rend aux bonnes tailles, sans rien déborder', async ({ page, request }) => {
+        test.setTimeout(180_000);
+
+        const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+        // Un déploiement réel : la carte d'étapes et l'historique ont de quoi s'afficher.
+        const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+          headers: { authorization: `Bearer ${token}` },
+          data: { provider: 'static', timeoutSeconds: 30 },
+        });
+
+        expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+        await ouvrirOutil(page, 'deployments');
+
+        const bloc = page.getByTestId('publication');
+        await expect(bloc).toBeVisible({ timeout: 30_000 });
+
+        // Les pièces maîtresses de la maquette.
+        await expect(page.getByTestId('publication-etapes')).toBeVisible();
+        await expect(page.getByTestId('publication-pastille')).toBeVisible();
+        await expect(page.getByTestId('publication-republier')).toBeVisible();
+
+        const mesures = await page.evaluate(() => {
+          const taille = (sel: string) => {
+            const el = document.querySelector<HTMLElement>(sel);
+
+            return el ? Math.round(parseFloat(getComputedStyle(el).fontSize)) : null;
+          };
+
+          const racine = document.querySelector<HTMLElement>('.bolt-publication');
+          const rr = racine?.getBoundingClientRect();
+
+          const deborde =
+            racine && rr
+              ? [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+                  const r = el.getBoundingClientRect();
+
+                  return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+                }).length
+              : 0;
+
+          return {
+            titre: taille('.bolt-publication-entete h2'),
+            sousTitre: taille('.bolt-publication-entete p'),
+            titreDeCarte: taille('.bolt-publication-carte-entete h3'),
+            segment: taille('.bolt-publication-segment'),
+            bouton: taille('.bolt-publication-republier'),
+            deborde,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+          };
+        });
+
+        /*
+         * BUG-PUBLISH-SIZES-001 — l'échelle a été REVUE À LA BAISSE le 09/09.
+         *
+         * La précédente (titre 30, corps 15, titre de carte 17) venait d'une
+         * lecture des captures Replit à 3,0 px par px CSS. Mesurée en réel à
+         * 390 px, elle donnait ceci — et Avi l'a vu avant moi : « tout le
+         * contenu est trop gros c'est pas comme Replit ». Relevé du jour, en
+         * français, AVANT correction :
+         *   titre « Republier votre application » ....  2 lignes, 69 px
+         *   bouton « Ajuster les réglages » ..........  2 lignes, 44 px
+         *   titre « Domaines connectés » .............  2 lignes, 48 px
+         *   bouton « Ajouter un domaine » ............  2 lignes, 44 px
+         *
+         * L'erreur de méthode est identifiable : j'ai calibré sur des libellés
+         * ANGLAIS, qui tiennent sur une ligne là où le français déborde d'un
+         * cinquième. D'où le second contrôle, plus bas, qui mesure en français.
+         */
+        expect(mesures.titre, 'le titre résiste au reset de police de la coquille').toBe(19);
+        expect(mesures.sousTitre).toBe(13);
+        expect(mesures.titreDeCarte).toBe(15);
+        expect(mesures.segment).toBe(13);
+        expect(mesures.bouton, 'le bouton d’action résiste lui aussi').toBe(15);
+
+        expect(mesures.deborde, 'rien ne sort du panneau').toBe(0);
+        expect(mesures.scrollWidth, 'et la page ne défile pas latéralement').toBeLessThanOrEqual(mesures.innerWidth);
+      });
+    });
+  }
+
+  /*
+   * BUG-PUBLISH-SIZES-001 — la RÈGLE, et non la première occurrence.
+   *
+   * Fixer quatre tailles ne protège de rien : la prochaine traduction, ou le
+   * prochain libellé un peu plus long, ramènera les titres sur deux lignes
+   * sans qu'un seul test ne rougisse. Ce qu'Avi a vu, ce ne sont pas des
+   * pixels, ce sont des libellés repliés.
+   *
+   * Donc on mesure ce qui compte : dans la langue la PLUS LONGUE que nous
+   * servions — le français, celle d'Avi — aucun titre ni aucun bouton du
+   * panneau ne tient sur plus d'une ligne à 390 px. Les paragraphes, eux, ont
+   * le droit de se replier : c'est leur nature.
+   */
+  test.describe('rien ne se replie en français', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('titres et boutons tiennent sur une ligne à 390 px', async ({ page, request }) => {
+      test.setTimeout(180_000);
+
+      await page.context().addCookies([{ name: 'vibecore-lang', value: 'fr', url: appBaseUrl }]);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      const replies = await page.evaluate(() => {
+        const racine = document.querySelector('.bolt-publication');
+
+        if (!racine) {
+          return null;
+        }
+
+        const cibles = racine.querySelectorAll<HTMLElement>('h2, h3, button');
+        const trop: Array<{ texte: string; lignes: number; px: string }> = [];
+
+        cibles.forEach((el) => {
+          const texte = (el.textContent ?? '').trim();
+
+          if (!texte || el.childElementCount > 1) {
+            return;
+          }
+
+          /*
+           * Le VRAI nombre de lignes rendues : on compte les ORDONNÉES
+           * distinctes des rectangles d'un `Range` posé sur le contenu.
+           *
+           * DEUX mesures fausses avant celle-ci, et chacune accusait un
+           * élément parfaitement correct :
+           *   - hauteur ÷ interligne : deux boutons hauts de 44 px — la cible
+           *     tactile minimale d'iOS — passaient pour repliés ;
+           *   - nombre de rectangles : un rectangle par BOÎTE en ligne, donc
+           *     le bouton « Republier » et son icône de fusée en rendaient
+           *     deux… côte à côte, sur la même ligne ;
+           *   - ordonnées distinctes : la même icône, haute d'un cadratin et
+           *     centrée, ne commence pas au même pixel que le texte.
+           *
+           * Le critère qui tient : deux boîtes sont sur la MÊME ligne si elles
+           * se chevauchent verticalement. On compte donc les groupes qui ne se
+           * chevauchent pas (règle 4 : vérifier qu'une mesure mesure bien ce
+           * qu'on croit).
+           */
+          const plage = document.createRange();
+          plage.selectNodeContents(el);
+
+          const rects = [...plage.getClientRects()].filter((r) => r.height > 0).sort((a, b) => a.top - b.top);
+
+          let lignes = rects.length > 0 ? 1 : 1;
+          let basDeLigne = rects[0]?.bottom ?? 0;
+
+          for (const r of rects.slice(1)) {
+            if (r.top >= basDeLigne - 1) {
+              lignes += 1;
+              basDeLigne = r.bottom;
+            } else {
+              basDeLigne = Math.max(basDeLigne, r.bottom);
+            }
+          }
+
+          if (lignes > 1) {
+            trop.push({ texte: texte.slice(0, 40), lignes, px: getComputedStyle(el).fontSize });
+          }
+        });
+
+        return { trop, examines: cibles.length, langue: document.documentElement.lang };
+      });
+
+      expect(replies, 'le panneau ne s’est pas rendu').not.toBeNull();
+
+      /*
+       * Contrôle de la MESURE avant la conclusion (règle 14) : un relevé qui
+       * n'a rien examiné rendrait « zéro replié » sans rien prouver.
+       */
+      expect(replies!.examines, 'aucun titre ni bouton examiné : la mesure n’a rien mesuré').toBeGreaterThan(3);
+
+      expect(replies!.trop, `repliés sur plusieurs lignes : ${JSON.stringify(replies!.trop)}`).toEqual([]);
+    });
+  });
+
+  /*
+   * RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ».
+   *
+   * Ce qu'il tient surtout : le PRIX est CALCULÉ depuis la carte tarifaire
+   * active, jamais recopié de la capture Replit (« $15 per month »). Et le
+   * panneau ne doit pas se démonter en basculant — premier essai, « Ajuster
+   * les réglages » changeait aussi d'onglet et la vue disparaissait.
+   */
+  test.describe('écran des réglages', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('les gabarits portent un prix calculé, et les gestes sont ceux qui existent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      await page.getByTestId('publication-reglages').click();
+
+      const corps = page.getByTestId('publication-reglages-corps');
+      await expect(corps, 'la bascule ne doit pas démonter le panneau').toBeVisible({ timeout: 15_000 });
+
+      const gabarits = page.locator('[data-testid="publication-gabarits"] li');
+      await expect(gabarits.first()).toBeVisible();
+
+      const textes = await gabarits.allTextContents();
+
+      expect(textes.length, 'les gabarits viennent de la carte tarifaire').toBeGreaterThan(0);
+
+      /*
+       * Un prix par heure à quatre décimales, dérivé des unités de calcul —
+       * c'est la signature d'un calcul, pas d'une constante.
+       */
+      expect(textes.join(' ')).toMatch(/\$\d+\.\d{4}/u);
+
+      // Et le gabarit du déploiement est marqué comme courant.
+      await expect(page.locator('[data-testid="publication-gabarits"] li[data-courant="true"]')).toHaveCount(1);
+
+      // Les gestes proposés sont ceux que l'API sait faire, pas ceux de Replit.
+      const gestes = await page.locator('[data-testid="publication-gestes"] li button').allTextContents();
+
+      expect(gestes.length).toBeGreaterThan(0);
+      expect(gestes.join(' ')).not.toMatch(/Unpublish|Dépublier/u);
+
+      // Rien ne déborde du panneau.
+      const deborde = await page.evaluate(() => {
+        const racine = document.querySelector<HTMLElement>('.bolt-publication');
+        const rr = racine?.getBoundingClientRect();
+
+        if (!racine || !rr) {
+          return -1;
+        }
+
+        return [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+          const r = el.getBoundingClientRect();
+
+          return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+        }).length;
+      });
+
+      expect(deborde).toBe(0);
+    });
+  });
+
+  test.describe('« Réparer avec l’agent » ramène sur l’agent', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('depuis n’importe quel panneau, la demande bascule sur le panneau Agent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      await ouvrirIde(page, request, { fil: true });
+      await ouvrirOutil(page, 'deployments');
+
+      const coque = page.locator('.bolt-responsive-ide-mobile');
+      await expect(coque).toHaveAttribute('data-mobile-panel', /deploy/, { timeout: 30_000 });
+
+      /*
+       * On émet l'événement que les trois surfaces émettent (Sécurité, Git,
+       * Publication). Avant correctif, l'invite partait dans une zone de
+       * saisie que l'utilisateur ne voyait pas : il restait sur son panneau.
+       */
+      await page.evaluate(() =>
+        window.dispatchEvent(
+          new CustomEvent('vibecore:agent-task', {
+            detail: { kind: 'fix-publication', prompt: 'Corrige la publication.' },
+          }),
+        ),
+      );
+
+      await expect(coque, 'la demande doit ramener sur le panneau Agent').toHaveAttribute('data-mobile-panel', 'chat', {
+        timeout: 15_000,
+      });
+
+      /*
+       * ET L'AGENT DÉMARRE. Avi (point 5) : « ça doit me remettre sur le
+       * panneau agent et démarrer l'agent avec le prompt en question ENVOYÉ
+       * par le bouton ». Une invite simplement déposée laissait un geste de
+       * plus à faire — précisément celui que le bouton prétend épargner.
+       *
+       * On vérifie donc que l'invite est PARTIE : elle apparaît dans le fil
+       * comme message utilisateur, et la zone de saisie est vidée. Un test
+       * qui se contenterait de la lire dans le composeur passerait au vert
+       * sur le comportement d'AVANT.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Corrige la publication.' }).first(),
+        'l’invite doit être envoyée, pas seulement déposée',
+      ).toBeVisible({ timeout: 30_000 });
+
+      const composeur = page.locator('.bolt-project-agent-composer textarea').first();
+      await expect(composeur, 'un envoi consomme le brouillon').toHaveValue('', { timeout: 15_000 });
+    });
+  });
+});
+
+/*
+ * RP-DB-05 — « Tables », avec « N rows » (captures d'Avi, 08/09 21:07).
+ *
+ * Défaut MESURÉ le 08/09 : la vue lisait `t.name` / `t.rowCount`, l'API rend
+ * `table_name` / `rowsEstimate`. Les deux formes ne se rencontraient jamais —
+ * chaque table sortait avec un nom VIDE, et la clé React valait ce vide pour
+ * toutes. Relevé à l'écran : 0 table rendue. Après : 127.
+ *
+ * Ce test frappe une VRAIE base (celle de la pile) : c'est ce qui distingue un
+ * mappage juste d'un mappage qui compile.
+ */
+test.describe('base de données — les tables portent leur nom et leur compte', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('la liste des tables n’est pas vide, et chaque ligne est nommée', async ({ page, request }) => {
+    test.setTimeout(180_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    /*
+     * On ATTEND la carte de la base avant de cliquer. Une première version
+     * balayait tous les boutons après un délai fixe : quand la liste n'était
+     * pas encore chargée elle ne cliquait rien, et le test devenait
+     * intermittent (vu une fois sur la suite complète, passé au réessai).
+     * Un délai n'est pas une condition (règle 17).
+     */
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    const lignes = page.getByTestId('db-table');
+
+    await expect(lignes.first(), 'les tables de la base doivent s’afficher').toBeVisible({ timeout: 30_000 });
+
+    const noms = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 10).map((el) => (el.querySelector('span')?.textContent ?? '').trim()),
+    );
+
+    expect(noms.length, 'une vraie base a des tables').toBeGreaterThan(0);
+
+    // Le défaut exact : des noms VIDES, tous identiques.
+    expect(
+      noms.every((nom) => nom.length > 0),
+      `noms relevés : ${JSON.stringify(noms)}`,
+    ).toBe(true);
+    expect(new Set(noms).size, 'et des noms distincts, pas la même clé partout').toBe(noms.length);
+
+    // Le compte de lignes est rendu, y compris « 0 » pour une table vide.
+    const comptes = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 5).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    expect(
+      comptes.some((compte) => /\d/u.test(compte)),
+      `comptes relevés : ${JSON.stringify(comptes)}`,
+    ).toBe(true);
+  });
+});
+
+/*
+ * RP-DB-06 — l'onglet « Mes données » de Replit : un rail de tables à gauche,
+ * des en-têtes TYPÉS à droite (`id text`, `label varchar(255)`), et une
+ * pagination visible « 50 / 0 ».
+ *
+ * Les trois manquaient, et le rail était carrément VIDE. Deux causes
+ * distinctes, mesurées le 09/09 sur une vraie base de 127 tables :
+ *
+ *   1. le studio lisait `databases ?? connections` — or `??` ne retombe pas
+ *      sur un tableau VIDE, et `databases` vaut `[]` dans le cas normal. Il
+ *      n'avait donc aucune connexion, ne demandait aucun schéma, et affichait
+ *      « aucune table » sans jamais rien avoir demandé ;
+ *   2. son lecteur de schéma cherchait `table.name` / `table.columns`, quand
+ *      l'API rend `table_name` et une liste de colonnes PLATE — le même
+ *      défaut que RP-DB-05, à un second endroit.
+ *
+ * Ce test frappe une VRAIE base : c'est ce qui distingue un branchement juste
+ * d'un branchement qui compile.
+ */
+test.describe('base de données — « Mes données » à la Replit', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('le rail liste les tables, les en-têtes portent leur type, la page est annoncée', async ({ page, request }) => {
+    test.setTimeout(240_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    /*
+     * L'onglet « Mes données », par son libellé, dans les deux langues. On
+     * ATTEND qu'il existe avant de cliquer : la bande d'onglets n'apparaît
+     * qu'une fois la base ouverte, et un clic lancé avant ne touche rien —
+     * le test devenait alors intermittent sans rien dire du produit.
+     */
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll('button')).some((b) =>
+          ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+        ),
+      { timeout: 30_000 },
+    );
+
+    await page.evaluate(() => {
+      const cible = Array.from(document.querySelectorAll('button')).find((b) =>
+        ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+      );
+
+      (cible as HTMLButtonElement | undefined)?.click();
+    });
+
+    // 1. Le rail : le défaut exact était ZÉRO table sur une base qui en a 127.
+    const tablesDuRail = page.getByTestId('studio-table');
+
+    await expect(tablesDuRail.first(), 'le rail des tables doit se remplir').toBeVisible({ timeout: 60_000 });
+
+    const nomsDuRail = await tablesDuRail.evaluateAll((els) =>
+      els.slice(0, 6).map((el) => (el.textContent ?? '').trim()),
+    );
+
+    expect(
+      nomsDuRail.every((nom) => nom.length > 0),
+      `rail : ${JSON.stringify(nomsDuRail)}`,
+    ).toBe(true);
+    expect(new Set(nomsDuRail).size, 'des noms distincts, pas la même clé partout').toBe(nomsDuRail.length);
+
+    /*
+     * 2. Parcourir une table : en-têtes typés + pagination annoncée.
+     *
+     * On vise `_prisma_migrations`, la seule table dont on SAIT qu'elle porte
+     * des lignes sur toute base migrée. La première du rail est
+     * alphabétique — `AbuseEvent`, vide — et sans ligne il n'y a pas de
+     * grille, donc pas d'en-tête : le test aurait échoué sur un produit
+     * correct.
+     */
+    const tableAvecLignes = tablesDuRail.filter({ hasText: '_prisma_migrations' }).first();
+
+    await expect(tableAvecLignes, 'une base migrée porte cette table').toBeVisible({ timeout: 30_000 });
+    await tableAvecLignes.click();
+
+    const pagination = page.getByTestId('studio-pagination');
+
+    await expect(pagination, 'la page parcourue doit être annoncée').toBeVisible({ timeout: 60_000 });
+    await expect(pagination, 'Replit écrit « 50 / 0 » : la limite et le décalage').toContainText('50 / 0');
+
+    const entetes = page.getByTestId('studio-entete');
+
+    await expect(entetes.first(), 'la grille doit rendre ses en-têtes').toBeVisible({ timeout: 60_000 });
+
+    const types = await entetes.evaluateAll((els) =>
+      els.slice(0, 8).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    /*
+     * Le TYPE est la valeur ajoutée de RP-DB-06 : sans lui, l'en-tête n'est
+     * qu'un nom de colonne, et c'est ce qu'il était.
+     */
+    expect(
+      types.some((type) => type.length > 0),
+      `types relevés : ${JSON.stringify(types)}`,
+    ).toBe(true);
+  });
+});

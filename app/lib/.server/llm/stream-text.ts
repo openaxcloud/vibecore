@@ -28,6 +28,7 @@ import { getSystemPrompt } from '~/lib/common/prompts/prompts';
 import { resolvePromptRuntimeMode } from '~/lib/common/prompts/runtime-constraints';
 import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
@@ -83,7 +84,7 @@ WIRING REQUIREMENT — this is not optional:
 }
 
 export function resolveStreamMaxRetries(env?: Record<string, string | undefined>): number {
-  const raw = env?.STREAM_MAX_RETRIES ?? (typeof process !== 'undefined' ? process.env?.STREAM_MAX_RETRIES : undefined);
+  const raw = env?.STREAM_MAX_RETRIES ?? readRuntimeEnv('STREAM_MAX_RETRIES');
   const parsed = Number(raw);
 
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -230,12 +231,15 @@ export function appendContextAsTrailingUserMessage<T extends { role: string }>(
  * The `MODEL_ROUTING_DISABLED` kill-switch. Truthy (`1`/`true`/`yes`/`on`,
  * case-insensitive) → complexity routing is globally OFF and every request keeps
  * the model it selected. Read defensively from the request env first, then the
- * genuine Node runtime env (Vite shims `process.env` to `{}` in client bundles).
+ * genuine Node runtime env via `readRuntimeEnv`.
+ *
+ * MESURÉ : une lecture `process.env` nue rend `undefined` DANS LE POD WEB — le
+ * polyfill de vite y shime `process.env` à `{}` — donc ce coupe-circuit était
+ * INACTIONNABLE en production : le poser dans le configmap n'aurait rien coupé.
  * Never throws.
  */
 export function isModelRoutingDisabled(env?: Record<string, string | undefined>): boolean {
-  const raw =
-    env?.MODEL_ROUTING_DISABLED ?? (typeof process !== 'undefined' ? process.env?.MODEL_ROUTING_DISABLED : undefined);
+  const raw = env?.MODEL_ROUTING_DISABLED ?? readRuntimeEnv('MODEL_ROUTING_DISABLED');
 
   if (raw == null) {
     return false;

@@ -19,19 +19,23 @@ const approvedFrenchIdentity = [
   /*
    * Termes d'environnement de déploiement. Ils étaient TRADUITS, et le résultat
    * était un contresens à l'écran : « Production » rendait « Fabrication » (le
-   * sens industriel), « Extensions » rendait « Rallonges » (la rallonge
-   * électrique) et « Staging » rendait « Mise en scène » (le théâtre). Sur le
-   * panneau Variables d'environnement en 390 px, « Fabrication » apparaissait
-   * cinq fois sur un seul écran, si bien qu'un utilisateur configurant une
-   * variable de production ne lisait jamais le mot « production ».
+   * sens industriel) et « Extensions » rendait « Rallonges » (la rallonge
+   * électrique). Sur le panneau Variables d'environnement en 390 px,
+   * « Fabrication » apparaissait cinq fois sur un seul écran, si bien qu'un
+   * utilisateur configurant une variable de production ne lisait jamais le mot
+   * « production ».
    *
-   * Ce sont des noms d'environnements et de surfaces produit, pas de la prose :
-   * ils restent identiques en français, d'où leur présence ici plutôt qu'une
-   * traduction. À ne pas confondre avec `secrets` → « Variables secrètes » ou
-   * `runtime` → « Environnement d'exécution », qui sont du français correct et
-   * restent traduits (le premier est d'ailleurs épinglé plus bas).
+   * ⚠️ `Staging` N'EST PLUS DANS CETTE LISTE, et c'est un arbitrage de fusion.
+   * Cette branche le laissait en anglais ; `main` l'a depuis traduit en
+   * « Préproduction ». Le grief de la branche visait « Mise en scène » (le
+   * théâtre), pas « Préproduction », qui est le terme français exact — la
+   * traduction de `main` satisfait donc l'objection au lieu de la contredire.
+   * `Production` et `Extensions` restent identiques : ce sont des noms
+   * d'environnements et de surfaces produit, pas de la prose. À ne pas confondre
+   * avec `secrets` → « Variables secrètes » ou `runtime` → « Environnement
+   * d'exécution », qui sont du français correct et restent traduits.
    */
-  /^(?:Extensions?|Production|Staging|extensions?)$/u,
+  /^(?:Extensions?|Production|extensions?)$/u,
 ];
 
 describe('BaseChat EN/FR catalog', () => {

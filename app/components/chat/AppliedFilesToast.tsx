@@ -1,7 +1,12 @@
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
-import { formatAppliedFilesToastPlural, getAppliedFilesToastCopy } from '~/lib/i18n/catalogs/applied-files-toast';
+import {
+  formatAppliedFilesToastCopy,
+  formatAppliedFilesToastPlural,
+  getAppliedFilesToastCopy,
+} from '~/lib/i18n/catalogs/applied-files-toast';
+import { generationEstHonnete, type ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
 
 export const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
 
@@ -9,10 +14,18 @@ export function AppliedFilesToast({
   files,
   onDismissAll,
   onUndoAll,
+  constat,
 }: {
   files: string[];
   onDismissAll: () => void;
   onUndoAll: () => void;
+
+  /*
+   * Absent = rien à signaler, on garde le message d'origine. Présent et
+   * malhonnête, le bandeau DIT que la génération s'est arrêtée en route plutôt
+   * que d'annoncer un succès que le disque contredit.
+   */
+  constat?: ConstatDeGeneration;
 }) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
@@ -33,7 +46,18 @@ export function AppliedFilesToast({
     <div className="bolt-agent-applied-toast">
       <div className="bolt-agent-applied-toast-head" role="status" aria-live="polite">
         <strong>{appliedTitle}</strong>
-        <span>{copy['appliedFilesToast.description']}</span>
+        {constat && !generationEstHonnete(constat) ? (
+          <span className="bolt-agent-applied-toast-incomplete">
+            {copy['appliedFilesToast.incomplete']}
+            {constat.entreesManquantes.length > 0
+              ? ` ${formatAppliedFilesToastCopy(copy['appliedFilesToast.missingEntry'], {
+                  module: constat.entreesManquantes.join(', '),
+                })}`
+              : ''}
+          </span>
+        ) : (
+          <span>{copy['appliedFilesToast.description']}</span>
+        )}
       </div>
       <details>
         <summary>{copy['appliedFilesToast.details']}</summary>

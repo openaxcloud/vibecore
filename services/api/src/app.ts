@@ -97,6 +97,8 @@ import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSec
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
 import { resolveProviderKeyPresence } from './provider-key-presence.js';
+import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
+import { refusalDetail } from './deploy-refus.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -276,6 +278,7 @@ import {
   computeStaticSnapshotDigest,
   createDeploymentLogs,
   deployProviderConfigError,
+  disponibiliteDesFournisseurs,
   pollProviderDeploymentStatus,
   removeStaticDeploymentSnapshot,
   restoreStaticSnapshotInto,
@@ -484,6 +487,8 @@ import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline
 import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { ReconciliationUneFois } from './reconciliation-une-fois.js';
+import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -510,10 +515,31 @@ declare module 'fastify' {
 }
 
 /**
+ * Why a workspace-pod static build never even started.
+ *
+ * BUG-DEPLOY-STATIC-FAIL-001 — Avi, 09/09: "impossible de déployer en réel,
+ * aucun fournisseur ne fonctionne", on a card that read "Échec" and NOTHING
+ * else. Five distinct give-up paths all returned a bare `{ handled: false }`,
+ * and the caller turned every one of them into the single message
+ * DEPLOY_WORKSPACE_UNREACHABLE. Four of the five are not "unreachable" at all —
+ * and three of them swallowed the real error in a bare `catch {}`, which is the
+ * one thing a diagnostic must never do (règle 13).
+ *
+ * These are machine CODES, never user copy: they are appended to the localized
+ * message so the deployment log names the actual give-up point.
+ */
+export type WorkspacePodBuildRefusal =
+  | 'NO_USER_CONTEXT'
+  | 'NO_WEBSOCKET_RUNTIME'
+  | 'WORKSPACE_UNREACHABLE'
+  | 'AGENT_TOKEN_UNAVAILABLE'
+  | 'BUILD_INVOCATION_THREW';
+
+/**
  * The workspace-pod static-build seam (#26 sub-part 2). Returns `{ handled: false }`
- * only when the project's workspace pod could not be reached even after a
- * provision + health-poll — in which case the deploy fails cleanly; the build is
- * NEVER retried in-process on the api pod.
+ * only when the build could not be started in the project's workspace pod — in
+ * which case the deploy fails cleanly; the build is NEVER retried in-process on
+ * the api pod. `refusal` (and `detail`, when an error was caught) say WHY.
  */
 export type WorkspacePodStaticBuild = (
   request: any,
@@ -521,7 +547,10 @@ export type WorkspacePodStaticBuild = (
   body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
-) => Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }>;
+) => Promise<
+  | { handled: false; refusal?: WorkspacePodBuildRefusal; detail?: string }
+  | { handled: true; result: RunStaticBuildResult; tempDir: string }
+>;
 
 export interface ApiAppOptions {
   store?: ApiStore;
@@ -3031,16 +3060,66 @@ async function inspectPostgresSchema(connectionString: string) {
   await client.connect();
 
   try {
-    const [tables, columns] = await Promise.all([
+    /*
+     * RP-DB-05 — Replit affiche « N rows » sous chaque table et la taille de la
+     * base sous son nom. Nous ne les avions pas ; les voici, RÉELS.
+     *
+     * `n_live_tup` est l'estimation entretenue par le collecteur de
+     * statistiques : c'est ce qu'on obtient en UNE requête pour toutes les
+     * tables. Un `count(*)` exact demanderait une requête PAR table — 200
+     * allers-retours sur la base de l'utilisateur pour afficher une liste.
+     * Elle est exacte sur une table vide ou petite, le cas qui compte à
+     * l'écran, et se nomme `rowsEstimate` pour que personne ne la prenne un
+     * jour pour un compte exact.
+     *
+     * La TAILLE, elle, est exacte : `pg_total_relation_size` inclut index et
+     * données annexes, comme le fait Replit.
+     */
+    const [tables, columns, statistiques, taille] = await Promise.all([
       client.query(
         "select table_schema, table_name, table_type from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200",
       ),
+      /*
+       * RP-DB-06 — les colonnes des tables QU'ON REND, et pas les 1000
+       * premières de la base.
+       *
+       * Le plafond plat coupait par ordre alphabétique : sur une base de 127
+       * tables, `_prisma_migrations` tombait au-delà du millième, et ses
+       * en-têtes s'affichaient SANS TYPE — mesuré le 09/09. Un plafond plus
+       * haut n'aurait fait que déplacer la coupure. La jointure lie les
+       * colonnes aux 200 tables effectivement listées : les deux ensembles ne
+       * peuvent plus diverger.
+       */
       client.query(
-        "select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name, ordinal_position limit 1000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
+      client
+        .query(
+          "select c.relnamespace::regnamespace::text as table_schema, c.relname as table_name, greatest(coalesce(s.n_live_tup, 0), 0) as rows_estimate, pg_total_relation_size(c.oid) as size_bytes from pg_class c left join pg_stat_user_tables s on s.relid = c.oid where c.relkind in ('r', 'p') and c.relnamespace::regnamespace::text not in ('pg_catalog', 'information_schema', 'pg_toast') limit 200",
+        )
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
+      client
+        .query('select pg_database_size(current_database()) as size_bytes')
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
     ]);
 
-    return { tables: tables.rows, columns: columns.rows };
+    const parCle = new Map<string, { rowsEstimate: number; sizeBytes: number }>();
+
+    for (const ligne of statistiques.rows as Array<Record<string, unknown>>) {
+      parCle.set(`${String(ligne.table_schema)}.${String(ligne.table_name)}`, {
+        rowsEstimate: Number(ligne.rows_estimate ?? 0),
+        sizeBytes: Number(ligne.size_bytes ?? 0),
+      });
+    }
+
+    return {
+      tables: (tables.rows as Array<Record<string, unknown>>).map((table) => ({
+        ...table,
+        ...(parCle.get(`${String(table.table_schema)}.${String(table.table_name)}`) ?? {}),
+      })),
+      columns: columns.rows,
+      databaseSizeBytes: Number((taille.rows as Array<Record<string, unknown>>)[0]?.size_bytes ?? 0) || undefined,
+    };
   } finally {
     await client.end();
   }
@@ -3054,7 +3133,7 @@ async function inspectMysqlSchema(connectionString: string) {
       'select table_schema, table_name, table_type from information_schema.tables where table_schema = database() order by table_name limit 200',
     );
     const [columns] = await connection.query(
-      'select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
+      'select table_schema, table_name, column_name, data_type, character_maximum_length, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
     );
 
     return { tables: serializeDbRows(tables), columns: serializeDbRows(columns) };
@@ -3725,6 +3804,12 @@ function serverRuntimeDetectionMessage(
 
   return appPublicEnglish(keyByCode[code]);
 }
+
+/**
+ * Plafond de page de la liste d'instantanés. Une limite absurde (`?limit=99999`)
+ * ne doit pas rendre la borne inopérante — c'est le cas que la garde couvre.
+ */
+const SNAPSHOT_LIST_MAX_PAGE = 200;
 
 function localizeSnapshotRecord<T extends Pick<SnapshotRecord, 'kind' | 'label'>>(
   snapshot: T,
@@ -14853,30 +14938,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const userId = request.currentUser?.id;
 
     if (!userId) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_USER_CONTEXT' };
     }
 
     const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
 
     if (!WebSocketCtor) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
     const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
+    /*
+     * BUG-DEPLOY-STATIC-FAIL-001 — ces `catch` étaient VIDES. Ils avalaient la
+     * seule phrase qui disait pourquoi le déploiement ne partait pas, et
+     * l'utilisateur recevait « Échec » sans rien d'autre (règle 13).
+     */
     try {
       await ensureWorkspaceReachable(request, authorized);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
     }
 
     let token: string;
 
     try {
       token = await agentToken(workspaceId);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'AGENT_TOKEN_UNAVAILABLE', detail: refusalDetail(error) };
     }
 
     const buildAgent = createWorkspaceBuildAgent({
@@ -14926,9 +15016,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         buildAgent,
       );
-    } catch {
+    } catch (error) {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'BUILD_INVOCATION_THREW', detail: refusalDetail(error) };
     }
 
     /*
@@ -14939,7 +15029,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (!result.ok && result.error === 'AGENT_UNREACHABLE') {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: 'AGENT_UNREACHABLE' };
     }
 
     return {
@@ -15296,6 +15386,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const reconcileRuntimeSeedFromPersisted = async (
     workspaceId: string,
     projectId: string,
+    /*
+     * `chaud` = le workspace est VIVANT : un serveur de dev y tourne et
+     * l'utilisateur peut y avoir édité. La portée de l'écriture en dépend, voir
+     * `portee-reconciliation.ts`. Défaut `false` : les deux appels historiques
+     * partent d'un pod fraîchement provisionné.
+     */
+    options: { chaud?: boolean } = {},
   ): Promise<{ seeded: boolean; reason: string; missing?: number; diverged?: number }> => {
     let existingTree: unknown;
 
@@ -15323,6 +15420,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const present = flattenRuntimeTreeFilePaths(existingTree);
+
+    /*
+     * UN POD QUI DÉMARRE N'EST PAS UN POD AMPUTÉ.
+     *
+     * Un fichier absent pendant l'ensemencement n'est pas un fichier perdu :
+     * c'est un fichier pas encore arrivé. Cette fonction ne sait pas faire la
+     * différence — elle voit « absent » et elle écrit. Sur un pod chaud dont
+     * l'arbre est encore VIDE, elle écrirait donc tout, déclenchant le
+     * rechargement plein écran que `ide-panel-smoke` interdit, et pour rien :
+     * l'ensemencement allait livrer ces fichiers de lui-même.
+     *
+     * Rien ne presse. Un fichier réellement perdu le sera encore au prochain
+     * passage, et l'arbre sera alors non vide.
+     *
+     * À FROID le cas s'inverse : un pod neuf part de vide, c'est précisément
+     * l'état dans lequel l'ensemencement DOIT écrire — d'où la garde qui ne
+     * s'applique qu'au chemin chaud.
+     */
+    if (!espaceStabilise({ fichiersPresents: present.size, workspaceChaud: Boolean(options.chaud) })) {
+      return { seeded: false, reason: 'espace-non-stabilise' };
+    }
 
     let missing = 0;
     let diverged = 0;
@@ -15361,7 +15479,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
-        if (persistedFileContentMatches(file, { content: runtimeBody.content, encoding: runtimeBody.encoding })) {
+        const identique = persistedFileContentMatches(file, {
+          content: runtimeBody.content,
+          encoding: runtimeBody.encoding,
+        });
+
+        if (!doitEcrireDansWorkspace({ present: true, contenuIdentique: identique, workspaceChaud: Boolean(options.chaud) })) {
           continue;
         }
 
@@ -15405,9 +15528,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Fire the reseed reconciliation without ever letting it break the start/restart
    * response. Records a metric so the flaky-loop fix is observable in prod.
    */
-  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
+  /*
+   * Un workspace n'est réconcilié qu'UNE FOIS tant qu'il n'a pas été
+   * reprovisionné : la limitation porte sur l'ÉVÉNEMENT, pas sur le temps. Un
+   * minuteur raterait précisément l'ouverture qui compte.
+   */
+  const reconciliationUneFois = new ReconciliationUneFois();
+
+  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string, options: { chaud?: boolean } = {}) => {
     try {
-      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
+      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId, options);
 
       if (result.seeded) {
         metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
@@ -17029,6 +17159,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
        * already carries its files. Best-effort; never blocks the start response.
        */
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17250,6 +17381,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -17367,6 +17499,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       authorized.workspaceId,
       `/files/tree?path=${encodeURIComponent(path)}`,
     );
+
+    /*
+     * AUTO-RÉPARATION À L'OUVERTURE.
+     *
+     * `reconcileRuntimeSeedFromPersisted` sait poser dans le workspace les
+     * fichiers que le stockage durable possède et que lui n'a pas — mesuré le
+     * 2026-09-09 : `src/App.tsx` et `src/main.tsx` présents en stockage,
+     * absents du pod, application impossible à démarrer. Mais elle n'était
+     * appelée qu'au provisionnement et au redémarrage : un workspace déjà
+     * `RUNNING` n'était donc JAMAIS réparé.
+     *
+     * EN ARRIÈRE-PLAN, jamais dans la réponse : elle lit un fichier par fichier
+     * déjà présent, ~105 ms l'unité au médian en production, soit ~3,4 s pour
+     * 32 fichiers. La mettre sur le chemin d'ouverture rendrait à l'utilisateur
+     * la latence qu'on lui a retirée la veille. Les fichiers manquants
+     * apparaissent une seconde plus tard — sans conséquence pour un projet
+     * qu'on vient d'ouvrir.
+     */
+    if (path === '.' && authorized.projectId && reconciliationUneFois.doitReconcilier(authorized.workspaceId)) {
+      void reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId, { chaud: true });
+    }
 
     return mapRuntimeNodes(nodes);
   });
@@ -23561,7 +23714,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
     }
 
-    const connections = await listDatabaseConnections(store, project.id);
+    const connectionsBrutes = await listDatabaseConnections(store, project.id);
+
+    /*
+     * RP-DB-02 — « regarde qu'on suit la même logique » (Avi, 08/09).
+     *
+     * Replit sépare franchement la base de DÉVELOPPEMENT et celle de
+     * PRODUCTION. Nous avons cette séparation, mais les deux moitiés du code
+     * se contredisaient :
+     *
+     *   - le provisionneur ÉCRIT l'URI de développement dans `DATABASE_URL`
+     *     (et celle de production dans `PROD_DATABASE_URL`) ;
+     *   - `inferSecretEnvironment` RELIT cette même clé nue et rend
+     *     « shared », faute de préfixe.
+     *
+     * Une base bel et bien de développement était donc présentée comme
+     * indéterminée. On tranche par la source la plus sûre — l'instance GÉRÉE,
+     * qui sait pour quel environnement elle a été créée. Une connexion que
+     * l'utilisateur a collée lui-même reste « shared » : là, nous ne savons
+     * effectivement pas, et le deviner serait pire que l'avouer.
+     */
+    const instanceGeree = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
+    const environnementGere = (instanceGeree as { environment?: string } | undefined)?.environment;
+    const cleGeree = environnementGere === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
+
+    const connections = connectionsBrutes.map((connexion) =>
+      instanceGeree && connexion.key === cleGeree && environnementGere
+        ? { ...connexion, environment: environnementGere as typeof connexion.environment }
+        : connexion,
+    );
 
     /*
      * Une base EN COURS de provisionnement n'a pas encore de secret, donc aucune
@@ -23579,7 +23760,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * On ne l'expose que si aucune connexion n'existe : dès que le secret est
      * semé, la connexion réelle est la meilleure description de la base.
      */
-    const instanceEnCours = connections.length === 0 ? await store.getDatabaseInstanceByProject(project.id) : undefined;
+    const instanceEnCours = connections.length === 0 ? instanceGeree : undefined;
 
     const databases =
       instanceEnCours && instanceEnCours.status !== 'ACTIVE'
@@ -26547,8 +26728,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
+    /*
+     * PANEL-PERF — bornage et projection, tous deux OPT-IN.
+     *
+     * Sans `limit` ni `fields`, la réponse est celle d'avant, à l'octet près :
+     * `BaseChat.tsx` lit `manifest.files` (écran des fichiers d'un instantané et
+     * diff entre deux instantanés) et perdrait cet écran si le défaut changeait.
+     *
+     * Mesuré en production le 2026-09-08, projet de 355 instantanés :
+     * 1 281 Ko, 2,85 à 4,41 s au total mais 0,43 à 1,09 s de TTFB — le
+     * transfert pèse donc 80 à 85 % du temps. SQL : 29 à 47 ms. Sérialisation :
+     * 14,1 ms. Le levier est la TAILLE de la réponse, pas le calcul.
+     */
+    const query = (request.query ?? {}) as { limit?: string; cursor?: string; fields?: string };
+    const limitDemandee = Number.parseInt(query.limit ?? '', 10);
+    const limit = Number.isFinite(limitDemandee)
+      ? Math.min(Math.max(limitDemandee, 1), SNAPSHOT_LIST_MAX_PAGE)
+      : undefined;
+    const manifest =
+      query.fields === 'summary' ? 'omit' : query.fields === 'list' ? 'without-files' : ('full' as const);
+
+    /*
+     * On demande UNE ligne de plus que la page : sa présence dit « il en reste »
+     * sans payer un second aller-retour de comptage.
+     */
+    const lignes = await store.listSnapshots(project.id, {
+      ...(limit ? { take: limit + 1 } : {}),
+      ...(query.cursor ? { cursor: query.cursor } : {}),
+      manifest,
+    });
+    const page = limit ? lignes.slice(0, limit) : lignes;
+    const nextCursor = limit && lignes.length > limit ? page[page.length - 1]?.id : undefined;
+
     return {
-      snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      snapshots: page.map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      ...(nextCursor ? { nextCursor } : {}),
     };
   });
   app.post('/projects/:projectId/snapshots', async (request, reply) => {
@@ -27054,13 +27269,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiTranscriptSchema, request.body ?? {});
-    const existingIds = new Set(await store.listAiMessageIds(conversationId));
+    const existants = await store.listAiMessages(conversationId);
+    const existingIds = new Set(existants.map((existant) => existant.id));
+    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+    let instantanesPerimes = 0;
+    let caracteresProteges = 0;
 
     for (const message of body.messages) {
+      const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
+      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
+
+      /*
+       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
+       *
+       * La transcription est persistée PENDANT le flux, en `upsert` sur un
+       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
+       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
+       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
+       * tronqué.
+       *
+       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
+       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
+       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
+       * s'est passé détruit ce qu'il en restait.
+       *
+       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
+       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
+       * perte : ça l'empêche de s'aggraver.
+       */
+      if (!decision.ecrire) {
+        instantanesPerimes += 1;
+        caracteresProteges += decision.perdus ?? 0;
+        request.log.warn(
+          { conversationId, messageId: id, perdus: decision.perdus },
+          'transcript sync refused: a stale snapshot would have shortened a persisted message',
+        );
+
+        const conserve = existants.find((existant) => existant.id === id);
+
+        if (conserve) {
+          messages.push(conserve);
+        }
+
+        continue;
+      }
+
       messages.push(
         await store.createAiMessage({
-          id: aiTranscriptMessageId(conversationId, message.clientId, existingIds),
+          id,
           conversationId,
           role: message.role,
           content: message.content,
@@ -27076,6 +27333,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: {
         projectId: project.id,
         messageCount: messages.length,
+        instantanesPerimes,
+        caracteresProteges,
       },
     });
 
@@ -34933,13 +35192,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceBuildTempDir = workspaceAttempt.tempDir;
           staticBuild = workspaceAttempt.result;
         } else {
-          // Pod unreachable after provision + health-poll → clean failure, no api-pod build.
+          /*
+           * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+           *
+           * Cinq points d'abandon distincts rendaient tous le MÊME message, et
+           * quatre d'entre eux n'ont rien à voir avec un pod injoignable : pas
+           * de contexte utilisateur, pas de `WebSocket` dans l'exécution, jeton
+           * d'agent indisponible, appel du build qui lève. La carte de
+           * publication n'avait donc aucun moyen de dire ce qui s'était passé —
+           * et personne, Avi le premier, n'avait de quoi agir.
+           *
+           * Le message traduit reste ce que l'utilisateur lit ; le CODE d'abandon
+           * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
+           * dans le journal du déploiement, où il est réellement consultable.
+           */
           const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
-          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message });
+          const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+          const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
+          const ligne = `${message} [${refus}]${detail}`;
+
+          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message: ligne });
+          request.log?.error?.(
+            { deploymentId: queued.id, projectId: project.id, refusal: refus, detail: workspaceAttempt.detail },
+            'static deploy refused before the workspace build started',
+          );
           staticBuild = {
             ok: false,
             error: message,
-            logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
+            logs: [{ timestamp: new Date().toISOString(), level: 'error', message: ligne }],
           };
         }
       } else {
@@ -35626,6 +35906,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * ceiling. The Deploy panel renders its size selector from this — prices and
    * sizes live in the card, never hard-coded in the UI.
    */
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs sont RÉELLEMENT utilisables.
+   *
+   * L'assistant proposait les sept, et six menaient à un 503 après coup :
+   * « les fournisseurs ne fonctionnent pas » (Avi, 09/09). Il lit désormais
+   * cette liste et n'offre que ce qui peut aboutir, en disant pour le reste ce
+   * qu'il manque.
+   *
+   * `missingEnv` ne porte que des NOMS de variables (règle 12), et la lecture
+   * exige `projects:read` : ce n'est pas un inventaire public.
+   */
+  app.get('/projects/:projectId/deployments/providers', async (request) => {
+    await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+
+    return { providers: disponibiliteDesFournisseurs() };
+  });
+
   app.get('/projects/:projectId/deployments/rate-card', async (request) => {
     const project = await requireProject(
       request,

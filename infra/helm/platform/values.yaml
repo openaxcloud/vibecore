@@ -142,6 +142,14 @@ platformEnv:
   staticDeployStorageDir: '/tmp/vibecore-static-deployments'
   # NOTE: ADMIN_MFA_REQUIRED is hardcoded "false" in templates/configmap.yaml
   # (MFA optional for everyone). See that file to change the policy.
+  #
+  # Outil `fetch_web_page` (ECODE_WEB_FETCH_TOOL_ENABLED). ÉTEINT par défaut :
+  # c'est un outil EXÉCUTÉ CÔTÉ SERVEUR, et enregistrer un outil change la forme
+  # de la requête au fournisseur pour CHAQUE tour de génération, pas seulement
+  # ceux qui l'appellent. À n'allumer qu'après une mesure réelle d'un tour à
+  # plusieurs étapes. Le rendu dans le configmap porte `default "0"`, donc une
+  # release dont les valeurs précèdent cette clé reste éteinte.
+  webFetchToolEnabled: '0'
   runtime:
     mode: 'remote-kubernetes'
     apiBaseUrl: 'https://api.staging.example.com/api/runtime'

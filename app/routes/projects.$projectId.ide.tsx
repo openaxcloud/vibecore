@@ -779,7 +779,7 @@ function IdeProjectTopBar({
               className={previewRunning ? 'bolt-project-run-button is-running' : 'bolt-project-run-button'}
               onClick={() => {
                 if (previewRunning) {
-                  void workbenchStore.stopPreviewServer().catch(() => undefined);
+                  void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch(() => undefined);
 
                   return;
                 }

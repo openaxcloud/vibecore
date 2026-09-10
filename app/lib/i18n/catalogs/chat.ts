@@ -716,6 +716,7 @@ export const chatEn = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Project variables and encrypted secrets loaded from backend stores.',
   'chat.copy.provider_7ceee3f3': 'Provider',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — not configured ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via native runtime',
@@ -2305,6 +2306,7 @@ export const chatFr = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Variables de projet et secrets chiffrés chargés depuis les stockages du service applicatif.',
   'chat.copy.provider_7ceee3f3': 'Fournisseur',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — non configuré ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Les modes, les clés et le routage du fournisseur sont conservés dans les secrets du projet ; le comportement des agents est exposé ici.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via l’environnement d’exécution natif',
@@ -2500,7 +2502,7 @@ export const chatFr = {
   'chat.copy.srcServerTs_bcc09dcb': 'src/server.ts',
   'chat.copy.sshConnections_564ae345': 'Connexions SSH',
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
-  'chat.copy.staging_c9fb656c': 'Staging',
+  'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
   'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
   'chat.copy.status_bae7d5be': 'Statut',

@@ -1,3 +1,5 @@
+import { MOBILE_TOOL_ACTIONS } from '~/lib/mobile-ide-tabs';
+
 /**
  * Registre canonique des panneaux de l'IDE — SOURCE DE VÉRITÉ UNIQUE.
  *
@@ -101,10 +103,16 @@ export const IDE_PANEL_ALIASES: Readonly<Record<string, IdeAddressablePanel>> = 
 
 /**
  * Clés d'onglets mobiles qui ne sont PAS des panneaux adressables : elles
- * ouvrent une feuille d'outils, pas une surface. Listées explicitement pour que
- * le test de couverture distingue « volontairement non adressable » de « oubli ».
+ * ouvrent une feuille d'outils ou déclenchent un geste, pas une surface. Listées
+ * explicitement pour que le test de couverture distingue « volontairement non
+ * adressable » de « oubli ».
+ *
+ * Les ACTIONS en font partie SANS ÊTRE RECOPIÉES : `MOBILE_TOOL_ACTIONS` est
+ * dérivé de la liste d'outils elle-même. `?panel=share` ou `?panel=commands`
+ * n'ouvre donc rien — et c'est le contrat, pas un trou : une action se déclenche,
+ * elle ne s'adresse pas.
  */
-export const IDE_NON_ADDRESSABLE_TAB_KEYS = ['tools'] as const;
+export const IDE_NON_ADDRESSABLE_TAB_KEYS = ['tools', ...MOBILE_TOOL_ACTIONS] as const;
 
 /** Surfaces de l'IDE mobile — une clé canonique en désigne exactement une. */
 export type IdeMobileSurface = 'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy';

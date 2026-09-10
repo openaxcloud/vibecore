@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { QueryHistoryControl } from './QueryHistoryControl';
 import { clearQueryHistory, readQueryHistory, recordQueryHistory, removeQueryHistory } from './query-history';
+import { colonnesDuSchema, tablesDuSchema } from './tables-du-schema';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
 import Popover from '~/components/ui/Popover';
@@ -23,6 +24,9 @@ import { classNames } from '~/utils/classNames';
 
 type Conn = { key: string; label: string };
 
+/* La taille de page de Replit, reprise telle quelle : « 50 / 0 » sous la grille. */
+const LIGNES_PAR_PAGE = 50;
+
 type QueryResult = { columns?: string[]; rows?: Array<Record<string, unknown> | unknown[]>; error?: string };
 
 function asArray(value: unknown): unknown[] {
@@ -30,10 +34,27 @@ function asArray(value: unknown): unknown[] {
 }
 
 /** Pull a connections list out of the (envelope-wrapped) panel payload, tolerant of shapes. */
-function readConnections(data: unknown): Conn[] {
+export function readConnections(data: unknown): Conn[] {
   const root = (data && typeof data === 'object' ? (data as Record<string, unknown>) : {}) as Record<string, unknown>;
   const container = (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, unknown>;
-  const raw = asArray(container.databases ?? container.connections);
+
+  /*
+   * ⚠️ `databases ?? connections` a l'air juste et ne l'est pas : `??` ne
+   * retombe que sur `null` / `undefined`, JAMAIS sur un tableau VIDE. Or la
+   * route rend `databases: []` dans le cas NORMAL — cette clé ne porte qu'une
+   * instance en cours de provisionnement. `connections`, la vraie liste,
+   * n'était donc jamais lue.
+   *
+   * Conséquence mesurée le 09/09 : `connectionKey` restait vide, le studio ne
+   * demandait aucun schéma, et « Mes données » affichait « aucune table » sur
+   * une base qui en a 127. Le panneau ne se plaignait de rien — il n'avait
+   * simplement rien demandé.
+   *
+   * `connections` d'abord ; `databases` seulement s'il n'y a pas de connexion,
+   * c'est-à-dire pendant le provisionnement.
+   */
+  const reelles = asArray(container.connections);
+  const raw = reelles.length ? reelles : asArray(container.databases);
 
   const conns = raw
     .map((d) => {
@@ -56,31 +77,17 @@ function readConnections(data: unknown): Conn[] {
   return conns;
 }
 
-function readTables(data: unknown): Array<{ name: string; columns: string[] }> {
-  const root = (data && typeof data === 'object' ? (data as Record<string, unknown>) : {}) as Record<string, unknown>;
-  const container = (root.data && typeof root.data === 'object' ? root.data : root) as Record<string, unknown>;
-
-  const schema = (container.schema && typeof container.schema === 'object' ? container.schema : container) as Record<
-    string,
-    unknown
-  >;
-
-  const tables = asArray(schema.tables ?? container.tables);
-
-  return tables
-    .map((t) => {
-      const o = (t && typeof t === 'object' ? t : {}) as Record<string, unknown>;
-      const name = String(o.name ?? o.table ?? '');
-
-      const columns = asArray(o.columns).map((c) =>
-        typeof c === 'string' ? c : String((c as Record<string, unknown>)?.name ?? ''),
-      );
-
-      return name ? { name, columns: columns.filter(Boolean) } : null;
-    })
-    .filter((t): t is { name: string; columns: string[] } => Boolean(t));
-}
-
+/*
+ * RP-DB-06 — la lecture du schéma vivait ICI, en double du module partagé, et
+ * avec le MÊME défaut que celui corrigé dans l'onglet Aperçu : elle cherchait
+ * `table.name` et `table.columns`, alors que l'API rend `table_name` et une
+ * liste de colonnes PLATE, commune à toutes les tables. Les deux formes ne se
+ * rencontraient jamais. Mesuré le 09/09 sur une vraie base : 127 tables et
+ * 1000 colonnes dans la charge utile, ZÉRO table dans le rail.
+ *
+ * Corriger la première occurrence sans chercher la seconde, c'était corriger
+ * un symptôme. Il n'y a plus qu'un lecteur : `tables-du-schema.ts`.
+ */
 /*
  * Pragmatic destructive-statement detector: strip string literals ('…' with ''
  * escapes), quoted identifiers ("…"), and comments (`--`, C-style) BEFORE testing for
@@ -248,7 +255,23 @@ function CellValue({ value }: { value: string }) {
   );
 }
 
-export function DatabaseStudio({ projectId }: { projectId: string }) {
+export function DatabaseStudio({
+  projectId,
+  schemaFourni,
+  connexionFournie,
+}: {
+  projectId: string;
+
+  /*
+   * Le schéma DÉJÀ chargé par le panneau, quand il l'a. L'introspection coûte
+   * quatre requêtes sur la base de l'utilisateur ; sur 127 tables elle prend
+   * des dizaines de secondes. Le panneau la faisait pour l'onglet Aperçu et le
+   * studio la refaisait à l'identique, deux fois pour la même donnée. On la
+   * passe désormais, et le studio ne redemande que si on ne lui a rien donné.
+   */
+  schemaFourni?: unknown;
+  connexionFournie?: string;
+}) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getDatabaseStudioCopy(language);
@@ -283,6 +306,14 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
 
   // Table currently browsed (set on a table click) — enables row edit/insert against it.
   const [selectedTable, setSelectedTable] = useState('');
+
+  /*
+   * RP-DB-06 — Replit parcourt une table par PAGES et l'affiche : « 50 / 0 ».
+   * Nous lancions un `LIMIT 100` sans décalage et sans rien montrer : au-delà
+   * de cent lignes, la suite n'existait pas pour l'utilisateur, et rien à
+   * l'écran ne disait qu'il en manquait.
+   */
+  const [decalage, setDecalage] = useState(0);
   const [editMode, setEditMode] = useState(false);
 
   // Destructive statement awaiting user confirmation (null = no dialog).
@@ -297,13 +328,24 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const connections = useMemo(() => readConnections(connFetcher.data), [connFetcher.data]);
 
   useEffect(() => {
-    if (!connectionKey && connections.length) {
+    if (connectionKey) {
+      return;
+    }
+
+    if (connexionFournie) {
+      setConnectionKey(connexionFournie);
+      return;
+    }
+
+    if (connections.length) {
       setConnectionKey(connections[0].key);
     }
-  }, [connections, connectionKey]);
+  }, [connections, connectionKey, connexionFournie]);
 
-  const tables = useMemo(() => readTables(schemaFetcher.data), [schemaFetcher.data]);
-  const loadingSchema = schemaFetcher.state !== 'idle';
+  const sourceDuSchema = schemaFourni ?? schemaFetcher.data;
+  const tables = useMemo(() => tablesDuSchema(sourceDuSchema), [sourceDuSchema]);
+  const colonnesParTable = useMemo(() => colonnesDuSchema(sourceDuSchema), [sourceDuSchema]);
+  const loadingSchema = schemaFourni ? false : schemaFetcher.state !== 'idle';
 
   // Connection/schema fetch failure surfaced by the ide-panel proxy envelope ({ ok, error }).
   const schemaError =
@@ -322,10 +364,12 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   };
 
   useEffect(() => {
-    if (connectionKey) {
+    if (connectionKey && !schemaFourni) {
       schemaFetcher.load(`${base}?schemaKey=${encodeURIComponent(connectionKey)}`);
     }
-  }, [connectionKey, base, schemaFetcher]);
+
+    // `schemaFetcher` est volontairement absent : son identité change à chaque rendu.
+  }, [connectionKey, base, schemaFourni]);
 
   /*
    * The connections payload only carries { key, label } (see readConnections) —
@@ -338,6 +382,17 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
   const isProductionConnection = Boolean(
     activeConnection && /prod/i.test(`${activeConnection.key} ${activeConnection.label}`),
   );
+
+  /** Une page d'une table : même requête, décalage explicite, état affiché. */
+  const parcourirLaTable = (nomDeTable: string, versLeDecalage: number) => {
+    const borne = Math.max(0, versLeDecalage);
+    const q = `SELECT * FROM ${nomDeTable} LIMIT ${LIGNES_PAR_PAGE} OFFSET ${borne};`;
+
+    setSql(q);
+    setSelectedTable(nomDeTable);
+    setDecalage(borne);
+    runQuery(q);
+  };
 
   const executeQuery = (queryText: string) => {
     // G14: remember the statement so the history effect records it on success.
@@ -439,19 +494,15 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
           ) : (
             <ul className="flex flex-col">
               {tables.map((t) => (
-                <li key={t.name}>
+                <li key={`${t.schema ?? ''}.${t.nom}`}>
                   <button
                     type="button"
-                    title={t.columns.join(', ')}
-                    onClick={() => {
-                      const q = `SELECT * FROM ${t.name} LIMIT 100;`;
-                      setSql(q);
-                      setSelectedTable(t.name);
-                      runQuery(q);
-                    }}
+                    data-testid="studio-table"
+                    title={(colonnesParTable.get(t.nom) ?? []).map((c) => `${c.nom} ${c.type}`).join(', ')}
+                    onClick={() => parcourirLaTable(t.nom, 0)}
                     className="w-full truncate rounded px-2 py-1 text-left font-mono text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                   >
-                    {t.name}
+                    {t.nom}
                   </button>
                 </li>
               ))}
@@ -522,10 +573,13 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                   <button
                     type="button"
                     onClick={() => {
-                      const cols = tables.find((t) => t.name === selectedTable)?.columns ?? result?.columns ?? [];
+                      const cols = (colonnesParTable.get(selectedTable) ?? []).map((c) => c.nom);
+                      const colonnes = cols.length ? cols : (result?.columns ?? []);
 
                       setSql(
-                        `INSERT INTO ${selectedTable} (${cols.join(', ')})\nVALUES (${cols.map(() => "''").join(', ')});`,
+                        `INSERT INTO ${selectedTable} (${colonnes.join(', ')})\nVALUES (${colonnes
+                          .map(() => "''")
+                          .join(', ')});`,
                       );
                     }}
                     className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
@@ -564,11 +618,22 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
               <table className="w-full border-collapse text-left font-mono text-[12px]">
                 <thead className="sticky top-0 bg-bolt-elements-background-depth-3">
                   <tr>
-                    {result.columns.map((c) => (
-                      <th key={c} className="border-b border-bolt-elements-borderColor px-3 py-1.5 font-medium">
-                        {c}
-                      </th>
-                    ))}
+                    {result.columns.map((c) => {
+                      const type = (colonnesParTable.get(selectedTable) ?? []).find((col) => col.nom === c)?.type;
+
+                      return (
+                        <th
+                          key={c}
+                          data-testid="studio-entete"
+                          className="border-b border-bolt-elements-borderColor px-3 py-1.5 font-medium"
+                        >
+                          <span className="text-bolt-elements-textPrimary">{c}</span>
+                          {type ? (
+                            <span className="ml-1.5 font-normal text-bolt-elements-textTertiary">{type}</span>
+                          ) : null}
+                        </th>
+                      );
+                    })}
                   </tr>
                 </thead>
                 <tbody>
@@ -617,7 +682,14 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 variant="compact"
                 icon="i-ph:rows"
                 title={copy['databaseStudio.noRows']}
-                description={copy['databaseStudio.noRowsDescription']}
+                description={
+                  selectedTable
+                    ? formatDatabaseStudioCopy(copy['databaseStudio.pageEmpty'], {
+                        limit: String(LIGNES_PAR_PAGE),
+                        offset: String(decalage),
+                      })
+                    : copy['databaseStudio.noRowsDescription']
+                }
                 className="m-3"
               />
             ) : (
@@ -630,6 +702,37 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
               />
             )}
           </div>
+          {selectedTable ? (
+            <div
+              data-testid="studio-pagination"
+              className="flex min-w-0 flex-wrap items-center justify-end gap-2 border-t border-bolt-elements-borderColor px-3 py-2"
+            >
+              <span className="font-mono text-[12px] text-bolt-elements-textTertiary">
+                {formatDatabaseStudioCopy(copy['databaseStudio.page'], {
+                  limit: String(LIGNES_PAR_PAGE),
+                  offset: String(decalage),
+                })}
+              </span>
+              <button
+                type="button"
+                data-testid="studio-page-precedente"
+                disabled={decalage === 0 || running}
+                onClick={() => parcourirLaTable(selectedTable, decalage - LIGNES_PAR_PAGE)}
+                className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
+              >
+                {copy['databaseStudio.pagePrevious']}
+              </button>
+              <button
+                type="button"
+                data-testid="studio-page-suivante"
+                disabled={running || (result?.rows.length ?? 0) < LIGNES_PAR_PAGE}
+                onClick={() => parcourirLaTable(selectedTable, decalage + LIGNES_PAR_PAGE)}
+                className="min-h-11 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[12px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
+              >
+                {copy['databaseStudio.pageNext']}
+              </button>
+            </div>
+          ) : null}
         </section>
       </div>
 
