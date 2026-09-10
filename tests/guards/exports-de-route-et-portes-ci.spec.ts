@@ -147,3 +147,69 @@ describe('BUG-BUILD-ROUTE-EXPORT-001 — le geste EXACT qui avait cassé la cons
     expect(lire('app/lib/ide/message-echec-installation.ts')).toMatch(/export function messageDEchecDInstallation/);
   });
 });
+
+/*
+ * COUVERTURE iOS — la garde qui manquait à la garde.
+ *
+ * `playwright.config.ts` déclare un projet `webkit-iphone` pour les quatre specs
+ * dont le sujet EST une interaction tactile. Son commentaire cite le cas mesuré :
+ * une barre d'actions révélée par `:focus-within`, vivante sous Chromium et
+ * MORTE sous Safari iOS — « un vert sur une surface qui n'a pas le problème ».
+ *
+ * Mesuré le 2026-09-10 : ce projet n'était exécuté NULLE PART. Chaque invocation
+ * du dépôt passait `--project=chromium`, et l'audit i18n tourne sur Chromium sur
+ * ses quatre shards. La garde écrite CONTRE le faux vert Chromium n'avait donc
+ * jamais tourné une seule fois — un correctif qui existe et que rien n'exécute
+ * ne protège personne.
+ *
+ * Ces cas empêchent le retour à cet état : ils rougissent si le projet disparaît
+ * de la configuration, ou si plus aucun workflow ne l'exécute.
+ */
+describe('la couverture iOS est réellement exécutée, pas seulement déclarée', () => {
+  const config = lire('playwright.config.ts');
+
+  it('témoin positif : la configuration lue est bien celle qu’on croit (règle 14)', () => {
+    expect(config).toContain('projects:');
+    expect(config).toContain('chromium');
+  });
+
+  it('le projet `webkit-iphone` existe toujours dans la configuration', () => {
+    expect(config).toContain('webkit-iphone');
+    expect(config, 'le profil iPhone a disparu').toMatch(/devices\['iPhone/);
+  });
+
+  it('AU MOINS UN workflow l’exécute vraiment', () => {
+    /*
+     * Le cœur du point : déclarer un projet ne l'exécute pas. Sans cette
+     * assertion, retirer l'étape ferait retomber la couverture iOS à zéro sans
+     * un seul rouge — l'état exact dans lequel le dépôt se trouvait.
+     */
+    const WORKFLOWS = [
+      '.github/workflows/e2e.yml',
+      '.github/workflows/e2e-runtime.yml',
+      '.github/workflows/i18n-live-audit.yml',
+    ];
+
+    const executants = WORKFLOWS.filter((chemin) =>
+      etapesRun(chemin).some((run) => run.includes('--project=webkit-iphone')),
+    );
+
+    expect(executants, 'aucun workflow n’exécute le projet webkit-iphone').not.toHaveLength(0);
+  });
+
+  it('le navigateur qu’il exige est bien installé par le workflow qui l’exécute', () => {
+    /* Un projet lancé sans son moteur échoue pour la mauvaise raison. */
+    const etapes = etapesRun('.github/workflows/e2e.yml');
+
+    expect(etapes.some((run) => run.includes('playwright install webkit'))).toBe(true);
+  });
+
+  it.each([
+    'tests/e2e/agent-message-density.spec.ts',
+    'tests/e2e/agent-scroll-pill.spec.ts',
+    'tests/e2e/agent-composer-panel-viewport.spec.ts',
+    'tests/e2e/ide-touch-targets.spec.ts',
+  ])('%s, visée par le projet iOS, existe toujours', (chemin) => {
+    expect(() => lire(chemin)).not.toThrow();
+  });
+});

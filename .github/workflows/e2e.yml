@@ -120,7 +120,7 @@ jobs:
           # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
           # dont on lit le résultat.
           for attempt in 1 2 3; do
-            if pnpm exec playwright install-deps chromium; then break; fi
+            if pnpm exec playwright install-deps chromium webkit; then break; fi
             echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
             if [ "$attempt" = "3" ]; then exit 1; fi
             sudo rm -rf /var/lib/apt/lists/*
@@ -128,6 +128,11 @@ jobs:
             sleep 10
           done
           pnpm exec playwright install chromium
+
+          # WebKit est installé À PART et sans faire échouer l'étape : il ne sert
+          # qu'au canari ci-dessous, qui est non bloquant. Une indisponibilité
+          # amont du binaire ne doit pas fermer la porte E2E de tout le monde.
+          pnpm exec playwright install webkit || echo "::warning::installation de WebKit en échec — le canari iOS sera sauté."
 
       - name: Validate AI provider secret for E2E
         run: |
@@ -202,6 +207,40 @@ jobs:
 
       - name: Playwright mobile viewport tests
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
+
+      # LE MOTEUR D'AVI. `playwright.config.ts` définit un projet `webkit-iphone`
+      # (iPhone 15 Pro) pour les quatre specs dont le sujet EST une interaction
+      # tactile — et son commentaire cite le cas mesuré : une barre d'actions
+      # révélée par `:focus-within`, vivante sous Chromium, MORTE sous Safari iOS.
+      #
+      # Ce projet n'était exécuté NULLE PART : chaque invocation de ce dépôt passe
+      # `--project=chromium`, et l'audit i18n tourne lui aussi sur Chromium sur
+      # ses quatre shards. La garde écrite contre le faux vert Chromium n'avait
+      # donc jamais tourné une seule fois.
+      #
+      # ⚠️ NON BLOQUANT, ET C'EST DÉLIBÉRÉ — pour l'instant. Ce pas n'a jamais été
+      # exécuté : son premier passage en CI EST sa vérification. Le rendre
+      # bloquant d'emblée, c'est risquer de fermer la porte E2E de tout le monde
+      # sur un réglage que personne n'a encore vu tourner. Le résultat est imprimé
+      # dans le résumé du run pour qu'un rouge se VOIE au lieu de se taire — un
+      # canari qu'on ne regarde pas ne vaut pas mieux que pas de canari.
+      #
+      # À basculer en bloquant (retirer `continue-on-error` et le `set +e`) après
+      # quelques runs stables.
+      - name: Canari iOS — Playwright WebKit iPhone (non bloquant)
+        id: canari_ios
+        continue-on-error: true
+        run: |
+          set +e
+          pnpm exec playwright test tests/e2e --project=webkit-iphone --reporter=list
+          code=$?
+          echo "webkit-iphone exit: $code"
+          if [ "$code" = "0" ]; then
+            echo "✅ Canari iOS (WebKit iPhone) : vert." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Canari iOS (WebKit iPhone) : ROUGE (sortie $code) — non bloquant, mais à regarder." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
 
       - name: Upload E2E traces
         if: always()
