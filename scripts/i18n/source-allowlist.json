@@ -284,7 +284,7 @@
       "id": "deploy-build-machine-error-codes",
       "path": "services/api/src/deploy-workspace-build.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:AGENT_UNREACHABLE|SANDBOX_EMPTY|INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PULL_FAILED|OUTPUT_DIRECTORY_MISSING|NOT_STATIC_SITE|ARTIFACT_TOO_LARGE|ARTIFACT_FILE_TOO_LARGE)$",
+      "textPattern": "^(?:AGENT_UNREACHABLE|SANDBOX_EMPTY|SOURCE_EMPTY|INSTALL_FAILED|BUILD_FAILED|BUILD_TIMEOUT|PULL_FAILED|OUTPUT_DIRECTORY_MISSING|NOT_STATIC_SITE|ARTIFACT_TOO_LARGE|ARTIFACT_FILE_TOO_LARGE)$",
       "justification": "These uppercase values are stable deployment state-machine codes, not rendered prose. The API keeps the code invariant and localizes the accompanying deployment logs/message at response time.",
       "owner": "deploy-platform-and-i18n",
       "expiresOn": "2027-08-04"

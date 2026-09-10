@@ -15785,8 +15785,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       child.on('close', (exitCode) => {
         clearTimeout(timer);
         record.status = 'exited';
-        record.exitCode = exitCode ?? 0;
-        resolvePromise(exitCode ?? 0);
+
+        /*
+         * BUG-DEPLOY-010, suspect n°2 — `exitCode === null` signifie TUÉ PAR
+         * SIGNAL, pas « terminé avec succès ». Le `?? 0` faisait passer une
+         * commande locale tuée (délai, OOM) pour une réussite, et l'appelant
+         * enchaînait sur un travail qui n'avait jamais fini. Même règle que la
+         * branche `error` juste au-dessus, qui rend déjà 127.
+         */
+        const codeReel = exitCode ?? 1;
+
+        record.exitCode = codeReel;
+        resolvePromise(codeReel);
       });
     });
 
@@ -15905,7 +15915,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       input.timeoutMs + 60_000,
     );
 
-    return { exitCode: result.exitCode ?? 0, output: result.output ?? '' };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — un run sans code de sortie n'a pas réussi.
+     * Le gestionnaire ne renseigne `exitCode` que lorsque le processus s'est
+     * terminé normalement ; l'absence signifie tué ou interrompu.
+     */
+    return { exitCode: result.exitCode ?? 1, output: result.output ?? '' };
   };
 
   /*
@@ -15931,11 +15946,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scheduledRequest = { currentUser: undefined, raw: {} };
     const body = { command: 'sh', args: ['-lc', input.command], timeoutMs: input.timeoutMs };
 
-    let result: { code: number; stdout?: string; stderr?: string };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string };
 
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -15947,7 +15969,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await runLocalRuntimeCommand(authorized, body as z.infer<typeof runtimeCommandSchema>);
     }
 
-    return { exitCode: result.code ?? 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    return { exitCode: result.code ?? 1, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
   };
 
   /**
@@ -17860,10 +17895,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(body) },
@@ -17879,13 +17921,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 
     return {
-      exitCode: result.code ?? 0,
+      exitCode: result.code ?? 1,
       output,
       localRuntime: result.localRuntime === true,
       events: [
         ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
         ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),
-        { type: 'exit', exitCode: result.code ?? 0, timestamp: new Date().toISOString() },
+        { type: 'exit', exitCode: result.code ?? 1, timestamp: new Date().toISOString() },
       ],
     };
   });
@@ -22291,10 +22333,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(commandBody) },
@@ -22308,7 +22357,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    const exitCode = result.code ?? 0;
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    const exitCode = result.code ?? 1;
 
     return reply.code(201).send({
       projectId: authorized.projectId,

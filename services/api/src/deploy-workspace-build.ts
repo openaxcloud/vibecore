@@ -119,6 +119,13 @@ export type WorkspaceBuildPhase = 'installing' | 'building' | 'deploying';
  */
 export type WorkspaceStaticBuildErrorCode =
   | 'SANDBOX_EMPTY'
+
+  /*
+   * BUG-DEPLOY-010 — le répertoire SOURCE est vide : le pod n'a jamais reçu les
+   * fichiers du projet. Distinct de `SANDBOX_EMPTY`, qui dit que la copie a
+   * échoué alors qu'il y avait à copier.
+   */
+  | 'SOURCE_EMPTY'
   | 'INSTALL_FAILED'
   | 'BUILD_FAILED'
   | 'BUILD_TIMEOUT'
@@ -306,6 +313,23 @@ if (forced.length) {
  */
 const CODE_SORTIE_BAC_A_SABLE_VIDE = 65;
 
+/*
+ * BUG-DEPLOY-010, SECOND TOUR — le trou de ma propre garde.
+ *
+ * Ma première version testait `attendus > 0 && copies == 0`. Une source VIDE
+ * donne `attendus = 0` : la garde ne se déclenchait donc PAS, et le déploiement
+ * repartait mourir sur le même `npm error enoent` — avec une ligne de journal en
+ * plus et rien de plus. Or une source vide rend le déploiement tout aussi
+ * impossible qu'une copie ratée : il n'y a rien à compiler.
+ *
+ * Les deux cas sont fatals mais ne se corrigent pas au même endroit — l'un est
+ * un problème de copie, l'autre un pod qui n'a jamais reçu les fichiers du
+ * projet. Ils portent donc deux codes distincts, sans quoi le message enverrait
+ * chercher au mauvais endroit (la leçon de `SANDBOX_EMPTY` contre
+ * `INSTALL_FAILED`, appliquée une fois de plus).
+ */
+const CODE_SORTIE_SOURCE_VIDE = 66;
+
 /**
  * Run the static build inside the workspace pod and materialize the artifact
  * locally. Pure orchestration over the injected agent — unit-tested in
@@ -376,7 +400,11 @@ export async function runWorkspaceStaticBuild(
         `attendus=$(find "${sourceCwd}" ${filtre} | wc -l | tr -d ' ')`,
         `copies=$(find "${sandbox}" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')`,
         'echo "source=$source_abs entries=$attendus -> sandbox=$sandbox_abs copied=$copies"',
-        'if [ "$attendus" -gt 0 ] && [ "$copies" -eq 0 ]; then',
+        'if [ "$attendus" -eq 0 ]; then',
+        '  echo "source is EMPTY: the workspace holds no project file to build (source=$source_abs)"',
+        `  exit ${CODE_SORTIE_SOURCE_VIDE}`,
+        'fi',
+        'if [ "$copies" -eq 0 ]; then',
         '  echo "sandbox is EMPTY after the copy (source=$source_abs entries=$attendus)"',
         `  exit ${CODE_SORTIE_BAC_A_SABLE_VIDE}`,
         'fi',
@@ -405,6 +433,22 @@ export async function runWorkspaceStaticBuild(
        * échoué ». Le confondre avec `INSTALL_FAILED` envoyait l'utilisateur
        * chercher un défaut dans ses dépendances.
        */
+      /*
+       * BUG-DEPLOY-010 — une source vide n'est pas une copie ratée. Le pod n'a
+       * jamais reçu les fichiers du projet : c'est en amont qu'il faut chercher,
+       * et le message doit le dire plutôt que d'accuser la copie.
+       */
+      if (prep.exitCode === CODE_SORTIE_SOURCE_VIDE) {
+        log.push(
+          'error',
+          'Workspace deploy: the workspace holds NO project file to build — the source directory is empty. ' +
+            'The pod was reached but never received the project files. The [prepare] line above carries the ' +
+            'absolute source path.',
+        );
+
+        return { ok: false, logs: log.logs, error: 'SOURCE_EMPTY' };
+      }
+
       if (prep.exitCode === CODE_SORTIE_BAC_A_SABLE_VIDE) {
         log.push(
           'error',
