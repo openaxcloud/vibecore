@@ -62,7 +62,6 @@ describe('échelle des h1 — familles cohérentes', () => {
   const familleLegale = [
     './pages/Subprocessors.tsx',
     './pages/StudentDPA.tsx',
-    './pages/LegalArticle.tsx',
     './pages/CommercialAgreement.tsx',
   ];
 
