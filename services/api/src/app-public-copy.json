@@ -819,6 +819,10 @@
     "en": "Object storage is not enabled.",
     "fr": "Le stockage d’objets n’est pas activé."
   },
+  "OBJECT_STORAGE_SCOPE_REQUIRED": {
+    "en": "This access token is not allowed to perform that storage operation.",
+    "fr": "Ce jeton d’accès n’est pas autorisé à effectuer cette opération de stockage."
+  },
   "THUMBNAIL_NOT_FOUND": {
     "en": "No thumbnail has been captured.",
     "fr": "Aucune miniature n’a été capturée."
