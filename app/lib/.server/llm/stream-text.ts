@@ -375,6 +375,22 @@ export async function streamText(props: {
   chatId?: string;
 
   /*
+   * IDENTIFIANT DE MESSAGE STABLE POUR TOUT LE TOUR.
+   *
+   * Sans lui, le SDK en fabrique un neuf à chaque appel `streamText` et à
+   * chaque frontière d'étape outil, et le pousse au client dans la part
+   * `start_step`. Le client réécrit alors `message.id` EN PLEIN FLUX — ce qui
+   * fait repartir de zéro le parseur d'artefacts (indexé par identifiant de
+   * message) et bascule la clé d'upsert de la transcription. Résultat : la
+   * réponse dupliquée à l'écran, les actions `shell` du segment précédent
+   * relancées, et une ligne orpheline en base.
+   *
+   * La route de chat passe ici UN identifiant par tour, partagé par l'appel
+   * initial et toutes ses continuations.
+   */
+  identifiantDeMessageStable?: string;
+
+  /*
    * Model routing (Vague C): fired once with the CONCRETE model this turn
    * resolved to (after any Auto downgrade). The chat route captures it so the
    * auto-continuation segments reuse the SAME concrete id — keeping the model
@@ -413,6 +429,7 @@ export async function streamText(props: {
     projectRulesContext,
     webReferenceContext,
     chatId,
+    identifiantDeMessageStable,
   } = props;
 
   /*
@@ -989,6 +1006,15 @@ ${props.summary}
      * explicit caller-supplied `experimental_transform` still wins.
      */
     experimental_transform: smoothStream({ chunking: 'word' }),
+
+    /*
+     * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR — voir la prop du même
+     * nom. Sans cette option le SDK en génère un neuf à chaque appel et à
+     * chaque frontière d'étape outil, et le client réécrit `message.id` en
+     * plein flux. Posé AVANT `...filteredOptions` pour qu'un appelant qui
+     * fournirait explicitement son propre générateur garde la main.
+     */
+    ...(identifiantDeMessageStable ? { experimental_generateMessageId: () => identifiantDeMessageStable } : {}),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,

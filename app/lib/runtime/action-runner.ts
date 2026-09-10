@@ -540,6 +540,35 @@ export class ActionRunner {
   async #executeAction(actionId: string, isStreaming: boolean = false) {
     const action = this.actions.get()[actionId];
 
+    /*
+     * NE PAS RESSUSCITER UNE ACTION DÉJÀ ANNULÉE.
+     *
+     * `#updateAction` n'interdit aucune transition depuis un état terminal, et
+     * la ligne ci-dessous posait « running » INCONDITIONNELLEMENT, avant tout
+     * contrôle. L'ordonnancement qui déclenchait :
+     *
+     *   1. l'utilisateur appuie sur Arrêter -> `abortAll()` appelle
+     *      `action.abort()` et pose « aborted » ;
+     *   2. jusqu'à 100 ms plus tard, l'appel de QUEUE du `createSampler` qui
+     *      lisse le flux de fichier se déclenche — rien ne l'annule — et
+     *      atteint `runAction(data, true)` puis ce point ;
+     *   3. « running » est reposé ici, `#runActionWithRetry` sort aussitôt sur
+     *      `abortSignal.aborted` sans rien écrire, et la mise à jour terminale
+     *      plus bas reposait encore « running » sur la branche streaming.
+     *
+     * Rien ne le redescendait ensuite : le chien de garde sort d'emblée pour
+     * une action `file` non exécutée, et `abortStreamingFileActions` n'est
+     * appelé que depuis `onFinish`, qui ne s'exécute pas sur un abandon. Le
+     * fichier restait donc « En cours » pour toujours après un Arrêt explicite.
+     */
+    if (action.abortSignal.aborted) {
+      if (action.status !== 'aborted') {
+        this.#updateAction(actionId, { status: 'aborted' });
+      }
+
+      return;
+    }
+
     this.#updateAction(actionId, { status: 'running' });
 
     try {
@@ -630,8 +659,14 @@ export class ActionRunner {
         return;
       }
 
+      /*
+       * Le contrôle d'annulation existait UNIQUEMENT sur la branche
+       * non-streamée : `isStreaming ? 'running' : aborted ? 'aborted' : …`
+       * reposait « running » quoi qu'il arrive sur un flux de fichier annulé en
+       * cours de route. L'annulation prime maintenant sur les deux branches.
+       */
       this.#updateAction(actionId, {
-        status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
+        status: action.abortSignal.aborted ? 'aborted' : isStreaming ? 'running' : 'complete',
       });
     } catch (error) {
       /*
