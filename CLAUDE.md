@@ -218,6 +218,27 @@ généraux : ce sont des pièges qui ont déjà coûté.
     * elle échoue bruyamment si la lecture est vide — une lecture vide est une
       panne du moniteur, pas un état du monde.
 
+22. **UNE AFFIRMATION QUI DOIT SURVIVRE VA DANS UN TEST, PAS DANS UN
+    COMMENTAIRE.** Les deux vieillissent ; ils ne vieillissent pas de la même
+    façon. **Un commentaire périmé ment en silence et oriente le lecteur
+    suivant ; un test périmé ROUGIT et le convoque.**
+
+    Les deux faces, mesurées le même jour :
+
+    * `api.chat.ts` affirmait en commentaire « ce `flush` NE S'EXÉCUTE JAMAIS :
+      zéro occurrence en production ». Faux — 1 occurrence sur 24 h. Personne ne
+      l'a jamais vérifié, et la phrase a orienté cinq jours d'enquête vers une
+      cause fausse (`model likely too weak`, même fichier).
+    * `anthropic-thinking.spec.ts` portait la même intention SOUS FORME DE TEST :
+      il épinglait `@ai-sdk/anthropic` à `0.0.39` avec le message « SDK monté :
+      retirer le contournement ». Il a rougi **des mois plus tard**, au moment
+      exact de la montée, et a forcé le retrait. Il n'a rien décrit : il a AGI.
+
+    En pratique : quand on s'apprête à écrire « X ne se produit jamais », « Y est
+    temporaire », « à retirer quand Z », se demander d'abord **quel test rougirait
+    le jour où ce n'est plus vrai** — et l'écrire à la place. Le commentaire garde
+    le POURQUOI ; le test garde le FAIT.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
