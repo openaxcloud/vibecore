@@ -18,6 +18,9 @@
  * c'est pourquoi les 24 fichiers existent sur le disque. Ce qu'il ne fait pas,
  * c'est le DIRE. Ce module tient cette moitié manquante, et il la tient sans
  * modèle : la vérification est mécanique, elle relit `index.html`.
+ *
+ * Épinglé par `app/lib/runtime/generation-incomplete.spec.ts` — une preuve live vaut pour le jour
+ * où elle a été prise ; un test vaut pour tous les jours suivants.
  */
 
 export interface ConstatDeGeneration {

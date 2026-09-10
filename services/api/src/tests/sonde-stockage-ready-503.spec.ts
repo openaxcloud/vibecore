@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /*
  * LA SECONDE MOITIÉ : ce que `/ready` FAIT du verdict.
@@ -54,6 +55,8 @@ const sonde = stockage.sonderEcritureStockage as unknown as ReturnType<typeof vi
 beforeEach(() => sonde.mockReset());
 afterEach(() => vi.restoreAllMocks());
 
+const baseJoignable = await baseDeDonneesJoignable();
+
 describe('une poignée NFS périmée sort la réplique de la rotation', () => {
   it('ESTALE → 503, le motif nommé « mount-dead »', async () => {
     sonde.mockResolvedValue({ ok: false, code: 'ESTALE', fatal: true, latencyMs: 3 });
@@ -73,7 +76,14 @@ describe('une poignée NFS périmée sort la réplique de la rotation', () => {
     }
   });
 
-  it('une panne TRANSITOIRE est signalée mais la réplique RESTE en rotation', async () => {
+  /*
+   * Ce cas attend `200`, donc il suppose que TOUS les autres contrôles de
+   * `/ready` sont sains — la base comprise. Mesuré le 2026-09-10 : sans base
+   * joignable, `/ready` rend 503 alors même que le stockage est simulé sain, et
+   * le rouge accuse le stockage pour la panne d'un voisin. Le prérequis est
+   * explicite ; il tient en CI (service `postgres` + `DATABASE_URL`).
+   */
+  it.skipIf(!baseJoignable)('une panne TRANSITOIRE est signalée mais la réplique RESTE en rotation', async () => {
     /*
      * La contre-épreuve dans l'autre sens, et elle vaut autant que la première :
      * sortir toutes les répliques sur une cause globale — Filestore lent, disque

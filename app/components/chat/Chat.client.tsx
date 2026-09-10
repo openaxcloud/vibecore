@@ -787,7 +787,18 @@ export const ChatImpl = memo(
       sendExtraMessageFields: true,
 
       /*
-       * DIAGNOSTIC (temporary): wrap the transport fetch so every request the AI
+       * DIAGNOSTIC — ⚠️ « temporary » DEPUIS DEUX MOIS. Introduit le 2026-07-11
+       * (`fix(chat): reopened project append() posted nothing`), et toujours servi :
+       * `[chat-fetch]` est présent dans le chunk `Chat.client` de l'image de
+       * production, vérifié le 2026-09-10. Il écrit donc dans la console de CHAQUE
+       * utilisateur, à CHAQUE requête.
+       *
+       * Le mot « temporary » ne dit plus rien de vrai : soit on le retire, soit on
+       * assume un diagnostic permanent — mais on ne laisse pas un lecteur croire
+       * qu'il va disparaître de lui-même. Le retirer est un changement de
+       * COMPORTEMENT, hors de cette passe qui ne touche qu'aux commentaires.
+       *
+       * Ce qu'il fait : wrap the transport fetch so every request the AI
        * SDK actually dispatches to /api/chat is visible in the console. The SDK
        * builds the request as `fetch(api, { body: JSON.stringify(body), ... })`,
        * so JSON.stringify evaluates BEFORE fetch is called: a non-serializable

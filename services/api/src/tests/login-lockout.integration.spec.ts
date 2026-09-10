@@ -4,6 +4,7 @@ import { buildApiApp } from '../app.js';
 import { isLockedNow, type LoginThrottleConfig } from '../login-throttle.js';
 import { PrismaApiStore } from '../prisma-store.js';
 import type { EmailProvider } from '../email.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /*
  * Per-account login lockout against a REAL Postgres (PrismaApiStore). Skipped
@@ -21,7 +22,16 @@ class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+/*
+ * BUG-TEST-DB-HANG-001, occurrences 9 et 10 (règle 7). La garde ne testait que
+ * la PRÉSENCE de `DATABASE_URL`, pas sa JOIGNABILITÉ. Mesuré le 2026-09-10 :
+ * une variable présente mais illisible (ici, citée — le port se lit `NaN`)
+ * rendait `hasDb` vrai, le fichier s'exécutait contre une base absente, et
+ * l'échec accusait le produit au lieu de l'environnement. La sonde partagée
+ * répond à la vraie question, et rend toujours — jamais une promesse en
+ * suspens.
+ */
+const hasDb = await baseDeDonneesJoignable();
 
 describe.skipIf(!hasDb)('per-account login lockout — real Postgres', () => {
   let app: Awaited<ReturnType<typeof buildApiApp>>;

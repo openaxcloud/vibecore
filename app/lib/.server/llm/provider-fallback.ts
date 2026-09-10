@@ -27,7 +27,22 @@ const logger = createScopedLogger('provider-fallback');
  * D'où un repli à L'EXÉCUTION, et non à la configuration.
  */
 
-export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout';
+/**
+ * `sterile` est le seul de ces motifs qui ne vienne PAS d'un refus de répondre.
+ *
+ * Les cinq autres arrivent AVANT la génération : le fournisseur dit non, et on
+ * le sait tout de suite. `sterile` décrit l'inverse — un fournisseur qui répond
+ * `200`, produit du texte, et n'écrit aucun fichier sur une consigne de
+ * construction. Il n'a rien refusé ; il a rendu du vide, et sans ce motif la
+ * plateforme comptait cela comme une réussite.
+ *
+ * Il se range ici plutôt que dans une table séparée pour une raison de fond :
+ * la conséquence est exactement la même — écarter ce maillon pendant la fenêtre
+ * de TTL pour que le tour SUIVANT parte sur un fournisseur capable. Une seconde
+ * table aurait dupliqué la marche de la chaîne que `resolveRuntimeProvider`
+ * fait déjà.
+ */
+export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout' | 'sterile';
 
 export type ProviderHealthEntry = Readonly<{
   kind: ProviderFailureKind;
@@ -66,6 +81,24 @@ export const PROVIDER_UNHEALTHY_TTL_MS = 5 * 60 * 1000;
  */
 export const PROVIDER_PROBE_TIMEOUT_MS = 6_000;
 
+/*
+ * PORTÉE DE CETTE TABLE : UN POD, PAS LA PLATEFORME. À dire, parce que la lire
+ * comme globale surestime ce que le repli garantit.
+ *
+ * Mesuré le 2026-09-10 : `services.web.replicas: 2` dans `values-prod.yaml`, et
+ * cette `Map` vit dans la mémoire du processus. Un fournisseur écarté sur un pod
+ * reste donc candidat sur l'autre : le tour suivant a environ une chance sur
+ * deux de retomber sur un pod qui n'a rien appris, et de répéter l'échec une
+ * fois avant de l'apprendre à son tour.
+ *
+ * Ce n'est pas un défaut introduit par un motif en particulier — les six le
+ * partagent depuis l'origine — et la conséquence reste bornée : chaque pod
+ * apprend indépendamment, et la fenêtre de TTL les fait converger. Le rendre
+ * réellement global demanderait de porter la table dans Redis, ce qui est un
+ * lot à part : une table partagée écarte un fournisseur pour TOUS les
+ * utilisateurs d'un coup, et ce changement de rayon de souffle se décide, il ne
+ * se glisse pas dans un correctif.
+ */
 const health = new Map<string, ProviderHealthEntry>();
 
 /** Testable : remet la table de santé à zéro entre deux cas. */
