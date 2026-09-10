@@ -920,6 +920,9 @@ ${props.summary}
 
   /*
    * Always pass `maxTokens`. The AI SDK has no top-level `maxCompletionTokens`
+   * (vérifié le 2026-09-10 sur `ai@4.3.16` : `maxCompletionTokens` = 0 occurrence
+   * dans `dist/index.d.ts`, `maxTokens` = 3 — l'option n'existe pas, elle est donc
+   * bien ignorée en silence)
    * option — passing it was silently dropped, leaving reasoning models (o1/o3/
    * gpt-5) with NO output cap (unbounded cost/latency). The @ai-sdk/openai
    * provider itself maps `max_tokens` → `max_completion_tokens` for reasoning
