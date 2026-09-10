@@ -49,7 +49,7 @@ describe('mobile IDE tabs i18n wiring', () => {
 
     // Spot-check the normative glossary and the frozen technical labels.
     expect(t('mobileIdeTabs.search.title')).toBe('Recherche');
-    expect(t('mobileIdeTabs.deployments.title')).toBe('Déploiements');
+    expect(t('mobileIdeTabs.deployments.title')).toBe('Publier');
     expect(t('mobileIdeTabs.database.title')).toBe('Base de données');
     expect(t('mobileIdeTabs.env.title')).toBe('Variables d’environnement');
     expect(t('mobileIdeTabs.git.title')).toBe('Git');
@@ -62,7 +62,7 @@ describe('mobile IDE tabs i18n wiring', () => {
   it('leaves English untouched when the language is English', () => {
     const en = createI18nInstance('en');
     expect(en.t('mobileIdeTabs.search.title')).toBe('Search');
-    expect(en.t('mobileIdeTabs.deployments.title')).toBe('Deployments');
+    expect(en.t('mobileIdeTabs.deployments.title')).toBe('Publish');
     expect(en.t('mobileIdeTabs.env.title')).toBe('Environment variables');
     expect(en.t('mobileIdeTabs.terminal.title')).toBe(SHELL_TERMINAL_LABEL);
   });

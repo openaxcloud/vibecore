@@ -138,6 +138,13 @@ describe('BaseChat strengthened-AST catalog', () => {
      * et de n'accepter que des différences qu'on sait nommer.
      *
      * Re-scellements successifs :
+     *   2026-09-09 — les cinq recherches dans `ECODE_MOBILE_TAB_META` passent
+     *     par `outilCanonique(...)`, et le cas particulier
+     *     `mobilePanel === 'chat' ? 'agent' : mobilePanel` disparaît, absorbé
+     *     par la table d'alias. Différences VÉRIFIÉES ligne à ligne contre
+     *     `origin/main` : uniquement des clés de recherche normalisées, aucun
+     *     libellé ni balisage — l'apparence gelée sur la référence d'Avi est
+     *     intacte.
      *
      *   1. externalisation des libellés visibles vers le catalogue FR (3/3) ;
      *   2. RPL-IDE-001.8 — en-tête Spotlight dans la palette de commandes ;
@@ -171,7 +178,7 @@ describe('BaseChat strengthened-AST catalog', () => {
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('fdeec54d672bc8d340c0a0e4de6e6112faaf8edb418d2409d9ec765e3adb8652');
+    expect(frozenHash).toBe('9183f9a8db6184e7f5f4797a54f6d58ffe73bac4fa656e279d153d3351e209cd');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure
