@@ -74,6 +74,26 @@ export function temperatureOptionsForModel(modelName: string, providerName?: str
  */
 export const MAX_RESPONSE_SEGMENTS = 8;
 
+/*
+ * Budget de temps d'UN segment de génération, en millisecondes.
+ *
+ * Sert à dimensionner la borne de la chaîne côté route de chat : la garde
+ * arme son délai une seule fois, avant le premier segment, et ne le ré-arme
+ * jamais — la borne doit donc couvrir `MAX_RESPONSE_SEGMENTS + 1` appels
+ * fournisseur (les continuations plus l'appel initial), pas un seul.
+ *
+ * 240 s vient de la mesure : la plus longue génération SAINE observée en
+ * production tenait 215 s pour un segment. La marge au-dessus est délibérée —
+ * la borne vise l'anomalie (un `onFinish` qui ne revient jamais), et couper
+ * une génération saine coûte bien plus cher que d'attendre une minute de plus
+ * une génération réellement bloquée.
+ *
+ * La constante vit ICI, à côté du nombre de segments, pour que les deux se
+ * lisent ensemble : c'est leur PRODUIT qui est la vraie borne, et les séparer
+ * est exactement ce qui a produit une borne dimensionnée pour un segment.
+ */
+export const BUDGET_PAR_SEGMENT_MS = 240_000;
+
 export interface File {
   type: 'file';
   content: string;

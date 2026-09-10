@@ -13,6 +13,7 @@
  */
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
+import { lireUrlDEnvironnement } from './env-url.js';
 
 const KNOWN_QUEUES = new Set(['workspace-jobs', 'enterprise-jobs', 'deploy-jobs']);
 
@@ -94,7 +95,8 @@ export async function enqueue(parsed: Parsed): Promise<string> {
    */
   assertKnownQueue(parsed.queue);
 
-  const url = process.env.REDIS_URL;
+  /* BUG-REDIS-URL-GUILLEMETS-001 — citée, l'URL serait jetée par ioredis. */
+  const url = lireUrlDEnvironnement('REDIS_URL');
 
   if (!url) {
     throw new Error('REDIS_URL is required to enqueue');

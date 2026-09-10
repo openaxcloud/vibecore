@@ -87,6 +87,7 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
   decideImageAttachment,
@@ -3826,22 +3827,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       appliedToastOpenRef.current = true;
 
-      showCoalescedAppliedToast(files, {
-        onUndoAll: () => {
-          for (const proposalId of proposalIds) {
-            void workbenchStore.revertAgentPatchProposal(proposalId);
-          }
+      showCoalescedAppliedToast(
+        files,
+        {
+          onUndoAll: () => {
+            for (const proposalId of proposalIds) {
+              void workbenchStore.revertAgentPatchProposal(proposalId);
+            }
 
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
+          onDismissAll: () => {
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
         },
-        onDismissAll: () => {
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
-        },
-      });
+
+        /*
+         * LE CONSTAT D'HONNÊTETÉ DU TOUR, LU AU MOMENT DE L'AFFICHAGE.
+         *
+         * `AppliedFilesToast` acceptait déjà une prop `constat` et savait
+         * afficher le message honnête — mais RIEN ne la lui passait : la moitié
+         * visible de la garde était du code mort, et le bandeau annonçait « les
+         * patchs ont bien été appliqués » sur une application sans point
+         * d'entrée. Lecture directe du magasin plutôt qu'abonnement : le bandeau
+         * n'est pas un composant réactif, il est peint une fois par flush, et
+         * c'est l'état À CET INSTANT qui doit être dit.
+         */
+        constatDeGenerationStore.get(),
+      );
     }, []);
 
     const scheduleAppliedFilesToast = useCallback(

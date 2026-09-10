@@ -152,6 +152,187 @@ describe('runWorkspaceStaticBuild', () => {
     expect(last.args[1]).toContain('rm -rf ".deploy-x"');
   });
 
+  /*
+   * BUG-DEPLOY-010 — P0 mesuré le 17/08, deux déploiements sur deux : le bac à
+   * sable était créé et RESTAIT VIDE. `npm` mourait cent lignes plus loin sur
+   * `Could not read package.json: '/workspace/.vibecore-deploy-<id>/package.json'`,
+   * un message qui accuse le projet de l'utilisateur alors que la copie n'avait
+   * simplement rien produit.
+   *
+   * Ce que l'étape ne savait pas dire : `find … -exec cp` rend 0 même quand
+   * aucun `cp` n'a eu lieu. Elle ne lisait que le code de sortie — un zéro qui
+   * ne prouvait rien (règle 14).
+   */
+  it('MESURE ce que la copie a produit, et imprime les chemins absolus des deux côtés', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+        return { exitCode: 0, timedOut: false };
+      }),
+      listFiles: vi.fn(async (path: string) => ({
+        files: path === '.deploy-m/dist' ? [{ path: '.deploy-m/dist/index.html', size: 12 }] : [],
+      })),
+      readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
+    });
+
+    await runWorkspaceStaticBuild({ ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-m' }, agent);
+
+    const prep = calls[0].args[1];
+
+    /*
+     * Les deux chemins absolus : c'est ce qui manquait pour trancher entre un
+     * `cp` muet et une préparation exécutée ailleurs que le build.
+     */
+    expect(prep).toContain('source_abs=$(cd "." && pwd)');
+    expect(prep).toContain('sandbox_abs=$(cd ".deploy-m" && pwd)');
+
+    // Les deux comptes, et la ligne qui les rend lisibles dans le journal.
+    expect(prep).toContain('attendus=$(find');
+    expect(prep).toContain('copies=$(find ".deploy-m" -mindepth 1 -maxdepth 1 | wc -l');
+    expect(prep).toContain('echo "source=$source_abs entries=$attendus -> sandbox=$sandbox_abs copied=$copies"');
+
+    /*
+     * Les DEUX sorties en erreur, et elles sont indépendantes : coupler la
+     * garde de copie à `attendus > 0` — ce que faisait ma première version —
+     * laissait filer la source vide, qui est tout aussi fatale.
+     */
+    expect(prep).toContain('if [ "$attendus" -eq 0 ]; then');
+    expect(prep).toContain('exit 66');
+    expect(prep).toContain('if [ "$copies" -eq 0 ]; then');
+    expect(prep).toContain('exit 65');
+  });
+
+  it('un bac à sable VIDE rend SANDBOX_EMPTY, pas INSTALL_FAILED', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+
+        // La préparation signale un bac à sable vide (le code du script).
+        return { exitCode: command === 'sh' && args[1].includes('mkdir -p') ? 65 : 0, timedOut: false };
+      }),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-vide' },
+      agent,
+    );
+
+    expect(result.ok).toBe(false);
+
+    /*
+     * Le code distinct est la moitié qui compte : confondre un bac à sable vide
+     * avec `INSTALL_FAILED` envoyait l'utilisateur chercher un défaut dans ses
+     * dépendances, là où le défaut est chez nous.
+     */
+    expect(result.error).toBe('SANDBOX_EMPTY');
+    expect(result.error).not.toBe('INSTALL_FAILED');
+
+    const journal = result.logs.map((entree) => entree.message).join('\n');
+    expect(journal).toContain('EMPTY');
+
+    // Et le bac à sable est démonté même dans ce cas.
+    const dernier = calls[calls.length - 1];
+    expect(dernier.command).toBe('sh');
+    expect(dernier.args[1]).toContain('rm -rf ".deploy-vide"');
+  });
+
+  /*
+   * BUG-DEPLOY-010, SECOND TOUR — LE TROU DE MA PROPRE GARDE.
+   *
+   * La première version testait `attendus > 0 && copies == 0`. Une source VIDE
+   * donne `attendus = 0` : la garde ne se déclenchait donc pas, et le
+   * déploiement repartait mourir sur le même `npm error enoent`. J'avais posé
+   * une garde qui laissait passer la moitié des cas fatals.
+   *
+   * Trouvé par un audit adversarial de mon propre correctif, pas par moi.
+   */
+  it('une source VIDE est fatale AUSSI, et le dit autrement', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+
+        return { exitCode: command === 'sh' && args[1].includes('mkdir -p') ? 66 : 0, timedOut: false };
+      }),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-src-vide' },
+      agent,
+    );
+
+    expect(result.ok).toBe(false);
+
+    /*
+     * Le code distinct est ce qui compte : « la copie a raté » et « le pod n'a
+     * jamais reçu les fichiers » ne se corrigent pas au même endroit.
+     */
+    expect(result.error).toBe('SOURCE_EMPTY');
+    expect(result.error).not.toBe('SANDBOX_EMPTY');
+
+    const journal = result.logs.map((entree) => entree.message).join('\n');
+    expect(journal).toContain('NO project file');
+
+    const dernier = calls[calls.length - 1];
+    expect(dernier.args[1]).toContain('rm -rf ".deploy-src-vide"');
+  });
+
+  it('le script REFUSE une source vide avant même de regarder la copie', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+        return { exitCode: 0, timedOut: false };
+      }),
+      listFiles: vi.fn(async (path: string) => ({
+        files: path === '.deploy-s/dist' ? [{ path: '.deploy-s/dist/index.html', size: 12 }] : [],
+      })),
+      readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
+    });
+
+    await runWorkspaceStaticBuild({ ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-s' }, agent);
+
+    const prep = calls[0].args[1];
+
+    expect(prep).toContain('if [ "$attendus" -eq 0 ]; then');
+    expect(prep).toContain('exit 66');
+
+    /*
+     * Et la garde de copie ne dépend PLUS de `attendus` : c'était exactement le
+     * couplage qui laissait filer la source vide.
+     */
+    expect(prep).toContain('if [ "$copies" -eq 0 ]; then');
+    expect(prep).not.toContain('"$attendus" -gt 0');
+  });
+
+  it('un autre code de sortie de la préparation reste INSTALL_FAILED', async () => {
+    const dir = await materializeDir();
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => ({
+        exitCode: command === 'sh' && args[1].includes('mkdir -p') ? 1 : 0,
+        timedOut: false,
+      })),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-z' },
+      agent,
+    );
+
+    expect(result.error).toBe('INSTALL_FAILED');
+  });
+
   it('tears down the sandbox even when the build fails', async () => {
     const dir = await materializeDir();
     const calls: { command: string; args: string[] }[] = [];

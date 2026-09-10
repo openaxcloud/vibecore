@@ -8,6 +8,7 @@ import {
   fichiersDepuisArborescence,
   generationEstHonnete,
 } from '~/lib/runtime/generation-incomplete';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -53,6 +54,14 @@ const messageParser = new EnhancedStreamingMessageParser({
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
 
+      /*
+       * Un nouveau tour commence : le constat d'honnêteté du précédent ne le
+       * concerne plus. Sans cette remise à zéro, une génération tronquée
+       * teindrait le bandeau du tour SUIVANT, qui s'est peut-être très bien
+       * passé — un faux négatif est un mensonge dans l'autre sens.
+       */
+      constatDeGenerationStore.set(undefined);
+
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
     },
@@ -96,6 +105,14 @@ const messageParser = new EnhancedStreamingMessageParser({
               entreesManquantes: constat.entreesManquantes,
             }),
           );
+
+          /*
+           * LA MOITIÉ VISIBLE. Un journal ne prévient que nous ; l'utilisateur,
+           * lui, voyait toujours « les patchs ont bien été appliqués » sur une
+           * application sans point d'entrée. On publie le constat pour que le
+           * bandeau le dise à l'écran.
+           */
+          constatDeGenerationStore.set(constat);
         } catch (erreur) {
           /*
            * Une garde d'observation ne doit JAMAIS casser l'écriture des

@@ -43,10 +43,50 @@ let pending: Promise<WebReferenceRateLimitRedis | null> | undefined;
  * plafond retombe sur le compteur par pod, et tout le correctif « plafond
  * partagé » est INERTE en production sans qu'aucun test ne rougisse.
  */
-function readRedisUrl(env?: Record<string, string | undefined> | null): string | undefined {
-  const raw = env?.REDIS_URL ?? readRuntimeEnv('REDIS_URL');
+/*
+ * BUG-REDIS-URL-GUILLEMETS-001 — une valeur CITÉE n'échoue pas : elle est JETÉE.
+ *
+ * Mesuré avec `ioredis` réel : `new Redis('"redis://127.0.0.1:56379"')` rend
+ * `host="localhost" port=6379`. Le port configuré disparaît, et l'adresse de
+ * repli est si banale qu'un exploitant qui la lit conclut que la variable n'est
+ * pas posée. Elle l'est ; elle est ignorée.
+ *
+ * Ce lecteur coupait déjà les blancs — mais pas les guillemets, qui arrivent
+ * quand un configmap ou un `.env` porte `REDIS_URL="redis://…"` et que la
+ * valeur est passée VERBATIM au processus.
+ *
+ * Ici le prix de l'erreur est précis : le plafond partagé retombe silencieusement
+ * sur le compteur par pod, et tout le correctif « plafond partagé » redevient
+ * inerte — exactement le défaut décrit juste au-dessus, par un autre chemin.
+ *
+ * On ne retire QUE des guillemets APPARIÉS : un guillemet orphelin n'est pas ce
+ * défaut, et on ne devine pas l'intention.
+ */
+/** Exporté pour sa garde : la règle vit dans une fonction pure, testable seule (règle 15). */
+export function readRedisUrl(env?: Record<string, string | undefined> | null): string | undefined {
+  const raw = (env?.REDIS_URL ?? readRuntimeEnv('REDIS_URL') ?? '').trim();
 
-  return raw && raw.trim() !== '' ? raw.trim() : undefined;
+  if (raw === '') {
+    return undefined;
+  }
+
+  const cite =
+    raw.length >= 2 && ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'")));
+
+  if (!cite) {
+    return raw;
+  }
+
+  const interieur = raw.slice(1, -1).trim();
+
+  if (interieur !== '') {
+    logger.warn(
+      'REDIS_URL was wrapped in quotes; they were stripped. Left as-is, ioredis would have discarded the ' +
+        'configured URL and fallen back to its default host and port. Fix the value at its source.',
+    );
+  }
+
+  return interieur === '' ? undefined : interieur;
 }
 
 /** Test hook: oublie le client mémoïsé. */

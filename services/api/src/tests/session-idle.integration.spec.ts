@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { PrismaApiStore } from '../prisma-store.js';
 import type { EmailProvider } from '../email.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /*
  * Session idle-timeout against a REAL Postgres. Skipped unless DATABASE_URL points
@@ -18,7 +19,16 @@ class QuietEmailProvider implements EmailProvider {
   async send() {}
 }
 
-const hasDb = Boolean(process.env.DATABASE_URL);
+/*
+ * BUG-TEST-DB-HANG-001, occurrences 9 et 10 (règle 7). La garde ne testait que
+ * la PRÉSENCE de `DATABASE_URL`, pas sa JOIGNABILITÉ. Mesuré le 2026-09-10 :
+ * une variable présente mais illisible (ici, citée — le port se lit `NaN`)
+ * rendait `hasDb` vrai, le fichier s'exécutait contre une base absente, et
+ * l'échec accusait le produit au lieu de l'environnement. La sonde partagée
+ * répond à la vraie question, et rend toujours — jamais une promesse en
+ * suspens.
+ */
+const hasDb = await baseDeDonneesJoignable();
 const IDLE_MS = 72 * 60 * 60 * 1000;
 
 describe.skipIf(!hasDb)('session idle timeout — real Postgres', () => {

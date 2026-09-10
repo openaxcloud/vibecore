@@ -29,7 +29,8 @@ import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-er
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { creerSuiviDeProgression } from '~/lib/.server/llm/progression-a-solder';
 import {
   anchoredHistoryDrop,
   computeSelectionCacheKey,
@@ -44,14 +45,17 @@ import {
 } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
+import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
 import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
+import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -71,7 +75,7 @@ import {
   type AgentRouteResolution,
 } from '~/lib/.server/llm/agent-mode';
 import { WORK_DIR } from '~/utils/constants';
-import { responseEmittedFileAction } from '~/utils/response-file-actions';
+import { compterActionsDeFichier } from '~/utils/response-file-actions';
 import {
   createPortfolioTemplateArtifact,
   createPortfolioTemplateStreamChunks,
@@ -410,6 +414,42 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let tourDejaFacture = false;
 
+  /*
+   * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR.
+   *
+   * Le SDK génère `messageId: generateMessageId()` à CHAQUE appel `streamText`
+   * et à chaque frontière d'étape outil, et pousse la part `start_step` dans le
+   * flux sans condition.
+   *
+   * Vérifié le 2026-09-10 sur `ai@4.3.16` : `node_modules/ai/dist/index.mjs`
+   * ligne 5989 (`messageId: generateMessageId()`), ligne 5969
+   * (`nextStepType === "continue" ? messageId : generateMessageId()`).
+   * ⚠️ Ces numéros valent POUR CETTE VERSION : une montée de `ai` les décale
+   * sans rien casser, et le lecteur suivant lirait autre chose. La version et la
+   * date sont donc portées ici — c'est ce qui rend la référence vérifiable au
+   * lieu de vieillissante. Côté client, `processChatResponse` fait `message.id =
+   * value.messageId` en plein flux (@ai-sdk/ui-utils). Une continuation étant
+   * un NOUVEL appel `streamText` fusionné dans le MÊME flux, l'identifiant du
+   * message d'assistant CHANGEAIT à la couture.
+   *
+   * Deux conséquences mesurées, toutes deux de type perte/duplication :
+   *
+   *   - `StreamingMessageParser` indexe son état par identifiant de message.
+   *     Identifiant neuf = état neuf = position 0 = RE-PARSE de tout le texte
+   *     déjà reçu : la réponse apparaît deux fois, un second artefact s'ouvre
+   *     sous un `ActionRunner` neuf, et les actions `shell` du segment 1 — dont
+   *     `npm install` et le démarrage du serveur — sont RELANCÉES ;
+   *   - la transcription est upsertée sur `sha256(conversationId:message.id)`.
+   *     Identifiant neuf = nouvelle LIGNE au lieu d'une mise à jour, et la
+   *     moitié tronquée du segment 1 reste en base pour toujours.
+   *
+   * Un identifiant fixe pour le tour ferme les deux d'un coup. Il doit être
+   * unique par TOUR et non par conversation : c'est la clé d'upsert de la
+   * transcription, deux tours de la même conversation ne peuvent pas la
+   * partager.
+   */
+  const identifiantDuMessageDeReponse = generateId();
+
   const cumulativeUsage = {
     completionTokens: 0,
     promptTokens: 0,
@@ -460,12 +500,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * lorsqu'il n'en reste aucune.
    */
   /*
-   * 12 minutes : la plus longue génération saine mesurée tenait 215 s, et huit
-   * segments peuvent légitimement s'enchaîner. La borne vise l'anomalie, pas le
-   * cas normal — et elle existe pour qu'un `onFinish` qui ne vient jamais ne
-   * transforme pas un écran figé en requête sans fin.
+   * LA BORNE COUVRE LA CHAÎNE ENTIÈRE, PAS UN SEGMENT.
+   *
+   * Elle valait 12 minutes, et son propre commentaire disait déjà pourquoi
+   * c'était trop peu : « la plus longue génération saine mesurée tenait 215 s,
+   * et huit segments peuvent légitimement s'enchaîner ». Huit continuations
+   * (`MAX_RESPONSE_SEGMENTS`) plus l'appel initial font NEUF appels
+   * fournisseur, et `attendre()` arme son délai UNE fois, juste après le
+   * premier merge, sans jamais le ré-armer entre segments : les 12 minutes
+   * couvraient donc les neuf. Sous-dimensionnée d'un facteur 2,4 par sa propre
+   * prémisse.
+   *
+   * Ce que coûtait le dépassement sur une génération SAINE : `execute` rend la
+   * main, la branche `delaiDepasse` écrit une progression terminale, le client
+   * la compte comme une fin de tour et appelle `stop()` — l'agent s'arrête au
+   * milieu d'un fichier pendant que le fournisseur continue de produire, et de
+   * facturer, dans le vide.
+   *
+   * La borne reste là pour l'ANOMALIE — un `onFinish` qui ne vient jamais ne
+   * doit pas transformer un écran figé en requête sans fin — mais elle est
+   * désormais dérivée du nombre de segments autorisés, donc elle suit
+   * automatiquement toute modification de `MAX_RESPONSE_SEGMENTS`.
    */
-  const suiviDeChaine = creerSuiviDeChaine(12 * 60 * 1000);
+  const suiviDeChaine = creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS);
 
   /*
    * JALONS DE `onFinish` — NOMMER L'`await` QUI NE REND JAMAIS LA MAIN.
@@ -527,7 +584,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * the run "completes" silently with no app and a PENDING preview. Accumulated
    * across continuation segments and checked at every terminal exit.
    */
-  let emittedFileAction = false;
+  /*
+   * UN COMPTE, PAS UN BOOLÉEN. Le drapeau disait « au moins un fichier » : assez
+   * pour afficher un message, pas assez pour le critère d'aptitude d'un
+   * fournisseur, qui raisonne sur un NOMBRE. Passer `1` pour « au moins un »
+   * aurait fait décider un repli sur une mesure qu'on n'a pas faite. Le booléen
+   * en est maintenant DÉRIVÉ partout où il servait — une seule vérité pour un
+   * seul fait.
+   */
+  let fichiersEmis = 0;
 
   const encoder: TextEncoder = new TextEncoder();
 
@@ -1303,6 +1368,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId = RECENT_HISTORY_MESSAGES;
         }
 
+        /*
+         * Écrit les progressions du bloc d'optimisation de contexte ET retient
+         * lesquelles restent ouvertes, pour que le chemin d'échec puisse les
+         * solder sans connaître leurs noms. Voir `progression-a-solder.ts`.
+         */
+        const progressionDuContexte = creerSuiviDeProgression((annotation) => dataStream.writeData(annotation));
+
         if (filePaths.length > 0 && contextOptimization) {
           try {
             /*
@@ -1356,7 +1428,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 summary = memoizedSummary;
               } else {
                 logger.debug('Generating Chat Summary');
-                dataStream.writeData({
+                progressionDuContexte.ecrire({
                   type: 'progress',
                   label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'in-progress',
@@ -1386,7 +1458,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   setMemoizedSummary(conversationId, summaryKey, summary);
                 }
 
-                dataStream.writeData({
+                progressionDuContexte.ecrire({
                   type: 'progress',
                   label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'complete',
@@ -1418,7 +1490,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
 
             logger.debug('Updating Context Buffer');
-            dataStream.writeData({
+            progressionDuContexte.ecrire({
               type: 'progress',
               label: API_CHAT_PROGRESS_LABELS.context,
               status: 'in-progress',
@@ -1495,7 +1567,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }),
             } as ContextAnnotation);
 
-            dataStream.writeData({
+            progressionDuContexte.ecrire({
               type: 'progress',
               label: API_CHAT_PROGRESS_LABELS.context,
               status: 'complete',
@@ -1506,13 +1578,30 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             logger.warn('Context optimization failed; continuing without selected context', contextError);
             filteredFiles = undefined;
             summary = undefined;
-            dataStream.writeData({
+
+            /*
+             * SOLDER TOUTES LES ÉTAPES OUVERTES, PAS SEULEMENT LA DERNIÈRE.
+             *
+             * Ce `catch` n'écrivait qu'une annotation terminale, pour `context`.
+             * Le bloc en ouvre pourtant DEUX : un rejet de `createSummary` — un
+             * 429 du fournisseur, un dépassement de fenêtre (soit précisément
+             * la situation qui déclenche le résumé), un abandon client —
+             * sautait par-dessus le `complete` de `summary`, qui restait vivant
+             * côté client alors que la génération se terminait ensuite
+             * parfaitement : l'anneau qui tourne et « Analysing request · 66 % »
+             * sous une réponse complète.
+             *
+             * On solde par le suivi plutôt que par étiquette nommée : toute
+             * étape ajoutée dans ce bloc demain sera couverte sans que
+             * personne ait à y penser.
+             */
+            progressionDuContexte.solderRestantes((etiquette) => ({
               type: 'progress',
-              label: API_CHAT_PROGRESS_LABELS.context,
+              label: etiquette,
               status: 'complete',
               order: progressCounter++,
               message: copy.contextOptimizationSkipped,
-            } satisfies ProgressAnnotation);
+            }));
           }
         }
 
@@ -1596,8 +1685,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               // diagnostics must never break the stream
             }
 
-            // Latch once any segment emits a real file action (accumulates across continuations).
-            emittedFileAction = emittedFileAction || responseEmittedFileAction(content);
+            // Accumulates across continuation segments: chaque segment ajoute ses fichiers.
+            fichiersEmis += compterActionsDeFichier(content);
 
             /*
              * A build that ends without EVER emitting a `<boltAction type="file">`
@@ -1608,7 +1697,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * throws out of onFinish.
              */
             const warnIfNoFilesGenerated = () => {
-              if (chatMode !== 'build' || emittedFileAction) {
+              if (chatMode !== 'build' || fichiersEmis > 0) {
                 return;
               }
 
@@ -1620,8 +1709,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   order: progressCounter++,
                   message: copy.noFilesGenerated,
                 } satisfies ProgressAnnotation);
+
+                /*
+                 * ⚠️ CE JOURNAL ACCUSAIT LE MODELE — « model likely too weak » — et
+                 * cette phrase a oriente CINQ JOURS d'enquete vers une cause fausse.
+                 * Mesure du 2026-09-10 : le meme `gpt-4.1`, appele depuis ce pod
+                 * avec la consigne systeme de production, ecrit VINGT fichiers en
+                 * direct et QUINZE en passant par la plateforme.
+                 *
+                 * Le tour ne s'arrete pas par faiblesse : il s'arrete ENTRE le
+                 * preambule et l'implementation, apres avoir annonce l'artefact.
+                 */
                 logger.warn(
-                  `[chat] build produced no file actions (model likely too weak); projectId=${projectId ?? 'n/a'}`,
+                  `[chat] build turn ended with no file action — stopped between preamble and implementation; ` +
+                    `projectId=${projectId ?? 'n/a'} finishReason=${finishReason} segments=${continuationSegments}`,
                 );
               } catch (error) {
                 logger.warn(`failed to write no-files annotation: ${error instanceof Error ? error.message : error}`);
@@ -1660,23 +1761,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               const completionModel = agentTargetLine ? (routedTurnModel ?? agentTargetLine.model) : tagged.model;
 
               /*
-               * Fold in the off-wire Anthropic cache tokens when the SDK surfaced
-               * none (its provider metadata is empty on 0.0.39). Guarded on
-               * cachedPromptTokens===0 so providers that DO report via metadata
-               * (OpenAI, Google) are never double-counted, and the tally only ever
-               * holds Anthropic data (no other provider reports into it).
+               * CE QUI EST FACTURÉ : les métadonnées, ou le relevé du fil.
+               *
+               * La décision vit dans `arbitrerCacheAnthropic`, épinglée par son spec —
+               * elle décide de ce qui apparaît sur la facture d'un client, et elle
+               * n'était tenue par aucun test tant qu'elle était en ligne ici.
+               *
+               * Règle : les métadonnées gagnent dès qu'elles ont parlé ; le relevé du
+               * fil ne sert que si elles se sont tues, et il REMPLACE, jamais n'ajoute.
+               *
+               * ⚠️ Le relevé du fil ne doit PAS disparaître avec la montée à `1.2.12`.
+               * Mesuré le 2026-09-10 : `0.0.39` ne rapportait rien (`providerMetadata`
+               * = 0 occurrence dans son bundle), `1.2.12` rapporte (16). Le fil reste
+               * le repli quand les métadonnées sont muettes — le retirer casserait ce
+               * qu'il protège, et rien ne l'annoncerait.
                */
               const anthropicWireCache = anthropicCacheStore.getStore();
+              const totauxDeCache = arbitrerCacheAnthropic(cumulativeUsage, anthropicWireCache);
 
-              if (
-                anthropicWireCache &&
-                cumulativeUsage.cachedPromptTokens === 0 &&
-                cumulativeUsage.cacheWriteTokens === 0 &&
-                (anthropicWireCache.read > 0 || anthropicWireCache.write > 0)
-              ) {
-                cumulativeUsage.cachedPromptTokens = anthropicWireCache.read;
-                cumulativeUsage.cacheWriteTokens = anthropicWireCache.write;
-              }
+              cumulativeUsage.cachedPromptTokens = totauxDeCache.cachedPromptTokens;
+              cumulativeUsage.cacheWriteTokens = totauxDeCache.cacheWriteTokens;
 
               logger.info(
                 JSON.stringify({
@@ -1789,8 +1893,96 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * whole body so a failure degrades gracefully: stop recovery, release
              * MCP best-effort, and surface a clean error progress annotation.
              */
+            /*
+             * UNE ANNONCE N'EST PAS UNE LIVRAISON.
+             *
+             * La continuation ne se declenchait que sur `finishReason === 'length'`.
+             * Un tour qui s'arrete DE LUI-MEME apres avoir annonce son artefact
+             * tombait dans la branche « termine » et etait compte comme une reussite
+             * — les trois applications vides du 09-09 : 4 174, 4 379 et 4 587
+             * caracteres, zero fichier, aucune balise fermante.
+             */
+            const suite = suiteDuTour(
+              {
+                finishReason,
+                modeConstruction: chatMode === 'build',
+                fichierEmis: fichiersEmis > 0,
+                segmentsConsommes: continuationSegments,
+                segmentsMax: MAX_RESPONSE_SEGMENTS,
+              },
+              CONTINUE_PROMPT,
+            );
+
+            /*
+             * LA CAPACITÉ SE MESURE SUR LE RÉSULTAT, PAS SUR LA DISPONIBILITÉ.
+             *
+             * `aptitude-fournisseur.ts` portait ce critère depuis son écriture et
+             * n'était importé QUE par son propre spec — vérifié avec témoin positif
+             * (`provider-fallback` l'est par cinq fichiers, dont celui-ci). Une règle
+             * juste que rien n'appelle ne protège de rien : la plateforme continuait
+             * de compter comme une réussite un fournisseur qui répond `200`, produit
+             * du texte et n'écrit aucun fichier.
+             *
+             * Le constat se lit ici parce que c'est le seul point qui connaît les
+             * trois faits en même temps : le mode du tour, le nombre de fichiers
+             * accumulé sur TOUS les segments, et la façon dont le flux s'est terminé.
+             *
+             * La conséquence passe par la table de santé existante plutôt que par une
+             * seconde marche de chaîne : `resolveRuntimeProvider` sait déjà écarter un
+             * maillon et avancer au suivant, et il échoue déjà franchement quand aucun
+             * ne convient. C'est aussi pourquoi `decisionDeChaine` du même module reste
+             * NON câblé — il refait ce parcours, et deux marcheurs de chaîne qui
+             * divergent au prochain refactor coûtent plus qu'ils ne rapportent.
+             *
+             * Le prix est assumé et il est nommé dans le module : UNE génération est
+             * perdue pour établir l'inaptitude. En échange le tour SUIVANT part sur un
+             * maillon capable au lieu de répéter le vide.
+             */
+            const constatDuTour: ConstatDeTour = {
+              modeConstruction: chatMode === 'build',
+              fichiersEcrits: fichiersEmis,
+
+              /*
+               * `stop` et lui seul. Un flux coupé — abandon, plafond de jetons,
+               * incident réseau — n'a pas eu l'occasion de finir et n'établit RIEN :
+               * le confondre avec une inaptitude écarterait un fournisseur sain sur
+               * un incident de transport.
+               */
+              termine: finishReason === 'stop',
+            };
+
+            if (fournisseurInapte(constatDuTour) && routedTurnProvider) {
+              markProviderUnhealthy(
+                routedTurnProvider,
+                'sterile',
+                `zéro fichier sur un tour de construction terminé (segments=${continuationSegments})`,
+              );
+
+              logger.error(
+                JSON.stringify({
+                  event: 'chat.fournisseur.sterile',
+                  projectId,
+                  provider: routedTurnProvider,
+                  model: routedTurnModel,
+                  segments: continuationSegments,
+                  caracteres: (content ?? '').length,
+                }),
+              );
+            }
+
             try {
-              if (finishReason !== 'length') {
+              if (finishReason !== 'length' && suite.action !== 'continuer') {
+                if (suite.action === 'terminer-en-echec') {
+                  /*
+                   * Au plafond sans un seul fichier : echec FRANC. Une application
+                   * vide presentee comme une reussite est le defaut que ce chemin
+                   * existe pour supprimer.
+                   */
+                  logger.error(
+                    `[chat] build turn exhausted its segments without a single file; projectId=${projectId ?? 'n/a'}`,
+                  );
+                }
+
                 jalonOnFinish('avant-flushUsage');
                 await flushUsage(finishReason);
                 jalonOnFinish('apres-flushUsage');
@@ -1890,7 +2082,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               processedMessages.push({
                 id: generateId(),
                 role: 'user',
-                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${CONTINUE_PROMPT}`,
+
+                /*
+                 * La relance vient de la DECISION. « Continue where you left off »
+                 * ne dit pas au modele que ce qu'il a laisse etait une ANNONCE, et
+                 * il annonce de nouveau : mesure du 2026-09-10 sur le preambule reel
+                 * du cas fautif, relance nue -> 2 870 caracteres et ZERO fichier ;
+                 * relance explicite -> 27 921 caracteres et TREIZE fichiers.
+                 */
+                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${
+                  suite.action === 'continuer' ? suite.relance : CONTINUE_PROMPT
+                }`,
               });
 
               /*
@@ -1928,6 +2130,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   skillsContext: projectSkills?.context,
                   webReferenceContext: webReferenceContextForContinuation,
                   chatId: conversationId,
+                  identifiantDeMessageStable: identifiantDuMessageDeReponse,
                   onModelDecision: (decidedModel, decidedProvider) => {
                     routedTurnModel = decidedModel;
                     routedTurnProvider = decidedProvider;
@@ -2136,6 +2339,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           skillsContext: projectSkills?.context,
           webReferenceContext,
           chatId: conversationId,
+          identifiantDeMessageStable: identifiantDuMessageDeReponse,
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;
             routedTurnProvider = decidedProvider;
@@ -2170,11 +2374,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         /*
          * LE VERDICT DU FLUX, JOURNALISÉ INCONDITIONNELLEMENT.
          *
-         * `chat.stream.closed` vit dans le `flush` du transform de sortie — et
-         * ce `flush` NE S'EXÉCUTE JAMAIS : zéro occurrence en production alors
-         * que la chaîne est bien dans l'image servie. Un flux avorté ne passe
-         * pas par `flush`. Cette ligne-ci ne dépend d'aucune fermeture propre :
-         * elle part à la fin d'`execute`, quoi qu'il arrive.
+         * `chat.stream.closed` vit dans le `flush` du transform de sortie, et un
+         * flux avorté ne passe pas par `flush`. Cette ligne-ci ne dépend d'aucune
+         * fermeture propre : elle part à la fin d'`execute`, quoi qu'il arrive.
+         *
+         * ⚠️ CE COMMENTAIRE AFFIRMAIT « ce `flush` NE S'EXÉCUTE JAMAIS : zéro
+         * occurrence en production ». C'EST FAUX, et un absolu vieillit mal.
+         * Relevé sur les journaux du pod `web`, fenêtre de 48 h close le
+         * 2026-09-10 à 11 h UTC : UNE génération (`chat.flux.verdict` = 1,
+         * `chat.completion.usage` = 1) et `chat.stream.closed` = 1 — le `flush`
+         * s'est donc exécuté sur 1 tour sur 1. Le « zéro » d'origine venait d'un
+         * échantillon où les flux avortés dominaient, pas d'une branche morte.
+         *
+         * Un commentaire qui affirme un fait mesurable porte la DATE et la
+         * VALEUR : « rare » et « jamais » ne mènent pas au même geste — on
+         * vérifie une branche rare, on ignore une branche morte.
          *
          * `premierDebutMs` départage les deux dernières explications. Si la
          * première génération se compte APRÈS le retour d'`execute`, le
@@ -2186,9 +2400,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * chose sous deux angles : on a attendu une chaîne qui n'avait pas
          * commencé.
          *
-         * `mode` sur la ligne parce que cinq cas sur cinq alignaient l'échec sur
-         * `economy`/opus (plusieurs segments) et le succès sur `lite`/haiku (un
-         * seul). Sans lui, il faudrait recouper deux journaux pour le savoir.
+         * `mode` sur la ligne pour recouper le tour sans ouvrir un second journal.
+         *
+         * ⚠️ CE COMMENTAIRE DISAIT « cinq cas sur cinq alignaient l'échec sur
+         * `economy`/opus ». Le chiffre était juste, la LECTURE était fausse : à
+         * cette date TOUTES les générations étaient en opus, l'échantillon ne
+         * pouvait donc rien aligner d'autre. Biais d'échantillon, pas corrélation.
+         * Mesuré le 2026-09-10 : la cause est l'arrêt du tour entre le préambule et
+         * l'implémentation, indépendante du modèle — le même `gpt-4.1` écrit 20
+         * fichiers en appel direct depuis ce pod.
          */
         logger.info(
           JSON.stringify({

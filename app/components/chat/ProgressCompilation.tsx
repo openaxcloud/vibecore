@@ -59,8 +59,31 @@ export function deriveProgressState({
     return 'interrupted';
   }
 
-  if (streaming || hasActiveWork) {
+  if (streaming) {
     return 'working';
+  }
+
+  if (hasActiveWork) {
+    /*
+     * ANNOTATION VIVANTE, FLUX MORT — le cas de l'Arrêt.
+     *
+     * `hasActiveWork` ne connaît que le CONTENU des annotations, jamais le fait
+     * que le flux est terminé. Sur un Arrêt, le SDK avale l'AbortError sans
+     * appeler `onFinish` ni `onError` : `setData(undefined)` — qui ne vit que
+     * dans `onFinish` — ne s'exécute jamais, et la dernière annotation écrite
+     * par le serveur, `{response, in-progress}`, reste dans `data` pour
+     * toujours. `failed` reste faux (un abandon ne produit pas d'erreur) et
+     * `streaming` retombe à faux. L'ancienne condition rendait donc 'working' :
+     * l'anneau tournait indéfiniment sous un composeur libéré, l'interface
+     * disant deux choses contraires à la fois. Rien ne le rattrapait — aucune
+     * annotation terminale n'arriverait jamais, la connexion étant coupée.
+     *
+     * Un flux mort avec du travail annoncé vivant est une INTERRUPTION, pas du
+     * travail. `streaming === false` explicitement, et non `!streaming` : un
+     * appelant qui ne renseigne pas le signal ne sait pas si le flux vit, et on
+     * ne convertit pas une ignorance en interruption.
+     */
+    return streaming === false ? 'interrupted' : 'working';
   }
 
   if (!(totalCount > 0 && completedCount === totalCount)) {

@@ -93,7 +93,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
+          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
+          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
+          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
+          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
+          # 09:41, run à 17:16. Rien ne le retentait.
+          #
+          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
+          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
+          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
+          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
+          # dont on lit le résultat.
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update || true
+            sleep 10
+          done
+          pnpm exec playwright install chromium
 
       # Match the production E2E workflow's real local dependencies instead of
       # mocking registration, persistence, mail delivery, or cache behavior.

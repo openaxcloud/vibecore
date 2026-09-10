@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppliedFilesToast } from './AppliedFilesToast';
 import { createI18nInstance } from '~/lib/i18n/runtime';
+import type { ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
 
 afterEach(cleanup);
 
@@ -54,8 +55,13 @@ describe('<AppliedFilesToast /> i18n', () => {
 });
 
 describe('<AppliedFilesToast /> — une génération tronquée ne s’annonce pas comme réussie', () => {
-  const constatCasse = { tronquee: true, entreesManquantes: ['src/main.tsx'] };
-  const constatSain = { tronquee: false, entreesManquantes: [] };
+  const constatCasse: ConstatDeGeneration = {
+    tronquee: true,
+    entreesManquantes: ['src/main.tsx'],
+    aucunFichier: false,
+  };
+
+  const constatSain: ConstatDeGeneration = { tronquee: false, entreesManquantes: [], aucunFichier: false };
 
   it('remplace le message de succès et NOMME le module manquant', () => {
     render(

@@ -1,12 +1,13 @@
-import { Worker } from 'bullmq';
-import { resolveApiBaseUrl } from './api-base-url.js';
-import { Redis } from 'ioredis';
 import { createHmac } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
 import { createDatabaseClient } from '@vibecore/database';
 import { decryptJson } from '@vibecore/security';
+import { Worker } from 'bullmq';
+import { Redis } from 'ioredis';
+import { resolveApiBaseUrl } from './api-base-url.js';
 import { runConnectorReconnectionNotifier, runConnectorTokenHealthCheck } from './connector-jobs.js';
 import { triggerDeployBuild, triggerDeployReap } from './deploy-jobs.js';
+import { lireUrlDEnvironnement } from './env-url.js';
 
 /*
  * Worker runtime (Redis connection, BullMQ Queues + Workers) is created lazily
@@ -17,15 +18,17 @@ import { triggerDeployBuild, triggerDeployReap } from './deploy-jobs.js';
  * entrypoint (bottom of file) calls startWorkers().
  */
 
-// Single shared Prisma client for the lifetime of this long-running worker.
-// Previously each job handler called createDatabaseClient() per invocation,
-// which spins up a brand-new PrismaPg pool and was never $disconnect()'d — so
-// every cron tick leaked a Postgres connection pool until the worker (and the
-// shared DB) hit `too many clients`. One client, reused, is the correct shape.
-//
-// Constructed lazily on first DB use rather than at module load so that
-// importing this module (e.g. the workspace.gc job, which never touches the DB,
-// or tests) doesn't require DATABASE_URL.
+/*
+ * Single shared Prisma client for the lifetime of this long-running worker.
+ * Previously each job handler called createDatabaseClient() per invocation,
+ * which spins up a brand-new PrismaPg pool and was never $disconnect()'d — so
+ * every cron tick leaked a Postgres connection pool until the worker (and the
+ * shared DB) hit `too many clients`. One client, reused, is the correct shape.
+ *
+ * Constructed lazily on first DB use rather than at module load so that
+ * importing this module (e.g. the workspace.gc job, which never touches the DB,
+ * or tests) doesn't require DATABASE_URL.
+ */
 let prismaSingleton: ReturnType<typeof createDatabaseClient> | undefined;
 
 function getPrisma() {
@@ -41,21 +44,27 @@ async function deliverSiemAuditEvents() {
   const webhooks = await prisma.siemWebhook.findMany({ where: { enabled: true } });
 
   for (const webhook of webhooks) {
-    // Isolate each webhook: a missing secret, decrypt failure, or delivery error
-    // for one endpoint must not abort the loop and starve every later webhook of
-    // its batch (lastDeliveredAt only advances on success, so a failed one is
-    // simply retried on the next scheduled run).
+    /*
+     * Isolate each webhook: a missing secret, decrypt failure, or delivery error
+     * for one endpoint must not abort the loop and starve every later webhook of
+     * its batch (lastDeliveredAt only advances on success, so a failed one is
+     * simply retried on the next scheduled run).
+     */
     try {
       if (!webhook.secretCiphertext) {
         throw new Error(`SIEM webhook ${webhook.id} is missing an encrypted signing secret`);
       }
 
       const SIEM_BATCH_SIZE = 250;
-      // Drain several batches per tick (bounded) so a high-volume org doesn't fall
-      // permanently behind delivering only 250 events per scheduled run.
+
+      /*
+       * Drain several batches per tick (bounded) so a high-volume org doesn't fall
+       * permanently behind delivering only 250 events per scheduled run.
+       */
       const MAX_BATCHES_PER_TICK = 20;
 
       const { secret } = decryptJson<{ secret: string }>(webhook.secretCiphertext);
+
       let cursorAt = webhook.lastDeliveredAt;
       let cursorId = webhook.lastDeliveredId ?? '';
 
@@ -90,11 +99,13 @@ async function deliverSiemAuditEvents() {
         }
 
         const deliverable = events;
+
         const body = JSON.stringify({
           type: 'audit.batch',
           organizationId: webhook.organizationId,
           events: deliverable,
         });
+
         const timestamp = Math.floor(Date.now() / 1000).toString();
         const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
 
@@ -106,6 +117,7 @@ async function deliverSiemAuditEvents() {
             'x-vibecore-signature': `sha256=${signature}`,
           },
           body,
+
           /*
            * Do NOT follow redirects. The only SSRF protection on a webhook URL is
            * config-time validation of the stored string; a customer endpoint that
@@ -115,9 +127,12 @@ async function deliverSiemAuditEvents() {
            * non-ok status and is treated as a failed delivery below.
            */
           redirect: 'manual',
-          // Webhooks are delivered serially; without a timeout a single hung
-          // customer endpoint stalls the whole batch (and the worker tick)
-          // indefinitely. Treat a slow/hung call as a failed delivery and retry next run.
+
+          /*
+           * Webhooks are delivered serially; without a timeout a single hung
+           * customer endpoint stalls the whole batch (and the worker tick)
+           * indefinitely. Treat a slow/hung call as a failed delivery and retry next run.
+           */
           signal: AbortSignal.timeout(10_000),
         });
 
@@ -127,8 +142,10 @@ async function deliverSiemAuditEvents() {
           throw new Error(`SIEM webhook delivery failed: ${response.status}`);
         }
 
-        // Drain the success body too — an unconsumed response keeps the underlying
-        // connection pinned in the pool and eventually exhausts the agent's sockets.
+        /*
+         * Drain the success body too — an unconsumed response keeps the underlying
+         * connection pinned in the pool and eventually exhausts the agent's sockets.
+         */
         await response.body?.cancel().catch(() => {});
 
         cursorAt = deliverable.at(-1)!.createdAt;
@@ -154,9 +171,11 @@ async function enforceDataRetention() {
   const settings = await prisma.enterpriseOrganizationSettings.findMany({ where: { legalHoldEnabled: false } });
 
   for (const setting of settings) {
-    // Isolate each organization: a single failing deleteMany (FK contention,
-    // timeout) must not abort the sweep and starve every later org of retention.
-    // deleteMany is idempotent so a failed org is simply retried next run.
+    /*
+     * Isolate each organization: a single failing deleteMany (FK contention,
+     * timeout) must not abort the sweep and starve every later org of retention.
+     * deleteMany is idempotent so a failed org is simply retried next run.
+     */
     try {
       const cutoff = new Date(Date.now() - setting.dataRetentionDays * 24 * 60 * 60 * 1000);
 
@@ -168,6 +187,7 @@ async function enforceDataRetention() {
        * projectActivity is not SIEM-delivered, so it uses the full retention cutoff.
        */
       let auditCutoff = cutoff;
+
       const webhooks = await prisma.siemWebhook.findMany({
         where: { organizationId: setting.organizationId, enabled: true },
         select: { lastDeliveredAt: true },
@@ -211,13 +231,20 @@ const DEFAULT_DELETE_STOPPED_MS = 24 * 60 * 60_000;
  * malformed or non-positive value (NaN / 0 / negative) silently falls through
  * to the next source rather than passing a bogus window to the manager.
  */
-function resolveGcWindowMs(jobValue: unknown, envValue: string | undefined, envUnitMs: number, fallbackMs: number): number {
+function resolveGcWindowMs(
+  jobValue: unknown,
+  envValue: string | undefined,
+  envUnitMs: number,
+  fallbackMs: number,
+): number {
   const fromJob = Number(jobValue);
+
   if (Number.isFinite(fromJob) && fromJob > 0) {
     return fromJob;
   }
 
   const fromEnv = Number(envValue);
+
   if (Number.isFinite(fromEnv) && fromEnv > 0) {
     return fromEnv * envUnitMs;
   }
@@ -237,22 +264,35 @@ function resolveGcWindowMs(jobValue: unknown, envValue: string | undefined, envU
  */
 export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unknown> = {}) {
   const baseUrl = process.env.WORKSPACE_MANAGER_URL;
+
   if (!baseUrl) {
     throw new Error('WORKSPACE_MANAGER_URL is required to trigger workspace.gc');
   }
 
   const body = {
     namespace: (jobData.namespace as string | undefined) ?? process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces',
-    inactiveMs: resolveGcWindowMs(jobData.inactiveMs, process.env.WORKSPACE_IDLE_STOP_MINUTES, 60_000, DEFAULT_IDLE_STOP_MS),
-    deleteMs: resolveGcWindowMs(jobData.deleteMs, process.env.WORKSPACE_DELETE_STOPPED_HOURS, 60 * 60_000, DEFAULT_DELETE_STOPPED_MS),
+    inactiveMs: resolveGcWindowMs(
+      jobData.inactiveMs,
+      process.env.WORKSPACE_IDLE_STOP_MINUTES,
+      60_000,
+      DEFAULT_IDLE_STOP_MS,
+    ),
+    deleteMs: resolveGcWindowMs(
+      jobData.deleteMs,
+      process.env.WORKSPACE_DELETE_STOPPED_HOURS,
+      60 * 60_000,
+      DEFAULT_DELETE_STOPPED_MS,
+    ),
   };
 
-  // The manager gates its control-plane routes (including /workspaces/gc) behind
-  // WORKSPACE_MANAGER_SHARED_SECRET. The PREVIEW_PROXY_SHARED_SECRET fallback was
-  // removed from the manager's controlPlaneSecret() in a prior wave, so keeping it
-  // here was inconsistent: a worker configured with only PREVIEW_PROXY_SHARED_SECRET
-  // would send a secret the manager no longer accepts → 401, GC silently never runs,
-  // leaked pods/PVCs accumulate. Use the same single secret the manager expects.
+  /*
+   * The manager gates its control-plane routes (including /workspaces/gc) behind
+   * WORKSPACE_MANAGER_SHARED_SECRET. The PREVIEW_PROXY_SHARED_SECRET fallback was
+   * removed from the manager's controlPlaneSecret() in a prior wave, so keeping it
+   * here was inconsistent: a worker configured with only PREVIEW_PROXY_SHARED_SECRET
+   * would send a secret the manager no longer accepts → 401, GC silently never runs,
+   * leaked pods/PVCs accumulate. Use the same single secret the manager expects.
+   */
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
   const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/workspaces/gc`, {
@@ -262,9 +302,12 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
       ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
     },
     body: JSON.stringify(body),
-    // workspace-jobs runs at concurrency 1; without a timeout a hung manager
-    // pins this GC job forever, so no further GC ever runs and leaked pods/PVCs
-    // accumulate. Bound the call and let BullMQ retry on the next attempt/tick.
+
+    /*
+     * workspace-jobs runs at concurrency 1; without a timeout a hung manager
+     * pins this GC job forever, so no further GC ever runs and leaked pods/PVCs
+     * accumulate. Bound the call and let BullMQ retry on the next attempt/tick.
+     */
     signal: AbortSignal.timeout(60_000),
   });
 
@@ -274,8 +317,10 @@ export async function triggerWorkspaceGarbageCollect(jobData: Record<string, unk
     throw new Error(`workspace.gc upstream failed: ${response.status}`);
   }
 
-  // Drain the success body as well so the keep-alive connection is returned to
-  // the pool instead of being pinned open until GC.
+  /*
+   * Drain the success body as well so the keep-alive connection is returned to
+   * the pool instead of being pinned open until GC.
+   */
   await response.body?.cancel().catch(() => {});
 }
 
@@ -293,6 +338,7 @@ export async function triggerInactivityGc(jobData: Record<string, unknown> = {})
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
   const body = {
     enabled: jobData.enabled as boolean | undefined,
     take: jobData.take as number | undefined,
@@ -314,6 +360,7 @@ export async function triggerInactivityGc(jobData: Record<string, unknown> = {})
   }
 
   const result = await response.json().catch(() => ({}));
+
   return result as Record<string, unknown>;
 }
 
@@ -328,10 +375,13 @@ export async function triggerObjectStorageMetering(jobData: Record<string, unkno
   const baseUrl = resolveApiBaseUrl();
 
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.objectStorage');
+    throw new Error(
+      'API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.objectStorage',
+    );
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
   const body = {
     shadow: jobData.shadow as boolean | undefined,
     daysInPeriod: jobData.daysInPeriod as number | undefined,
@@ -353,6 +403,7 @@ export async function triggerObjectStorageMetering(jobData: Record<string, unkno
   }
 
   const result = await response.json().catch(() => ({}));
+
   return result as Record<string, unknown>;
 }
 
@@ -367,10 +418,13 @@ export async function triggerDatabaseStorageMetering(jobData: Record<string, unk
   const baseUrl = resolveApiBaseUrl();
 
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.databaseStorage');
+    throw new Error(
+      'API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger metering.databaseStorage',
+    );
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+
   const body = {
     shadow: jobData.shadow as boolean | undefined,
     daysInPeriod: jobData.daysInPeriod as number | undefined,
@@ -392,6 +446,7 @@ export async function triggerDatabaseStorageMetering(jobData: Record<string, unk
   }
 
   const result = await response.json().catch(() => ({}));
+
   return result as Record<string, unknown>;
 }
 
@@ -405,7 +460,9 @@ export async function triggerDatabaseMaintenance(jobData: Record<string, unknown
   const baseUrl = resolveApiBaseUrl();
 
   if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger database.maintenance');
+    throw new Error(
+      'API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger database.maintenance',
+    );
   }
 
   const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
@@ -426,11 +483,18 @@ export async function triggerDatabaseMaintenance(jobData: Record<string, unknown
   }
 
   const result = await response.json().catch(() => ({}));
+
   return result as Record<string, unknown>;
 }
 
 export function startWorkers() {
-  const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — le `??` ne protège de rien ici. Une valeur
+   * CITÉE n'est pas nulle : elle passe le `??`, puis `ioredis` la jette et part
+   * sur `localhost:6379`. Le repli codé et celui d'ioredis donnant la même
+   * adresse, le worker paraissait simplement « en local ».
+   */
+  const connection = new Redis(lireUrlDEnvironnement('REDIS_URL') ?? 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
   });
 
@@ -445,9 +509,11 @@ export function startWorkers() {
   const worker = new Worker(
     'workspace-jobs',
     async (job) => {
-      // job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
-      // but swallow rejection: an unhandled rejection from a transient Redis fault
-      // (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+      /*
+       * job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
+       * but swallow rejection: an unhandled rejection from a transient Redis fault
+       * (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+       */
       void job.log(`processing ${job.name}`).catch(() => {});
 
       if (job.name === 'workspace.gc') {
@@ -463,9 +529,11 @@ export function startWorkers() {
   const enterpriseWorker = new Worker(
     'enterprise-jobs',
     async (job) => {
-      // job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
-      // but swallow rejection: an unhandled rejection from a transient Redis fault
-      // (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+      /*
+       * job.log writes a log row to Redis (returns a Promise). Fire-and-forget,
+       * but swallow rejection: an unhandled rejection from a transient Redis fault
+       * (failover, AUTH rotation, maintenance) would otherwise crash the worker.
+       */
       void job.log(`processing ${job.name}`).catch(() => {});
 
       if (job.name === 'siem.deliver') {
@@ -533,8 +601,11 @@ export function startWorkers() {
     },
     {
       connection,
-      // A build holds the job active for its whole duration; keep concurrency
-      // modest so many parallel deploys don't stampede the api all at once.
+
+      /*
+       * A build holds the job active for its whole duration; keep concurrency
+       * modest so many parallel deploys don't stampede the api all at once.
+       */
       concurrency: Number(process.env.DEPLOY_WORKER_CONCURRENCY ?? 4),
     },
   );
@@ -597,6 +668,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
    * before the pod's termination grace period elapses.
    */
   let shuttingDown = false;
+
   const shutdown = async (signal: string) => {
     if (shuttingDown) {
       return;

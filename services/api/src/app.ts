@@ -188,6 +188,7 @@ import {
   localizeCreditLedgerReason,
   type AppPublicCopyKey,
 } from './app-public-copy.js';
+import { classerEchecDImport, type EchecDImport } from './import-echec.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
@@ -410,6 +411,7 @@ import {
   deriveDeploymentAccessSecret,
   isAccessTokenValid,
 } from './deployment-access.js';
+import { lireUrlDEnvironnement } from './env-url.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -528,6 +530,38 @@ declare module 'fastify' {
  * These are machine CODES, never user copy: they are appended to the localized
  * message so the deployment log names the actual give-up point.
  */
+/*
+ * BUG-REDIS-URL-GUILLEMETS-001 — signaler la réparation SANS la répéter.
+ *
+ * Plusieurs points du serveur lisent la même variable. Un journal qui répète
+ * cent fois la même ligne se lit comme du bruit et finit ignoré — exactement ce
+ * qui est arrivé aux `connect ENOENT` qui traînaient déjà là.
+ *
+ * L'avertissement ne porte QUE le nom de la variable : une URL de connexion
+ * contient souvent un mot de passe, et un avertissement ne doit pas faire fuir
+ * ce qu'il signale (règle 12).
+ */
+const urlsCiteesDejaSignalees = new Set<string>();
+
+function avertirUrlCitee(nom: string) {
+  if (urlsCiteesDejaSignalees.has(nom)) {
+    return;
+  }
+
+  urlsCiteesDejaSignalees.add(nom);
+
+  console.warn(
+    `[env] ${nom} was wrapped in quotes; they were stripped. ` +
+      'Left as-is, the client would have discarded the configured URL and fallen back to its default host and port. ' +
+      'Fix the value at its source (configmap, secret, or .env) — the quotes are not part of the URL.',
+  );
+}
+
+/** Test hook: oublie ce qui a déjà été signalé, pour que chaque test parte propre. */
+export function reinitialiserAvertissementsUrlCitee() {
+  urlsCiteesDejaSignalees.clear();
+}
+
 export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
@@ -4581,6 +4615,117 @@ async function persistProjectFileManifest(
  * `/files/import/zip` à la fermeture de l'artefact, et y brancher le manifeste
  * ferait une mutation du blob partagé par FRAGMENT de fichier.
  */
+type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64' };
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — le seul point de passage des mutations UNITAIRES du
+ * manifeste (une écriture, une création, une suppression, un renommage).
+ *
+ * ⚠️ IL NE FABRIQUE JAMAIS UN MANIFESTE À PARTIR DE RIEN, et c'est sa raison
+ * d'être. Le manifeste est AUTORITAIRE : `listProjectFilesIncludingIdeState`
+ * traite `Array.isArray(files.entries)` comme « ce manifeste fait foi » et
+ * appelle `syncProjectStorageWithFileManifest` → `projectStorage.restoreSnapshot`,
+ * qui VIDE l'arbre de travail avant de réécrire les seules entrées reçues.
+ * Un manifeste d'UNE entrée né d'une sauvegarde unitaire détruisait donc, à la
+ * lecture suivante, tous les autres fichiers du projet. Sans manifeste
+ * préexistant on ne touche à rien : l'archive reste telle quelle, exactement
+ * comme avant que la durabilité par écriture n'existe.
+ *
+ * Une SEULE mutation par requête, jamais une par fichier d'un sous-arbre : ce
+ * blob est partagé avec les éditions collaboratives et les autorisations de
+ * terminal, et une suppression de dossier de 40 fichiers faite en 40 mutations
+ * produirait la tempête de contention que `estEcritureDeFlux` évite déjà.
+ */
+function entreesDuManifeste(etat: unknown): EntreeDeManifeste[] | undefined {
+  const racine = (etat ?? {}) as { files?: { entries?: EntreeDeManifeste[] } };
+
+  return Array.isArray(racine.files?.entries) ? racine.files!.entries! : undefined;
+}
+
+/** Vrai si le transformateur a réellement changé quelque chose. */
+function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[]) {
+  if (avant.length !== apres.length) {
+    return true;
+  }
+
+  return avant.some(
+    (entree, index) =>
+      entree.path !== apres[index]!.path ||
+      entree.content !== apres[index]!.content ||
+      entree.encoding !== apres[index]!.encoding,
+  );
+}
+
+async function mutateProjectFileManifestEntries(
+  store: ApiStore,
+  projectId: string,
+  updatedByUserId: string | undefined,
+  transformer: (entrees: EntreeDeManifeste[]) => EntreeDeManifeste[],
+) {
+  /*
+   * DEUX raisons de renoncer AVANT d'entrer dans `mutateProjectIdeState`, et
+   * elles doivent être décidées ici parce que cette boucle ÉCRIT toujours :
+   * elle appelle `upsertProjectIdeState` sans comparer, donc un « rien à
+   * faire » exprimé à l'intérieur produirait quand même une écriture et une
+   * montée de version.
+   *
+   *  1. PAS DE MANIFESTE → ne rien inventer (voir l'avertissement ci-dessus).
+   *  2. RIEN N'A CHANGÉ → ne rien écrire. Cas courant, pas théorique :
+   *     supprimer un fichier qui n'a jamais atteint le manifeste passe par
+   *     `removeProjectFileEntries` et n'y retire rien. Écrire quand même
+   *     ferait monter la version de ce blob à chaque fois — or l'IDE le
+   *     revalide par `If-None-Match` (AUDX-167) et il n'est PAS borné (jusqu'à
+   *     `API_BODY_LIMIT_BYTES`, 25 Mo) : on rendrait payant, à chaque
+   *     suppression, le rechargement complet qu'AUDX-167 avait supprimé.
+   *
+   * Le transformateur est PUR : l'appeler une fois pour décider puis une fois
+   * dans la boucle à version optimiste ne coûte rien et garde la relecture
+   * sous contrôle de version.
+   */
+  const entreesActuelles = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
+
+  if (!entreesActuelles || !manifesteChange(entreesActuelles, transformer([...entreesActuelles]))) {
+    return;
+  }
+
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => {
+    const entrees = entreesDuManifeste(existing?.state);
+
+    /* Le manifeste a disparu entre la décision et ici : ne rien inventer. */
+    if (!entrees) {
+      return mergeProjectIdeState(existing?.state, {});
+    }
+
+    return mergeProjectIdeState(existing?.state, {
+      files: { entries: transformer([...entrees]), updatedAt: new Date().toISOString() },
+    });
+  });
+}
+
+/**
+ * Vrai pour `chemin` lui-même ET pour tout ce qu'il contient.
+ *
+ * Le séparateur est OBLIGATOIRE dans le préfixe : un `startsWith('src')` nu
+ * emporterait `src-old/`, et la perte serait DÉFINITIVE — le manifeste étant
+ * autoritaire, un voisin retiré par erreur est un fichier détruit sur tous les
+ * appareils au prochain réamorçage, pas un affichage faux.
+ */
+function cheminDansLeSousArbre(candidat: string, racine: string) {
+  const normalise = normalizeProjectPath(candidat);
+
+  /*
+   * `normalizeProjectPath` rend `undefined` sur un chemin vide ou porteur d'un
+   * segment de traversée. Dans le doute on GARDE l'entrée : sur un manifeste
+   * autoritaire, retirer à tort détruit un fichier, tandis que garder à tort ne
+   * fait que laisser une entrée morte.
+   */
+  if (!normalise) {
+    return false;
+  }
+
+  return normalise === racine || normalise.startsWith(`${racine}/`);
+}
+
 async function persistProjectFileEntry(
   store: ApiStore,
   projectId: string,
@@ -4593,10 +4738,8 @@ async function persistProjectFileEntry(
     return;
   }
 
-  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => {
-    const etat = (existing?.state ?? {}) as { files?: { entries?: Array<{ path: string; content: string; encoding?: 'base64' }> } };
-    const entrees = Array.isArray(etat.files?.entries) ? [...etat.files!.entries!] : [];
-    const entree = {
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) => {
+    const entree: EntreeDeManifeste = {
       path: chemin,
       content: file.content,
       ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
@@ -4609,9 +4752,83 @@ async function persistProjectFileEntry(
       entrees[index] = entree;
     }
 
-    return mergeProjectIdeState(existing?.state, {
-      files: { entries: entrees, updatedAt: new Date().toISOString() },
+    return entrees;
+  });
+}
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — une suppression faite dans l'IDE n'atteignait que le
+ * pod. Au réamorçage suivant (`workspace-reseed.ts`, `importZip`) l'archive était
+ * réécrite par-dessus et le fichier RESSUSCITAIT. Le seul « tombstone » existant
+ * est local au navigateur (`files.ts`, `#persistDeletedPaths` → `localStorage`) :
+ * il ne protège donc pas l'appareil suivant, qui est précisément le cas d'usage
+ * signalé.
+ */
+async function removeProjectFileEntries(store: ApiStore, projectId: string, path: string, updatedByUserId?: string) {
+  const chemin = normalizeProjectPath(path);
+
+  if (!chemin) {
+    return;
+  }
+
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) =>
+    entrees.filter((entree) => !cheminDansLeSousArbre(entree.path, chemin)),
+  );
+}
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — un renommage revenait en arrière au réamorçage.
+ *
+ * Le retrait et la réinsertion se font dans UNE seule mutation : en deux temps,
+ * il existerait une fenêtre où le fichier n'est dans aucun des deux chemins, et
+ * une lecture tombant dedans le supprimerait du stockage.
+ */
+async function moveProjectFileEntries(
+  store: ApiStore,
+  projectId: string,
+  from: string,
+  to: string,
+  updatedByUserId?: string,
+) {
+  const source = normalizeProjectPath(from);
+  const cible = normalizeProjectPath(to);
+
+  if (!source || !cible || source === cible) {
+    return;
+  }
+
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) => {
+    const deplacees = entrees.map((entree) => {
+      if (!cheminDansLeSousArbre(entree.path, source)) {
+        return entree;
+      }
+
+      const normalise = normalizeProjectPath(entree.path);
+
+      if (!normalise) {
+        return entree;
+      }
+
+      const reste = normalise.slice(source.length);
+
+      return { ...entree, path: `${cible}${reste}` };
     });
+
+    /*
+     * Un renommage PAR-DESSUS une cible existante (`mv a.ts b.ts` quand `b.ts`
+     * est déjà au manifeste) produirait sinon DEUX entrées au même chemin. Le
+     * manifeste étant reversé tel quel dans le stockage, le doublon rend
+     * `projectFilesMatch` faux à chaque lecture — il compare les longueurs — et
+     * relance un `restoreSnapshot` complet à chaque fois. On garde la DERNIÈRE
+     * occurrence, c'est-à-dire le fichier déplacé, comme le fait `mv`.
+     */
+    const parChemin = new Map<string, EntreeDeManifeste>();
+
+    for (const entree of deplacees) {
+      parChemin.set(normalizeProjectPath(entree.path) ?? entree.path, entree);
+    }
+
+    return [...parChemin.values()];
   });
 }
 
@@ -5473,7 +5690,13 @@ async function providerHealth(
 
 async function adminHealthSummary(store: ApiStore, locale: TransactionalLocale) {
   const databaseUrl = process.env.DATABASE_URL;
-  const redisUrl = process.env.REDIS_URL;
+
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — citée, l'URL n'échoue pas : `ioredis` la
+   * JETTE et retombe sur `localhost:6379`. Une sonde qui lit la variable nue
+   * rapporterait « configuré » sur une URL que le client n'utilise jamais.
+   */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
 
   /*
    * Real connectivity probe against Postgres: issue a trivial query rather than
@@ -7938,7 +8161,9 @@ type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
 
 function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
-  const redisUrl = process.env.REDIS_URL;
+
+  /* BUG-REDIS-URL-GUILLEMETS-001 — voir `env-url.ts` : citée, l'URL est jetée. */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
   const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
 
   /*
@@ -9031,11 +9256,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
    * exploitation.
    */
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — la MÊME valeur décidait de l'activation et
+   * servait de cible. Citée, elle rendait `Boolean(...)` vrai — le plafond
+   * partagé s'annonçait actif — pendant que le client partait sur
+   * `localhost:6379`. Le plafond était donc « partagé » avec personne.
+   */
+  const urlRateLimitRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
   const useSharedRateLimitStore =
-    Boolean(process.env.REDIS_URL) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+    Boolean(urlRateLimitRedis) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
 
   const sharedRateLimitRedis = useSharedRateLimitStore
-    ? new Redis(process.env.REDIS_URL as string, {
+    ? new Redis(urlRateLimitRedis as string, {
         connectionName: 'vibecore-rate-limit',
         commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
         maxRetriesPerRequest: 1,
@@ -9803,10 +10036,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       checks.database = { status: 'unconfigured' };
     }
 
-    if (process.env.REDIS_URL) {
+    /* BUG-REDIS-URL-GUILLEMETS-001 — la sonde doit viser ce que le client vise. */
+    const urlSondeRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+    if (urlSondeRedis) {
       const started = Date.now();
 
-      const probe = new Redis(process.env.REDIS_URL, {
+      const probe = new Redis(urlSondeRedis, {
         lazyConnect: true,
         maxRetriesPerRequest: 1,
         connectTimeout: 1500,
@@ -15733,8 +15969,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       child.on('close', (exitCode) => {
         clearTimeout(timer);
         record.status = 'exited';
-        record.exitCode = exitCode ?? 0;
-        resolvePromise(exitCode ?? 0);
+
+        /*
+         * BUG-DEPLOY-010, suspect n°2 — `exitCode === null` signifie TUÉ PAR
+         * SIGNAL, pas « terminé avec succès ». Le `?? 0` faisait passer une
+         * commande locale tuée (délai, OOM) pour une réussite, et l'appelant
+         * enchaînait sur un travail qui n'avait jamais fini. Même règle que la
+         * branche `error` juste au-dessus, qui rend déjà 127.
+         */
+        const codeReel = exitCode ?? 1;
+
+        record.exitCode = codeReel;
+        resolvePromise(codeReel);
       });
     });
 
@@ -15853,7 +16099,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       input.timeoutMs + 60_000,
     );
 
-    return { exitCode: result.exitCode ?? 0, output: result.output ?? '' };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — un run sans code de sortie n'a pas réussi.
+     * Le gestionnaire ne renseigne `exitCode` que lorsque le processus s'est
+     * terminé normalement ; l'absence signifie tué ou interrompu.
+     */
+    return { exitCode: result.exitCode ?? 1, output: result.output ?? '' };
   };
 
   /*
@@ -15879,11 +16130,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scheduledRequest = { currentUser: undefined, raw: {} };
     const body = { command: 'sh', args: ['-lc', input.command], timeoutMs: input.timeoutMs };
 
-    let result: { code: number; stdout?: string; stderr?: string };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string };
 
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -15895,7 +16153,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await runLocalRuntimeCommand(authorized, body as z.infer<typeof runtimeCommandSchema>);
     }
 
-    return { exitCode: result.code ?? 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    return { exitCode: result.code ?? 1, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
   };
 
   /**
@@ -17573,6 +17844,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
 
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    /*
+     * `body.directory` est vrai quand ce point d'entrée sert à créer un DOSSIER
+     * (`runtimeFileCreateSchema` le porte, et `POST /directories` s'en sert). Un
+     * manifeste ne liste que des fichiers : y inscrire un dossier comme une
+     * entrée de contenu vide le ferait réapparaître comme un FICHIER vide au
+     * réamorçage, à la place du dossier.
+     */
+    if (authorized.projectId && !body.directory && !estEcritureDeFlux(request)) {
+      try {
+        await persistProjectFileEntry(
+          store,
+          authorized.projectId,
+          { path: body.path, content: body.content ?? '' },
+          request.currentUser?.id,
+        );
+      } catch (error) {
+        request.log.error(
+          { err: error, projectId: authorized.projectId, path: body.path },
+          'project manifest persist failed',
+        );
+      }
+    }
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/directories', async (request, reply) => {
@@ -17592,6 +17897,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentRequest(authorized.workspaceId, '/files/delete', { method: 'POST', body: JSON.stringify({ path }) });
 
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await removeProjectFileEntries(store, authorized.projectId, path, request.currentUser?.id);
+      } catch (error) {
+        request.log.error({ err: error, projectId: authorized.projectId, path }, 'project manifest persist failed');
+      }
+    }
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files/move', async (request, reply) => {
@@ -17602,6 +17926,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       method: 'POST',
       body: JSON.stringify({ from: body.path, to: body.newPath }),
     });
+
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await moveProjectFileEntries(store, authorized.projectId, body.path, body.newPath, request.currentUser?.id);
+      } catch (error) {
+        request.log.error(
+          { err: error, projectId: authorized.projectId, path: body.path },
+          'project manifest persist failed',
+        );
+      }
+    }
 
     return reply.code(204).send();
   });
@@ -17808,10 +18154,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(body) },
@@ -17827,13 +18180,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 
     return {
-      exitCode: result.code ?? 0,
+      exitCode: result.code ?? 1,
       output,
       localRuntime: result.localRuntime === true,
       events: [
         ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
         ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),
-        { type: 'exit', exitCode: result.code ?? 0, timestamp: new Date().toISOString() },
+        { type: 'exit', exitCode: result.code ?? 1, timestamp: new Date().toISOString() },
       ],
     };
   });
@@ -21812,6 +22165,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * BUG-CREATE-005 — « l'import GitHub échoue au bout de 3 minutes sur un
+   * message générique ». MESURÉ : les DEUX routes d'import appelaient
+   * `gitProvider.importRepository(...)` sans `try`. Tout échec de clone —
+   * dépôt privé, hôte injoignable, délai de 120 s dépassé
+   * (`project-storage.ts`, `timeout: 120_000`) — remontait en 500 générique,
+   * que le client traduit par « Impossible d'importer le dépôt. Réessayez. »
+   * (`app/routes/import-github.tsx`, branche par défaut). « Réessayez » sur un
+   * dépôt privé est un conseil FAUX : réessayer ne peut pas marcher.
+   *
+   * Un seul point de passage pour les deux routes (règle 7 : même mécanisme,
+   * un seul correctif) — GitHub ici, GitLab et Bitbucket via
+   * `importRepositoryIntoProject` juste en dessous.
+   *
+   * ⚠️ Le `stderr` de `git` ne sort PAS d'ici, ni vers le client ni vers les
+   * journaux : une URL de clone porte parfois un jeton
+   * (`https://x-access-token:<jeton>@github.com/…`) et `error.message` de
+   * `execFile` recopie la commande complète (règle 12). On ne journalise que le
+   * code de classement.
+   */
+  type CloneDImport =
+    | { echec: EchecDImport; imported?: undefined }
+    | { echec?: undefined; imported: Awaited<ReturnType<GitProvider['importRepository']>> };
+
+  async function clonerLeDepotPourImport(
+    request: FastifyRequest,
+    body: { repositoryUrl: string; branch?: string },
+  ): Promise<CloneDImport> {
+    try {
+      return {
+        imported: await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch }),
+      };
+    } catch (error) {
+      const echec = classerEchecDImport(error);
+
+      request.log.warn(
+        { event: 'project.import.clone_failed', code: echec.code, statusCode: echec.statusCode },
+        'repository clone failed',
+      );
+
+      return { echec };
+    }
+  }
+
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(githubImportSchema, request.body);
@@ -21824,7 +22221,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     await ensureQuota(request, orgId, 'projects.count');
 
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+    const clone = await clonerLeDepotPourImport(request, body);
+
+    if (clone.echec) {
+      return reply
+        .code(clone.echec.statusCode)
+        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
+    }
+
+    const imported = clone.imported;
 
     const name =
       body.name ??
@@ -21889,7 +22294,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, orgId);
     await ensureQuota(request, orgId, 'projects.count');
 
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+    const clone = await clonerLeDepotPourImport(request, body);
+
+    if (clone.echec) {
+      return reply
+        .code(clone.echec.statusCode)
+        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
+    }
+
+    const imported = clone.imported;
 
     const name =
       body.name ??
@@ -22239,10 +22652,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(commandBody) },
@@ -22256,7 +22676,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    const exitCode = result.code ?? 0;
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    const exitCode = result.code ?? 1;
 
     return reply.code(201).send({
       projectId: authorized.projectId,
@@ -23983,7 +24416,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       aiConversation: collaborationState.aiConversation ?? { shared: false, mode: 'comment' },
       realtime: {
         websocketPath: `/projects/${project.id}/collaboration/ws`,
-        redisPubSub: Boolean(process.env.REDIS_URL),
+
+        /*
+         * BUG-REDIS-URL-GUILLEMETS-001 — ce drapeau ANNONCE au client que le
+         * temps réel passe par Redis. Citée, l'URL le rendait vrai alors que le
+         * courtier ne publiait nulle part.
+         */
+        redisPubSub: Boolean(lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee)),
       },
     };
   });
