@@ -1298,6 +1298,53 @@ export class WorkspaceManager {
           await this.stopWorkspace(namespace, workspace.id, guard);
         } else if (workspace.status === 'STOPPED' && inactiveFor > deleteMs) {
           await this.deleteWorkspace(namespace, workspace.id, guard);
+        } else if (workspace.status === 'STOPPED') {
+          /*
+           * BUG-CREATE-003 — un pod d'espace de travail SURVIT à l'arrêt de son
+           * enregistrement. Mesuré le 17/08 : trois lignes `STOPPED` avaient
+           * toujours leur pod `Running`, dont une depuis six heures
+           * (`ws-85434e36e4694fa6`, ligne STOPPED à 14:30, pod démarré à 08:54).
+           *
+           * Le balayage ne savait pas voir ce cas : il réconciliait l'inverse
+           * (ligne RUNNING, pod disparu) et n'agissait ensuite sur une ligne
+           * STOPPED qu'une fois `deleteMs` écoulé. Entre l'arrêt et cette
+           * échéance — 24 h en production — le pod continuait de tourner, et
+           * d'être facturé, pour personne.
+           *
+           * Côté utilisateur ce n'est pas silencieux : l'IDE lit les fichiers
+           * depuis le pod vivant, donc tout a l'air normal, mais `preview-proxy`
+           * refuse de résoudre l'agent d'un espace STOPPED — d'où un
+           * `404 PREVIEW_AGENT_NOT_FOUND` toutes les ~3,4 s, indéfiniment.
+           *
+           * ⚠️ ON NE SUPPRIME QUE LE POD. `STOPPED` veut dire « calcul rendu,
+           * DONNÉES GARDÉES » : c'est `deleteWorkspace`, à l'échéance, qui
+           * détruit le PVC. Passer par `stopWorkspace` garantit cette
+           * distinction — et réutilise sa garde optimiste, qui relit la ligne et
+           * renonce si une réouverture l'a fait repasser en STARTING entre-temps
+           * (la même course qui, sur la branche PVC, avait déjà coûté des pods
+           * `Pending` sans volume).
+           *
+           * `getPod` ne rend `undefined` que sur un vrai NotFound ; une erreur
+           * passagère ou de droits LÈVE, et le `catch` de la boucle la journalise
+           * sans rien réconcilier. On ne supprime donc jamais sur un simple
+           * hoquet d'API.
+           */
+          const podOrphelin = await this.k8s.getPod(namespace, workspace.podName);
+
+          if (podOrphelin) {
+            console.log(
+              JSON.stringify({
+                level: 'warn',
+                service: 'workspace-manager',
+                event: 'workspace.gc.stopped_pod_alive',
+                workspaceId: workspace.id,
+                podName: workspace.podName,
+                namespace,
+              }),
+            );
+
+            await this.stopWorkspace(namespace, workspace.id, guard);
+          }
         } else if ((workspace.status === 'FAILED' || workspace.status === 'STARTING') && inactiveFor > deleteMs) {
           /*
            * Reap abandoned provisioning. A FAILED start (readiness timeout, or a

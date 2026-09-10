@@ -471,6 +471,100 @@ describe('WorkspaceManager', () => {
     }
   });
 
+  /*
+   * BUG-CREATE-003 — un pod qui survit à l'arrêt de son enregistrement.
+   * Trois lignes `STOPPED` avec un pod `Running`, dont une depuis six heures,
+   * mesurées le 17/08. Le balayage ne réconciliait que l'inverse (RUNNING sans
+   * pod) et laissait tourner — et facturer — un pod que plus personne ne peut
+   * atteindre, `preview-proxy` refusant l'agent d'un espace STOPPED.
+   */
+  it('supprime le pod resté vivant sous une ligne STOPPED, AVANT l’échéance de suppression', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+
+    /*
+     * La ligne passe STOPPED sans que le pod parte : exactement l'état mesuré.
+     * `lastActiveAt` reste RÉCENT — on est donc loin de `deleteMs`, ce qui est
+     * tout l'intérêt : c'est cette fenêtre-là qui durait des heures.
+     */
+    await store.update(input.workspaceId, { status: 'STOPPED', lastActiveAt: new Date().toISOString() });
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+  });
+
+  it('ne touche NI au PVC NI au Secret en réconciliant ce pod — STOPPED garde les données', async () => {
+    /*
+     * Règle 9 : vérifier ce qu'un état de base déclenche AVANT de l'écrire. La
+     * branche d'échéance (`deleteWorkspace`) détruit le PVC ; l'emprunter ici
+     * aurait effacé le travail d'un utilisateur dont l'espace venait seulement
+     * de s'arrêter. Cette moitié-là doit rester rouge si quelqu'un remplace
+     * `stopWorkspace` par `deleteWorkspace`.
+     */
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { status: 'STOPPED', lastActiveAt: new Date().toISOString() });
+
+    const pvc = [...k8s.objects.keys()].filter((cle) => cle.includes(':PersistentVolumeClaim:'));
+    expect(pvc.length, 'le test ne mesure rien si aucun PVC n’existe (règle 10)').toBeGreaterThan(0);
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    for (const cle of pvc) {
+      expect(k8s.objects.has(cle), `${cle} a été détruit`).toBe(true);
+    }
+
+    expect(k8s.events.filter((evenement) => evenement.startsWith('delete:PersistentVolumeClaim'))).toEqual([]);
+    expect((await store.get(input.workspaceId))?.status).toBe('STOPPED');
+  });
+
+  it('renonce si la ligne a été rouverte entre l’observation et la suppression', async () => {
+    /* La garde optimiste de `stopWorkspace` : une réouverture ne doit pas perdre son pod. */
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await store.update(input.workspaceId, { status: 'STOPPED', lastActiveAt: new Date().toISOString() });
+
+    const vraiGetPod = k8s.getPod.bind(k8s);
+    vi.spyOn(k8s, 'getPod').mockImplementation(async (namespace: string, name: string) => {
+      /* La réouverture arrive JUSTE après l'observation du pod. */
+      await store.update(input.workspaceId, { status: 'STARTING' });
+      return vraiGetPod(namespace, name);
+    });
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1'), 'le pod de la réouverture a été tué').toBe(true);
+
+    vi.restoreAllMocks();
+  });
+
+  it('ne réconcilie rien quand le pod est bien parti (pas de suppression à vide)', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    await manager.stopWorkspace('workspaces', input.workspaceId);
+    await store.update(input.workspaceId, { lastActiveAt: new Date().toISOString() });
+
+    const avant = k8s.events.filter((evenement) => evenement.startsWith('delete:Pod')).length;
+
+    await manager.garbageCollect('workspaces', 5 * 60 * 1000, 30 * 60 * 1000);
+
+    expect(k8s.events.filter((evenement) => evenement.startsWith('delete:Pod')).length).toBe(avant);
+  });
+
   it('garbage-collects a FAILED workspace whose Pod/PVC leaked', async () => {
     const k8s = new TestWorkspaceK8sClient();
     const store = new TestWorkspaceStore();

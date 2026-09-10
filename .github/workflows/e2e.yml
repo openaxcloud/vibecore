@@ -106,7 +106,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
+          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
+          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
+          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
+          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
+          # 09:41, run à 17:16. Rien ne le retentait.
+          #
+          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
+          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
+          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
+          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
+          # dont on lit le résultat.
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update || true
+            sleep 10
+          done
+          pnpm exec playwright install chromium
 
       - name: Validate AI provider secret for E2E
         run: |
@@ -119,7 +140,16 @@ jobs:
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
-          docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          # BUG-CI-008, règle 7 — la seconde tentative n'existait que dans
+          # i18n-live-audit.yml : les trois fichiers portaient trois niveaux de
+          # robustesse différents pour la MÊME pile. `down -v` uniquement dans
+          # la branche d'échec, pour repartir d'un volume propre.
+          if ! docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit; then
+            echo '::warning::Les dépendances ne sont pas devenues saines ; on repart proprement pour une seconde et dernière tentative.'
+            docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis mailpit || true
+            docker compose --env-file .env -f docker-compose.dev.yml down -v || true
+            docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          fi
           npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
 
       - name: Prepare database
