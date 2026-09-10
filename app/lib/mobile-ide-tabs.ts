@@ -35,7 +35,11 @@ export type MobileToolItem = {
   icon: string;
   tone?: string;
 
-  /** `action` : geste sur un panneau existant, jamais une destination de routage. */
+  /**
+   * `action` : geste sur un panneau existant, jamais une destination de routage.
+   * Épinglé par `app/lib/panneaux-surfaces.spec.ts` (une action est proposée dans
+   * la palette ET absente du routage) et `app/lib/ide/portes-des-panneaux.spec.ts`.
+   */
   kind?: 'action';
 };
 
