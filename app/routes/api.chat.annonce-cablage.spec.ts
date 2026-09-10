@@ -23,7 +23,19 @@ describe('la décision « annonce sans artefact » est réellement branchée', (
   it('elle la calcule avec le mode, le fichier émis et le compteur de segments', () => {
     expect(code).toMatch(/const suite = suiteDuTour\(/u);
     expect(code).toMatch(/modeConstruction: chatMode === 'build'/u);
-    expect(code).toMatch(/fichierEmis: emittedFileAction/u);
+
+    /*
+     * Le drapeau `emittedFileAction` a été remplacé par un COMPTE (`fichiersEmis`),
+     * parce que le critère d'aptitude d'un fournisseur raisonne sur un nombre et
+     * qu'un drapeau converti en `1` aurait fait décider un repli sur une mesure
+     * qu'on n'a pas faite. L'intention de cette garde est inchangée — la décision
+     * doit être calculée à partir du fichier réellement émis, et pas d'une
+     * constante — donc on épingle la nouvelle source de vérité, et on épingle
+     * AUSSI que l'ancienne a bien disparu : deux vérités pour un fait, c'est ce
+     * qui produit un constat faux au premier refactor.
+     */
+    expect(code).toMatch(/fichierEmis: fichiersEmis > 0/u);
+    expect(code).not.toMatch(/emittedFileAction/u);
     expect(code).toMatch(/segmentsConsommes: continuationSegments/u);
     expect(code).toMatch(/segmentsMax: MAX_RESPONSE_SEGMENTS/u);
   });

@@ -12,9 +12,27 @@
  * or double quotes, tolerating extra whitespace around `=`.
  */
 export function responseEmittedFileAction(text: string): boolean {
+  return compterActionsDeFichier(text) > 0;
+}
+
+/**
+ * COMBIEN de fichiers la réponse a émis, et non pas seulement « au moins un ».
+ *
+ * Le prédicat booléen ci-dessus suffisait à afficher un message ; il ne suffit
+ * pas au critère d'aptitude d'un fournisseur, qui raisonne sur un NOMBRE
+ * (`fichiersEcrits === 0`). Passer `1` pour « au moins un » aurait rendu le
+ * constat faux dès qu'on voudrait en lire autre chose que la nullité — et un
+ * constat approximatif est précisément ce qui fait prendre une décision de
+ * repli sur une mesure qu'on n'a pas faite.
+ *
+ * Une seule expression pour les deux fonctions : le prédicat DÉRIVE du compte,
+ * il n'en est pas une seconde version. Deux régularités qui divergent au
+ * prochain refactor, c'est deux vérités pour un fait.
+ */
+export function compterActionsDeFichier(text: string): number {
   if (!text) {
-    return false;
+    return 0;
   }
 
-  return /<boltAction\b[^>]*\btype\s*=\s*["']file["']/i.test(text);
+  return text.match(/<boltAction\b[^>]*\btype\s*=\s*["']file["']/gi)?.length ?? 0;
 }

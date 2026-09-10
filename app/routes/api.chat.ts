@@ -45,6 +45,7 @@ import {
 } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
+import { fournisseurInapte, type ConstatDeTour } from '~/lib/.server/llm/aptitude-fournisseur';
 import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -73,7 +74,7 @@ import {
   type AgentRouteResolution,
 } from '~/lib/.server/llm/agent-mode';
 import { WORK_DIR } from '~/utils/constants';
-import { responseEmittedFileAction } from '~/utils/response-file-actions';
+import { compterActionsDeFichier } from '~/utils/response-file-actions';
 import {
   createPortfolioTemplateArtifact,
   createPortfolioTemplateStreamChunks,
@@ -582,7 +583,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * the run "completes" silently with no app and a PENDING preview. Accumulated
    * across continuation segments and checked at every terminal exit.
    */
-  let emittedFileAction = false;
+  /*
+   * UN COMPTE, PAS UN BOOLÉEN. Le drapeau disait « au moins un fichier » : assez
+   * pour afficher un message, pas assez pour le critère d'aptitude d'un
+   * fournisseur, qui raisonne sur un NOMBRE. Passer `1` pour « au moins un »
+   * aurait fait décider un repli sur une mesure qu'on n'a pas faite. Le booléen
+   * en est maintenant DÉRIVÉ partout où il servait — une seule vérité pour un
+   * seul fait.
+   */
+  let fichiersEmis = 0;
 
   const encoder: TextEncoder = new TextEncoder();
 
@@ -1675,8 +1684,8 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               // diagnostics must never break the stream
             }
 
-            // Latch once any segment emits a real file action (accumulates across continuations).
-            emittedFileAction = emittedFileAction || responseEmittedFileAction(content);
+            // Accumulates across continuation segments: chaque segment ajoute ses fichiers.
+            fichiersEmis += compterActionsDeFichier(content);
 
             /*
              * A build that ends without EVER emitting a `<boltAction type="file">`
@@ -1687,7 +1696,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * throws out of onFinish.
              */
             const warnIfNoFilesGenerated = () => {
-              if (chatMode !== 'build' || emittedFileAction) {
+              if (chatMode !== 'build' || fichiersEmis > 0) {
                 return;
               }
 
@@ -1893,12 +1902,69 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               {
                 finishReason,
                 modeConstruction: chatMode === 'build',
-                fichierEmis: emittedFileAction,
+                fichierEmis: fichiersEmis > 0,
                 segmentsConsommes: continuationSegments,
                 segmentsMax: MAX_RESPONSE_SEGMENTS,
               },
               CONTINUE_PROMPT,
             );
+
+            /*
+             * LA CAPACITÉ SE MESURE SUR LE RÉSULTAT, PAS SUR LA DISPONIBILITÉ.
+             *
+             * `aptitude-fournisseur.ts` portait ce critère depuis son écriture et
+             * n'était importé QUE par son propre spec — vérifié avec témoin positif
+             * (`provider-fallback` l'est par cinq fichiers, dont celui-ci). Une règle
+             * juste que rien n'appelle ne protège de rien : la plateforme continuait
+             * de compter comme une réussite un fournisseur qui répond `200`, produit
+             * du texte et n'écrit aucun fichier.
+             *
+             * Le constat se lit ici parce que c'est le seul point qui connaît les
+             * trois faits en même temps : le mode du tour, le nombre de fichiers
+             * accumulé sur TOUS les segments, et la façon dont le flux s'est terminé.
+             *
+             * La conséquence passe par la table de santé existante plutôt que par une
+             * seconde marche de chaîne : `resolveRuntimeProvider` sait déjà écarter un
+             * maillon et avancer au suivant, et il échoue déjà franchement quand aucun
+             * ne convient. C'est aussi pourquoi `decisionDeChaine` du même module reste
+             * NON câblé — il refait ce parcours, et deux marcheurs de chaîne qui
+             * divergent au prochain refactor coûtent plus qu'ils ne rapportent.
+             *
+             * Le prix est assumé et il est nommé dans le module : UNE génération est
+             * perdue pour établir l'inaptitude. En échange le tour SUIVANT part sur un
+             * maillon capable au lieu de répéter le vide.
+             */
+            const constatDuTour: ConstatDeTour = {
+              modeConstruction: chatMode === 'build',
+              fichiersEcrits: fichiersEmis,
+
+              /*
+               * `stop` et lui seul. Un flux coupé — abandon, plafond de jetons,
+               * incident réseau — n'a pas eu l'occasion de finir et n'établit RIEN :
+               * le confondre avec une inaptitude écarterait un fournisseur sain sur
+               * un incident de transport.
+               */
+              termine: finishReason === 'stop',
+            };
+
+            if (fournisseurInapte(constatDuTour) && routedTurnProvider) {
+              markProviderUnhealthy(
+                routedTurnProvider,
+                'sterile',
+                `zéro fichier sur un tour de construction terminé (segments=${continuationSegments})`,
+              );
+
+              logger.error(
+                JSON.stringify({
+                  event: 'chat.fournisseur.sterile',
+                  projectId,
+                  provider: routedTurnProvider,
+                  model: routedTurnModel,
+                  segments: continuationSegments,
+                  caracteres: (content ?? '').length,
+                }),
+              );
+            }
 
             try {
               if (finishReason !== 'length' && suite.action !== 'continuer') {

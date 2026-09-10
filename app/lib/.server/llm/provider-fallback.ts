@@ -27,7 +27,22 @@ const logger = createScopedLogger('provider-fallback');
  * D'où un repli à L'EXÉCUTION, et non à la configuration.
  */
 
-export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout';
+/**
+ * `sterile` est le seul de ces motifs qui ne vienne PAS d'un refus de répondre.
+ *
+ * Les cinq autres arrivent AVANT la génération : le fournisseur dit non, et on
+ * le sait tout de suite. `sterile` décrit l'inverse — un fournisseur qui répond
+ * `200`, produit du texte, et n'écrit aucun fichier sur une consigne de
+ * construction. Il n'a rien refusé ; il a rendu du vide, et sans ce motif la
+ * plateforme comptait cela comme une réussite.
+ *
+ * Il se range ici plutôt que dans une table séparée pour une raison de fond :
+ * la conséquence est exactement la même — écarter ce maillon pendant la fenêtre
+ * de TTL pour que le tour SUIVANT parte sur un fournisseur capable. Une seconde
+ * table aurait dupliqué la marche de la chaîne que `resolveRuntimeProvider`
+ * fait déjà.
+ */
+export type ProviderFailureKind = 'credit' | 'auth' | 'rate-limit' | 'server' | 'timeout' | 'sterile';
 
 export type ProviderHealthEntry = Readonly<{
   kind: ProviderFailureKind;
