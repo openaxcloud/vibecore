@@ -1,3 +1,5 @@
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
+
 /**
  * Runtime-aware <system_constraints> + <web_reference_instructions>
  * (BUG-AGENT-WEBCLONE-001).
@@ -35,10 +37,32 @@ export function resolvePromptRuntimeMode(env?: Record<string, string | undefined
   const processEnv = typeof process !== 'undefined' ? process.env : undefined;
   const metaEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;
 
+  /*
+   * BUG-AGENT-WEBCLONE-001 — `process.env` NU NE VOIT RIEN DANS LE POD WEB.
+   *
+   * `vite.config.ts` active `vite-plugin-node-polyfills` avec
+   * `globals.process = true` : le bundle SSR reçoit un shim de navigateur dont
+   * `env` vaut `{}`. Les deux lectures `processEnv?.…` ci-dessous sont donc
+   * TOUJOURS `undefined` dans le pod, quelle que soit la configmap. Restaient
+   * `metaEnv`, qui n'a de valeur que si `VITE_RUNTIME_MODE` a été inlinée AU
+   * BUILD — et une image construite sans elle livre WebContainer en silence,
+   * exactement le piège consigné au runbook de déploiement.
+   *
+   * Conséquence pour l'utilisateur : l'agent recevait les FAITS du mauvais
+   * runtime. Il se croyait dans un bac à sable navigateur alors qu'il dispose
+   * d'un vrai conteneur Linux — d'où les refus et les analyses fausses sur des
+   * tâches que le runtime réel sait faire.
+   *
+   * `globalThis.process` n'est PAS réécrit par le polyfill : `readRuntimeEnv`
+   * atteint donc le vrai environnement. On le consulte AVANT les deux lectures
+   * nues, qu'on garde comme repli pour les contextes sans shim (tests, scripts).
+   */
   // A blank value (an unset configmap key renders as '') counts as absent.
   const candidate = [
     env?.RUNTIME_MODE,
     env?.VITE_RUNTIME_MODE,
+    readRuntimeEnv('RUNTIME_MODE'),
+    readRuntimeEnv('VITE_RUNTIME_MODE'),
     processEnv?.RUNTIME_MODE,
     processEnv?.VITE_RUNTIME_MODE,
     metaEnv?.RUNTIME_MODE,
