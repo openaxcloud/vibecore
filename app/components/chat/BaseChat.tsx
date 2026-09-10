@@ -169,7 +169,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import {
   IdePanelHeader,
   PanelButton,
@@ -295,7 +295,12 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
-import { PublicationReplit } from '~/components/deploy/PublicationReplit';
+import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
+import {
+  detailDeTacheDeReparation,
+  gesteDeLancementDeLAgent,
+  TACHE_DE_REPARATION,
+} from '~/components/deploy/reparation-agent';
 import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
 import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
@@ -502,67 +507,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-/*
- * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
- * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
- * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
- * - `agent` (marque, rendue à part) ;
- * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
- *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
- *   registre (même si la valeur actuelle y est identique).
- */
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
-  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
-  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
-  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
-  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
-  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
-  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
-  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
-  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
-  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
-  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
-  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
-  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
-  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
-  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
-  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
-  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
-  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
-  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
-  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
-  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
-  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
-  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
-  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
-  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
-};
+import { ECODE_MOBILE_TAB_META_BASE, outilCanonique } from '~/lib/mobile-tab-meta';
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -2704,11 +2649,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
      * valeur COURANTE sans faire bouger l'effet.
      */
-    const rappelsAgentTache = useRef({ sendMessage, isStreaming });
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming, resetChat });
 
     useEffect(() => {
-      rappelsAgentTache.current = { sendMessage, isStreaming };
+      rappelsAgentTache.current = { sendMessage, isStreaming, resetChat };
     });
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001 — l'invite qui attend un fil NEUF.
+     *
+     * `resetChat` archive la conversation et vide le fil, mais l'envoi ne peut
+     * pas suivre dans la foulée : `append` poste sur le fil que le crochet
+     * connaît AU MOMENT DE L'APPEL, et à cet instant il n'a pas encore été
+     * vidé. Envoyer tout de suite déposerait la réparation à la fin de la
+     * conversation qu'on venait d'archiver — soit précisément le défaut qu'on
+     * corrige, par un autre chemin.
+     *
+     * On garde donc l'invite ici, et l'effet plus bas l'envoie quand le fil est
+     * RÉELLEMENT vide. Pas de `setTimeout` : la condition est observable.
+     */
+    const [inviteEnAttenteDeFilNeuf, setInviteEnAttenteDeFilNeuf] = useState<string | null>(null);
 
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
@@ -2739,6 +2699,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [handleInputChange, input, textareaRef],
     );
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001, seconde moitié — on envoie QUAND le fil
+     * est vide, pas quand on a demandé qu'il le soit.
+     *
+     * La dépendance est `messages?.length`, pas `messages` : pendant un tour,
+     * le tableau change d'identité à chaque lot de jetons alors que sa longueur
+     * ne bouge pas. Dépendre du tableau relancerait cet effet des centaines de
+     * fois par réponse — le mécanisme exact de BUG-STREAM-JUMP-001.
+     */
+    useEffect(() => {
+      if (!inviteEnAttenteDeFilNeuf) {
+        return;
+      }
+
+      if ((messages?.length ?? 0) > 0) {
+        return;
+      }
+
+      const invite = inviteEnAttenteDeFilNeuf;
+      setInviteEnAttenteDeFilNeuf(null);
+
+      const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+      if (!envoyer || tourEnCours) {
+        insertIntoComposer(invite, { replace: true });
+        return;
+      }
+
+      void envoyer({} as unknown as React.UIEvent, invite);
+    }, [inviteEnAttenteDeFilNeuf, messages?.length, insertIntoComposer]);
 
     /*
      * Composer draft persistence — the typed-but-unsent prompt survives a
@@ -2814,6 +2805,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               severity?: string;
               source?: string;
               prompt?: string;
+              cible?: string;
               envoyer?: boolean;
             }
           | undefined;
@@ -2860,13 +2852,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
          *     l'utilisateur choisit son moment.
          */
-        const lancerLAgent = (invite: string) => {
+        const lancerLAgent = (invite: string, cible?: string | null) => {
           allerAuPanneauAgent();
 
-          const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+          const {
+            sendMessage: envoyer,
+            isStreaming: tourEnCours,
+            resetChat: ouvrirUnFilNeuf,
+          } = rappelsAgentTache.current;
 
-          if (!envoyer || tourEnCours) {
+          const geste = gesteDeLancementDeLAgent({
+            cible,
+            peutEnvoyer: Boolean(envoyer),
+            tourEnCours: Boolean(tourEnCours),
+            peutOuvrirUnFilNeuf: Boolean(ouvrirUnFilNeuf),
+          });
+
+          if (geste === 'composeur') {
             insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * BUG-PUBLISH-REPARER-CIBLE-001 — « dans une nouvelle tâche » archive
+           * la conversation courante ; l'invite part ensuite, quand le fil vidé
+           * est commis (voir l'effet `inviteEnAttenteDeFilNeuf`).
+           */
+          if (geste === 'fil-neuf') {
+            ouvrirUnFilNeuf?.();
+            setInviteEnAttenteDeFilNeuf(invite);
+
             return;
           }
 
@@ -2876,12 +2891,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * dans une surface que personne ne regarde — le défaut d'origine,
            * par un autre chemin.
            */
-          window.requestAnimationFrame(() => envoyer({} as unknown as React.UIEvent, invite));
+          window.requestAnimationFrame(() => envoyer?.({} as unknown as React.UIEvent, invite));
         };
 
         /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
-        if (detail?.kind === 'fix-publication' && typeof detail.prompt === 'string' && detail.prompt.trim()) {
-          lancerLAgent(detail.prompt);
+        if (detail?.kind === TACHE_DE_REPARATION && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          lancerLAgent(detail.prompt, detail.cible);
 
           return;
         }
@@ -3382,7 +3397,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const ensureMobileOpenTab = useCallback(
       (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        const tab = ECODE_MOBILE_TAB_META[outilCanonique(tabId)] ?? {
           id: tabId,
           name: panelTitle(tabId, t),
           icon: panelIcon(tabId),
@@ -9582,8 +9597,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
-    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
-      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[outilCanonique(activeMobileOpenTabId)] ??
+      ECODE_MOBILE_TAB_META[outilCanonique(mobilePanel)] ?? {
         id: activeMobileOpenTabId,
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
@@ -9601,7 +9616,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy'
-        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+        ? (ECODE_MOBILE_TAB_META[outilCanonique(activeMobileServicePanel)] ?? {
             id: activeMobileServicePanel,
             name: panelTitle(activeMobileServicePanel, t),
             icon: panelIcon(activeMobileServicePanel),
@@ -9611,7 +9626,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
           const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
-          const meta = ECODE_MOBILE_TAB_META[itemId];
+          const meta = ECODE_MOBILE_TAB_META[outilCanonique(itemId)];
 
           return {
             id: itemId,
@@ -10357,7 +10372,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
                 >
                   {['secrets', 'database', 'settings'].map((toolId) => {
-                    const tool = ECODE_MOBILE_TAB_META[toolId];
+                    const tool = ECODE_MOBILE_TAB_META[outilCanonique(toolId)];
 
                     return (
                       <button
@@ -11374,10 +11389,40 @@ function ProjectIdeApiServicePanel({
     });
   }, [collaborationRealtime.snapshot, panel]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — CE GESTIONNAIRE REÇOIT DEUX CHOSES,
+   * et il n'en acceptait qu'une.
+   *
+   * Les formulaires du panneau l'appellent avec un ÉVÉNEMENT React. Mais les
+   * gestes de la carte « Gérer votre application » — annuler, republier,
+   * revenir en arrière — l'appellent DIRECTEMENT avec un `FormData` déjà
+   * rempli. Or `FormData` n'a pas de `preventDefault` : la toute première
+   * instruction levait un `TypeError`.
+   *
+   * ET CE TypeError ÉTAIT INVISIBLE, pour deux raisons qui s'additionnent :
+   * la fonction est `async`, donc le throw devient une promesse rejetée au
+   * lieu de remonter dans le gestionnaire de clic ; et l'appelant ne faisait
+   * ni `await` ni `.catch`. Résultat : quatre boutons morts, sans un seul
+   * message à l'écran — « aucun bouton fonctionne » (Avi).
+   *
+   * ⚠️ DONT LE MIEN. Le correctif de BUG-PUBLISH-NOOP-001, ce matin, a retiré
+   * le `setTab('manage')` et mis un vrai envoi à la place. Le bouton a donc
+   * cessé de changer d'onglet — et n'a rien déclenché non plus. J'ai déplacé
+   * le défaut au lieu de le corriger, et ma garde ne l'a pas vu parce qu'elle
+   * vérifiait le CÂBLAGE dans la source sans jamais EXÉCUTER l'appel.
+   *
+   * Ce que le type disait déjà, et que personne n'a lu : `ProjectIdePanelContent`
+   * déclare bien `(event: React.FormEvent<HTMLFormElement>) => void`, mais
+   * `ProjectDeploymentsPanel` re-déclarait la même prop `any` — le `any`
+   * éteignait la seule vérification qui aurait attrapé l'écart à la
+   * construction.
+   */
+  async function submit(entree: React.FormEvent<HTMLFormElement> | FormData) {
+    const formulaire = entree instanceof FormData ? null : entree.currentTarget;
 
-    const form = event.currentTarget;
+    if (formulaire) {
+      (entree as React.FormEvent<HTMLFormElement>).preventDefault();
+    }
 
     if (!projectId) {
       return;
@@ -11393,7 +11438,9 @@ function ProjectIdeApiServicePanel({
      * dont l'action est portée par un `<button name="intent">` envoyait une
      * intention vide et recevait un `200` sans que rien ne se passe.
      */
-    const formData = donneesDuFormulaire(event);
+    const formData =
+      entree instanceof FormData ? entree : donneesDuFormulaire(entree as React.FormEvent<HTMLFormElement>);
+
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -11445,8 +11492,9 @@ function ProjectIdeApiServicePanel({
         setActionNotice(formatProjectPanelActionNotice(t, intent));
       }
 
-      if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
-        form.reset();
+      // Il n'y a rien à réinitialiser quand l'appel ne vient pas d'un formulaire.
+      if (formulaire && shouldResetIdePanelFormAfterSubmit(panel, intent)) {
+        formulaire.reset();
       }
 
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
@@ -11621,7 +11669,7 @@ function ConfirmSubmitForm({
   children,
   ...formProps
 }: Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'title'> & {
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   title: string;
   description: string;
   confirmLabel: string;
@@ -13909,7 +13957,7 @@ function ProjectIdePanelContent({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   reload?: () => void | Promise<void>;
   lastLoadedAt?: string;
@@ -23086,7 +23134,15 @@ function ProjectDeploymentsPanel({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: any;
+
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — le contrat est EXPLICITE, plus `any`.
+   * Ce panneau appelle `onSubmit` des deux façons : en gestionnaire de
+   * `<form onSubmit={...}>`, et directement avec un `FormData` pour les gestes
+   * de la carte « Gérer votre application ». Le `any` masquait l'écart ; le
+   * type l'énonce, et le compilateur le vérifie.
+   */
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
 }) {
   const { t, i18n } = useTranslation();
@@ -23108,10 +23164,8 @@ function ProjectDeploymentsPanel({
    * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
    * seule règle pour les deux surfaces.
    */
-  const demanderReparationParLAgent = useCallback((invite: string) => {
-    window.dispatchEvent(
-      new CustomEvent('vibecore:agent-task', { detail: { kind: 'fix-publication', prompt: invite } }),
-    );
+  const demanderReparationParLAgent = useCallback((demande: DemandeDeReparation) => {
+    window.dispatchEvent(new CustomEvent('vibecore:agent-task', { detail: detailDeTacheDeReparation(demande) }));
   }, []);
 
   /*
@@ -23192,6 +23246,20 @@ function ProjectDeploymentsPanel({
             ilYA={(date) => ilYADepuis(date, language)}
             onRepublier={republier}
             onAjouterUnDomaine={() => setTab('domains')}
+            onAnnuler={(deploymentId) => {
+              /*
+               * BUG-PUBLISH-BOUTONS-001 — `onAnnuler` était déclaré et jamais
+               * passé : la garde `enCours && dernier.id && onAnnuler` du
+               * composant empêchait le bouton d'entrer dans le DOM. Ce n'était
+               * donc pas un bouton inerte, c'était un bouton ABSENT —
+               * l'annulation n'était atteignable qu'en passant par « Ajuster
+               * les réglages ».
+               */
+              const donnees = new FormData();
+              donnees.set('intent', 'cancel');
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
             onReparerAvecAgent={demanderReparationParLAgent}
             carteTarifaire={(data as any).rateCard ?? null}
             onOuvrirLesSecrets={() =>
@@ -23484,7 +23552,7 @@ function ProjectDeploymentAction({
 }: {
   intent: string;
   deploymentId: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   children: React.ReactNode;
 }) {

@@ -39,6 +39,14 @@ import {
  * est repris ; les données restent les nôtres.
  */
 
+/** Où la réparation doit être menée : dans le fil courant, ou dans un fil neuf. */
+export type CibleDeReparation = 'conversation' | 'tache';
+
+export interface DemandeDeReparation {
+  invite: string;
+  cible: CibleDeReparation;
+}
+
 export interface PublicationReplitProps {
   deployments: readonly Deploiement[];
   language?: string | null;
@@ -49,7 +57,22 @@ export interface PublicationReplitProps {
   onRepublier?: () => void;
   onAjusterLesReglages?: () => void;
   onAnnuler?: (deploymentId: string) => void;
-  onReparerAvecAgent?: (invite: string, cible: 'conversation' | 'tache') => void;
+
+  /*
+   * BUG-PUBLISH-REPARER-CIBLE-001 — UNE DEMANDE, PAS DEUX ARGUMENTS.
+   *
+   * Cette prop déclarait `(invite: string, cible: 'conversation' | 'tache')`.
+   * L'hôte, lui, branchait une fonction à UN seul paramètre. TypeScript
+   * l'accepte : la bivariance des paramètres laisse passer une fonction moins
+   * gourmande là où on en déclare une plus large. Le `cible` partait donc à
+   * chaque clic et n'arrivait jamais — « Réparer dans une nouvelle tâche »
+   * faisait exactement, et silencieusement, ce que faisait « Réparer dans la
+   * conversation ».
+   *
+   * Un OBJET ferme ce trou : un hôte qui reçoit `{ invite, cible }` ne peut pas
+   * l'accepter en croyant recevoir une chaîne — le compilateur refuse.
+   */
+  onReparerAvecAgent?: (demande: DemandeDeReparation) => void;
   onAjouterUnDomaine?: () => void;
   ilYA: (date: string | undefined | null) => string;
 }
@@ -140,17 +163,17 @@ export const PublicationReplit = memo(
     const [reglages, setReglages] = useState(false);
 
     const reparer = useCallback(
-      (cible: 'conversation' | 'tache') => {
+      (cible: CibleDeReparation) => {
         setMenuReparation(false);
-        onReparerAvecAgent?.(
-          invitePourReparerLaPublication({
+        onReparerAvecAgent?.({
+          invite: invitePourReparerLaPublication({
             nombreDEchecs: echecs?.nombre ?? 1,
             provider: dernier?.provider ?? undefined,
             environment: dernier?.environment ?? undefined,
             journal,
           }),
           cible,
-        );
+        });
       },
       [dernier, echecs, journal, onReparerAvecAgent],
     );

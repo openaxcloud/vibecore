@@ -102,7 +102,23 @@ export interface WorkspaceStaticBuildOptions {
 
 export type WorkspaceBuildPhase = 'installing' | 'building' | 'deploying';
 
+/*
+ * BUG-DEPLOY-010 — le bac à sable est PRÉPARÉ, et il est VIDE.
+ *
+ * Mesuré le 17/08, deux déploiements sur deux : `npm` meurt sur
+ * `Could not read package.json: '/workspace/.vibecore-deploy-<id>/package.json'`
+ * (sortie 254), le répertoire isolé existe, et aucun fichier du projet n'y a
+ * été copié — alors que le MÊME script rejoué à la main dans le pod copie
+ * bien les cinq entrées.
+ *
+ * Ce que l'étape de préparation ne savait pas dire : `find … -exec cp` rend 0
+ * même quand aucun `cp` n'a eu lieu. Elle ne lisait que le code de sortie,
+ * donc un « rien copié » se présentait comme un succès, et l'échec
+ * n'apparaissait que cent lignes plus loin sous un message npm qui accuse le
+ * mauvais coupable.
+ */
 export type WorkspaceStaticBuildErrorCode =
+  | 'SANDBOX_EMPTY'
   | 'INSTALL_FAILED'
   | 'BUILD_FAILED'
   | 'BUILD_TIMEOUT'
@@ -282,6 +298,14 @@ if (forced.length) {
 }
 `;
 
+/*
+ * BUG-DEPLOY-010 — code de sortie du script de préparation quand la copie n'a
+ * rien produit. Choisi hors des codes que `sh`, `find` ou `cp` émettent
+ * eux-mêmes (1, 2, 126, 127, 128+n), pour qu'il ne puisse pas être confondu
+ * avec un échec de commande.
+ */
+const CODE_SORTIE_BAC_A_SABLE_VIDE = 65;
+
 /**
  * Run the static build inside the workspace pod and materialize the artifact
  * locally. Pure orchestration over the injected agent — unit-tested in
@@ -326,11 +350,39 @@ export async function runWorkspaceStaticBuild(
 
       const sandboxBase = posix.basename(sandbox);
 
+      /*
+       * BUG-DEPLOY-010 — la copie DIT ce qu'elle a fait, et refuse de mentir.
+       *
+       * Les trois lignes qui suivent la copie ne sont pas décoratives : ce sont
+       * les seules qui distinguent « la copie a échoué » de « il n'y avait rien
+       * à copier », et « le pod a copié ailleurs » de « le pod n'a rien copié ».
+       * Elles impriment les chemins ABSOLUS des deux côtés — c'est ce qui
+       * manquait pour trancher, le 17/08, entre un `cp` muet et une préparation
+       * exécutée dans un répertoire qui n'est pas celui du build.
+       *
+       * `exit 65` plutôt qu'un journal : un bac à sable vide ne produira JAMAIS
+       * un artefact. Continuer, c'est faire échouer le déploiement cent lignes
+       * plus loin sur un message npm sans rapport.
+       */
+      const filtre = `-mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "${sandboxBase}"`;
+
       const prepScript = [
         'set -e',
         `rm -rf "${sandbox}"`,
         `mkdir -p "${sandbox}"`,
-        `find "${sourceCwd}" -mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "${sandboxBase}" -exec cp -a {} "${sandbox}/" ';'`,
+        `find "${sourceCwd}" ${filtre} -exec cp -a {} "${sandbox}/" ';'`,
+        `source_abs=$(cd "${sourceCwd}" && pwd)`,
+        `sandbox_abs=$(cd "${sandbox}" && pwd)`,
+        `attendus=$(find "${sourceCwd}" ${filtre} | wc -l | tr -d ' ')`,
+        `copies=$(find "${sandbox}" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')`,
+        'echo "source=$source_abs entries=$attendus -> sandbox=$sandbox_abs copied=$copies"',
+        'if [ "$attendus" -gt 0 ] && [ "$copies" -eq 0 ]; then',
+        '  echo "sandbox is EMPTY after the copy (source=$source_abs entries=$attendus)"',
+        `  exit ${CODE_SORTIE_BAC_A_SABLE_VIDE}`,
+        'fi',
+        `if [ ! -f "${sandbox}/package.json" ]; then`,
+        '  echo "no package.json in the sandbox (source=$source_abs entries=$attendus copied=$copies)"',
+        'fi',
       ].join('\n');
 
       const prep = await agent.runStep({
@@ -346,6 +398,21 @@ export async function runWorkspaceStaticBuild(
           `Workspace deploy: could not reach the workspace to prepare the build sandbox (${prep.error}).`,
         );
         return { ok: false, logs: log.logs, error: 'AGENT_UNREACHABLE' };
+      }
+
+      /*
+       * BUG-DEPLOY-010 — un bac à sable vide n'est pas « une installation qui a
+       * échoué ». Le confondre avec `INSTALL_FAILED` envoyait l'utilisateur
+       * chercher un défaut dans ses dépendances.
+       */
+      if (prep.exitCode === CODE_SORTIE_BAC_A_SABLE_VIDE) {
+        log.push(
+          'error',
+          'Workspace deploy: the isolated build sandbox was prepared but is EMPTY — no project file was copied ' +
+            'into it. The [prepare] lines above carry the absolute source and sandbox paths and the entry counts.',
+        );
+
+        return { ok: false, logs: log.logs, error: 'SANDBOX_EMPTY' };
       }
 
       if (prep.exitCode !== 0) {

@@ -152,6 +152,108 @@ describe('runWorkspaceStaticBuild', () => {
     expect(last.args[1]).toContain('rm -rf ".deploy-x"');
   });
 
+  /*
+   * BUG-DEPLOY-010 — P0 mesuré le 17/08, deux déploiements sur deux : le bac à
+   * sable était créé et RESTAIT VIDE. `npm` mourait cent lignes plus loin sur
+   * `Could not read package.json: '/workspace/.vibecore-deploy-<id>/package.json'`,
+   * un message qui accuse le projet de l'utilisateur alors que la copie n'avait
+   * simplement rien produit.
+   *
+   * Ce que l'étape ne savait pas dire : `find … -exec cp` rend 0 même quand
+   * aucun `cp` n'a eu lieu. Elle ne lisait que le code de sortie — un zéro qui
+   * ne prouvait rien (règle 14).
+   */
+  it('MESURE ce que la copie a produit, et imprime les chemins absolus des deux côtés', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+        return { exitCode: 0, timedOut: false };
+      }),
+      listFiles: vi.fn(async (path: string) => ({
+        files: path === '.deploy-m/dist' ? [{ path: '.deploy-m/dist/index.html', size: 12 }] : [],
+      })),
+      readFile: vi.fn(async () => ({ content: '<html></html>', encoding: 'utf8' as const })),
+    });
+
+    await runWorkspaceStaticBuild({ ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-m' }, agent);
+
+    const prep = calls[0].args[1];
+
+    /*
+     * Les deux chemins absolus : c'est ce qui manquait pour trancher entre un
+     * `cp` muet et une préparation exécutée ailleurs que le build.
+     */
+    expect(prep).toContain('source_abs=$(cd "." && pwd)');
+    expect(prep).toContain('sandbox_abs=$(cd ".deploy-m" && pwd)');
+
+    // Les deux comptes, et la ligne qui les rend lisibles dans le journal.
+    expect(prep).toContain('attendus=$(find');
+    expect(prep).toContain('copies=$(find ".deploy-m" -mindepth 1 -maxdepth 1 | wc -l');
+    expect(prep).toContain('echo "source=$source_abs entries=$attendus -> sandbox=$sandbox_abs copied=$copies"');
+
+    // Et la sortie en erreur quand la copie n'a rien produit alors qu'il y avait à copier.
+    expect(prep).toContain('if [ "$attendus" -gt 0 ] && [ "$copies" -eq 0 ]; then');
+    expect(prep).toContain('exit 65');
+  });
+
+  it('un bac à sable VIDE rend SANDBOX_EMPTY, pas INSTALL_FAILED', async () => {
+    const dir = await materializeDir();
+    const calls: { command: string; args: string[] }[] = [];
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => {
+        calls.push({ command, args });
+
+        // La préparation signale un bac à sable vide (le code du script).
+        return { exitCode: command === 'sh' && args[1].includes('mkdir -p') ? 65 : 0, timedOut: false };
+      }),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-vide' },
+      agent,
+    );
+
+    expect(result.ok).toBe(false);
+
+    /*
+     * Le code distinct est la moitié qui compte : confondre un bac à sable vide
+     * avec `INSTALL_FAILED` envoyait l'utilisateur chercher un défaut dans ses
+     * dépendances, là où le défaut est chez nous.
+     */
+    expect(result.error).toBe('SANDBOX_EMPTY');
+    expect(result.error).not.toBe('INSTALL_FAILED');
+
+    const journal = result.logs.map((entree) => entree.message).join('\n');
+    expect(journal).toContain('EMPTY');
+
+    // Et le bac à sable est démonté même dans ce cas.
+    const dernier = calls[calls.length - 1];
+    expect(dernier.command).toBe('sh');
+    expect(dernier.args[1]).toContain('rm -rf ".deploy-vide"');
+  });
+
+  it('un autre code de sortie de la préparation reste INSTALL_FAILED', async () => {
+    const dir = await materializeDir();
+
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command, args }: { command: string; args: string[]; cwd: string }) => ({
+        exitCode: command === 'sh' && args[1].includes('mkdir -p') ? 1 : 0,
+        timedOut: false,
+      })),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-z' },
+      agent,
+    );
+
+    expect(result.error).toBe('INSTALL_FAILED');
+  });
+
   it('tears down the sandbox even when the build fails', async () => {
     const dir = await materializeDir();
     const calls: { command: string; args: string[] }[] = [];

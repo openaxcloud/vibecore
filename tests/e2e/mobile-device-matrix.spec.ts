@@ -88,7 +88,7 @@ const compactIdePanels = [
 const compactToolsPaletteItems = [
   { id: 'overview', label: 'Overview' },
   { id: 'preview', label: 'Webview' },
-  { id: 'deployments', label: 'Deployments' },
+  { id: 'deployments', label: 'Publish' },
   { id: 'git', label: 'Git' },
   { id: 'packages', label: 'Packages' },
   { id: 'database', label: 'Database' },
@@ -432,7 +432,7 @@ async function assertCompactShellForProfile(
     await expect(page.getByTestId('mobile-more-menu-sheet'), `${profile.name} more menu`).toBeVisible({
       timeout: 10_000,
     });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
     await page.getByTestId('mobile-more-menu-close').click({ force: true });
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);

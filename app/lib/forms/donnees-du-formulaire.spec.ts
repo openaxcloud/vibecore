@@ -106,15 +106,34 @@ describe('les appelants appliquent la règle', () => {
     expect(submit![1], 'l’intention repartirait vide').not.toContain('new FormData(form)');
   });
 
-  it('le submit générique des panneaux applique la même règle', () => {
+  /*
+   * Cette règle valait pour UN submit, et la garde s'y accrochait par le NOM de
+   * son paramètre (`submit(event: React.FormEvent…`). Renommer ce paramètre —
+   * ce qu'a exigé BUG-PUBLISH-ONSUBMIT-FORMDATA-001, où le gestionnaire accepte
+   * désormais aussi un `FormData` — a suffi à faire GLISSER l'expression sur un
+   * AUTRE submit du même fichier. Elle a alors mesuré autre chose que ce qu'elle
+   * annonçait, et l'a dit en rouge pour une raison sans rapport.
+   *
+   * Elle vise donc maintenant TOUS les `async function submit(` du fichier :
+   * la mécanique du bouton porteur d'intention est la même partout, la garde
+   * aussi (règle 7).
+   */
+  it('TOUS les submit de panneau appliquent la même règle', () => {
     const source = lire('app/components/chat/BaseChat.tsx');
 
-    const submit = /async function submit\(event: React\.FormEvent<HTMLFormElement>\) \{([\s\S]*?)\n {4}try \{/u.exec(
-      source,
-    );
+    /*
+     * Le corps ENTIER, pas jusqu'au premier `try {` : le panneau Terminal
+     * construit ses données À L'INTÉRIEUR du `try`, et s'arrêter là revenait à
+     * l'accuser de ne pas les construire du tout.
+     */
+    const corps = [...source.matchAll(/^ {2}async function submit\([\s\S]*?\n {2}\}$/gmu)].map((m) => m[0]);
 
-    expect(submit, 'le submit générique a disparu').not.toBeNull();
-    expect(submit![1]).toContain('donneesDuFormulaire(event)');
-    expect(submit![1]).not.toContain('new FormData(form)');
+    // Contrôle positif (règle 14) : un « rien à redire » sur zéro corps ne vaut rien.
+    expect(corps.length, 'les submit de panneau ont disparu').toBeGreaterThanOrEqual(2);
+
+    for (const [rang, texte] of corps.entries()) {
+      expect(texte, `submit #${rang} : les données doivent porter l’envoyeur`).toContain('donneesDuFormulaire(');
+      expect(texte, `submit #${rang} : l’intention repartirait vide`).not.toContain('new FormData(form)');
+    }
   });
 });
