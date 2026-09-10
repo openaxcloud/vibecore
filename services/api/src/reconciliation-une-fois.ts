@@ -1,11 +1,22 @@
 /**
  * UNE RÉCONCILIATION PAR OUVERTURE, PAS PAR LECTURE D'ARBORESCENCE.
  *
- * `reconcileRuntimeSeedFromPersisted` existe déjà et fait exactement ce qu'il
- * faut : elle pose dans le workspace les fichiers présents dans le stockage
- * durable qui lui manquent, et compare octet à octet ceux qui divergent plutôt
- * que de les écraser. Mais elle n'est appelée que sur DEUX routes — le
- * provisionnement à froid et le redémarrage.
+ * `reconcileRuntimeSeedFromPersisted` pose dans le workspace les fichiers que le
+ * stockage durable possède et qu'il n'a pas. Elle n'est appelée que sur DEUX
+ * routes — le provisionnement à froid et le redémarrage.
+ *
+ * ⚠️ CE MODULE NE LIMITE QUE LA FRÉQUENCE, PAS LA PORTÉE.
+ *
+ * Une version antérieure de ce commentaire affirmait qu'elle « compare octet à
+ * octet ceux qui divergent plutôt que de les écraser ». C'était FAUX : la
+ * fonction écrit aussi les divergents. La portée est tenue ailleurs, par
+ * `doitEcrireDansWorkspace` dans `portee-reconciliation.ts`, et c'est là qu'il
+ * faut aller vérifier ce qui est réellement écrit.
+ *
+ * Une phrase fausse dans un commentaire est pire qu'un commentaire absent : elle
+ * dispense le lecteur suivant de vérifier. Elle m'a dispensé moi-même, et j'ai
+ * branché sur un workspace vivant une fonction qui écrase les fichiers
+ * divergents — exactement ce que je croyais qu'elle ne faisait pas.
  *
  * Elle ne tourne donc JAMAIS à la réouverture d'un projet dont le workspace est
  * déjà `RUNNING`. Mesuré le 2026-09-09 : une génération au transcrit complet à

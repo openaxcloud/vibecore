@@ -1046,7 +1046,7 @@ test.describe('responsive IDE shell', () => {
 
     const toolsSheet = await openMobileToolsSheet(page);
     await expect(toolsSheet).toBeVisible({ timeout: 15_000 });
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-commands')).toContainText('Commands');
     await expect(toolsSheet.getByTestId('tool-item-share')).toContainText('Share');
@@ -1074,7 +1074,7 @@ test.describe('responsive IDE shell', () => {
     await expectFloatingSurfaceFitsViewport(page.getByTestId('mobile-more-menu-sheet'), 'tablet more menu', {
       minInteractiveHeight: 44,
     });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-object-storage')).toContainText('Object Storage');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
@@ -1709,7 +1709,7 @@ createServer((request, response) => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const toolsSheet = await openMobileToolsSheet(page);
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByText('Publishing', { exact: true })).toHaveCount(0);
     await page.keyboard.press('Escape');
@@ -1774,7 +1774,7 @@ createServer((request, response) => {
     await expect(page.getByTestId('mobile-ide-header')).toContainText('Database');
 
     const toolsSheet = await openMobileToolsSheet(page);
-    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Deployments');
+    await expect(toolsSheet.getByTestId('tool-item-deployments')).toContainText('Publish');
     await expect(toolsSheet.getByTestId('tool-item-object-storage')).toContainText('Object Storage');
     await expect(toolsSheet.getByTestId('tool-item-debugger')).toContainText('Debugger');
     await expect(toolsSheet.getByTestId('tool-item-activity')).toContainText('Activity');
@@ -1821,7 +1821,7 @@ createServer((request, response) => {
 
     await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Deployments');
+    await expect(page.getByTestId('mobile-more-menu-deployments')).toContainText('Publish');
     await expect(page.getByTestId('mobile-more-menu-settings')).toContainText('Settings');
     await page.keyboard.press('Escape');
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);

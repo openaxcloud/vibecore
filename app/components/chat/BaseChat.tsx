@@ -168,7 +168,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import {
   IdePanelHeader,
   PanelButton,
@@ -506,67 +506,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-/*
- * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
- * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
- * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
- * - `agent` (marque, rendue à part) ;
- * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
- *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
- *   registre (même si la valeur actuelle y est identique).
- */
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
-  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
-  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
-  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
-  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
-  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
-  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
-  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
-  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
-  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
-  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
-  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
-  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
-  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
-  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
-  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
-  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
-  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
-  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
-  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
-  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
-  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
-  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
-  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
-  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
-};
+import { ECODE_MOBILE_TAB_META_BASE, outilCanonique } from '~/lib/mobile-tab-meta';
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -3456,7 +3396,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const ensureMobileOpenTab = useCallback(
       (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        const tab = ECODE_MOBILE_TAB_META[outilCanonique(tabId)] ?? {
           id: tabId,
           name: panelTitle(tabId, t),
           icon: panelIcon(tabId),
@@ -9640,8 +9580,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
-    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
-      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[outilCanonique(activeMobileOpenTabId)] ??
+      ECODE_MOBILE_TAB_META[outilCanonique(mobilePanel)] ?? {
         id: activeMobileOpenTabId,
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
@@ -9659,7 +9599,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy'
-        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+        ? (ECODE_MOBILE_TAB_META[outilCanonique(activeMobileServicePanel)] ?? {
             id: activeMobileServicePanel,
             name: panelTitle(activeMobileServicePanel, t),
             icon: panelIcon(activeMobileServicePanel),
@@ -9669,7 +9609,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
           const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
-          const meta = ECODE_MOBILE_TAB_META[itemId];
+          const meta = ECODE_MOBILE_TAB_META[outilCanonique(itemId)];
 
           return {
             id: itemId,
@@ -10415,7 +10355,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
                 >
                   {['secrets', 'database', 'settings'].map((toolId) => {
-                    const tool = ECODE_MOBILE_TAB_META[toolId];
+                    const tool = ECODE_MOBILE_TAB_META[outilCanonique(toolId)];
 
                     return (
                       <button
