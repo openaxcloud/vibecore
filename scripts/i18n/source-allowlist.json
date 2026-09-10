@@ -1130,7 +1130,7 @@
       "id": "api-audit-and-runtime-machine-reasons",
       "path": "services/api/src/app.ts",
       "rule": "visible-object-copy",
-      "textPattern": "^(?:token_expired_or_revoked|agent-unreachable|persisted-read-failed|no-persisted-files|already-synced|reconciled-from-persisted|missing_storage_key|durable_archive_missing|checksum_mismatch|manager_failed)$",
+      "textPattern": "^(?:token_expired_or_revoked|agent-unreachable|persisted-read-failed|no-persisted-files|espace-non-stabilise|already-synced|reconciled-from-persisted|missing_storage_key|durable_archive_missing|checksum_mismatch|manager_failed)$",
       "justification": "These are audit metadata, reconciliation state, metrics or storage-fallback dimensions. Every related HTTP failure uses a catalogued code/message; the raw identifiers are never rendered.",
       "owner": "api-platform-and-i18n",
       "expiresOn": "2027-08-05"

@@ -316,6 +316,18 @@ describe('app.ts i18n source guard', () => {
       'agent-unreachable',
       'persisted-read-failed',
       'no-persisted-files',
+      /*
+       * DEUX ALLOWLISTES POUR UNE SEULE REGLE, et la seconde est invisible depuis
+       * la premiere. `espace-non-stabilise` avait ete declare dans
+       * `scripts/i18n/source-allowlist.json` — ce qui suffit a `scan-source.mjs`
+       * mais pas ici : ce test relance le scanner SANS la liste JSON et compare
+       * les trouvailles brutes a SA PROPRE copie. Une declaration a un endroit ne
+       * se voit donc pas a l'autre. Consigne dans `BUG_INVENTORY_LIVE.md`.
+       *
+       * Le code lui-meme : motif machine de la reconciliation (app.ts), rendu a
+       * l'appelant interne, jamais affiche.
+       */
+      'espace-non-stabilise',
       'already-synced',
       'reconciled-from-persisted',
       'missing_storage_key',
