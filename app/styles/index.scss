@@ -869,6 +869,13 @@ html:has(.vc-app-shell-grid) body {
   --vc-animation-drop-zone: 100ms;
   --vc-animation-typing: 1.4s;
   --vc-run-stop-bg: #f85149;
+  /*
+   * ON-ACCENT-003 : cet aplat ne bascule PAS (#f85149 dans les deux thèmes) et
+   * le blanc n'y rend que 3,34:1 — mesuré en production sur le bouton
+   * « Démarrage » de l'éditeur. L'encre ne bascule donc pas non plus : #111827
+   * y tient à 5,21 des deux côtés.
+   */
+  --vc-run-stop-ink: #111827;
   --vc-accessibility-focus-width: 2px;
   --vc-accessibility-reduced-motion-duration: 50ms;
   --vc-accessibility-contrast-text: #f5f9fc;
@@ -4057,7 +4064,7 @@ body :where(.vc-typing-indicator, .bolt-project-agent-typing, .typing-indicator)
 
 body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
   background: var(--vc-run-stop-bg);
-  color: #ffffff;
+  color: var(--vc-run-stop-ink);
 }
 
 body
@@ -4375,6 +4382,13 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   // SCR-007 : les CTA pleins à texte blanc du user area utilisent le ton
   // renforcé (5,16:1) — l'orange de marque reste pour bordures/icônes/anneaux.
   --vc-cta-accent: var(--vc-action-primary-strong);
+  /*
+   * ON-ACCENT-003 : la coque fournit SON encre. Le ton renforcé #c2410c est
+   * figé dans les deux thèmes et porte le blanc à 5,18 ; l'encre sombre de
+   * l'IDE (#111827) y tomberait à 3,43. Sans cette ligne, le repli du CTA
+   * partagé appliquerait l'encre de l'IDE et casserait le user area en sombre.
+   */
+  --vc-cta-accent-ink: #ffffff;
   --vc-ide-accent-primary: var(--vc-action-primary);
   --vc-ide-accent: var(--vc-action-primary);
   --vc-ide-text-on-accent: var(--vc-action-primary-foreground);
@@ -4392,6 +4406,20 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 :root[data-theme='light'] .vc-user-area-shell {
+  /*
+   * ON-ACCENT-003 — restitué à l'identique, et c'est le sens de la valeur.
+   *
+   * `theme-token-parity` exige qu'une couleur littérale déclarée par un bloc
+   * thématisé soit reprise dans son bloc clair : sans cette ligne, l'encre du
+   * CTA de la coque fuyait du sombre vers le clair.
+   *
+   * Ici elle NE bascule PAS, volontairement : dans cette coque l'aplat est
+   * `--vc-action-primary-strong` (#c2410c), figé dans les deux thèmes, où le
+   * blanc rend 5,18. À ne pas confondre avec `--vc-action-primary-foreground`
+   * juste au-dessous, qui bascule (#111827 en sombre) parce que SON aplat
+   * bascule. Deux encres voisines, deux aplats différents.
+   */
+  --vc-cta-accent-ink: #ffffff;
   --vc-ide-bg-app: #f5f6f7;
   --vc-ide-bg-panel: #ffffff;
   --vc-ide-bg-card: #f0f1f2;
