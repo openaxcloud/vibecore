@@ -27,6 +27,30 @@
  * ce qui manque, c'est de lui redonner la main quand il s'arrête trop tôt.
  */
 
+/*
+ * ⚠️ UNE RELANCE NUE NE SUFFIT PAS — MESURÉ, PAS SUPPOSÉ.
+ *
+ * Rejoué le 2026-09-10 sur le PRÉAMBULE RÉEL du cas fautif (4 174 caractères,
+ * relu en base), avec la consigne d'Avi (6 230 caractères) et la consigne
+ * système de production, appelé depuis le pod de production :
+ *
+ *   relance nue (`CONTINUE_PROMPT`) ....... 2 870 car., ZÉRO fichier, pas
+ *                                           d'artefact — le modèle réécrit un
+ *                                           préambule (« Je poursuis la
+ *                                           génération… ») et s'arrête ENCORE ;
+ *   relance explicite (ci-dessous) ........ 27 921 car., 13 fichiers, artefact.
+ *
+ * « Continue where you left off » ne dit pas au modèle que ce qu'il a laissé
+ * était une ANNONCE : il annonce donc de nouveau. Brancher la continuation
+ * existante sur ce cas aurait été le correctif qui a l'air juste et ne change
+ * rien — un second tour facturé pour un second préambule.
+ */
+export const RELANCE_ARTEFACT_MANQUANT = [
+  "Tu as annoncé l'artefact sans l'écrire. Passe MAINTENANT à l'implémentation :",
+  'émets le <boltArtifact> avec toutes les actions <boltAction type="file"> nécessaires',
+  "au démarrage de l'application. Aucun préambule, aucune explication — l'artefact seul.",
+].join(' ');
+
 export type FinDeTour = Readonly<{
   /** Raison de fin rendue par le fournisseur. */
   finishReason: string;
@@ -46,7 +70,7 @@ export type FinDeTour = Readonly<{
 
 export type SuiteDuTour =
   | Readonly<{ action: 'terminer' }>
-  | Readonly<{ action: 'continuer'; cause: 'longueur' | 'annonce-sans-artefact' }>
+  | Readonly<{ action: 'continuer'; cause: 'longueur' | 'annonce-sans-artefact'; relance: string }>
   | Readonly<{ action: 'terminer-en-echec'; cause: 'annonce-sans-artefact-plafond' }>;
 
 /**
@@ -59,11 +83,11 @@ export type SuiteDuTour =
  * Au plafond, on termine EN ÉCHEC plutôt qu'en silence : une application vide
  * présentée comme une réussite est précisément le défaut à supprimer.
  */
-export function suiteDuTour(fin: FinDeTour): SuiteDuTour {
+export function suiteDuTour(fin: FinDeTour, relanceLongueur: string): SuiteDuTour {
   if (fin.finishReason === 'length') {
     return fin.segmentsConsommes >= fin.segmentsMax
       ? { action: 'terminer' }
-      : { action: 'continuer', cause: 'longueur' };
+      : { action: 'continuer', cause: 'longueur', relance: relanceLongueur };
   }
 
   if (!fin.modeConstruction || fin.fichierEmis) {
@@ -78,5 +102,5 @@ export function suiteDuTour(fin: FinDeTour): SuiteDuTour {
     return { action: 'terminer-en-echec', cause: 'annonce-sans-artefact-plafond' };
   }
 
-  return { action: 'continuer', cause: 'annonce-sans-artefact' };
+  return { action: 'continuer', cause: 'annonce-sans-artefact', relance: RELANCE_ARTEFACT_MANQUANT };
 }

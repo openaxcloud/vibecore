@@ -53,6 +53,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -1691,8 +1692,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   order: progressCounter++,
                   message: copy.noFilesGenerated,
                 } satisfies ProgressAnnotation);
+
+                /*
+                 * ⚠️ CE JOURNAL ACCUSAIT LE MODELE — « model likely too weak » — et
+                 * cette phrase a oriente CINQ JOURS d'enquete vers une cause fausse.
+                 * Mesure du 2026-09-10 : le meme `gpt-4.1`, appele depuis ce pod
+                 * avec la consigne systeme de production, ecrit VINGT fichiers en
+                 * direct et QUINZE en passant par la plateforme.
+                 *
+                 * Le tour ne s'arrete pas par faiblesse : il s'arrete ENTRE le
+                 * preambule et l'implementation, apres avoir annonce l'artefact.
+                 */
                 logger.warn(
-                  `[chat] build produced no file actions (model likely too weak); projectId=${projectId ?? 'n/a'}`,
+                  `[chat] build turn ended with no file action — stopped between preamble and implementation; ` +
+                    `projectId=${projectId ?? 'n/a'} finishReason=${finishReason} segments=${continuationSegments}`,
                 );
               } catch (error) {
                 logger.warn(`failed to write no-files annotation: ${error instanceof Error ? error.message : error}`);
@@ -1860,8 +1873,39 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * whole body so a failure degrades gracefully: stop recovery, release
              * MCP best-effort, and surface a clean error progress annotation.
              */
+            /*
+             * UNE ANNONCE N'EST PAS UNE LIVRAISON.
+             *
+             * La continuation ne se declenchait que sur `finishReason === 'length'`.
+             * Un tour qui s'arrete DE LUI-MEME apres avoir annonce son artefact
+             * tombait dans la branche « termine » et etait compte comme une reussite
+             * — les trois applications vides du 09-09 : 4 174, 4 379 et 4 587
+             * caracteres, zero fichier, aucune balise fermante.
+             */
+            const suite = suiteDuTour(
+              {
+                finishReason,
+                modeConstruction: chatMode === 'build',
+                fichierEmis: emittedFileAction,
+                segmentsConsommes: continuationSegments,
+                segmentsMax: MAX_RESPONSE_SEGMENTS,
+              },
+              CONTINUE_PROMPT,
+            );
+
             try {
-              if (finishReason !== 'length') {
+              if (finishReason !== 'length' && suite.action !== 'continuer') {
+                if (suite.action === 'terminer-en-echec') {
+                  /*
+                   * Au plafond sans un seul fichier : echec FRANC. Une application
+                   * vide presentee comme une reussite est le defaut que ce chemin
+                   * existe pour supprimer.
+                   */
+                  logger.error(
+                    `[chat] build turn exhausted its segments without a single file; projectId=${projectId ?? 'n/a'}`,
+                  );
+                }
+
                 jalonOnFinish('avant-flushUsage');
                 await flushUsage(finishReason);
                 jalonOnFinish('apres-flushUsage');
@@ -1961,7 +2005,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               processedMessages.push({
                 id: generateId(),
                 role: 'user',
-                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${CONTINUE_PROMPT}`,
+
+                /*
+                 * La relance vient de la DECISION. « Continue where you left off »
+                 * ne dit pas au modele que ce qu'il a laisse etait une ANNONCE, et
+                 * il annonce de nouveau : mesure du 2026-09-10 sur le preambule reel
+                 * du cas fautif, relance nue -> 2 870 caracteres et ZERO fichier ;
+                 * relance explicite -> 27 921 caracteres et TREIZE fichiers.
+                 */
+                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${
+                  suite.action === 'continuer' ? suite.relance : CONTINUE_PROMPT
+                }`,
               });
 
               /*
