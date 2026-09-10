@@ -47,6 +47,7 @@ import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
 import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
+import { arbitrerCacheAnthropic } from '~/lib/.server/llm/arbitrage-cache-anthropic';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
 import { accumulateCacheUsage } from '~/lib/.server/llm/cache-usage';
 import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
@@ -1751,23 +1752,26 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               const completionModel = agentTargetLine ? (routedTurnModel ?? agentTargetLine.model) : tagged.model;
 
               /*
-               * Fold in the off-wire Anthropic cache tokens when the SDK surfaced
-               * none (its provider metadata is empty on 0.0.39). Guarded on
-               * cachedPromptTokens===0 so providers that DO report via metadata
-               * (OpenAI, Google) are never double-counted, and the tally only ever
-               * holds Anthropic data (no other provider reports into it).
+               * CE QUI EST FACTURÉ : les métadonnées, ou le relevé du fil.
+               *
+               * La décision vit dans `arbitrerCacheAnthropic`, épinglée par son spec —
+               * elle décide de ce qui apparaît sur la facture d'un client, et elle
+               * n'était tenue par aucun test tant qu'elle était en ligne ici.
+               *
+               * Règle : les métadonnées gagnent dès qu'elles ont parlé ; le relevé du
+               * fil ne sert que si elles se sont tues, et il REMPLACE, jamais n'ajoute.
+               *
+               * ⚠️ Le relevé du fil ne doit PAS disparaître avec la montée à `1.2.12`.
+               * Mesuré le 2026-09-10 : `0.0.39` ne rapportait rien (`providerMetadata`
+               * = 0 occurrence dans son bundle), `1.2.12` rapporte (16). Le fil reste
+               * le repli quand les métadonnées sont muettes — le retirer casserait ce
+               * qu'il protège, et rien ne l'annoncerait.
                */
               const anthropicWireCache = anthropicCacheStore.getStore();
+              const totauxDeCache = arbitrerCacheAnthropic(cumulativeUsage, anthropicWireCache);
 
-              if (
-                anthropicWireCache &&
-                cumulativeUsage.cachedPromptTokens === 0 &&
-                cumulativeUsage.cacheWriteTokens === 0 &&
-                (anthropicWireCache.read > 0 || anthropicWireCache.write > 0)
-              ) {
-                cumulativeUsage.cachedPromptTokens = anthropicWireCache.read;
-                cumulativeUsage.cacheWriteTokens = anthropicWireCache.write;
-              }
+              cumulativeUsage.cachedPromptTokens = totauxDeCache.cachedPromptTokens;
+              cumulativeUsage.cacheWriteTokens = totauxDeCache.cacheWriteTokens;
 
               logger.info(
                 JSON.stringify({
