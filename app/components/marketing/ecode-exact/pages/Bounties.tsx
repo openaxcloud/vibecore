@@ -80,11 +80,11 @@ export default function MarketingBounties() {
           <div className="relative mx-auto flex max-w-6xl flex-col gap-12 lg:flex-row lg:items-center">
             <div className="flex-1 space-y-6">
               <Badge variant="secondary" className="text-[11px] sm:text-[13px]">
-                <Trophy className="mr-1 h-3 w-3 text-[#F26207]" />
+                <Trophy className="mr-1 h-3 w-3 text-[var(--ecode-accent-text)]" />
                 {copy.hero.badge}
               </Badge>
               <h1 className="mkt-h1 font-bold tracking-tight">
-                {copy.hero.titleBefore} <span className="text-[#F26207]">{copy.hero.titleAccent}</span>
+                {copy.hero.titleBefore} <span className="text-[var(--ecode-accent-text)]">{copy.hero.titleAccent}</span>
               </h1>
               <p className="mkt-lead max-w-2xl text-muted-foreground">{copy.hero.description}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
@@ -103,7 +103,7 @@ export default function MarketingBounties() {
               <div className="flex flex-wrap items-center gap-x-6 gap-y-3 text-[13px] text-muted-foreground">
                 {copy.hero.points.map((point) => (
                   <div key={point} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[#F26207]" />
+                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                     {point}
                   </div>
                 ))}
@@ -133,7 +133,7 @@ export default function MarketingBounties() {
                 />
               </div>
               <figcaption className="mkt-small mt-3 flex items-start gap-2 px-1 text-muted-foreground">
-                <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#F26207] sm:h-4 sm:w-4" />
+                <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--ecode-accent-text)] sm:h-4 sm:w-4" />
                 <span>{copy.hero.imageCaption}</span>
               </figcaption>
             </figure>
@@ -152,7 +152,7 @@ export default function MarketingBounties() {
                 key={title}
                 className="space-y-3 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[var(--ecode-accent-text)] ring-1 ring-[#F26207]/30">
                   <Icon className="h-6 w-6" />
                 </div>
                 <h3 className="mkt-h3 font-semibold">{title}</h3>
@@ -167,7 +167,7 @@ export default function MarketingBounties() {
           <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 lg:flex-row">
             <div className="flex-1 space-y-5">
               <Badge variant="secondary" className="text-[11px] sm:text-[13px]">
-                <Sparkles className="mr-1 h-3 w-3 text-[#F26207]" />
+                <Sparkles className="mr-1 h-3 w-3 text-[var(--ecode-accent-text)]" />
                 {copy.managed.badge}
               </Badge>
               <h2 className="mkt-h2 font-bold">{copy.managed.title}</h2>
@@ -175,7 +175,7 @@ export default function MarketingBounties() {
               <ul className="mkt-body space-y-4 leading-relaxed text-muted-foreground">
                 {pipeline.map(({ id, icon: Icon, title, description }) => (
                   <li key={id} className="flex items-start gap-3">
-                    <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[#F26207] ring-1 ring-[#F26207]/30">
+                    <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[var(--ecode-accent-text)] ring-1 ring-[#F26207]/30">
                       <Icon className="h-5 w-5" />
                     </span>
                     <span>
@@ -198,7 +198,7 @@ export default function MarketingBounties() {
                     <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[#F26207] text-white shadow-sm">
                       <Icon className="h-5 w-5" />
                     </span>
-                    <span className="text-[13px] font-semibold text-[#F26207]">
+                    <span className="text-[13px] font-semibold text-[var(--ecode-accent-text)]">
                       {String(index + 1).padStart(2, '0')}
                     </span>
                   </div>
@@ -215,7 +215,7 @@ export default function MarketingBounties() {
           <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr] lg:items-center">
             <div className="space-y-6">
               <Badge variant="secondary" className="text-[11px] sm:text-[13px]">
-                <Globe2 className="mr-1 h-3 w-3 text-[#F26207]" />
+                <Globe2 className="mr-1 h-3 w-3 text-[var(--ecode-accent-text)]" />
                 {copy.categories.badge}
               </Badge>
               <h2 className="mkt-h2 font-bold">{copy.categories.title}</h2>
@@ -233,7 +233,7 @@ export default function MarketingBounties() {
                     key={label}
                     className="inline-flex items-center gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-[13px] font-medium text-foreground"
                   >
-                    <Icon className="h-4 w-4 text-[#F26207]" aria-hidden />
+                    <Icon className="h-4 w-4 text-[var(--ecode-accent-text)]" aria-hidden />
                     {label}
                   </div>
                 ))}
@@ -245,7 +245,7 @@ export default function MarketingBounties() {
               <div className="pointer-events-none absolute -inset-2 rounded-2xl bg-gradient-to-l from-[#F26207]/15 to-[#F99D25]/15 blur-2xl" />
               <div className="relative overflow-hidden rounded-xl bg-bolt-elements-background-depth-2 shadow-2xl ring-1 ring-bolt-elements-borderColor">
                 <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2.5 sm:px-4">
-                  <Wallet className="h-3.5 w-3.5 text-[#F26207]" />
+                  <Wallet className="h-3.5 w-3.5 text-[var(--ecode-accent-text)]" />
                   <span className="truncate text-[11px] font-medium text-muted-foreground sm:text-[13px]">
                     {copy.categories.windowLabel}
                   </span>
@@ -261,7 +261,7 @@ export default function MarketingBounties() {
                 />
               </div>
               <figcaption className="mkt-small mt-3 flex items-start gap-2 px-1 text-muted-foreground">
-                <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[#F26207] sm:h-4 sm:w-4" />
+                <LayoutDashboard className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-[var(--ecode-accent-text)] sm:h-4 sm:w-4" />
                 <span>{copy.categories.imageCaption}</span>
               </figcaption>
             </figure>
@@ -278,7 +278,10 @@ export default function MarketingBounties() {
               <p className="mkt-lead text-white/90">{copy.cta.description}</p>
               <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <Link href="/register">
-                  <Button size="lg" className="min-h-[44px] w-full bg-white text-[#F26207] hover:bg-white/90 sm:w-auto">
+                  <Button
+                    size="lg"
+                    className="min-h-[44px] w-full bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90 sm:w-auto"
+                  >
                     {copy.cta.primary}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
