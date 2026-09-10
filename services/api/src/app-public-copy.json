@@ -2439,6 +2439,10 @@
     "en": "The agent memory scope limit has been reached.",
     "fr": "La limite de mémoire de l’agent pour ce périmètre est atteinte."
   },
+  "AGENT_MEMORY_UNCONFIGURED": {
+    "en": "Agent memory is not configured in this environment.",
+    "fr": "La mémoire de l'agent n'est pas configurée dans cet environnement."
+  },
   "MCP_ALIAS_FORMAT_INVALID": {
     "en": "The alias may contain only letters, numbers, dashes, and underscores.",
     "fr": "L’alias ne peut contenir que des lettres, des chiffres, des tirets et des traits de soulignement."
