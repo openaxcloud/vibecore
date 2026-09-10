@@ -14,7 +14,7 @@ export const AUTO_MODEL_OPTION: ModelInfo = {
   name: AUTO_MODEL,
 
   /*
-   * Technical fallback only. ModelSelector replaces this with its live,
+   * Technical fallback only. The live model picker replaces this with its
    * localized label before the entry can be rendered.
    */
   label: chatControlsEn['chatControls.model.autoLabel'],

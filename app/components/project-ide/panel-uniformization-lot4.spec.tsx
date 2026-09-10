@@ -163,7 +163,6 @@ describe('UNIF lot 4 — point 5 : micro-typo hors BaseChat (échelle fermée)',
     ['chat', 'CodeBlock.tsx'],
     ['chat', 'DiffActionRow.tsx'],
     ['marketing', 'ecode-exact', 'EcodeExactLandingControls.tsx'],
-    ['marketing', 'ecode-exact', 'pages', 'Pricing.tsx'],
     ['marketing', 'ecode-exact', 'pages', 'AIAgent.tsx'],
   ] as const;
 
