@@ -29,7 +29,7 @@ import { buildChatStreamErrorPayload, ChatQuotaError } from './api.chat.quota-er
 import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
 import {
   anchoredHistoryDrop,
   computeSelectionCacheKey,
@@ -410,6 +410,35 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    */
   let tourDejaFacture = false;
 
+  /*
+   * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR.
+   *
+   * Le SDK génère `messageId: generateMessageId()` à CHAQUE appel `streamText`
+   * (node_modules/ai/dist/index.mjs:5989) et à chaque frontière d'étape outil
+   * (:5969), et pousse la part `start_step` dans le flux sans condition
+   * (:6217). Côté client, `processChatResponse` fait `message.id =
+   * value.messageId` en plein flux (@ai-sdk/ui-utils). Une continuation étant
+   * un NOUVEL appel `streamText` fusionné dans le MÊME flux, l'identifiant du
+   * message d'assistant CHANGEAIT à la couture.
+   *
+   * Deux conséquences mesurées, toutes deux de type perte/duplication :
+   *
+   *   - `StreamingMessageParser` indexe son état par identifiant de message.
+   *     Identifiant neuf = état neuf = position 0 = RE-PARSE de tout le texte
+   *     déjà reçu : la réponse apparaît deux fois, un second artefact s'ouvre
+   *     sous un `ActionRunner` neuf, et les actions `shell` du segment 1 — dont
+   *     `npm install` et le démarrage du serveur — sont RELANCÉES ;
+   *   - la transcription est upsertée sur `sha256(conversationId:message.id)`.
+   *     Identifiant neuf = nouvelle LIGNE au lieu d'une mise à jour, et la
+   *     moitié tronquée du segment 1 reste en base pour toujours.
+   *
+   * Un identifiant fixe pour le tour ferme les deux d'un coup. Il doit être
+   * unique par TOUR et non par conversation : c'est la clé d'upsert de la
+   * transcription, deux tours de la même conversation ne peuvent pas la
+   * partager.
+   */
+  const identifiantDuMessageDeReponse = generateId();
+
   const cumulativeUsage = {
     completionTokens: 0,
     promptTokens: 0,
@@ -460,12 +489,29 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * lorsqu'il n'en reste aucune.
    */
   /*
-   * 12 minutes : la plus longue génération saine mesurée tenait 215 s, et huit
-   * segments peuvent légitimement s'enchaîner. La borne vise l'anomalie, pas le
-   * cas normal — et elle existe pour qu'un `onFinish` qui ne vient jamais ne
-   * transforme pas un écran figé en requête sans fin.
+   * LA BORNE COUVRE LA CHAÎNE ENTIÈRE, PAS UN SEGMENT.
+   *
+   * Elle valait 12 minutes, et son propre commentaire disait déjà pourquoi
+   * c'était trop peu : « la plus longue génération saine mesurée tenait 215 s,
+   * et huit segments peuvent légitimement s'enchaîner ». Huit continuations
+   * (`MAX_RESPONSE_SEGMENTS`) plus l'appel initial font NEUF appels
+   * fournisseur, et `attendre()` arme son délai UNE fois, juste après le
+   * premier merge, sans jamais le ré-armer entre segments : les 12 minutes
+   * couvraient donc les neuf. Sous-dimensionnée d'un facteur 2,4 par sa propre
+   * prémisse.
+   *
+   * Ce que coûtait le dépassement sur une génération SAINE : `execute` rend la
+   * main, la branche `delaiDepasse` écrit une progression terminale, le client
+   * la compte comme une fin de tour et appelle `stop()` — l'agent s'arrête au
+   * milieu d'un fichier pendant que le fournisseur continue de produire, et de
+   * facturer, dans le vide.
+   *
+   * La borne reste là pour l'ANOMALIE — un `onFinish` qui ne vient jamais ne
+   * doit pas transformer un écran figé en requête sans fin — mais elle est
+   * désormais dérivée du nombre de segments autorisés, donc elle suit
+   * automatiquement toute modification de `MAX_RESPONSE_SEGMENTS`.
    */
-  const suiviDeChaine = creerSuiviDeChaine(12 * 60 * 1000);
+  const suiviDeChaine = creerSuiviDeChaine((MAX_RESPONSE_SEGMENTS + 1) * BUDGET_PAR_SEGMENT_MS);
 
   /*
    * JALONS DE `onFinish` — NOMMER L'`await` QUI NE REND JAMAIS LA MAIN.
@@ -1928,6 +1974,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   skillsContext: projectSkills?.context,
                   webReferenceContext: webReferenceContextForContinuation,
                   chatId: conversationId,
+                  identifiantDeMessageStable: identifiantDuMessageDeReponse,
                   onModelDecision: (decidedModel, decidedProvider) => {
                     routedTurnModel = decidedModel;
                     routedTurnProvider = decidedProvider;
@@ -2136,6 +2183,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           skillsContext: projectSkills?.context,
           webReferenceContext,
           chatId: conversationId,
+          identifiantDeMessageStable: identifiantDuMessageDeReponse,
           onModelDecision: (decidedModel, decidedProvider) => {
             routedTurnModel = decidedModel;
             routedTurnProvider = decidedProvider;
