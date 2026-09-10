@@ -326,7 +326,7 @@ export function EcodeAiAgentPage() {
       <MarketingMain>
         <section className="relative overflow-hidden bg-gradient-to-b from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2 py-16 sm:py-20">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(242,98,7,0.16),transparent_34%),radial-gradient(circle_at_80%_15%,rgba(249,157,37,0.14),transparent_28%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Sparkles}>{copy.badge}</Badge>
               <h1 className="mt-6 max-w-3xl mkt-h1 text-bolt-elements-textPrimary">
@@ -379,7 +379,7 @@ export function EcodeAiAgentPage() {
 
         <Section id="agent-demo">
           <SectionIntro title={copy.demoIntro.title} description={copy.demoIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[1.5fr_0.85fr]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[1.5fr_0.85fr]">
             <DemoFrame
               compact
               eyebrow={copy.segmentLabel(selectedSegment.timestamp)}
@@ -588,7 +588,7 @@ export function EcodeAiPlatformPage() {
 
         <Section>
           <SectionIntro title={copy.capabilitiesIntro.title} description={copy.capabilitiesIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[0.9fr_1.1fr]">
             <div className="space-y-4">
               {copy.features.map((feature) => {
                 const Icon = aiPlatformFeatureIcons[feature.key];
@@ -686,7 +686,7 @@ export function EcodeFeaturesPage() {
     <PublicShell>
       <MarketingMain>
         <section className="py-16 sm:py-24">
-          <Container className="grid gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
+          <Container className="grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.92fr_1.08fr] lg:items-center">
             <div>
               <Badge icon={Layers}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -729,7 +729,7 @@ export function EcodeFeaturesPage() {
 
         <Section id="ide">
           <SectionIntro title={copy.ideIntro.title} description={copy.ideIntro.description} />
-          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
             <WorkspaceMockup large />
             <div className="grid gap-4">
               {copy.ideCards.map(([title, description]) => (
@@ -1098,7 +1098,7 @@ export function EcodeDeploymentsPage() {
       <MarketingMain>
         <section className="relative overflow-hidden py-16 sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_20%,rgba(242,98,7,0.14),transparent_32%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
             <div>
               <Badge icon={Rocket}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1 text-bolt-elements-textPrimary">{copy.heroTitle}</h1>
@@ -1178,7 +1178,7 @@ export function EcodeBountiesPage() {
       <MarketingMain>
         <section className="relative overflow-hidden bg-slate-950 py-16 text-white sm:py-24">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(242,98,7,0.22),transparent_32%),radial-gradient(circle_at_82%_12%,rgba(249,157,37,0.18),transparent_28%)]" />
-          <Container className="relative grid gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <Container className="relative grid grid-cols-[minmax(0,1fr)] gap-12 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
               <Badge icon={Handshake}>{copy.heroBadge}</Badge>
               <h1 className="mt-6 mkt-h1">{copy.heroTitle}</h1>
