@@ -1,5 +1,38 @@
 # BUG INVENTORY LIVE
 
+> ## ⚠️ EN TÊTE — UNE EXPLICATION DÉJÀ ÉCRITE DANS LE CODE ORIENTE TOUTE UNE ENQUÊTE
+>
+> **On a cherché cinq jours une coupure qui n'existait pas, parce qu'un commentaire
+> affirmait une cause fausse.**
+>
+> `api.chat.ts` journalisait, quand une génération de construction n'écrivait aucun
+> fichier : `[chat] build produced no file actions (model likely too weak)`. Cette
+> phrase — écrite par quelqu'un, jamais vérifiée par personne — a fixé la
+> direction : on a cherché du côté du modèle, puis de la troncature des transcrits,
+> puis de la persistance, puis du repli fournisseur. Quatre pistes, cinq jours.
+>
+> **Les transcrits n'étaient pas tronqués.** Relus en base le 2026-09-10, les trois
+> applications vides du 09-09 se terminent sur une phrase entière — et cette phrase
+> ANNONCE l'artefact qui ne viendra jamais : « Prêt à générer l'artefact ! »,
+> « Je passe maintenant à la phase d'implémentation complète. » 4 174, 4 379 et
+> 4 587 caractères, zéro fichier, aucune balise fermante. Le tour s'arrête entre le
+> préambule et l'implémentation, sur `finishReason: 'stop'`, et la continuation ne
+> se déclenche que sur `'length'` : il est donc compté comme une **réussite**.
+>
+> **Le modèle n'était pas faible.** Le même `gpt-4.1`, appelé depuis le même pod de
+> production avec la consigne système que la production envoie vraiment, écrit
+> **20 fichiers** en direct et **15** en passant par la plateforme.
+>
+> **Ce n'est pas seulement une leçon sur les commentaires.** Un commentaire faux se
+> corrige. Ce qui coûte, c'est qu'une explication déjà présente dans le code se lit
+> comme un constat : elle ne se présente pas comme une hypothèse, donc on ne pense
+> pas à la vérifier — on part de là. Le réflexe à acquérir : **quand le code
+> explique un défaut, la première mesure porte sur l'explication elle-même.**
+>
+> Corrigé par #525 : le journal dit ce qui est mesuré, la phrase reste citée en
+> commentaire (effacer la trace ferait perdre la leçon), et un test l'interdit dans
+> le code tout en l'exigeant dans les commentaires.
+
 | ID | Bug | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve |
 |---|---|:---:|:---:|:---:|---|
 | BUG-BUILD-ROUTE-EXPORT-001 | **⚠️ MA FAUTE — j'ai cassé la construction sur `main` (run 1578, `8d0bff8`, refusé en 100 s).** En corrigeant BUG-STORAGE-001 j'ai EXPORTÉ une fonction depuis un module de route pour pouvoir la tester. React Router considère tout export d'un module de route comme un export de ROUTE, en retire le code serveur, et s'arrête : « But other route exports in '…' depend on `~/lib/enterprise-api.server` » → `PLUGIN_ERROR`. | ☑ 09/09 | ☑ 09/09 | ☐ | **CE QUI A LAISSÉ PASSER LA FAUTE** : j'avais lancé `typecheck` et les 8151 tests unitaires, tous verts, mais **PAS `pnpm run build`** sur ces commits-là. Typecheck et tests ne sont pas la construction. Les deux fonctions vivent désormais dans `app/lib/ide/` et la route les importe ; construction verte. **GARDE STATIQUE TENTÉE PUIS RETIRÉE, et c'est délibéré** : deux formulations, deux règles FAUSSES — « aucun export étranger dans une route » accusait 89 fichiers sains, puis « … dans une route qui importe du `.server` » en accusait encore 41, alors que la construction les accepte tous. Un test qui accuse ce qui va bien ne protège de rien : on finit par le désactiver. La construction reste l'autorité, et la vraie correction est de PROCÉDÉ. **ET J'AI RECOMMENCÉ AU COUP SUIVANT, autrement** : le run 1579 (`ecc11f3`) a été refusé sur **Production CI**, cette fois parce que mon correctif BUG-GIT-002 ajoutait une phrase anglaise EN DUR (`new Error('A workspace id or project id is required…')`) et que le garde `pnpm run i18n:check` interdit toute nouvelle copie codée en dur. Je ne l'avais pas lancé non plus. Deux refus, deux gardes que j'avais sautées. **La leçon n'est donc pas « lancer le build » mais « lancer CE QUE LA CI LANCE »** : `lint`, `i18n:check`, `typecheck`, `test`, `build` — les cinq, dans cet ordre, avant toute poussée. Corrigé en faisant porter au message le CODE lui-même, via une constante partagée : les mots pour l'utilisateur restent dans le catalogue, traduits. Les cinq gardes sont vertes. **✅ SERVI EN PRODUCTION — run 1580 (`36d0610`), 17:20 UTC**, vérifié étape par étape et non sur la couleur : quatre étages construits (runtime 16:14→16:48, **web** 16:48→16:58, workspace-agent, admin), porte de vulnérabilités et signatures cosign vertes, `helm upgrade` par empreinte 17:12→17:19, « Verify rollout » 17:19 et « Verify running imageIDs match the release manifest » 17:20. |
