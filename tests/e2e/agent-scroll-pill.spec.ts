@@ -104,25 +104,106 @@ async function seedLongueConversation(request: APIRequestContext) {
  * un défilement qui n'a pas eu lieu doit faire échouer le test, pas le rendre
  * vert.
  */
-async function remonterLeFil(page: Page): Promise<boolean> {
-  return page.evaluate(() => {
-    const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
+/**
+ * Remonte le fil, et DIT CE QUI S'EST PASSÉ.
+ *
+ * ⚠️ CETTE SONDE RENDAIT UN BOOLÉEN, et ce booléen confondait TROIS causes très
+ * différentes. Mesuré le 2026-09-10, premier passage du canari WebKit iPhone :
+ * elle rend `false` 3 fois sur 3 à 768 (donc pas une course — règle 17), et le
+ * journal ne dit pas laquelle des trois. On ne peut RIEN conclure d'un échec
+ * qui ne se distingue pas d'un autre :
+ *
+ *   - `zoneIntrouvable` — aucun élément défilant sous le panneau. Sur iOS, le
+ *     défilement est souvent porté par le DOCUMENT plutôt que par un conteneur
+ *     interne : ce serait un écart de moteur, pas un défaut de fil.
+ *   - `dejaEnHaut` — le fil n'était PAS en bas au départ, donc il n'y avait
+ *     rien à remonter. Ce serait le plus intéressant des trois : « le fil ne se
+ *     met pas au dernier message au chargement » est un défaut produit visible.
+ *   - `defilementRefuse` — la position a été posée et n'a pas tenu.
+ *
+ * La sonde rend donc un DIAGNOSTIC. L'assertion reste identique — on n'affaiblit
+ * rien —, mais son message nomme désormais le cas, et le prochain run tranchera
+ * au lieu de répéter « la mesure ne prouve rien ».
+ */
+type ResultatRemontee =
+  | { ok: true }
+  | { ok: false; cause: 'zoneIntrouvable' | 'dejaEnHaut' | 'defilementRefuse'; detail: string };
 
-    const zone = [...(panneau ? panneau.querySelectorAll('*') : [])].find(
+async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
+  return page.evaluate((): ResultatRemontee => {
+    const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
+    const candidats = [...(panneau ? panneau.querySelectorAll('*') : [])];
+
+    const defilants = candidats.filter(
       (element) =>
         element.scrollHeight > element.clientHeight + 20 &&
         ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
     );
 
+    /*
+     * ⚠️ ON NOMME LES CANDIDATS, et pas seulement le premier.
+     *
+     * Mesuré le 10/09, canari WebKit : la sonde a rendu `dejaEnHaut` avec
+     * `scrollTop=0 scrollHeight=2563 clientHeight=599` — 2 563 px de contenu
+     * dans 599, position en HAUT. Séduisant : « le fil ne descend pas au
+     * dernier message sur Safari ». Sauf qu'un fait le contredit — l'assertion
+     * « la pilule ne s'affiche pas » PASSE juste avant, donc l'application, ELLE,
+     * se croit en bas.
+     *
+     * Deux lectures, aux conséquences opposées : soit le fil ne descend
+     * vraiment pas (défaut produit), soit CETTE SONDE ne regarde pas le même
+     * élément que l'application (défaut de mesure). `find` prend le PREMIER
+     * descendant défilant, et rien ne garantit que les moteurs les ordonnent
+     * pareil.
+     *
+     * On rend donc l'identité et l'état de TOUS les candidats. La comparaison
+     * Chromium / WebKit tranchera au prochain passage, sans avoir à deviner.
+     */
+    const decrire = (element: Element) =>
+      `${element.tagName.toLowerCase()}.${[...element.classList].slice(0, 2).join('.') || '∅'}` +
+      `[top=${element.scrollTop} h=${element.scrollHeight} vue=${element.clientHeight}]`;
+
+    const inventaire = defilants.map(decrire).join(' | ') || '∅';
+    const zone = defilants[0];
+
     if (!zone) {
-      return false;
+      /*
+       * On rend de quoi trancher SANS relancer : combien d'éléments ont été
+       * examinés, et si le DOCUMENT lui-même défile — l'hypothèse iOS.
+       */
+      const documentDefile = document.scrollingElement
+        ? document.scrollingElement.scrollHeight > document.scrollingElement.clientHeight + 20
+        : false;
+
+      return {
+        ok: false,
+        cause: 'zoneIntrouvable',
+        detail: `panneau=${Boolean(panneau)} candidats=${candidats.length} documentDefile=${documentDefile} defilants=${inventaire}`,
+      };
     }
 
     const avant = zone.scrollTop;
+
+    if (avant <= 0) {
+      return {
+        ok: false,
+        cause: 'dejaEnHaut',
+        detail: `scrollTop=${avant} scrollHeight=${zone.scrollHeight} clientHeight=${zone.clientHeight} | ${defilants.length} défilant(s) : ${inventaire}`,
+      };
+    }
+
     zone.scrollTop = 0;
     zone.dispatchEvent(new Event('scroll', { bubbles: true }));
 
-    return avant > 0 && zone.scrollTop === 0;
+    if (zone.scrollTop !== 0) {
+      return {
+        ok: false,
+        cause: 'defilementRefuse',
+        detail: `avant=${avant} apres=${zone.scrollTop} | ${defilants.length} défilant(s) : ${inventaire}`,
+      };
+    }
+
+    return { ok: true };
   });
 }
 
@@ -200,7 +281,11 @@ test.describe('pilule « descendre au dernier message »', () => {
        * Témoin positif : si le fil n'a pas réellement défilé, « pas de pilule »
        * ne prouve rien — c'est exactement l'erreur que ma première sonde faisait.
        */
-      expect(await remonterLeFil(page), 'le fil n’a pas défilé : la mesure ne prouve rien').toBe(true);
+      const remontee = await remonterLeFil(page);
+      expect(
+        remontee.ok,
+        remontee.ok ? '' : `le fil n’a pas défilé (${remontee.cause}) : la mesure ne prouve rien — ${remontee.detail}`,
+      ).toBe(true);
       await page.waitForTimeout(1200);
 
       await expect(pilule, 'la pilule n’apparaît pas après avoir remonté le fil').toHaveCount(1);
