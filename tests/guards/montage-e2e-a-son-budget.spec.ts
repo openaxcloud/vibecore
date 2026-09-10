@@ -106,3 +106,74 @@ describe('BUG-E2E-BEFOREALL-BUDGET-001 — un montage E2E a le budget de ce qu�
     ).toEqual([]);
   });
 });
+
+/*
+ * BUG-E2E-NETWORKIDLE-NON-BORNE-001 — une attente qui n'aboutit JAMAIS et qui
+ * consomme tout le budget du test.
+ *
+ * MESURÉ LE 10/09, run E2E de #531, échec DÉTERMINISTE (3 tentatives sur 3,
+ * donc pas un flake — règle 17) :
+ *
+ *     Test timeout of 120000ms exceeded.
+ *     Error: page.waitForTimeout: Target page, context or browser has been closed
+ *
+ * Le message accuse `waitForTimeout`, qui n'y est pour rien : le test était
+ * déjà mort. La cause est l'attente juste au-dessus, un
+ * `waitForLoadState('networkidle')` SANS borne. Sur les pages d'IDE de ce
+ * produit — qui interrogent en boucle l'état d'espace de travail, les ports et
+ * les journaux — l'état « réseau au repos » n'est JAMAIS atteint. L'attente va
+ * donc au bout de son délai, à chaque fois, en silence.
+ *
+ * COÛT RÉEL de cette seule ligne : un cycle de CI rouge, et le canari iOS
+ * SAUTÉ — la porte E2E ayant échoué avant lui, la première mesure de
+ * BUG-SELECT-TOUCH-001 sur le moteur de Safari n'a pas eu lieu.
+ *
+ * La garde vise la RÈGLE : sur ces pages, `networkidle` doit être borné ou ne
+ * pas être utilisé. Deux occurrences aujourd'hui, les deux bornées — c'est
+ * précisément le moment d'épingler, pendant que le compte est à zéro.
+ */
+describe('BUG-E2E-NETWORKIDLE-NON-BORNE-001 — aucune attente réseau sans borne', () => {
+  const fichiers = readdirSync(E2E).filter((nom) => nom.endsWith('.spec.ts'));
+
+  it('la recherche porte sur la vraie suite E2E', () => {
+    // Règle 14 : sans fichiers, « aucune attente non bornée » ne voudrait rien dire.
+    expect(fichiers.length, 'aucun fichier .spec.ts dans tests/e2e').toBeGreaterThan(10);
+  });
+
+  it("chaque `waitForLoadState('networkidle')` porte un délai explicite", () => {
+    const nues: string[] = [];
+
+    for (const nom of fichiers) {
+      const source = readFileSync(join(E2E, nom), 'utf8');
+
+      for (const appel of source.matchAll(/waitForLoadState\(\s*['"]networkidle['"]\s*([^)]*)\)/g)) {
+        const reste = appel[1] ?? '';
+
+        if (!reste.includes('timeout')) {
+          nues.push(`${nom}:${source.slice(0, appel.index).split('\n').length}`);
+        }
+      }
+    }
+
+    expect(
+      nues,
+      `sur une page d’IDE, « réseau au repos » n’arrive jamais : ces attentes consommeront tout le budget du test — ${nues.join(', ')}`,
+    ).toEqual([]);
+  });
+
+  it('le détecteur reconnaît bien une attente NUE — sinon il dirait « aucune » à tout', () => {
+    /*
+     * Contre-épreuve du prédicat lui-même (règle 14 bis) : une liste vide
+     * n'informe que si la recherche sait produire un résultat. On lui montre
+     * les deux formes, sur des chaînes, sans toucher aux fichiers.
+     */
+    const motif = /waitForLoadState\(\s*['"]networkidle['"]\s*([^)]*)\)/g;
+    const nue = [..."await page.waitForLoadState('networkidle');".matchAll(motif)];
+    const bornee = [..."await page.waitForLoadState('networkidle', { timeout: 5_000 });".matchAll(motif)];
+
+    expect(nue).toHaveLength(1);
+    expect(nue[0][1].includes('timeout'), 'une attente nue serait prise pour bornée').toBe(false);
+    expect(bornee).toHaveLength(1);
+    expect(bornee[0][1].includes('timeout'), 'une attente bornée serait accusée à tort').toBe(true);
+  });
+});

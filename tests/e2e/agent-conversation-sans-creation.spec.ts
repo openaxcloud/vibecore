@@ -79,11 +79,22 @@ async function createProjectSession(request: APIRequestContext) {
 
 test('CONV-001 — ouvrir le panneau Agent ne crée aucune conversation', async ({ page, request }) => {
   /*
-   * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
-   * fixture peut attendre plusieurs paliers de repli avant d'obtenir une
-   * session. Le délai par défaut de 30 s ne le couvre pas.
+   * BUDGET — corrigé le 10/09 APRÈS un échec DÉTERMINISTE en CI (3 tentatives
+   * sur 3, donc pas un flake : règle 17).
+   *
+   * Les plafonds de ce test se CUMULENT, et je ne les avais pas additionnés :
+   * `/auth/register` est limité par IP et se replie jusqu'à 3 × 11 s ; le champ
+   * s'attend 60 s ; le signal d'hydratation encore 60 s. Soit 153 s de plafonds
+   * pour un budget de 120 s — le test ne pouvait pas tenir dans son enveloppe,
+   * et il mourait sur `waitForTimeout` avec « Target page, context or browser
+   * has been closed », un message qui ne dit rien de la vraie cause.
+   *
+   * C'est exactement la classe de défaut que garde
+   * `tests/guards/montage-e2e-a-son-budget.spec.ts`, écrite le même jour — sauf
+   * qu'ici la faute est dans le CORPS du test, pas dans un `beforeAll`, donc
+   * cette garde ne pouvait pas l'attraper.
    */
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
 
   const { token, projectId } = await createProjectSession(request);
   const headers = { authorization: `Bearer ${token}` };
@@ -119,8 +130,14 @@ test('CONV-001 — ouvrir le panneau Agent ne crée aucune conversation', async 
    * travail, qui arrive APRÈS l'hydratation : on laisse le réseau se taire
    * avant de conclure, sinon on mesurerait avant le moment où le défaut
    * d'origine se produisait.
+   *
+   * ⚠️ `networkidle` est BORNÉ, et ce n'est pas de la prudence décorative : la
+   * page d'IDE interroge en boucle (état d'espace de travail, ports, journaux),
+   * donc l'état « réseau au repos » n'est JAMAIS atteint et l'attente consomme
+   * tout son délai. Non bornée, elle a fait sauter le budget du test en CI.
+   * Bornée, son coût est connu et l'attente fixe qui suit fait le reste.
    */
-  await page.waitForLoadState('networkidle').catch(() => undefined);
+  await page.waitForLoadState('networkidle', { timeout: 5_000 }).catch(() => undefined);
   await page.waitForTimeout(3_000);
 
   expect(
