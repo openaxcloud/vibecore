@@ -53,6 +53,7 @@ import { extractPropertiesFromMessage } from '~/lib/.server/llm/utils';
 import { checkChatQuota, recordChatUsage, recordProviderMetric } from '~/lib/.server/ai-usage';
 import { decisionDeFacturationSurAbandon } from '~/lib/.server/llm/facturation-abandon';
 import { CONTINUE_PROMPT } from '~/lib/common/prompts/prompts';
+import { suiteDuTour } from '~/lib/runtime/annonce-sans-artefact';
 import { filterEnabledMcpServers, MCPService } from '~/lib/services/mcpService';
 import { loadUserMcpConfig } from '~/lib/.server/mcp/load-config.server';
 import { retrieveSkillsForAgentContext } from '~/lib/.server/llm/project-skills';
@@ -415,9 +416,16 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
    * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR.
    *
    * Le SDK génère `messageId: generateMessageId()` à CHAQUE appel `streamText`
-   * (node_modules/ai/dist/index.mjs:5989) et à chaque frontière d'étape outil
-   * (:5969), et pousse la part `start_step` dans le flux sans condition
-   * (:6217). Côté client, `processChatResponse` fait `message.id =
+   * et à chaque frontière d'étape outil, et pousse la part `start_step` dans le
+   * flux sans condition.
+   *
+   * Vérifié le 2026-09-10 sur `ai@4.3.16` : `node_modules/ai/dist/index.mjs`
+   * ligne 5989 (`messageId: generateMessageId()`), ligne 5969
+   * (`nextStepType === "continue" ? messageId : generateMessageId()`).
+   * ⚠️ Ces numéros valent POUR CETTE VERSION : une montée de `ai` les décale
+   * sans rien casser, et le lecteur suivant lirait autre chose. La version et la
+   * date sont donc portées ici — c'est ce qui rend la référence vérifiable au
+   * lieu de vieillissante. Côté client, `processChatResponse` fait `message.id =
    * value.messageId` en plein flux (@ai-sdk/ui-utils). Une continuation étant
    * un NOUVEL appel `streamText` fusionné dans le MÊME flux, l'identifiant du
    * message d'assistant CHANGEAIT à la couture.
@@ -1691,8 +1699,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   order: progressCounter++,
                   message: copy.noFilesGenerated,
                 } satisfies ProgressAnnotation);
+
+                /*
+                 * ⚠️ CE JOURNAL ACCUSAIT LE MODELE — « model likely too weak » — et
+                 * cette phrase a oriente CINQ JOURS d'enquete vers une cause fausse.
+                 * Mesure du 2026-09-10 : le meme `gpt-4.1`, appele depuis ce pod
+                 * avec la consigne systeme de production, ecrit VINGT fichiers en
+                 * direct et QUINZE en passant par la plateforme.
+                 *
+                 * Le tour ne s'arrete pas par faiblesse : il s'arrete ENTRE le
+                 * preambule et l'implementation, apres avoir annonce l'artefact.
+                 */
                 logger.warn(
-                  `[chat] build produced no file actions (model likely too weak); projectId=${projectId ?? 'n/a'}`,
+                  `[chat] build turn ended with no file action — stopped between preamble and implementation; ` +
+                    `projectId=${projectId ?? 'n/a'} finishReason=${finishReason} segments=${continuationSegments}`,
                 );
               } catch (error) {
                 logger.warn(`failed to write no-files annotation: ${error instanceof Error ? error.message : error}`);
@@ -1860,8 +1880,39 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
              * whole body so a failure degrades gracefully: stop recovery, release
              * MCP best-effort, and surface a clean error progress annotation.
              */
+            /*
+             * UNE ANNONCE N'EST PAS UNE LIVRAISON.
+             *
+             * La continuation ne se declenchait que sur `finishReason === 'length'`.
+             * Un tour qui s'arrete DE LUI-MEME apres avoir annonce son artefact
+             * tombait dans la branche « termine » et etait compte comme une reussite
+             * — les trois applications vides du 09-09 : 4 174, 4 379 et 4 587
+             * caracteres, zero fichier, aucune balise fermante.
+             */
+            const suite = suiteDuTour(
+              {
+                finishReason,
+                modeConstruction: chatMode === 'build',
+                fichierEmis: emittedFileAction,
+                segmentsConsommes: continuationSegments,
+                segmentsMax: MAX_RESPONSE_SEGMENTS,
+              },
+              CONTINUE_PROMPT,
+            );
+
             try {
-              if (finishReason !== 'length') {
+              if (finishReason !== 'length' && suite.action !== 'continuer') {
+                if (suite.action === 'terminer-en-echec') {
+                  /*
+                   * Au plafond sans un seul fichier : echec FRANC. Une application
+                   * vide presentee comme une reussite est le defaut que ce chemin
+                   * existe pour supprimer.
+                   */
+                  logger.error(
+                    `[chat] build turn exhausted its segments without a single file; projectId=${projectId ?? 'n/a'}`,
+                  );
+                }
+
                 jalonOnFinish('avant-flushUsage');
                 await flushUsage(finishReason);
                 jalonOnFinish('apres-flushUsage');
@@ -1961,7 +2012,17 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               processedMessages.push({
                 id: generateId(),
                 role: 'user',
-                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${CONTINUE_PROMPT}`,
+
+                /*
+                 * La relance vient de la DECISION. « Continue where you left off »
+                 * ne dit pas au modele que ce qu'il a laisse etait une ANNONCE, et
+                 * il annonce de nouveau : mesure du 2026-09-10 sur le preambule reel
+                 * du cas fautif, relance nue -> 2 870 caracteres et ZERO fichier ;
+                 * relance explicite -> 27 921 caracteres et TREIZE fichiers.
+                 */
+                content: `[Model: ${continuationModel}]\n\n[Provider: ${continuationProvider}]\n\n${
+                  suite.action === 'continuer' ? suite.relance : CONTINUE_PROMPT
+                }`,
               });
 
               /*
@@ -2243,11 +2304,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         /*
          * LE VERDICT DU FLUX, JOURNALISÉ INCONDITIONNELLEMENT.
          *
-         * `chat.stream.closed` vit dans le `flush` du transform de sortie — et
-         * ce `flush` NE S'EXÉCUTE JAMAIS : zéro occurrence en production alors
-         * que la chaîne est bien dans l'image servie. Un flux avorté ne passe
-         * pas par `flush`. Cette ligne-ci ne dépend d'aucune fermeture propre :
-         * elle part à la fin d'`execute`, quoi qu'il arrive.
+         * `chat.stream.closed` vit dans le `flush` du transform de sortie, et un
+         * flux avorté ne passe pas par `flush`. Cette ligne-ci ne dépend d'aucune
+         * fermeture propre : elle part à la fin d'`execute`, quoi qu'il arrive.
+         *
+         * ⚠️ CE COMMENTAIRE AFFIRMAIT « ce `flush` NE S'EXÉCUTE JAMAIS : zéro
+         * occurrence en production ». C'EST FAUX, et un absolu vieillit mal.
+         * Relevé sur les journaux du pod `web`, fenêtre de 48 h close le
+         * 2026-09-10 à 11 h UTC : UNE génération (`chat.flux.verdict` = 1,
+         * `chat.completion.usage` = 1) et `chat.stream.closed` = 1 — le `flush`
+         * s'est donc exécuté sur 1 tour sur 1. Le « zéro » d'origine venait d'un
+         * échantillon où les flux avortés dominaient, pas d'une branche morte.
+         *
+         * Un commentaire qui affirme un fait mesurable porte la DATE et la
+         * VALEUR : « rare » et « jamais » ne mènent pas au même geste — on
+         * vérifie une branche rare, on ignore une branche morte.
          *
          * `premierDebutMs` départage les deux dernières explications. Si la
          * première génération se compte APRÈS le retour d'`execute`, le
@@ -2259,9 +2330,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * chose sous deux angles : on a attendu une chaîne qui n'avait pas
          * commencé.
          *
-         * `mode` sur la ligne parce que cinq cas sur cinq alignaient l'échec sur
-         * `economy`/opus (plusieurs segments) et le succès sur `lite`/haiku (un
-         * seul). Sans lui, il faudrait recouper deux journaux pour le savoir.
+         * `mode` sur la ligne pour recouper le tour sans ouvrir un second journal.
+         *
+         * ⚠️ CE COMMENTAIRE DISAIT « cinq cas sur cinq alignaient l'échec sur
+         * `economy`/opus ». Le chiffre était juste, la LECTURE était fausse : à
+         * cette date TOUTES les générations étaient en opus, l'échantillon ne
+         * pouvait donc rien aligner d'autre. Biais d'échantillon, pas corrélation.
+         * Mesuré le 2026-09-10 : la cause est l'arrêt du tour entre le préambule et
+         * l'implémentation, indépendante du modèle — le même `gpt-4.1` écrit 20
+         * fichiers en appel direct depuis ce pod.
          */
         logger.info(
           JSON.stringify({
