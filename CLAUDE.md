@@ -172,6 +172,30 @@ généraux : ce sont des pièges qui ont déjà coûté.
     ou un push de test sur une branche jetable. Ces trois-là répondent à la
     question sans jamais lire une valeur.
 
+20. **AVANT de chercher dans une cible, VÉRIFIER QUE LA CIBLE EXISTE.** Un `ls`
+    du répertoire avant le `grep`, un `wc -c` du fichier avant le `sed -n`, un
+    `git rev-parse` de la référence avant le `git log`. Une seconde, et toute
+    une classe d'erreurs disparaît.
+
+    C'est un GESTE, pas de la vigilance : la vigilance échoue précisément quand
+    on est pressé, et une recherche sur une cible absente rend exactement ce que
+    rend une recherche honnête qui ne trouve rien — **zéro**.
+
+    Six occurrences mesurées sur la semaine du 2026-09-04 au 2026-09-10, dont
+    deux le seul 10/09 :
+
+    * `grep -rlF "espace-non-stabilise" /app` dans le pod api → 0. Le code de ce
+      conteneur vit dans `/runtime`. Le correctif ÉTAIT servi ; j'ai failli
+      conclure l'inverse.
+    * `sed -n 5989p node_modules/ai/dist/index.mjs` via un glob `ai@*` qui ne
+      s'est pas développé → « ligne absente », « 0 occurrence ». Les deux
+      références citées étaient EXACTES.
+
+    Le contrôle vaut aussi pour le motif : faire rendre au moins un résultat à
+    la même commande sur un cas connu positif (règle 14) répond à « le motif
+    est-il bon ». Celle-ci répond à la question d'avant : **cherche-t-on au bon
+    endroit**.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
