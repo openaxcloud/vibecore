@@ -134,11 +134,37 @@ async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
     const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
     const candidats = [...(panneau ? panneau.querySelectorAll('*') : [])];
 
-    const zone = candidats.find(
+    const defilants = candidats.filter(
       (element) =>
         element.scrollHeight > element.clientHeight + 20 &&
         ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
     );
+
+    /*
+     * ⚠️ ON NOMME LES CANDIDATS, et pas seulement le premier.
+     *
+     * Mesuré le 10/09, canari WebKit : la sonde a rendu `dejaEnHaut` avec
+     * `scrollTop=0 scrollHeight=2563 clientHeight=599` — 2 563 px de contenu
+     * dans 599, position en HAUT. Séduisant : « le fil ne descend pas au
+     * dernier message sur Safari ». Sauf qu'un fait le contredit — l'assertion
+     * « la pilule ne s'affiche pas » PASSE juste avant, donc l'application, ELLE,
+     * se croit en bas.
+     *
+     * Deux lectures, aux conséquences opposées : soit le fil ne descend
+     * vraiment pas (défaut produit), soit CETTE SONDE ne regarde pas le même
+     * élément que l'application (défaut de mesure). `find` prend le PREMIER
+     * descendant défilant, et rien ne garantit que les moteurs les ordonnent
+     * pareil.
+     *
+     * On rend donc l'identité et l'état de TOUS les candidats. La comparaison
+     * Chromium / WebKit tranchera au prochain passage, sans avoir à deviner.
+     */
+    const decrire = (element: Element) =>
+      `${element.tagName.toLowerCase()}.${[...element.classList].slice(0, 2).join('.') || '∅'}` +
+      `[top=${element.scrollTop} h=${element.scrollHeight} vue=${element.clientHeight}]`;
+
+    const inventaire = defilants.map(decrire).join(' | ') || '∅';
+    const zone = defilants[0];
 
     if (!zone) {
       /*
@@ -152,7 +178,7 @@ async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
       return {
         ok: false,
         cause: 'zoneIntrouvable',
-        detail: `panneau=${Boolean(panneau)} candidats=${candidats.length} documentDefile=${documentDefile}`,
+        detail: `panneau=${Boolean(panneau)} candidats=${candidats.length} documentDefile=${documentDefile} defilants=${inventaire}`,
       };
     }
 
@@ -162,7 +188,7 @@ async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
       return {
         ok: false,
         cause: 'dejaEnHaut',
-        detail: `scrollTop=${avant} scrollHeight=${zone.scrollHeight} clientHeight=${zone.clientHeight}`,
+        detail: `scrollTop=${avant} scrollHeight=${zone.scrollHeight} clientHeight=${zone.clientHeight} | ${defilants.length} défilant(s) : ${inventaire}`,
       };
     }
 
@@ -170,7 +196,11 @@ async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
     zone.dispatchEvent(new Event('scroll', { bubbles: true }));
 
     if (zone.scrollTop !== 0) {
-      return { ok: false, cause: 'defilementRefuse', detail: `avant=${avant} apres=${zone.scrollTop}` };
+      return {
+        ok: false,
+        cause: 'defilementRefuse',
+        detail: `avant=${avant} apres=${zone.scrollTop} | ${defilants.length} défilant(s) : ${inventaire}`,
+      };
     }
 
     return { ok: true };
