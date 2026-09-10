@@ -410,6 +410,7 @@ import {
   deriveDeploymentAccessSecret,
   isAccessTokenValid,
 } from './deployment-access.js';
+import { lireUrlDEnvironnement } from './env-url.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -528,6 +529,38 @@ declare module 'fastify' {
  * These are machine CODES, never user copy: they are appended to the localized
  * message so the deployment log names the actual give-up point.
  */
+/*
+ * BUG-REDIS-URL-GUILLEMETS-001 — signaler la réparation SANS la répéter.
+ *
+ * Plusieurs points du serveur lisent la même variable. Un journal qui répète
+ * cent fois la même ligne se lit comme du bruit et finit ignoré — exactement ce
+ * qui est arrivé aux `connect ENOENT` qui traînaient déjà là.
+ *
+ * L'avertissement ne porte QUE le nom de la variable : une URL de connexion
+ * contient souvent un mot de passe, et un avertissement ne doit pas faire fuir
+ * ce qu'il signale (règle 12).
+ */
+const urlsCiteesDejaSignalees = new Set<string>();
+
+function avertirUrlCitee(nom: string) {
+  if (urlsCiteesDejaSignalees.has(nom)) {
+    return;
+  }
+
+  urlsCiteesDejaSignalees.add(nom);
+
+  console.warn(
+    `[env] ${nom} was wrapped in quotes; they were stripped. ` +
+      'Left as-is, the client would have discarded the configured URL and fallen back to its default host and port. ' +
+      'Fix the value at its source (configmap, secret, or .env) — the quotes are not part of the URL.',
+  );
+}
+
+/** Test hook: oublie ce qui a déjà été signalé, pour que chaque test parte propre. */
+export function reinitialiserAvertissementsUrlCitee() {
+  urlsCiteesDejaSignalees.clear();
+}
+
 export type WorkspacePodBuildRefusal =
   | 'NO_USER_CONTEXT'
   | 'NO_WEBSOCKET_RUNTIME'
@@ -5473,7 +5506,13 @@ async function providerHealth(
 
 async function adminHealthSummary(store: ApiStore, locale: TransactionalLocale) {
   const databaseUrl = process.env.DATABASE_URL;
-  const redisUrl = process.env.REDIS_URL;
+
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — citée, l'URL n'échoue pas : `ioredis` la
+   * JETTE et retombe sur `localhost:6379`. Une sonde qui lit la variable nue
+   * rapporterait « configuré » sur une URL que le client n'utilise jamais.
+   */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
 
   /*
    * Real connectivity probe against Postgres: issue a trivial query rather than
@@ -7938,7 +7977,9 @@ type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
 
 function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
-  const redisUrl = process.env.REDIS_URL;
+
+  /* BUG-REDIS-URL-GUILLEMETS-001 — voir `env-url.ts` : citée, l'URL est jetée. */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
   const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
 
   /*
@@ -9031,11 +9072,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
    * exploitation.
    */
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — la MÊME valeur décidait de l'activation et
+   * servait de cible. Citée, elle rendait `Boolean(...)` vrai — le plafond
+   * partagé s'annonçait actif — pendant que le client partait sur
+   * `localhost:6379`. Le plafond était donc « partagé » avec personne.
+   */
+  const urlRateLimitRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
   const useSharedRateLimitStore =
-    Boolean(process.env.REDIS_URL) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+    Boolean(urlRateLimitRedis) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
 
   const sharedRateLimitRedis = useSharedRateLimitStore
-    ? new Redis(process.env.REDIS_URL as string, {
+    ? new Redis(urlRateLimitRedis as string, {
         connectionName: 'vibecore-rate-limit',
         commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
         maxRetriesPerRequest: 1,
@@ -9803,10 +9852,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       checks.database = { status: 'unconfigured' };
     }
 
-    if (process.env.REDIS_URL) {
+    /* BUG-REDIS-URL-GUILLEMETS-001 — la sonde doit viser ce que le client vise. */
+    const urlSondeRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+    if (urlSondeRedis) {
       const started = Date.now();
 
-      const probe = new Redis(process.env.REDIS_URL, {
+      const probe = new Redis(urlSondeRedis, {
         lazyConnect: true,
         maxRetriesPerRequest: 1,
         connectTimeout: 1500,
@@ -23983,7 +24035,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       aiConversation: collaborationState.aiConversation ?? { shared: false, mode: 'comment' },
       realtime: {
         websocketPath: `/projects/${project.id}/collaboration/ws`,
-        redisPubSub: Boolean(process.env.REDIS_URL),
+
+        /*
+         * BUG-REDIS-URL-GUILLEMETS-001 — ce drapeau ANNONCE au client que le
+         * temps réel passe par Redis. Citée, l'URL le rendait vrai alors que le
+         * courtier ne publiait nulle part.
+         */
+        redisPubSub: Boolean(lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee)),
       },
     };
   });
