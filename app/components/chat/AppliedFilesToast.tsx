@@ -85,21 +85,44 @@ export function AppliedFilesToast({
 export function showCoalescedAppliedToast(
   files: string[],
   callbacks: { onUndoAll: () => void; onDismissAll?: () => void },
+
+  /*
+   * Le constat d'honnêteté du tour, quand il y en a un. Absent = rien à
+   * signaler. Présent et malhonnête, le bandeau change de MESSAGE (« la
+   * génération s'est arrêtée en route ») ET de TON : une génération qui n'a pas
+   * produit son point d'entrée n'est pas un succès, et une coche verte sur un
+   * projet qui ne démarre pas est exactement le mensonge que cette garde
+   * existe pour empêcher.
+   */
+  constat?: ConstatDeGeneration,
 ): void {
   const dismissAll = callbacks.onDismissAll ?? (() => toast.dismiss(AGENT_APPLIED_TOAST_ID));
-  const content = <AppliedFilesToast files={files} onDismissAll={dismissAll} onUndoAll={callbacks.onUndoAll} />;
+
+  const content = (
+    <AppliedFilesToast files={files} onDismissAll={dismissAll} onUndoAll={callbacks.onUndoAll} constat={constat} />
+  );
+
+  const honnete = !constat || generationEstHonnete(constat);
+  const type = honnete ? 'success' : 'warning';
+
+  /*
+   * Un bandeau d'avertissement ne se ferme pas tout seul : l'utilisateur doit
+   * avoir le temps de lire QUEL module manque avant de relancer.
+   */
+  const autoClose = honnete ? 4000 : (false as const);
 
   if (toast.isActive(AGENT_APPLIED_TOAST_ID)) {
     toast.update(AGENT_APPLIED_TOAST_ID, {
       render: content,
-      type: 'success',
-      autoClose: 4000,
+      type,
+      autoClose,
       closeButton: true,
     });
   } else {
-    toast.success(content, {
+    toast(content, {
       toastId: AGENT_APPLIED_TOAST_ID,
-      autoClose: 4000,
+      type,
+      autoClose,
       closeButton: true,
     });
   }
