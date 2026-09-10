@@ -25,6 +25,9 @@
  * 27 076 caractères) et une consigne de construction de 817 caractères, écrit
  * 20 fichiers. Passé par la plateforme, il en écrit 15. Le modèle sait faire ;
  * ce qui manque, c'est de lui redonner la main quand il s'arrête trop tôt.
+ *
+ * Épinglé par `app/lib/runtime/annonce-sans-artefact.spec.ts` — une preuve live vaut pour le jour
+ * où elle a été prise ; un test vaut pour tous les jours suivants.
  */
 
 /*

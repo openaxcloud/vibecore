@@ -2297,11 +2297,21 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         /*
          * LE VERDICT DU FLUX, JOURNALISÉ INCONDITIONNELLEMENT.
          *
-         * `chat.stream.closed` vit dans le `flush` du transform de sortie — et
-         * ce `flush` NE S'EXÉCUTE JAMAIS : zéro occurrence en production alors
-         * que la chaîne est bien dans l'image servie. Un flux avorté ne passe
-         * pas par `flush`. Cette ligne-ci ne dépend d'aucune fermeture propre :
-         * elle part à la fin d'`execute`, quoi qu'il arrive.
+         * `chat.stream.closed` vit dans le `flush` du transform de sortie, et un
+         * flux avorté ne passe pas par `flush`. Cette ligne-ci ne dépend d'aucune
+         * fermeture propre : elle part à la fin d'`execute`, quoi qu'il arrive.
+         *
+         * ⚠️ CE COMMENTAIRE AFFIRMAIT « ce `flush` NE S'EXÉCUTE JAMAIS : zéro
+         * occurrence en production ». C'EST FAUX, et un absolu vieillit mal.
+         * Relevé sur les journaux du pod `web`, fenêtre de 48 h close le
+         * 2026-09-10 à 11 h UTC : UNE génération (`chat.flux.verdict` = 1,
+         * `chat.completion.usage` = 1) et `chat.stream.closed` = 1 — le `flush`
+         * s'est donc exécuté sur 1 tour sur 1. Le « zéro » d'origine venait d'un
+         * échantillon où les flux avortés dominaient, pas d'une branche morte.
+         *
+         * Un commentaire qui affirme un fait mesurable porte la DATE et la
+         * VALEUR : « rare » et « jamais » ne mènent pas au même geste — on
+         * vérifie une branche rare, on ignore une branche morte.
          *
          * `premierDebutMs` départage les deux dernières explications. Si la
          * première génération se compte APRÈS le retour d'`execute`, le
@@ -2313,9 +2323,15 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * chose sous deux angles : on a attendu une chaîne qui n'avait pas
          * commencé.
          *
-         * `mode` sur la ligne parce que cinq cas sur cinq alignaient l'échec sur
-         * `economy`/opus (plusieurs segments) et le succès sur `lite`/haiku (un
-         * seul). Sans lui, il faudrait recouper deux journaux pour le savoir.
+         * `mode` sur la ligne pour recouper le tour sans ouvrir un second journal.
+         *
+         * ⚠️ CE COMMENTAIRE DISAIT « cinq cas sur cinq alignaient l'échec sur
+         * `economy`/opus ». Le chiffre était juste, la LECTURE était fausse : à
+         * cette date TOUTES les générations étaient en opus, l'échantillon ne
+         * pouvait donc rien aligner d'autre. Biais d'échantillon, pas corrélation.
+         * Mesuré le 2026-09-10 : la cause est l'arrêt du tour entre le préambule et
+         * l'implémentation, indépendante du modèle — le même `gpt-4.1` écrit 20
+         * fichiers en appel direct depuis ce pod.
          */
         logger.info(
           JSON.stringify({
