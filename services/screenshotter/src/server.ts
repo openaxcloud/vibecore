@@ -12,6 +12,19 @@ const allowedHostSuffixes = (process.env.SCREENSHOTTER_ALLOWED_HOSTS ?? '')
   .map((value) => value.trim())
   .filter(Boolean);
 
+/*
+ * AUDX-006 — the allowlist is a hard requirement in production, enforced here.
+ *
+ * The comment above has said "MUST be set" since this service shipped, and
+ * nothing checked it: an empty value made /capture an open renderer against any
+ * address the pod can reach, cloud metadata included. Fail at STARTUP rather
+ * than 403-ing every capture at request time — a misconfigured deploy should be
+ * loud and obvious, not a silently broken screenshot pipeline.
+ */
+if (allowedHostSuffixes.length === 0 && process.env.NODE_ENV === 'production') {
+  throw new Error('SCREENSHOTTER_ALLOWED_HOSTS is required in production (SSRF allowlist; empty = open renderer).');
+}
+
 const renderer = new PlaywrightPageRenderer({
   navTimeoutMs: Number(process.env.SCREENSHOTTER_NAV_TIMEOUT_MS ?? 15_000),
   settleMs: Number(process.env.SCREENSHOTTER_SETTLE_MS ?? 500),

@@ -9,8 +9,20 @@ const okRenderer: PageRenderer = {
   },
 };
 
+/*
+ * AUDX-006: an EMPTY allowlist is now a refusal, not "allow everything" — that
+ * default is what made /capture an open renderer against internal addresses.
+ * Tests that exercise unrelated behaviour (auth, renderer errors) therefore have
+ * to configure the service the way production must configure it. `resolveHost`
+ * is stubbed so these tests never touch real DNS.
+ */
 async function build(overrides: Partial<Parameters<typeof buildScreenshotterApp>[0]> = {}) {
-  return buildScreenshotterApp({ renderer: okRenderer, ...overrides });
+  return buildScreenshotterApp({
+    renderer: okRenderer,
+    allowedHostSuffixes: ['x.example', 'preview.e-code.ai'],
+    resolveHost: async () => ['93.184.216.34'],
+    ...overrides,
+  });
 }
 
 describe('screenshotter /capture', () => {

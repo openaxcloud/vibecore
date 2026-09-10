@@ -2654,5 +2654,9 @@
   "MIGRATION_MANUAL_RECOVERY_MESSAGE": {
     "en": "The commit was not confirmed, so the schema state is undetermined and needs manual recovery. Publishing was refused to keep the previous version live.",
     "fr": "Le COMMIT n’a pas été confirmé : l’état du schéma est indéterminé et demande une reprise manuelle. La publication a été refusée pour continuer à servir la version précédente."
+  },
+  "GIT_REMOTE_NOT_ALLOWED": {
+    "en": "This repository address cannot be reached.",
+    "fr": "Cette adresse de dépôt ne peut pas être atteinte."
   }
 }
