@@ -1,72 +1,85 @@
 import { existsSync, readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 /**
- * THINKING-EFFECTIVITY-001 — **le contournement de BUG-CHAT-THINKING-001 est
- * INERTE, et sept tests verts ne le disaient pas.**
+ * THINKING-EFFECTIVITY-001 — **le contournement est retiré, et voici pourquoi il
+ * ne pouvait pas fonctionner.**
  *
- * `anthropic-thinking.spec.ts` vérifie que `withThinkingDisabled` produit le bon
- * OBJET d'options et que `stream-text` l'appelle. Les sept cas passent. Aucun ne
- * vérifie que l'option **atteint le fournisseur** — et elle ne l'atteint pas :
+ * Ce fichier affirmait l'inertie du contournement par l'ABSENCE de
+ * `providerOptions` dans le paquet installé. Après la montée à
+ * `@ai-sdk/anthropic@1.2.12`, `providerOptions` EST là — l'ancienne assertion
+ * passerait donc au rouge en mesurant une chose qui n'a plus de rapport avec ce
+ * qu'elle protège.
  *
- *     $ grep -c providerOptions node_modules/@ai-sdk/anthropic/dist/index.js
- *     0
+ * LA VRAIE CAUSE, mesurée le 2026-09-10 sur le bundle de `1.2.12` : le SDK ne
+ * regarde `thinking` que pour l'ACTIVER —
  *
- * `@ai-sdk/anthropic@0.0.39` **ne lit jamais `providerOptions`**. Le
- * contournement écrit donc une option que rien ne consomme, depuis le 18/08.
+ *     const isThinking = anthropicOptions?.thinking?.type === "enabled";
  *
- * Conséquence mesurée en production le 2026-08-31 (journaux du pod web, 6 h) :
+ * `withThinkingDisabled` envoyait `{ type: 'disabled' }`, ce qui signifie pour ce
+ * SDK « ne pas activer » : c'est déjà le défaut, et AUCUN champ `thinking` n'est
+ * envoyé à l'API. Le contournement reposait donc sur une PRÉMISSE FAUSSE —
+ * l'existence d'un interrupteur « désactiver la réflexion ». Il n'y en a pas.
  *
- *     stream onError code=UNKNOWN (Type validation failed: Value:
- *     {"type":"content_block_start","index":0,
- *      "content_block":{"type":"thinking","thinking":"","signature":""}})
+ * Il était inerte avant la montée parce que l'option n'était pas lue ; il serait
+ * resté inerte après, parce que la valeur ne veut rien dire. Retiré.
  *
- * 4 générations lancées, **10 erreurs de validation**, 0 succès. Le tier
- * « Economy » route vers `claude-opus-5` (`provider: anthropic`, journal
- * `agent-mode.routed`), qui émet des blocs de réflexion par défaut ; la version
- * installée du SDK n'en connaît pas la forme et tue le flux au premier.
- * L'utilisateur voit **« Service unavailable »**.
- *
- * CE TEST vérifie la seule chose qui compte : que le MÉCANISME sur lequel le
- * contournement s'appuie existe réellement dans le paquet installé. C'est
- * dérivé du produit, pas d'une liste écrite à la main — le motif qui a déjà
- * manqué `BUG-THEME-008` et la recette de `BUG-CREATE-010`.
+ * CE QUE LA MONTÉE CORRIGE VRAIMENT : le SDK COMPREND désormais les blocs de
+ * réflexion (`thinking` = 7 occurrences, `signature` = 11, `redacted_thinking`
+ * = 5) au lieu de tuer le flux au premier. Le modèle en émet toujours autant —
+ * ce sont le temps de réponse, les jetons facturés et le contenu affiché qui
+ * changent, pas l'émission.
  */
 
 const BUNDLE = 'node_modules/@ai-sdk/anthropic/dist/index.js';
 
-describe('THINKING-EFFECTIVITY-001 — le contournement atteint-il le fournisseur ?', () => {
+describe('THINKING-EFFECTIVITY-001 — pourquoi le contournement ne pouvait pas marcher', () => {
   it('la sonde lit bien le paquet installé', () => {
     /*
      * Sans ce cas, un chemin changé rendrait « 0 occurrence » — indiscernable
      * d'un fournisseur qui ignore l'option. « Rien trouvé » et « rien lu »
      * doivent être deux résultats différents.
+     *
+     * Ce cas a déjà servi : lancé depuis un worktree, `node_modules/` n'existe
+     * pas et les trois cas rougissaient. C'est la sentinelle qui l'a dit.
      */
     expect(existsSync(BUNDLE), `${BUNDLE} introuvable : la sonde ne mesure rien`).toBe(true);
     expect(readFileSync(BUNDLE, 'utf8').length, 'paquet vide').toBeGreaterThan(10_000);
   });
 
-  it('CONSTAT : le fournisseur installé ignore `providerOptions`, donc le contournement est inerte', () => {
+  it('LA CAUSE : le SDK ne lit `thinking` que pour l’ACTIVER', () => {
     const bundle = readFileSync(BUNDLE, 'utf8');
 
-    expect(bundle).not.toContain('providerOptions');
+    /*
+     * C'est cette ligne qui condamne le contournement : `disabled` n'est pas une
+     * valeur que le SDK traite, c'est simplement « pas enabled ».
+     */
+    expect(bundle).toContain('=== "enabled"');
+    expect(bundle).not.toContain('=== "disabled"');
   });
 
-  it('CONSTAT : le fournisseur installé ne sait pas lire un bloc `thinking`', () => {
+  it('LE GAIN : le SDK sait désormais lire un bloc de réflexion', () => {
     const bundle = readFileSync(BUNDLE, 'utf8');
 
-    expect(bundle).not.toContain('thinking');
+    for (const marqueur of ['thinking_delta', 'signature_delta', 'redacted-reasoning']) {
+      expect(bundle, `le SDK doit connaître ${marqueur}`).toContain(marqueur);
+    }
   });
 
-  /*
-   * L'INVARIANT VISÉ. Rouge tant que le défaut est là : `it.fails` réussit tant
-   * que le corps échoue. Le jour où le SDK est monté vers une version qui
-   * comprend la réflexion, CE test devient rouge et force à retirer les
-   * « CONSTAT » ci-dessus ET le contournement devenu inutile.
-   */
-  it.fails('INVARIANT VISÉ : le fournisseur doit comprendre les blocs de réflexion', () => {
-    const bundle = readFileSync(BUNDLE, 'utf8');
+  it('LE CONTOURNEMENT EST BIEN PARTI — et il ne revient pas par la fenêtre', () => {
+    /*
+     * Le rappel de dette laissé par l'auteur d'origine exigeait ce retrait à la
+     * montée. Ce cas le remplace : il rougit si quelqu'un réintroduit l'option.
+     */
+    expect(existsSync('app/lib/.server/llm/anthropic-thinking.ts')).toBe(false);
+    expect(readFileSync('app/lib/.server/llm/stream-text.ts', 'utf8')).not.toContain('withThinkingDisabled');
+  });
 
-    expect(bundle, '@ai-sdk/anthropic ne connaît pas les événements `thinking`').toContain('thinking');
+  it('TÉMOIN — la version installée est bien celle qui porte le gain', () => {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
+
+    expect(pkg.dependencies['@ai-sdk/anthropic']).not.toBe('0.0.39');
+    expect(pkg.dependencies['@ai-sdk/anthropic']).toMatch(/^1\.2\./u);
   });
 });

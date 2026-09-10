@@ -17,6 +17,7 @@ import {
 } from '~/lib/enterprise-api.server';
 import { getImportRoutesCopy } from '~/lib/i18n/catalogs/import-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estAbandonDeRequete, IMPORT_REQUEST_TIMEOUT_MS } from '~/lib/import-delai';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
@@ -49,7 +50,7 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 type Project = { id: string; slug?: string };
-type ImportGitErrorCode = 'urlRequired' | 'inaccessible' | 'quota' | 'importFailed';
+type ImportGitErrorCode = 'urlRequired' | 'inaccessible' | 'quota' | 'timeout' | 'upstream' | 'importFailed';
 type ImportGitActionData = { errorCode: ImportGitErrorCode };
 
 /*
@@ -102,6 +103,14 @@ export async function action({ request }: EnterpriseActionArgs) {
     const organization = await firstOrganization(request);
     result = await apiRequest<{ project: Project }>(request, importEndpointForUrl(organization.id, repositoryUrl), {
       method: 'POST',
+
+      /*
+       * BUG-CREATE-005 — sans ce signal, `apiRequest` imposait ses 30 s par
+       * défaut alors que le serveur s'autorise 120 s pour cloner : le client
+       * raccrochait le premier sur tout dépôt un peu gros. Voir
+       * `~/lib/import-delai` pour le chemin mesuré de bout en bout.
+       */
+      signal: AbortSignal.timeout(IMPORT_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({
         repositoryUrl,
         branch: body.branch?.trim() || undefined,
@@ -130,6 +139,31 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isApiResponse(error, 402) || isApiResponse(error, 429)) {
       return actionError('quota', error.status);
+    }
+
+    /*
+     * BUG-CREATE-005 — sans ces deux branches, un clone qui dépasse les 120 s de
+     * `project-storage.ts` et un hébergeur en panne tombaient tous deux dans
+     * `importFailed` : « Impossible d'importer le dépôt. Réessayez. » Le serveur
+     * sait maintenant distinguer les causes (`classerEchecDImport`) — encore
+     * faut-il que le client les LISE, sinon le classement ne change rien pour
+     * l'utilisateur (règle 10).
+     */
+    if (isApiResponse(error, 504) || isApiResponse(error, 408)) {
+      return actionError('timeout', error.status);
+    }
+
+    /*
+     * L'abandon vient de NOUS (le budget ci-dessus) : il n'y a pas de
+     * `Response`, donc aucune branche `isApiResponse` ne peut l'attraper. C'est
+     * précisément par là que tombait le message générique.
+     */
+    if (estAbandonDeRequete(error)) {
+      return actionError('timeout', 504);
+    }
+
+    if (isApiResponse(error, 502) || isApiResponse(error, 503)) {
+      return actionError('upstream', error.status);
     }
 
     return actionError('importFailed', error instanceof Response ? error.status : 500);

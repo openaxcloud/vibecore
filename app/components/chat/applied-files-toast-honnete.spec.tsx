@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,5 +115,52 @@ describe('le relais entre le calcul du constat et son affichage existe vraiment'
     const appel = SOURCE_BASE.split('showCoalescedAppliedToast(')[1] ?? '';
     expect(appel.length).toBeGreaterThan(100);
     expect(appel.slice(0, 2000).includes('constatDeGenerationStore.get(),')).toBe(true);
+  });
+
+  /*
+   * BUG-AGENT-TOAST-HONNETE-001 — cette garde-ci ne visait qu'UN appelant, et
+   * c'est par l'autre que le défaut passait. `app/utils/toast-batcher.ts`
+   * peignait le même bandeau SANS le constat : coche verte et « les patchs ont
+   * bien été appliqués » sur une génération sans point d'entrée.
+   *
+   * On vise donc la RÈGLE (règle 7) : TOUT appelant de production passe le
+   * constat. Un troisième point d'entrée rougira ici avant d'atteindre l'écran.
+   */
+  const FICHIERS_DE_PRODUCTION = ['app/components/chat/BaseChat.tsx', 'app/utils/toast-batcher.ts'] as const;
+
+  it('témoin positif : la recherche des appelants trouve bien les fichiers attendus (règle 14)', () => {
+    for (const chemin of FICHIERS_DE_PRODUCTION) {
+      expect(readFileSync(join(RACINE, chemin), 'utf8')).toContain('showCoalescedAppliedToast(');
+    }
+  });
+
+  it.each(FICHIERS_DE_PRODUCTION)('%s passe le constat au bandeau', (chemin) => {
+    const source = readFileSync(join(RACINE, chemin), 'utf8');
+    const apresLAppel = source.split('showCoalescedAppliedToast(')[1] ?? '';
+
+    expect(apresLAppel.length, 'appel introuvable — la garde ne mesure rien').toBeGreaterThan(100);
+    expect(apresLAppel.slice(0, 2000)).toContain('constatDeGenerationStore.get()');
+  });
+
+  it('aucun appelant de production n’a été oublié dans la liste ci-dessus', () => {
+    /*
+     * La liste est écrite à la main ; ce cas la confronte au dépôt. Sans lui,
+     * ajouter un appelant sans l'inscrire ici rendrait la garde muette — la
+     * façon la plus courante de faire mentir un test de câblage.
+     */
+    const sortie = execFileSync(
+      'grep',
+      ['-rl', '--include=*.ts', '--include=*.tsx', 'showCoalescedAppliedToast(', 'app'],
+      { cwd: RACINE, encoding: 'utf8' },
+    );
+
+    const appelants = sortie
+      .split('\n')
+      .filter(Boolean)
+      .filter((chemin) => !chemin.includes('.spec.'))
+      .filter((chemin) => !chemin.endsWith('AppliedFilesToast.tsx'))
+      .sort();
+
+    expect(appelants).toEqual([...FICHIERS_DE_PRODUCTION].sort());
   });
 });

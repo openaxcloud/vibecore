@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { reconcile, type ReconciliationLine } from '../ledger-reconciliation.js';
 import { LedgerStore } from '../ledger-store.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /*
  * DURABLE ledger proofs against a REAL Postgres (the canonical double-entry
@@ -17,21 +18,15 @@ import { LedgerStore } from '../ledger-store.js';
  * limit is refused whole (nothing posted).
  */
 
-async function canReachDatabase() {
-  if (!process.env.DATABASE_URL) {
-    return false;
-  }
-
-  const prisma = createDatabaseClient();
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+/*
+ * BUG-TEST-DB-HANG-001 — la sonde locale (copiée à l'identique dans six
+ * fichiers) attendait `prisma.$disconnect()` dans son `finally`. Mesuré : cet
+ * appel ne se dénoue JAMAIS quand le client n'a pas pu se connecter, donc la
+ * sonde ne rend pas, le `beforeAll` ne finit pas, et le fichier reste en l'air
+ * — 93 minutes constatées. Le point de passage partagé borne la requête ET la
+ * fermeture (règle 7 : une seule correction pour les huit copies).
+ */
+const canReachDatabase = baseDeDonneesJoignable;
 
 const runDbTests = (await canReachDatabase()) ? describe : describe.skip;
 

@@ -226,20 +226,52 @@ describe('localized backend route families', () => {
   it('localizes Stripe health and never serializes the raw provider error field', async () => {
     await store.updateUser({ userId, platformAdmin: true, mfaEnabled: true });
 
-    const response = await app.inject({
-      method: 'GET',
-      url: '/admin/stripe-health',
-      headers: frenchHeaders(true),
-    });
+    /*
+     * Ce cas décrit le monde SANS clé Stripe : il faut donc le construire, pas
+     * l'espérer. Il ne le faisait pas, et passait par simple chance — celle que
+     * l'environnement d'exécution n'exporte aucune `STRIPE_SECRET_KEY`. Mesuré
+     * le 2026-09-10 dans un conteneur qui en exporte une : l'endpoint répond
+     * (correctement) `configured: true` et le test rougit, sans qu'aucun défaut
+     * produit n'existe. L'isolation posée ici est celle que le cas
+     * `STRIPE_WEBHOOK_SECRET`, trois tests plus bas, applique déjà.
+     */
+    const precedenteCle = process.env.STRIPE_SECRET_KEY;
+    delete process.env.STRIPE_SECRET_KEY;
 
-    expect(response.statusCode).toBe(200);
-    expect(response.json()).toEqual({
-      configured: false,
-      ok: false,
-      detailCode: 'STRIPE_NOT_CONFIGURED',
-      detail: 'STRIPE_SECRET_KEY n’est pas configurée.',
-    });
-    expect(response.body).not.toContain('result.error');
+    /*
+     * ⚠️ Il faut RECONSTRUIRE l'application ici, et pas seulement retirer la
+     * variable. `services/api/src/app.ts:9000` fait
+     * `let stripeClient = buildStripeClient(process.env.STRIPE_SECRET_KEY)` :
+     * la clé est lue UNE FOIS, à la construction. L'instance montée par le
+     * `beforeEach` l'a donc déjà capturée, et un `delete` posé dans le corps du
+     * test arrive trop tard — vérifié, il ne change pas la réponse.
+     */
+    const sansStripe = await buildApiApp({ store, emailProvider: new QuietEmailProvider() });
+
+    try {
+      const response = await sansStripe.inject({
+        method: 'GET',
+        url: '/admin/stripe-health',
+        headers: frenchHeaders(true),
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toEqual({
+        configured: false,
+        ok: false,
+        detailCode: 'STRIPE_NOT_CONFIGURED',
+        detail: 'STRIPE_SECRET_KEY n’est pas configurée.',
+      });
+      expect(response.body).not.toContain('result.error');
+    } finally {
+      await sansStripe.close();
+
+      if (precedenteCle === undefined) {
+        delete process.env.STRIPE_SECRET_KEY;
+      } else {
+        process.env.STRIPE_SECRET_KEY = precedenteCle;
+      }
+    }
   });
 
   it('localizes billing package quota and published-project entitlement errors at their HTTP boundaries', async () => {

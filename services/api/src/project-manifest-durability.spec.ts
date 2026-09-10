@@ -30,11 +30,20 @@ import { describe, expect, it } from 'vitest';
 
 const APP = readFileSync(join(__dirname, 'app.ts'), 'utf8');
 
-/** Les routes d'écriture de fichier exposées par l'API runtime. */
-const ROUTES_ECRITURE = [
+/**
+ * Les routes de MUTATION de fichier exposées par l'API runtime.
+ *
+ * ⚠️ Cette constante existait déjà — DÉCLARÉE MAIS JAMAIS UTILISÉE. C'est très
+ * exactement le trou par lequel BUG-RUNTIME-DIVERGENCE est passé : la durabilité
+ * n'avait été posée que sur `/files/write`, et rien ne s'en apercevait puisque
+ * la liste des routes à couvrir n'était bouclée nulle part. On la boucle
+ * maintenant, renommage inclus.
+ */
+const ROUTES_MUTATION = [
   "app.put('/api/runtime/workspaces/:workspaceId/files/write'",
   "app.post('/api/runtime/workspaces/:workspaceId/files'",
   "app.delete('/api/runtime/workspaces/:workspaceId/files'",
+  "app.post('/api/runtime/workspaces/:workspaceId/files/move'",
 ];
 
 /** Corps d'un handler, du `app.<verbe>(` jusqu'au début du suivant. */
@@ -109,6 +118,76 @@ describe('MANIFEST-DURABILITY-001 — l’archive du projet suit les écritures 
 
     expect(bloc.slice(0, 400)).toMatch(/catch \(error\)/);
     expect(bloc.slice(0, 400)).toMatch(/request\.log\.error/);
+  });
+
+  it.each(ROUTES_MUTATION)('%s rend l’archive durable', (ancre) => {
+    /*
+     * BUG-RUNTIME-DIVERGENCE — les trois routes autres que l'écriture
+     * n'atteignaient que le pod. Au réamorçage, le fichier créé était détruit,
+     * le supprimé ressuscitait, le renommage revenait en arrière.
+     */
+    const corps = corpsDuHandler(ancre);
+
+    expect(corps, `aucune persistance du manifeste sur ${ancre}`).toMatch(
+      /(persistProjectFileEntry|removeProjectFileEntries|moveProjectFileEntries)\(/,
+    );
+  });
+
+  it.each(ROUTES_MUTATION)('%s reste hors du trajet du flux de génération', (ancre) => {
+    expect(corpsDuHandler(ancre)).toMatch(/!estEcritureDeFlux\(request\)/);
+  });
+
+  it('aucune mutation unitaire ne FABRIQUE un manifeste à partir de rien', () => {
+    /*
+     * LE garde-fou du manifeste autoritaire. `listProjectFilesIncludingIdeState`
+     * traite `Array.isArray(files.entries)` comme « ce manifeste fait foi » et
+     * appelle `restoreSnapshot`, qui VIDE l'arbre avant de réécrire les seules
+     * entrées reçues. Un manifeste d'UNE entrée né d'une sauvegarde unitaire
+     * détruisait donc tous les autres fichiers du projet à la lecture suivante.
+     *
+     * Les quatre mutations unitaires passent par un seul point, et ce point
+     * renonce quand il n'y a pas déjà un manifeste.
+     */
+    const bloc = APP.slice(
+      APP.indexOf('function entreesDuManifeste('),
+      APP.indexOf('function cheminDansLeSousArbre('),
+    );
+
+    expect(bloc, 'le point de passage unique a disparu').not.toHaveLength(0);
+
+    /* `entreesDuManifeste` ne rend un tableau que s'il en existe DÉJÀ un… */
+    expect(bloc).toMatch(/Array\.isArray\(racine\.files\?\.entries\)\s*\?/);
+
+    /* …et le point de passage renonce quand il n'y en a pas. */
+    expect(bloc).toMatch(/if \(!entreesActuelles \|\| !manifesteChange\(/);
+  });
+
+  it('une mutation SANS effet n’écrit pas — la version du blob partagé ne monte pas pour rien', () => {
+    /*
+     * `mutateProjectIdeState` appelle `upsertProjectIdeState` SANS comparer :
+     * un « rien à faire » exprimé à l'intérieur produirait quand même une
+     * écriture et une montée de version. Or l'IDE revalide ce blob par
+     * `If-None-Match` (AUDX-167) et il n'est pas borné — une montée gratuite
+     * fait repayer le rechargement complet à chaque suppression sans effet.
+     */
+    const bloc = APP.slice(
+      APP.indexOf('async function mutateProjectFileManifestEntries('),
+      APP.indexOf('function cheminDansLeSousArbre('),
+    );
+
+    /* La décision est prise AVANT d'entrer dans la boucle qui écrit. */
+    expect(bloc.indexOf('manifesteChange(')).toBeLessThan(bloc.indexOf('await mutateProjectIdeState('));
+  });
+
+  it('la suppression d’un sous-arbre est ancrée sur le séparateur', () => {
+    /*
+     * `startsWith('src')` emporterait `src-old/`. Sur un manifeste autoritaire,
+     * un voisin retiré par erreur est un fichier DÉTRUIT sur tous les appareils
+     * au réamorçage suivant, pas un affichage faux.
+     */
+    const bloc = APP.slice(APP.indexOf('function cheminDansLeSousArbre('));
+
+    expect(bloc.slice(0, 900)).toContain('startsWith(`${racine}/`)');
   });
 
   it('le plan de reseed supprime toujours ce que l’archive ignore', () => {
