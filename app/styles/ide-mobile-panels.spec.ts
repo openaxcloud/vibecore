@@ -323,6 +323,23 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
     expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
   });
 
+  /*
+   * BUG-PORTS-MOBILE-001 — LE PIÈGE : la règle vit dans `index.scss`, l'URL
+   * qu'elle déplie vit dans `BaseChat.tsx`. Retirer `font-mono` de cette URL,
+   * ou renommer le conteneur des outils mobiles, ne rend AUCUN test rouge — la
+   * règle existe toujours, elle ne touche simplement plus rien, et l'URL
+   * redevient tronquée sur l'iPhone. La règle SCSS seule n'est que la MOITIÉ de
+   * la garde (règle 6).
+   */
+  it('le balisage des Ports porte `truncate font-mono` sous `.bolt-workbench-mobile` — la moitié DOM', () => {
+    /* L'URL de l'aperçu, capture du 06/09 : c'est CE couple de classes que le sélecteur vise. */
+    expect(BASE_CHAT).toContain('className="bolt-project-managed-panel bolt-project-ports-panel"');
+    expect(BASE_CHAT).toContain('className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary"');
+
+    /* L'ancêtre : sans lui, le sélecteur ne descend jamais jusqu'à l'URL. */
+    expect(BASE_CHAT).toContain('bolt-workbench-mobile bolt-workbench-mobile-service');
+  });
+
   it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
     const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
 
