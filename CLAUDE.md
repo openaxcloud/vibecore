@@ -196,6 +196,28 @@ généraux : ce sont des pièges qui ont déjà coûté.
     est-il bon ». Celle-ci répond à la question d'avant : **cherche-t-on au bon
     endroit**.
 
+21. **UN MONITEUR DOIT PROUVER QU'IL OBSERVE, PAS SEULEMENT QU'IL TOURNE.** Il
+    journalise À CHAQUE TOUR ce qu'il a LU — pas seulement quand il conclut.
+
+    Une veille silencieuse n'est pas une veille : c'est une absence
+    d'information déguisée en patience. **Un moniteur qui rend du vide ressemble
+    exactement à un moniteur qui attend**, et on ne peut pas faire la différence
+    au moment précis où on en a besoin.
+
+    Mesuré le 2026-09-10, quatrième occurrence de la semaine : une veille sur une
+    PR bouclait toutes les deux minutes et n'écrivait qu'un horodatage. Son
+    `gh pr view` rendait une chaîne VIDE sous `nohup` — sa condition de sortie
+    (`rouges=0 envol=0`) ne pouvait donc jamais être vraie. Elle n'aurait jamais
+    fusionné, et rien dans son journal ne le disait.
+
+    **La conséquence adoptée : plus de veille sur l'état d'un run.** L'état se
+    lit à la source, au moment où on en a besoin. Quand une veille reste
+    indispensable, deux exigences :
+
+    * elle écrit la VALEUR LUE à chaque tour, jamais un simple battement ;
+    * elle échoue bruyamment si la lecture est vide — une lecture vide est une
+      panne du moniteur, pas un état du monde.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
