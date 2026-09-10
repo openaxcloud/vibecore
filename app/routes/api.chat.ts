@@ -30,6 +30,7 @@ import { apiRequest } from '~/lib/enterprise-api.server';
 import type { ConnectorDataPart, ExistingAccountConnection } from '~/lib/chat/connector-messages';
 import { creerSuiviDeChaine } from '~/lib/.server/llm/chaine-de-generation';
 import { BUDGET_PAR_SEGMENT_MS, MAX_RESPONSE_SEGMENTS, MAX_TOKENS, type FileMap } from '~/lib/.server/llm/constants';
+import { creerSuiviDeProgression } from '~/lib/.server/llm/progression-a-solder';
 import {
   anchoredHistoryDrop,
   computeSelectionCacheKey,
@@ -1349,6 +1350,13 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           messageSliceId = RECENT_HISTORY_MESSAGES;
         }
 
+        /*
+         * Écrit les progressions du bloc d'optimisation de contexte ET retient
+         * lesquelles restent ouvertes, pour que le chemin d'échec puisse les
+         * solder sans connaître leurs noms. Voir `progression-a-solder.ts`.
+         */
+        const progressionDuContexte = creerSuiviDeProgression((annotation) => dataStream.writeData(annotation));
+
         if (filePaths.length > 0 && contextOptimization) {
           try {
             /*
@@ -1402,7 +1410,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                 summary = memoizedSummary;
               } else {
                 logger.debug('Generating Chat Summary');
-                dataStream.writeData({
+                progressionDuContexte.ecrire({
                   type: 'progress',
                   label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'in-progress',
@@ -1432,7 +1440,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
                   setMemoizedSummary(conversationId, summaryKey, summary);
                 }
 
-                dataStream.writeData({
+                progressionDuContexte.ecrire({
                   type: 'progress',
                   label: API_CHAT_PROGRESS_LABELS.summary,
                   status: 'complete',
@@ -1464,7 +1472,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             }
 
             logger.debug('Updating Context Buffer');
-            dataStream.writeData({
+            progressionDuContexte.ecrire({
               type: 'progress',
               label: API_CHAT_PROGRESS_LABELS.context,
               status: 'in-progress',
@@ -1541,7 +1549,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               }),
             } as ContextAnnotation);
 
-            dataStream.writeData({
+            progressionDuContexte.ecrire({
               type: 'progress',
               label: API_CHAT_PROGRESS_LABELS.context,
               status: 'complete',
@@ -1552,13 +1560,30 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
             logger.warn('Context optimization failed; continuing without selected context', contextError);
             filteredFiles = undefined;
             summary = undefined;
-            dataStream.writeData({
+
+            /*
+             * SOLDER TOUTES LES ÉTAPES OUVERTES, PAS SEULEMENT LA DERNIÈRE.
+             *
+             * Ce `catch` n'écrivait qu'une annotation terminale, pour `context`.
+             * Le bloc en ouvre pourtant DEUX : un rejet de `createSummary` — un
+             * 429 du fournisseur, un dépassement de fenêtre (soit précisément
+             * la situation qui déclenche le résumé), un abandon client —
+             * sautait par-dessus le `complete` de `summary`, qui restait vivant
+             * côté client alors que la génération se terminait ensuite
+             * parfaitement : l'anneau qui tourne et « Analysing request · 66 % »
+             * sous une réponse complète.
+             *
+             * On solde par le suivi plutôt que par étiquette nommée : toute
+             * étape ajoutée dans ce bloc demain sera couverte sans que
+             * personne ait à y penser.
+             */
+            progressionDuContexte.solderRestantes((etiquette) => ({
               type: 'progress',
-              label: API_CHAT_PROGRESS_LABELS.context,
+              label: etiquette,
               status: 'complete',
               order: progressCounter++,
               message: copy.contextOptimizationSkipped,
-            } satisfies ProgressAnnotation);
+            }));
           }
         }
 
