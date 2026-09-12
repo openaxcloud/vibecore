@@ -79,7 +79,7 @@ couvrait **3**.
 
 ---
 
-## La règle que ces trente-huit cas imposent
+## La règle que ces trente-neuf cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
