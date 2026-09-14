@@ -5,6 +5,7 @@ import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import { cataloguesI18nPlugin } from './build-config/catalogues-i18n-plugin';
 import { manualChunks } from './build-config/manual-chunks';
 
 // Load environment variables from multiple files
@@ -177,6 +178,7 @@ export default defineConfig((config) => {
     },
     plugins: [
       katexModernFontsPlugin(),
+      cataloguesI18nPlugin(),
       nodePolyfills({
         include: ['buffer', 'process', 'util', 'stream'],
         globals: {
@@ -202,6 +204,7 @@ export default defineConfig((config) => {
           return null;
         },
       },
+
       /*
        * The React Router Vite plugin injects an HMR preamble that errors out
        * under jsdom-environment vitest specs (no router runtime in scope).
@@ -240,6 +243,16 @@ export default defineConfig((config) => {
     test: {
       testTimeout: 120_000,
       hookTimeout: 120_000,
+
+      /*
+       * BUG-PERF-I18N-RACINE-001 : `runtime.ts` n'importe plus aucun catalogue ;
+       * en production c'est l'entrée serveur qui les enregistre. Pour les tests,
+       * le globalSetup sérialise les quatre langues UNE fois par run, et le
+       * setup par fichier n'installe qu'un lecteur synchrone paresseux — évaluer
+       * les 150 catalogues dans chaque fichier coûtait 2,2 s par fichier.
+       */
+      globalSetup: ['./app/lib/i18n/catalogues-vitest.global.ts'],
+      setupFiles: ['./app/lib/i18n/catalogues-pour-vitest.ts'],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',
@@ -250,16 +263,18 @@ export default defineConfig((config) => {
         '**/tests/preview/**', // Exclude preview tests that require Playwright
         '**/tests/e2e/**',
 
-        // Every service under services/* has its OWN vitest config (node env,
-        // fastify, env that disables real network probes, real-Postgres wiring)
-        // and is run separately in CI's "Integration tests" step. Running any of
-        // them in this flat root pass executes them WITHOUT that config, so their
-        // start-time/health probes make real fetches to per-workspace cluster DNS
-        // that can't resolve and block for their full ~45s timeouts — across the
-        // suites that turned `pnpm run test` into a ~16-min run that tripped
-        // vitest's "Timeout calling onTaskUpdate" and made CI (and deploys) flaky.
-        // Excluding all of services/** keeps coverage (the filtered step runs each
-        // with its real config) while making this pass fast and deterministic.
+        /*
+         * Every service under services/* has its OWN vitest config (node env,
+         * fastify, env that disables real network probes, real-Postgres wiring)
+         * and is run separately in CI's "Integration tests" step. Running any of
+         * them in this flat root pass executes them WITHOUT that config, so their
+         * start-time/health probes make real fetches to per-workspace cluster DNS
+         * that can't resolve and block for their full ~45s timeouts — across the
+         * suites that turned `pnpm run test` into a ~16-min run that tripped
+         * vitest's "Timeout calling onTaskUpdate" and made CI (and deploys) flaky.
+         * Excluding all of services/** keeps coverage (the filtered step runs each
+         * with its real config) while making this pass fast and deterministic.
+         */
         'services/**',
       ],
     },

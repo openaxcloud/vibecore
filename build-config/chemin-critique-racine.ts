@@ -13,14 +13,20 @@
  * C'est la moitié qui n'était pas tenue : un correctif juste, une garde qui
  * regarde à côté. Ce module mesure l'ARTEFACT.
  *
- * MESURÉ LE 2026-09-10 sur un build local (`pnpm run build`, arbre propre à
- * `64fb6b51`), à comparer à la mesure de production du 2026-08-12 :
+ * MESURÉ sur des builds locaux (`pnpm run build`, arbre propre), à comparer à
+ * la mesure de production du 2026-08-12 :
  *
- *              | prod 12/08              | build 10/09
- *   ---------- | ----------------------- | -----------
- *   root.imports | 96                    | 28
- *   dont lourds  | monaco 573 Ko + terminal 81 Ko | AUCUN
- *   octets bruts | —                     | 3 334 307
+ *              | prod 12/08              | build 10/09 (`64fb6b51`) | build 14/09 (i18n)
+ *   ---------- | ----------------------- | ------------------------ | ------------------
+ *   root.imports | 96                    | 28                       | 22
+ *   dont lourds  | monaco 573 Ko + terminal 81 Ko | AUCUN           | AUCUN
+ *   octets bruts | —                     | 3 334 307                | 1 971 273
+ *
+ * Le pas du 14/09 est BUG-PERF-I18N-RACINE-001 : les 150 catalogues i18n
+ * (en + fr, 1,4 Mo de texte) sortis du graphe JavaScript pour un JSON par
+ * langue, chargé avant l'hydratation. Ce qui reste : `vendor-react` 723 Ko
+ * (légitime) et ~800 Ko de chunks partagés nommés d'après des routes
+ * (`licensing`, `LandingTestimonials`, `signup`…) — non traité, chiffré.
  *
  * Témoin qui dit que la mesure porte sur la bonne chose : `vendor-monaco-core`
  * pèse 2 283 041 octets bruts — les « 2,28 Mo » relevés à l'inventaire.
@@ -37,13 +43,14 @@ export const CHUNKS_INTERDITS_SUR_LA_RACINE = [/monaco/i, /terminal/i, /xterm/i,
 /**
  * Plafond d'octets BRUTS du chemin critique racine — un cliquet, pas une cible.
  *
- * Réglé au-dessus de la mesure du 2026-09-10 (3 334 307) avec une marge
+ * Réglé au-dessus de la mesure du 2026-09-14 (1 971 273) avec une marge
  * volontairement ÉTROITE : le défaut qu'on garde est une croissance SILENCIEUSE.
- * Un chunk de la taille de monaco (2,28 Mo) le franchit instantanément ; une
- * addition légitime le franchit aussi, et c'est voulu — il faut alors REGARDER
- * ce qui a grossi et relever le cliquet délibérément, pas par accident.
+ * Un chunk de la taille de monaco (2,28 Mo) le franchit instantanément, le
+ * retour des catalogues i18n (+1,36 Mo) aussi ; une addition légitime le
+ * franchit également, et c'est voulu — il faut alors REGARDER ce qui a grossi
+ * et relever le cliquet délibérément, pas par accident.
  */
-export const PLAFOND_CHEMIN_CRITIQUE_OCTETS = 3_500_000;
+export const PLAFOND_CHEMIN_CRITIQUE_OCTETS = 2_100_000;
 
 /**
  * Les imports statiques de la route racine, lus dans le manifeste React Router.
