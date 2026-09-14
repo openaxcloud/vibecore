@@ -9,6 +9,17 @@ import { renderToReadableStream } from 'react-dom/server.browser';
 import type { AppLoadContext, EntryContext } from 'react-router';
 import { ServerRouter } from 'react-router';
 
+import { enregistrerTousLesCatalogues } from '~/lib/i18n/runtime';
+import { RESOURCES } from '~/lib/i18n/runtime-resources';
+
+/*
+ * BUG-PERF-I18N-RACINE-001 : le serveur est le seul à porter les quatre
+ * langues en statique. Enregistrées ici, au chargement du module — AVANT tout
+ * rendu — elles sont visibles de `createI18nInstance` (root.tsx) comme du
+ * singleton que des magasins créent à l'évaluation de leur module.
+ */
+enregistrerTousLesCatalogues(RESOURCES);
+
 export const SERVER_RENDER_READY_TIMEOUT_MS = 4_000;
 
 export function applyDocumentIsolationHeaders(responseHeaders: Headers) {

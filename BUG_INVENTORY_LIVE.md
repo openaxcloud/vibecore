@@ -1120,3 +1120,45 @@ Conséquences distinctes :
 * **Sans PDB et à une seule réplique**, `worker` et `screenshotter` tombent
   entièrement pendant un drain de nœud (mise à jour GKE, réduction d'échelle du
   pool). Les six autres services gardent au moins une réplique par construction.
+
+### BUG-PERF-I18N-RACINE-001 — toute page télécharge l'intégralité des traductions EN **et** FR (2026-09-14)
+
+📤 14/09 · 💻 ☐ · ✅ ☐ — mesuré sur le build local du 10/09 (`64fb6b51`, arbre propre), même manifeste que la mesure « 28 imports / 3 334 307 octets » de BUG-PERF-PRELOAD-ALLROUTES.
+
+**Ce que le reste du chemin critique contient, lu chunk par chunk.** Les chunks nommés `signup`, `mfa-setup`, `gitlabApiService`, `account-settings._index`, `api.integrations…configure` sur la page d'accueil marketing ne portent PAS ces routes : ils portent des **catalogues i18n** (`patchReview.*` en arabe dans `signup-*.js`, `productTour.*` dans `mfa-setup-*.js`, la visite produit dans `gitlabApiService-*.js` — Rollup nomme un chunk partagé d'après l'un de ses modules). Et `runtime-*.js` (979 Ko) est `app/lib/i18n/runtime.ts`, importé par `root.tsx` pour `createI18nInstance`.
+
+| chunk | octets | dont littéraux de prose |
+|---|---:|---:|
+| `runtime` | 967 080 | 40 % |
+| `gitlabApiService` | 477 312 | 49 % |
+| `Badge` | 113 912 | 87 % |
+| `LandingLanguages` | 83 133 | 87 % |
+| 12 autres chunks « de route » | 45–121 Ko chacun | 25–67 % |
+
+**Le mécanisme, lu dans le code** : `runtime.ts` importe **statiquement 150 catalogues** (`…En` + `…Fr`, 3,6 Mo de source) et les fusionne dans un seul espace de noms `translation` par langue (`RESOURCES`), puis `root.tsx` appelle `createI18nInstance(language)` à chaque rendu. Tout document — y compris une page marketing d'un visiteur qui n'ouvrira jamais l'IDE — reçoit donc **les deux langues entières**. Mesuré (`node --import tsx`, `getResourceBundle`) : **10 548 clés en = 10 548 clés fr, zéro écart** ; texte en **653 188** octets, fr **737 534**, es 2 235, ar 1 940. Un utilisateur français n'a donc AUCUN besoin du repli anglais (les 45 clés es/ar en ont besoin, elles).
+
+**Pourquoi un bundle JS par langue ne suffirait pas** : chaque fichier de catalogue porte `xEn` ET `xFr` dans le **même module**, et Rollup ne scinde jamais un module — un chunk `catalogue-fr` importerait `catalogs/chat.ts` avec ses deux langues, gain nul. Voie retenue : évaluer les catalogues **au build** et émettre un **JSON par langue** (`assets/catalogue-<langue>-<hash>.json`, empreinte du contenu, donc déterministe entre le build client et le build SSR), préchargé dans `<head>` (`<link rel="preload" as="fetch">`) et attendu **avant** `hydrateRoot` ; le serveur enregistre les ressources statiques au démarrage (`entry.server.tsx`), et le client ne les importe plus jamais. Le changement de langue passe par `window.location.replace` (mesuré dans `LanguageSwitch.tsx` / `LanguageSetting.tsx`) : un document n'a jamais deux langues.
+
+**Mesuré APRÈS, sur l'artefact (build local du 14/09, `scripts/verifier-chemin-critique.ts`, code de sortie 0)** — 💻 codé :
+
+| | build 10/09 | build 14/09 |
+|---|---:|---:|
+| `root.imports` | 28 | **22** |
+| octets bruts du chemin critique racine | 3 334 307 | **1 971 273** (−1 363 034, −41 %) |
+| `runtime-*.js` | 967 080 | disparu (`catalogues-client` : 44 875) |
+| `gitlabApiService-*.js` (catalogues) | 477 312 | disparu |
+| catalogues JSON émis | — | fr 821 280 · en 718 129 · es 2 533 · ar 2 942 octets |
+
+Un document français ne télécharge plus que `catalogue-fr-<empreinte>.json` ; un document anglais, `catalogue-en-…` ; es/ar, le leur plus l'anglais (repli). Contrôles ajoutés au script CI : les quatre JSON existent avec ≥ 10 000 clés en/fr, et une **clé témoin lue dans le JSON** (`chat.copy.…`) n'apparaît dans aucun chunk de la racine — la forme exacte de ce défaut. Cliquet d'octets abaissé de 3 500 000 à **2 100 000** : un retour des catalogues (+1,36 Mo) comme de monaco (+2,28 Mo) le franchit. Serveur construit démarré : `<html lang="fr">`, `<link rel="preload" href="/assets/catalogue-fr-a57836dd4d.json" as="fetch" crossorigin="anonymous">`, JSON servi `200`, `immutable`, `application/json`.
+
+⚠️ **Ce qui reste, chiffré** : ~800 Ko de chunks partagés nommés d'après des routes (`licensing` 129 Ko, `LandingTestimonials` 124 Ko, `LandingWorkflow` 118 Ko, `Badge` 114 Ko, `LandingCTA` 113 Ko, `signup`, `account-settings._index`, `TaskManagerTab`…) restent sur la racine — des modules que les composants de `root.tsx` (`SaaSLayout`, `PanelBoundary`, magasins) partagent avec des routes. Non traité ici.
+
+⚠️ **Coût de test évité, mesuré** : un `setupFiles` qui évaluait les 150 catalogues coûtait **2,2 s par fichier** de test (6,66 s pour 3 specs sans i18n) × 1 089 fichiers. Remplacé par un `globalSetup` (sérialise une fois, ~2 s par run) et un lecteur synchrone paresseux : **91 ms** pour les mêmes 3 specs.
+
+Épinglé par `app/lib/i18n/runtime-resources.spec.ts` (parité 10 548 = 10 548 ; `runtime-resources` importé UNIQUEMENT par `entry.server.tsx` et le globalSetup ; `runtime.ts` sans catalogue), `app/lib/i18n/runtime.spec.ts` (registre, singleton créé avant l'enregistrement), `app/root.hydration.spec.ts` (preload dans `<head>`, attente avant `hydrateRoot`, hydratation même en échec, enregistrement serveur avant tout rendu), `build-config/catalogues-i18n-plugin.spec.ts` (empreinte, quatre assets côté client, zéro côté SSR), `build-config/catalogues-emis.spec.ts` et `scripts/verifier-chemin-critique.ts` (artefact). Contre-épreuve dans les deux sens : preload retiré → 1 rouge ; hydratation sans attente → 1 rouge ; enregistrement serveur retiré → 1 rouge ; `runtime-resources` importé depuis `root.tsx` → 2 rouges ; restauré → 14/14 verts.
+
+Sonde Playwright (Chromium) sur le serveur construit, `/?lang=fr`, `/?lang=en`, `/pricing?lang=fr` : `<html lang>` correct, **une seule** requête de catalogue par document (celui de la langue), page hydratée, **0** « Unavailable », aucune erreur d'hydratation React en console.
+
+⚠️ **Deux contrôles CI regardaient à côté, trouvés par la PR #535 elle-même** (règle 15, côté outillage) : (1) le rendu **Electron** passe par sa propre config Vite, `vite-electron.config.ts`, sans mon plugin — Rollup y refusait `virtual:catalogues-i18n` sur les trois plateformes ; corrigé, reproduit en local (`pnpm electron:build:renderer` : exit 0 en 4 min), et une garde exige désormais le plugin dans TOUTE config qui charge `reactRouter()` (`catalogues-i18n-plugin.spec.ts`, contre-épreuve : plugin retiré → rouge). (2) `scripts/i18n/validate-catalogs.mjs` cherchait le motif `...xEn` dans `runtime.ts` (300 `catalog-not-registered`) : il lit désormais `runtime-resources.ts` pour l'enregistrement, et toujours `runtime.ts` pour le repli de clé manquante. Plus une entrée d'allowlist pour le code de diagnostic `i18n-catalogue-<langue>-http-<statut>` (règle `error-message`). `pnpm run i18n:check` : exit 0. (3) Sur la tête suivante, `services/screenshotter` — le seul paquet qui lance `vitest --run` SANS config propre — héritait de `vite.config.ts` racine et résolvait mes chemins de setup relatifs depuis son dossier : « Does the file exist? ». Reproduit en local (exit 1), corrigé par des chemins absolus (`dirname(fileURLToPath(import.meta.url))`) appliqués uniquement quand vitest tourne à la racine ; `pnpm test` dans le paquet : 11 tests verts ; la suite racine reçoit toujours le setup. Garde statique dans `catalogues-i18n-plugin.spec.ts`.
+
+☐ **Testé live** : reste à vérifier sur `app.e-code.ai` après déploiement — page en français sans « Unavailable », un seul `catalogue-fr-*.json` dans l'onglet réseau, et sur l'iPhone d'Avi.
