@@ -1,12 +1,35 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { reactRouter } from '@react-router/dev/vite';
 import * as dotenv from 'dotenv';
 import UnoCSS from 'unocss/vite';
+
 import { defineConfig, normalizePath, type ViteDevServer } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { cataloguesI18nPlugin } from './build-config/catalogues-i18n-plugin';
 import { manualChunks } from './build-config/manual-chunks';
+
+/*
+ * BUG-PERF-I18N-RACINE-001 — les fichiers de setup vitest des catalogues i18n.
+ *
+ * `services/screenshotter` lance `vitest --run` SANS config propre et hérite de
+ * celle-ci : un chemin relatif y est résolu depuis le dossier du paquet, et le
+ * fichier « n'existe pas » (mesuré sur « Install, test, build, scan », PR #535).
+ * Deux précautions : des chemins ABSOLUS, et ne les appliquer qu'à la racine du
+ * dépôt — un paquet de `services/` n'a ni `~/` ni `I18nextProvider`, et
+ * n'aurait rien à faire de 150 catalogues.
+ */
+const RACINE_DU_DEPOT = dirname(fileURLToPath(import.meta.url));
+const VITEST_A_LA_RACINE = normalizePath(process.cwd()) === normalizePath(RACINE_DU_DEPOT);
+
+const SETUP_I18N_VITEST = VITEST_A_LA_RACINE
+  ? {
+      globalSetup: [join(RACINE_DU_DEPOT, 'app/lib/i18n/catalogues-vitest.global.ts')],
+      setupFiles: [join(RACINE_DU_DEPOT, 'app/lib/i18n/catalogues-pour-vitest.ts')],
+    }
+  : {};
 
 // Load environment variables from multiple files
 dotenv.config({ path: '.env.local' });
@@ -251,8 +274,7 @@ export default defineConfig((config) => {
        * setup par fichier n'installe qu'un lecteur synchrone paresseux — évaluer
        * les 150 catalogues dans chaque fichier coûtait 2,2 s par fichier.
        */
-      globalSetup: ['./app/lib/i18n/catalogues-vitest.global.ts'],
-      setupFiles: ['./app/lib/i18n/catalogues-pour-vitest.ts'],
+      ...SETUP_I18N_VITEST,
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

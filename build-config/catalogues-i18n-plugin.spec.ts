@@ -171,3 +171,26 @@ describe('chaque config Vite qui construit app/ porte le plugin', () => {
     expect(code).toContain('reactRouter()');
   });
 });
+
+/**
+ * `services/screenshotter` lance `vitest --run` sans config propre et hérite de
+ * `vite.config.ts` : un chemin de setup RELATIF y est résolu depuis le dossier
+ * du paquet et « n'existe pas » (mesuré sur « Install, test, build, scan »,
+ * PR #535, tête `e135688d`). Les chemins doivent être absolus, et le setup
+ * réservé à la racine du dépôt.
+ */
+describe('le setup vitest des catalogues survit à un paquet sans config propre', () => {
+  const config = readFileSync(join(process.cwd(), 'vite.config.ts'), 'utf8');
+
+  it('résout les fichiers de setup en absolu, depuis le dossier de la config', () => {
+    expect(config).toContain("globalSetup: [join(RACINE_DU_DEPOT, 'app/lib/i18n/catalogues-vitest.global.ts')]");
+    expect(config).toContain("setupFiles: [join(RACINE_DU_DEPOT, 'app/lib/i18n/catalogues-pour-vitest.ts')]");
+    expect(config).not.toMatch(/(?:globalSetup|setupFiles): \['\.\//);
+    expect(config).toContain('dirname(fileURLToPath(import.meta.url))');
+  });
+
+  it('ne les applique qu’à la racine du dépôt — un paquet de services/ n’a ni `~/` ni catalogues', () => {
+    expect(config).toContain('normalizePath(process.cwd()) === normalizePath(RACINE_DU_DEPOT)');
+    expect(config).toContain('...SETUP_I18N_VITEST,');
+  });
+});
