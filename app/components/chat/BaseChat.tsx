@@ -7606,8 +7606,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * (`state.scrollTop = state.calculatedTargetScrollTop`) : le bas reste
          * collé, sans animation qui court après lui.
          *
-         * `initial` reste en « smooth » : c'est l'animation d'ARRIVÉE sur le
-         * fil, jouée une fois, jamais pendant le stream.
+         * `initial` — l'animation d'ARRIVÉE sur le fil, jouée une fois — reste
+         * en « smooth » sur BUREAU, et passe en « instant » sur TÉLÉPHONE.
+         *
+         * BUG-WEBKIT-SCROLL-FIL-001, mesuré le 2026-09-10 par le canari WebKit
+         * iPhone puis lu ligne à ligne dans `useStickToBottom` : à la première
+         * hauteur de contenu, le ressort (raideur 0,05, masse 1,25) part de
+         * `scrollTop = 0` et ferme ~5 % de la distance par image. Pour un fil
+         * de 2 563 px dans une fenêtre de 599, c'est ~90 images ou plus —
+         * 1,5 s à 60 Hz, le double si le moteur ralentit. Pendant ce temps,
+         * l'utilisateur voit le PREMIER message, puis regarde tout l'historique
+         * défiler devant lui. C'est la même famille que le « ça saute » corrigé
+         * juste au-dessus par `resize="instant"`, et pour la même raison : sur
+         * une fenêtre de lecture courte, une animation qui traverse le fil est
+         * une gêne, pas un agrément.
+         *
+         * Mesuré avant de conclure : la sonde du test rendait `dejaEnHaut` avec
+         * UN SEUL élément défilant sous le panneau (donc pas un défaut de
+         * mesure), neuf échecs sur dix sur WebKit, et la seule réussite est
+         * l'essai qui a mis 45 s — celui qui a laissé le ressort finir.
          */}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
@@ -7615,7 +7632,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'bolt-project-agent-scroll': projectIdeMode,
           })}
           resize="instant"
-          initial="smooth"
+          initial={useMobileIde ? 'instant' : 'smooth'}
         >
           <StickToBottom.Content
             className={classNames('flex flex-col gap-4 relative', {
