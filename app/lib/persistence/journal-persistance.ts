@@ -29,6 +29,9 @@
  * la CIBLE, la LONGUEUR transportée, et l'issue — entrée, sortie, rejet — avec
  * sa durée. Une entrée sans sortie est un blocage ; un rejet est un échec
  * silencieux ; une longueur qui plafonne est un défaut d'assemblage.
+ *
+ * Épinglé par `app/lib/persistence/journal-persistance.spec.ts` — une preuve live vaut pour le jour
+ * où elle a été prise ; un test vaut pour tous les jours suivants.
  */
 
 export type CiblePersistance = 'local' | 'serveur';

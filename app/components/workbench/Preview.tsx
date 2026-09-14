@@ -36,6 +36,7 @@ import { previewStartStatus } from './preview-start-status';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
+import { demarrageBloque, msDepuisLeDernierProgres } from '~/lib/ide/demarrage-bloque';
 import { texteRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
@@ -346,6 +347,17 @@ export function shouldShowStartupOverlay(input: {
  * wrong coordinates).
  */
 const INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR = new Set(['INSPECTOR_CLICK', 'INSPECTOR_HOVER', 'INSPECTOR_LEAVE']);
+
+/*
+ * BUG-IDE-006 — cadence de relecture du silence de démarrage.
+ *
+ * Le seuil vit dans `~/lib/ide/demarrage-bloque` (3 min) ; ce battement ne sert
+ * qu'à REGARDER l'horloge. Quinze secondes suffisent : la bascule se voit au
+ * plus tard un quart de minute après le seuil, pour un rendu toutes les quinze
+ * secondes le temps d'un démarrage — et zéro dès qu'un aperçu répond, puisque
+ * l'intervalle est démonté avec l'écran.
+ */
+const BATTEMENT_DEMARRAGE_MS = 15_000;
 
 /**
  * Whether Preview's own window `message` handler should process a given message
@@ -955,6 +967,68 @@ export const Preview = memo(
         setPreviewStatus(t('idePanels.preview.loadingWebview'));
       }
     }, [iframeUrl, projectId, t]);
+
+    /*
+     * BUG-IDE-006 — DIRE quand le démarrage n'avance plus.
+     *
+     * Le 2026-08-12, cet écran a tourné ~20 minutes sur « Dév. : démarrage » et
+     * « Aperçu — Détection » pendant que le pod n'avait ni `node_modules` ni
+     * processus vite : l'installation ne POUVAIT pas aboutir. Rien ne le
+     * signalait — un rouet qui tourne dit « ça avance », et l'écran d'un
+     * démarrage impossible était identique à celui d'un démarrage lent.
+     *
+     * On mesure le silence depuis le dernier CHANGEMENT D'ÉTAPE, jamais depuis
+     * l'ouverture : un démarrage lent mais qui progresse passe d'étape en étape
+     * et ne bascule donc jamais. C'est ce qui empêche d'annoncer « bloqué » sur
+     * une installation saine — un faux « c'est planté » serait un mensonge
+     * d'état de plus, très exactement ce qu'on corrige ici.
+     */
+    const dernierProgresRef = useRef<number | undefined>(undefined);
+    const [horlogeDeDemarrage, setHorlogeDeDemarrage] = useState<number | undefined>(undefined);
+    const etapeDeDemarrage = previewBootProgress.activeStep;
+    const unEcranDeDemarrageEstVisible = !activePreview && !previewRunFailed && !workspaceError;
+
+    useEffect(() => {
+      if (!unEcranDeDemarrageEstVisible) {
+        dernierProgresRef.current = undefined;
+        setHorlogeDeDemarrage(undefined);
+
+        return undefined;
+      }
+
+      // Tout changement d'étape EST un progrès : le compteur repart de zéro.
+      dernierProgresRef.current = Date.now();
+      setHorlogeDeDemarrage(Date.now());
+
+      const battement = window.setInterval(() => setHorlogeDeDemarrage(Date.now()), BATTEMENT_DEMARRAGE_MS);
+
+      return () => window.clearInterval(battement);
+    }, [etapeDeDemarrage, unEcranDeDemarrageEstVisible]);
+
+    const demarrageEstBloque =
+      unEcranDeDemarrageEstVisible &&
+      demarrageBloque(msDepuisLeDernierProgres(dernierProgresRef.current, horlogeDeDemarrage ?? 0));
+
+    /*
+     * Le MÊME geste que « Relancer » de l'écran d'échec, extrait pour être
+     * offert aussi quand le démarrage se tait (BUG-IDE-006). Deux copies du
+     * même geste divergent ; une seule ne peut pas.
+     */
+    const relancerLeDemarrage = useCallback(() => {
+      setIsStartingPreview(true);
+      setPreviewRunFailed(false);
+      setPreviewStatus(t('idePanels.preview.restartStatus'));
+      toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
+      void workbenchStore
+        .restartPreviewServer()
+        .catch(() => {
+          setPreviewStatus(t('idePanels.preview.restartFailed'));
+          setPreviewRunFailed(true);
+        })
+        .finally(() => {
+          window.setTimeout(() => setIsStartingPreview(false), 2500);
+        });
+    }, [t]);
 
     const openPreviewLogs = useCallback(() => {
       setActiveLogTab('server');
@@ -2970,21 +3044,7 @@ export const Preview = memo(
                     detail={previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined)}
                     isRunning={isStartingPreview}
                     logs={workspaceLogs.slice(-8)}
-                    onRun={() => {
-                      setIsStartingPreview(true);
-                      setPreviewRunFailed(false);
-                      setPreviewStatus(t('idePanels.preview.restartStatus'));
-                      toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
-                      void workbenchStore
-                        .restartPreviewServer()
-                        .catch(() => {
-                          setPreviewStatus(t('idePanels.preview.restartFailed'));
-                          setPreviewRunFailed(true);
-                        })
-                        .finally(() => {
-                          window.setTimeout(() => setIsStartingPreview(false), 2500);
-                        });
-                    }}
+                    onRun={relancerLeDemarrage}
                     onReinstall={() => {
                       setIsStartingPreview(true);
                       setPreviewRunFailed(false);
@@ -3026,6 +3086,8 @@ export const Preview = memo(
                         logs={recentPreviewLogs}
                         steps={previewBootSteps}
                         onViewLogs={openPreviewLogs}
+                        bloque={demarrageEstBloque}
+                        onRelancer={relancerLeDemarrage}
                       />
                     ) : null}
                     {shouldShowPreviewStartupOverlay ? (
@@ -3041,6 +3103,8 @@ export const Preview = memo(
                         progress={Math.min(previewBootProgress.progress, 84)}
                         steps={previewBootSteps}
                         onViewLogs={openPreviewLogs}
+                        bloque={demarrageEstBloque}
+                        onRelancer={relancerLeDemarrage}
                       />
                     ) : null}
                   </>
@@ -3386,18 +3450,22 @@ function useReducedMotion(): boolean {
 function PreviewSplashSequence({
   appName,
   activeStep,
+  bloque,
   currentTask,
   isBusy,
   logs,
+  onRelancer,
   onViewLogs,
   progress,
   steps,
 }: {
   appName?: string;
   activeStep: PreviewBootStepId;
+  bloque?: boolean;
   currentTask: string;
   isBusy: boolean;
   logs?: string[];
+  onRelancer?: () => void;
   onViewLogs?: () => void;
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
@@ -3446,15 +3514,30 @@ function PreviewSplashSequence({
         <div key={slide.headline} className="bolt-preview-splash-slide" aria-hidden>
           <PreviewSplashSlide slide={slide} />
         </div>
-        <div className="bolt-preview-splash-task">
-          {isBusy ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
+        <div className="bolt-preview-splash-task" data-vc-demarrage={bloque ? 'bloque' : undefined}>
+          {/*
+            BUG-IDE-006 — le rouet s'efface dès que plus rien n'avance : un
+            rouet qui tourne AFFIRME une progression. C'est ce qui rendait un
+            démarrage impossible indiscernable d'un démarrage lent.
+          */}
+          {bloque ? <span className="i-ph:warning-circle" aria-hidden /> : null}
+          {isBusy && !bloque ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
           <span>
-            <strong>{steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing')}</strong>
-            <small>{currentTask}</small>
+            <strong>
+              {bloque
+                ? t('idePanels.preview.stalledTitle')
+                : (steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing'))}
+            </strong>
+            <small>{bloque ? t('idePanels.preview.stalledBody') : currentTask}</small>
           </span>
           {onViewLogs ? (
             <button type="button" onClick={onViewLogs}>
               {t('idePanels.preview.viewLogs')}
+            </button>
+          ) : null}
+          {bloque && onRelancer ? (
+            <button type="button" data-testid="preview-splash-demarrage-relancer" onClick={onRelancer}>
+              {t('idePanels.preview.stalledRestart')}
             </button>
           ) : null}
         </div>
@@ -3532,15 +3615,19 @@ function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
 
 function PreviewLoadingOverlay({
   activeStep,
+  bloque,
   currentTask,
   logs,
+  onRelancer,
   onViewLogs,
   progress,
   steps,
 }: {
   activeStep: PreviewBootStepId;
+  bloque?: boolean;
   currentTask: string;
   logs: string[];
+  onRelancer?: () => void;
   onViewLogs?: () => void;
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
@@ -3555,8 +3642,17 @@ function PreviewLoadingOverlay({
       role="status"
       aria-live="polite"
     >
-      <div className="bolt-preview-loading-card">
-        <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
+      <div className="bolt-preview-loading-card" data-vc-demarrage={bloque ? 'bloque' : undefined}>
+        {/*
+          BUG-IDE-006 — le rouet DISPARAÎT quand plus rien n'avance. Le laisser
+          tourner sous un message « ça ne progresse plus » remettrait les deux
+          affirmations contradictoires que ce point corrige.
+        */}
+        {bloque ? (
+          <span className="bolt-preview-loading-spinner i-ph:warning-circle" aria-hidden />
+        ) : (
+          <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
+        )}
         <div className="bolt-preview-loading-copy">
           <span>{t('idePanels.preview.webviewStartup')}</span>
           <h3 data-testid="preview-loading-current-step">{activeLabel}</h3>
@@ -3586,10 +3682,20 @@ function PreviewLoadingOverlay({
             );
           })}
         </ol>
+        {bloque ? (
+          <p className="bolt-preview-demarrage-bloque" data-testid="preview-demarrage-bloque" role="alert">
+            {t('idePanels.preview.stalledBody')}
+          </p>
+        ) : null}
         {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
         {onViewLogs ? (
           <button type="button" onClick={onViewLogs}>
             {t('idePanels.preview.viewLogs')}
+          </button>
+        ) : null}
+        {bloque && onRelancer ? (
+          <button type="button" data-testid="preview-demarrage-relancer" onClick={onRelancer}>
+            {t('idePanels.preview.stalledRestart')}
           </button>
         ) : null}
       </div>

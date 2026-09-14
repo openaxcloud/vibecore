@@ -97,6 +97,39 @@ function logSafeChatHistoryError(message: string) {
   logStore.logError(message);
 }
 
+/*
+ * REPRENDRE LA CONVERSATION D'OÙ VIENT LE FIL RESTAURÉ.
+ *
+ * On restaurait le FIL sans reprendre la CONVERSATION. Sur un contexte neuf —
+ * autre appareil, cache vidé, navigation privée — la banque serveur est la
+ * SEULE à savoir de quelle conversation vient ce qui s'affiche. Personne ne le
+ * notait : `ensureProjectAiConversation` ne trouvait donc aucun identifiant au
+ * premier message suivant et en ouvrait une NEUVE, où
+ * `syncProjectAiTranscript` repoussait la transcription ENTIÈRE. Le même fil se
+ * retrouvait deux fois en base.
+ *
+ * ON ÉCRIT AU MÊME ENDROIT QUE `ensureProjectAiConversation` — le store
+ * `chatMetadata` puis la mémoire de projet, dans le scope NU comme elle — pour
+ * qu'il n'y ait qu'UNE autorité sur cet identifiant. Deux écritures dans deux
+ * scopes se contrediraient en silence, ce qui est exactement le défaut voisin
+ * relevé le 10/09 : `BaseChat` lit `workspace:<id>` pendant que le chat écrit
+ * `projectId`, et sa lecture est donc toujours vide.
+ *
+ * La persistance est « au mieux » : l'adoption qui compte pour le prochain
+ * envoi est celle du STORE, lu par `ensureProjectAiConversation` à chaque
+ * appel. L'écriture disque ne sert qu'au rechargement suivant, et un échec ne
+ * doit pas casser un affichage qui, lui, a réussi.
+ */
+function adopterLaConversationServeur(projectId: string, conversationId: string): void {
+  chatMetadata.set({ ...(chatMetadata.get() ?? {}), aiConversationId: conversationId });
+
+  void saveProjectIdeMemory(projectId, {
+    chat: { metadata: { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId } },
+  }).catch((erreur) => {
+    console.debug('[fil serveur] adoption non persistée, le store fait autorité pour ce tour', erreur);
+  });
+}
+
 export function useChatHistory() {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -163,7 +196,9 @@ export function useChatHistory() {
            * Délibérément après le rendu et non devant : un serveur lent doit
            * retarder le COMPLÉMENT du fil, jamais son affichage.
            */
-          void completerFilSiVide(messages, projectId, setInitialMessages);
+          void completerFilSiVide(messages, projectId, setInitialMessages, undefined, (conversationId) =>
+            adopterLaConversationServeur(projectId, conversationId),
+          );
           setUrlId(storedMessages?.urlId);
           description.set(
             resolveProjectAssistantDescription(

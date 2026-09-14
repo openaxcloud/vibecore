@@ -543,6 +543,11 @@ export class ActionRunner {
     /*
      * NE PAS RESSUSCITER UNE ACTION DÉJÀ ANNULÉE.
      *
+     * Vérifié le 2026-09-10 : `#updateAction` (ligne 1642) fusionne
+     * `{ ...current, ...newState }` et n'interdit toujours aucune transition
+     * depuis `complete`/`failed`/`aborted` — il ne fait qu'horodater `finishedAt`.
+     * Épinglé par `app/lib/runtime/action-annulee-non-ressuscitee.spec.ts`.
+     *
      * `#updateAction` n'interdit aucune transition depuis un état terminal, et
      * la ligne ci-dessous posait « running » INCONDITIONNELLEMENT, avant tout
      * contrôle. L'ordonnancement qui déclenchait :

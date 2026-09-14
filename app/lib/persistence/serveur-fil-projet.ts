@@ -28,7 +28,22 @@ import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from 
  * issue, et répare l'appareil neuf. IndexedDB reste en DERNIER recours : il
  * sert hors ligne et ne coûte rien à cette place.
  */
-export async function chargerFilDepuisServeur(projectId: string): Promise<Message[]> {
+/**
+ * Ce que le serveur détient : le fil ET l'identité de la conversation d'où il
+ * vient.
+ *
+ * L'IDENTITÉ N'EST PAS UN DÉTAIL, et la jeter coûtait une DUPLICATION EN BASE.
+ * On restaurait le fil sans reprendre la conversation : sur un contexte neuf —
+ * autre appareil, cache vidé, navigation privée — la banque serveur est la
+ * SEULE à savoir de quelle conversation vient ce qui s'affiche. Personne ne le
+ * notait, donc `ensureProjectAiConversation` ne trouvait aucun identifiant au
+ * premier message suivant et en ouvrait une NEUVE ; `syncProjectAiTranscript`
+ * y repoussait la transcription ENTIÈRE, à côté de l'ancienne. Le même fil
+ * existait alors deux fois.
+ */
+export type FilServeur = { messages: Message[]; conversationId?: string };
+
+export async function chargerFilDepuisServeur(projectId: string): Promise<FilServeur> {
   try {
     const reponseConversations = await fetch(
       `/api/projects/${encodeURIComponent(projectId)}/ai/conversations?limit=1`,
@@ -36,7 +51,7 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
     );
 
     if (!reponseConversations.ok) {
-      return [];
+      return { messages: [] };
     }
 
     const charge = (await reponseConversations.json()) as {
@@ -46,7 +61,7 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
     const conversationId = charge.conversations?.find((conversation) => conversation?.id)?.id;
 
     if (!conversationId) {
-      return [];
+      return { messages: [] };
     }
 
     const reponseMessages = await fetch(
@@ -55,7 +70,7 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
     );
 
     if (!reponseMessages.ok) {
-      return [];
+      return { messages: [] };
     }
 
     const messages = (await reponseMessages.json()) as ProjectAiMessagesResponse;
@@ -65,7 +80,7 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
      * non réécrit : deux copies de la traduction « message d'API » →
      * « message de chat » divergeraient sur les appels d'outils.
      */
-    return projectAiMessagesToChatMessages(messages.messages);
+    return { messages: projectAiMessagesToChatMessages(messages.messages), conversationId };
   } catch (erreur) {
     /*
      * Un repli ne doit JAMAIS casser le chargement. Serveur lent, hors ligne,
@@ -78,7 +93,7 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
      * journal coûte peu et évite un diagnostic à l'aveugle.
      */
     console.debug('[fil serveur] repli indisponible, on continue vers IndexedDB', erreur);
-    return [];
+    return { messages: [] };
   }
 }
 
@@ -93,13 +108,24 @@ export async function chargerFilDepuisServeur(projectId: string): Promise<Messag
  *   - des messages locaux non vides gagnent, et le serveur n'est PAS interrogé
  *     (ni requête inutile, ni écrasement d'un fil plus frais) ;
  *   - vides, on demande au serveur et on POSE le résultat s'il y en a un ;
- *   - un serveur vide ou en échec ne pose RIEN — l'affichage garde ce qu'il a.
+ *   - un serveur vide ou en échec ne pose RIEN — l'affichage garde ce qu'il a ;
+ *   - et quand on pose un fil, on ADOPTE la conversation d'où il vient.
+ *
+ * Cette dernière ligne est celle qui manquait, et son absence ne se voyait pas
+ * à l'écran : le fil s'affichait correctement. Le dégât n'apparaissait qu'au
+ * message SUIVANT, en base, sous la forme d'une seconde conversation portant
+ * une copie du fil. Un défaut de données silencieux, donc — la pire espèce.
+ *
+ * L'adoption est FAITE AVANT la pose. Si elle échouait après, on aurait affiché
+ * un fil que le prochain envoi dupliquerait quand même : l'ordre est le
+ * correctif, pas un détail de style.
  */
 export async function completerFilSiVide(
   messagesLocaux: readonly Message[],
   projectId: string,
   poser: (messages: Message[]) => void,
-  charger: (projectId: string) => Promise<Message[]> = chargerFilDepuisServeur,
+  charger: (projectId: string) => Promise<FilServeur> = chargerFilDepuisServeur,
+  adopter?: (conversationId: string) => void,
 ): Promise<void> {
   if (messagesLocaux.length) {
     return;
@@ -107,7 +133,19 @@ export async function completerFilSiVide(
 
   const filServeur = await charger(projectId);
 
-  if (filServeur.length) {
-    poser(filServeur);
+  if (!filServeur.messages.length) {
+    return;
   }
+
+  /*
+   * On n'adopte QUE si on pose. Adopter une conversation dont on n'affiche pas
+   * le fil ferait pointer l'identité sur autre chose que ce que voit
+   * l'utilisateur — on remplacerait une duplication par un mélange, ce qui est
+   * pire.
+   */
+  if (filServeur.conversationId) {
+    adopter?.(filServeur.conversationId);
+  }
+
+  poser(filServeur.messages);
 }

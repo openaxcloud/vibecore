@@ -305,6 +305,13 @@ test.describe('compact IDE shell device matrix', () => {
   let projectId: string;
 
   test.beforeAll(async ({ request }) => {
+    /*
+     * Même piège qu'en 10/09 sur `agent-scroll-pill` : le délai de hook par
+     * défaut (30 s) est plus court que le montage, et un dépassement compte le
+     * test en échec sans qu'aucune assertion n'ait été tentée.
+     */
+    test.setTimeout(180_000);
+
     auth = await authenticate(request);
     projectId = await createProject(request, auth);
   });

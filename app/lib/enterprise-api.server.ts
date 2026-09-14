@@ -203,6 +203,43 @@ export function loginRedirectFromRequest(request: Request) {
 }
 
 /*
+ * Ferme une page de l'espace utilisateur à un visiteur non authentifié.
+ *
+ * LE PIÈGE que cette fonction existe pour supprimer : les autres pages de
+ * l'espace utilisateur ne sont pas GARDÉES, elles sont protégées PAR ACCIDENT.
+ * Leur loader appelle l'API, `apiRequest` lève `loginRedirectFromRequest` sur
+ * un 401 de navigation, et la redirection tombe comme un EFFET DE BORD de la
+ * récupération de données. Une page dont le loader ne lit aucune donnée serveur
+ * n'est donc protégée par RIEN — mesuré : sur les 29 routes de
+ * `USER_AREA_ROUTE_PREFIXES`, elles vont de 2 à 12 appels `apiRequest`, sauf
+ * /workspace-settings (0) et /desktop-settings (aucun loader), qui rendaient
+ * toutes deux 200 à un visiteur déconnecté.
+ *
+ * Le corollaire est pire que le symptôme : le jour où quelqu'un retire le
+ * dernier `apiRequest` du loader d'une des vingt-sept autres, elle s'ouvre en
+ * silence, sans un seul test rouge. D'où une garde EXPLICITE, qui ne dépend
+ * d'aucun effet de bord.
+ *
+ * Le cookie ABSENT est tranché sans aller au réseau : c'est le cas courant, et
+ * une page qui n'avait aucune dépendance serveur ne doit pas en gagner une
+ * juste pour dire « va te connecter ». Un cookie PRÉSENT, lui, est vérifié
+ * auprès de l'API : un jeton révoqué ou expiré n'est pas une session.
+ */
+export async function requireAuthenticatedUser(request: Request) {
+  if (!readSessionToken(request)) {
+    throw loginRedirectFromRequest(request);
+  }
+
+  const payload = await apiRequest<{ user?: { id?: string } }>(request, '/auth/me');
+
+  if (!payload.user) {
+    throw loginRedirectFromRequest(request);
+  }
+
+  return payload.user;
+}
+
+/*
  * Gate a page loader behind the platform-admin role. The admin console lives at
  * /admin/* and is intentionally NOT linked from the standard user navigation —
  * it is reached by direct URL only. This makes the route itself enforce the

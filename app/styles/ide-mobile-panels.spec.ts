@@ -323,6 +323,23 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
     expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
   });
 
+  /*
+   * BUG-PORTS-MOBILE-001 — LE PIÈGE : la règle vit dans `index.scss`, l'URL
+   * qu'elle déplie vit dans `BaseChat.tsx`. Retirer `font-mono` de cette URL,
+   * ou renommer le conteneur des outils mobiles, ne rend AUCUN test rouge — la
+   * règle existe toujours, elle ne touche simplement plus rien, et l'URL
+   * redevient tronquée sur l'iPhone. La règle SCSS seule n'est que la MOITIÉ de
+   * la garde (règle 6).
+   */
+  it('le balisage des Ports porte `truncate font-mono` sous `.bolt-workbench-mobile` — la moitié DOM', () => {
+    /* L'URL de l'aperçu, capture du 06/09 : c'est CE couple de classes que le sélecteur vise. */
+    expect(BASE_CHAT).toContain('className="bolt-project-managed-panel bolt-project-ports-panel"');
+    expect(BASE_CHAT).toContain('className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary"');
+
+    /* L'ancêtre : sans lui, le sélecteur ne descend jamais jusqu'à l'URL. */
+    expect(BASE_CHAT).toContain('bolt-workbench-mobile bolt-workbench-mobile-service');
+  });
+
   it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
     const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
 
@@ -459,6 +476,38 @@ describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection,
     expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li > span:last-child')).toMatch(/flex:\s*1 1 100%/);
     expect(bloc('.bolt-responsive-ide-mobile .bolt-panel-row')).toMatch(/justify-content:\s*space-between/);
     expect(BASE_CHAT).toContain('className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary"');
+
+    /*
+     * BUG-PLAN-MOBILE-001 — PIÈGE : les quatre lignes ci-dessus ne tiennent que
+     * la FEUILLE. La règle vise `li > span:last-child` ; trois gestes anodins
+     * côté MARQUAGE la débranchent en silence, sans rien casser d'autre —
+     * renommer `.bolt-agent-plan`, ou glisser le moindre élément APRÈS le titre
+     * (pastille d'état, durée), car `:last-child` désigne alors le nouveau venu
+     * et la tâche retombe dans sa colonne de quatre mots, exactement la capture
+     * du 06/09. Les deux moitiés doivent donc rougir ensemble (règle 6).
+     */
+    const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
+    const debutPlan = assistant.indexOf('className="bolt-agent-plan');
+
+    expect(debutPlan, 'le crochet `.bolt-agent-plan` visé par la feuille a disparu du marquage').toBeGreaterThan(-1);
+
+    const finPlan = assistant.indexOf('</ol>', debutPlan);
+
+    expect(finPlan, 'la liste du plan est introuvable — la garde ne mesure rien').toBeGreaterThan(debutPlan);
+
+    const item = assistant.slice(assistant.indexOf('<li', debutPlan), assistant.indexOf('</li>', debutPlan));
+    const spans = [...item.matchAll(/<span\b[^>]*/g)].map((m) => m[0]);
+
+    expect(spans.length, 'aucun span dans la tâche — la lecture a échoué (règle 14)').toBeGreaterThan(1);
+
+    /*
+     * LE couplage : le DERNIER span de la tâche doit rester celui du titre,
+     * c'est-à-dire celui que la règle CSS élargit à toute la ligne.
+     */
+    expect(
+      spans[spans.length - 1],
+      'un élément a été glissé APRÈS le titre : `span:last-child` ne le vise plus',
+    ).toContain('flex-1');
   });
 
   it('« télécommande » ne traduit plus « remote » : dépôt distant', () => {

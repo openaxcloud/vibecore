@@ -54,6 +54,58 @@ describe('écran de démarrage de l’Aperçu — aucun texte tronqué', () => {
     expect(regle).toContain('white-space: normal');
   });
 
+  /*
+   * SECOND TOUR — J'AVAIS CORRIGÉ LA CARTE QUI NE S'AFFICHE PAS.
+   *
+   * L'écran de démarrage a DEUX implémentations qui s'excluent
+   * (Preview.tsx:3015-3044). `shouldShowStartupOverlay` rend TRUE au démarrage à
+   * froid ordinaire — `autoStart` vaut `true` par défaut et `!workspaceReady`
+   * suffit — donc c'est `.bolt-preview-loading-*` qui est à l'écran, et
+   * `.bolt-preview-splash-*`, celui que ce fichier gardait, n'est que le repli.
+   *
+   * Les trois tests ci-dessus étaient donc verts sur une surface que
+   * l'utilisateur ne voit pas au démarrage. C'est la définition même du faux
+   * vert, et ces trois-là s'appliquent maintenant AUX DEUX cartes : la règle,
+   * pas l'occurrence.
+   */
+  it('la carte RÉELLEMENT AFFICHÉE ne coupe pas non plus ses libellés', () => {
+    const regle = corpsDeRegle('.bolt-preview-loading-steps strong');
+
+    expect(regle, 'une étape coupée est illisible').not.toContain('white-space: nowrap');
+    expect(regle, 'et les points de suspension ne sont plus la réponse').not.toContain('text-overflow: ellipsis');
+    expect(regle, 'ni une troncature par débordement caché').not.toContain('overflow: hidden');
+    expect(regle).toContain('white-space: normal');
+    expect(regle).toContain('overflow-wrap: anywhere');
+  });
+
+  it('sa bande d’étapes passe elle aussi à deux colonnes sur téléphone', () => {
+    const regle = corpsDeRegle('.bolt-preview-loading-steps');
+
+    expect(regle, 'à quatre colonnes, un libellé de 36 caractères se replie sur trois lignes').toContain(
+      'grid-template-columns: repeat(2, minmax(0, 1fr))',
+    );
+  });
+
+  it('et la pastille numérotée reste sur la PREMIÈRE ligne d’un libellé replié', () => {
+    const li = corpsDeRegle('.bolt-preview-loading-steps li');
+    const span = corpsDeRegle('.bolt-preview-loading-steps span');
+
+    expect(li).toContain('align-items: flex-start');
+    expect(span, 'sinon un long libellé écrase la pastille').toContain('flex: 0 0 auto');
+  });
+
+  it('un libellé replié ne troque pas une coupure horizontale contre une verticale', () => {
+    /*
+     * L'override mobile portait déjà cette garde ; elle manquait à la règle de
+     * base, donc à l'ordinateur et à la tablette — où le volet d'aperçu peut
+     * être tout aussi court.
+     */
+    const carte = corpsDeRegle('.bolt-preview-loading-card');
+
+    expect(carte).toContain('max-height: 100%');
+    expect(carte).toContain('overflow-y: auto');
+  });
+
   it('et la bande d’étapes passe à deux colonnes sur téléphone', () => {
     const regle = corpsDeRegle('.bolt-preview-splash-steps');
 

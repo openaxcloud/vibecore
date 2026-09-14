@@ -1923,9 +1923,9 @@ export const chatFr = {
   'chat.copy.exportsDeploysCollaboratorsGitAndRuntime_21970b4b':
     'Exportations, déploiements, collaborateurs, Git et actions de l’environnement d’exécution',
   'chat.copy.exportTxt_469c1c08': 'Exporter le .txt',
-  'chat.copy.extension_f9896101': 'rallonge',
+  'chat.copy.extension_f9896101': 'extension',
   'chat.copy.extensionDomains_abc98b01': "Domaines d'extension",
-  'chat.copy.extensions_656bcfe2': 'Rallonges',
+  'chat.copy.extensions_656bcfe2': 'Extensions',
   'chat.copy.fallbackProvider_595064ee': 'Fournisseur de secours',
   'chat.copy.feature_4b7615dc': 'fonctionnalité',
   'chat.copy.fileEncodingUtf8_b8734a83': 'Encodage du fichier : UTF-8',

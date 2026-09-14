@@ -437,6 +437,10 @@ export const idePanelsEn = {
   'idePanels.preview.noElementBody': 'Enable Inspect to code, then click an element in the preview.',
   'idePanels.preview.preparing': 'Preparing preview',
   'idePanels.preview.viewLogs': 'View logs',
+  'idePanels.preview.stalledTitle': 'Startup is not progressing',
+  'idePanels.preview.stalledBody':
+    'Nothing has moved for several minutes. The logs say what the app is waiting on — you can also restart the startup.',
+  'idePanels.preview.stalledRestart': 'Restart startup',
   'idePanels.preview.startupProgress': 'Preview startup progress',
   'idePanels.preview.startupSteps': 'Preview startup steps',
   'idePanels.preview.preparationSlides': 'Preview preparation slides',
@@ -934,6 +938,10 @@ export const idePanelsFr: Record<keyof typeof idePanelsEn, string> = {
   'idePanels.preview.noElementBody': 'Activez l’inspection du code, puis sélectionnez un élément dans l’aperçu.',
   'idePanels.preview.preparing': 'Préparation de l’aperçu',
   'idePanels.preview.viewLogs': 'Afficher les journaux',
+  'idePanels.preview.stalledTitle': 'Le démarrage n’avance plus',
+  'idePanels.preview.stalledBody':
+    'Rien n’a bougé depuis plusieurs minutes. Les journaux disent ce que l’application attend — vous pouvez aussi relancer le démarrage.',
+  'idePanels.preview.stalledRestart': 'Relancer le démarrage',
   'idePanels.preview.startupProgress': 'Progression du démarrage de l’aperçu',
   'idePanels.preview.startupSteps': 'Étapes de démarrage de l’aperçu',
   'idePanels.preview.preparationSlides': 'Conseils de préparation de l’aperçu',

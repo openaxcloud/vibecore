@@ -90,3 +90,93 @@ describe('BUG-KEYBOARD-ZOOM-001 — clavier iOS : détection par le rétrécisse
     expect(baseChat).toContain('window.scrollTo(0, 0);');
   });
 });
+
+/**
+ * BUG-KEYBOARD-MOBILE-001 — LA MOITIÉ QUE PERSONNE NE TENAIT.
+ *
+ * Tout le reste du correctif est épinglé : le seuil et les deux fonctions de
+ * décision le sont ici même, la feuille de style et la pose de l'attribut le
+ * sont par `app/styles/ide-mobile-panels.spec.ts` (§9). Il restait une ligne
+ * porteuse que RIEN ne protégeait — celle qui abonne la mesure aux événements
+ * de la fenêtre visuelle.
+ *
+ * Pourquoi elle porte tout : sur iOS, la levée du clavier logiciel ne déclenche
+ * PAS `window.resize` ; elle ne se manifeste que par `visualViewport`. Retirer
+ * ces deux abonnements laisse donc VERTES toutes les gardes existantes — la
+ * fonction de décision est intacte, le CSS est intact, l'appel est intact — et
+ * la fonction est morte sur le téléphone d'Avi : la mesure n'est jamais
+ * relancée, l'attribut n'est jamais posé, le composeur reste 90 px au-dessus du
+ * clavier. C'est très exactement le défaut d'origine, réintroduit sans un seul
+ * test rouge (règle 15).
+ *
+ * La garde vise la RÈGLE et non la ligne (règle 7) : tout événement capable de
+ * changer la fenêtre visuelle relance la mesure, et tout abonnement est défait
+ * au démontage. Ajouter demain un troisième événement sans son retrait fera
+ * rougir la symétrie.
+ *
+ * NON MESURABLE AUTREMENT : `BaseChat` n'est monté nulle part en jsdom (23 816
+ * lignes, 135 imports de module, `ChartJS.register` au chargement — les ~18
+ * specs qui le nomment le LISENT toutes), et un moteur sans écran tactile n'a
+ * pas de clavier logiciel à lever. La garde est donc statique, comme celles de
+ * §9 — et elle le dit plutôt que de se déguiser en preuve de comportement.
+ */
+describe('BUG-KEYBOARD-MOBILE-001 — la mesure est abonnée à la fenêtre visuelle', () => {
+  /** Retire les commentaires : une garde ne doit jamais compter sa propre prose (règle 5). */
+  function sansCommentaires(source: string): string {
+    return source.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+  }
+
+  /** L'effet clavier SEUL — pas les 23 816 lignes du fichier. */
+  function effetClavier(): string {
+    const baseChat = readFileSync(new URL('./BaseChat.tsx', import.meta.url).pathname, 'utf8');
+    const debut = baseChat.indexOf('const updateVisualViewportHeight = () => {');
+    const fin = baseChat.indexOf('}, [useMobileIde]);', debut);
+
+    /*
+     * Règle 14 : un « 0 résultat » n'informe que si la recherche a porté. Ces
+     * trois contrôles disent que l'extraction a bien trouvé SON effet, et pas
+     * le fichier entier par accident.
+     */
+    expect(debut, 'l’effet clavier est introuvable dans BaseChat — la garde ne mesure plus rien').toBeGreaterThan(-1);
+    expect(fin, 'la fin de l’effet clavier est introuvable — la garde ne mesure plus rien').toBeGreaterThan(debut);
+
+    const effet = sansCommentaires(baseChat.slice(debut, fin));
+
+    // Témoin positif : l'extrait contient bien ce que l'effet est censé faire.
+    expect(effet, 'témoin positif absent : l’extrait n’est pas l’effet clavier').toContain('data-vc-clavier');
+    expect(effet.length, 'l’extrait fait la taille du fichier : il n’a rien narrowé').toBeLessThan(baseChat.length / 2);
+
+    return effet;
+  }
+
+  it('s’abonne au redimensionnement ET au défilement de `visualViewport` — sans quoi iOS ne dit jamais que le clavier est là', () => {
+    const effet = effetClavier();
+
+    expect(
+      effet,
+      'le clavier iOS ne déclenche pas `window.resize` : sans cet abonnement, la mesure n’est jamais relancée',
+    ).toContain("window.visualViewport?.addEventListener('resize', updateVisualViewportHeight)");
+
+    expect(
+      effet,
+      'Safari fait DÉFILER le document pour garder le champ visible (BUG-KEYBOARD-ZOOM-001) : sans cet abonnement, le décalage n’est jamais annulé',
+    ).toContain("window.visualViewport?.addEventListener('scroll', updateVisualViewportHeight)");
+
+    // Le redimensionnement de fenêtre reste le repli des moteurs sans `visualViewport`.
+    expect(effet).toContain("window.addEventListener('resize', updateVisualViewportHeight)");
+  });
+
+  it('défait au démontage exactement ce qu’il a posé — aucun abonnement orphelin', () => {
+    const effet = effetClavier();
+
+    const poses = [...effet.matchAll(/\.addEventListener\('([a-z]+)', updateVisualViewportHeight\)/g)].map((m) => m[1]);
+
+    const retires = [...effet.matchAll(/\.removeEventListener\('([a-z]+)', updateVisualViewportHeight\)/g)].map(
+      (m) => m[1],
+    );
+
+    // Règle 14 bis : un compte à zéro des deux côtés serait « symétrique » et vide.
+    expect(poses.length, 'aucun abonnement trouvé : la mesure ne se relance jamais').toBeGreaterThanOrEqual(3);
+    expect(retires.sort(), `posés ${poses.sort().join()} / retirés ${retires.sort().join()}`).toEqual(poses.sort());
+  });
+});

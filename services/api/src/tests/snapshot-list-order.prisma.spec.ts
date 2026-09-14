@@ -2,6 +2,7 @@ import { createDatabaseClient } from '@vibecore/database';
 import { describe, expect, it } from 'vitest';
 
 import { PrismaApiStore } from '../prisma-store.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /**
  * PANEL-PERF — l'ordre de la liste d'instantanés doit être TOTAL.
@@ -24,23 +25,15 @@ import { PrismaApiStore } from '../prisma-store.js';
  * migrations appliquées) : rouge en retirant `{ id: 'desc' }`, vert avec.
  */
 
-async function canReachDatabase() {
-  if (!process.env.DATABASE_URL) {
-    return false;
-  }
-
-  const prisma = createDatabaseClient();
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+/*
+ * BUG-TEST-DB-HANG-001 — la sonde locale (copiée à l'identique dans six
+ * fichiers) attendait `prisma.$disconnect()` dans son `finally`. Mesuré : cet
+ * appel ne se dénoue JAMAIS quand le client n'a pas pu se connecter, donc la
+ * sonde ne rend pas, le `beforeAll` ne finit pas, et le fichier reste en l'air
+ * — 93 minutes constatées. Le point de passage partagé borne la requête ET la
+ * fermeture (règle 7 : une seule correction pour les huit copies).
+ */
+const canReachDatabase = baseDeDonneesJoignable;
 
 const runPrismaTests = (await canReachDatabase()) ? describe : describe.skip;
 
