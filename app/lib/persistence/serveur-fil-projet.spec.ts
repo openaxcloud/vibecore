@@ -267,3 +267,88 @@ describe('CONV-001 — le fil restauré reprend SA conversation', () => {
     expect(poses).toHaveLength(1);
   });
 });
+
+/**
+ * BUG-HISTORY-CLEAR-002 — l'identité change PENDANT la lecture.
+ *
+ * Mesuré le 14/09 : run E2E 1969 sur `main`, « Effacer l'historique », le fil
+ * revenait (0 attendu, 2 reçus, 3 fois sur 3 sur un runner chargé). Le repli
+ * serveur était parti sous l'ancienne conversation et arrivait après que
+ * l'effacement avait retiré l'identifiant puis ouvert une conversation neuve.
+ */
+describe('completerFilSiVide — une identité qui change pendant la lecture annule la pose', () => {
+  const msgs = () => [msg('user', 'q'), msg('assistant', 'r')];
+
+  it('ne pose NI n’adopte quand l’identité lue à l’arrivée n’est plus celle du départ', async () => {
+    const pose: Message[][] = [];
+    const adoptees: string[] = [];
+
+    let identite: string | undefined = 'conv-ancienne';
+
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => {
+        // « Effacer l'historique » passe pendant la lecture : identité retirée, puis neuve.
+        identite = 'conv-neuve';
+        return { messages: msgs(), conversationId: 'conv-ancienne' };
+      },
+      (id) => adoptees.push(id),
+      () => identite,
+    );
+
+    expect(pose, 'le fil effacé ne doit pas revenir').toHaveLength(0);
+    expect(adoptees, 'l’ancienne conversation ne doit pas être ré-adoptée').toHaveLength(0);
+  });
+
+  it('l’identifiant retiré (effacement en cours) compte aussi comme un changement', async () => {
+    const pose: Message[][] = [];
+
+    let identite: string | undefined = 'conv-ancienne';
+
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => {
+        identite = undefined;
+        return { messages: msgs(), conversationId: 'conv-ancienne' };
+      },
+      undefined,
+      () => identite,
+    );
+
+    expect(pose).toHaveLength(0);
+  });
+
+  it('CONTRE-ÉPREUVE : identité inchangée, le fil est posé et adopté comme avant', async () => {
+    const pose: Message[][] = [];
+    const adoptees: string[] = [];
+
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => ({ messages: msgs(), conversationId: 'conv-ancienne' }),
+      (id) => adoptees.push(id),
+      () => 'conv-ancienne',
+    );
+
+    expect(pose).toHaveLength(1);
+    expect(adoptees).toEqual(['conv-ancienne']);
+  });
+
+  it('sans lecteur d’identité, le comportement d’avant est intact', async () => {
+    const pose: Message[][] = [];
+
+    await completerFilSiVide(
+      [],
+      'p1',
+      (m) => pose.push(m),
+      async () => ({ messages: msgs(), conversationId: 'c' }),
+    );
+
+    expect(pose).toHaveLength(1);
+  });
+});

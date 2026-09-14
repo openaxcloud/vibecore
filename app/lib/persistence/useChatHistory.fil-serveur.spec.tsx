@@ -116,6 +116,27 @@ describe('la restauration d’un projet consulte la banque serveur', () => {
     expect(typeof poser).toBe('function');
   });
 
+  it('CONTRAT 1 bis — le repli reçoit un lecteur d’identité branché sur le store courant', async () => {
+    /*
+     * BUG-HISTORY-CLEAR-002 (14/09) : sans ce lecteur, une lecture partie sous
+     * l'ancienne conversation et arrivée après « Effacer l'historique » posait
+     * le fil effacé et ré-adoptait l'ancienne identité. Le lecteur doit rendre
+     * l'identité du STORE au moment de l'appel, pas une valeur figée.
+     */
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    const lireIdentite = mocks.completerFilSiVide.mock.calls[0][5] as (() => string | undefined) | undefined;
+    expect(typeof lireIdentite).toBe('function');
+
+    chatMetadata.set({ aiConversationId: 'conv-neuve' });
+    expect(lireIdentite!()).toBe('conv-neuve');
+
+    chatMetadata.set({});
+    expect(lireIdentite!()).toBeUndefined();
+  });
+
   it('CONTRAT 2 — l’affichage n’attend pas le serveur', async () => {
     /*
      * Le complément ne se résout JAMAIS : un serveur indéfiniment lent. Le hook

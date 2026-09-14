@@ -2534,6 +2534,41 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
   }) => {
     test.setTimeout(150_000);
 
+    /*
+     * UN RUNNER CHARGÉ, REJOUÉ EXPRÈS. Au montage, deux lecteurs demandent la
+     * transcription : le hook d'hydratation (dès que l'ide-state donne
+     * l'identifiant) puis le repli serveur (une requête `?limit=1` plus tard).
+     * Sur une machine lente, la réponse du SECOND atterrit APRÈS l'effacement.
+     * Mesuré sur `main` le 14/09 (run E2E 1969, 30,9 min) : rouge 3 fois sur 3,
+     * « 0 attendu, 2 reçus » — et vert sur la machine saine d'à côté.
+     *
+     * Ce qui rend le cas déterministe, mesuré en local sur le build défectueux :
+     *   - retarder `/messages` en bloc ne prouve rien (les deux lecteurs
+     *     attendent ENSEMBLE, vert) ;
+     *   - retarder `?limit=1` non plus (le serveur répond après la création de
+     *     la conversation neuve et le repli lit la neuve, vide — vert) ;
+     *   - retarder la réponse du DEUXIÈME `/messages` seulement : c'est le
+     *     traînard réel, et le fil effacé revient.
+     */
+    let lecturesDuFil = 0;
+
+    await page.route(/\/ai\/conversations\/[^/]+\/messages(\?|$)/, async (route) => {
+      lecturesDuFil += 1;
+
+      /*
+       * 4 s : mesuré en local, le second `/messages` part ~1,9 s après
+       * l'ouverture, l'effacement est confirmé ~1 s plus tard. Le traînard
+       * doit atterrir DANS la fenêtre d'observation qui suit (6 s), pas après
+       * — avec 5 s de retard et 3 s de fenêtre, le test restait vert sur le
+       * build défectueux parce qu'il regardait avant l'arrivée.
+       */
+      if (lecturesDuFil === 2) {
+        await new Promise((resoudre) => setTimeout(resoudre, 4000));
+      }
+
+      await route.continue();
+    });
+
     const { token, projectId } = await ouvrirIde(page, request, { fil: true });
     const lignes = page.locator('.bolt-chat-message-row');
 
@@ -2556,7 +2591,8 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
 
     // Mesuré avant : quatre messages avant, quatre après — le fil « effacé » revenait.
     await expect(lignes).toHaveCount(0, { timeout: 15_000 });
-    await page.waitForTimeout(3000);
+    // 6 s : la fenêtre doit couvrir l'arrivée du traînard retardé ci-dessus.
+    await page.waitForTimeout(6000);
     await expect(lignes, 'le fil ne doit pas se remplir à nouveau').toHaveCount(0);
 
     await expect
