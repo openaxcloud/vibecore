@@ -37,7 +37,8 @@ export function chargerCatalogue(langue: SupportedLanguage): Promise<void> {
   const chargement = fetch(urlDuCatalogue(langue))
     .then((reponse) => {
       if (!reponse.ok) {
-        throw new Error(`catalogue i18n « ${langue} » : HTTP ${reponse.status}`);
+        // Un code, pas une phrase : ce message n'est jamais affiché, seulement consigné.
+        throw new Error(`i18n-catalogue-${langue}-http-${reponse.status}`);
       }
 
       return reponse.json() as Promise<Record<string, string>>;

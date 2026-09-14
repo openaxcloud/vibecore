@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -148,5 +151,23 @@ describe('catalogues i18n — un JSON par langue', () => {
     await generateBundle.call({ emitFile: () => undefined }, {} as never, {} as never, false);
 
     expect(evaluations).toBe(1);
+  });
+});
+
+/**
+ * Le renderer Electron passe par SA propre config Vite (`vite-electron.config.ts`,
+ * script `electron:build:renderer`). Mesuré sur le job « linux desktop build » de
+ * la PR #535 : sans le plugin, Rollup refuse `virtual:catalogues-i18n` et le
+ * build de bureau tombe. Toute config qui construit `app/` doit porter le plugin.
+ */
+describe('chaque config Vite qui construit app/ porte le plugin', () => {
+  it.each(['vite.config.ts', 'vite-electron.config.ts'])('%s', (nom) => {
+    const code = readFileSync(join(process.cwd(), nom), 'utf8');
+
+    expect(code).toContain("from './build-config/catalogues-i18n-plugin'");
+    expect(code).toContain('cataloguesI18nPlugin(),');
+
+    // Règle 14 : la config doit bien construire app/ (elle charge le plugin React Router).
+    expect(code).toContain('reactRouter()');
   });
 });
