@@ -143,6 +143,9 @@ export function isIdeAddressablePanel(panel: string): panel is IdeAddressablePan
  * Résout une valeur brute de `?panel=`. Ne devine JAMAIS : une clé non reconnue
  * ressort en `unknown` pour que l'appelant la traite explicitement (URL
  * normalisée + message), au lieu d'afficher un panneau que personne n'a demandé.
+ *
+ * Épinglé par `app/lib/ide/portes-des-panneaux.spec.ts` — « une clé et son alias
+ * ouvrent LE MÊME panneau, jamais deux », plus les quatre invariants de porte.
  */
 export function resolveIdePanelKey(raw: string | null | undefined): IdePanelResolution {
   const requested = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
