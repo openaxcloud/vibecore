@@ -20,6 +20,24 @@
  * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
  * silencieusement.
  */
+import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
+import {
+  formaterLaDateDuPoint,
+  ilYA,
+  pointsDeRestaurationParMessage,
+  type PointDeRestauration,
+} from '~/components/chat/fin-de-tour';
+import { commitDemande } from '~/components/workbench/commit-demande';
+import { getFinDeTourCopy } from '~/lib/i18n/catalogs/fin-de-tour';
+import {
+  composerLaSaisie,
+  langueDeDictee,
+  messageDErreurDeDictee,
+  reduireLaDictee,
+  transcriptionDepuisResultats,
+  type EvenementDictee,
+  type PhaseDictee,
+} from '~/components/chat/dictee-vocale';
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -69,6 +87,7 @@ import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './comp
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
   decideImageAttachment,
@@ -78,7 +97,7 @@ import {
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { devServerStatusText } from './dev-server-status';
-import { describeSkipReason, parseDotEnv } from './parse-dot-env';
+
 import {
   TAB_DRAG_PANE_MIME,
   TAB_DRAG_TAB_MIME,
@@ -126,7 +145,12 @@ import { Messages } from './Messages.client';
 import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
 import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
-import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from './visual-viewport-bottom';
+import {
+  clavierProbablementOuvert,
+  decalageAAnnulerClavierOuvert,
+  recouvrementBasDuNavigateur,
+  retrecissementDeLaVue,
+} from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
@@ -145,7 +169,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import {
   IdePanelHeader,
   PanelButton,
@@ -163,7 +187,7 @@ import {
   defaultProjectAgentPanelWidth,
   projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
-import type { FileMap } from '~/lib/stores/files';
+import { CODE_CONFLIT_DISTANT, type FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -204,6 +228,7 @@ import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/ho
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
 import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -270,6 +295,15 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
+import {
+  detailDeTacheDeReparation,
+  gesteDeLancementDeLAgent,
+  TACHE_DE_REPARATION,
+} from '~/components/deploy/reparation-agent';
+import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
+import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
 import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
@@ -473,67 +507,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-/*
- * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
- * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
- * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
- * - `agent` (marque, rendue à part) ;
- * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
- *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
- *   registre (même si la valeur actuelle y est identique).
- */
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
-  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
-  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
-  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
-  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
-  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
-  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
-  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
-  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
-  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
-  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
-  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
-  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
-  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
-  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
-  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
-  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
-  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
-  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
-  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
-  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
-  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
-  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
-  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
-  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
-};
+import { ECODE_MOBILE_TAB_META_BASE, outilCanonique } from '~/lib/mobile-tab-meta';
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -992,89 +966,6 @@ function runtimeStateLabel(t: TFunction, status?: string | null): string {
   }
 
   return status || t('baseChatAst.status.unknown');
-}
-
-function platformStateLabel(t: TFunction, status: unknown): string {
-  const raw = String(status ?? '').trim();
-  const normalized = raw.toLowerCase().replace(/[\s-]+/g, '_');
-
-  switch (normalized) {
-    case 'active':
-      return t('baseChatAst.status.active');
-    case 'cancelled':
-    case 'canceled':
-      return t('baseChatAst.status.cancelled');
-    case 'critical':
-      return t('baseChatAst.status.critical');
-    case 'completed':
-      return t('baseChatAst.status.completed');
-    case 'connected':
-      return t('baseChatAst.status.connected');
-    case 'disabled':
-      return t('baseChatAst.status.disabled');
-    case 'enabled':
-      return t('baseChatAst.status.enabled');
-    case 'error':
-      return t('baseChatAst.status.error');
-    case 'failed':
-      return t('baseChatAst.status.failed');
-    case 'high':
-      return t('baseChatAst.status.high');
-    case 'info':
-      return t('baseChatAst.status.info');
-    case 'idle':
-      return t('baseChatAst.presence.idle');
-    case 'offline':
-      return t('baseChatAst.status.offline');
-    case 'low':
-      return t('baseChatAst.status.low');
-    case 'medium':
-      return t('baseChatAst.status.medium');
-    case 'moderate':
-      return t('baseChatAst.status.moderate');
-    case 'paused':
-      return t('baseChatAst.status.paused');
-    case 'pending':
-      return t('baseChatAst.status.pending');
-    case 'preview':
-      return t('baseChatAst.status.preview');
-    case 'production':
-      return t('baseChatAst.status.production');
-    case 'ready':
-      return t('baseChatAst.status.ready');
-    case 'reconnecting':
-      return t('baseChatAst.status.reconnecting');
-    case 'running':
-      return t('baseChatAst.status.running');
-    case 'starting':
-      return t('baseChatAst.status.starting');
-    case 'stopped':
-      return t('baseChatAst.status.stopped');
-    case 'staging':
-      return t('baseChatAst.status.staging');
-    case 'succeeded':
-    case 'success':
-      return t('baseChatAst.status.succeeded');
-    case 'trialing':
-      return t('baseChatAst.status.trialing');
-    case 'approved':
-      return t('baseChatAst.status.approved');
-    case 'quarantined':
-      return t('baseChatAst.status.quarantined');
-    case 'rejected':
-      return t('baseChatAst.status.rejected');
-    case 'revoked':
-      return t('baseChatAst.status.revoked');
-    case 'daily':
-      return t('baseChatAst.status.daily');
-    case 'weekly':
-      return t('baseChatAst.status.weekly');
-    case 'warn':
-    case 'warning':
-      return t('baseChatAst.status.warning');
-    default:
-      return raw || t('baseChatAst.status.unknown');
-  }
 }
 
 function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {
@@ -2749,6 +2640,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * we simply leave the callback off the context and the command
      * no-ops gracefully (verified in slash-commands.spec.ts).
      */
+    /*
+     * Rappels tenus par RÉFÉRENCE, pas par dépendance.
+     *
+     * `sendMessage` et `isStreaming` changent d'identité à chaque lot de
+     * jetons pendant un tour. Les mettre en dépendance de l'effet ci-dessous
+     * réabonnerait l'écouteur `vibecore:agent-task` en boucle — c'est le
+     * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
+     * valeur COURANTE sans faire bouger l'effet.
+     */
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming, resetChat });
+
+    useEffect(() => {
+      rappelsAgentTache.current = { sendMessage, isStreaming, resetChat };
+    });
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001 — l'invite qui attend un fil NEUF.
+     *
+     * `resetChat` archive la conversation et vide le fil, mais l'envoi ne peut
+     * pas suivre dans la foulée : `append` poste sur le fil que le crochet
+     * connaît AU MOMENT DE L'APPEL, et à cet instant il n'a pas encore été
+     * vidé. Envoyer tout de suite déposerait la réparation à la fin de la
+     * conversation qu'on venait d'archiver — soit précisément le défaut qu'on
+     * corrige, par un autre chemin.
+     *
+     * On garde donc l'invite ici, et l'effet plus bas l'envoie quand le fil est
+     * RÉELLEMENT vide. Pas de `setTimeout` : la condition est observable.
+     */
+    const [inviteEnAttenteDeFilNeuf, setInviteEnAttenteDeFilNeuf] = useState<string | null>(null);
+
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
         if (!handleInputChange) {
@@ -2778,6 +2699,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [handleInputChange, input, textareaRef],
     );
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001, seconde moitié — on envoie QUAND le fil
+     * est vide, pas quand on a demandé qu'il le soit.
+     *
+     * La dépendance est `messages?.length`, pas `messages` : pendant un tour,
+     * le tableau change d'identité à chaque lot de jetons alors que sa longueur
+     * ne bouge pas. Dépendre du tableau relancerait cet effet des centaines de
+     * fois par réponse — le mécanisme exact de BUG-STREAM-JUMP-001.
+     */
+    useEffect(() => {
+      if (!inviteEnAttenteDeFilNeuf) {
+        return;
+      }
+
+      if ((messages?.length ?? 0) > 0) {
+        return;
+      }
+
+      const invite = inviteEnAttenteDeFilNeuf;
+      setInviteEnAttenteDeFilNeuf(null);
+
+      const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+      if (!envoyer || tourEnCours) {
+        insertIntoComposer(invite, { replace: true });
+        return;
+      }
+
+      void envoyer({} as unknown as React.UIEvent, invite);
+    }, [inviteEnAttenteDeFilNeuf, messages?.length, insertIntoComposer]);
 
     /*
      * Composer draft persistence — the typed-but-unsent prompt survives a
@@ -2852,8 +2804,102 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               details?: string;
               severity?: string;
               source?: string;
+              prompt?: string;
+              cible?: string;
+              envoyer?: boolean;
             }
           | undefined;
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001 — Avi, 08/09 : « quand je clique sur le
+         * bouton réparer avec l'agent ça doit me remettre sur le panneau agent
+         * et démarrer l'agent avec le prompt en question ».
+         *
+         * L'invite était bien déposée dans la zone de saisie… du panneau
+         * Agent, que l'utilisateur ne voyait pas : il restait sur Sécurité (ou
+         * Git, ou Publication) et rien ne semblait se passer. Basculer fait
+         * partie de l'action, quel que soit le `kind` — une seule règle pour
+         * les trois surfaces qui émettent cet événement (règle 7).
+         */
+        /*
+         * `activateMobileTool` attend l'identifiant D'OUTIL (`agent`) et non le
+         * nom du panneau (`chat`) : c'est lui qui traduit l'un en l'autre. Un
+         * `panel: 'chat'` ne déclenchait rien — mesuré, le panneau restait sur
+         * Déploiements, et le test E2E l'a dit.
+         */
+        const allerAuPanneauAgent = () => {
+          window.dispatchEvent(
+            new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'agent', toolId: 'agent' } }),
+          );
+        };
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001, seconde moitié — Avi (point 5) : « ça
+         * doit me remettre sur le panneau agent ET DÉMARRER l'agent avec le
+         * prompt en question ENVOYÉ par le bouton ».
+         *
+         * La bascule et le pré-remplissage étaient faits ; l'envoi, non.
+         * L'utilisateur arrivait donc sur l'agent devant une invite qu'il
+         * devait poster lui-même — un geste de plus, exactement celui que le
+         * bouton prétendait lui épargner.
+         *
+         * DEUX GARDES, et elles ne sont pas décoratives :
+         *   - `sendMessage` peut être absent (le composant sert aussi hors
+         *     IDE) : on retombe alors sur l'invite préremplie, ce qui reste
+         *     utilisable ;
+         *   - un tour DÉJÀ en cours ne doit pas être doublé. Envoyer par
+         *     dessus une génération en vol produirait deux tours concurrents
+         *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
+         *     l'utilisateur choisit son moment.
+         */
+        const lancerLAgent = (invite: string, cible?: string | null) => {
+          allerAuPanneauAgent();
+
+          const {
+            sendMessage: envoyer,
+            isStreaming: tourEnCours,
+            resetChat: ouvrirUnFilNeuf,
+          } = rappelsAgentTache.current;
+
+          const geste = gesteDeLancementDeLAgent({
+            cible,
+            peutEnvoyer: Boolean(envoyer),
+            tourEnCours: Boolean(tourEnCours),
+            peutOuvrirUnFilNeuf: Boolean(ouvrirUnFilNeuf),
+          });
+
+          if (geste === 'composeur') {
+            insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * BUG-PUBLISH-REPARER-CIBLE-001 — « dans une nouvelle tâche » archive
+           * la conversation courante ; l'invite part ensuite, quand le fil vidé
+           * est commis (voir l'effet `inviteEnAttenteDeFilNeuf`).
+           */
+          if (geste === 'fil-neuf') {
+            ouvrirUnFilNeuf?.();
+            setInviteEnAttenteDeFilNeuf(invite);
+
+            return;
+          }
+
+          /*
+           * L'envoi attend la bascule de panneau : le composeur de l'agent
+           * doit être monté quand le tour démarre, sinon la réponse arrive
+           * dans une surface que personne ne regarde — le défaut d'origine,
+           * par un autre chemin.
+           */
+          window.requestAnimationFrame(() => envoyer?.({} as unknown as React.UIEvent, invite));
+        };
+
+        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
+        if (detail?.kind === TACHE_DE_REPARATION && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          lancerLAgent(detail.prompt, detail.cible);
+
+          return;
+        }
 
         if (detail?.kind === 'resolve-git-conflicts') {
           const files = Array.isArray(detail.files) ? detail.files : [];
@@ -2872,7 +2918,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
 
           return;
         }
@@ -2891,7 +2937,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
         }
       };
 
@@ -3103,8 +3149,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
          * attribut — voir « CLAVIER LEVÉ » dans index.scss.
          */
-        if (clavierProbablementOuvert(recouvrementBas)) {
+        /*
+         * BUG-KEYBOARD-ZOOM-001 (Avi, 08/09 07:58) — la détection se fait sur
+         * le RÉTRÉCISSEMENT de la fenêtre visuelle, pas sur le recouvrement
+         * bas : quand Safari fait défiler le document pour garder le champ
+         * visible, le recouvrement bas tombe à 0 clavier levé. Et ce
+         * défilement est annulé : la coque tient dans la fenêtre visuelle et
+         * se lit depuis le haut du document — décalée, elle sort de l'écran
+         * (page blanche, socle flottant, zone de saisie invisible).
+         */
+        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
           document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+
+          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+            window.scrollTo(0, 0);
+          }
         } else {
           document.documentElement.removeAttribute('data-vc-clavier');
         }
@@ -3338,7 +3397,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const ensureMobileOpenTab = useCallback(
       (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        const tab = ECODE_MOBILE_TAB_META[outilCanonique(tabId)] ?? {
           id: tabId,
           name: panelTitle(tabId, t),
           icon: panelIcon(tabId),
@@ -3486,8 +3545,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
-    const [isListening, setIsListening] = useState(false);
+
+    /*
+     * BUG-VOICE-INPUT-001 — la dictée est une machine à trois phases (repos,
+     * demande, écoute) pilotée par `reduireLaDictee` : le bouton, le champ et
+     * le moteur lisent la même phase, et le moteur qui s'arrête seul (silence,
+     * Safari iOS) ramène l'interface au repos.
+     */
+    const [phaseDictee, setPhaseDictee] = useState<PhaseDictee>('repos');
+    const isListening = phaseDictee !== 'repos';
+    const phaseDicteeRef = useRef<PhaseDictee>('repos');
+    phaseDicteeRef.current = phaseDictee;
+
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
+
+    // Le texte tapé avant la dictée : la dictée s'y ajoute, elle ne l'efface pas.
+    const prefixeDicteeRef = useRef('');
+    const inputCourantRef = useRef(input);
+    inputCourantRef.current = input;
+
+    const handleInputChangeRef = useRef(handleInputChange);
+    handleInputChangeRef.current = handleInputChange;
+
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -3747,22 +3827,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       appliedToastOpenRef.current = true;
 
-      showCoalescedAppliedToast(files, {
-        onUndoAll: () => {
-          for (const proposalId of proposalIds) {
-            void workbenchStore.revertAgentPatchProposal(proposalId);
-          }
+      showCoalescedAppliedToast(
+        files,
+        {
+          onUndoAll: () => {
+            for (const proposalId of proposalIds) {
+              void workbenchStore.revertAgentPatchProposal(proposalId);
+            }
 
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
+          onDismissAll: () => {
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
         },
-        onDismissAll: () => {
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
-        },
-      });
+
+        /*
+         * LE CONSTAT D'HONNÊTETÉ DU TOUR, LU AU MOMENT DE L'AFFICHAGE.
+         *
+         * `AppliedFilesToast` acceptait déjà une prop `constat` et savait
+         * afficher le message honnête — mais RIEN ne la lui passait : la moitié
+         * visible de la garde était du code mort, et le bandeau annonçait « les
+         * patchs ont bien été appliqués » sur une application sans point
+         * d'entrée. Lecture directe du magasin plutôt qu'abonnement : le bandeau
+         * n'est pas un composant réactif, il est peint une fois par flush, et
+         * c'est l'état À CET INSTANT qui doit être dit.
+         */
+        constatDeGenerationStore.get(),
+      );
     }, []);
 
     const scheduleAppliedFilesToast = useCallback(
@@ -3887,7 +3983,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     >([]);
 
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
-    const [rollbackDatabase, setRollbackDatabase] = useState(false);
+
+    /*
+     * RP-CKPT-05 — la feuille Replit ne propose pas de case : le retour
+     * arrière remet TOUJOURS les fichiers, la base de données de
+     * développement et la mémoire de l'agent. Le serveur dit ce qu'il a pu
+     * faire ; un échec de la base remonte en avertissement, jamais en silence.
+     */
+    const rollbackDatabase = true;
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
 
@@ -4293,7 +4396,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch((error) => {
+        void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch((error) => {
           setMobilePreviewRunFeedbackState(null);
           console.error('Preview server stop failed', error);
           toast.error(t('baseChatAst.preview.stopFailed'));
@@ -4923,10 +5026,72 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       void loadProjectSnapshots();
 
+      /*
+       * RP-CKPT-04 — un point de restauration vient d'être pris en fin de
+       * tour (workbench) : la liste se recharge, le bloc « Checkpoint made … »
+       * apparaît sous la réponse sans recharger la page.
+       */
+      const handleSnapshotsChanged = () => {
+        void loadProjectSnapshots();
+      };
+
+      window.addEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
+
       return () => {
         cancelled = true;
+        window.removeEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
       };
     }, [projectIdeMode, projectId]);
+
+    /*
+     * RP-CKPT-02/03 — les points de restauration de fin de tour, par message
+     * de l'agent, et les deux gestes du bloc FinDeTour : « Rollback here »
+     * ouvre la feuille de retour arrière sur CE point (état d'après le tour),
+     * « Changes » ouvre l'onglet Git directement sur son commit.
+     */
+    const pointsDeRestaurationParMessageId = useMemo(
+      () =>
+        pointsDeRestaurationParMessage(projectSnapshots, {
+          messages: messages ?? [],
+          conversationId: currentAiConversationId,
+        }),
+      [currentAiConversationId, messages, projectSnapshots],
+    );
+
+    const revenirAuPointDeRestauration = useCallback(
+      (point: PointDeRestauration) => {
+        const source = messages ?? [];
+        const index = source.findIndex((message) => message.id === point.messageId);
+
+        setRollbackTarget({
+          id: `point:${point.snapshotId}`,
+          title: point.commitMessage || t('baseChatAst.conversation.checkpoint'),
+          description: formaterLaDateDuPoint(point.createdAt, language),
+          messageId: point.messageId,
+          messageIndex: index >= 0 ? index : source.length - 1,
+          conversationId: `project:${projectId}`,
+          conversationTitle: t('chat.copy.currentProjectConversation_1df5a771'),
+          createdAt: point.createdAt,
+          ageLabel: ilYA(point.createdAt, language),
+          commitSha: point.commitSha?.slice(0, 8),
+          snapshot: projectSnapshots.find((snapshot) => snapshot.id === point.snapshotId),
+          messages: index >= 0 ? source.slice(0, index + 1) : source,
+          backendConversationId: currentAiConversationId,
+        });
+      },
+      [currentAiConversationId, language, messages, projectId, projectSnapshots, t],
+    );
+
+    const ouvrirLesChangementsDuPoint = useCallback((point: PointDeRestauration) => {
+      if (!point.commitSha) {
+        return;
+      }
+
+      commitDemande.set(point.commitSha);
+      window.dispatchEvent(
+        new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git', toolId: 'git' } }),
+      );
+    }, []);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId) {
@@ -6053,10 +6218,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * runtime write error — left the user believing the file was saved when
      * it was not (silent data loss).
      */
+    /*
+     * BUG-IDE-004 — UN CONFLIT DOIT AVOIR UNE SORTIE.
+     *
+     * Le garde de concurrence protégeait le fichier distant en sacrifiant le
+     * travail de l'utilisateur : mesuré le 06/08, l'onglet restait sale après
+     * le bouton Save, Ctrl+S ET Cmd+S, et l'édition n'était persistée dans
+     * AUCUN des trois magasins. Chaque tentative échouait, indéfiniment, sur
+     * un message générique.
+     *
+     * Un conflit se distingue donc d'une panne d'écriture, il se NOMME, et il
+     * propose le seul geste qui sauve le travail : écrire quand même. Jamais
+     * automatiquement — c'est l'utilisateur qui tranche, en connaissance de
+     * cause.
+     */
     const handleSaveError = useCallback(
-      (error: unknown) => {
+      (error: unknown, filePath?: string) => {
         console.error('Project file save failed', error);
-        toast.error(t('baseChatAst.editor.saveFailed'));
+
+        const conflit = (error as { code?: string } | null)?.code === CODE_CONFLIT_DISTANT;
+        const chemin = filePath ?? (error as { filePath?: string } | null)?.filePath;
+
+        if (!conflit || !chemin) {
+          toast.error(t('baseChatAst.editor.saveFailed'));
+          return;
+        }
+
+        toast.error(
+          ({ closeToast }) => (
+            <div className="bolt-editor-conflit">
+              <p>{t('baseChatAst.editor.saveConflict', { file: chemin.split('/').pop() ?? chemin })}</p>
+              <button
+                type="button"
+                data-testid="editor-conflit-ecraser"
+                onClick={() => {
+                  closeToast?.();
+                  workbenchStore
+                    .saveFile(chemin, { onRemoteConflict: 'overwrite' })
+                    .catch(() => toast.error(t('baseChatAst.editor.saveFailed')));
+                }}
+              >
+                {t('baseChatAst.editor.saveConflictOverwrite')}
+              </button>
+            </div>
+          ),
+          { toastId: `save-conflict-${chemin}`, autoClose: false },
+        );
       },
       [t],
     );
@@ -6073,7 +6280,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFile(filePath).catch((error) => handleSaveError(error, filePath));
       },
       [handleSaveError],
     );
@@ -6546,25 +6753,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recognition.continuous = true;
         recognition.interimResults = true;
 
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
+        const transiter = (evenement: EvenementDictee) => {
+          const { phase } = reduireLaDictee(phaseDicteeRef.current, evenement);
+          phaseDicteeRef.current = phase;
+          setPhaseDictee(phase);
+        };
 
-          if (handleInputChange) {
-            const syntheticEvent = {
-              target: { value: transcript },
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            handleInputChange(syntheticEvent);
-          }
+        // Le moteur confirme qu'il capte : c'est là que l'on passe « en écoute », pas à l'appui.
+        recognition.onstart = () => transiter({ type: 'start' });
+
+        /*
+         * Le moteur s'arrête seul : silence, limite de durée (Safari iOS coupe
+         * après quelques secondes sans parole), perte du micro. Mesuré avant
+         * correction : sans ce gestionnaire, l'interface restait « en écoute »
+         * et il fallait deux appuis pour relancer.
+         */
+        recognition.onend = () => transiter({ type: 'end' });
+
+        recognition.onresult = (event) => {
+          const transcription = transcriptionDepuisResultats(event.results);
+
+          handleInputChangeRef.current?.({
+            target: { value: composerLaSaisie(prefixeDicteeRef.current, transcription) },
+          } as React.ChangeEvent<HTMLTextAreaElement>);
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
+          transiter({ type: 'erreur' });
 
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          const message = messageDErreurDeDictee(event.error);
+
+          if (message === 'permission') {
             /*
              * Mic permission is blocked at the browser level — explain it once
              * per session (sessionStorage guard), not on every click.
@@ -6586,9 +6805,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 toastId: 'mic-permission-blocked',
               });
             }
+          } else if (message === 'micro-absent') {
+            toast.error(t('chat.copy.dictationNoMicrophone'), { toastId: 'dictation-no-microphone' });
+          } else if (message === 'reseau') {
+            toast.error(t('chat.copy.dictationNetwork'), { toastId: 'dictation-network' });
+          } else if (message === 'silence') {
+            toast.info(t('chat.copy.dictationNoSpeech'), { toastId: 'dictation-no-speech' });
+          } else {
+            console.error('Speech recognition error:', event.error);
           }
         };
 
+        recognitionRef.current = recognition;
         setRecognition(recognition);
 
         return () => {
@@ -6596,8 +6824,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * Tear down the recognizer on unmount so it stops capturing the mic
            * and releases the underlying SpeechRecognition resource.
            */
+          recognition.onstart = null;
+          recognition.onend = null;
           recognition.onresult = null;
           recognition.onerror = null;
+          recognitionRef.current = null;
 
           try {
             recognition.abort();
@@ -6686,33 +6917,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const startListening = () => {
-      if (!recognition) {
+      const moteur = recognitionRef.current;
+
+      if (!moteur) {
         // The mic button hides itself when the API is absent, but never let a click be inert.
         toast.error(t('chat.copy.speechRecognitionIsNotAvailableIn_af2b2f6a'), { toastId: 'speech-unavailable' });
         return;
       }
 
+      const transition = reduireLaDictee(phaseDicteeRef.current, { type: 'appui' });
+
+      if (transition.action !== 'start') {
+        stopListening();
+        return;
+      }
+
+      // La langue de l'interface, et le texte déjà tapé que la dictée prolongera.
+      moteur.lang = langueDeDictee(i18n.resolvedLanguage ?? i18n.language);
+      prefixeDicteeRef.current = inputCourantRef.current;
+
       try {
-        recognition.start();
+        moteur.start();
+        phaseDicteeRef.current = transition.phase;
+        setPhaseDictee(transition.phase);
       } catch (error) {
         /*
          * start() throws InvalidStateError when recognition is already
-         * running — swallow it and let the state below resync the UI so the
-         * click still has a visible effect.
+         * running — the engine is live, so show « écoute » and let the user stop it.
          */
         console.error('Speech recognition start failed:', error);
+        phaseDicteeRef.current = 'ecoute';
+        setPhaseDictee('ecoute');
       }
-
-      setIsListening(true);
     };
 
     const stopListening = () => {
-      if (recognition) {
-        recognition.stop();
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // stop() on a recognizer that never started: nothing to stop.
       }
 
       // Always resync the UI, even if the recognizer is gone.
-      setIsListening(false);
+      phaseDicteeRef.current = 'repos';
+      setPhaseDictee('repos');
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
@@ -6726,7 +6974,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setIsListening(false);
+          phaseDicteeRef.current = 'repos';
+          setPhaseDictee('repos');
 
           // Clear the input by triggering handleInputChange with empty value
           if (handleInputChange) {
@@ -7027,6 +7276,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           form.set('intent', 'restore');
           form.set('snapshotId', rollbackTarget.snapshot.id);
           form.set('restoreDatabase', rollbackDatabase ? 'true' : 'false');
+          form.set('restoreAgentMemory', 'true');
+
+          if (rollbackTarget.createdAt) {
+            form.set('since', rollbackTarget.createdAt);
+          }
 
           const response = await fetch(`/api/projects/${projectId}/ide-panel/snapshots`, {
             method: 'POST',
@@ -7296,7 +7550,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         disabled={!rollbackAvailable}
                         aria-label={t('chat.copy.rollbackToCheckpointValue0_2131e13b', { value0: checkpoint.title })}
                         onClick={() => {
-                          setRollbackDatabase(false);
                           setRollbackTarget(checkpoint);
                         }}
                       >
@@ -7375,12 +7628,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             {/*
              * Thin agent status line, sticky at the TOP of the panel (agent-panel
-             * UX refonte, point 2). Full-bleed via negative margins that cancel the
-             * scroll container's pt-6/px padding; stays pinned while the transcript
-             * scrolls underneath it.
+             * UX refonte, point 2); stays pinned while the transcript scrolls
+             * underneath it.
+             *
+             * BUG-THREAD-TOP-GAP-001 — deux pièges retirés ici :
+             * 1. `progressAnnotations && …` rendait TOUJOURS le quai (un tableau
+             *    vide est vrai) : un enfant flex de 0 px, plus l'écart de la
+             *    colonne, s'intercalait avant le premier message.
+             * 2. `-mt-6 -mx-2` prétendait annuler le `pt-6` du conteneur — mais la
+             *    boîte qui DÉFILE est le `div` interne de StickToBottom, à
+             *    l'intérieur de ce rembourrage : une marge négative y déborde en
+             *    territoire de défilement négatif, inatteignable, et rognait les
+             *    15 premiers pixels de la première bulle à 390 (mesuré le 08/09).
+             * Le quai ne se rend donc que s'il a quelque chose à montrer, sans
+             * marge négative ; sa place sous l'en-tête est réglée en CSS
+             * (`.bolt-agent-statusline-dock`).
              */}
-            {progressAnnotations && (
-              <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+            {progressAnnotations.length > 0 && (
+              <div className="bolt-agent-statusline-dock sticky top-0 z-10">
                 {/*
                  * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
                  * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
@@ -7408,6 +7673,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <Messages
                       className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
                       messages={messages}
+                      finDeTour={{
+                        pointsParMessage: pointsDeRestaurationParMessageId,
+                        language,
+                        onRollback: revenirAuPointDeRestauration,
+                        onChanges: ouvrirLesChangementsDuPoint,
+                      }}
                       isStreaming={isStreaming}
                       append={append}
                       chatMode={chatMode}
@@ -7573,6 +7844,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 enhancingPrompt={enhancingPrompt}
                 enhancePrompt={enhancePrompt}
                 isListening={isListening}
+                dictationPhase={phaseDictee}
                 startListening={startListening}
                 stopListening={stopListening}
                 chatStarted={chatStarted}
@@ -9080,7 +9352,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                     value0: checkpoint.title,
                                   })}
                                   onClick={() => {
-                                    setRollbackDatabase(false);
                                     setRollbackTarget(checkpoint);
                                   }}
                                 >
@@ -9292,7 +9563,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             void workbenchStore.startPreviewServer();
           } else if (entry.command === 'stop') {
-            void workbenchStore.stopPreviewServer();
+            void workbenchStore.stopPreviewServer({ raison: 'utilisateur' });
 
             if (useMobileIde) {
               activateMobileTool('logs');
@@ -9326,8 +9597,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
-    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
-      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[outilCanonique(activeMobileOpenTabId)] ??
+      ECODE_MOBILE_TAB_META[outilCanonique(mobilePanel)] ?? {
         id: activeMobileOpenTabId,
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
@@ -9345,7 +9616,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const mobileServiceHeaderTab =
       useMobileIde && mobilePanel === 'deploy'
-        ? (ECODE_MOBILE_TAB_META[activeMobileServicePanel] ?? {
+        ? (ECODE_MOBILE_TAB_META[outilCanonique(activeMobileServicePanel)] ?? {
             id: activeMobileServicePanel,
             name: panelTitle(activeMobileServicePanel, t),
             icon: panelIcon(activeMobileServicePanel),
@@ -9355,7 +9626,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
           const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
-          const meta = ECODE_MOBILE_TAB_META[itemId];
+          const meta = ECODE_MOBILE_TAB_META[outilCanonique(itemId)];
 
           return {
             id: itemId,
@@ -10074,7 +10345,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           data-testid={`button-close-tab-${tab.id}`}
                           onClick={() => closeMobileOpenTab(tab.id)}
                         >
-                          <span className="i-ph:x" aria-hidden />
+                          {/*
+                           * La pastille et la glyphe sont deux éléments : l'icône est un
+                           * MASQUE, dont la couleur de trait est sa `background-color`.
+                           * Peindre la pastille sur l'icône elle-même peignait la croix
+                           * en couleur de fond — blanche en thème clair (BUG-TAB-CLOSE-CONTRAST-001).
+                           */}
+                          <span className="bolt-mobile-tab-switcher-close-chip">
+                            <span className="i-ph:x" aria-hidden />
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -10093,7 +10372,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
                 >
                   {['secrets', 'database', 'settings'].map((toolId) => {
-                    const tool = ECODE_MOBILE_TAB_META[toolId];
+                    const tool = ECODE_MOBILE_TAB_META[outilCanonique(toolId)];
 
                     return (
                       <button
@@ -10667,65 +10946,69 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             role="dialog"
             aria-modal="true"
             aria-labelledby="rollback-title"
+            data-testid="rollback-dialog"
           >
+            {/*
+             * RP-CKPT-05 — la feuille de Replit (capture d'Avi du 08/09, 07:51) :
+             * un titre, le message du commit et sa date, « What will be
+             * impacted » en trois blocs — Files / Database / Agent memory —,
+             * puis Cancel et un bouton bleu. Pas de case à cocher, pas de
+             * capture d'écran fictive : chaque ligne annonce quelque chose que
+             * le serveur fait vraiment (fichiers, base via PITR, mémoire
+             * archivée après le point).
+             */}
             <div className="bolt-project-rollback-dialog">
+              <button
+                type="button"
+                className="bolt-project-rollback-fermer"
+                onClick={() => setRollbackTarget(null)}
+                disabled={rollbackBusy}
+                aria-label={getFinDeTourCopy(language)['finDeTour.rollbackDialog.close']}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
               <div className="bolt-project-rollback-body">
-                <h2 id="rollback-title">{t('chat.copy.rollbackToCheckpoint_b3cc16a0')}</h2>
-                {/*
-                 * No per-checkpoint screenshot is captured or stored, so a static
-                 * 'Screenshot — Preview expired' placeholder would misrepresent the
-                 * state being reverted to in this destructive confirmation. Only
-                 * truthful checkpoint metadata is shown below.
-                 */}
-                <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.targetCheckpoint_8dfbabe1')}</span>
+                <h2 id="rollback-title">{getFinDeTourCopy(language)['finDeTour.rollbackDialog.title']}</h2>
+                <section className="bolt-project-rollback-cible">
                   <h3>{rollbackTarget.title}</h3>
                   <p>{rollbackTarget.description}</p>
-                  <small>
-                    {rollbackTarget.ageLabel}
-                    {rollbackTarget.commitSha ? ` • ${rollbackTarget.commitSha}` : ''}
-                  </small>
                 </section>
                 <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.whatWillBeImpacted_e370579d')}</span>
-                  <div className="bolt-project-rollback-impact">
-                    <strong>{t('chat.copy.files_6ce6c512')}</strong>
+                  <h4 className="bolt-project-rollback-impact-titre">
+                    {getFinDeTourCopy(language)['finDeTour.rollbackDialog.impact']}
+                  </h4>
+                  <div className="bolt-project-rollback-impact" data-testid="rollback-impact">
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.files']}</strong>
                     {rollbackTarget.snapshot?.id ? (
-                      <p>{t('chat.copy.allFilesInYourAppWill_216ac181')}</p>
+                      <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.filesDetail']}</p>
                     ) : (
                       <p>{t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0')}</p>
                     )}
-                    <strong>{t('chat.copy.agentMemory_bcf5354f')}</strong>
-                    <p>{t('chat.copy.theAgentSMemoryWillReset_1cccfbd1')}</p>
-                    <strong>{t('chat.copy.tasks_090ec5f5')}</strong>
-                    <p>{t('chat.copy.allInProgressTasksWillFinish_8502f56c')}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.database']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.databaseDetail']}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memory']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memoryDetail']}</p>
                   </div>
-                </section>
-                <section>
-                  <span className="bolt-project-rollback-label">
-                    {t('chat.copy.additionalRollbackOptions_0a728603')}
-                  </span>
-                  <label className="bolt-project-rollback-option">
-                    <input
-                      type="checkbox"
-                      checked={rollbackDatabase}
-                      onChange={(event) => setRollbackDatabase(event.currentTarget.checked)}
-                    />
-                    <span>
-                      <strong>{t('chat.copy.database_61074f1c')}</strong>
-                      <small>{t('chat.copy.yourDevelopmentDatabaseWillBeRestored_5db4609a')}</small>
-                    </span>
-                  </label>
                 </section>
               </div>
               <footer>
-                <button type="button" onClick={() => setRollbackTarget(null)} disabled={rollbackBusy}>
-                  {t('chat.copy.cancel_77dfd213')}
+                <button
+                  type="button"
+                  onClick={() => setRollbackTarget(null)}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-cancel"
+                >
+                  {getFinDeTourCopy(language)['finDeTour.rollbackDialog.cancel']}
                 </button>
-                <button type="button" onClick={confirmProjectRollback} disabled={rollbackBusy}>
+                <button
+                  type="button"
+                  onClick={confirmProjectRollback}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-confirm"
+                >
                   {rollbackBusy
-                    ? t('chat.copy.rollingBack_1accbd2a')
-                    : t('chat.copy.rollbackToThisCheckpoint_7d8b2a6c')}
+                    ? getFinDeTourCopy(language)['finDeTour.rollbackDialog.busy']
+                    : getFinDeTourCopy(language)['finDeTour.rollbackDialog.confirm']}
                 </button>
               </footer>
             </div>
@@ -11106,10 +11389,40 @@ function ProjectIdeApiServicePanel({
     });
   }, [collaborationRealtime.snapshot, panel]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — CE GESTIONNAIRE REÇOIT DEUX CHOSES,
+   * et il n'en acceptait qu'une.
+   *
+   * Les formulaires du panneau l'appellent avec un ÉVÉNEMENT React. Mais les
+   * gestes de la carte « Gérer votre application » — annuler, republier,
+   * revenir en arrière — l'appellent DIRECTEMENT avec un `FormData` déjà
+   * rempli. Or `FormData` n'a pas de `preventDefault` : la toute première
+   * instruction levait un `TypeError`.
+   *
+   * ET CE TypeError ÉTAIT INVISIBLE, pour deux raisons qui s'additionnent :
+   * la fonction est `async`, donc le throw devient une promesse rejetée au
+   * lieu de remonter dans le gestionnaire de clic ; et l'appelant ne faisait
+   * ni `await` ni `.catch`. Résultat : quatre boutons morts, sans un seul
+   * message à l'écran — « aucun bouton fonctionne » (Avi).
+   *
+   * ⚠️ DONT LE MIEN. Le correctif de BUG-PUBLISH-NOOP-001, ce matin, a retiré
+   * le `setTab('manage')` et mis un vrai envoi à la place. Le bouton a donc
+   * cessé de changer d'onglet — et n'a rien déclenché non plus. J'ai déplacé
+   * le défaut au lieu de le corriger, et ma garde ne l'a pas vu parce qu'elle
+   * vérifiait le CÂBLAGE dans la source sans jamais EXÉCUTER l'appel.
+   *
+   * Ce que le type disait déjà, et que personne n'a lu : `ProjectIdePanelContent`
+   * déclare bien `(event: React.FormEvent<HTMLFormElement>) => void`, mais
+   * `ProjectDeploymentsPanel` re-déclarait la même prop `any` — le `any`
+   * éteignait la seule vérification qui aurait attrapé l'écart à la
+   * construction.
+   */
+  async function submit(entree: React.FormEvent<HTMLFormElement> | FormData) {
+    const formulaire = entree instanceof FormData ? null : entree.currentTarget;
 
-    const form = event.currentTarget;
+    if (formulaire) {
+      (entree as React.FormEvent<HTMLFormElement>).preventDefault();
+    }
 
     if (!projectId) {
       return;
@@ -11119,7 +11432,15 @@ function ProjectIdeApiServicePanel({
     setError(undefined);
     setActionNotice(t('baseChatAst.panel.submitting'));
 
-    const formData = new FormData(form);
+    /*
+     * BUG-GIT-001 — l'intention voyage sur le BOUTON d'envoi, et
+     * `new FormData(form)` ne la contient pas. Sans cet appel, tout panneau
+     * dont l'action est portée par un `<button name="intent">` envoyait une
+     * intention vide et recevait un `200` sans que rien ne se passe.
+     */
+    const formData =
+      entree instanceof FormData ? entree : donneesDuFormulaire(entree as React.FormEvent<HTMLFormElement>);
+
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -11171,8 +11492,9 @@ function ProjectIdeApiServicePanel({
         setActionNotice(formatProjectPanelActionNotice(t, intent));
       }
 
-      if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
-        form.reset();
+      // Il n'y a rien à réinitialiser quand l'appel ne vient pas d'un formulaire.
+      if (formulaire && shouldResetIdePanelFormAfterSubmit(panel, intent)) {
+        formulaire.reset();
       }
 
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
@@ -11347,7 +11669,7 @@ function ConfirmSubmitForm({
   children,
   ...formProps
 }: Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'title'> & {
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   title: string;
   description: string;
   confirmLabel: string;
@@ -11921,7 +12243,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       try {
         const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
           method: 'POST',
-          body: new FormData(form),
+          body: donneesDuFormulaire(event),
         });
 
         const result = (await response.json().catch(() => ({}))) as any;
@@ -11973,7 +12295,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     try {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         method: 'POST',
-        body: new FormData(form),
+        body: donneesDuFormulaire(event),
       });
 
       const result = (await response.json().catch(() => ({}))) as any;
@@ -13635,7 +13957,7 @@ function ProjectIdePanelContent({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   reload?: () => void | Promise<void>;
   lastLoadedAt?: string;
@@ -13834,7 +14156,16 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
-    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
+    return (
+      <ProjectSecretsPanel
+        projectId={projectId}
+        data={data}
+        onSubmit={onSubmit}
+        busy={busy}
+        reload={reload}
+        language={resolvedBaseChatLanguage(i18n)}
+      />
+    );
   }
 
   if (panel === 'collaborators') {
@@ -15035,7 +15366,7 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
-      const formData = new FormData(event.currentTarget);
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? '');
 
       if (intent === 'preferences') {
@@ -22780,408 +23111,6 @@ function formatLogTime(language: string, value?: string) {
   });
 }
 
-function ProjectSecretsPanel({
-  projectId,
-  data,
-  onSubmit,
-  busy,
-  reload,
-}: {
-  projectId?: string;
-  data: any;
-  onSubmit: any;
-  busy: boolean;
-  reload?: () => void | Promise<void>;
-}) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-  const [revealed, setRevealed] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState('');
-  const [editingKey, setEditingKey] = useState('');
-  const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
-  const [importFailures, setImportFailures] = useState<Array<{ key: string; error: string }>>([]);
-  const secrets = data.secrets ?? [];
-
-  // Live preview of the pasted .env block: parsed entries + honestly-reported skipped lines.
-  const importPreview = useMemo(() => parseDotEnv(importText), [importText]);
-  const existingSecretKeys = useMemo(() => new Set<string>(secrets.map((secret: any) => secret.key)), [secrets]);
-  const overwriteCount = importPreview.entries.filter((entry) => existingSecretKeys.has(entry.key)).length;
-
-  // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
-  async function fetchSecretValue(key: string): Promise<string | undefined> {
-    if (!projectId) {
-      return undefined;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-
-    return response.ok && typeof result?.data?.secret?.value === 'string' ? result.data.secret.value : undefined;
-  }
-
-  /*
-   * Replit-style bulk .env import: the pasted block is parsed live into the
-   * preview table; confirming upserts each entry sequentially via the existing
-   * secrets intent (real per-project secrets API), surfacing per-key failures
-   * and progress, then refreshes the list.
-   */
-  async function handleImport() {
-    if (!projectId) {
-      return;
-    }
-
-    const { entries } = importPreview;
-
-    if (!entries.length) {
-      setMessage(t('baseChatAst.secrets.noEntries'));
-      return;
-    }
-
-    setImporting(true);
-    setImportProgress({ done: 0, total: entries.length });
-    setImportFailures([]);
-
-    const failures: Array<{ key: string; error: string }> = [];
-
-    try {
-      for (const [index, { key, value }] of entries.entries()) {
-        const form = new FormData();
-        form.append('intent', 'upsert');
-        form.append('key', key);
-        form.append('value', value);
-
-        try {
-          const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
-            method: 'POST',
-            body: form,
-          });
-
-          if (!response.ok) {
-            const result = (await response.json().catch(() => null)) as any;
-            failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
-          }
-        } catch (error) {
-          console.error('Secret import request failed', { key, error });
-          failures.push({ key, error: t('baseChatAst.secrets.networkError') });
-        }
-
-        setImportProgress({ done: index + 1, total: entries.length });
-      }
-
-      const ok = entries.length - failures.length;
-
-      if (failures.length) {
-        // Keep the section open so the user can see and retry what failed.
-        setImportFailures(failures);
-        setMessage(
-          t('baseChatAst.secrets.importPartial', {
-            count: entries.length,
-            imported: ok,
-            failed: failures.length,
-          }),
-        );
-      } else {
-        setMessage(t('baseChatAst.secrets.importComplete', { count: entries.length, imported: ok }));
-        setImportText('');
-        setImportOpen(false);
-      }
-
-      await reload?.();
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
-    }
-  }
-
-  async function copySecretValue(key: string) {
-    const value = revealed[key] ?? (await fetchSecretValue(key));
-
-    if (typeof value !== 'string') {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-      return;
-    }
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.secrets.valueCopied', { key }));
-    } catch (error) {
-      console.error('Secret value copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  function revealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    if (revealed[key]) {
-      setRevealed((current) => {
-        const next = { ...current };
-        delete next[key];
-
-        return next;
-      });
-      return;
-    }
-
-    /*
-     * Reveal in place immediately, like a password field's eye toggle — no
-     * blocking confirmation dialog. The value is still fetched only on reveal
-     * (never listed by default) and only kept for this browser session; the
-     * "revealed for this session" notice is surfaced non-blockingly as a toast.
-     */
-    void performRevealSecret(key);
-  }
-
-  async function performRevealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-    const value = response.ok ? result?.data?.secret?.value : undefined;
-
-    if (typeof value === 'string') {
-      setRevealed((current) => ({ ...current, [key]: value }));
-      setMessage(t('baseChatAst.secrets.revealed', { key }));
-    } else {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-    }
-  }
-
-  async function copySecret(key: string) {
-    const value = revealed[key] ?? key;
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(
-        t('baseChatAst.secrets.copied', {
-          label: t(revealed[key] ? 'baseChatAst.secrets.secretValue' : 'baseChatAst.secrets.secretKey'),
-        }),
-      );
-    } catch (error) {
-      console.error('Secret copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  return (
-    <div className="bolt-project-secrets-tool">
-      <form onSubmit={onSubmit} className="bolt-project-inline-form">
-        <input name="intent" value="upsert" type="hidden" />
-        {/*
-         * `key` forces the uncontrolled inputs to remount whenever the user
-         * clicks "Edit" (which sets editingKey). Without it, defaultValue is only
-         * read on first mount, so clicking Edit changed the button label to
-         * "Update secret" but never populated the key field — forcing the user to
-         * retype the key from scratch.
-         */}
-        <PanelInput
-          key={`secret-key-${editingKey}`}
-          name="key"
-          placeholder={t('chat.copy.stripeSecretKey_b147aa52')}
-          required
-          defaultValue={editingKey}
-        />
-        <PanelInput
-          key={`secret-value-${editingKey}`}
-          name="value"
-          placeholder={t('chat.copy.secretValue_50fbacc0')}
-          type="password"
-          required
-        />
-        <PanelButton disabled={busy}>
-          {editingKey ? t('chat.copy.updateSecret_77d1a1a5') : t('chat.copy.newSecret_57764d66')}
-        </PanelButton>
-        <PanelButton
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setImportOpen((open) => !open);
-            setImportFailures([]);
-          }}
-        >
-          {t('chat.copy.importEnv_f0940267')}
-        </PanelButton>
-      </form>
-
-      {importOpen ? (
-        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.pasteAEnvFileOne_7111ba2a')}
-            <span className="font-mono">{t('chat.copy.keyValue_a4409af0')}</span>
-            {t('chat.copy.perLineCommentsAndBlankLines_9af5356e')}
-            <textarea
-              value={importText}
-              onChange={(event) => {
-                setImportText(event.target.value);
-                setImportFailures([]);
-              }}
-              placeholder={t('chat.copy.databaseUrlPostgresStripeSecretKey_1e39ac87')}
-              spellCheck={false}
-              style={{ fontFamily: 'var(--vc-font-code)' }}
-              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-            />
-          </label>
-
-          {importPreview.entries.length ? (
-            <div className="grid gap-1">
-              <span className="text-xs text-bolt-elements-textSecondary">
-                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
-                {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
-              </span>
-              <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
-                {importPreview.entries.map((entry) => (
-                  <div key={entry.key} className="flex items-center gap-2 text-xs">
-                    <span
-                      className="font-medium text-bolt-elements-textPrimary"
-                      style={{ fontFamily: 'var(--vc-font-code)' }}
-                    >
-                      {entry.key}
-                    </span>
-                    <span className="text-bolt-elements-textTertiary" aria-label={t('chat.copy.valueHidden_4dff2356')}>
-                      •••
-                    </span>
-                    {existingSecretKeys.has(entry.key) ? (
-                      <span
-                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                        style={{
-                          background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                          borderLeft: '3px solid var(--vc-ide-accent-warning)',
-                          color: 'var(--vc-ide-accent-warning)',
-                        }}
-                      >
-                        {t('chat.copy.overwritesExisting_b450bd78')}
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {importPreview.skipped.length ? (
-            <div
-              className="grid gap-1 rounded-md p-2 text-xs"
-              style={{
-                background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                borderLeft: '3px solid var(--vc-ide-accent-warning)',
-              }}
-            >
-              <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
-                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
-              </span>
-              {importPreview.skipped.map((skippedLine) => (
-                <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
-                  {t('chat.copy.line_ea967600')}
-                  {skippedLine.line} ({describeSkipReason(skippedLine.reason, language)}):{' '}
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {importFailures.length ? (
-            <div className="grid gap-1 text-xs text-bolt-elements-icon-error">
-              {importFailures.map((failure) => (
-                <span key={failure.key}>
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{failure.key}</span>: {failure.error}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex items-center gap-2">
-            <PanelButton
-              type="button"
-              onClick={() => void handleImport()}
-              disabled={importing || !importPreview.entries.length}
-            >
-              {importing && importProgress
-                ? t('chat.copy.importingValue0Value1_df968922', {
-                    value0: importProgress.done,
-                    value1: importProgress.total,
-                  })
-                : importPreview.entries.length
-                  ? t('baseChatAst.secrets.importAction', { count: importPreview.entries.length })
-                  : t('chat.copy.importSecrets_9deaeb2d')}
-            </PanelButton>
-            <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
-              {t('chat.copy.cancel_77dfd213')}
-            </PanelButton>
-          </div>
-        </div>
-      ) : null}
-
-      {message && <div className="bolt-project-empty-panel">{message}</div>}
-      <div className="bolt-project-secret-list">
-        {secrets.length ? (
-          secrets.map((secret: any) => (
-            <div key={secret.key} className="bolt-project-secret-row">
-              <strong>{secret.key}</strong>
-              <span>{revealed[secret.key] ?? '••••••'}</span>
-              <button
-                type="button"
-                aria-label={t('chat.copy.revealValue0_e5d8efb3', { value0: secret.key })}
-                onClick={() => revealSecret(secret.key)}
-              >
-                {revealed[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Name_64ac36a4', { value0: secret.key })}
-                onClick={() => void copySecret(secret.key)}
-              >
-                {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Value_8ab75412', { value0: secret.key })}
-                onClick={() => void copySecretValue(secret.key)}
-              >
-                {t('chat.copy.copyValue_4c924dcb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.editValue0_fad75899', { value0: secret.key })}
-                onClick={() => setEditingKey(secret.key)}
-              >
-                {t('chat.copy.edit_5301648d')}
-              </button>
-              <form onSubmit={onSubmit}>
-                <input name="intent" value="delete" type="hidden" />
-                <input name="key" value={secret.key} type="hidden" />
-                <PanelButton disabled={busy} variant="outline">
-                  {t('chat.copy.delete_f6fdbe48')}
-                </PanelButton>
-              </form>
-            </div>
-          ))
-        ) : (
-          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
-        )}
-      </div>
-    </div>
-  );
-}
-
 /*
  * Deployments panel — Replit-parity tabs (Overview / Logs / Domains / Manage)
  * over the existing deployment data + actions (no backend change). Overview is
@@ -23205,7 +23134,15 @@ function ProjectDeploymentsPanel({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: any;
+
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — le contrat est EXPLICITE, plus `any`.
+   * Ce panneau appelle `onSubmit` des deux façons : en gestionnaire de
+   * `<form onSubmit={...}>`, et directement avec un `FormData` pour les gestes
+   * de la carte « Gérer votre application ». Le `any` masquait l'écart ; le
+   * type l'énonce, et le compilateur le vérifie.
+   */
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
 }) {
   const { t, i18n } = useTranslation();
@@ -23221,8 +23158,57 @@ function ProjectDeploymentsPanel({
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
 
+  /*
+   * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
+   * `vibecore:agent-task`, qui bascule désormais sur le panneau Agent et y
+   * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
+   * seule règle pour les deux surfaces.
+   */
+  const demanderReparationParLAgent = useCallback((demande: DemandeDeReparation) => {
+    window.dispatchEvent(new CustomEvent('vibecore:agent-task', { detail: detailDeTacheDeReparation(demande) }));
+  }, []);
+
+  /*
+   * BUG-PUBLISH-NOOP-001 — « Republier » DÉPLOIE. Il ne changeait que
+   * d'onglet : le bouton principal du panneau promettait une publication et
+   * n'en lançait aucune. Il rejoue maintenant l'intention `redeploy` sur le
+   * dernier déploiement — le MÊME chemin que l'onglet Gérer, donc rien qui
+   * puisse diverger. Sans historique il n'y a rien à rejouer : on ouvre
+   * l'assistant, et le libellé du bouton dit déjà « Publier » dans ce cas.
+   */
+  const republier = useCallback(() => {
+    const intention = intentionDeRepublication(deployments);
+
+    if (intention.geste === 'assistant') {
+      setTab('manage');
+      return;
+    }
+
+    const donnees = new FormData();
+    donnees.set('intent', 'redeploy');
+    donnees.set('deploymentId', intention.deploymentId);
+    onSubmit(donnees);
+  }, [deployments, onSubmit]);
+
+  /* La même mise en mots que la fin de tour : une seule implémentation. */
+  const ilYADepuis = useCallback(
+    (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
+    [],
+  );
+
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — ce que le serveur peut réellement déployer.
+   * Sans ce relevé, rien n'est masqué : on préfère un fournisseur offert à
+   * tort qu'un fournisseur qui marche et qu'on aurait caché.
+   */
+  const fournisseurs = useMemo(
+    () => fournisseursOffrables(BOLT_DEPLOY_PROVIDERS, (data as any).providerAvailability),
+    [data],
+  );
+
+  const fournisseurInitial = useMemo(() => fournisseurParDefaut(fournisseurs), [fournisseurs]);
+
   // Real Overview data wired from the deployments loader.
-  const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
   return (
@@ -23242,102 +23228,64 @@ function ProjectDeploymentsPanel({
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.latestStatus_d9f96f98')}</span>
-              <strong>
-                {latestDeployment?.status
-                  ? platformStateLabel(t, latestDeployment.status)
-                  : t('chat.copy.noDeployment_26885551')}
-              </strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.environment_d443a118')}</span>
-              <strong>{platformStateLabel(t, latestDeployment?.environment ?? 'preview')}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.framework_fb001b2c')}</span>
-              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
-            </div>
-          </div>
-
           {/*
-           * Replit Overview widgets. Real values where the backend has them
-           * (Type = provider, Database = live project connections); a graceful
-           * "—" only where the data genuinely does not exist (we run no
-           * Autoscale compute tier, so vCPU/memory resources and compute usage
-           * have no backend). Never mocked.
+           * RP-PUBLISH-01…06 — la vue d'ensemble est désormais le panneau
+           * « Publishing » de Replit (captures d'Avi, 08/09 21:00-21:02),
+           * piloté par NOS données : statut réel du déploiement, journaux
+           * réels, domaines réellement joignables. Les étapes de migration de
+           * base de données que montre Replit ne sont PAS reprises — nous
+           * n'avons pas ce pipeline, et les afficher ferait mentir le produit
+           * sur son propre état.
+           *
+           * L'historique des commits reste dessous : il est réel, utile, et
+           * n'a pas d'équivalent chez Replit.
            */}
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.type_3deb7456')}</span>
-              <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.resources_87df60de')}</span>
-              <strong title={t('chat.copy.vcpuMemoryNoAutoscaleComputeBackend_a18a66c2')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.usage_0bb18642')}</span>
-              <strong title={t('chat.copy.computeUsageThisBillingPeriodNo_c6482992')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.database_61074f1c')}</span>
-              <strong>
-                {connections.length
-                  ? t('chat.copy.connectedValue0_4e4f1431', { value0: connections.length })
-                  : t('chat.copy.notConnected_8b02f3de')}
-              </strong>
-            </div>
-          </div>
-
-          {deployments.length ? (
-            deployments.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
-                    </strong>
-                    <span>
-                      {deployment.url ??
-                        deployment.customDomain ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                        t('chat.copy.urlPending_6c60f919')}
-                    </span>
-                  </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
-                </header>
-                {deployment.url ? (
-                  <div className="bolt-project-deploy-actions">
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      {t('chat.copy.open_cf9b7706')}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          ?.writeText(deployment.url)
-                          .catch(() => toast.error(t('chat.copy.clipboardUnavailable_bec46a29')))
-                      }
-                    >
-                      {t('chat.copy.copyLink_2f84eea5')}
-                    </button>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <EmptyState
-              variant="compact"
-              icon="i-ph:rocket-launch"
-              title={t('chat.copy.noDeploymentsYet_b00d97cd')}
-              description={t('chat.copy.shipThisProjectToALive_40d39230')}
-              actionLabel={t('baseChatAst.deploy.goManage')}
-              onAction={() => setTab('manage')}
-            />
-          )}
+          <PublicationReplit
+            deployments={deployments}
+            language={language}
+            ilYA={(date) => ilYADepuis(date, language)}
+            onRepublier={republier}
+            onAjouterUnDomaine={() => setTab('domains')}
+            onAnnuler={(deploymentId) => {
+              /*
+               * BUG-PUBLISH-BOUTONS-001 — `onAnnuler` était déclaré et jamais
+               * passé : la garde `enCours && dernier.id && onAnnuler` du
+               * composant empêchait le bouton d'entrer dans le DOM. Ce n'était
+               * donc pas un bouton inerte, c'était un bouton ABSENT —
+               * l'annulation n'était atteignable qu'en passant par « Ajuster
+               * les réglages ».
+               */
+              const donnees = new FormData();
+              donnees.set('intent', 'cancel');
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
+            onReparerAvecAgent={demanderReparationParLAgent}
+            carteTarifaire={(data as any).rateCard ?? null}
+            onOuvrirLesSecrets={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'secrets', toolId: 'secrets' } }),
+              )
+            }
+            onOuvrirLaBaseDeDonnees={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', {
+                  detail: { panel: 'database', toolId: 'database' },
+                }),
+              )
+            }
+            onAction={(intent, deploymentId) => {
+              /*
+               * RP-PUBLISH-12 — les gestes de « Gérer votre application »
+               * passent par les MÊMES intentions que l'onglet Gérer : rien de
+               * neuf côté serveur, donc rien qui puisse diverger.
+               */
+              const donnees = new FormData();
+              donnees.set('intent', intent);
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
+          />
 
           {/* Real commit history (hash + author + date) from the git graph. */}
           <div className="grid gap-1">
@@ -23431,6 +23379,15 @@ function ProjectDeploymentsPanel({
                     </div>
                     <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
                   </header>
+                  {causeDeLEchec(deployment) ? (
+                    <p
+                      className="bolt-project-deploy-cause break-words [overflow-wrap:anywhere]"
+                      data-testid="deploy-cause-echec"
+                      role="alert"
+                    >
+                      {causeDeLEchec(deployment)}
+                    </p>
+                  ) : null}
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
@@ -23473,10 +23430,26 @@ function ProjectDeploymentsPanel({
             <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
             <label>
               {t('chat.copy.provider_7ceee3f3')}
-              <select name="provider" defaultValue="static">
-                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
+              {/*
+               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+               * qu'elle peut tenir. Un hébergeur sans identifiants reste
+               * visible mais désactivé, en nommant ce qu'il manque : on ne
+               * remplit plus tout l'assistant pour se heurter à un 503.
+               */}
+              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                  <option
+                    key={fournisseur.id}
+                    value={fournisseur.id}
+                    disabled={!utilisable}
+                    data-configure={utilisable ? undefined : 'requis'}
+                  >
+                    {utilisable
+                      ? fournisseur.name
+                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                          provider: fournisseur.name,
+                          missing: manquantes.join(', '),
+                        })}
                   </option>
                 ))}
               </select>
@@ -23579,7 +23552,7 @@ function ProjectDeploymentAction({
 }: {
   intent: string;
   deploymentId: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   children: React.ReactNode;
 }) {

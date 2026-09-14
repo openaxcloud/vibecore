@@ -44,7 +44,8 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 36 bis | **contre-épreuve creuse d'un garde-fou sain** | quelques heures après avoir écrit la leçon 36, je l'ai subie sur mon PROPRE test. Ma contre-épreuve neutralisait cinq mécanismes un par un et les laissait **tous les cinq au vert**. Le garde était bon ; c'est le harnais qui ne mesurait rien : il fermait un port, donc ne produisait qu'un `ECONNREFUSED`, et n'exerçait jamais la branche « nom DNS non résolu » | j'allais annoncer **cinq mécanismes tenus alors qu'un seul l'était** — avec un tableau de contre-épreuve à l'appui, ce qui rendait l'erreur plus crédible qu'une absence de preuve | **un garde-fou peut être bon et sa contre-épreuve creuse.** Vérifier que chaque sabotage produit bien un rouge : un sabotage qui laisse tout vert ne prouve pas la robustesse, il prouve que la branche n'est pas atteinte. Ici le remède tenait au TLD réservé `.invalid` (RFC 2606), qui produit un vrai ENOTFOUND là où un port fermé ne donne qu'un refus de connexion |
 | 37 | **un verdict VRAI sur le mauvais objet** | `git checkout <branche-d-une-autre-session>` a ÉCHOUÉ — un fichier non suivi bloquait l'écrasement — et la commande suivante a rendu `Tests 12 passed (12)`. Le worktree était resté sur le commit précédent : je mesurais MA combinaison locale en croyant certifier SA branche | j'allais certifier une branche que je n'avais jamais exécutée. **Le verdict n'était pas faux** — douze tests passaient réellement — il portait simplement sur un autre arbre. La ligne d'erreur du `checkout` était juste au-dessus, noyée entre deux sorties | **toutes les autres entrées de ce registre visent des verdicts FAUX ; celle-ci vise un verdict vrai mal attribué, et aucune règle ne l'attrape.** Avant de lire un résultat, vérifier que la commande QUI PLACE L'OBJET a réussi : `git rev-parse --short HEAD` après un `checkout`, le chemin après un `cd`, l'identifiant du pod après un `exec`. Le verdict ne dit jamais sur quoi il porte |
 | 38 | **un garde trop large bloque tout le monde** | une assertion `not.toContain('.bolt-project-panel-toolbar button {')` dans une spec partagée : une recherche de SOUS-CHAÎNE, qui ne distingue pas le gabarit nu qu'elle vise du sélecteur imbriqué légitime `.bolt-responsive-ide-mobile … .bolt-project-panel-toolbar button {`. Le test voisin, dans la MÊME spec, avait déjà résolu le problème avec un ancrage en début de ligne — le correctif n'avait pas été reporté d'une assertion à l'autre | `main` rouge **pour toutes les branches à la fois**, donc la porte de livraison a refusé le déploiement d'un correctif de **perte de données** sans aucun rapport. Plusieurs heures d'immobilisation, sur un défaut qui n'en était pas un : la règle SCSS incriminée était correcte | **ce n'est pas un défaut de test, c'est un défaut d'infrastructure d'équipe.** Une assertion de spec partagée arbitre le travail de tous ceux qui touchent le fichier. Ancrer sur la STRUCTURE (`/^\s*\.selecteur \{/m`) et non sur une sous-chaîne ; et vérifier que le garde attrape encore le cas visé — ici il en attrape un de plus, le gabarit nu INDENTÉ, que l'ancrage `^\.` du voisin ratait |
-| 39 | **comparer une branche à `main` APRÈS une fusion en squash** | une fusion en squash crée sur `main` un commit qui **n'est pas un ancêtre de la branche** : la base commune n'avance jamais. `git diff main...branche` continue donc à rapporter TOUTE la contribution de la branche — 422 insertions sur 4 fichiers — alors que `main` en détient déjà le contenu exact | on s'y est trompé **dans les deux sens en une heure** : d'abord `git diff main branche` (deux points) annonçant « 37 lignes supprimées » — un écart d'ÉTAT lu comme un effet de fusion ; puis `git diff main...branche` (trois points) annonçant « 422 insertions » — une contribution déjà absorbée lue comme un travail non fusionné. Une branche a failli être supprimée sur la première, et refusionnée sur la seconde | **aucun des deux diffs ne répond à la question « est-ce déjà dans `main` ? ».** Seuls trois signaux y répondent : l'**empreinte du contenu** (`git show main:f \| shasum` contre la branche), l'**existence du fichier** dans `main`, et l'**état de la PR** chez GitHub. Face jumelle de l'entrée 22 : là on comparait des sujets de commits, ici des diffs — même cause, le squash |
+| 39 | recherche d'un marqueur dans les **assets servis** | j'ai sondé **une** feuille de style sur cinq (456 Ko sur 1 070 Ko), puis les 37 bundles JS de la seule page d'accueil — alors que les morceaux du parseur sont **chargés paresseusement** et ne sont référencés par aucune page publique | **deux zéros consécutifs**, tous deux faux : « le correctif #455 n'est pas déployé » (il l'était, `1` sur l'ensemble des feuilles) et « le parseur n'est pas dans le bundle » (témoin `boltArtifact` également à `0`, ce qui est impossible) | **un témoin positif dans la MÊME sonde** — un motif dont on sait qu'il doit être présent (`bolt-project-statusbar-pill`, `boltArtifact`). Quand le témoin rend `0` lui aussi, ce n'est pas le code qui manque, c'est la sonde qui regarde au mauvais endroit. La règle 14 dit de vérifier qu'un `0` vient d'une recherche qui a fonctionné ; ce cas ajoute qu'une recherche peut **parfaitement fonctionner sur la mauvaise moitié de la cible** |
+| 40 | **comparer une branche à `main` APRÈS une fusion en squash** | une fusion en squash crée sur `main` un commit qui **n'est pas un ancêtre de la branche** : la base commune n'avance jamais. `git diff main...branche` continue donc à rapporter TOUTE la contribution de la branche — 422 insertions sur 4 fichiers — alors que `main` en détient déjà le contenu exact | on s'y est trompé **dans les deux sens en une heure** : d'abord `git diff main branche` (deux points) annonçant « 37 lignes supprimées » — un écart d'ÉTAT lu comme un effet de fusion ; puis `git diff main...branche` (trois points) annonçant « 422 insertions » — une contribution déjà absorbée lue comme un travail non fusionné. Une branche a failli être supprimée sur la première, et refusionnée sur la seconde | **aucun des deux diffs ne répond à la question « est-ce déjà dans `main` ? ».** Seuls trois signaux y répondent : l'**empreinte du contenu** (`git show main:f \| shasum` contre la branche), l'**existence du fichier** dans `main`, et l'**état de la PR** chez GitHub. Face jumelle de l'entrée 22 : là on comparait des sujets de commits, ici des diffs — même cause, le squash |
 
 ## La règle qui en découle
 
@@ -155,3 +156,242 @@ exactement l'erreur qu'on cherchait à exclure.
 Enfin, une mise en garde née de la même nuit : après huit outils défaillants,
 « c'est encore l'outil » devient un biais à son tour. Deux fois, le comportement
 était normal.
+
+---
+
+### L'avertissement ne protège pas ; seul le geste protège (2026-09-06)
+
+Le cas est petit, et c'est pour ça qu'il compte. Une session voisine venait de me
+transmettre, mot pour mot, la mise en garde : **lire la sortie avant de
+commiter**. Je l'ai lue, comprise, trouvée juste. Puis j'ai poussé une branche
+avec **deux erreurs de lint affichées à l'écran**, dans le défilement que je
+venais moi-même de produire.
+
+L'avertissement était arrivé. Il n'a rien empêché.
+
+**Pourquoi il n'empêche rien.** Un avertissement s'adresse à l'intention, et
+l'intention est déjà bonne au moment où on le reçoit — personne ne décide de ne
+pas lire sa sortie. Ce qui manque n'est pas la volonté de vérifier, c'est
+l'endroit où la vérification a lieu. Entre « je sais qu'il faut lire » et « j'ai
+lu », il y a un geste, et seul le geste tient.
+
+Quatre échecs de la même famille, la même journée, toutes règles déjà écrites :
+
+* un `grep` de contrôle rendu sur cinq motifs, **témoin positif compris**, tous à
+  zéro : la conclusion juste était « mon motif est faux », pas « le contenu est
+  absent » — et elle n'est venue qu'en regardant le témoin, pas les résultats ;
+* une ancre de correctif introuvable parce que **mon propre préfixe d'affichage**
+  (`sed 's/^/  /'`) était passé dans le motif que j'en avais tiré ;
+* un typecheck déclaré vert sur un `grep` trop étroit, alors qu'il rendait **133
+  lignes et le code 134** — un épuisement mémoire de V8, pas un silence. Le
+  témoin, une faute de typage introduite exprès, n'a rien trouvé : c'est ce
+  zéro-là qui a révélé que la mesure n'avait pas mesuré ;
+* un `cd` échoué dont je n'ai pas lu l'échec, si bien que l'écriture suivante est
+  partie **dans le checkout principal** au lieu du worktree — la faute que trois
+  consignes explicites m'interdisaient. Elle a reformaté un fichier portant le
+  travail non commité d'une autre session.
+
+**Ce qu'on en tire, et qui n'est pas un rappel de plus.** Une règle ne se formule
+utilement qu'en geste vérifiable, attaché à un moment précis :
+
+| ne protège pas | protège |
+|---|---|
+| « lire la sortie » | avant `git commit`, relire l'écran et **énoncer le code de sortie** |
+| « vérifier ses greps » | faire rendre au moins **un résultat** à la même commande sur un cas connu positif |
+| « le typecheck est vert » | énoncer **le code de sortie ET le nombre de lignes**, et les comparer à la base |
+| « ancrer sur du code » | comparer les **octets exacts** du fichier, jamais un affichage retraité |
+| « toujours dans un worktree » | **enchaîner `cd` et écriture par `&&`**, et énoncer le chemin courant avant d'écrire |
+
+Le test de la formulation : si elle décrit un état d'esprit, elle ne protège pas ;
+si elle nomme un moment et une sortie à énoncer, elle protège. C'est la raison
+pour laquelle un commentaire n'a jamais tenu un correctif là où un test rouge le
+tient — sauf qu'ici le garde-fou ne peut pas être du code, alors il doit au moins
+être un geste daté, pas une bonne disposition.
+
+**Le corollaire, désagréable :** recevoir l'avertissement peut *nuire*. On se sent
+couvert par le fait de l'avoir lu. Sur ce cas, l'écart entre le moment où la mise
+en garde est arrivée et celui où je l'ai enfreinte se compte en minutes.
+
+**Et la sortie de secours, quand la faute est déjà commise.** Ne jamais réparer
+par `git checkout --` avant d'avoir établi si le fichier portait du travail non
+commité : ici il en portait — sept lignes de tableau et une section entière — et
+la restauration réflexe les aurait détruites. La réparation s'est faite en
+reconstruisant l'état d'avant, avec un **témoin** : la transformation inverse
+devait reproduire au octet près les douze lignes déjà présentes dans `HEAD`. Elle
+en a d'abord reproduit **0**, puis **11 sur 12** — un tube échappé cassait le
+découpage — et seulement ensuite **12 sur 12**. Sans ce témoin, les deux premières
+tentatives se seraient présentées comme des réparations réussies.
+
+---
+
+### Une commande qui tourne, une cible correcte, un résultat faux (2026-09-07)
+
+C'est la forme la plus coûteuse, parce qu'elle ne ressemble pas à une panne. La
+commande s'exécute, elle vise le bon fichier, elle rend quelque chose — et ce
+quelque chose est faux. Rien dans la sortie ne le dit.
+
+Six occurrences sur un seul cycle de livraison :
+
+* **`head -1` sur une ligne de signature.** Pour retrouver le SHA déployé, je
+  filtrais le registre d'images sur l'empreinte du conteneur. Le registre
+  contient aussi la **signature cosign** de cette image, dont le nom de tag
+  *contient l'empreinte cherchée* : `sha256-<empreinte>.sig`. Elle sortait en
+  premier, `head -1` la prenait, son tag ne ressemblait pas à un SHA, et cinq
+  étages sur huit se sont affichés « tag introuvable ». Le déploiement était
+  parfaitement sain.
+* **Des noms de ressources préfixés.** `kubectl get deploy web` rendait
+  `NotFound` : les Deployments s'appellent `vibecore-vibecore-platform-web`. Je
+  ne l'ai su que parce que je n'avais **pas** masqué la sortie d'erreur — avec
+  `2>/dev/null`, j'aurais lu huit lignes vides comme huit services absents.
+* **Un sabotage qui n'a jamais été appliqué.** Une contre-épreuve est ressortie
+  **verte** ; j'allais rapporter un garde creux comme sain. L'échappement dans
+  mon `python3 -c` était faux : la ligne visée n'avait jamais été retirée.
+  Vérifié ensuite en comptant les lignes réellement supprimées.
+* **Une indentation dans un contrôle de lockfile.** Je cherchais les
+  dépendances ajoutées avec six espaces là où le fichier en met huit :
+  « 0 sur 4 », alors que le diff les montrait toutes les quatre.
+* **Un grep sur le mauvais fichier.** `middleware` absent d'un `.d.ts` précis,
+  alors qu'il apparaît dans 42 fichiers du même paquet. Le témoin — chercher un
+  terme dont je savais qu'il devait sortir — a tranché en une commande.
+* **Un préfixe d'affichage passé dans une ancre.** Deux fois. J'affiche du code
+  avec `sed 's/^/  /'` pour la lisibilité, puis je recopie ce que je vois comme
+  motif de recherche. L'indentation réelle est de 10 espaces, la mienne en avait
+  12, et l'ancre ne mordait pas.
+
+**Ce que ces six ont en commun.** Aucune n'est une erreur de raisonnement : ce
+sont des erreurs d'**instrumentation**. Sur cette campagne, mes commandes de
+mesure m'ont trompé plus souvent que le code que je mesurais.
+
+**Les trois gestes qui les attrapent tous les six**, et qui ne coûtent qu'une
+commande de plus :
+
+1. **Un témoin positif avant de lire un zéro.** Faire rendre au moins un
+   résultat connu à la même commande. Cinq des six cas ci-dessus tombent à ce
+   seul contrôle.
+2. **Compter ce qui a été trouvé, pas seulement lire ce qui a été rendu.**
+   `head -1` sur une liste qu'on n'a pas comptée est un pari. Le nombre de
+   lignes retirées, le nombre d'entrées examinées, le code de sortie.
+3. **Les octets, jamais l'affichage.** Une ancre se prend dans le fichier, pas
+   dans un terminal — le terminal, lui, a été retraité par la commande qui l'a
+   produit.
+
+**Et le cas qui n'est pas une erreur de mesure mais mérite la même place.** Un
+`cd` échoué, dont je n'ai pas lu l'échec, a envoyé l'écriture suivante dans le
+checkout principal. Puis, en montant des liens symboliques dans un worktree,
+une boucle a écrit **à travers** un lien vers le répertoire partagé et a
+remplacé quatre liens de `node_modules` par des liens sur eux-mêmes — cassant
+la chaîne d'outils de toutes les sessions.
+
+La réparation vaut d'être notée autant que la faute : dans les deux cas, **ne
+pas effacer pour faire propre**. Établir d'abord ce que le fichier ou le
+répertoire portait — ici, sept lignes de tableau et une section entière écrites
+par une autre session — puis reconstruire, et **valider la reconstruction par un
+témoin** : la transformation inverse devait reproduire au octet près les douze
+lignes déjà présentes dans `HEAD`. Elle en a rendu **0**, puis **11 sur 12**,
+puis **12 sur 12**. Sans ce témoin, les deux premières tentatives se seraient
+présentées comme des réparations réussies.
+
+---
+
+## 42. « Impossible sans refactor » est presque toujours un obstacle d'INSTALLATION
+
+**2026-09-07, deux sessions, la même erreur de diagnostic le même jour.**
+
+La session QA avait écrit qu'un test de comportement était impossible sur une de
+ses cibles, et qu'il faudrait « un refactor du code de production » pour l'écrire.
+Elle s'est rétractée après mesure : l'obstacle était de **mise en place** — un
+harnais à monter — et le patron existait déjà dans le dépôt, à
+`services/api/src/tests/security-routes.spec.ts`.
+
+Le même jour, sur le sujet du 429, j'ai écrit que discriminer les deux causes
+exigeait de rendre `panelEnvelopeError` asynchrone, « donc 21 sites d'appel à
+toucher — trop invasif ». C'était vrai de la voie que j'avais imaginée, et faux
+de la question posée : le limiteur pose `x-ratelimit-remaining` sur la réponse,
+et cet en-tête se lit **de façon synchrone**. Zéro site d'appel touché.
+
+**Les deux fautes ont la même forme.** On mesure le coût de *la première solution
+qui vient à l'esprit*, on le trouve élevé, et on transfère ce coût à *la
+question*. « C'est cher » devient « c'est impossible », puis « il faudrait
+refactorer » — c'est-à-dire : quelqu'un d'autre devra payer, plus tard.
+
+**Ce n'est pas la même dette, et ce n'est pas au même de la payer.** Un obstacle
+d'architecture est une dette du code : elle se planifie, elle s'arbitre, elle
+appartient à l'équipe. Un obstacle d'installation est une dette de la tâche en
+cours : elle appartient à celui qui écrit le test, et elle se paie en une heure.
+Les confondre déplace un travail d'une heure vers une file où il ne sera jamais
+priorisé.
+
+**Le geste, avant d'écrire « impossible » :**
+
+1. **Chercher le patron dans le dépôt.** Un harnais comparable existe presque
+   toujours ; `grep` sur le nom du mécanisme, pas sur celui du fichier.
+2. **Nommer la voie qu'on a écartée, et pourquoi.** « Asynchrone : 21 sites » est
+   une mesure. « Impossible » n'en est pas une, et elle ferme la porte à la
+   deuxième voie — qui existait dans les deux cas ci-dessus.
+3. **Se demander ce que la question exige VRAIMENT.** Ici : distinguer deux
+   causes. Pas : lire un corps de réponse. La deuxième formulation était une
+   contrainte que je m'étais donnée, pas une contrainte du problème.
+
+**Le signal qui doit alerter** : toute phrase de la forme « il faudrait d'abord
+refactorer X » écrite par quelqu'un qui n'a pas encore cherché de patron
+existant. Sur ces deux cas, elle était fausse deux fois sur deux.
+
+---
+
+## 43. Le piège qui protège, et l'ordre des opérations de démontage
+
+**2026-09-07, purge complète de la production.** Deux leçons d'une même heure,
+et la première est agréable pour une fois.
+
+### Le piège qui, cette fois, a protégé
+
+Première commande de la purge : supprimer neuf clusters PostgreSQL.
+
+```sh
+cibles=$(kubectl get cluster -o name | grep -E '^db-cm')
+for c in $cibles; do kubectl delete cluster "$c"; done
+```
+
+zsh ne découpe pas une variable non quotée. La boucle a donc tourné **une seule
+fois**, avec un « nom de cluster » contenant les neuf noms séparés par des sauts
+de ligne. L'API Kubernetes a répondu `BadRequest` et **rien n'a été supprimé**.
+
+C'est exactement le piège consigné à l'entrée sur les faux résultats — celui qui
+m'avait fait lire `--include=*.ts` comme un motif et rendre de faux zéros. Ici il
+s'est retourné : sur une commande **destructive**, le non-découpage a produit un
+nom invalide, et l'invalidité a sauvé la mise.
+
+**Ce qu'il faut en retenir, et ce n'est pas « on a eu de la chance ».** Un nom
+mal formé est refusé par une API stricte ; un nom *bien formé mais faux* ne l'est
+pas. Le vrai enseignement est que la protection venait de la **validation côté
+serveur**, pas de ma prudence. Sur une opération irréversible, itérer avec
+`while IFS= read -r` et vérifier le compte de cibles AVANT la boucle reste la
+seule garantie — ce jour-là, `retenus : 9 exclus : shared-pg-0` était la ligne
+qui comptait, pas la boucle.
+
+### Couper la source avant de démonter
+
+Deuxième moment. En supprimant les volumes de workspace, l'un d'eux refusait de
+partir : `deletionTimestamp` posé, finaliseur `kubernetes.io/pvc-protection`
+actif. Un pod le montait — un pod **recréé 52 secondes plus tôt**, alors que je
+venais de le supprimer.
+
+La réconciliation repartait de la base : la ligne `Workspace` disait `RUNNING`,
+donc quelque chose reprovisionnait. Je luttais contre un système qui faisait
+exactement son travail.
+
+**La règle : sur une ressource réconciliée, l'ordre n'est pas « ressources puis
+lignes », c'est « couper la source de vérité, puis les ressources, puis les
+lignes ».** Ici : supprimer les lignes `Workspace` (300), puis le pod, puis le
+volume — qui s'est libéré seul.
+
+C'est un raffinement de l'ordre qu'on croyait bon. « Ressources d'abord, lignes
+ensuite » évite les orphelines quand la ligne porte la POIGNÉE. Mais quand la
+ligne porte aussi l'INTENTION — « ce workspace doit tourner » —, la garder
+pendant le démontage fait recréer ce qu'on retire. Les deux besoins coexistent :
+lire la poignée avant, effacer l'intention avant, supprimer la ligne après.
+
+**Le signal qui l'annonce** : une ressource qui réapparaît, ou un finaliseur qui
+ne se libère pas. Ce n'est pas un blocage à forcer — c'est un réconciliateur qui
+travaille, et forcer le finaliseur aurait laissé le disque orphelin côté GCP tout
+en effaçant sa trace côté Kubernetes.

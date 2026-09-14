@@ -64,6 +64,7 @@ import { enterpriseSsoSettingsEn, enterpriseSsoSettingsFr } from './catalogs/ent
 import { errorSurfacesEn, errorSurfacesFr } from './catalogs/error-surfaces';
 import { featuresSettingsEn, featuresSettingsFr } from './catalogs/features-settings';
 import { fileHistoryEn, fileHistoryFr } from './catalogs/file-history';
+import { finDeTourEn, finDeTourFr } from './catalogs/fin-de-tour';
 import { gitCloneEn, gitCloneFr } from './catalogs/git-clone';
 import { gitMergeEditorEn, gitMergeEditorFr } from './catalogs/git-merge-editor';
 import { gitProviderConnectEn, gitProviderConnectFr } from './catalogs/git-provider-connect';
@@ -133,6 +134,7 @@ import { projectSnapshotsEn, projectSnapshotsFr } from './catalogs/project-snaps
 import { publicGalleryEn, publicGalleryFr } from './catalogs/public-gallery';
 import { publicRouteSeoEn, publicRouteSeoFr } from './catalogs/public-route-seo';
 import { publicTemplateTagLabelsEn, publicTemplateTagLabelsFr } from './catalogs/public-template-tags';
+import { publicationEn, publicationFr } from './catalogs/publication';
 import { recoveryCodesEn, recoveryCodesFr } from './catalogs/recovery-codes';
 import { remainingApiRoutesEn, remainingApiRoutesFr } from './catalogs/remaining-api-routes';
 import { remainingRouteShellsEn, remainingRouteShellsFr } from './catalogs/remaining-route-shells';
@@ -140,6 +142,7 @@ import { repositoryCardEn, repositoryCardFr } from './catalogs/repository-card';
 import { repositorySelectorEn, repositorySelectorFr } from './catalogs/repository-selector';
 import { scimTokenSettingsEn, scimTokenSettingsFr } from './catalogs/scim-token-settings';
 import { screenshotSelectorEn, screenshotSelectorFr } from './catalogs/screenshot-selector';
+import { secretsPanelEn, secretsPanelFr } from './catalogs/secrets-panel';
 import { securitySettingsEn, securitySettingsFr } from './catalogs/security-settings';
 import { sessionSecurityEn, sessionSecurityFr } from './catalogs/session-security';
 import { settingsEn, settingsFr } from './catalogs/settings';
@@ -260,6 +263,9 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...workspaceMiscEn,
       ...chatEn,
       ...chatBoxEn,
+      ...secretsPanelEn,
+      ...finDeTourEn,
+      ...publicationEn,
       ...chatBoxChildrenEn,
       ...chatClientEn,
       ...chatConnectorsEn,
@@ -413,6 +419,9 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...workspaceMiscFr,
       ...chatFr,
       ...chatBoxFr,
+      ...secretsPanelFr,
+      ...finDeTourFr,
+      ...publicationFr,
       ...chatBoxChildrenFr,
       ...chatClientFr,
       ...chatConnectorsFr,

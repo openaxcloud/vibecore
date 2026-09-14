@@ -4,12 +4,15 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseSettings } from './DatabaseSettings';
 import { DatabaseStudio } from './DatabaseStudio';
+import { enregistrerLeRejet, noteEstPertinente, rejetEnregistre } from './note-dev-prod';
+import { nomDeLaBase, tablesDuSchema, tailleDeLaBase } from './tables-du-schema';
 import {
   formatDatabaseSettingsBytes,
   formatDatabaseStudioPlural,
   getDatabaseStudioCopy,
   type DatabaseStudioCopy,
 } from '~/lib/i18n/catalogs/database-studio';
+import { revelerUnSecret } from '~/lib/reveler-un-secret';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -77,7 +80,7 @@ export function provisionFailureReason(data: { reason?: string } | undefined) {
   return reason && /^[A-Z][A-Z0-9_]{2,63}$/.test(reason) ? reason : undefined;
 }
 
-export function readEnvironments(data: unknown): DbEnv[] {
+export function readEnvironments(data: unknown, libelles: Readonly<Record<string, string>> = {}): DbEnv[] {
   const c = container(data);
 
   /*
@@ -110,7 +113,7 @@ export function readEnvironments(data: unknown): DbEnv[] {
       continue;
     }
 
-    const env: DbEnv = { key, name: String(o.name ?? o.label ?? o.displayName ?? key) };
+    const env: DbEnv = { key, name: nomDeLaBase({ ...o, key }, libelles) };
 
     if (typeof o.usedBytes === 'number') {
       env.usedBytes = o.usedBytes;
@@ -187,6 +190,7 @@ function UsageCard({
 
   return (
     <button
+      data-testid="db-carte"
       type="button"
       onClick={onOpen}
       className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-left hover:border-bolt-elements-item-contentAccent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
@@ -218,6 +222,19 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     code?: string;
     reason?: string;
   }>();
+
+  const schemaFetcher = useFetcher();
+
+  /*
+   * RP-DB-07 — le rejet de la note dev/prod est relu au MONTAGE, pas au rendu :
+   * `localStorage` n'existe pas pendant le rendu serveur, et le lire là ferait
+   * diverger le premier rendu client de celui du serveur.
+   */
+  const [noteRejetee, setNoteRejetee] = useState(false);
+
+  useEffect(() => {
+    setNoteRejetee(rejetEnregistre(projectId));
+  }, [projectId]);
 
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
@@ -269,9 +286,38 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
 
   const provisioning = provisionFetcher.state !== 'idle';
 
-  const environments = useMemo(() => readEnvironments(fetcher.data), [fetcher.data]);
+  const environments = useMemo(() => readEnvironments(fetcher.data, copy), [fetcher.data, copy]);
   const active = environments.find((e) => e.key === openKey) ?? null;
   const loading = fetcher.state !== 'idle';
+
+  /*
+   * RP-DB-10 — le schéma est chargé ICI, et non plus dans l'onglet Aperçu.
+   *
+   * Il porte DEUX choses : la liste des tables (Aperçu) et la taille de la base
+   * mesurée par `pg_database_size` (carte « Stockage » des Paramètres). Tant
+   * qu'il vivait dans l'onglet Aperçu, l'onglet Paramètres n'y avait pas accès
+   * et la carte lisait la liste des CONNEXIONS, qui ne porte aucune taille : la
+   * carte restait vide alors que la donnée existait. Un seul chargement sert
+   * désormais les deux onglets.
+   */
+  const cleDuSchema = active?.key ?? null;
+
+  useEffect(() => {
+    if (!cleDuSchema) {
+      return;
+    }
+
+    schemaFetcher.load(`${base}?schemaKey=${encodeURIComponent(cleDuSchema)}`);
+
+    // `schemaFetcher` est volontairement absent : son identité change à chaque rendu.
+  }, [base, cleDuSchema]);
+
+  /*
+   * La taille RÉELLE de la base, mesurée par l'API (`pg_database_size`) et
+   * rendue avec le schéma. La liste des connexions n'en porte aucune : lue
+   * là, la carte « Stockage » restait vide alors que la donnée existait.
+   */
+  const tailleOccupee = active?.usedBytes ?? tailleDeLaBase(container(schemaFetcher.data));
 
   /*
    * BUG-QA-DB-IDE-BRICK-001 — un provisionnement échoué rendait l'IDE inutilisable.
@@ -316,6 +362,40 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             {copy['databaseWorkbench.refresh']}
           </button>
         </header>
+        {noteEstPertinente({ environnements: environments, rejetee: noteRejetee }) ? (
+          <aside
+            data-testid="db-note-dev-prod"
+            className="flex min-w-0 flex-col gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
+          >
+            <p className="break-words text-[13px] font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
+              {copy['databaseWorkbench.note.title']}
+            </p>
+            <p className="break-words text-[12px] text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
+              {copy['databaseWorkbench.note.body']}
+            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <button
+                type="button"
+                data-testid="db-note-compris"
+                onClick={() => {
+                  enregistrerLeRejet(projectId);
+                  setNoteRejetee(true);
+                }}
+                className="inline-flex min-h-11 items-center rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-[13px] font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+              >
+                {copy['databaseWorkbench.note.gotIt']}
+              </button>
+              <a
+                href="/docs"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex min-h-11 items-center rounded-md border border-bolt-elements-borderColor px-3 py-2 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+              >
+                {copy['databaseWorkbench.note.learnMore']}
+              </a>
+            </div>
+          </aside>
+        ) : null}
         {loading && fetcher.data === undefined ? (
           <div className="grid gap-3 sm:grid-cols-2" role="status" aria-live="polite">
             <span className="sr-only">{copy['databaseWorkbench.loading']}</span>
@@ -449,20 +529,23 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
       <div className="bolt-database-workbench-body min-h-0 flex-1 overflow-auto">
         {tab === 'overview' ? (
           <OverviewTab
-            base={base}
-            connectionKey={active.key}
+            schema={schemaFetcher.data}
+            chargement={schemaFetcher.state !== 'idle'}
             onPickTable={() => setTab('mydata')}
             copy={copy}
             language={language}
           />
         ) : null}
-        {tab === 'mydata' ? <DatabaseStudio projectId={projectId} /> : null}
+        {tab === 'mydata' ? (
+          <DatabaseStudio projectId={projectId} schemaFourni={schemaFetcher.data} connexionFournie={active.key} />
+        ) : null}
         {tab === 'settings' ? (
           <DatabaseSettings
             name={active.name}
             active
             connectionString={readConnectionString(fetcher.data, active.key)}
-            storageUsedBytes={active.usedBytes}
+            reveler={() => revelerUnSecret(projectId, active.key)}
+            storageUsedBytes={tailleOccupee}
             storageQuotaBytes={active.quotaBytes}
             projectId={projectId}
           />
@@ -474,34 +557,27 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
 
 /* Overview — "Tables" cards (name + row count) from the connection schema. */
 function OverviewTab({
-  base,
-  connectionKey,
+  schema,
+  chargement,
   onPickTable,
   copy,
   language,
 }: {
-  base: string;
-  connectionKey: string;
+  schema: unknown;
+  chargement: boolean;
   onPickTable: () => void;
   copy: DatabaseStudioCopy;
   language: string;
 }) {
-  const fetcher = useFetcher();
-
-  useEffect(() => {
-    fetcher.load(`${base}?schemaKey=${encodeURIComponent(connectionKey)}`);
-  }, [connectionKey]);
-
-  const tables = useMemo(() => {
-    const c = container(fetcher.data);
-    const schema = (c.schema && typeof c.schema === 'object' ? c.schema : c) as Record<string, unknown>;
-
-    return asArray(schema.tables ?? c.tables).map((t) => {
-      const o = (t && typeof t === 'object' ? t : {}) as Record<string, unknown>;
-
-      return { name: String(o.name ?? o.table ?? ''), rows: typeof o.rowCount === 'number' ? o.rowCount : undefined };
-    });
-  }, [fetcher.data]);
+  /*
+   * RP-DB-05 — la normalisation vit dans `tables-du-schema.ts`, seule et
+   * testée. Elle lisait ici `t.name` / `t.rowCount` alors que l'API rend
+   * `table_name` / `rowsEstimate` : les deux formes ne se rencontraient
+   * jamais, donc chaque table s'affichait avec un nom VIDE et sans compte de
+   * lignes — et la clé React valait ce vide pour toutes. Relevé à l'écran le
+   * 08/09 : 0 table rendue.
+   */
+  const tables = useMemo(() => tablesDuSchema(container(schema)), [schema]);
 
   return (
     <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
@@ -510,24 +586,28 @@ function OverviewTab({
       </h3>
       {tables.length === 0 ? (
         <p className="break-words text-[12px] text-bolt-elements-textTertiary [overflow-wrap:anywhere]" role="status">
-          {fetcher.state !== 'idle' ? copy['databaseWorkbench.loadingSchema'] : copy['databaseWorkbench.noTables']}
+          {chargement ? copy['databaseWorkbench.loadingSchema'] : copy['databaseWorkbench.noTables']}
         </p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {tables.map((t) => (
             <button
-              key={t.name}
+              key={`${t.schema ?? ''}.${t.nom}`}
               type="button"
               onClick={onPickTable}
+              data-testid="db-table"
               className="flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-left hover:border-bolt-elements-item-contentAccent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
             >
-              <span className="truncate font-mono text-[13px] text-bolt-elements-textPrimary">{t.name}</span>
+              <span className="truncate font-mono text-[13px] text-bolt-elements-textPrimary">{t.nom}</span>
               <span className="shrink-0 text-[12px] text-bolt-elements-textTertiary">
-                {typeof t.rows === 'number'
-                  ? formatDatabaseStudioPlural(language, t.rows, {
+                {typeof t.lignes === 'number'
+                  ? formatDatabaseStudioPlural(language, t.lignes, {
                       one: copy['databaseWorkbench.rows_one'],
                       other: copy['databaseWorkbench.rows_other'],
                     })
+                  : ''}
+                {typeof t.octets === 'number' && t.octets > 0
+                  ? ` · ${formatDatabaseSettingsBytes(t.octets, language)}`
                   : ''}
               </span>
             </button>

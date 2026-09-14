@@ -34,6 +34,17 @@ export interface EtatDeTranscription {
 
   /** Nombre de messages actuellement affichés. */
   messagesAffiches: number;
+
+  /**
+   * Cette transcription a-t-elle DÉJÀ été adoptée ?
+   *
+   * Sans cette garde, un fil vidé par « Effacer l'historique » se remplissait
+   * à nouveau : `initialMessages` gardait la transcription restaurée, le fil
+   * repassait à zéro message, et l'effet la réadoptait. Mesuré le 06/09 sur
+   * la maquette (sonde probe-clear.mjs) : quatre messages avant, quatre après
+   * confirmation, puis quatre re-persistés dans une conversation NEUVE.
+   */
+  dejaAdoptee?: boolean;
 }
 
 export function fautIlAdopterLaTranscriptionRestauree(etat: EtatDeTranscription): boolean {
@@ -46,5 +57,9 @@ export function fautIlAdopterLaTranscriptionRestauree(etat: EtatDeTranscription)
    * une hydratation qui a abouti, un message que l'utilisateur vient d'envoyer —
    * cet état est plus récent, et le remplacer serait le même défaut à l'envers.
    */
+  if (etat.dejaAdoptee) {
+    return false;
+  }
+
   return etat.messagesRestaures > 0 && etat.messagesAffiches === 0;
 }

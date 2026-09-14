@@ -48,7 +48,6 @@ function EditMessageButton({ messageId, text }: { messageId: string; text: strin
     <button
       type="button"
       aria-label={copy['chatResiduals.user.editAria']}
-      data-vc-tooltip={copy['chatResiduals.user.editTooltip']}
       className="bolt-user-message-edit flex items-center justify-center rounded-md text-bolt-elements-textTertiary outline-none transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
       onClick={() => {
         if (typeof window === 'undefined') {
@@ -81,7 +80,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
    * rendu, et un hook appelé dans une seule d'entre elles casserait l'ordre des
    * hooks au premier message contenant une image.
    */
-  const menuContextuel = useMenuContextuelDeMessage();
+  const menuContextuel = useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined);
 
   if (Array.isArray(content)) {
     const textItem = content.find((item) => item.type === 'text');
@@ -152,25 +151,27 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
       {...menuContextuel.gestes}
     >
       <div className="bolt-user-message-bubble flex w-auto flex-col rounded-lg bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] px-3 py-2 backdrop-blur-sm [margin-inline-start:auto]">
-        <div className="flex gap-3 mb-2">
-          {images.map((item, index) => (
-            <div
-              key={index}
-              className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden"
-            >
-              <div className="h-16 w-16 bg-transparent outline-none">
-                <img
-                  src={`data:${item.mimeType};base64,${item.data}`}
-                  alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
-                    count: formatChatResidualsNumber(index + 1, language),
-                  })}
-                  className="h-full w-full rounded-lg"
-                  style={{ objectFit: 'fill' }}
-                />
+        {images.length > 0 ? (
+          <div className="bolt-user-message-images flex gap-3 mb-2">
+            {images.map((item, index) => (
+              <div
+                key={index}
+                className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden"
+              >
+                <div className="h-16 w-16 bg-transparent outline-none">
+                  <img
+                    src={`data:${item.mimeType};base64,${item.data}`}
+                    alt={formatChatResidualsCopy(copy['chatResiduals.user.imageAlt'], {
+                      count: formatChatResidualsNumber(index + 1, language),
+                    })}
+                    className="h-full w-full rounded-lg"
+                    style={{ objectFit: 'fill' }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : null}
         <Markdown html>{textContent}</Markdown>
       </div>
       {/*

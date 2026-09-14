@@ -258,7 +258,7 @@ export function ProjectWorkspaceProvider({
         if (reattachWarmWorkspace) {
           workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.reattached'));
         } else {
-          await workbenchStore.stopPreviewServer().catch((error) => {
+          await workbenchStore.stopPreviewServer({ raison: 'reseed' }).catch((error) => {
             console.error('Previous preview cleanup failed:', error);
             workbenchStore.appendWorkspaceLog(
               clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
@@ -475,7 +475,22 @@ export function ProjectWorkspaceProvider({
         clearInterval(heartbeat);
       }
 
-      void workbenchStore.stopPreviewServer().catch(() => undefined);
+      /*
+       * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET.
+       *
+       * Ce nettoyage s'execute au demontage — rechargement, changement de route,
+       * StrictMode, fermeture d'onglet. Sur Safari iOS, quitter la page suffit,
+       * et le serveur de dev d'Avi mourait la (mesure du 2026-09-08 : PID 1031
+       * vivant, page fermee, disparu en moins de cinq minutes alors que la
+       * fenetre de grace est a dix). Le commentaire ci-dessous protegeait deja
+       * le POD contre exactement ce piege ; il manquait au processus qu'il
+       * heberge.
+       *
+       * On DECLARE la raison au lieu de supprimer l'appel : `stopPreviewServer`
+       * journalise son abstention, de sorte qu'un serveur qui survit ne
+       * ressemble pas a un serveur qu'on a oublie de tuer.
+       */
+      void workbenchStore.stopPreviewServer({ raison: 'demontage' }).catch(() => undefined);
 
       /*
        * Do NOT tear the remote workspace down on unmount. A reload / route

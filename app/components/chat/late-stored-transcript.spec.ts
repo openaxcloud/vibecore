@@ -35,4 +35,20 @@ describe('transcription restaurée après le montage', () => {
       fautIlAdopterLaTranscriptionRestauree({ modeProjet: false, messagesRestaures: 6, messagesAffiches: 0 }),
     ).toBe(false);
   });
+
+  it('n’adopte pas deux fois la même transcription : « Effacer l’historique » doit laisser le fil vide', () => {
+    /*
+     * Mesuré le 06/09 : après confirmation, le fil repassait à zéro message et
+     * l'effet réadoptait la transcription restaurée — l'historique « effacé »
+     * revenait, puis se re-persistait dans une conversation neuve.
+     */
+    expect(
+      fautIlAdopterLaTranscriptionRestauree({
+        modeProjet: true,
+        messagesRestaures: 4,
+        messagesAffiches: 0,
+        dejaAdoptee: true,
+      }),
+    ).toBe(false);
+  });
 });

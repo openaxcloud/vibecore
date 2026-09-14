@@ -5,7 +5,6 @@ import {
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
-import { withThinkingDisabled, type ProviderOptionsShape } from './anthropic-thinking';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -25,8 +24,10 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
+import { resolvePromptRuntimeMode } from '~/lib/common/prompts/runtime-constraints';
 import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
@@ -43,8 +44,46 @@ export const DEFAULT_STREAM_MAX_RETRIES = 4;
  * exponential backoff before surfacing an error. Bounded to [0, 8] and defaults
  * to {@link DEFAULT_STREAM_MAX_RETRIES}; override with STREAM_MAX_RETRIES.
  */
+/**
+ * Le bloc ARBORESCENCE + CONSIGNE DE CÂBLAGE donné au SECOND appel du modèle —
+ * celui qui écrit le code.
+ *
+ * Il y a deux appels. `selectContext` reçoit la liste complète des chemins,
+ * mais seulement pour CHOISIR quels fichiers charger. Le générateur ne
+ * recevait ensuite QUE le contenu sélectionné : `projectFilePaths` ne servait
+ * qu'à décider d'inclure les instructions base de données ou mobile, il
+ * n'entrait jamais dans son prompt.
+ *
+ * Si le sélecteur ne retient pas `src/App.tsx`, le générateur IGNORE SON
+ * EXISTENCE — ni son contenu, ni même son nom. Mesuré deux fois : `Contact.jsx`
+ * écrit dans un projet TypeScript, et quatre fichiers dans `src/deck/` avec
+ * `src/App.tsx` intact à UN OCTET près.
+ *
+ * Extrait ici pour être testable : le mécanisme qui se défait n'est pas le
+ * texte, c'est le fait que le bloc soit CONSTRUIT et JOINT au prompt.
+ */
+export function construireBlocArborescence(projectFilePaths: readonly string[]): string {
+  if (!projectFilePaths.length) {
+    return '';
+  }
+
+  return `Below is the COMPLETE list of files that already exist in this project. Files not shown in the CONTEXT BUFFER still EXIST — do not assume otherwise, and do not recreate them under a different name or extension.
+
+PROJECT FILE TREE:
+---
+${projectFilePaths.map((path) => `- ${path}`).join('\n')}
+---
+
+WIRING REQUIREMENT — this is not optional:
+- Every file you create MUST be reachable from the project's existing entry point. A file nothing imports is dead code and does not satisfy the user's request.
+- If a file you create is meant to be rendered or executed, you MUST also EDIT the existing entry point (for example the App / main / index file listed above) so that it imports and uses it.
+- Match the extensions already in use. If the tree shows \`.tsx\`, do not create \`.jsx\`.
+- Never invent an entry point that is not in the tree above.
+`;
+}
+
 export function resolveStreamMaxRetries(env?: Record<string, string | undefined>): number {
-  const raw = env?.STREAM_MAX_RETRIES ?? (typeof process !== 'undefined' ? process.env?.STREAM_MAX_RETRIES : undefined);
+  const raw = env?.STREAM_MAX_RETRIES ?? readRuntimeEnv('STREAM_MAX_RETRIES');
   const parsed = Number(raw);
 
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -191,12 +230,15 @@ export function appendContextAsTrailingUserMessage<T extends { role: string }>(
  * The `MODEL_ROUTING_DISABLED` kill-switch. Truthy (`1`/`true`/`yes`/`on`,
  * case-insensitive) → complexity routing is globally OFF and every request keeps
  * the model it selected. Read defensively from the request env first, then the
- * genuine Node runtime env (Vite shims `process.env` to `{}` in client bundles).
+ * genuine Node runtime env via `readRuntimeEnv`.
+ *
+ * MESURÉ : une lecture `process.env` nue rend `undefined` DANS LE POD WEB — le
+ * polyfill de vite y shime `process.env` à `{}` — donc ce coupe-circuit était
+ * INACTIONNABLE en production : le poser dans le configmap n'aurait rien coupé.
  * Never throws.
  */
 export function isModelRoutingDisabled(env?: Record<string, string | undefined>): boolean {
-  const raw =
-    env?.MODEL_ROUTING_DISABLED ?? (typeof process !== 'undefined' ? process.env?.MODEL_ROUTING_DISABLED : undefined);
+  const raw = env?.MODEL_ROUTING_DISABLED ?? readRuntimeEnv('MODEL_ROUTING_DISABLED');
 
   if (raw == null) {
     return false;
@@ -319,10 +361,33 @@ export async function streamText(props: {
   projectRulesContext?: string;
 
   /*
+   * BUG-AGENT-WEBCLONE-001: the observed <web_reference> block (site fetched
+   * server-side because the user's message named a URL). Per-turn volatile →
+   * carried in the trailing context message, never in the cached system.
+   */
+  webReferenceContext?: string;
+
+  /*
    * A7 (Wave A): stable per-conversation id threaded from the chat route. Used
    * only as a provider cache-affinity hint (never in the prompt bytes).
    */
   chatId?: string;
+
+  /*
+   * IDENTIFIANT DE MESSAGE STABLE POUR TOUT LE TOUR.
+   *
+   * Sans lui, le SDK en fabrique un neuf à chaque appel `streamText` et à
+   * chaque frontière d'étape outil, et le pousse au client dans la part
+   * `start_step`. Le client réécrit alors `message.id` EN PLEIN FLUX — ce qui
+   * fait repartir de zéro le parseur d'artefacts (indexé par identifiant de
+   * message) et bascule la clé d'upsert de la transcription. Résultat : la
+   * réponse dupliquée à l'écran, les actions `shell` du segment précédent
+   * relancées, et une ligne orpheline en base.
+   *
+   * La route de chat passe ici UN identifiant par tour, partagé par l'appel
+   * initial et toutes ses continuations.
+   */
+  identifiantDeMessageStable?: string;
 
   /*
    * Model routing (Vague C): fired once with the CONCRETE model this turn
@@ -361,7 +426,9 @@ export async function streamText(props: {
     agentMemoryContext,
     skillsContext,
     projectRulesContext,
+    webReferenceContext,
     chatId,
+    identifiantDeMessageStable,
   } = props;
 
   /*
@@ -535,7 +602,10 @@ export async function streamText(props: {
 
   /*
    * Replace `currentModel` with the concrete decided id BEFORE the modelDetails
-   * lookup — `'auto'` must never reach getStaticModelList / getModelInstance.
+   * lookup — `'auto'` must never reach the model-list lookup / getModelInstance.
+   * (Vérifié le 2026-09-10 : les appels réels sont
+   * `getStaticModelListFromProvider` et `getModelListFromProvider` — le nom
+   * `getStaticModelList` cité ici n'existe pas seul, il a dérivé.)
    */
   currentModel = turnModelResolution.model;
 
@@ -611,6 +681,15 @@ export async function streamText(props: {
   const includeMobileInstructions =
     /expo|react[ -]?native|mobile app|\bios\b|\bandroid\b/i.test(contextSignalHaystack) || looksLikeExpoProject;
 
+  /*
+   * BUG-AGENT-WEBCLONE-001: describe the runtime the actions REALLY run in.
+   * Production is remote-kubernetes (bash, git, curl, outbound HTTPS); telling the
+   * model it is in WebContainer made it refuse to read a public site.
+   */
+  const promptRuntimeMode = resolvePromptRuntimeMode(
+    effectiveServerEnv as Record<string, string | undefined> | undefined,
+  );
+
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
@@ -624,6 +703,7 @@ export async function streamText(props: {
       },
       includeDatabaseInstructions,
       includeMobileInstructions,
+      runtimeMode: promptRuntimeMode,
     }) ?? getSystemPrompt();
 
   /*
@@ -729,7 +809,29 @@ ${projectRulesContext}`;
      * boundary. The model still receives the identical context, just lower in the
      * prompt.
      */
-    let contextBufferBlock = `Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
+    /*
+     * L'ARBORESCENCE, donnée au SECOND appel — celui qui écrit.
+     *
+     * Il y a deux appels au modèle. `selectContext` reçoit bien la liste
+     * complète des chemins (`AVAILABLE FILES PATHS`), mais elle ne sert qu'à
+     * CHOISIR quels fichiers charger. Le modèle qui écrit ensuite ne recevait
+     * QUE le contenu sélectionné : `projectFilePaths` n'entrait nulle part
+     * dans son prompt, il ne servait qu'à décider d'inclure les instructions
+     * base de données ou mobile.
+     *
+     * Conséquence mesurée deux fois : si le sélecteur ne retient pas
+     * `src/App.tsx`, le générateur IGNORE SON EXISTENCE — ni son contenu, ni
+     * même son nom. Il crée alors ses fichiers à côté du point d'entrée sans
+     * savoir qu'il y en a un. Demande d'une page de contact : `Contact.jsx`
+     * écrit dans un projet TypeScript. Demande d'un pitch deck : quatre
+     * fichiers dans `src/deck/` et `src/App.tsx` intact à UN OCTET près.
+     *
+     * La liste seule ne suffirait pas : le défaut n'est pas que l'ignorance,
+     * c'est l'absence de consigne. Les deux sont donc données ensemble.
+     */
+    const arborescenceBlock = construireBlocArborescence(projectFilePaths);
+
+    let contextBufferBlock = `${arborescenceBlock}Below is the artifact containing the context loaded into context buffer for you to have knowledge of and might need changes to fullfill current user request.
 CONTEXT BUFFER:
 ---
 ${codeContext}
@@ -748,6 +850,11 @@ ${props.summary}
     }
 
     volatileTailBlocks.push(contextBufferBlock);
+  }
+
+  // BUG-AGENT-WEBCLONE-001: the observed site, after the project context and before the lanes' reports.
+  if (webReferenceContext && webReferenceContext.trim()) {
+    volatileTailBlocks.push(webReferenceContext);
   }
 
   if (orchestrationTailBlock) {
@@ -866,7 +973,7 @@ ${props.summary}
    * appended to systemPrompt above). Re-append them here so persistent memory and
    * enabled skills actually inform discuss-mode answers too, not just builds.
    */
-  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext, projectRulesContext]
+  const discussSystem = [discussPrompt(promptRuntimeMode), agentMemoryContext, skillsContext, projectRulesContext]
     .filter(Boolean)
     .join('\n\n');
 
@@ -901,28 +1008,21 @@ ${props.summary}
      * explicit caller-supplied `experimental_transform` still wins.
      */
     experimental_transform: smoothStream({ chunking: 'word' }),
+
+    /*
+     * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR — voir la prop du même
+     * nom. Sans cette option le SDK en génère un neuf à chaque appel et à
+     * chaque frontière d'étape outil, et le client réécrit `message.id` en
+     * plein flux. Posé AVANT `...filteredOptions` pour qu'un appelant qui
+     * fournirait explicitement son propre générateur garde la main.
+     */
+    ...(identifiantDeMessageStable ? { experimental_generateMessageId: () => identifiantDeMessageStable } : {}),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),
-
-    /*
-     * Contournement temporaire : on demande explicitement à Anthropic de NE PAS
-     * produire de réflexion étendue. Le SDK installé (0.0.39) ne sait pas valider
-     * les événements `thinking` / `thinking_delta` / `signature_delta` et fait
-     * mourir le flux sur le premier d'entre eux. À retirer dès que le SDK est
-     * monté — voir `anthropic-thinking.ts`.
-     */
-    ...(() => {
-      const merged = withThinkingDisabled(
-        modelDetails.provider,
-        (filteredOptions as { providerOptions?: ProviderOptionsShape }).providerOptions,
-      );
-
-      return merged ? { providerOptions: merged } : {};
-    })(),
   };
 
   /*

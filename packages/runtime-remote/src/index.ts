@@ -84,6 +84,13 @@ function parseRetryAfterMs(header: string | null): number | undefined {
   return undefined;
 }
 
+/**
+ * BUG-GIT-002 — code du refus émis SANS toucher au réseau quand aucun
+ * identifiant d'espace de travail n'est disponible. L'appelant le reconnaît
+ * et choisit le message à montrer.
+ */
+export const CODE_IDENTIFIANT_REQUIS = 'RUNTIME_WORKSPACE_ID_REQUIRED';
+
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly mode = 'remote-kubernetes' as const;
   readonly capabilities: RuntimeCapability[] = [
@@ -169,6 +176,33 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
     const requestedId = session.id ?? this.#workspaceId;
+
+    /*
+     * BUG-GIT-002 — NE PAS ENVOYER UNE REQUÊTE QUI NE PEUT PAS ABOUTIR.
+     *
+     * `POST /api/runtime/workspaces` exige `projectId`, `metadata.projectId` ou
+     * `workspaceId` : sans aucun des trois, il rend 400
+     * `RUNTIME_WORKSPACE_ID_REQUIRED`, toujours. Or `useGit()` appelait
+     * `startWorkspace()` au montage sans identifiant, et `JSON.stringify`
+     * effaçant les `undefined`, le corps partait à `{}`. Mesuré le 17/08 sur
+     * les trois formats : DEUX 400 à chaque chargement de `/git`, et un
+     * « Impossible de démarrer l'espace de travail » qui n'aide personne.
+     *
+     * On refuse donc AVANT le réseau, avec un code que l'appelant peut
+     * reconnaître — plutôt que de faire dire au serveur ce qu'on savait déjà.
+     */
+    const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
+
+    if (!requestedId && !projectIdDesMetadonnees) {
+      /*
+       * Le message EST le code, et il n'y a qu'une seule source pour les deux.
+       * Les mots destinés à l'utilisateur vivent dans le catalogue
+       * (`gitClone.error.projectRequired`), traduits ; en écrire ici en dur
+       * les dédoublerait dans une seule langue — ce que le garde `i18n:check`
+       * refuse, à raison, et ce qui a fait échouer la CI du run 1579.
+       */
+      throw Object.assign(new Error(CODE_IDENTIFIANT_REQUIS), { code: CODE_IDENTIFIANT_REQUIS });
+    }
 
     let payload: WorkspaceSession | undefined;
 
