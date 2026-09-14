@@ -25,6 +25,14 @@ import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 import {
+  catalogueTropPetit,
+  cataloguesManquants,
+  chunksPortantLeTemoin,
+  cleTemoin,
+  fichierDuCatalogue,
+  LANGUES_EMISES,
+} from '../build-config/catalogues-emis.js';
+import {
   chunksInterdits,
   lireCheminCritiqueRacine,
   PLAFOND_CHEMIN_CRITIQUE_OCTETS,
@@ -60,6 +68,14 @@ function autotest(): void {
 
   if (lireCheminCritiqueRacine('{}') !== undefined) {
     echouer('autotest : un manifeste illisible rend une liste au lieu de `undefined` — le vert serait creux.');
+  }
+
+  if (cataloguesManquants(['catalogue-en-0123456789.json']).join(',') !== 'fr,es,ar') {
+    echouer('autotest : le contrôle ne voit plus un catalogue JSON manquant.');
+  }
+
+  if (chunksPortantLeTemoin('chat.copy.x', new Map([['root-x.js', '{"chat.copy.x":"y"}']])).length !== 1) {
+    echouer('autotest : le contrôle ne reconnaît plus un catalogue revenu dans un chunk de la racine.');
   }
 
   console.log('autotest : le contrôle distingue bien le défaut, le sain et l’illisible.');
@@ -131,6 +147,63 @@ function verifierLeBuild(): void {
         'c’est une croissance silencieuse de ce chemin qui a mis 654 Ko sur chaque page en août.',
     );
   }
+
+  verifierLesCataloguesEmis(fichiers, imports);
+}
+
+/*
+ * BUG-PERF-I18N-RACINE-001 — les catalogues i18n sont des JSON hors du graphe
+ * JavaScript. Deux défauts possibles, deux contrôles : un JSON absent ou vide
+ * (le navigateur hydraterait en « Unavailable »), et un catalogue REVENU dans
+ * un chunk de la racine — la forme exacte du défaut du 2026-09-14, qu'on
+ * détecte par une clé témoin lue dans le JSON émis, jamais codée en dur.
+ */
+function verifierLesCataloguesEmis(fichiers: string[], imports: string[]): void {
+  const manquants = cataloguesManquants(fichiers);
+
+  if (manquants.length > 0) {
+    echouer(`catalogues i18n absents du build : ${manquants.join(', ')} — le plugin catalogues-i18n n’a pas émis.`);
+  }
+
+  let temoin: string | undefined;
+
+  for (const langue of LANGUES_EMISES) {
+    const nom = fichierDuCatalogue(fichiers, langue)!;
+    const json = readFileSync(join(DOSSIER_ASSETS, nom), 'utf8');
+    const defaut = catalogueTropPetit(langue, json);
+
+    if (defaut) {
+      echouer(`${nom} : ${defaut}`);
+    }
+
+    console.log(`  catalogue ${langue} : ${nom}, ${json.length} octets`);
+
+    if (langue === 'fr') {
+      temoin = cleTemoin(json);
+    }
+  }
+
+  if (!temoin) {
+    echouer('aucune clé témoin `chat.copy.*` dans le catalogue français — le contrôle de retour ne mesurerait rien.');
+  }
+
+  const chunks = new Map<string, string>();
+
+  for (const url of imports) {
+    const nom = url.split('/').pop()!;
+    chunks.set(nom, readFileSync(join(DOSSIER_ASSETS, nom), 'utf8'));
+  }
+
+  const porteurs = chunksPortantLeTemoin(temoin, chunks);
+
+  if (porteurs.length > 0) {
+    echouer(
+      `la clé témoin « ${temoin} » est revenue dans le JavaScript du chemin critique : ${porteurs.join(', ')} — ` +
+        'c’est BUG-PERF-I18N-RACINE-001 : un catalogue i18n importé statiquement depuis root.tsx.',
+    );
+  }
+
+  console.log(`  aucun des ${chunks.size} chunks de la racine ne porte la clé témoin « ${temoin} »`);
 }
 
 if (process.argv.includes('--self-test')) {

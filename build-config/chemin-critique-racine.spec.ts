@@ -64,12 +64,16 @@ describe('chemin critique de la route racine', () => {
     expect(chunksInterdits(imports!)).toEqual([]);
   });
 
-  it('le plafond laisse passer la mesure du 10/09 et arrête un retour de monaco', () => {
-    // Mesuré : 3 334 307 octets bruts sur 28 imports ; `vendor-monaco-core` en pèse 2 283 041.
-    expect(PLAFOND_CHEMIN_CRITIQUE_OCTETS).toBeGreaterThan(3_334_307);
+  it('le plafond laisse passer la mesure du 14/09 et arrête un retour des catalogues i18n comme de monaco', () => {
+    /*
+     * Mesuré le 14/09 : 1 971 273 octets bruts sur 22 imports. Les deux retours
+     * à arrêter : les catalogues i18n (+1 363 034, BUG-PERF-I18N-RACINE-001) et
+     * `vendor-monaco-core` (+2 283 041). Le plus petit des deux fixe la borne.
+     */
+    expect(PLAFOND_CHEMIN_CRITIQUE_OCTETS).toBeGreaterThan(1_971_273);
     expect(
       PLAFOND_CHEMIN_CRITIQUE_OCTETS,
-      'un plafond au-dessus de 3 334 307 + 2 283 041 ne verrait pas monaco revenir',
-    ).toBeLessThan(3_334_307 + 2_283_041);
+      'un plafond au-dessus de 1 971 273 + 1 363 034 ne verrait pas les catalogues revenir',
+    ).toBeLessThan(1_971_273 + 1_363_034);
   });
 });

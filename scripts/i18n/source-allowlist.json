@@ -1476,6 +1476,15 @@
       "justification": "Internal service-to-service refusal message. The screenshotter is never reached by a browser: only the API calls it, and the API converts the 422 into its own catalogued copy before anything reaches a screen. The stable code TARGET_PAGE_ERROR is what callers branch on; the text exists for logs and on-call.",
       "owner": "i18n",
       "expiresOn": "2027-08-04"
+    },
+    {
+      "id": "i18n-catalogue-fetch-diagnostic",
+      "path": "app/lib/i18n/catalogues-client.ts",
+      "rule": "error-message",
+      "textPattern": "^i18n-catalogue-\\{…\\}-http-\\{…\\}$",
+      "justification": "BUG-PERF-I18N-RACINE-001 : code de diagnostic du chargement du catalogue JSON, consigné en console par entry.client.tsx avant d'hydrater quand même ; jamais affiché à l'utilisateur.",
+      "owner": "i18n",
+      "expiresOn": "2027-08-04"
     }
   ]
 }
