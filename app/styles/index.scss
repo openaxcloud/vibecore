@@ -14329,6 +14329,39 @@ body :where(.lucide, svg[data-lucide]) {
   outline: 0;
 }
 
+/*
+ * BUG-IDE-006 — l'écran d'un démarrage qui n'avance plus.
+ *
+ * Le 2026-08-12 il a tourné ~20 minutes, identique à celui d'un démarrage lent.
+ * Il doit maintenant se DISTINGUER : la teinte d'avertissement porte le
+ * message, le rouet a déjà disparu côté composant (un rouet qui tourne affirme
+ * une progression), et la sortie est un vrai bouton, pas une invitation à
+ * attendre encore.
+ *
+ * Sobre à dessein : un démarrage lent qui finit par aboutir ne doit pas laisser
+ * le souvenir d'une panne rouge vif.
+ */
+.bolt-preview-loading-card[data-vc-demarrage='bloque'] .bolt-preview-loading-spinner,
+.bolt-preview-splash-task[data-vc-demarrage='bloque'] > span[class*='i-ph:warning-circle'] {
+  color: var(--status-warning-text, var(--vc-ide-text-secondary));
+}
+
+.bolt-preview-demarrage-bloque {
+  margin: 0;
+  border: 1px solid var(--status-warning-border, var(--vc-ide-border-visible));
+  border-radius: 8px;
+  background: var(--status-warning-bg, var(--vc-ide-bg-app));
+  color: var(--status-warning-text, var(--vc-ide-text-primary));
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.bolt-preview-splash-task[data-vc-demarrage='bloque'] small {
+  color: var(--status-warning-text, var(--vc-ide-text-secondary));
+}
+
 @media (max-width: 520px) {
   .bolt-preview-loading-overlay,
   .bolt-preview-splash {

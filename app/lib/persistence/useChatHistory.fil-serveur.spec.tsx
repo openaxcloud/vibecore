@@ -83,7 +83,7 @@ vi.mock('~/utils/projectCommands', () => ({
   escapeBoltActionAttribute: vi.fn((v: string) => v),
 }));
 
-import { useChatHistory } from './useChatHistory';
+import { chatMetadata, useChatHistory } from './useChatHistory';
 
 describe('la restauration d’un projet consulte la banque serveur', () => {
   beforeEach(() => {
@@ -173,5 +173,53 @@ describe('la restauration d’un projet consulte la banque serveur', () => {
       'projet-sonde',
       expect.objectContaining({ chat: expect.objectContaining({ messages: [], clearMessages: true }) }),
     );
+  });
+
+  /*
+   * CONV-001 (moitié DUPLICATION) — LA MOITIÉ QUI SE PERD.
+   *
+   * `serveur-fil-projet.spec.ts` tient la RÈGLE d'adoption. Elle ne sert à rien
+   * si personne ne passe l'adoptant : le module serait juste et mort, ce que ce
+   * dépôt a déjà payé 56 jours sur l'image admin. Ici on vérifie le CÂBLAGE, et
+   * qu'il écrit là où `ensureProjectAiConversation` va LIRE.
+   */
+  it('CONTRAT 3 — un adoptant est passé, et il écrit là où le prochain envoi ira lire', async () => {
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    const adoptant = mocks.completerFilSiVide.mock.calls[0][4];
+    expect(typeof adoptant, 'aucun adoptant passé : le fil restauré reste sans conversation').toBe('function');
+
+    mocks.saveProjectIdeMemory.mockClear();
+    (adoptant as (id: string) => void)('conv-restauree');
+
+    /*
+     * `Chat.client.tsx:502` lit `backendAiConversationIdRef.current ??
+     * chatMetadata.get()?.aiConversationId`. Le STORE est donc ce qui compte
+     * pour le prochain envoi — la persistance ne sert qu'au rechargement.
+     */
+    expect(chatMetadata.get()?.aiConversationId, 'le store n’a pas repris la conversation du serveur').toBe(
+      'conv-restauree',
+    );
+
+    /*
+     * SCOPE NU, délibérément : `saveProjectIdeMemory(projectId, …)` sans
+     * `workspaceId`, exactement comme `ensureProjectAiConversation`. Deux scopes
+     * pour un même identifiant se contrediraient en silence — c'est le défaut
+     * voisin relevé le 10/09, où `BaseChat` lit `workspace:<id>` pendant que le
+     * chat écrit `projectId`.
+     */
+    const ecriture = mocks.saveProjectIdeMemory.mock.calls.find((appel) => appel[0] === 'projet-sonde');
+    expect(ecriture, 'l’adoption n’est pas persistée dans le scope du projet').toBeTruthy();
+    expect(ecriture![1]).toEqual(
+      expect.objectContaining({
+        chat: expect.objectContaining({ metadata: expect.objectContaining({ aiConversationId: 'conv-restauree' }) }),
+      }),
+    );
+    expect(
+      ecriture!.length,
+      'un workspaceId ici enverrait l’identifiant dans un scope que le chat ne relit jamais',
+    ).toBe(2);
   });
 });

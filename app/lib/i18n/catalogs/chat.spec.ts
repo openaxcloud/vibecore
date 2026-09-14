@@ -17,13 +17,25 @@ const approvedFrenchIdentity = [
   /^sha256:$/u,
 
   /*
-   * BUG-I18N-006 — « Production » est identique dans les deux langues À
-   * DESSEIN. C'est le nom d'un environnement de déploiement, pas un mot
-   * courant : le traduire avait donné « Fabrication » (l'usine), affiché tel
-   * quel dans le sélecteur d'environnement de l'IDE. Le même choix vaut pour
-   * les bases (`databaseWorkbench.env.production` → « Base de production »).
+   * Termes d'environnement de déploiement. Ils étaient TRADUITS, et le résultat
+   * était un contresens à l'écran : « Production » rendait « Fabrication » (le
+   * sens industriel) et « Extensions » rendait « Rallonges » (la rallonge
+   * électrique). Sur le panneau Variables d'environnement en 390 px,
+   * « Fabrication » apparaissait cinq fois sur un seul écran, si bien qu'un
+   * utilisateur configurant une variable de production ne lisait jamais le mot
+   * « production ».
+   *
+   * ⚠️ `Staging` N'EST PLUS DANS CETTE LISTE, et c'est un arbitrage de fusion.
+   * Cette branche le laissait en anglais ; `main` l'a depuis traduit en
+   * « Préproduction ». Le grief de la branche visait « Mise en scène » (le
+   * théâtre), pas « Préproduction », qui est le terme français exact — la
+   * traduction de `main` satisfait donc l'objection au lieu de la contredire.
+   * `Production` et `Extensions` restent identiques : ce sont des noms
+   * d'environnements et de surfaces produit, pas de la prose. À ne pas confondre
+   * avec `secrets` → « Variables secrètes » ou `runtime` → « Environnement
+   * d'exécution », qui sont du français correct et restent traduits.
    */
-  /^Production$/u,
+  /^(?:Extensions?|Production|extensions?)$/u,
 ];
 
 describe('BaseChat EN/FR catalog', () => {
