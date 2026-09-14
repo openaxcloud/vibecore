@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -126,6 +129,73 @@ describe('un panneau, une porte', () => {
         parAlias.status === 'alias' ? parAlias.panel : null,
         `${cle} et ${cible} doivent ouvrir le même panneau`,
       ).toBe(parCanonique.status === 'canonical' ? parCanonique.panel : undefined);
+    }
+  });
+
+  it("LA TROISIÈME TABLE — celle de l'OUVERTURE, et l'abstention est explicite", () => {
+    /*
+     * Il existe un troisième vocabulaire d'alias, à un autre étage : celui de
+     * l'OUVERTURE. `PROJECT_EDITOR_TOOL_ALIASES` dit quel outil possède
+     * réellement l'écran (`domains` → `deployments`, vue `domains`), là où les
+     * deux tables ci-dessus disent quel panneau une CLÉ désigne.
+     *
+     * Ce test garde « un panneau, une porte ». Ignorer une des façons d'ouvrir un
+     * panneau, c'est cesser de garder ce qu'on annonce — et le jour où la table
+     * arrive, le vert serait SILENCIEUX.
+     *
+     * ⚠️ ELLE N'EST PAS ENCORE SUR `main` : elle arrive avec #379. Le test doit
+     * donc s'ABSTENIR proprement plutôt que rougir sur un module absent — et
+     * surtout ne pas passer au vert en croyant avoir vérifié. D'où le verdict
+     * explicite ci-dessous : il dit dans QUEL MODE il a tourné. Une cible absente
+     * n'est pas une cible saine (règle 20, appliquée à un test).
+     */
+    const chemin = join(__dirname, '..', '..', 'components', 'chat', 'project-editor-tool-catalog.ts');
+    const source = existsSync(chemin) ? readFileSync(chemin, 'utf8') : '';
+    const tablePresente = source.includes('PROJECT_EDITOR_TOOL_ALIASES');
+
+    if (!tablePresente) {
+      /*
+       * Abstention DÉCLARÉE. L'assertion porte sur le fait que le fichier existe
+       * et qu'il ne porte pas encore la table — pas sur un `return` muet qui
+       * ressemblerait à une vérification réussie.
+       */
+      expect(existsSync(chemin), 'le catalogue doit exister même sans la table').toBe(true);
+      expect(source, "table d'ouverture absente : ce cas n'a RIEN vérifié").not.toContain(
+        'PROJECT_EDITOR_TOOL_ALIASES',
+      );
+
+      return;
+    }
+
+    /*
+     * Table présente : les mêmes invariants que pour les deux autres, sur l'axe
+     * qui lui est propre.
+     */
+    const entrees = [...source.matchAll(/^\s+([a-z-]+): \{ tool: '([a-z-]+)', view: '([a-z-]+)' \}/gmu)].map((m) => ({
+      cle: m[1],
+      cible: m[2],
+      vue: m[3],
+    }));
+
+    expect(entrees.length, 'la table est déclarée mais aucune entrée lue : le motif a dérivé').toBeGreaterThan(0);
+
+    for (const { cle, cible } of entrees) {
+      // 1. la cible possède réellement un écran : elle doit être un panneau adressable
+      expect(isIdeAddressablePanel(cible), `cible d'ouverture inconnue : ${cle} → ${cible}`).toBe(true);
+
+      // 2. pas de chaîne : la cible ne doit pas être elle-même une clé d'ouverture
+      expect(
+        entrees.some((autre) => autre.cle === cible),
+        `chaîne d'ouverture : ${cle} → ${cible} → …`,
+      ).toBe(false);
+
+      /*
+       * 3. la clé reste un panneau adressable — c'est DÉLIBÉRÉ ici, contrairement
+       * aux deux autres tables : `?panel=domains` doit continuer à fonctionner.
+       * On l'épingle pour que le jour où quelqu'un retire `domains` du registre
+       * en croyant « nettoyer un alias », ce test le dise.
+       */
+      expect(isIdeAddressablePanel(cle), `clé d'ouverture qui n'est plus adressable : ${cle}`).toBe(true);
     }
   });
 
