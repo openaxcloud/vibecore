@@ -129,6 +129,75 @@ type ResultatRemontee =
   | { ok: true }
   | { ok: false; cause: 'zoneIntrouvable' | 'dejaEnHaut' | 'defilementRefuse'; detail: string };
 
+/*
+ * LE CHRONO D'ARRIVÉE EN BAS — la mesure qui manquait.
+ *
+ * Mesuré le 14/09 sur DEUX canaris WebKit (runs 1945 sur main et 34893067202
+ * sur la PR #537), après deux correctifs successifs (`initial='instant'`,
+ * puis observation du conteneur) : mobile 390 rend encore `dejaEnHaut`
+ * (scrollTop=0, 2 563 px de contenu, 599 px de fenêtre) deux essais sur trois,
+ * et passe au troisième. La sonde vérifiait « en bas » À L'INSTANT où le
+ * contenu apparaît : elle ne distingue pas « le fil arrive en bas 500 ms plus
+ * tard » (un moteur plus lent, un défaut de confort) de « il n'y arrive
+ * jamais » (le défaut produit). Deux conclusions opposées pour un même rouge.
+ *
+ * On mesure donc le TEMPS d'arrivée : on relit l'élément défilant toutes les
+ * 100 ms pendant un budget borné, on consigne chaque changement d'état, et on
+ * rend le délai — ou `null` s'il n'arrive jamais. Le relevé est écrit dans le
+ * journal ET dans les annotations du rapport, quel que soit le verdict
+ * (règle 21 : un moniteur journalise ce qu'il a LU).
+ */
+type ChronoArrivee = { arriveApresMs: number | null; releve: string };
+
+async function mesurerLArriveeEnBas(page: Page, budgetMs: number): Promise<ChronoArrivee> {
+  return page.evaluate(async (budget): Promise<ChronoArrivee> => {
+    const debut = performance.now();
+    const releve: string[] = [];
+
+    let dernierEtat = '';
+
+    const lire = () => {
+      const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
+
+      const zone = [...(panneau ? panneau.querySelectorAll('*') : [])].find(
+        (element) =>
+          element.scrollHeight > element.clientHeight + 20 &&
+          ['auto', 'scroll'].includes(getComputedStyle(element).overflowY),
+      );
+
+      if (!zone) {
+        return undefined;
+      }
+
+      return {
+        top: Math.round(zone.scrollTop),
+        h: zone.scrollHeight,
+        vue: zone.clientHeight,
+        pilule: document.querySelectorAll('.bolt-agent-scroll-to-bottom').length,
+      };
+    };
+
+    while (performance.now() - debut <= budget) {
+      const t = Math.round(performance.now() - debut);
+      const etat = lire();
+      const cle = etat ? `top=${etat.top} h=${etat.h} vue=${etat.vue} pilule=${etat.pilule}` : 'aucun défilant';
+
+      if (cle !== dernierEtat && releve.length < 40) {
+        releve.push(`t=${t}ms ${cle}`);
+        dernierEtat = cle;
+      }
+
+      if (etat && etat.top >= etat.h - etat.vue - 2) {
+        return { arriveApresMs: t, releve: releve.join(' | ') };
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+
+    return { arriveApresMs: null, releve: releve.join(' | ') };
+  }, budgetMs);
+}
+
 async function remonterLeFil(page: Page): Promise<ResultatRemontee> {
   return page.evaluate((): ResultatRemontee => {
     const panneau = document.querySelector('[data-testid="ide-agent-panel"]');
@@ -271,6 +340,21 @@ test.describe('pilule « descendre au dernier message »', () => {
       const lignes = page.locator('.bolt-chat-message-row');
       await expect(lignes.first()).toBeVisible({ timeout: 120_000 });
       await expect(lignes).toHaveCount(TOURS * 2, { timeout: 120_000 });
+
+      /*
+       * D'ABORD le chrono : combien de temps le fil met-il à arriver en bas ?
+       * Le relevé est consigné dans les deux sens — un délai lisible quand ça
+       * passe, la chronologie complète quand ça ne passe pas.
+       */
+      const chrono = await mesurerLArriveeEnBas(page, 8_000);
+
+      const verdictChrono = chrono.arriveApresMs === null ? 'JAMAIS en 8 s' : `après ${chrono.arriveApresMs} ms`;
+      console.log(`[fil] ${vue.label} — arrivée en bas ${verdictChrono} — ${chrono.releve}`);
+      test.info().annotations.push({ type: 'arrivée en bas', description: `${verdictChrono} — ${chrono.releve}` });
+      expect(
+        chrono.arriveApresMs,
+        `le fil n’est pas arrivé en bas en 8 s (défaut produit, pas une course) — ${chrono.releve}`,
+      ).not.toBeNull();
 
       const pilule = page.locator('.bolt-agent-scroll-to-bottom');
 
