@@ -319,6 +319,37 @@ généraux : ce sont des pièges qui ont déjà coûté.
     contrôle qu'on écrit puis qu'on ne lit pas ne vaut pas mieux qu'un contrôle
     absent.
 
+27. **UNE MESURE QUI SORT DU PÉRIMÈTRE OÙ ELLE EST VALIDE N'EST PAS UNE
+    MESURE.** Un outil peut s'exécuter, ne rien signaler d'anormal, et lire un
+    tout autre fichier que celui qu'on croit lui donner.
+
+    Vécu le 2026-09-15 : `tsc` signalait deux erreurs de type sur une clé de
+    routage que je venais d'ajouter. La clé était bien là — vérifiée dans la
+    source ET sur la branche poussée. La cause : **le worktree n'a aucun paquet
+    installé**, `node_modules` ne contenant que `.cache` et `.vite`. `tsc`
+    remontait donc au checkout PRINCIPAL, dont `@vibecore/billing` est un lien
+    vers `../../packages/billing` — une copie sans ma modification. Le rapport
+    était exact sur ce qu'il avait lu, et faux sur ce que je croyais mesurer.
+
+    Ce qui rend le piège coûteux, c'est qu'il est SÉLECTIF : le même `tsc`, sur
+    le même arbre, était parfaitement valide pour tout ce qui vit sous `app/`,
+    parce que `paths` y mappe `~/*` vers le worktree. Seules les mesures qui
+    traversent une frontière de PAQUET étaient faussées. Une moitié juste, une
+    moitié fausse, aucun signal pour les distinguer.
+
+    En pratique :
+    * **avant de croire un outil, savoir ce qu'il a résolu** — `--traceResolution`
+      pour `tsc`, `readlink -f` sur le lien du paquet, ou une SONDE : un fichier
+      jetable qui affirme la propriété attendue et qu'on regarde rougir ;
+    * **énoncer le périmètre avec le résultat** — « 0 erreur dans les fichiers
+      touchés » ne vaut que si les fichiers touchés sont dans le périmètre
+      résolu ;
+    * **une mesure qui franchit une frontière de paquet dans un worktree sans
+      dépendances installées est à refaire ailleurs**, pas à interpréter.
+
+    Corollaire de la règle 26 : là où celle-ci vise la sortie amputée de sa
+    conclusion, celle-ci vise la conclusion complète… portant sur autre chose.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
