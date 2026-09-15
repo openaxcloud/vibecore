@@ -16,8 +16,16 @@ import { describe, expect, it } from 'vitest';
 
 import { GENERIC_PANEL_ICON, PANEL_ICONS, panelIcon } from './panel-meta';
 import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
+import { MOBILE_TOOL_ACTIONS } from '~/lib/mobile-ide-tabs';
 
 const baseChatSource = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
+
+/*
+ * `ECODE_MOBILE_TAB_META_BASE` ne vit plus dans `BaseChat.tsx` : il a été extrait
+ * pour que les autres surfaces et les tests puissent le consommer. Le bloc se lit
+ * donc désormais dans son module.
+ */
+const metaSource = readFileSync(join(__dirname, '..', '..', 'lib', 'mobile-tab-meta.ts'), 'utf8');
 
 /** Neutralise commentaires (blocs et lignes) pour ne matcher que du code. */
 const codeOnly = (source: string) =>
@@ -109,16 +117,37 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
   });
 
   it('les tuiles mobile référencent PANEL_ICONS (exceptions : agent + Terminal gelé)', () => {
-    const meta = extractBlock('const ECODE_MOBILE_TAB_META_BASE', '};');
-    const literalIcons = [...meta.matchAll(/icon: '([^']+)'/g)].map((entry) => entry[1]);
+    const debut = metaSource.indexOf('const ECODE_MOBILE_TAB_META_BASE');
+    expect(debut, 'bloc du méta introuvable dans mobile-tab-meta.ts').toBeGreaterThan(-1);
+
+    const meta = metaSource.slice(debut, metaSource.indexOf('\n};', debut));
 
     /*
-     * Seules exceptions littérales : la marque `agent` et le glyphe du
-     * Terminal mobile GELÉ (référence IMG_9149 d'Avi — il ne doit jamais
-     * dériver via le registre), plus la tuile utilitaire `tools`.
+     * On ne compare plus des GLYPHES mais les ENTRÉES qui s'autorisent un
+     * littéral : un glyphe autorisé une fois l'était partout, si bien qu'un
+     * panneau réel pouvait copier `i-ph:terminal-window` sans faire rougir.
+     *
+     * Exceptions légitimes, et elles se déduisent :
+     *  - `agent`, marque rendue à part ;
+     *  - `terminal`, glyphe GELÉ sur la référence IMG_9149 d'Avi ;
+     *  - les ACTIONS (`share`, `commands`) — elles ne sont pas des panneaux,
+     *    donc `PANEL_ICONS` ne les porte pas et ne doit pas les porter.
      */
-    expect(new Set(literalIcons)).toEqual(new Set(['agent', 'i-ph:terminal-window', 'i-ph:stack']));
-    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(35);
+    const aIconeLitterale = [...meta.matchAll(/^ {2}'?([a-z-]+)'?: \{ id: '[^']+', name: [^,]+, icon: '/gm)].map(
+      (entry) => entry[1],
+    );
+
+    expect(new Set(aIconeLitterale), 'entrées qui échappent au registre').toEqual(
+      new Set(['agent', 'terminal', ...MOBILE_TOOL_ACTIONS]),
+    );
+
+    /*
+     * Seuil ramené de 35 à 29 : la table comptait 47 entrées dont DIX-NEUF
+     * alias, retirés par ce lot. 29 est le nombre réel de panneaux qui tirent
+     * leur icône du registre — pas un seuil affaibli, le même contrat sur la
+     * table dégraissée.
+     */
+    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(29);
   });
 
   it('la palette nomme l’éditeur comme l’onglet (T2 — plus de « Code »)', () => {
