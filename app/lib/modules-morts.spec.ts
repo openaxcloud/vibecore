@@ -28,40 +28,20 @@ const RACINE = join(__dirname, '..', '..');
  *
  * Chaque ligne porte ce qu'on sait d'elle. Une ligne sans explication est une
  * ligne que personne ne retirera jamais.
+ *
+ * HISTORIQUE : douze lignes au 10/09. Le 15/09, toutes créées en un seul commit
+ * (#476, 06/09) et JAMAIS importées par du code produit depuis — vérifié par
+ * `git log -S` sur chacune. Sept supprimées, deux reclassées en gardes
+ * (exceptions nommées dans `modules-morts.ts`), une découverte VIVANTE une fois
+ * le scanner élargi à `apps/` (le catalogue admin), une gardée ici.
  */
 const MORTS_CONNUS = [
-  /* Crochet React de découpage de message : écrit pour le panneau Agent, jamais monté. */
-  'app/lib/hooks/useMessageBlocks.ts',
-
-  /* Verrou relâchable : écrit pour la boucle de génération, jamais branché. */
-  'app/lib/hooks/useReleasableLatch.ts',
-
-  /* Catalogue i18n admin : les autres catalogues passent par un registre, celui-ci non. */
-  'app/lib/i18n/catalogs/admin.ts',
-
-  /* Heuristiques d'audit live : outil de campagne, jamais rattaché au produit. */
-  'app/lib/i18n/catalogs/live-audit-heuristics.ts',
-
-  /* Fusion secrets/variables (#522, 2026-09-10) : la décision existe, la surface ne l'appelle pas. */
+  /*
+   * Fusion secrets/variables (#522, 2026-09-10) : la décision existe, la surface
+   * ne l'appelle pas. Demandée par Avi — donc ni à supprimer ni à laisser :
+   * à câbler dans le panneau, ce qui exige une vérification à l'écran.
+   */
   'app/lib/ide/secrets-unifies.ts',
-
-  /* Mise en forme des erreurs d'import : la surface d'import affiche encore la sienne. */
-  'app/lib/import-action-error.ts',
-
-  /* Routes du sitemap : la route `sitemap[.]xml` construit sa propre liste. */
-  'app/lib/marketing/sitemap-routes.ts',
-
-  /* Support du cache par fournisseur : `stream-text` décide encore sans lui. */
-  'app/lib/modules/llm/provider-cache-support.ts',
-
-  /* Densité des panneaux IDE : jeton de mise en page jamais consommé. */
-  'app/lib/ui/ide-panel-density.ts',
-
-  /* Acceptation automatique des actions de l'agent : décision écrite, chemin non branché. */
-  'app/utils/agent-auto-accept.ts',
-
-  /* Progression de l'agent : la route de chat écrit ses annotations à la main. */
-  'app/utils/agent-progress.ts',
 ] as const;
 
 describe('la règle : un module que seul son spec importe', () => {
@@ -131,6 +111,38 @@ describe('la règle : un module que seul son spec importe', () => {
     expect(modulesImportesSeulementParLeurSpec(fichiers)).toEqual([]);
   });
 
+  it('un module de app/lib appelé depuis apps/ (ou services/, tests/…) est VIVANT', () => {
+    /*
+     * Le cas mesuré le 2026-09-15 : `apps/admin/src/i18n.ts` importe
+     * `~/lib/i18n/catalogs/admin`. Le premier scanner ne lisait que `app/` et
+     * déclarait le catalogue mort — un faux positif qui aurait fait supprimer
+     * un module en production.
+     */
+    const fichiers: Fichier[] = [
+      { chemin: 'app/lib/i18n/catalogs/admin.ts', contenu: 'export const adminCatalog = {};' },
+      { chemin: 'app/lib/i18n/catalogs/admin.spec.ts', contenu: "import { adminCatalog } from './admin';" },
+      { chemin: 'apps/admin/src/i18n.ts', contenu: "import { adminCatalog } from '~/lib/i18n/catalogs/admin';" },
+    ];
+
+    expect(modulesImportesSeulementParLeurSpec(fichiers)).toEqual([]);
+  });
+
+  it('un barrel index.ts n’est pas une cible : un spec ailleurs qui importe « ./index » ne le rend pas mort', () => {
+    /*
+     * Mesuré le 2026-09-15 : `packages/editor/src/index.spec.ts` importe
+     * `./index`, et l'appariement par nom faisait apparaître trois barrels de
+     * `app/lib` comme morts. Un barrel se consomme par le nom de son dossier,
+     * invisible à l'appariement par nom, et ne porte aucune logique à câbler.
+     */
+    const fichiers: Fichier[] = [
+      { chemin: 'app/lib/hooks/index.ts', contenu: "export * from './useX';" },
+      { chemin: 'packages/editor/src/index.ts', contenu: 'export const e = 1;' },
+      { chemin: 'packages/editor/src/index.spec.ts', contenu: "import { e } from './index';" },
+    ];
+
+    expect(modulesImportesSeulementParLeurSpec(fichiers)).toEqual([]);
+  });
+
   it('un harnais de test n’est pas un module mort : c’est sa raison d’être', () => {
     const fichiers: Fichier[] = [
       { chemin: 'app/lib/test/rr7-data.ts', contenu: 'export const h = 1;' },
@@ -152,6 +164,13 @@ describe('LA LIGNE DE BASE du dépôt', () => {
     const sources = lireSources(RACINE);
     expect(sources.length).toBeGreaterThan(1000);
     expect(sources.some((f) => f.chemin === 'app/routes/api.chat.ts')).toBe(true);
+
+    /*
+     * Le balayage doit AUSSI voir les importateurs hors `app/` — sinon le cas
+     * du catalogue admin se reproduit en silence.
+     */
+    expect(sources.some((f) => f.chemin === 'apps/admin/src/i18n.ts')).toBe(true);
+    expect(sources.some((f) => f.chemin.startsWith('services/'))).toBe(true);
   });
 
   it('AUCUN module mort NOUVEAU — sinon quelqu’un vient d’écrire une règle que rien n’appelle', () => {

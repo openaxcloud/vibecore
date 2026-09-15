@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 
 /**
@@ -41,6 +41,18 @@ export const RACINES_SURVEILLEES = ['app/lib', 'app/utils'] as const;
 export const EXCEPTIONS = [
   /* Un HARNAIS de test n'a pas d'autre appelant qu'un spec : c'est sa raison d'être. */
   'app/lib/test/',
+
+  /*
+   * Deux GARDES dont le produit est leur spec, exactement comme celle-ci :
+   * `ide-panel-density` relit la feuille de style et refuse un retour à une
+   * colonne unique ; `live-audit-heuristics` est l'outil de l'audit i18n live
+   * (`tests/e2e/i18n-french-live.spec.ts`). Aucun chemin produit ne doit les
+   * appeler — les forcer serait le geste que la règle interdit. Nommées ici,
+   * avec leur raison, plutôt que laissées dans la ligne de base où elles se
+   * liraient comme des dettes à câbler.
+   */
+  'app/lib/ui/ide-panel-density.ts',
+  'app/lib/i18n/catalogs/live-audit-heuristics.ts',
 
   /*
    * Cette garde elle-même. Son PRODUIT est le test — il n'existe aucun chemin
@@ -89,10 +101,21 @@ export function modulesImportesSeulementParLeurSpec(fichiers: readonly Fichier[]
   const parChemin = new Map(fichiers.map((f) => [f.chemin, f]));
   const importsPar = new Map(fichiers.map((f) => [f.chemin, specificateursImportes(f.contenu)]));
 
+  /*
+   * Un BARREL (`index.ts`) n'est pas une cible : il ne porte aucune logique,
+   * seulement des ré-exports, et il est consommé par le NOM DE SON DOSSIER
+   * (`from '~/lib/hooks'`) — un spécificateur dont le dernier segment n'est
+   * pas `index`, que l'appariement par nom ne peut donc pas voir. Mesuré le
+   * 2026-09-15 en élargissant le balayage à `packages/` : un spec y
+   * important `./index` faisait apparaître TROIS barrels de `app/lib` comme
+   * « morts ». Le nom `index` est partagé par trop de fichiers pour qu'un
+   * appariement par nom le distingue.
+   */
   const cibles = [...parChemin.keys()].filter(
     (chemin) =>
       !estSpec(chemin) &&
       !chemin.endsWith('.d.ts') &&
+      !/\/index\.tsx?$/u.test(chemin) &&
       RACINES_SURVEILLEES.some((racine) => chemin.startsWith(`${racine}/`)) &&
       !EXCEPTIONS.some((exception) => chemin.startsWith(exception)),
   );
@@ -134,13 +157,27 @@ export function modulesImportesSeulementParLeurSpec(fichiers: readonly Fichier[]
   return morts.sort();
 }
 
-/** Lit tous les `.ts`/`.tsx` sous `app/`, chemins relatifs à la racine du dépôt. */
+/**
+ * Répertoires où un IMPORTATEUR peut vivre. Les cibles restent `app/lib` et
+ * `app/utils`, mais leurs appelants ne sont pas tous dans `app/` : mesuré le
+ * 2026-09-15, `apps/admin/src/i18n.ts` importe `~/lib/i18n/catalogs/admin`,
+ * et la première version de ce scanner — qui ne lisait que `app/` — déclarait
+ * ce catalogue mort. Un faux positif de plus, de la même famille que celui de
+ * `debugLogger` : chercher sur une cible trop étroite rend un « rien trouvé »
+ * qui se lit comme « personne ne l'appelle ».
+ */
+export const RACINES_DES_IMPORTATEURS = ['app', 'apps', 'services', 'packages', 'tests', 'scripts'] as const;
+
+/** Répertoires ignorés en descendant : dépendances et sorties de génération. */
+const REPERTOIRES_IGNORES = new Set(['node_modules', 'generated', 'dist', 'build', '.turbo']);
+
+/** Lit tous les `.ts`/`.tsx` des racines surveillées, chemins relatifs à la racine du dépôt. */
 export function lireSources(racineDepot: string): Fichier[] {
   const fichiers: Fichier[] = [];
 
   const parcourir = (repertoire: string): void => {
     for (const entree of readdirSync(repertoire)) {
-      if (entree === 'node_modules') {
+      if (REPERTOIRES_IGNORES.has(entree)) {
         continue;
       }
 
@@ -162,7 +199,13 @@ export function lireSources(racineDepot: string): Fichier[] {
     }
   };
 
-  parcourir(join(racineDepot, 'app'));
+  for (const racine of RACINES_DES_IMPORTATEURS) {
+    const complet = join(racineDepot, racine);
+
+    if (existsSync(complet)) {
+      parcourir(complet);
+    }
+  }
 
   return fichiers;
 }
