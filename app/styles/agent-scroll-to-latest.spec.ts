@@ -32,11 +32,65 @@ function pillCode(): string {
 }
 
 describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
-  it('est centrée horizontalement, pas collée à un bord', () => {
+  it('est hors de la colonne de lecture, sans être collée au bord', () => {
+    /*
+     * CE TEST A CHANGÉ DE SENS, et il faut le dire.
+     *
+     * Il exigeait « centrée horizontalement, pas collée à un bord ». Mesuré en
+     * production sur un fil réel (BUG-UX-021) : centrée, la pastille était
+     * posée à 100 % sur du texte — elle mangeait « comme le nom du projet » en
+     * plein mot. Rétrécir n'y changeait rien : c'est sa POSITION qui était
+     * fautive.
+     *
+     * Ce qui est conservé de l'exigence d'origine : elle ne doit pas être
+     * collée au bord. Ce qui change : elle n'est plus au milieu du texte, et
+     * une gouttière est réservée pendant qu'elle est visible — c'est cette
+     * réserve, pas la marge, qui garantit qu'aucune ligne ne passe dessous.
+     */
     const code = pillCode();
 
-    expect(code).toMatch(/margin-inline:\s*auto/);
-    expect(code).not.toMatch(/margin-left:\s*auto/);
+    expect(code, 'la pastille est de nouveau centrée sur la colonne de texte').not.toMatch(/margin-inline:\s*auto/);
+    expect(code, 'elle doit être poussée hors de la colonne').toMatch(/margin-inline-start:\s*auto/);
+
+    const marge = /margin-inline-end:\s*(\d+)px/.exec(code);
+
+    expect(marge, 'aucune marge déclarée : elle serait collée au bord').toBeTruthy();
+    expect(Number(marge![1]), 'trop près du bord pour ne pas paraître accidentelle').toBeGreaterThanOrEqual(8);
+
+    expect(INDEX, 'aucune gouttière réservée : le texte passerait sous la pastille').toMatch(
+      /:has\(\.bolt-agent-scroll-to-bottom\)[\s\S]{0,160}padding-inline-end/,
+    );
+  });
+
+  it('sur téléphone, elle est centrée au-dessus de la zone de saisie et le fil ne rétrécit pas', () => {
+    /*
+     * Avi, 07/09 07:58 : « l'icône scroll se met à droite et tout le texte se
+     * met à droite, au lieu qu'il reste comme il est et que l'icône se
+     * positionne juste au-dessus de la zone de saisie ». Mesuré (Chromium 390,
+     * b858bdb) : bulle de 380 à 316 px de bord droit en remontant, pastille à
+     * 12 px du bord. La gouttière et le bord restent la règle du bureau ; le
+     * téléphone fait exception, au-dessus de la zone de saisie.
+     */
+    const debut = INDEX.indexOf(
+      ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,\n  .bolt-responsive-ide-mobile[data-mobile-panel='chat']\n    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true']) {",
+    );
+
+    expect(debut, 'la règle mobile de la pastille est introuvable').toBeGreaterThan(-1);
+
+    const regle = INDEX.slice(debut, INDEX.indexOf('\n  }\n', debut)).replace(/\/\*[\s\S]*?\*\//g, '');
+
+    expect(regle, 'sur téléphone la pastille est au milieu').toMatch(/margin-inline:\s*auto/);
+
+    // 08/09 : la boîte qui défile s'arrête où le composeur commence (RP-CKPT-01) — 2 px au-dessus, sans compenser la barre.
+    expect(regle, 'juste au-dessus de la zone de saisie').toMatch(/bottom:\s*2px;/);
+    expect(regle).not.toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\)/);
+
+    const gouttiere = INDEX.indexOf(
+      '.bolt-responsive-ide-mobile .bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {',
+    );
+
+    expect(gouttiere, 'la gouttière doit être retirée sur téléphone').toBeGreaterThan(-1);
+    expect(INDEX.slice(gouttiere, INDEX.indexOf('}', gouttiere))).toMatch(/padding-inline-end:\s*0\b/);
   });
 
   it('respecte le plancher tactile, exprimé en PIXELS', () => {
@@ -74,10 +128,28 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
     expect(code).not.toMatch(/background:[^;]*(--vc-action-primary|--ecode-accent|--vc-ide-accent-action)/);
   });
 
-  it('porte une flèche ET un libellé visible, pas une icône seule', () => {
+  it('garde son libellé pour l’assistance, même s’il n’est plus affiché', () => {
+    /*
+     * CE TEST A CHANGÉ DE SENS, et il faut le dire.
+     *
+     * Il s'appelait « porte une flèche ET un libellé VISIBLE, pas une icône
+     * seule ». Avi a tranché l'inverse : la pastille large masquait le fil, il
+     * l'a entourée en rouge deux fois. Elle devient un disque de 44px et le
+     * libellé passe hors écran.
+     *
+     * C'est un ARBITRAGE, pas un progrès net. Ce qui est conservé, et ce que ce
+     * test garde désormais : le libellé existe toujours dans le DOM, il reste
+     * traduit, et il donne son nom accessible au bouton. Le masquage est
+     * visuel, pas sémantique.
+     */
     expect(BASE_CHAT).toMatch(/i-ph:arrow-down/);
     expect(BASE_CHAT).toMatch(/bolt-agent-scroll-to-bottom__label/);
     expect(BASE_CHAT).toMatch(/chat\.copy\.scrollToLatest/);
+
+    const regle = INDEX.slice(INDEX.indexOf('.bolt-agent-scroll-to-bottom__label'));
+
+    expect(regle.slice(0, 400), 'le masquage doit être visuel, jamais display:none').toMatch(/clip-path|clip:/);
+    expect(regle.slice(0, 400)).not.toMatch(/display:\s*none/);
   });
 
   it('traduit ce libellé en français ET en anglais', () => {

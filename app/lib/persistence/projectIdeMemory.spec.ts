@@ -995,22 +995,123 @@ describe('project IDE memory ETag / If-Match', () => {
     }
   });
 
-  it('n’insiste pas quand le serveur a répondu NON', async () => {
+  it('une sauvegarde n’empoisonne pas la lecture suivante', async () => {
     /*
-     * Un 4xx est une réponse d'autorité : le serveur a parlé. Réessayer serait
-     * du bruit, et masquerait un vrai refus derrière une attente.
+     * Le défaut, tracé le 2026-09-02 : `saveProjectIdeMemory` peuple le cache de
+     * LECTURE. Une sauvegarde précoce — la sélection de modèle — y installait
+     * l'état partiel du client, et toute lecture ultérieure était servie par
+     * cette entrée SANS jamais interroger le serveur :
+     *
+     *   SAUVEGARDE peuple le cache — aiConversationId=ABSENT
+     *   lecture servie par le CACHE — aiConversationId=ABSENT   (×5)
+     *   useChatHistory RESOLU en 2 ms
+     *
+     * `chatMetadata` était donc posé sans identifiant de conversation, et la
+     * transcription restait vide pour toute la durée de la page.
      */
-    const projectId = 'project-refus-serveur';
+    const projectId = 'project-cache-empoisonne-par-sauvegarde';
+
+    const fetchMock = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      if (init?.method && init.method !== 'GET') {
+        return {
+          ok: true,
+          status: 200,
+          headers: makeHeaders(),
+          json: async () => ({ ideState: null }),
+        } as unknown as Response;
+      }
+
+      return {
+        ok: true,
+        status: 200,
+        headers: makeHeaders(),
+        json: async () => ({
+          ideState: {
+            state: {
+              updatedAt: '2030-01-01T00:00:00.000Z',
+              chat: { metadata: { aiConversationId: 'conv_du_serveur' } },
+            },
+          },
+        }),
+      } as unknown as Response;
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await saveProjectIdeMemory(projectId, {
+      chat: { metadata: { selectedModel: 'claude-opus-5', selectedProvider: 'Anthropic' } },
+    });
+    await flushProjectIdeMemorySaves();
+
+    const memoire = await getProjectIdeMemory(projectId);
+
+    expect(
+      memoire.chat?.metadata?.aiConversationId,
+      'la lecture doit interroger le serveur, pas rendre l’état partiel écrit par la sauvegarde',
+    ).toBe('conv_du_serveur');
+  });
+
+  it('une lecture serveur, elle, fait autorité et n’est pas refaite', async () => {
+    const projectId = 'project-cache-autoritaire';
 
     const fetchMock = vi.fn(async () => ({
-      ok: false,
-      status: 404,
+      ok: true,
+      status: 200,
       headers: makeHeaders(),
-      json: async () => ({}),
+      json: async () => ({ ideState: { state: { ui: { agentWidth: 404 } } } }),
     }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await expect(getProjectIdeMemory(projectId)).rejects.toBeDefined();
-    expect(fetchMock, 'une seule tentative sur un refus').toHaveBeenCalledTimes(1);
+    await getProjectIdeMemory(projectId);
+    await getProjectIdeMemory(projectId);
+
+    expect(fetchMock, 'une seule lecture réseau attendue').toHaveBeenCalledTimes(1);
+  });
+
+  it('une copie locale plus récente ne fait pas perdre l’identifiant de conversation du serveur', async () => {
+    /*
+     * BUG-CREATE-011, dans sa forme la plus nette : `newerMemory` ne fusionne
+     * pas, elle CHOISIT un objet entier selon `updatedAt`. La sauvegarde locale
+     * — plus récente, mais qui ne porte que le modèle choisi — remplaçait en
+     * bloc l'état serveur et emportait `aiConversationId` avec elle.
+     *
+     * Le plus récent doit continuer de faire foi ; il ne doit pas perdre ce
+     * qu'il ignorait.
+     */
+    const projectId = 'project-local-plus-recent';
+
+    globalThis.localStorage.setItem(
+      getProjectIdeMemoryStorageKey(projectId),
+      JSON.stringify({
+        updatedAt: '2030-01-01T00:00:00.000Z',
+        chat: { metadata: { selectedModel: 'claude-opus-5', selectedProvider: 'Anthropic' } },
+      }),
+    );
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        status: 200,
+        headers: makeHeaders(),
+        json: async () => ({
+          ideState: {
+            state: {
+              updatedAt: '2026-09-01T00:00:00.000Z',
+              chat: { metadata: { aiConversationId: 'conv_du_serveur' } },
+            },
+          },
+        }),
+      })),
+    );
+
+    const memoire = await getProjectIdeMemory(projectId);
+
+    expect(
+      memoire.chat?.metadata?.aiConversationId,
+      'l’identifiant du serveur est perdu : la conversation restera vide',
+    ).toBe('conv_du_serveur');
+    expect(memoire.chat?.metadata?.selectedModel, 'la copie locale, plus récente, garde ses valeurs').toBe(
+      'claude-opus-5',
+    );
   });
 });

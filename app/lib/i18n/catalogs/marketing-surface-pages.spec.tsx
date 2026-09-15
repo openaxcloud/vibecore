@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   getMarketingSurfacePageCopy,
@@ -11,6 +11,7 @@ import {
   marketingSurfacePageFrench as marketingSurfacePageFr,
 } from './marketing-surface-pages';
 
+import { prechaufferCoquillePublique } from '~/components/dashboard/prechauffer-coquille-publique';
 import { EcodeSurfacePage, ecodeSurfacePages } from '~/components/marketing/EcodeSurfacePages';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
@@ -30,6 +31,8 @@ function renderInFrench(node: ReactNode): string {
 }
 
 describe('static marketing surface page catalog', () => {
+  beforeAll(prechaufferCoquillePublique);
+
   it('keeps all 62 English and French page records in exact structural parity', () => {
     expect(Object.keys(marketingSurfacePageEn)).toHaveLength(62);
     expect(Object.keys(marketingSurfacePageFr).sort()).toEqual(Object.keys(marketingSurfacePageEn).sort());

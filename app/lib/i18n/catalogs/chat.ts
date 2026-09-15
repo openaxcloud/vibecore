@@ -314,6 +314,15 @@ export const chatEn = {
   'chat.copy.environment_d443a118': 'Environment',
   'chat.copy.environmentScope_aa238040': 'Environment scope',
   'chat.copy.environmentVariables_1173b2e1': 'Environment variables',
+
+  /*
+   * R-4 — Secrets needs a description OF ITS OWN. It used to reuse the Env vars
+   * one, so the All-tools grid showed two cards with the same subtitle and no
+   * way to tell which to open. Two real panels, two different stores
+   * (`/projects/:id/env-vars` vs `/projects/:id/secrets`) — the copy has to say
+   * what separates them: secrets are encrypted and masked until revealed.
+   */
+  'chat.copy.secretsToolDescription': 'Encrypted values, hidden until revealed',
   'chat.copy.environmentVariables_ec072bba': 'Environment Variables',
   'chat.copy.episodic_2de3ef9c': 'Episodic',
   'chat.copy.errors_e6ef8d02': 'errors ·',
@@ -487,6 +496,9 @@ export const chatEn = {
   'chat.copy.memoryContent_66fe7c72': 'Memory content',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+  'chat.copy.dictationNoSpeech': 'No speech detected. Tap the microphone and speak.',
+  'chat.copy.dictationNoMicrophone': 'No microphone was found.',
+  'chat.copy.dictationNetwork': 'Dictation needs a network connection.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': 'Minimum 8 characters',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Missing project id. Reload the IDE and try again.',
@@ -705,6 +717,7 @@ export const chatEn = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Project variables and encrypted secrets loaded from backend stores.',
   'chat.copy.provider_7ceee3f3': 'Provider',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — not configured ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via native runtime',
@@ -1594,7 +1607,7 @@ export const chatFr = {
   'chat.copy.addTabWithCommandPalette_49e6c454': 'Ajouter un onglet avec la palette de commandes',
   'chat.copy.addTask_24700e60': 'Ajouter une tâche',
   'chat.copy.addVariable_4c2707bc': 'Ajouter une variable',
-  'chat.copy.addWatch_11f0adc5': 'Ajouter une montre',
+  'chat.copy.addWatch_11f0adc5': 'Surveiller cette expression',
   'chat.copy.addYourFirstDatabase_b10872bd': 'Ajoutez votre première base de données',
   'chat.copy.admin_4e7afebc': 'Administrateur',
   'chat.copy.against_2d19e3d7': 'Contre',
@@ -1745,7 +1758,7 @@ export const chatFr = {
     'Configurez SAML ou OIDC pour les organisations qui nécessitent SSO.',
   'chat.copy.configureWorkflows_20afd690': 'Configurer les flux de travail',
   'chat.copy.conflicts_19401428': 'Conflits ·',
-  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter une télécommande GitHub',
+  'chat.copy.connectAGithubRemote_5cd948b7': 'Connecter un dépôt distant GitHub',
   'chat.copy.connectARealProviderBySaving_bb256530':
     'Connectez un vrai fournisseur en enregistrant sa chaîne de connexion en tant que secret de projet crypté. E-Code détecte les URL Postgres, MySQL, MongoDB et Redis à partir des secrets et les utilise pour la navigation dans les schémas, les sauvegardes et les requêtes en lecture seule.',
   'chat.copy.connectAServiceToSyncData_643c4e95':
@@ -1870,7 +1883,7 @@ export const chatFr = {
   'chat.copy.enabled_df174a3f': 'Activé',
   'chat.copy.enableDisableOrRemoveExtensionsWithout_fd2603b1':
     "Activez, désactivez ou supprimez des extensions sans quitter l'EDI.",
-  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsque la télécommande GitHub existe',
+  'chat.copy.enabledWhenGithubRemoteExists_de9d427d': 'Activé lorsqu’un dépôt distant GitHub existe',
   'chat.copy.enableObjectStorageForThisProject_6caf063b': "Activer le stockage d'objets pour ce projet",
   'chat.copy.encryptedSecret_0cdff4dc': 'Secret crypté',
   'chat.copy.ensureBucket_59b7cad5': 'Vérifier le bucket',
@@ -1882,6 +1895,7 @@ export const chatFr = {
   'chat.copy.environment_d443a118': 'Environnement',
   'chat.copy.environmentScope_aa238040': 'Périmètre environnement',
   'chat.copy.environmentVariables_1173b2e1': "Variables d'environnement",
+  'chat.copy.secretsToolDescription': 'Valeurs chiffrées, masquées jusqu’à révélation',
   'chat.copy.environmentVariables_ec072bba': "Variables d'environnement",
   'chat.copy.episodic_2de3ef9c': 'Épisodique',
   'chat.copy.errors_e6ef8d02': 'erreurs ·',
@@ -1910,9 +1924,9 @@ export const chatFr = {
   'chat.copy.exportsDeploysCollaboratorsGitAndRuntime_21970b4b':
     'Exportations, déploiements, collaborateurs, Git et actions de l’environnement d’exécution',
   'chat.copy.exportTxt_469c1c08': 'Exporter le .txt',
-  'chat.copy.extension_f9896101': 'rallonge',
+  'chat.copy.extension_f9896101': 'extension',
   'chat.copy.extensionDomains_abc98b01': "Domaines d'extension",
-  'chat.copy.extensions_656bcfe2': 'Rallonges',
+  'chat.copy.extensions_656bcfe2': 'Extensions',
   'chat.copy.fallbackProvider_595064ee': 'Fournisseur de secours',
   'chat.copy.feature_4b7615dc': 'fonctionnalité',
   'chat.copy.fileEncodingUtf8_b8734a83': 'Encodage du fichier : UTF-8',
@@ -2060,6 +2074,9 @@ export const chatFr = {
   'chat.copy.memoryContent_66fe7c72': 'Contenu de la mémoire',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'L’accès au microphone est bloqué. Autorisez ce site à utiliser le microphone dans les paramètres de votre navigateur pour activer la reconnaissance vocale.',
+  'chat.copy.dictationNoSpeech': 'Aucune parole détectée. Appuyez sur le micro et parlez.',
+  'chat.copy.dictationNoMicrophone': 'Aucun micro détecté.',
+  'chat.copy.dictationNetwork': 'La dictée a besoin d’une connexion réseau.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': '8 caractères minimum',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Identifiant du projet manquant. Rechargez l’IDE et réessayez.',
@@ -2160,7 +2177,7 @@ export const chatFr = {
   'chat.copy.noProjectSecrets_f3f1ca38': 'Aucun secret de projet.',
   'chat.copy.noProtocolPathOrPortExample_d3c7f2f8': 'Aucun protocole, chemin ou port. Exemple : app.example.com.',
   'chat.copy.noRemoteConfiguredConnectOneIn_c5d82469':
-    "Aucune télécommande configurée : connectez-en d'abord une dans les paramètres du panneau Git.",
+    "Aucun dépôt distant configuré : connectez-en d'abord un dans les paramètres du panneau Git.",
   'chat.copy.noRunsYetTheFirstOne_ba1ed340':
     "Aucune course pour l'instant. Le premier apparaîtra ici après le déclenchement du planning.",
   'chat.copy.noRuntimeProcessesReported_f02fbd04': 'Aucun processus en cours pour l’instant.',
@@ -2260,7 +2277,7 @@ export const chatFr = {
   'chat.copy.procedural_4fce7cb8': 'Procédure',
   'chat.copy.processesAndPorts_52df812f': 'Processus et ports',
   'chat.copy.prod_23dc0c60': 'prod /',
-  'chat.copy.production_df70fc79': 'Fabrication',
+  'chat.copy.production_df70fc79': 'Production',
   'chat.copy.productionApiKey_43fad6cd': 'Clé API de production',
   'chat.copy.productionBastion_786805c7': 'Bastion de la production',
   'chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2':
@@ -2291,6 +2308,7 @@ export const chatFr = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Variables de projet et secrets chiffrés chargés depuis les stockages du service applicatif.',
   'chat.copy.provider_7ceee3f3': 'Fournisseur',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — non configuré ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Les modes, les clés et le routage du fournisseur sont conservés dans les secrets du projet ; le comportement des agents est exposé ici.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via l’environnement d’exécution natif',
@@ -2486,7 +2504,7 @@ export const chatFr = {
   'chat.copy.srcServerTs_bcc09dcb': 'src/server.ts',
   'chat.copy.sshConnections_564ae345': 'Connexions SSH',
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
-  'chat.copy.staging_c9fb656c': 'Mise en scène',
+  'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
   'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
   'chat.copy.status_bae7d5be': 'Statut',
@@ -2601,8 +2619,8 @@ export const chatFr = {
   'chat.copy.vote_f3f11c36': 'Voter ·',
   'chat.copy.vsPrevious_2eb3ee87': 'par rapport au précédent',
   'chat.copy.warningsInTheCurrentWorkspace_e8b37cee': "avertissements dans l'espace de travail actuel",
-  'chat.copy.watchExpressions_5a230a1a': 'Regarder les expressions',
-  'chat.copy.watchList_daa6ded7': 'Liste de surveillance',
+  'chat.copy.watchExpressions_5a230a1a': 'Expressions à surveiller',
+  'chat.copy.watchList_daa6ded7': 'Expressions surveillées',
   'chat.copy.webhooks_fdfe2da7': 'Webhooks',
   'chat.copy.webhookSigningSecret_4d07255a': 'Secret de signature du webhook',
   'chat.copy.weeklyAt0300Utc_ce446487': 'Hebdomadaire à 03h00 UTC',

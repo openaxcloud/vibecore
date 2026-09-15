@@ -38,6 +38,7 @@ export interface StickToBottomState {
   isNearBottom: boolean;
 
   resizeObserver?: ResizeObserver;
+  observateurDuConteneur?: ResizeObserver;
 }
 
 const DEFAULT_SPRING_ANIMATION = {
@@ -483,6 +484,46 @@ export const useStickToBottom = (options: StickToBottomOptions = {}) => {
     scrollRef.current?.removeEventListener('wheel', handleWheel);
     scroll?.addEventListener('scroll', handleScroll, { passive: true });
     scroll?.addEventListener('wheel', handleWheel, { passive: true });
+
+    state.observateurDuConteneur?.disconnect();
+
+    if (!scroll) {
+      return;
+    }
+
+    /*
+     * BUG-WEBKIT-SCROLL-FIL-001 — le CONTENEUR aussi est observé, pas seulement
+     * le contenu.
+     *
+     * Mesuré sur le canari WebKit iPhone (run 1945 sur main, mobile 390, deux
+     * essais de suite) : scrollTop=0, scrollHeight=2563, clientHeight=599, et
+     * AUCUNE pilule — le hook se croyait en bas. Le mécanisme : le premier
+     * redimensionnement du contenu arrive alors que le conteneur n'est pas
+     * encore contraint en hauteur (clientHeight = scrollHeight, cible = 0) ;
+     * le défilement « instantané » se termine aussitôt, `isAtBottom` reste
+     * vrai. Quand la mise en page contraint ensuite le conteneur à 599 px, le
+     * contenu ne change pas : rien ne rejoue le collage. Chromium contraint le
+     * conteneur avant le premier calcul, WebKit pas toujours — d'où un vert
+     * Chromium qui ne prouvait rien pour iOS.
+     *
+     * Ici, chaque changement de hauteur VISIBLE du conteneur recolle en bas —
+     * seulement si l'on est censé y être (`isAtBottom`, sans échappement de
+     * l'utilisateur), et seulement si l'on n'y est pas déjà. Un utilisateur qui
+     * a remonté le fil n'est jamais ramené de force.
+     */
+    state.observateurDuConteneur = new ResizeObserver(() => {
+      if (!state.isAtBottom || state.escapedFromLock) {
+        return;
+      }
+
+      if (state.scrollTop >= state.calculatedTargetScrollTop) {
+        return;
+      }
+
+      scrollToBottom({ animation: 'instant', wait: true, preserveScrollPosition: true });
+    });
+
+    state.observateurDuConteneur.observe(scroll);
   }, []);
 
   const contentRef = useRefCallback((content) => {
