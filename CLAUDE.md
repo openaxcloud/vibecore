@@ -172,9 +172,155 @@ généraux : ce sont des pièges qui ont déjà coûté.
     ou un push de test sur une branche jetable. Ces trois-là répondent à la
     question sans jamais lire une valeur.
 
+20. **AVANT de chercher dans une cible, VÉRIFIER QUE LA CIBLE EXISTE.** Un `ls`
+    du répertoire avant le `grep`, un `wc -c` du fichier avant le `sed -n`, un
+    `git rev-parse` de la référence avant le `git log`. Une seconde, et toute
+    une classe d'erreurs disparaît.
+
+    C'est un GESTE, pas de la vigilance : la vigilance échoue précisément quand
+    on est pressé, et une recherche sur une cible absente rend exactement ce que
+    rend une recherche honnête qui ne trouve rien — **zéro**.
+
+    Six occurrences mesurées sur la semaine du 2026-09-04 au 2026-09-10, dont
+    deux le seul 10/09 :
+
+    * `grep -rlF "espace-non-stabilise" /app` dans le pod api → 0. Le code de ce
+      conteneur vit dans `/runtime`. Le correctif ÉTAIT servi ; j'ai failli
+      conclure l'inverse.
+    * `sed -n 5989p node_modules/ai/dist/index.mjs` via un glob `ai@*` qui ne
+      s'est pas développé → « ligne absente », « 0 occurrence ». Les deux
+      références citées étaient EXACTES.
+
+    Le contrôle vaut aussi pour le motif : faire rendre au moins un résultat à
+    la même commande sur un cas connu positif (règle 14) répond à « le motif
+    est-il bon ». Celle-ci répond à la question d'avant : **cherche-t-on au bon
+    endroit**.
+
+21. **UN MONITEUR DOIT PROUVER QU'IL OBSERVE, PAS SEULEMENT QU'IL TOURNE.** Il
+    journalise À CHAQUE TOUR ce qu'il a LU — pas seulement quand il conclut.
+
+    Une veille silencieuse n'est pas une veille : c'est une absence
+    d'information déguisée en patience. **Un moniteur qui rend du vide ressemble
+    exactement à un moniteur qui attend**, et on ne peut pas faire la différence
+    au moment précis où on en a besoin.
+
+    Mesuré le 2026-09-10, quatrième occurrence de la semaine : une veille sur une
+    PR bouclait toutes les deux minutes et n'écrivait qu'un horodatage. Son
+    `gh pr view` rendait une chaîne VIDE sous `nohup` — sa condition de sortie
+    (`rouges=0 envol=0`) ne pouvait donc jamais être vraie. Elle n'aurait jamais
+    fusionné, et rien dans son journal ne le disait.
+
+    **Quatrième forme, la plus traître, mesurée le 2026-09-10** : une PR
+    `CONFLICTING` n'exécute AUCUN workflow `pull_request` — GitHub ne peut pas
+    calculer son commit de fusion. Elle affiche donc « 0 rouge », **exactement
+    comme une PR verte**, avec un seul contrôle de titre attaché. Deux de mes PR
+    sont restées ainsi pendant une heure et j'ai failli les compter prêtes. Le
+    contrôle qui tranche : **compter les checks ATTACHÉS avant de lire leur
+    couleur** — moins de trois, c'est qu'on ne mesure rien.
+
+    **La conséquence adoptée : plus de veille sur l'état d'un run.** L'état se
+    lit à la source, au moment où on en a besoin. Quand une veille reste
+    indispensable, deux exigences :
+
+    * elle écrit la VALEUR LUE à chaque tour, jamais un simple battement ;
+    * elle échoue bruyamment si la lecture est vide — une lecture vide est une
+      panne du moniteur, pas un état du monde.
+
+22. **UNE AFFIRMATION QUI DOIT SURVIVRE VA DANS UN TEST, PAS DANS UN
+    COMMENTAIRE.** Les deux vieillissent ; ils ne vieillissent pas de la même
+    façon. **Un commentaire périmé ment en silence et oriente le lecteur
+    suivant ; un test périmé ROUGIT et le convoque.**
+
+    Les deux faces, mesurées le même jour :
+
+    * `api.chat.ts` affirmait en commentaire « ce `flush` NE S'EXÉCUTE JAMAIS :
+      zéro occurrence en production ». Faux — 1 occurrence sur 24 h. Personne ne
+      l'a jamais vérifié, et la phrase a orienté cinq jours d'enquête vers une
+      cause fausse (`model likely too weak`, même fichier).
+    * `anthropic-thinking.spec.ts` portait la même intention SOUS FORME DE TEST :
+      il épinglait `@ai-sdk/anthropic` à `0.0.39` avec le message « SDK monté :
+      retirer le contournement ». Il a rougi **des mois plus tard**, au moment
+      exact de la montée, et a forcé le retrait. Il n'a rien décrit : il a AGI.
+
+    En pratique : quand on s'apprête à écrire « X ne se produit jamais », « Y est
+    temporaire », « à retirer quand Z », se demander d'abord **quel test rougirait
+    le jour où ce n'est plus vrai** — et l'écrire à la place. Le commentaire garde
+    le POURQUOI ; le test garde le FAIT.
+
+23. **AVANT DE CONCEVOIR UN CORRECTIF, CHERCHER SI LE CAS VOISIN EST DÉJÀ
+    TRAITÉ.** Trois fois sur trois cette semaine, le remède était à portée de
+    regard — souvent dans le même fichier, quelques lignes plus haut.
+
+    * `EcodeProductMarketingPages.tsx` — le `<pre>` de la ligne 1623 portait
+      `overflow-x-auto`, celui de la ligne **1748** ne l'a jamais eu. 14 px
+      amputés sur `/mobile`.
+    * Les grilles marketing — deux portaient déjà `grid-cols-[minmax(0,1fr)]`,
+      **huit** ne l'avaient pas. 32 px et 150 px amputés.
+    * La réconciliation d'ouverture — appelée sur deux routes, absente de la
+      troisième.
+
+    **Chercher coûte moins que concevoir**, et c'est en plus le seul moyen de
+    rester cohérent avec ce que le fichier fait déjà : un second remède, écrit
+    sans voir le premier, diverge de lui au premier changement.
+
+    Le geste : `grep` le motif du correctif envisagé dans le fichier, puis dans
+    son répertoire, AVANT d'écrire une ligne. Et quand on trouve le voisin, se
+    demander **combien d'autres cas attendent** — corriger les deux pages rouges
+    aurait laissé huit grilles attendre leur tour.
+
+24. **APRÈS TOUTE RÉSOLUTION DE CONFLIT, VÉRIFIER NOMMÉMENT QUE CE QU'ON AVAIT
+    ÉCRIT EST ENCORE LÀ.** Pas relire le diff : vérifier la PRÉSENCE du contenu,
+    par son identifiant.
+
+    **Une résolution qui protège les lignes NOUVELLES perd les lignes
+    MODIFIÉES.** C'est le piège de toute stratégie « je repars de l'amont et je
+    rajoute ce qui m'est propre » — la bonne stratégie, par ailleurs, quand
+    l'amont porte des réécritures qu'il ne faut pas figer.
+
+    Mesuré le 2026-09-10 : trois fermetures d'entrées du registre, posées une
+    heure plus tôt, étaient revenues à `☐` après une fusion de `main`. Elles
+    modifiaient des lignes existantes, elles n'en ajoutaient pas — ma résolution
+    a donc repris la version de `main` pour ces trois identifiants. **Rien ne
+    l'a signalé** : ni conflit, ni test, ni diff suspect.
+
+    Le geste : lister ce qu'on a écrit AVANT la fusion (identifiants, clés,
+    noms de fonction), et le regreper APRÈS. Ce qui manque se réapplique.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
+
+### Une interaction tactile se vérifie sur le moteur de l'appareil cible
+
+**Un vert Chromium ne prouve rien pour iOS.** Nos tests tournent sur Chromium ;
+Avi est sur Safari iOS. Les deux moteurs ne traitent pas le toucher de la même
+façon, et l'écart est silencieux : le test passe, l'utilisateur ne voit rien.
+
+Cas mesuré le 2026-09-01, panneau Agent. La barre d'actions d'un message se
+révélait via `:focus-within` sur une ligne rendue focalisable par
+`tabIndex={-1}`. **Chromium focalise un conteneur non interactif au toucher ;
+Safari iOS ne le fait pas.** La barre était donc morte sur l'iPhone d'Avi
+pendant qu'un test Chromium la voyait s'ouvrir — un vert sur une surface qui
+n'a pas le problème, la pire espèce de faux vert.
+
+En pratique :
+
+1. **Ne jamais faire dépendre une révélation tactile d'un effet de bord du
+   focus.** Le focus d'un élément non interactif au toucher n'est pas un contrat
+   entre moteurs. Poser un attribut explicite depuis le gestionnaire d'événement,
+   et accrocher le style dessus ; `:hover` et `:focus-within` restent pour la
+   souris et le clavier, jamais comme chemin unique.
+2. **Écrire l'assertion qui distingue les deux mondes.** Retirer le focus après
+   le geste et vérifier que l'état tient : c'est ce qui attrape le cas Safari.
+   Un test qui se contente de « après le tap, c'est visible » passe sur Chromium
+   par la voie du focus et ne dit rien d'iOS.
+3. **Quand le moteur réel est disponible, l'utiliser.** `npx playwright install
+   webkit` puis un projet `webkit` avec un profil iPhone. À défaut, dire
+   explicitement que la vérification n'a pas eu lieu sur le moteur cible — ne
+   jamais présenter un vert Chromium comme une preuve pour iOS.
+4. **Toute révélation au survol est suspecte par défaut.** `hover` n'existe pas
+   au doigt : si une action n'est atteignable QUE par `:hover`, elle est
+   inatteignable sur mobile. Vérifier qu'un chemin tactile existe.
 
 
 ## Suivi (règle permanente)
@@ -209,8 +355,8 @@ Un point n'est « fait » QUE quand ✅ Testé live est coché ; 📤 Dispatché
 
 **Runbook complet + commandes exactes : [`docs/DEPLOY_RUNBOOK.md`](docs/DEPLOY_RUNBOOK.md).** Vérité terrain reconstituée le 2026-07-07.
 
-- **Auto** : chaque push sur `main` déclenche GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — ⚠️ `gh` pointe par défaut sur l'upstream `stackblitz-labs/bolt.diy`, toujours passer `-R openaxcloud/vibecore`). Il **build** via `gcloud builds submit --config=cloudbuild.yaml --region=europe-west9` (7 images taggées `git rev-parse --short=10` du SHA) puis **déploie** via `helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`.
+- **Auto** : chaque push sur `main` déclenche GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — ⚠️ `gh` pointe par défaut sur l'upstream `stackblitz-labs/bolt.diy`, toujours passer `-R openaxcloud/vibecore`). Il **build** via **trois** configurations Cloud Build régionales — `infra/cloudbuild/runtime-tier.yaml`, **`infra/cloudbuild/single-web.yaml`** et `infra/cloudbuild/workspace-agent.yaml` (images taggées `git rev-parse --short=10` du SHA) — et **JAMAIS** le `cloudbuild.yaml` racine. ⚠️ L'image `web` a sa propre configuration parce que `VITE_RUNTIME_MODE` et `VITE_RUNTIME_API_BASE_URL` sont **inlinées dans le bundle au build** : une valeur de configmap Helm n'atteint jamais le navigateur, et une image construite sans elles livre WebContainer en silence — l'IDE n'appelle alors plus jamais workspace-manager (mesuré le 2026-09-05 : 24 × `425`, zéro démarrage demandé en 6 h) puis **déploie** via `helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`.
 - **Pas de GitOps** (ni Argo CD ni Flux). Release Helm **`vibecore`** / ns `vibecore` sur GKE `vibecore-prod-app` (europe-west9, projet `vibecore-495216`). Contexte kube : `connectgateway_vibecore-495216_europe-west9_vibecore-prod-app`. Ingress = ingress-nginx (LB `34.1.6.93`, DNS direct, pas de CDN).
-- **Manuel** (ce que font les sessions) : `gh workflow run deploy-main.yml -R openaxcloud/vibecore -f short_sha=<sha>` OU build+helm à la main (voir runbook). ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis) mais applique bien les changements de **template**.
+- **Manuel** (ce que font les sessions) : `gh workflow run deploy-main.yml -R openaxcloud/vibecore --ref main` (tête de `main`) ou `-f target_sha=<40 hex>` pour un commit précis, qui doit être un ancêtre d'`origin/main` ⚠️ **l'entrée `short_sha` n'existe plus** — un `-f short_sha=…` est refusé par `HTTP 422: Unexpected inputs provided`, mesuré le 2026-09-06. `workflow_dispatch` ignore le filtre `paths-ignore`, ce qui est la seule façon de déployer un commit documentaire OU build+helm à la main (voir runbook). ⚠️ `--reuse-values` fige `values-prod.yaml` (re-`--set` requis) mais applique bien les changements de **template**.
 - **Rollback** : `helm -n vibecore rollback vibecore <REV>` (l'upgrade est `--atomic` → rollback auto si le rollout échoue).
 - **Zéro-downtime** actif depuis `5c2c3586` (strategy maxUnavailable:0 + preStop, tous les Deployments).

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { toast } from 'react-toastify';
 import { Markdown } from './Markdown';
+import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
 import { MessagePatchReview } from './MessagePatchReview';
 import { PlanChecklistView } from './PlanChecklist';
 import ThoughtBox from './ThoughtBox';
@@ -25,7 +26,6 @@ import { ConnectionResolvedNote } from './connector-cards/ConnectionResolvedNote
 import { ReconnectionRequiredBanner } from './connector-cards/ReconnectionRequiredBanner';
 import { SecretRequestCard } from './connector-cards/SecretRequestCard';
 import Popover from '~/components/ui/Popover';
-import WithTooltip from '~/components/ui/Tooltip';
 import { extractAndStripPlanChecklist } from '~/lib/chat/plan-checklist';
 import {
   formatAssistantCost,
@@ -38,6 +38,8 @@ import {
   selectAssistantMessagePlural,
 } from '~/lib/i18n/catalogs/assistant-message';
 import { chatId } from '~/lib/persistence/useChatHistory';
+import { ecartsAAvertir } from '~/lib/runtime/agent-lane-shortfall';
+import { cheminsEcritsParLesLanes } from '~/lib/runtime/agent-lane-writes';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { ContextAnnotation, ToolCallAnnotation } from '~/types/context';
@@ -60,6 +62,13 @@ export interface AssistantMessageProps {
     | (TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart | FileUIPart | StepStartUIPart)[]
     | undefined;
   addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+
+  /*
+   * RP-CKPT-01 — dans l'IDE projet, les puces « Léger · ×0.5 » et « 12,4 k
+   * jetons » sont remplacées par le bloc « Worked for … » (FinDeTour) rendu
+   * par la liste des messages ; on ne les pose pas deux fois.
+   */
+  masquerLesPuces?: boolean;
 }
 
 function openArtifactInWorkbench(filePath: string) {
@@ -100,6 +109,7 @@ export const AssistantMessage = memo(
     provider,
     parts,
     addToolResult,
+    masquerLesPuces = false,
   }: AssistantMessageProps) => {
     const { i18n } = useTranslation();
     const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -139,6 +149,25 @@ export const AssistantMessage = memo(
     const agentExecution = filteredAnnotations.find((annotation) => annotation.type === 'agentExecution') as
       | Extract<ContextAnnotation, { type: 'agentExecution' }>
       | undefined;
+
+    /*
+     * L'ÉCART ENTRE CE QUI A ÉTÉ ANNONCÉ ET CE QUI A ÉTÉ ÉCRIT.
+     *
+     * Mesuré sur les chemins que l'arbitre a réellement attribués — donc sur
+     * des actions APPLIQUÉES — et jamais sur une seconde déclaration des rôles.
+     * C'est toute la différence : le 2026-09-07, quatre rapports se disaient
+     * « complete » pour 90 chemins dont 9 seulement existaient.
+     *
+     * On n'affiche l'avertissement qu'une fois le résultat agrégé arrivé : en
+     * cours de flux, un fichier « manquant » est simplement un fichier pas
+     * encore écrit, et le signaler ferait clignoter une alerte fausse.
+     */
+    const ecartsIncomplets = ecartsAAvertir(
+      agentExecution?.results,
+      messageId ? cheminsEcritsParLesLanes(messageId) : undefined,
+      Boolean(agentExecution && messageId),
+    );
+
     const agentMemory = filteredAnnotations.find((annotation) => annotation.type === 'agentMemory') as
       | Extract<ContextAnnotation, { type: 'agentMemory' }>
       | undefined;
@@ -305,8 +334,38 @@ export const AssistantMessage = memo(
         typeof (annotation.payload as { kind?: unknown }).kind === 'string',
     ) as Array<{ type: 'connector'; payload: import('~/lib/chat/connector-messages').ConnectorAgentMessage }>;
 
+    const menuContextuel = useMenuContextuelDeMessage(messageId ? `assistant:${messageId}` : undefined);
+
     return (
-      <div className="bolt-assistant-message overflow-hidden w-full">
+      <div
+        className="bolt-assistant-message overflow-hidden w-full"
+        ref={menuContextuel.ancre as React.RefObject<HTMLDivElement>}
+        data-menu-contextuel="true"
+        {...menuContextuel.gestes}
+        onKeyDown={menuContextuel.onKeyDown}
+      >
+        {/*
+          CIBLE VISIBLE, SANS COUT AU REPOS.
+          Un appui long est invisible tant qu'on ne l'a pas decouvert. Ce
+          chevron rend la fonction trouvable pour qui ne connait pas le geste,
+          et il ne coute rien a la densite : `position: absolute`, donc il ne
+          pousse jamais le texte a l'apparition — un element qui deplace la
+          mise en page au survol est un defaut visuel a lui seul.
+          Il n'apparait qu'au survol (souris) ou au focus (clavier) ; au doigt,
+          l'appui long suffit, comme sur WhatsApp.
+        */}
+        <button
+          type="button"
+          className="bolt-message-menu-trigger"
+          aria-label={copy['assistantMessage.footer.group']}
+          aria-haspopup="menu"
+          onClick={(evenement) => {
+            const boite = evenement.currentTarget.getBoundingClientRect();
+            menuContextuel.ouvrirEn(boite.left, boite.bottom);
+          }}
+        >
+          <span aria-hidden>⋯</span>
+        </button>
         <>
           {/*
             Le bandeau « Agent » se répétait au-dessus de CHAQUE réponse, avec un
@@ -805,6 +864,46 @@ export const AssistantMessage = memo(
                       : copy['assistantMessage.lanes.finalizing']}
                 </span>
               </div>
+              {/*
+                 LIVRAISON INCOMPLÈTE, NOMMÉE.
+              
+                 Un rôle qui tombe laisse une application à moitié cohérente : elle
+                 *paraît* finie, elle ne démarre pas, et rien ne dit ce qui manque.
+                 C'est l'espèce dangereuse — le défaut du 2026-09-07 était honnête par
+                 accident (9 fichiers sur 90, l'écart sautait aux yeux) ; 60 sur 90 se
+                 diagnostiquerait beaucoup plus longtemps.
+              
+                 L'écart se mesure sur les chemins RÉELLEMENT écrits — les attributions
+                 de l'arbitre — jamais sur une seconde déclaration des rôles : un
+                 rapport qui se dit complet ne prouve rien sur le disque.
+              */}
+              {ecartsIncomplets.length > 0 && (
+                <div
+                  className="mb-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 text-[11px] text-bolt-elements-textSecondary"
+                  data-testid="agent-lanes-shortfall"
+                >
+                  <div className="mb-1 flex items-center gap-1.5 font-medium text-bolt-elements-textPrimary">
+                    <span className="i-ph:warning-circle" aria-hidden />
+                    <span>{copy['assistantMessage.lanes.shortfallTitle']}</span>
+                  </div>
+                  {ecartsIncomplets.map((ecart) => (
+                    <div key={ecart.roleId} className="mt-1">
+                      <div>
+                        {text(copy['assistantMessage.lanes.shortfallRole'], {
+                          role: ecart.roleId,
+                          written: String(ecart.ecrits),
+                          announced: String(ecart.annonces),
+                        })}
+                      </div>
+                      {ecart.manquants.length > 0 && (
+                        <div className="break-words opacity-80">
+                          {text(copy['assistantMessage.lanes.shortfallMissing'], { files: ecart.manquants.join(', ') })}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
                 {lanePanelRoles.map((role) => {
                   const result = agentExecution?.results.find((r) => r.roleId === role.id);
@@ -931,7 +1030,7 @@ export const AssistantMessage = memo(
             addToolResult={addToolResult}
           />
         )}
-        {agentModeChipText ? (
+        {agentModeChipText && !masquerLesPuces ? (
           <div
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary"
             style={{ fontFamily: 'var(--vc-font-code)' }}
@@ -941,7 +1040,7 @@ export const AssistantMessage = memo(
             {agentModeChipText}
           </div>
         ) : null}
-        {usageChipText ? (
+        {usageChipText && !masquerLesPuces ? (
           <Link
             to="/usage"
             className="mt-2 inline-flex items-center gap-1 text-[11px] text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textSecondary"
@@ -956,7 +1055,21 @@ export const AssistantMessage = memo(
             {usageChipText}
           </Link>
         ) : null}
-        <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        {/*
+          La rangée d'actions n'est plus posée sous chaque message : c'est
+          exactement ce qu'Avi entoure en rouge sur ses captures — « pourquoi
+          perdre tant de place dans les bubbles ». Ce sont les MÊMES boutons,
+          les mêmes gestionnaires et les mêmes libellés, déplacés dans le menu
+          contextuel : appui long au doigt, clic droit à la souris.
+        */}
+        <MenuContextuel
+          ouvert={menuContextuel.ouvert}
+          position={menuContextuel.position}
+          fermer={menuContextuel.fermer}
+          etiquette={copy['assistantMessage.footer.group']}
+        >
+          <AssistantMessageFooter content={content} messageId={messageId} onRewind={onRewind} onFork={onFork} />
+        </MenuContextuel>
       </div>
     );
   },
@@ -1098,66 +1211,63 @@ function AssistantMessageFooter({
 
   return (
     <div className="bolt-assistant-message-footer" role="group" aria-label={copy['assistantMessage.footer.group']}>
-      <WithTooltip tooltip={copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.copy']}
+        className="bolt-assistant-message-action"
+        data-copied={copied ? 'true' : 'false'}
+        onClick={copyMarkdown}
+      >
+        <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+        <span className="bolt-message-action-label">
+          {copied ? copy['assistantMessage.footer.copied'] : copy['assistantMessage.footer.copy']}
+        </span>
+      </button>
+      {onRewind && messageId ? (
         <button
           type="button"
-          aria-label={copy['assistantMessage.footer.copy']}
+          aria-label={copy['assistantMessage.footer.regenerate']}
           className="bolt-assistant-message-action"
-          data-copied={copied ? 'true' : 'false'}
-          onClick={copyMarkdown}
+          onClick={() => onRewind(messageId)}
         >
-          <span className={copied ? 'i-ph:check' : 'i-ph:copy'} aria-hidden />
+          <span className="i-ph:arrow-counter-clockwise" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.regenerate']}</span>
         </button>
-      </WithTooltip>
-      {onRewind && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.regenerate']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.regenerate']}
-            className="bolt-assistant-message-action"
-            onClick={() => onRewind(messageId)}
-          >
-            <span className="i-ph:arrow-counter-clockwise" aria-hidden />
-          </button>
-        </WithTooltip>
       ) : null}
       {onFork && messageId ? (
-        <WithTooltip tooltip={copy['assistantMessage.footer.forkTooltip']}>
-          <button
-            type="button"
-            aria-label={copy['assistantMessage.footer.forkAria']}
-            className="bolt-assistant-message-action"
-            onClick={() => onFork(messageId)}
-          >
-            <span className="i-ph:pencil-simple" aria-hidden />
-          </button>
-        </WithTooltip>
+        <button
+          type="button"
+          aria-label={copy['assistantMessage.footer.forkAria']}
+          className="bolt-assistant-message-action"
+          onClick={() => onFork(messageId)}
+        >
+          <span className="i-ph:pencil-simple" aria-hidden />
+          <span className="bolt-message-action-label">{copy['assistantMessage.footer.forkTooltip']}</span>
+        </button>
       ) : null}
       <span className="bolt-assistant-message-action-divider" aria-hidden />
-      <WithTooltip tooltip={copy['assistantMessage.footer.helpful']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.helpfulAria']}
-          aria-pressed={feedback === 'up'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'up' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('up')}
-        >
-          <span className="i-ph:thumbs-up" aria-hidden />
-        </button>
-      </WithTooltip>
-      <WithTooltip tooltip={copy['assistantMessage.footer.improve']}>
-        <button
-          type="button"
-          aria-label={copy['assistantMessage.footer.improveAria']}
-          aria-pressed={feedback === 'down'}
-          className="bolt-assistant-message-action"
-          data-active={feedback === 'down' ? 'true' : 'false'}
-          onClick={() => toggleFeedback('down')}
-        >
-          <span className="i-ph:thumbs-down" aria-hidden />
-        </button>
-      </WithTooltip>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.helpfulAria']}
+        aria-pressed={feedback === 'up'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'up' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('up')}
+      >
+        <span className="i-ph:thumbs-up" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.helpful']}</span>
+      </button>
+      <button
+        type="button"
+        aria-label={copy['assistantMessage.footer.improveAria']}
+        aria-pressed={feedback === 'down'}
+        className="bolt-assistant-message-action"
+        data-active={feedback === 'down' ? 'true' : 'false'}
+        onClick={() => toggleFeedback('down')}
+      >
+        <span className="i-ph:thumbs-down" aria-hidden />
+        <span className="bolt-message-action-label">{copy['assistantMessage.footer.improve']}</span>
+      </button>
     </div>
   );
 }
