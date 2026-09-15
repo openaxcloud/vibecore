@@ -12,6 +12,7 @@ import {
   type RedisRateLimitClient,
 } from './agent-executor.js';
 import { createDefaultAgentRunPersistence, type AgentRunPersistence } from './agent-run-persistence.js';
+import { surDeconnexionClient } from './client-disconnect.js';
 import { AiGateway, type AiChatRequest } from './gateway.js';
 import { aiGatewayLocaleFromHeader, aiGatewayMessage, localizedAiGatewayError } from './public-i18n.js';
 
@@ -120,8 +121,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
     if (body.stream) {
       const abortController = new AbortController();
-      const onClientClose = () => abortController.abort();
-      request.raw.on('close', onClientClose);
+      const detacherDeconnexion = surDeconnexionClient(reply.raw, () => abortController.abort());
 
       /*
        * gateway.stream() is a lazy generator: route() (which throws 403
@@ -138,7 +138,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       try {
         firstResult = await iterator.next();
       } catch (error) {
-        request.raw.off('close', onClientClose);
+        detacherDeconnexion();
 
         const rawStatus = (error as { statusCode?: unknown }).statusCode;
         const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
@@ -212,7 +212,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
           }
         }
       } finally {
-        request.raw.off('close', onClientClose);
+        detacherDeconnexion();
         await iterator.return?.(undefined).catch(() => {});
       }
 
@@ -230,8 +230,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
      * upstream connection per abandoned request.
      */
     const abortController = new AbortController();
-    const onClientClose = () => abortController.abort();
-    request.raw.on('close', onClientClose);
+    const detacherDeconnexion = surDeconnexionClient(reply.raw, () => abortController.abort());
 
     try {
       return await gateway.complete(body, abortController.signal);
@@ -249,7 +248,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         code: statusCode >= 400 && statusCode < 500 ? 'AI_COMPLETION_BAD_REQUEST' : 'AI_COMPLETION_FAILED',
       });
     } finally {
-      request.raw.off('close', onClientClose);
+      detacherDeconnexion();
     }
   });
 
@@ -303,8 +302,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       }
 
       const abortController = new AbortController();
-      const onClientClose = () => abortController.abort();
-      request.raw.on('close', onClientClose);
+      const detacherDeconnexion = surDeconnexionClient(reply.raw, () => abortController.abort());
 
       try {
         return await executeAgentRun({
@@ -314,7 +312,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
           signal: abortController.signal,
         });
       } finally {
-        request.raw.off('close', onClientClose);
+        detacherDeconnexion();
       }
     } catch (error) {
       /*
@@ -387,8 +385,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
     }
 
     const abortController = new AbortController();
-    const onClientClose = () => abortController.abort();
-    request.raw.on('close', onClientClose);
+    const detacherDeconnexion = surDeconnexionClient(reply.raw, () => abortController.abort());
 
     reply.raw.writeHead(200, {
       'content-type': 'text/event-stream; charset=utf-8',
@@ -440,7 +437,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         );
       }
     } finally {
-      request.raw.off('close', onClientClose);
+      detacherDeconnexion();
     }
 
     if (!reply.raw.writableEnded) {

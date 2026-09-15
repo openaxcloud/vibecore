@@ -5,8 +5,9 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import { prechaufferCoquillePublique } from '~/components/dashboard/prechauffer-coquille-publique';
 import { CommunityMarketingPage } from '~/components/marketing/EcodePublicResourcePages';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 import { buildCommunityRouteData } from '~/routes/community';
@@ -14,6 +15,8 @@ import { buildCommunityRouteData } from '~/routes/community';
 afterEach(cleanup);
 
 describe('community tag labels', () => {
+  beforeAll(prechaufferCoquillePublique);
+
   it('renders localized labels while retaining search by the machine tag', () => {
     const data = buildCommunityRouteData('fr');
 
