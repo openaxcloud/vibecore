@@ -3,6 +3,7 @@ import { createDatabaseClient } from '@vibecore/database';
 import { PrismaAgentRunPersistence } from './agent-run-persistence.js';
 import type { AgentRunRequest, AgentRunResponse } from './agent-executor.js';
 import { runConsensus } from './consensus/index.js';
+import { baseDeDonneesJoignable } from './base-de-donnees-joignable.js';
 
 /*
  * Fake Prisma that records the exact `data` handed to agentRun.create — enough to
@@ -149,22 +150,13 @@ describe('PrismaAgentRunPersistence write-path mapping (no DB)', () => {
   });
 });
 
-async function canReachDatabase() {
-  if (!process.env.DATABASE_URL) {
-    return false;
-  }
-
-  const prisma = createDatabaseClient();
-
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch {
-    return false;
-  } finally {
-    await prisma.$disconnect();
-  }
-}
+/*
+ * BUG-TEST-DB-HANG-001 — la sonde locale attendait `prisma.$disconnect()` dans
+ * son `finally`, appel qui ne se dénoue jamais quand la connexion a échoué.
+ * Comme elle est appelée au niveau MODULE juste en dessous, le gel bloquait la
+ * collecte du fichier entier.
+ */
+const canReachDatabase = baseDeDonneesJoignable;
 
 const runDbTests = (await canReachDatabase()) ? describe : describe.skip;
 

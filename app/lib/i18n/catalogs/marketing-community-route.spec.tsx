@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   COMMUNITY_ROUTE_TAG_IDS,
@@ -11,6 +11,7 @@ import {
   marketingCommunityRouteEn,
   marketingCommunityRouteFr,
 } from './marketing-community-route';
+import { prechaufferCoquillePublique } from '~/components/dashboard/prechauffer-coquille-publique';
 import { CommunityMarketingPage } from '~/components/marketing/EcodePublicResourcePages';
 import { USER_LANGUAGE_COOKIE } from '~/lib/i18n/language';
 import { createI18nInstance } from '~/lib/i18n/runtime';
@@ -76,6 +77,8 @@ function renderInFrench(node: ReactNode) {
 }
 
 describe('community marketing route i18n', () => {
+  beforeAll(prechaufferCoquillePublique);
+
   it('keeps complete EN/FR structural parity', () => {
     expect(leafPaths(marketingCommunityRouteFr)).toEqual(leafPaths(marketingCommunityRouteEn));
   });
