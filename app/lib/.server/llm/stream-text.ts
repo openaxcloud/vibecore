@@ -5,7 +5,6 @@ import {
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
-import { withThinkingDisabled, type ProviderOptionsShape } from './anthropic-thinking';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -25,8 +24,10 @@ import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
 import { getSystemPrompt } from '~/lib/common/prompts/prompts';
+import { resolvePromptRuntimeMode } from '~/lib/common/prompts/runtime-constraints';
 import { ANTHROPIC_CACHE_BREAKPOINT, shouldInsertCacheBreakpoint } from '~/lib/modules/llm/cache-breakpoint';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { IProviderSetting } from '~/types/model';
 import { DEFAULT_MODEL, DEFAULT_PROVIDER, MODIFICATIONS_TAG_NAME, WORK_DIR } from '~/utils/constants';
@@ -82,7 +83,7 @@ WIRING REQUIREMENT — this is not optional:
 }
 
 export function resolveStreamMaxRetries(env?: Record<string, string | undefined>): number {
-  const raw = env?.STREAM_MAX_RETRIES ?? (typeof process !== 'undefined' ? process.env?.STREAM_MAX_RETRIES : undefined);
+  const raw = env?.STREAM_MAX_RETRIES ?? readRuntimeEnv('STREAM_MAX_RETRIES');
   const parsed = Number(raw);
 
   if (!Number.isFinite(parsed) || parsed < 0) {
@@ -229,12 +230,15 @@ export function appendContextAsTrailingUserMessage<T extends { role: string }>(
  * The `MODEL_ROUTING_DISABLED` kill-switch. Truthy (`1`/`true`/`yes`/`on`,
  * case-insensitive) → complexity routing is globally OFF and every request keeps
  * the model it selected. Read defensively from the request env first, then the
- * genuine Node runtime env (Vite shims `process.env` to `{}` in client bundles).
+ * genuine Node runtime env via `readRuntimeEnv`.
+ *
+ * MESURÉ : une lecture `process.env` nue rend `undefined` DANS LE POD WEB — le
+ * polyfill de vite y shime `process.env` à `{}` — donc ce coupe-circuit était
+ * INACTIONNABLE en production : le poser dans le configmap n'aurait rien coupé.
  * Never throws.
  */
 export function isModelRoutingDisabled(env?: Record<string, string | undefined>): boolean {
-  const raw =
-    env?.MODEL_ROUTING_DISABLED ?? (typeof process !== 'undefined' ? process.env?.MODEL_ROUTING_DISABLED : undefined);
+  const raw = env?.MODEL_ROUTING_DISABLED ?? readRuntimeEnv('MODEL_ROUTING_DISABLED');
 
   if (raw == null) {
     return false;
@@ -357,10 +361,33 @@ export async function streamText(props: {
   projectRulesContext?: string;
 
   /*
+   * BUG-AGENT-WEBCLONE-001: the observed <web_reference> block (site fetched
+   * server-side because the user's message named a URL). Per-turn volatile →
+   * carried in the trailing context message, never in the cached system.
+   */
+  webReferenceContext?: string;
+
+  /*
    * A7 (Wave A): stable per-conversation id threaded from the chat route. Used
    * only as a provider cache-affinity hint (never in the prompt bytes).
    */
   chatId?: string;
+
+  /*
+   * IDENTIFIANT DE MESSAGE STABLE POUR TOUT LE TOUR.
+   *
+   * Sans lui, le SDK en fabrique un neuf à chaque appel `streamText` et à
+   * chaque frontière d'étape outil, et le pousse au client dans la part
+   * `start_step`. Le client réécrit alors `message.id` EN PLEIN FLUX — ce qui
+   * fait repartir de zéro le parseur d'artefacts (indexé par identifiant de
+   * message) et bascule la clé d'upsert de la transcription. Résultat : la
+   * réponse dupliquée à l'écran, les actions `shell` du segment précédent
+   * relancées, et une ligne orpheline en base.
+   *
+   * La route de chat passe ici UN identifiant par tour, partagé par l'appel
+   * initial et toutes ses continuations.
+   */
+  identifiantDeMessageStable?: string;
 
   /*
    * Model routing (Vague C): fired once with the CONCRETE model this turn
@@ -399,7 +426,9 @@ export async function streamText(props: {
     agentMemoryContext,
     skillsContext,
     projectRulesContext,
+    webReferenceContext,
     chatId,
+    identifiantDeMessageStable,
   } = props;
 
   /*
@@ -573,7 +602,10 @@ export async function streamText(props: {
 
   /*
    * Replace `currentModel` with the concrete decided id BEFORE the modelDetails
-   * lookup — `'auto'` must never reach getStaticModelList / getModelInstance.
+   * lookup — `'auto'` must never reach the model-list lookup / getModelInstance.
+   * (Vérifié le 2026-09-10 : les appels réels sont
+   * `getStaticModelListFromProvider` et `getModelListFromProvider` — le nom
+   * `getStaticModelList` cité ici n'existe pas seul, il a dérivé.)
    */
   currentModel = turnModelResolution.model;
 
@@ -649,6 +681,15 @@ export async function streamText(props: {
   const includeMobileInstructions =
     /expo|react[ -]?native|mobile app|\bios\b|\bandroid\b/i.test(contextSignalHaystack) || looksLikeExpoProject;
 
+  /*
+   * BUG-AGENT-WEBCLONE-001: describe the runtime the actions REALLY run in.
+   * Production is remote-kubernetes (bash, git, curl, outbound HTTPS); telling the
+   * model it is in WebContainer made it refuse to read a public site.
+   */
+  const promptRuntimeMode = resolvePromptRuntimeMode(
+    effectiveServerEnv as Record<string, string | undefined> | undefined,
+  );
+
   let systemPrompt =
     PromptLibrary.getPropmtFromLibrary(promptId || 'default', {
       cwd: WORK_DIR,
@@ -662,6 +703,7 @@ export async function streamText(props: {
       },
       includeDatabaseInstructions,
       includeMobileInstructions,
+      runtimeMode: promptRuntimeMode,
     }) ?? getSystemPrompt();
 
   /*
@@ -810,6 +852,11 @@ ${props.summary}
     volatileTailBlocks.push(contextBufferBlock);
   }
 
+  // BUG-AGENT-WEBCLONE-001: the observed site, after the project context and before the lanes' reports.
+  if (webReferenceContext && webReferenceContext.trim()) {
+    volatileTailBlocks.push(webReferenceContext);
+  }
+
   if (orchestrationTailBlock) {
     volatileTailBlocks.push(orchestrationTailBlock);
   }
@@ -875,6 +922,9 @@ ${props.summary}
 
   /*
    * Always pass `maxTokens`. The AI SDK has no top-level `maxCompletionTokens`
+   * (vérifié le 2026-09-10 sur `ai@4.3.16` : `maxCompletionTokens` = 0 occurrence
+   * dans `dist/index.d.ts`, `maxTokens` = 3 — l'option n'existe pas, elle est donc
+   * bien ignorée en silence)
    * option — passing it was silently dropped, leaving reasoning models (o1/o3/
    * gpt-5) with NO output cap (unbounded cost/latency). The @ai-sdk/openai
    * provider itself maps `max_tokens` → `max_completion_tokens` for reasoning
@@ -926,7 +976,7 @@ ${props.summary}
    * appended to systemPrompt above). Re-append them here so persistent memory and
    * enabled skills actually inform discuss-mode answers too, not just builds.
    */
-  const discussSystem = [discussPrompt(), agentMemoryContext, skillsContext, projectRulesContext]
+  const discussSystem = [discussPrompt(promptRuntimeMode), agentMemoryContext, skillsContext, projectRulesContext]
     .filter(Boolean)
     .join('\n\n');
 
@@ -961,28 +1011,21 @@ ${props.summary}
      * explicit caller-supplied `experimental_transform` still wins.
      */
     experimental_transform: smoothStream({ chunking: 'word' }),
+
+    /*
+     * UN SEUL IDENTIFIANT DE MESSAGE POUR TOUT LE TOUR — voir la prop du même
+     * nom. Sans cette option le SDK en génère un neuf à chaque appel et à
+     * chaque frontière d'étape outil, et le client réécrit `message.id` en
+     * plein flux. Posé AVANT `...filteredOptions` pour qu'un appelant qui
+     * fournirait explicitement son propre générateur garde la main.
+     */
+    ...(identifiantDeMessageStable ? { experimental_generateMessageId: () => identifiantDeMessageStable } : {}),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),
-
-    /*
-     * Contournement temporaire : on demande explicitement à Anthropic de NE PAS
-     * produire de réflexion étendue. Le SDK installé (0.0.39) ne sait pas valider
-     * les événements `thinking` / `thinking_delta` / `signature_delta` et fait
-     * mourir le flux sur le premier d'entre eux. À retirer dès que le SDK est
-     * monté — voir `anthropic-thinking.ts`.
-     */
-    ...(() => {
-      const merged = withThinkingDisabled(
-        modelDetails.provider,
-        (filteredOptions as { providerOptions?: ProviderOptionsShape }).providerOptions,
-      );
-
-      return merged ? { providerOptions: merged } : {};
-    })(),
   };
 
   /*

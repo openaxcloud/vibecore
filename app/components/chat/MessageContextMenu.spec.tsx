@@ -1,12 +1,17 @@
 /**
  * @vitest-environment jsdom
  */
+import { readFileSync } from 'node:fs';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { MenuContextuel, useMenuContextuelDeMessage } from './MessageContextMenu';
-import { DELAI_APPUI_LONG_MS, TOLERANCE_DEPLACEMENT_PX } from './message-context-menu';
 
-afterEach(cleanup);
+import { DELAI_APPUI_LONG_MS, TOLERANCE_DEPLACEMENT_PX, menuDeMessageOuvert } from './message-context-menu';
+
+afterEach(() => {
+  cleanup();
+  menuDeMessageOuvert.set(null);
+});
 
 function Bulle() {
   const menu = useMenuContextuelDeMessage();
@@ -177,5 +182,106 @@ describe('<MenuContextuel /> sur une bulle', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(screen.queryByRole('menu'), 'le menu doit se refermer').toBeNull();
+  });
+});
+
+function DeuxBulles() {
+  const premier = useMenuContextuelDeMessage('user:1');
+  const second = useMenuContextuelDeMessage('assistant:2');
+
+  return (
+    <div>
+      <div data-testid="bulle-1" {...premier.gestes}>
+        Première
+      </div>
+      <MenuContextuel ouvert={premier.ouvert} position={premier.position} fermer={premier.fermer} etiquette="Un">
+        <button type="button">Modifier</button>
+      </MenuContextuel>
+      <div data-testid="bulle-2" {...second.gestes}>
+        Seconde
+      </div>
+      <MenuContextuel ouvert={second.ouvert} position={second.position} fermer={second.fermer} etiquette="Deux">
+        <button type="button">Copier</button>
+      </MenuContextuel>
+    </div>
+  );
+}
+
+describe('BUG-MESSAGE-MENU-IOS-001 — un seul menu à la fois, fermé au défilement, ancré à la ligne', () => {
+  /*
+   * Captures d'Avi, 08/09 07:47 : la barre de l'agent ET le rond « Modifier »
+   * du message utilisateur flottaient ensemble ; « jamais l'icône disparaît ».
+   */
+  it('ouvrir le menu d’un second message ferme celui du premier', async () => {
+    vi.useFakeTimers();
+
+    try {
+      render(<DeuxBulles />);
+      envoyerPointeur(screen.getByTestId('bulle-1'), 'pointerdown');
+      await act(async () => {
+        vi.advanceTimersByTime(DELAI_APPUI_LONG_MS + 10);
+      });
+      expect(screen.getAllByRole('menu')).toHaveLength(1);
+      expect(screen.getByRole('menu').getAttribute('aria-label')).toBe('Un');
+
+      envoyerPointeur(screen.getByTestId('bulle-2'), 'pointerdown');
+      await act(async () => {
+        vi.advanceTimersByTime(DELAI_APPUI_LONG_MS + 10);
+      });
+      expect(screen.getAllByRole('menu')).toHaveLength(1);
+      expect(screen.getByRole('menu').getAttribute('aria-label')).toBe('Deux');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('un défilement ferme le menu ; un appui dans le menu ne le ferme pas', async () => {
+    vi.useFakeTimers();
+
+    try {
+      render(<Bulle />);
+      envoyerPointeur(screen.getByTestId('bulle'), 'pointerdown');
+      await act(async () => {
+        vi.advanceTimersByTime(DELAI_APPUI_LONG_MS + 10);
+      });
+      expect(screen.getByRole('menu')).toBeTruthy();
+
+      await act(async () => {
+        envoyerPointeur(screen.getByRole('button', { name: 'Copier' }), 'pointerdown');
+      });
+      expect(screen.queryByRole('menu')).not.toBeNull();
+
+      await act(async () => {
+        document.body.dispatchEvent(new Event('scroll', { bubbles: true }));
+      });
+      expect(screen.queryByRole('menu')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('câblage : identifiants par message, pas de sélection native sur les lignes en mobile', () => {
+    const lire = (chemin: string) => readFileSync(new URL(chemin, import.meta.url).pathname, 'utf8');
+
+    expect(lire('./AssistantMessage.tsx')).toContain(
+      'useMenuContextuelDeMessage(messageId ? `assistant:${messageId}` : undefined)',
+    );
+    expect(lire('./UserMessage.tsx')).toContain(
+      'useMenuContextuelDeMessage(messageId ? `user:${messageId}` : undefined)',
+    );
+
+    const feuille = lire('../../styles/index.scss');
+    const debut = feuille.indexOf('.bolt-responsive-ide-mobile .bolt-chat-message-row {');
+
+    expect(debut).toBeGreaterThan(-1);
+    expect(feuille.slice(debut, feuille.indexOf('}', debut))).toContain('-webkit-touch-callout: none;');
+    expect(feuille.slice(debut, feuille.indexOf('}', debut))).toContain('user-select: none;');
+
+    // La barre est centrée sur le centre de la ligne par transformation, pas depuis une largeur mesurée trop tôt.
+    const centre = feuille.indexOf(".bolt-responsive-ide-mobile .bolt-message-context-menu[data-centre='true'] {");
+
+    expect(centre).toBeGreaterThan(-1);
+    expect(feuille.slice(centre, feuille.indexOf('}', centre))).toContain('transform: translateX(-50%);');
+    expect(lire('./MessageContextMenu.tsx')).toContain("data-centre={racineMobile ? 'true' : undefined}");
   });
 });

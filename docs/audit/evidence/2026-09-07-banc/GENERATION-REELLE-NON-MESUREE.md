@@ -1,5 +1,11 @@
 # La génération réelle n'a pas pu être mesurée sur le banc — 2026-09-07
 
+> **CE DOCUMENT EST DÉPASSÉ, LE MÊME JOUR.** Le pair a construit `7298b30a62`
+> depuis `main` et l'a déployé sur le banc ; la mesure a été prise et elle est
+> **positive**. Voir [`GENERATION-REELLE-MESUREE.md`](GENERATION-REELLE-MESUREE.md).
+> Ce qui suit reste vrai de l'état d'avant, et vaut pour la méthode : lire le SHA
+> servi avant de mesurer.
+
 **Verdict : mesure NON FAITE.** Ce document dit pourquoi, avec les commandes,
 pour qu'elle soit refaite sans refaire l'enquête.
 

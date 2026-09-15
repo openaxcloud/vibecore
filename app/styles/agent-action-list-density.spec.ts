@@ -119,38 +119,34 @@ describe('1 bis. pastille de statut — la taille du contenu à sa gauche', () =
 
 describe('2. pastille « descendre » — juste au-dessus de la zone de saisie', () => {
   it('en mobile, se décale de ce que le composeur RECOUVRE le fil, pas de sa hauteur', () => {
-    const composeur = regle(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
-    const remontee = (composeur.match(/bottom:\s*calc\((.+?)\)\s*!important;/)?.[1] ?? '').trim();
+    /*
+     * 08/09 (RP-CKPT-01) : le soulèvement « barre + 8 px » est désormais
+     * porté par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`,
+     * pas par le `bottom` du composeur collant — son rectangle de collage est
+     * la boîte de contenu du conteneur, et à 80 des deux côtés il remontait de
+     * 80 de trop. La boîte qui défile s'arrête donc où le composeur commence :
+     * le composeur colle à 0, et la pastille — collante dans cette boîte —
+     * n'a plus rien à compenser : 2 px au-dessus du bas de la boîte, soit
+     * 2 px au-dessus du conteneur du composeur (10 px visibles jusqu'au cadre,
+     * 8 px de rembourrage haut transparent). Mesuré E2E : 82 px avec l'ancien
+     * `barre + 8 + 2`, 2 px après.
+     */
+    const conteneur = regle('.bolt-responsive-ide-mobile .bolt-project-agent-scroll');
 
-    // 8 px depuis le 07/09 (BUG-COMPOSER-DEAD-SPACE-001) : la bordure du cadre à 8 px du socle, plus de rembourrage bas.
-    expect(remontee).toMatch(/var\(--mobile-nav-height\)\s*\+\s*8px/);
+    expect(conteneur).toMatch(/padding:[^;]*\bcalc\(var\(--mobile-nav-height\)\s*\+\s*8px\)\s*!important/);
+
+    const composeur = regle(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
+
+    expect(composeur).toMatch(/bottom:\s*0\s*!important;/);
+    expect(composeur).not.toMatch(/bottom:\s*calc\(/);
 
     const pastille = regle(
       ".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-agent-scroll-to-bottom,\n  .bolt-responsive-ide-mobile[data-mobile-panel='chat']\n    .bolt-agent-scroll-to-bottom[data-vc-tooltip]:not([data-vc-radix-tooltip='true'])",
     );
 
-    const bas = (pastille.match(/bottom:\s*calc\((.+?)\);/)?.[1] ?? '').trim();
-
-    /*
-     * Le même terme que la remontée du composeur, plus 2 px : le conteneur
-     * porte 8 px de rembourrage transparent, donc 10 px visibles. Capture
-     * iPhone d'Avi (04/09 21:30, prod 914facc) mesurée au pixel : 28 px
-     * visibles avec 12 px de marge — trop pour « juste au-dessus ».
-     */
-    expect(bas).toContain(remontee);
-
-    // 2 px au-dessus du conteneur, dont 8 px de rembourrage haut transparent : 10 px visibles jusqu'au cadre.
-    expect(bas).toMatch(/\+\s*8px\s*\+\s*2px$/);
-    expect(bas).not.toMatch(/measured-height/);
-  });
-
-  it('la pile d’avis VIDE ne paie plus le gap de flex qui écartait la pastille', () => {
-    // 8 px mesurés (Chromium 390 et 768, iPhone) entre le rembourrage du composeur et la zone de saisie.
-    const pile = regle(
-      '.bolt-responsive-ide-mobile\n    .bolt-project-agent-composer\n    .bolt-project-agent-notice-stack:not(:has(> :not(.vc-sr-only)))',
-    );
-
-    expect(pile).toMatch(/display:\s*none/);
+    expect(pastille).toMatch(/bottom:\s*2px;/);
+    expect(pastille).not.toMatch(/measured-height/);
+    expect(pastille).not.toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\)/);
   });
 });
 

@@ -1,17 +1,66 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
 import { detectUserLanguage } from '~/lib/i18n/language';
+import { arbitreDe, decoderLane, identifiantDeLane, textesDesLanes } from '~/lib/runtime/agent-lane-writes';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
+import {
+  analyserGeneration,
+  fichiersDepuisArborescence,
+  generationEstHonnete,
+} from '~/lib/runtime/generation-incomplete';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('useMessageParser');
+
+/*
+ * L'ARBITRE DES ECRITURES ENTRE ROLES.
+ *
+ * Les sous-agents ecrivent maintenant leurs fichiers eux-memes, en parallele.
+ * Deux d'entre eux peuvent viser le meme chemin — la passerelle sait DETECTER
+ * ce cas (`detectFileOverlapConflicts`, contre-epreuve du 2026-09-07) mais pas
+ * l'arbitrer, et sa description ne porte que la cle minusculisee : on ne peut
+ * donc pas en deduire ou ecrire. L'arbitrage se fait ici, au site d'ecriture,
+ * sur les chemins d'origine.
+ */
+
+/**
+ * Une action de fichier venant d'une lane peut-elle s'appliquer ?
+ *
+ * Le flux du coordinateur n'est JAMAIS arbitre : `decoderLane` rend `undefined`
+ * pour un identifiant de message ordinaire, et on laisse passer. C'est ce qui
+ * garantit qu'un projet sans sous-agents se comporte exactement comme avant.
+ */
+function ecritureAutorisee(data: { messageId: string; action: { type: string; filePath?: string } }): boolean {
+  const lane = decoderLane(data.messageId);
+
+  if (!lane || data.action.type !== 'file' || !data.action.filePath) {
+    return true;
+  }
+
+  const decision = arbitreDe(lane.messageId).peutEcrire(data.action.filePath, lane.rang);
+
+  if (!decision.autorisee) {
+    logger.trace('ecriture refusee par arbitrage', data.action.filePath, lane.roleId);
+  }
+
+  return decision.autorisee;
+}
 
 const messageParser = new EnhancedStreamingMessageParser({
   language: detectUserLanguage,
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);
+
+      /*
+       * Un nouveau tour commence : le constat d'honnêteté du précédent ne le
+       * concerne plus. Sans cette remise à zéro, une génération tronquée
+       * teindrait le bandeau du tour SUIVANT, qui s'est peut-être très bien
+       * passé — un faux négatif est un mensonge dans l'autre sens.
+       */
+      constatDeGenerationStore.set(undefined);
 
       workbenchStore.showWorkbench.set(true);
       workbenchStore.addArtifact(data);
@@ -26,6 +75,52 @@ const messageParser = new EnhancedStreamingMessageParser({
        */
       if (data.fermetureDeSecours) {
         logger.warn('Artefact fermé par le filet de fin de flux (balise </boltArtifact> absente)', data.artifactId);
+
+        /*
+         * LA GARDE D'HONNÊTETÉ ÉTAIT ÉCRITE, TESTÉE, ET APPELÉE NULLE PART.
+         *
+         * `analyserGeneration` n'était importé que par son propre spec —
+         * vérifié avec témoin positif. Le module existait pour dire qu'une
+         * génération tronquée ne peut pas démarrer, et personne ne le lui
+         * demandait : le produit continuait donc d'annoncer une réussite sur un
+         * projet sans point d'entrée. Une règle juste que rien n'appelle ne
+         * protège de rien.
+         *
+         * On la branche ICI parce que c'est le seul endroit qui sait que le
+         * filet a fermé l'artefact — l'information ne survit nulle part
+         * ailleurs. La ligne est structurée et greppable : son comptage est
+         * précisément ce que l'en-tête du module réclame pour décider si le
+         * filet est un garde-fou ou une réparation majeure.
+         */
+        try {
+          const constat = analyserGeneration(fichiersDepuisArborescence(workbenchStore.files.get()), {
+            fermetureDeSecours: true,
+          });
+
+          logger.warn(
+            JSON.stringify({
+              event: 'generation.tronquee',
+              artifactId: data.artifactId,
+              honnete: generationEstHonnete(constat),
+              entreesManquantes: constat.entreesManquantes,
+            }),
+          );
+
+          /*
+           * LA MOITIÉ VISIBLE. Un journal ne prévient que nous ; l'utilisateur,
+           * lui, voyait toujours « les patchs ont bien été appliqués » sur une
+           * application sans point d'entrée. On publie le constat pour que le
+           * bandeau le dise à l'écran.
+           */
+          constatDeGenerationStore.set(constat);
+        } catch (erreur) {
+          /*
+           * Une garde d'observation ne doit JAMAIS casser l'écriture des
+           * fichiers qu'elle observe : le filet vient de sauver le travail de
+           * l'utilisateur, et un diagnostic raté ne peut pas le reprendre.
+           */
+          logger.warn('analyse de génération tronquée impossible', (erreur as Error)?.message);
+        }
       } else {
         logger.trace('onArtifactClose');
       }
@@ -34,6 +129,10 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
 
       /*
        * File actions are streamed, so we add them immediately to show progress
@@ -45,6 +144,10 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
     onActionClose: (data) => {
       logger.trace('onActionClose', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
 
       /*
        * Add non-file actions (shell, build, start, etc.) when they close
@@ -58,6 +161,11 @@ const messageParser = new EnhancedStreamingMessageParser({
     },
     onActionStream: (data) => {
       logger.trace('onActionStream', data.action);
+
+      if (!ecritureAutorisee(data)) {
+        return;
+      }
+
       workbenchStore.runAction(data, true);
     },
   },
@@ -134,6 +242,46 @@ export function useMessageParser() {
          */
         if (message.role === 'assistant' && !isLoading) {
           messageParser.fermerArtefactsOuverts(message.id);
+        }
+
+        /*
+         * LES FICHIERS ECRITS PAR LES SOUS-AGENTS.
+         *
+         * Le contenu des lanes arrive par les annotations `agentLaneStream`, pas
+         * dans `message.content` — deux tuyaux voisins qui ne se touchent pas. Le
+         * parseur ne voyait donc JAMAIS ce que les roles produisaient.
+         *
+         * On lui donne le texte de chaque lane sous son PROPRE identifiant :
+         * `StreamingMessageParser` indexe son etat par message, donc quatre roles
+         * se parsent en parallele sans melanger leurs artefacts. Les ecritures
+         * passent ensuite par l'arbitre, qui tranche les chemins revendiques par
+         * plusieurs roles.
+         *
+         * Inerte pour un message sans annotation de lane : `textesDesLanes` rend
+         * une carte vide et rien ne s'execute.
+         */
+        if (message.role === 'assistant') {
+          for (const [roleId, texte] of textesDesLanes(message.annotations)) {
+            const idDeLane = identifiantDeLane(message.id, roleId);
+
+            try {
+              messageParser.parse(idDeLane, texte);
+            } catch (error) {
+              logger.error('Failed to parse sub-agent lane; skipping', roleId, error);
+              messageParser.resetMessage(idDeLane);
+              continue;
+            }
+
+            /*
+             * Meme filet de fin de flux que pour le coordinateur : une lane
+             * tronquee laisserait son artefact ouvert pour toujours, et tout ce
+             * qui pend a la fermeture — a commencer par la persistance vers le
+             * stockage durable — ne s'executerait jamais.
+             */
+            if (!isLoading) {
+              messageParser.fermerArtefactsOuverts(idDeLane);
+            }
+          }
         }
 
         setParsedMessages((prevParsed) => ({

@@ -36,3 +36,41 @@ export const SEUIL_CLAVIER_PX = 150;
 export function clavierProbablementOuvert(recouvrementBas: number): boolean {
   return recouvrementBas >= SEUIL_CLAVIER_PX;
 }
+
+/**
+ * BUG-KEYBOARD-ZOOM-001 — le rétrécissement TOTAL de la fenêtre visuelle,
+ * indépendant de son décalage.
+ *
+ * Quand le clavier iOS se lève, Safari fait aussi DÉFILER le document pour
+ * garder le champ focalisé visible (`offsetTop` > 0). Le recouvrement bas
+ * (mise en page − hauteur − décalage) tombe alors vers 0 alors que le clavier
+ * est là : le socle restait affiché, le composeur restait soulevé de
+ * « barre + 8 », et la coque, calée sur la hauteur visuelle mais posée en haut
+ * du document, sortait de l'écran — capture d'Avi du 08/09 07:58 : page
+ * blanche, socle flottant au-dessus du clavier, zone de saisie invisible.
+ * Ce que le clavier prend ne dépend PAS du défilement : c'est la hauteur de
+ * mise en page moins la hauteur visuelle.
+ */
+export function retrecissementDeLaVue(hauteurMiseEnPage: number, vue: { height: number } | undefined): number {
+  if (!vue) {
+    return 0;
+  }
+
+  return Math.max(0, hauteurMiseEnPage - vue.height);
+}
+
+/**
+ * Le décalage à annuler quand le clavier est ouvert : la coque tient dans la
+ * fenêtre visuelle, elle doit donc être vue depuis le HAUT du document ; tout
+ * défilement de Safari la sort de l'écran.
+ */
+export function decalageAAnnulerClavierOuvert(
+  hauteurMiseEnPage: number,
+  vue: { height: number; offsetTop: number } | undefined,
+): number {
+  if (!vue || !clavierProbablementOuvert(retrecissementDeLaVue(hauteurMiseEnPage, vue))) {
+    return 0;
+  }
+
+  return Math.max(0, Math.round(vue.offsetTop));
+}

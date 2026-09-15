@@ -1,4 +1,5 @@
 import type { TFunction } from 'i18next';
+import { previewServerLooksRunning } from '~/lib/stores/preview-recovery';
 
 /*
  * Status-bar "Dev: …" label, extracted from BaseChat.tsx so the
@@ -51,7 +52,14 @@ export function devServerStatusText(
    * 'error'. Reality (a live port) beats the latched state; without this the
    * bar froze on "Dev: blocked" over a serving app.
    */
-  if (input.previews.some((preview) => preview.ready !== false || preview.serving === true)) {
+  /*
+   * `ready === true`, PAS `ready !== false` — voir `previewServerLooksRunning`.
+   * Ce libelle est la surface ou le mensonge se voyait : « Dev: active » (et le
+   * bouton « Stop running ») au-dessus d'un pod sans aucun processus vite.
+   * `ready === undefined` designe un port DETECTE, jamais verifie ; il ne doit
+   * plus valoir un oui. Le signal `serving` reste decisif et intact.
+   */
+  if (previewServerLooksRunning(input.previews)) {
     return command ? t('baseChatAst.dev.activeCommand', { command }) : t('baseChatAst.dev.active');
   }
 

@@ -80,9 +80,10 @@ describe('AGENT-SCROLL-001 — la pastille suit la référence d’Avi', () => {
     const regle = INDEX.slice(debut, INDEX.indexOf('\n  }\n', debut)).replace(/\/\*[\s\S]*?\*\//g, '');
 
     expect(regle, 'sur téléphone la pastille est au milieu').toMatch(/margin-inline:\s*auto/);
-    expect(regle, 'juste au-dessus de la zone de saisie').toMatch(
-      /bottom:\s*calc\(var\(--mobile-nav-height\) \+ 8px \+ 2px\)/,
-    );
+
+    // 08/09 : la boîte qui défile s'arrête où le composeur commence (RP-CKPT-01) — 2 px au-dessus, sans compenser la barre.
+    expect(regle, 'juste au-dessus de la zone de saisie').toMatch(/bottom:\s*2px;/);
+    expect(regle).not.toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\)/);
 
     const gouttiere = INDEX.indexOf(
       '.bolt-responsive-ide-mobile .bolt-project-agent-transcript:has(.bolt-agent-scroll-to-bottom) .bolt-chat-message-row {',

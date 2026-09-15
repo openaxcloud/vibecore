@@ -495,6 +495,9 @@ export const chatEn = {
   'chat.copy.memoryContent_66fe7c72': 'Memory content',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+  'chat.copy.dictationNoSpeech': 'No speech detected. Tap the microphone and speak.',
+  'chat.copy.dictationNoMicrophone': 'No microphone was found.',
+  'chat.copy.dictationNetwork': 'Dictation needs a network connection.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': 'Minimum 8 characters',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Missing project id. Reload the IDE and try again.',
@@ -713,6 +716,7 @@ export const chatEn = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Project variables and encrypted secrets loaded from backend stores.',
   'chat.copy.provider_7ceee3f3': 'Provider',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — not configured ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via native runtime',
@@ -1919,9 +1923,9 @@ export const chatFr = {
   'chat.copy.exportsDeploysCollaboratorsGitAndRuntime_21970b4b':
     'Exportations, déploiements, collaborateurs, Git et actions de l’environnement d’exécution',
   'chat.copy.exportTxt_469c1c08': 'Exporter le .txt',
-  'chat.copy.extension_f9896101': 'rallonge',
+  'chat.copy.extension_f9896101': 'extension',
   'chat.copy.extensionDomains_abc98b01': "Domaines d'extension",
-  'chat.copy.extensions_656bcfe2': 'Rallonges',
+  'chat.copy.extensions_656bcfe2': 'Extensions',
   'chat.copy.fallbackProvider_595064ee': 'Fournisseur de secours',
   'chat.copy.feature_4b7615dc': 'fonctionnalité',
   'chat.copy.fileEncodingUtf8_b8734a83': 'Encodage du fichier : UTF-8',
@@ -2068,6 +2072,9 @@ export const chatFr = {
   'chat.copy.memoryContent_66fe7c72': 'Contenu de la mémoire',
   'chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0':
     'L’accès au microphone est bloqué. Autorisez ce site à utiliser le microphone dans les paramètres de votre navigateur pour activer la reconnaissance vocale.',
+  'chat.copy.dictationNoSpeech': 'Aucune parole détectée. Appuyez sur le micro et parlez.',
+  'chat.copy.dictationNoMicrophone': 'Aucun micro détecté.',
+  'chat.copy.dictationNetwork': 'La dictée a besoin d’une connexion réseau.',
   'chat.copy.min_145a01fb': '/min',
   'chat.copy.minimum8Characters_77c6662e': '8 caractères minimum',
   'chat.copy.missingProjectIdReloadTheIde_66a40459': 'Identifiant du projet manquant. Rechargez l’IDE et réessayez.',
@@ -2268,7 +2275,7 @@ export const chatFr = {
   'chat.copy.procedural_4fce7cb8': 'Procédure',
   'chat.copy.processesAndPorts_52df812f': 'Processus et ports',
   'chat.copy.prod_23dc0c60': 'prod /',
-  'chat.copy.production_df70fc79': 'Fabrication',
+  'chat.copy.production_df70fc79': 'Production',
   'chat.copy.productionApiKey_43fad6cd': 'Clé API de production',
   'chat.copy.productionBastion_786805c7': 'Bastion de la production',
   'chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2':
@@ -2299,6 +2306,7 @@ export const chatFr = {
   'chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da':
     'Variables de projet et secrets chiffrés chargés depuis les stockages du service applicatif.',
   'chat.copy.provider_7ceee3f3': 'Fournisseur',
+  'chat.copy.providerNeedsConfig_9a1c7f20': '{provider} — non configuré ({missing})',
   'chat.copy.providerModesKeysAndRoutingAre_9774aeff':
     'Les modes, les clés et le routage du fournisseur sont conservés dans les secrets du projet ; le comportement des agents est exposé ici.',
   'chat.copy.pushViaNativeRuntime_91ec78cc': 'Push via l’environnement d’exécution natif',
@@ -2494,7 +2502,7 @@ export const chatFr = {
   'chat.copy.srcServerTs_bcc09dcb': 'src/server.ts',
   'chat.copy.sshConnections_564ae345': 'Connexions SSH',
   'chat.copy.sshGitUrl_f6b1fb5f': 'URL git SSH',
-  'chat.copy.staging_c9fb656c': 'Mise en scène',
+  'chat.copy.staging_c9fb656c': 'Préproduction',
   'chat.copy.standardBrowserShortcuts_ac1cbde1': 'Raccourcis standards du navigateur',
   'chat.copy.startDebugging_94a77e4e': 'Commencer le débogage',
   'chat.copy.status_bae7d5be': 'Statut',

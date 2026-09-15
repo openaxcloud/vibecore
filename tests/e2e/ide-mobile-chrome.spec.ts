@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 /**
  * Lot IDE-MOBILE-2026-09-06 — « fixe tous les panneaux, tout sans exception ».
@@ -54,13 +55,15 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
 
       const projectId = (await projet.json()).project.id as string;
 
+      let conversationId: string | undefined;
+
       if (options.fil) {
         const conversation = await request.post(`${apiBaseUrl}/projects/${projectId}/ai/conversations`, {
           headers: entetes,
           data: { title: 'Chrome mobile' },
         });
 
-        const conversationId = (await conversation.json()).conversation.id as string;
+        conversationId = (await conversation.json()).conversation.id as string;
 
         await request.put(`${apiBaseUrl}/projects/${projectId}/ai/conversations/${conversationId}/transcript`, {
           headers: entetes,
@@ -107,7 +110,7 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
         });
       }
 
-      return { token: auth.token, projectId };
+      return { token: auth.token, projectId, conversationId };
     }
 
     if (inscription.status() === 429 && essai < 3) {
@@ -121,16 +124,23 @@ async function preparerUnProjet(request: APIRequestContext, options: { fil: bool
   throw new Error(`Impossible de préparer un projet : ${dernier}`);
 }
 
-async function ouvrirIde(page: Page, request: APIRequestContext, options: { fil: boolean; long?: boolean }) {
-  const { token, projectId } = await preparerUnProjet(request, options);
+async function ouvrirIde(
+  page: Page,
+  request: APIRequestContext,
+  options: { fil: boolean; long?: boolean; theme?: 'light' | 'dark' },
+) {
+  const { token, projectId, conversationId } = await preparerUnProjet(request, options);
 
-  await page
-    .context()
-    .addCookies([{ name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' }]);
+  await page.context().addCookies([
+    { name: 'vc_session', value: token, url: appBaseUrl, httpOnly: true, sameSite: 'Lax' },
+
+    // Le cookie partagé est la source de vérité du thème (app/lib/stores/theme.ts).
+    ...(options.theme ? [{ name: 'ecode_theme', value: options.theme, url: appBaseUrl }] : []),
+  ]);
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
 
-  return { token, projectId };
+  return { token, projectId, conversationId };
 }
 
 /*
@@ -171,10 +181,68 @@ async function appuiLong(page: Page, cible: ReturnType<Page['locator']>, ou: 'ga
   return { x, y };
 }
 
+/*
+ * Un moteur de dictée factice, piloté par le test : ni Chromium sans service
+ * ni WebKitGTK (pas d'API Web Speech) ne peuvent transcrire ; ce qui se
+ * vérifie ici, c'est ce que l'INTERFACE fait de ce que le moteur lui dit.
+ * Le moteur réel de Safari iOS n'est pas exercé — à confirmer sur iPhone.
+ */
+const FAUX_MOTEUR_DE_DICTEE = `(() => {
+  const instances = [];
+  class FauxReconnaissance {
+    constructor() { this.continuous = false; this.interimResults = false; this.lang = ''; this.appels = []; instances.push(this); }
+    start() { this.appels.push('start'); }
+    stop() { this.appels.push('stop'); }
+    abort() { this.appels.push('abort'); }
+    _emettre(type, detail) { const h = this['on' + type]; if (h) h(Object.assign({ type }, detail)); }
+    _resultat(textes, final) {
+      const results = textes.map((t) => { const r = [{ transcript: t, confidence: 0.9 }]; r.isFinal = final; return r; });
+      this._emettre('result', { results, resultIndex: 0 });
+    }
+  }
+  window.webkitSpeechRecognition = FauxReconnaissance;
+  window.SpeechRecognition = FauxReconnaissance;
+  window.__sr = instances;
+})();`;
+
 /* Le vrai chemin : la feuille « + », puis l'outil. */
 async function ouvrirOutil(page: Page, id: string) {
   await page.getByTestId('button-add-tab').click();
   await page.getByTestId(`tool-item-${id}`).click({ timeout: 15_000 });
+}
+
+/*
+ * Le fil est « stable » quand sa hauteur de contenu et sa position ne bougent
+ * plus pendant une seconde (quatre lectures à 250 ms). Bornée à 20 s : au-delà,
+ * on mesure quand même, et l'assertion dira ce qu'elle voit.
+ */
+async function attendreLeFilStable(page: Page) {
+  const lire = () =>
+    page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+        const style = getComputedStyle(el);
+
+        return (
+          /(auto|scroll)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          el.querySelector('.bolt-chat-message-row')
+        );
+      });
+
+      return boite ? `${boite.scrollHeight}:${Math.round(boite.scrollTop)}` : 'aucune';
+    });
+
+  let precedent = await lire();
+  let stable = 0;
+
+  for (let i = 0; i < 80 && stable < 4; i += 1) {
+    await page.waitForTimeout(250);
+
+    const courant = await lire();
+
+    stable = courant === precedent ? stable + 1 : 0;
+    precedent = courant;
+  }
 }
 
 type Mesure = { text: string; font: number; w: number; h: number; sw: number; cw: number; sh: number; ch: number };
@@ -1110,17 +1178,16 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
 
     expect(enBas.pastille, 'en bas du fil, pas de pastille').toBeNull();
 
-    // Remonter le fil : la boîte qui défile est celle qui contient les messages.
+    /*
+     * Remonter le fil : la boîte qui défile est la plus PROFONDE des boîtes défilantes contenant les messages
+     * (StickToBottom en intercale une ; un conteneur extérieur qui déborde ne ferait pas apparaître la pastille).
+     */
     await page.evaluate(() => {
-      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
-        const style = getComputedStyle(el);
-
-        return (
-          /(auto|scroll)/.test(style.overflowY) &&
-          el.scrollHeight > el.clientHeight + 50 &&
-          el.querySelector('.bolt-chat-message-row')
-        );
-      });
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
 
       if (boite) {
         boite.scrollTop = Math.max(0, boite.scrollTop - 600);
@@ -1195,6 +1262,19 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
           dansLaRacine: Boolean(document.querySelector('.bolt-responsive-ide-mobile > .bolt-message-context-menu')),
         };
       });
+
+    /*
+     * Porte E2E, runs 1594 et 1608 (runner CI, 3 tentatives sur 3) : « le fil
+     * ne doit pas bouger » — 388 → 548, puis 420 → 388. Ce n'est pas le menu
+     * qui bouge le fil : c'est le fil qui finit de se rendre entre les deux
+     * mesures (hauteur de contenu +160 puis −32 px), ce que 1 200 ms ne
+     * couvrent pas sur un runner lent. En local, même bridé ×4 CPU, il est
+     * stable à 1 200 ms — d'où le vert 3/3 ici. On attend la fin réelle du
+     * chargement, puis un fil dont la hauteur et la position ne changent
+     * plus pendant une seconde.
+     */
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
 
     const avant = await etat();
 
@@ -1452,6 +1532,887 @@ test.describe('chrome de l’IDE sur téléphone — 390', () => {
     });
   }
 
+  test('Webview : l’URL se lit en 13 px et s’édite à 16 px ; les journaux se referment', async ({ page, request }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true });
+    await ouvrirOutil(page, 'preview');
+
+    const barre = page.locator('.bolt-preview-addressbar');
+
+    await expect(barre).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.bolt-preview-port-button')).toBeVisible({ timeout: 30_000 });
+
+    /*
+     * Avi, 07/09 08:19 : « tu as réduis la police du contenu comme le reste,
+     * où il y a l'URL ». Le champ garde 16 px (plancher iOS, IOS-ZOOM-001) ;
+     * hors édition, c'est un bouton en 13 px qui montre l'adresse.
+     */
+    const lecture = barre.locator('.bolt-preview-url-text');
+    const champ = barre.locator('input');
+
+    await expect(lecture).toBeVisible();
+
+    const polices = await page.evaluate(() => ({
+      lecture: getComputedStyle(document.querySelector('.bolt-preview-url-text')!).fontSize,
+      champ: getComputedStyle(document.querySelector('.bolt-preview-addressbar input')!).fontSize,
+      champVisible: getComputedStyle(document.querySelector('.bolt-preview-addressbar input')!).opacity !== '0',
+    }));
+
+    expect(polices.lecture, 'l’URL se lit à l’échelle du reste').toBe('13px');
+    expect(polices.champ, 'le champ garde le plancher iOS').toBe('16px');
+    expect(polices.champVisible, 'hors édition, le champ est retiré de la vue').toBe(false);
+
+    // Un appui sur l'adresse révèle le champ et le focalise, à 16 px.
+    if (await lecture.isEnabled()) {
+      await lecture.tap();
+      await expect(champ).toBeFocused({ timeout: 5_000 });
+
+      const enEdition = await champ.evaluate((el) => ({
+        largeur: el.getBoundingClientRect().width,
+        police: getComputedStyle(el).fontSize,
+      }));
+
+      expect(enEdition.largeur).toBeGreaterThan(80);
+      expect(enEdition.police).toBe('16px');
+      await champ.blur();
+      await expect(lecture).toBeVisible();
+    }
+
+    /*
+     * « Quand j'ouvre les journaux je ne peux pas les fermer » : « Ancrer à
+     * droite » est caché sur téléphone et rien ne refermait le panneau.
+     */
+    // Le chemin d'Avi : « Afficher les journaux » sur la carte de démarrage ; à défaut (carte absente), le bouton de la barre d'outils.
+    const boutonCarte = page
+      .locator('.bolt-preview-splash button')
+      .filter({ hasText: /journaux|logs/i })
+      .first();
+
+    if (await boutonCarte.isVisible().catch(() => false)) {
+      await boutonCarte.tap();
+    } else {
+      await page
+        .locator(
+          '.bolt-project-webview-toolbar button[title*="ournaux"], .bolt-project-webview-toolbar button[title*="logs" i]',
+        )
+        .first()
+        .evaluate((el) => (el as HTMLElement).click());
+    }
+
+    const journaux = page.locator('.bolt-preview-logs-panel');
+
+    await expect(journaux).toBeVisible({ timeout: 10_000 });
+
+    const croix = journaux.locator('.bolt-preview-logs-close');
+
+    await expect(croix, 'la croix qui referme les journaux').toBeVisible();
+
+    const boiteCroix = await croix.boundingBox();
+
+    expect(boiteCroix!.width, 'cible tactile').toBeGreaterThanOrEqual(44);
+    expect(boiteCroix!.x + boiteCroix!.width).toBeLessThanOrEqual(390);
+    await croix.tap();
+    await expect(journaux, 'les journaux se referment').toBeHidden({ timeout: 5_000 });
+  });
+
+  test('sélecteur d’onglets : les raccourcis du bas sont plus petits que les onglets, et tous de même taille', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    // Avi, 07/09 08:21 : « les carrés doivent être plus petits que les carrés au-dessus, et tous de même taille ».
+    await page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher').tap();
+
+    const selecteur = page.getByTestId('mobile-tab-switcher');
+
+    await expect(selecteur).toBeVisible({ timeout: 10_000 });
+
+    const onglets = await mesurer(page, '.bolt-mobile-tab-switcher-card');
+    const raccourcis = await mesurer(page, '.bolt-mobile-tab-switcher-quick button');
+
+    expect(onglets.length, 'au moins un onglet ouvert').toBeGreaterThan(0);
+    expect(raccourcis.length, 'quatre raccourcis').toBe(4);
+
+    const hauteurOnglet = Math.min(...onglets.map((m) => m.h));
+    const hauteurs = new Set(raccourcis.map((m) => m.h));
+    const largeurs = new Set(raccourcis.map((m) => m.w));
+
+    expect(hauteurs.size, `raccourcis de hauteurs différentes : ${[...hauteurs].join(', ')}`).toBe(1);
+    expect(largeurs.size, `raccourcis de largeurs différentes : ${[...largeurs].join(', ')}`).toBe(1);
+    expect(
+      raccourcis[0].h,
+      `raccourci de ${raccourcis[0].h}px pour un onglet de ${hauteurOnglet}px`,
+    ).toBeLessThanOrEqual(hauteurOnglet - 20);
+    expect(raccourcis[0].h, 'cible tactile').toBeGreaterThanOrEqual(44);
+
+    for (const m of raccourcis) {
+      expect(m.sw, `raccourci « ${m.text} » tronqué`).toBeLessThanOrEqual(m.cw + 1);
+    }
+  });
+
+  for (const theme of ['light', 'dark'] as const) {
+    test(`sélecteur d’onglets : la croix de fermeture se peint dans la couleur du contenu — thème ${theme}`, async ({
+      page,
+      request,
+    }) => {
+      test.setTimeout(150_000);
+      await ouvrirIde(page, request, { fil: false, theme });
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(600);
+
+      /*
+       * Avi, 07/09 : « avec le thème light la croix est blanche sur du clair, on
+       * voit pas bien, il faut la même couleur que le contenu ». Mesuré avant
+       * correction (Chromium 390, clair) : glyphe masquée peinte en
+       * rgb(246, 248, 251) — la couleur de FOND — sur la tuile « Secrets ».
+       */
+      await ouvrirOutil(page, 'secrets');
+      await page.waitForTimeout(800);
+      await page.getByTestId('mobile-bottom-navigation').getByTestId('button-tab-switcher').tap();
+      await expect(page.getByTestId('mobile-tab-switcher')).toBeVisible({ timeout: 10_000 });
+
+      const croix = page.getByTestId('button-close-tab-secrets');
+
+      await expect(croix).toBeVisible();
+
+      const mesure = await croix.evaluate((bouton) => {
+        const luminance = (couleur: string) => {
+          const m = couleur.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+
+          if (!m) {
+            throw new Error(`couleur illisible : ${couleur}`);
+          }
+
+          const alpha = m[4] === undefined ? 1 : parseFloat(m[4]);
+
+          const [r, g, b] = [m[1], m[2], m[3]].map((v) => {
+            const c = parseInt(v, 10) / 255;
+            return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+          });
+
+          return { l: 0.2126 * r + 0.7152 * g + 0.0722 * b, alpha };
+        };
+        const contraste = (a: string, b: string) => {
+          const la = luminance(a).l;
+          const lb = luminance(b).l;
+
+          return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
+        };
+
+        const carte = bouton.closest<HTMLElement>('.bolt-mobile-tab-switcher-card')!;
+        const contenu = carte.querySelector<HTMLElement>('.bolt-mobile-tab-switcher-card-main')!;
+        const glyphe = [...bouton.querySelectorAll<HTMLElement>('span')].find((el) => el.className.includes('i-ph:'))!;
+        const pastille = glyphe.parentElement!;
+        const styleGlyphe = getComputedStyle(glyphe);
+        const stylePastille = getComputedStyle(pastille);
+        const masque = styleGlyphe.maskImage !== 'none' || styleGlyphe.webkitMaskImage !== 'none';
+
+        // Une icône masquée se peint avec sa `background-color`.
+        const peinture = masque ? styleGlyphe.backgroundColor : styleGlyphe.color;
+
+        const fondPastille =
+          luminance(stylePastille.backgroundColor).alpha > 0.5
+            ? stylePastille.backgroundColor
+            : getComputedStyle(carte).backgroundColor;
+
+        return {
+          theme: document.documentElement.getAttribute('data-theme'),
+          masque,
+          peinture,
+          couleurContenu: getComputedStyle(contenu).color,
+          fondPastille,
+          contraste: contraste(peinture, fondPastille),
+          taille: glyphe.getBoundingClientRect().width,
+        };
+      });
+
+      expect(mesure.theme).toBe(theme);
+      expect(mesure.masque, 'la glyphe Phosphor est un masque').toBe(true);
+      expect(mesure.peinture, 'la croix a la couleur du contenu').toBe(mesure.couleurContenu);
+      expect(
+        mesure.contraste,
+        `contraste ${mesure.contraste.toFixed(1)}:1 (${mesure.peinture} sur ${mesure.fondPastille})`,
+      ).toBeGreaterThanOrEqual(4.5);
+      expect(mesure.taille, 'glyphe de 18 px, pas ramenée à 1em par la coque').toBeGreaterThanOrEqual(18);
+    });
+  }
+
+  test('dictée vocale : l’appui dit qu’on écoute, garde le texte tapé, et l’interface se remet au repos quand le moteur s’arrête seul', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await page.addInitScript(FAUX_MOTEUR_DE_DICTEE);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(800);
+
+    /*
+     * Avi, 07/09 08:18 : « il faut améliorer l'enregistrement de voix et le
+     * comportement quand on clique dessus, on comprend rien ». Mesuré avant
+     * correction (Chromium 390, moteur factice) : start() sans langue, icône
+     * « micro barré » pendant l'écoute, rien d'autre ne change, le texte tapé
+     * est effacé par la dictée, et le moteur qui s'arrête seul laisse
+     * l'interface « en écoute » — deux appuis pour relancer.
+     */
+    const champ = page.locator('.bolt-project-agent-composer textarea');
+
+    const micro = page
+      .locator('.bolt-project-agent-composer button')
+      .filter({ has: page.locator('[class*="i-ph:microphone"]') })
+      .first();
+
+    await expect(micro).toBeVisible({ timeout: 15_000 });
+    await champ.fill('Bonjour');
+
+    // La dernière instance est la vivante : la ré-hydratation en démonte une première (abort seul).
+    const moteur = () =>
+      page.evaluate(() => {
+        const m = (window as any).__sr.at(-1);
+        return { lang: m.lang, appels: m.appels as string[], ecouteLaFin: typeof m.onend === 'function' };
+      });
+
+    await micro.tap();
+    await expect.poll(async () => (await moteur()).appels).toEqual(['start']);
+
+    const demarre = await moteur();
+
+    expect(demarre.lang, 'la langue de l’interface est donnée au moteur').toBe('en-US');
+    expect(demarre.ecouteLaFin, 'le moteur qui s’arrête seul doit être entendu').toBe(true);
+    await expect(champ, 'pendant la demande d’accès, le champ le dit').toHaveAttribute(
+      'placeholder',
+      /microphone access/i,
+    );
+
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('start'));
+    await expect(champ, 'pendant l’écoute, le champ dit comment arrêter').toHaveAttribute('placeholder', /Listening/);
+    await expect(micro).toHaveAttribute('aria-pressed', 'true');
+    expect(await micro.locator('[class*="microphone-slash"]').count(), 'pas de micro barré pendant l’écoute').toBe(0);
+    await expect(micro.locator('.bolt-dictee-halo')).toBeVisible();
+
+    const couleurEcoute = await micro.evaluate((el) => getComputedStyle(el).color);
+
+    await page.evaluate(() => (window as any).__sr.at(-1)._resultat(['I want a contact page'], false));
+    await expect(champ, 'le texte tapé reste, la dictée s’y ajoute').toHaveValue('Bonjour I want a contact page');
+
+    // Le moteur s'arrête seul (silence, Safari iOS) : l'interface revient au repos.
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('end'));
+    await expect(micro).toHaveAttribute('aria-pressed', 'false');
+    await expect(champ).not.toHaveAttribute('placeholder', /Listening/);
+    expect(await micro.evaluate((el) => getComputedStyle(el).color)).not.toBe(couleurEcoute);
+
+    // Un seul appui relance — pas un stop() dans le vide, puis un troisième appui.
+    await micro.tap();
+    await expect.poll(async () => (await moteur()).appels).toEqual(['start', 'start']);
+
+    // Silence : on le dit, et on revient au repos.
+    await page.evaluate(() => (window as any).__sr.at(-1)._emettre('error', { error: 'no-speech' }));
+    await expect(page.getByText(/No speech detected/)).toBeVisible({ timeout: 5_000 });
+    await expect(micro).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  test('panneaux d’outils : le contenu reste net jusqu’au bord haut de la barre du bas — pas de bande morte', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    /*
+     * Avi, 07/09 08:26, panneau « Activité » : « cette espace ne sert à rien,
+     * on doit gagner de l'espace ». Le voile de la barre du bas montait 26 px
+     * au-dessus de la pastille, avec un flou d'arrière-plan : sur iOS le bord
+     * de la boîte floutée est net, et ces 26 px se lisaient comme une bande
+     * vide. Ici : la boîte du voile commence au bord haut de la pastille, et
+     * un point 6 px au-dessus appartient au contenu du panneau, sans flou.
+     */
+    await ouvrirOutil(page, 'activity');
+    await expect(page.getByTestId('ide-service-panel')).toBeVisible({ timeout: 20_000 });
+    await page.waitForTimeout(800);
+
+    const geometrie = await page.evaluate(() => {
+      const nav = document.querySelector<HTMLElement>('.bolt-mobile-replit-nav')!;
+      const voile = nav.querySelector<HTMLElement>('.bolt-mobile-replit-nav-bg')!;
+      const pastille = nav.querySelector<HTMLElement>('.bolt-mobile-replit-nav-inner')!;
+      const hautVoile = voile.getBoundingClientRect().top;
+      const hautPastille = pastille.getBoundingClientRect().top;
+      const sous = document.elementFromPoint(innerWidth / 2, hautPastille - 6) as HTMLElement | null;
+
+      let floute = false;
+
+      for (let el: HTMLElement | null = sous; el; el = el.parentElement) {
+        const style = getComputedStyle(el);
+
+        if ((style.backdropFilter && style.backdropFilter !== 'none') || el === voile) {
+          floute = true;
+          break;
+        }
+      }
+
+      return {
+        hautVoile,
+        hautPastille,
+        dansLePanneau: Boolean(sous?.closest('[data-testid="ide-service-panel"]')),
+        floute,
+      };
+    });
+
+    expect(
+      Math.abs(geometrie.hautVoile - geometrie.hautPastille),
+      `voile à ${geometrie.hautVoile}, pastille à ${geometrie.hautPastille}`,
+    ).toBeLessThanOrEqual(1);
+    expect(geometrie.dansLePanneau, '6 px au-dessus de la pastille, c’est le panneau').toBe(true);
+    expect(geometrie.floute, '… et il n’est pas flouté').toBe(false);
+  });
+
+  for (const largeur of [430, 390] as const) {
+    test(`barre du bas : les onglets fixes sont centrés entre le sélecteur et « + » — ${largeur} px`, async ({
+      page,
+      request,
+    }) => {
+      test.setTimeout(150_000);
+      await page.setViewportSize({ width: largeur, height: largeur === 430 ? 932 : 844 });
+      await ouvrirIde(page, request, { fil: false });
+      await page.waitForLoadState('load');
+      await page.waitForTimeout(600);
+
+      /*
+       * Avi, 07/09 08:36, entourés en rouge : « les trois panneaux fixes qui
+       * restent toujours fixes doivent être centrés ». Mesuré avant
+       * correction : onglets rangés à gauche de leur rangée, 55 px de vide
+       * avant « + » à 430, 15 à 390.
+       */
+      const mesure = await page.evaluate(() => {
+        const nav = document.querySelector<HTMLElement>('[data-testid="mobile-bottom-navigation"]')!;
+        const rangee = nav.querySelector<HTMLElement>('.bolt-mobile-replit-panel-scroll')!;
+        const onglets = [...rangee.querySelectorAll<HTMLElement>('.bolt-mobile-replit-panel-tab')];
+        const r = (el: HTMLElement) => el.getBoundingClientRect();
+        const premier = r(onglets[0]);
+        const dernier = r(onglets[onglets.length - 1]);
+        const boite = r(rangee);
+
+        return {
+          nombre: onglets.length,
+          videGauche: premier.left - boite.left,
+          videDroit: boite.right - dernier.right,
+          deborde: rangee.scrollWidth > rangee.clientWidth + 1,
+        };
+      });
+
+      expect(mesure.nombre, 'les trois onglets fixes').toBeGreaterThanOrEqual(3);
+      expect(mesure.deborde, 'la rangée tient sans défiler').toBe(false);
+      expect(
+        Math.abs(mesure.videGauche - mesure.videDroit),
+        `vide à gauche ${mesure.videGauche.toFixed(1)} px, à droite ${mesure.videDroit.toFixed(1)} px`,
+      ).toBeLessThanOrEqual(2);
+    });
+  }
+
+  test('panneau Agent, état de départ : la carte « Agent prêt » se pose sous l’en-tête, sans bande vide', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(800);
+
+    /*
+     * Avi, 07/09 14:22, capture iPhone : ~50 px de vide entre l'en-tête et la
+     * carte « Agent prêt ». Mesuré avant correction (Chromium 390) : en-tête
+     * jusqu'à 49, carte à 103 — 54 px, une marge de 55 px héritée de la
+     * bascule de langue flottante retirée depuis.
+     */
+    const geometrie = await page.evaluate(() => {
+      const entete = document.querySelector('.bolt-mobile-ecode-header')!.getBoundingClientRect();
+      const depart = document.querySelector('.bolt-mobile-agent-start-state')!.getBoundingClientRect();
+      const contexte = document.querySelector('.bolt-mobile-agent-context-bar')?.getBoundingClientRect();
+
+      return {
+        enteteBas: Math.round(entete.bottom),
+        departHaut: Math.round(depart.top),
+        contexteBas: contexte ? Math.round(contexte.bottom) : null,
+      };
+    });
+
+    const plancher = Math.max(geometrie.enteteBas, geometrie.contexteBas ?? 0);
+
+    expect(geometrie.departHaut, 'sous l’en-tête (et la barre de contexte)').toBeGreaterThanOrEqual(plancher);
+    expect(
+      geometrie.departHaut - plancher,
+      `${geometrie.departHaut - plancher}px de vide sous l’en-tête`,
+    ).toBeLessThanOrEqual(24);
+  });
+
+  test('fil de l’agent : le premier message se pose sous l’en-tête, sans bande morte et sans être rogné', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await expect(page.locator('.bolt-chat-message-row').first()).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    /*
+     * Avi, capture iPhone du 07/09 08:06, renvoyée le 08/09 : « retire cette
+     * espace, ça cache le contenu et perd de la place ». Mesuré avant
+     * correction (Chromium 390) : en-tête jusqu'à 49, boîte de défilement à
+     * partir de 62 — 13 px de bande morte — et la première bulle à 47, ses 15
+     * premiers pixels rognés (un point à 2 px sous son haut touchait le
+     * conteneur, pas la bulle).
+     */
+    const geometrie = await page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')].find((el) => {
+        const style = getComputedStyle(el);
+
+        return (
+          /(auto|scroll)/.test(style.overflowY) &&
+          el.scrollHeight > el.clientHeight + 50 &&
+          el.querySelector('.bolt-chat-message-row')
+        );
+      })!;
+
+      boite.scrollTop = 0;
+
+      const entete = document.querySelector('.bolt-mobile-ecode-header')!.getBoundingClientRect();
+      const bulle = document.querySelector('.bolt-chat-message-row')!.getBoundingClientRect();
+      const x = Math.round(bulle.left + 40);
+      const sous = (y: number) => document.elementFromPoint(x, y);
+
+      return {
+        enteteBas: Math.round(entete.bottom),
+        boiteHaut: Math.round(boite.getBoundingClientRect().top),
+        bulleHaut: Math.round(bulle.top),
+        sousEnteteDansLeFil: Boolean(sous(Math.round(entete.bottom) + 2)?.closest('.bolt-project-agent-transcript')),
+        hautDeBulleTouchable: Boolean(sous(Math.round(bulle.top) + 2)?.closest('.bolt-chat-message-row')),
+      };
+    });
+
+    expect(geometrie.boiteHaut, 'la boîte qui défile commence sous l’en-tête, pas plus bas').toBeLessThanOrEqual(
+      geometrie.enteteBas,
+    );
+    expect(geometrie.sousEnteteDansLeFil, '2 px sous l’en-tête, on touche déjà le fil').toBe(true);
+    expect(geometrie.bulleHaut - geometrie.enteteBas, 'la bulle se pose juste sous le trait').toBeGreaterThanOrEqual(3);
+    expect(geometrie.bulleHaut - geometrie.enteteBas, 'sans bande morte').toBeLessThanOrEqual(10);
+    expect(geometrie.hautDeBulleTouchable, 'le haut de la première bulle n’est pas rogné').toBe(true);
+  });
+
+  test('menu d’un message : un seul à la fois, posé au-dessus de la ligne, fermé au défilement', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(150_000);
+    await ouvrirIde(page, request, { fil: true, long: true });
+
+    const lignes = page.locator('.bolt-chat-message-row');
+
+    await expect(lignes.last()).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    /*
+     * Avi, 08/09 07:47 : « pas toujours au même endroit pour chaque message,
+     * jamais l'icône disparaît » — deux menus ouverts ensemble sur ses
+     * captures (barre de l'agent + rond « Modifier »), à des hauteurs
+     * différentes, et la page à recharger.
+     */
+    const utilisateur = page.locator('.bolt-chat-message-row-user').last();
+    const agent = page.locator('.bolt-chat-message-row-assistant').last();
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await appuiLong(page, utilisateur, 'droite');
+    await expect(menu).toHaveCount(1, { timeout: 15_000 });
+
+    const premier = await page.evaluate(() => {
+      const m = document.querySelector('.bolt-message-context-menu')!.getBoundingClientRect();
+      const rangees = document.querySelectorAll('.bolt-chat-message-row-user');
+      const ligne = rangees[rangees.length - 1]!.getBoundingClientRect();
+
+      return {
+        menuBas: Math.round(m.bottom),
+        menuCentre: Math.round(m.left + m.width / 2),
+        ligneHaut: Math.round(ligne.top),
+        ligneCentre: Math.round(ligne.left + ligne.width / 2),
+      };
+    });
+
+    expect(premier.menuBas, 'au-dessus de la ligne du message').toBeLessThanOrEqual(premier.ligneHaut);
+    expect(Math.abs(premier.menuCentre - premier.ligneCentre), 'centré sur la ligne').toBeLessThanOrEqual(24);
+
+    // Un appui long sur un autre message : UN menu, celui du nouveau message.
+    await appuiLong(page, agent, 'gauche');
+    await expect(menu).toHaveCount(1, { timeout: 15_000 });
+    await expect(menu.locator('.bolt-assistant-message-footer')).toHaveCount(1);
+
+    // Faire défiler le fil le ferme.
+    await page.evaluate(() => {
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
+
+      boite.scrollTop = Math.max(0, boite.scrollTop - 80);
+    });
+    await expect(menu).toHaveCount(0, { timeout: 5_000 });
+  });
+
+  test('fin de tour à la Replit : « Worked for » et « Checkpoint made » sous la réponse, au-dessus de la zone de saisie ; retour arrière ; « Changes » ouvre le commit', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000);
+
+    const { token, projectId, conversationId } = await ouvrirIde(page, request, { fil: true });
+    const entetes = { authorization: `Bearer ${token}` };
+
+    /*
+     * Avi, 08/09 07:48–07:51, quatre captures : chez nous « Léger · ×0.530 k
+     * jetons » sous la zone de saisie ; chez Replit deux lignes repliables
+     * sous la réponse — « Worked for 2 minutes » (Time worked / Work done /
+     * Items read / Agent usage) et « Checkpoint made 25 days ago » (message du
+     * commit, date, Rollback here, Changes), la feuille « Rollback to this
+     * checkpoint? » (Files / Database / Agent memory) et « Changes » qui
+     * ouvre le commit dans l'onglet Git.
+     *
+     * Le point de restauration est pris ici comme la fin de tour le prend
+     * (RP-CKPT-04) : un commit Git, puis un instantané `automatic` dont le
+     * manifeste relie le tout au message `a1` et garde les statistiques.
+     */
+    // Un projet neuf n'a rien dans son stockage : le fichier que le tour a écrit y est importé d'abord.
+    const archive = new JSZip();
+
+    archive.file(CHEMIN_PROFOND, '// contact\n');
+    archive.file('package.json', '{ "name": "chrome-mobile", "private": true }\n');
+
+    const importation = await request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+      headers: entetes,
+      data: { zipBase64: await archive.generateAsync({ type: 'base64' }), replaceExisting: true },
+    });
+
+    expect(importation.ok(), await importation.text()).toBe(true);
+
+    const commit = await request.post(`${apiBaseUrl}/projects/${projectId}/git/commit`, {
+      headers: entetes,
+      data: { message: 'Page de contact' },
+    });
+
+    expect(commit.ok(), await commit.text()).toBe(true);
+
+    const sha = String((await commit.json()).commit?.sha ?? '').trim();
+
+    expect(sha).toMatch(/^[0-9a-f]{40}$/u);
+
+    const instantane = await request.post(`${apiBaseUrl}/projects/${projectId}/snapshots`, {
+      headers: entetes,
+      data: {
+        label: 'Page de contact',
+        kind: 'automatic',
+        manifest: {
+          checkpoint: {
+            // Comme la fin de tour : l'identifiant client ET le rang du tour dans la conversation (stable au relu).
+            messageId: 'a1',
+            conversationId,
+            turnIndex: 0,
+            commitSha: sha,
+            commitMessage: 'Page de contact',
+            statistiques: { dureeMs: 120_000, actions: 15, lignesLues: 218, coutCents: 321 },
+          },
+        },
+      },
+    });
+
+    expect(instantane.ok(), await instantane.text()).toBe(true);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
+
+    // Au relu, le message porte son identifiant serveur (`aimsg_…`) : on prend le bloc de la dernière réponse.
+    const bloc = page
+      .locator('.bolt-chat-message-row-assistant')
+      .last()
+      .locator('[data-testid^="fin-de-tour-"]')
+      .first();
+
+    await expect(bloc).toBeVisible({ timeout: 60_000 });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    /*
+     * Le testid apparaît sur une LIGNE du bloc ; la racine `.bolt-fin-de-tour`,
+     * elle, pouvait n'être pas encore posée au moment de la mesure — d'où un
+     * `getBoundingClientRect` de `null` vu une fois sur ce test (run local du
+     * 08/09, passé au réessai). On attend la racine elle-même : ce que la
+     * mesure suivante déréférence.
+     */
+    await page.waitForSelector('.bolt-fin-de-tour', { state: 'attached', timeout: 30_000 });
+    await page.waitForSelector('.bolt-project-agent-composer', { state: 'attached', timeout: 30_000 });
+
+    // RP-CKPT-01 — en bas du fil, ni le bloc ni le dernier message ne passent sous la zone de saisie.
+    const geometrie = await page.evaluate(() => {
+      // La boîte qui défile est la plus PROFONDE des boîtes défilantes contenant le fil (StickToBottom en intercale une).
+      const boite = [...document.querySelectorAll<HTMLElement>('*')]
+        .filter(
+          (el) => /(auto|scroll)/.test(getComputedStyle(el).overflowY) && el.querySelector('.bolt-chat-message-row'),
+        )
+        .sort((a, b) => a.clientHeight - b.clientHeight)[0];
+
+      if (boite) {
+        boite.scrollTop = boite.scrollHeight;
+      }
+
+      const rangees = document.querySelectorAll('.bolt-chat-message-row');
+      const derniere = rangees[rangees.length - 1]!.getBoundingClientRect();
+      const bloc = document.querySelector('.bolt-fin-de-tour')!.getBoundingClientRect();
+      const composeur = document.querySelector('.bolt-project-agent-composer')!.getBoundingClientRect();
+      const boiteRect = boite?.getBoundingClientRect();
+
+      return {
+        derniereBas: Math.round(derniere.bottom),
+        blocBas: Math.round(bloc.bottom),
+        composeurHaut: Math.round(composeur.top),
+        boiteBas: boiteRect ? Math.round(boiteRect.bottom) : null,
+      };
+    });
+
+    expect(geometrie.boiteBas, 'la boîte qui défile s’arrête où la zone de saisie commence').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+    expect(geometrie.blocBas, 'le bloc de fin de tour reste au-dessus de la zone de saisie').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+    expect(geometrie.derniereBas, 'le dernier message reste au-dessus de la zone de saisie').toBeLessThanOrEqual(
+      geometrie.composeurHaut + 1,
+    );
+
+    // RP-CKPT-07 — fermées par défaut ; RP-CKPT-02 — les quatre lignes de Replit.
+    await expect(page.getByTestId('fin-de-tour-travail-detail')).toHaveCount(0);
+    await expect(page.getByTestId('fin-de-tour-travail')).toHaveText(/Worked for 2 minutes|A travaillé 2 minutes/u);
+    await page.getByTestId('fin-de-tour-travail').click();
+    await expect(page.getByTestId('fin-de-tour-timeWorked')).toContainText('2 minutes');
+    await expect(page.getByTestId('fin-de-tour-workDone')).toContainText('15 actions');
+    await expect(page.getByTestId('fin-de-tour-itemsRead')).toContainText(/218 (lines|lignes)/u);
+    await expect(page.getByTestId('fin-de-tour-agentUsage')).toContainText(/\$3\.21|3,21 \$/u);
+
+    // RP-CKPT-03 — le point de restauration : message du commit, date, deux boutons.
+    await expect(page.getByTestId('fin-de-tour-point')).toHaveText(/Checkpoint made|Point de restauration créé/u);
+    await page.getByTestId('fin-de-tour-point').click();
+
+    const detailDuPoint = page.getByTestId('fin-de-tour-point-detail');
+
+    await expect(detailDuPoint).toContainText('Page de contact');
+    await expect(detailDuPoint).toContainText(/2026/u);
+    await expect(page.getByTestId('fin-de-tour-rollback')).toBeVisible();
+    await expect(page.getByTestId('fin-de-tour-changes')).toBeVisible();
+
+    // RP-CKPT-05 — la feuille Replit : Files / Database / Agent memory, Cancel.
+    await page.getByTestId('fin-de-tour-rollback').click();
+
+    const feuille = page.getByTestId('rollback-dialog');
+
+    await expect(feuille).toBeVisible();
+    await expect(feuille).toContainText(/Rollback to this checkpoint\?|Revenir à ce point de restauration \?/u);
+    await expect(feuille).toContainText('Page de contact');
+
+    const impact = page.getByTestId('rollback-impact');
+
+    await expect(impact.locator('strong')).toHaveCount(3);
+    await expect(impact).toContainText(/Files|Fichiers/u);
+    await expect(impact).toContainText(/Database|Base de données/u);
+    await expect(impact).toContainText(/Agent memory|Mémoire de l’agent/u);
+    await expect(feuille.locator('input[type="checkbox"]')).toHaveCount(0);
+    await page.getByTestId('rollback-cancel').click();
+    await expect(feuille).toHaveCount(0);
+
+    // RP-CKPT-06 — « Changes » ouvre l'onglet Git directement sur le commit du point.
+    await page.getByTestId('fin-de-tour-changes').click();
+
+    const detailDuCommit = page.getByTestId('git-commit-detail');
+
+    await expect(detailDuCommit).toBeVisible({ timeout: 30_000 });
+    await expect(detailDuCommit).toContainText(sha.slice(0, 8));
+  });
+
+  test('onglet Secrets : en-tête sur une ligne, filtre, ajout en ligne, puces clé / valeur / ⋮ et menu de ligne — parité Replit', async ({
+    page,
+    request,
+  }) => {
+    test.setTimeout(180_000);
+    await ouvrirIde(page, request, { fil: false });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    /*
+     * Avi, 07/09 14:19–14:20, cinq captures de l'onglet Secrets de Replit :
+     * « voici comment il faut faire la tab secret ». Avant : deux champs
+     * empilés, un gros bouton plein, « Importer .env », et, par secret,
+     * quatre boutons pleine largeur empilés (Révéler / Copier / Copier la
+     * valeur / Modifier).
+     */
+    await ouvrirOutil(page, 'secrets');
+
+    const panneau = page.getByTestId('secrets-panel');
+
+    await expect(panneau).toBeVisible({ timeout: 20_000 });
+
+    // RP-SEC-01 — titre, ⋮ et « + New Secret » sur UNE ligne, dans l'écran.
+    const entete = await page.evaluate(() => {
+      const r = (sel: string) => document.querySelector(sel)!.getBoundingClientRect();
+      const titre = r('.bolt-secrets-title');
+      const menu = r('[data-testid="secrets-menu"]');
+      const nouveau = r('[data-testid="secrets-new"]');
+
+      const centre = (b: DOMRect) => b.top + b.height / 2;
+
+      return {
+        titreY: centre(titre),
+        menuY: centre(menu),
+        nouveauY: centre(nouveau),
+        nouveauDroite: nouveau.right,
+        largeur: innerWidth,
+        hMenu: menu.height,
+        hNouveau: nouveau.height,
+      };
+    });
+
+    // Centres verticaux alignés : le titre fait 22 px, les boutons 44.
+    expect(Math.abs(entete.titreY - entete.nouveauY), 'titre et bouton sur la même ligne').toBeLessThanOrEqual(4);
+    expect(Math.abs(entete.menuY - entete.nouveauY)).toBeLessThanOrEqual(4);
+    expect(entete.nouveauDroite).toBeLessThanOrEqual(entete.largeur);
+
+    // Tailles Replit (mesurées sur les captures d'Avi) : ⋮ et bouton d'environ 30 px, cible tactile prolongée à 44.
+    expect(entete.hMenu).toBeGreaterThanOrEqual(30);
+    expect(entete.hNouveau).toBeGreaterThanOrEqual(30);
+
+    // RP-SEC-02 — le filtre, pleine largeur.
+    const filtre = page.getByTestId('secrets-filter');
+
+    await expect(filtre).toBeVisible();
+    expect((await filtre.boundingBox())!.width).toBeGreaterThan(entete.largeur * 0.8);
+
+    // RP-SEC-04 — ajout EN LIGNE : Clé et Valeur côte à côte, « Ajouter » grisé tant qu'il manque quelque chose.
+    await page.getByTestId('secrets-new').tap();
+
+    const formulaire = page.getByTestId('secrets-form');
+
+    await expect(formulaire).toBeVisible();
+
+    const champs = await page.evaluate(() => {
+      const cle = document.querySelector('[data-testid="secrets-form-key"]')!.getBoundingClientRect();
+      const valeur = document.querySelector('[data-testid="secrets-form-value"]')!.getBoundingClientRect();
+
+      return {
+        cleY: cle.top,
+        valeurY: valeur.top,
+        cleH: cle.height,
+        policeCle: getComputedStyle(document.querySelector('[data-testid="secrets-form-key"]')!).fontSize,
+      };
+    });
+
+    expect(Math.abs(champs.cleY - champs.valeurY), 'Clé et Valeur sur une rangée').toBeLessThanOrEqual(2);
+    expect(champs.cleH).toBeGreaterThanOrEqual(34);
+    expect(parseFloat(champs.policeCle), 'plancher iOS : pas de zoom au focus').toBeGreaterThanOrEqual(16);
+
+    const ajouter = page.getByTestId('secrets-form-add');
+
+    await expect(ajouter).toBeDisabled();
+    await page.getByTestId('secrets-form-key').fill('SLACK_API_KEY');
+    await expect(ajouter).toBeDisabled();
+    await page.getByTestId('secrets-form-value').fill('xoxb-test');
+    await expect(ajouter).toBeEnabled();
+    await ajouter.tap();
+
+    // RP-SEC-03 — la ligne : puce clé, puce valeur (points + œil), ⋮ — trois éléments de 44 px sur une rangée.
+    const ligne = page.getByTestId('secret-row-SLACK_API_KEY');
+
+    await expect(ligne).toBeVisible({ timeout: 20_000 });
+    await expect(formulaire).toBeHidden();
+
+    const geometrie = await ligne.evaluate((el) => {
+      const [cle, valeur, menu] = [
+        el.querySelector('.bolt-secrets-chip--key')!,
+        el.querySelector('.bolt-secrets-chip--value')!,
+        el.querySelector('.bolt-secrets-row-menu')!,
+      ].map((n) => n.getBoundingClientRect());
+
+      return {
+        cle: { y: cle.top, h: cle.height, l: cle.width },
+        valeur: {
+          y: valeur.top,
+          h: valeur.height,
+          l: valeur.width,
+          texte: el.querySelector('.bolt-secrets-chip--value .bolt-secrets-chip-text')!.textContent,
+        },
+        menu: { y: menu.top, h: menu.height, l: menu.width, droite: menu.right },
+        largeur: innerWidth,
+      };
+    });
+
+    expect(Math.abs(geometrie.cle.y - geometrie.valeur.y)).toBeLessThanOrEqual(2);
+    expect(Math.abs(geometrie.cle.y - geometrie.menu.y)).toBeLessThanOrEqual(2);
+    expect(geometrie.cle.h).toBeGreaterThanOrEqual(30);
+    expect(geometrie.valeur.h).toBeGreaterThanOrEqual(30);
+    expect(geometrie.menu.l).toBeGreaterThanOrEqual(30);
+
+    // La police des lignes suit Replit (≈ 13 px), le titre aussi (≈ 22 px) — mesuré, pas déclaré.
+    const polices = await page.evaluate(() => ({
+      ligne: parseFloat(
+        getComputedStyle(document.querySelector('.bolt-secrets-chip--key .bolt-secrets-chip-text')!).fontSize,
+      ),
+      titre: parseFloat(getComputedStyle(document.querySelector('.bolt-secrets-title')!).fontSize),
+    }));
+
+    expect(polices.ligne).toBe(13);
+    expect(polices.titre).toBe(22);
+
+    // La cible tactile reste de 44 px : 5 px au-dessus de la puce, c'est encore elle.
+    const dessus = await page.evaluate(() => {
+      const puce = document.querySelector<HTMLElement>('.bolt-secrets-chip--key')!;
+      const r = puce.getBoundingClientRect();
+      const touche = document.elementFromPoint(r.left + r.width / 2, r.top - 5);
+
+      return touche === puce || puce.contains(touche);
+    });
+
+    expect(dessus, 'la puce répond 5 px au-dessus de sa boîte').toBe(true);
+    expect(geometrie.menu.droite).toBeLessThanOrEqual(geometrie.largeur);
+    expect(geometrie.valeur.texte, 'la valeur est masquée par défaut').toMatch(/^•+$/);
+
+    // Le filtre agit.
+    await filtre.fill('zzz');
+    await expect(ligne).toBeHidden();
+    await filtre.fill('slack');
+    await expect(ligne).toBeVisible();
+
+    // RP-SEC-08 — le menu ⋮ : Modifier / Trouver les usages / Supprimer, flottant, dans l'écran.
+    await page.getByTestId('secret-menu-SLACK_API_KEY').tap();
+
+    const menu = page.getByTestId('secrets-floating-menu');
+
+    await expect(menu).toBeVisible();
+
+    const entrees = await menu.locator('[role="menuitem"]').allTextContents();
+
+    expect(entrees.map((e) => e.trim())).toEqual(['Edit', 'Find Usages', 'Delete']);
+
+    const boiteMenu = (await menu.boundingBox())!;
+
+    expect(boiteMenu.x).toBeGreaterThanOrEqual(0);
+    expect(boiteMenu.x + boiteMenu.width).toBeLessThanOrEqual(geometrie.largeur);
+    expect(boiteMenu.y + boiteMenu.height).toBeLessThanOrEqual(844);
+
+    // Supprimer, depuis le menu : la ligne disparaît.
+    await menu.locator('[role="menuitem"]', { hasText: 'Delete' }).tap();
+    await expect(ligne).toBeHidden({ timeout: 20_000 });
+  });
+
   test('zone de saisie : bordure basse du cadre visible, 8 px au-dessus du socle, sans défilement interne', async ({
     page,
     request,
@@ -1573,6 +2534,41 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
   }) => {
     test.setTimeout(150_000);
 
+    /*
+     * UN RUNNER CHARGÉ, REJOUÉ EXPRÈS. Au montage, deux lecteurs demandent la
+     * transcription : le hook d'hydratation (dès que l'ide-state donne
+     * l'identifiant) puis le repli serveur (une requête `?limit=1` plus tard).
+     * Sur une machine lente, la réponse du SECOND atterrit APRÈS l'effacement.
+     * Mesuré sur `main` le 14/09 (run E2E 1969, 30,9 min) : rouge 3 fois sur 3,
+     * « 0 attendu, 2 reçus » — et vert sur la machine saine d'à côté.
+     *
+     * Ce qui rend le cas déterministe, mesuré en local sur le build défectueux :
+     *   - retarder `/messages` en bloc ne prouve rien (les deux lecteurs
+     *     attendent ENSEMBLE, vert) ;
+     *   - retarder `?limit=1` non plus (le serveur répond après la création de
+     *     la conversation neuve et le repli lit la neuve, vide — vert) ;
+     *   - retarder la réponse du DEUXIÈME `/messages` seulement : c'est le
+     *     traînard réel, et le fil effacé revient.
+     */
+    let lecturesDuFil = 0;
+
+    await page.route(/\/ai\/conversations\/[^/]+\/messages(\?|$)/, async (route) => {
+      lecturesDuFil += 1;
+
+      /*
+       * 4 s : mesuré en local, le second `/messages` part ~1,9 s après
+       * l'ouverture, l'effacement est confirmé ~1 s plus tard. Le traînard
+       * doit atterrir DANS la fenêtre d'observation qui suit (6 s), pas après
+       * — avec 5 s de retard et 3 s de fenêtre, le test restait vert sur le
+       * build défectueux parce qu'il regardait avant l'arrivée.
+       */
+      if (lecturesDuFil === 2) {
+        await new Promise((resoudre) => setTimeout(resoudre, 4000));
+      }
+
+      await route.continue();
+    });
+
     const { token, projectId } = await ouvrirIde(page, request, { fil: true });
     const lignes = page.locator('.bolt-chat-message-row');
 
@@ -1595,7 +2591,8 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
 
     // Mesuré avant : quatre messages avant, quatre après — le fil « effacé » revenait.
     await expect(lignes).toHaveCount(0, { timeout: 15_000 });
-    await page.waitForTimeout(3000);
+    // 6 s : la fenêtre doit couvrir l'arrivée du traînard retardé ci-dessus.
+    await page.waitForTimeout(6000);
     await expect(lignes, 'le fil ne doit pas se remplir à nouveau').toHaveCount(0);
 
     await expect
@@ -1616,5 +2613,774 @@ test.describe('chrome de l’IDE sur téléphone — 390, en français', () => {
     await expect(page.getByTestId('button-add-tab')).toBeVisible({ timeout: 60_000 });
     await page.waitForTimeout(6000);
     await expect(lignes, 'après rechargement, la conversation reste neuve').toHaveCount(0);
+  });
+});
+
+/*
+ * BUG-STREAM-JUMP-001 — « le contenu de l'agent n'arrête pas de sauter, c'est
+ * impossible de suivre le streaming proprement » (Avi, 08/09).
+ *
+ * Mesuré à 390 sur le build de production, tour streamé, sonde
+ * MutationObserver : `append` vient de `useChat` et change d'identité à chaque
+ * lot de jetons ; la table `components` de react-markdown en dépendait, donc
+ * chacune de ses entrées changeait de TYPE à chaque lot et react-markdown
+ * remontait tout le sous-arbre. Le markdown de TOUS les messages du fil — y
+ * compris des tours terminés depuis longtemps — était recréé toutes les 25 à
+ * 65 ms : 387 recréations sur 400 mutations relevées, un bloc de code qui
+ * apparaissait et disparaissait 39 fois, un à-coup de défilement de −159 px.
+ * Après correctif, même sonde et même build : 3 recréations sur 135 mutations,
+ * 3 clignotements, plus aucun à-coup négatif.
+ *
+ * Le flux est piloté DANS la page : `route.fulfill` livrerait le corps d'un
+ * seul coup — ce ne serait pas un flux, et le défaut ne se produirait pas.
+ */
+test.describe('agent — le fil ne se recrée pas pendant le streaming (téléphone)', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('un tour streamé ne recrée pas le markdown des messages déjà affichés', async ({ page, request }) => {
+    test.setTimeout(180_000);
+
+    await page.addInitScript(() => {
+      const prose =
+        'Voici une explication détaillée de ce que je viens de faire, avec assez de ' +
+        'texte pour que le fil dépasse la fenêtre de lecture d’un téléphone. ';
+
+      const bouts: string[] = [];
+
+      for (let tour = 0; tour < 4; tour += 1) {
+        bouts.push(prose, prose, '\n\n```ts\n', `export const v${tour} = ${tour};\n`, '```\n\n');
+      }
+
+      // Morceaux de 12 caractères : la granularité d'un vrai modèle.
+      const fins: string[] = [];
+
+      for (const bout of bouts) {
+        for (let i = 0; i < bout.length; i += 12) {
+          fins.push(bout.slice(i, i + 12));
+        }
+      }
+
+      const vrai = window.fetch.bind(window);
+
+      window.fetch = ((entree: any, init?: any) => {
+        const url = typeof entree === 'string' ? entree : (entree?.url ?? '');
+
+        if (!String(url).includes('/api/chat')) {
+          return vrai(entree, init);
+        }
+
+        const encodeur = new TextEncoder();
+
+        const corps = new ReadableStream({
+          start(controleur) {
+            let i = 0;
+            controleur.enqueue(encodeur.encode('f:' + JSON.stringify({ messageId: 'msg-flux' }) + '\n'));
+
+            const pousser = () => {
+              if (i >= fins.length) {
+                controleur.enqueue(encodeur.encode('d:' + JSON.stringify({ finishReason: 'stop', usage: {} }) + '\n'));
+                controleur.close();
+
+                return;
+              }
+
+              controleur.enqueue(encodeur.encode('0:' + JSON.stringify(fins[i]) + '\n'));
+              i += 1;
+              setTimeout(pousser, 25);
+            };
+
+            setTimeout(pousser, 25);
+          },
+        });
+
+        return Promise.resolve(
+          new Response(corps, {
+            status: 200,
+            headers: { 'content-type': 'text/event-stream; charset=utf-8', 'x-vercel-ai-data-stream': 'v1' },
+          }),
+        );
+      }) as typeof window.fetch;
+    });
+
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(2500);
+
+    const composeur = page
+      .locator('.bolt-project-agent-composer textarea, .bolt-project-agent-composer [contenteditable]')
+      .first();
+    await expect(composeur).toBeVisible({ timeout: 30_000 });
+
+    // On compte les recréations de markdown ET les allers-retours des blocs de code.
+    await page.evaluate(() => {
+      const w = window as any;
+      w.__recrees = 0;
+      w.__pre = [];
+
+      const cible = document.querySelector('.bolt-project-agent-transcript');
+
+      if (cible) {
+        new MutationObserver((enregistrements) => {
+          for (const enr of enregistrements) {
+            for (const n of enr.addedNodes) {
+              if (n instanceof HTMLElement && /MarkdownContent/.test(String(n.className || ''))) {
+                w.__recrees += 1;
+              }
+            }
+          }
+
+          w.__pre.push(document.querySelectorAll('.bolt-project-agent-transcript pre').length);
+        }).observe(cible, { childList: true, subtree: true });
+      }
+    });
+
+    const lignesAvant = await page.locator('.bolt-chat-message-row').count();
+
+    await composeur.click();
+    await composeur.fill('Explique-moi ce que tu as fait.');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(8000);
+
+    const { recrees, clignotements, pre } = await page.evaluate(() => {
+      const w = window as any;
+      const suite: number[] = w.__pre;
+
+      let n = 0;
+
+      for (let i = 1; i < suite.length; i += 1) {
+        if (suite[i] !== suite[i - 1]) {
+          n += 1;
+        }
+      }
+
+      return { recrees: w.__recrees as number, clignotements: n, pre: suite[suite.length - 1] ?? 0 };
+    });
+
+    // Le flux a bien eu lieu : sans cela, « 0 recréation » ne dirait rien (règle 14).
+    const lignesApres = await page.locator('.bolt-chat-message-row').count();
+
+    expect(lignesApres, 'le tour streamé doit avoir ajouté des messages').toBeGreaterThan(lignesAvant);
+    expect(pre, 'le flux doit avoir rendu au moins un bloc de code').toBeGreaterThan(0);
+
+    /*
+     * Mesuré : 387 avant correctif, 3 après. Le seuil laisse la place aux
+     * montages légitimes (le message neuf) tout en restant vingt fois sous le
+     * défaut.
+     */
+    expect(recrees, 'le markdown des messages déjà affichés ne doit pas être recréé').toBeLessThanOrEqual(20);
+    expect(clignotements, 'un bloc de code ne doit pas apparaître et disparaître en boucle').toBeLessThanOrEqual(8);
+  });
+});
+
+/*
+ * BUG-PILL-LEAKS-PANELS-001 — « parfois je vois dans la tab preview le scroll
+ * icon de l'agent » (Avi, 08/09 20:53, capture iPhone : le disque ↓ posé en bas
+ * à droite du cadre d'aperçu).
+ *
+ * Mesuré à 390 AVANT correctif : sur les panneaux Aperçu ET Déploiements, la
+ * pastille restait `display: flex` / `visible` / `opacity: 1` à [324, 708], et
+ * `elementFromPoint` en son centre la rendait — elle se peignait donc bien
+ * par-dessus l'autre panneau. Sur 164 éléments du fil, elle était la SEULE à
+ * s'échapper : le panneau actif est un calque `position: absolute; inset: 0` en
+ * `z-index: auto`, la pastille est `sticky` en `z-index: 20`, et toute la
+ * chaîne jusqu'à `body` est en `z-index: auto` — vingt bat zéro.
+ *
+ * Le test tient les DEUX moitiés, sans quoi supprimer la pastille suffirait à
+ * le faire passer : elle doit se peindre au-dessus du fil DANS le panneau
+ * Agent, et ne plus rien disputer aux autres panneaux.
+ */
+test.describe('agent — la pastille « descendre » ne déborde sur aucun autre panneau', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('elle se peint sur le fil, et sur rien d’autre', async ({ page, request }) => {
+    test.setTimeout(150_000);
+
+    await ouvrirIde(page, request, { fil: true, long: true });
+    await page.waitForLoadState('load');
+    await attendreLeFilStable(page);
+
+    // Remonter le fil : la pastille n'existe que lorsqu'on n'est PAS en bas.
+    await page.evaluate(() => {
+      const candidats = [...document.querySelectorAll<HTMLElement>('*')].filter(
+        (el) =>
+          /(auto|scroll)/.test(getComputedStyle(el).overflowY) &&
+          el.scrollHeight > el.clientHeight + 4 &&
+          el.querySelector('.bolt-chat-message-row'),
+      );
+
+      const sc = candidats.find((el) => !candidats.some((a) => a !== el && el.contains(a))) ?? candidats[0];
+
+      if (sc) {
+        sc.scrollTop = 0;
+      }
+    });
+
+    const pastille = page.locator('.bolt-agent-scroll-to-bottom');
+    await expect(pastille, 'la pastille doit apparaître quand on remonte le fil').toBeVisible({ timeout: 20_000 });
+
+    /* Se peint-elle au point qu'elle occupe ? C'est la seule question qui compte. */
+    const sePeint = () =>
+      page.evaluate(() => {
+        const p = document.querySelector<HTMLElement>('.bolt-agent-scroll-to-bottom');
+
+        if (!p) {
+          return { existe: false, dessus: false, quoi: null as string | null };
+        }
+
+        const r = p.getBoundingClientRect();
+        const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+
+        return {
+          existe: true,
+          dessus: Boolean(el && (el === p || p.contains(el))),
+          quoi: el ? `${el.tagName}.${String(el.className).slice(0, 40)}` : null,
+        };
+      });
+
+    // MOITIÉ 1 — dans le panneau Agent, elle est bien là et cliquable.
+    const surLeFil = await sePeint();
+
+    expect(surLeFil.existe, 'la pastille doit exister dans le panneau Agent').toBe(true);
+    expect(surLeFil.dessus, 'dans le panneau Agent elle se peint au-dessus du fil').toBe(true);
+
+    // MOITIÉ 2 — sur les autres panneaux, elle ne dispute plus rien.
+    for (const outil of ['preview', 'git']) {
+      await ouvrirOutil(page, outil);
+      await page.waitForTimeout(1500);
+
+      const ailleurs = await sePeint();
+
+      expect(
+        ailleurs.dessus,
+        `la pastille de l’agent ne doit rien peindre par-dessus le panneau ${outil} (trouvé : ${ailleurs.quoi})`,
+      ).toBe(false);
+    }
+  });
+});
+
+/*
+ * RP-PUBLISH-01…06 — le panneau Publication à la Replit (captures d'Avi,
+ * 08/09 21:00-21:02), et BUG-SECURITY-FIX-AGENT-001 — « Réparer avec l'agent »
+ * doit ramener sur le panneau Agent.
+ *
+ * Ce que ce test tient, c'est ce qui a réellement cassé pendant la mise au
+ * point : la coquille de l'IDE impose ses tailles en `!important`, et une
+ * première correction n'a pas suffi parce que les deux sélecteurs étaient à
+ * ÉGALITÉ de spécificité (0,2,0) — le `:not([class*="i-"])` de la coquille
+ * compte pour une classe, et à égalité l'ordre du fichier tranche. Mesuré : le
+ * titre sortait à 13 px au lieu de 30, le bouton d'action à 14 au lieu de 17.
+ * Un vert sur « le bloc est visible » n'aurait rien vu de tout cela.
+ */
+test.describe('publication à la Replit — le panneau et ses tailles', () => {
+  for (const format of [
+    { nom: 'téléphone', width: 390, height: 844 },
+    { nom: 'tablette', width: 820, height: 1180 },
+  ]) {
+    test.describe(`format ${format.nom}`, () => {
+      test.use({
+        viewport: { width: format.width, height: format.height },
+        isMobile: true,
+        hasTouch: true,
+        deviceScaleFactor: 2,
+      });
+
+      test('le bloc se rend aux bonnes tailles, sans rien déborder', async ({ page, request }) => {
+        test.setTimeout(180_000);
+
+        const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+        // Un déploiement réel : la carte d'étapes et l'historique ont de quoi s'afficher.
+        const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+          headers: { authorization: `Bearer ${token}` },
+          data: { provider: 'static', timeoutSeconds: 30 },
+        });
+
+        expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+        await ouvrirOutil(page, 'deployments');
+
+        const bloc = page.getByTestId('publication');
+        await expect(bloc).toBeVisible({ timeout: 30_000 });
+
+        // Les pièces maîtresses de la maquette.
+        await expect(page.getByTestId('publication-etapes')).toBeVisible();
+        await expect(page.getByTestId('publication-pastille')).toBeVisible();
+        await expect(page.getByTestId('publication-republier')).toBeVisible();
+
+        const mesures = await page.evaluate(() => {
+          const taille = (sel: string) => {
+            const el = document.querySelector<HTMLElement>(sel);
+
+            return el ? Math.round(parseFloat(getComputedStyle(el).fontSize)) : null;
+          };
+
+          const racine = document.querySelector<HTMLElement>('.bolt-publication');
+          const rr = racine?.getBoundingClientRect();
+
+          const deborde =
+            racine && rr
+              ? [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+                  const r = el.getBoundingClientRect();
+
+                  return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+                }).length
+              : 0;
+
+          return {
+            titre: taille('.bolt-publication-entete h2'),
+            sousTitre: taille('.bolt-publication-entete p'),
+            titreDeCarte: taille('.bolt-publication-carte-entete h3'),
+            segment: taille('.bolt-publication-segment'),
+            bouton: taille('.bolt-publication-republier'),
+            deborde,
+            scrollWidth: document.documentElement.scrollWidth,
+            innerWidth: window.innerWidth,
+          };
+        });
+
+        /*
+         * BUG-PUBLISH-SIZES-001 — l'échelle a été REVUE À LA BAISSE le 09/09.
+         *
+         * La précédente (titre 30, corps 15, titre de carte 17) venait d'une
+         * lecture des captures Replit à 3,0 px par px CSS. Mesurée en réel à
+         * 390 px, elle donnait ceci — et Avi l'a vu avant moi : « tout le
+         * contenu est trop gros c'est pas comme Replit ». Relevé du jour, en
+         * français, AVANT correction :
+         *   titre « Republier votre application » ....  2 lignes, 69 px
+         *   bouton « Ajuster les réglages » ..........  2 lignes, 44 px
+         *   titre « Domaines connectés » .............  2 lignes, 48 px
+         *   bouton « Ajouter un domaine » ............  2 lignes, 44 px
+         *
+         * L'erreur de méthode est identifiable : j'ai calibré sur des libellés
+         * ANGLAIS, qui tiennent sur une ligne là où le français déborde d'un
+         * cinquième. D'où le second contrôle, plus bas, qui mesure en français.
+         */
+        expect(mesures.titre, 'le titre résiste au reset de police de la coquille').toBe(19);
+        expect(mesures.sousTitre).toBe(13);
+        expect(mesures.titreDeCarte).toBe(15);
+        expect(mesures.segment).toBe(13);
+        expect(mesures.bouton, 'le bouton d’action résiste lui aussi').toBe(15);
+
+        expect(mesures.deborde, 'rien ne sort du panneau').toBe(0);
+        expect(mesures.scrollWidth, 'et la page ne défile pas latéralement').toBeLessThanOrEqual(mesures.innerWidth);
+      });
+    });
+  }
+
+  /*
+   * BUG-PUBLISH-SIZES-001 — la RÈGLE, et non la première occurrence.
+   *
+   * Fixer quatre tailles ne protège de rien : la prochaine traduction, ou le
+   * prochain libellé un peu plus long, ramènera les titres sur deux lignes
+   * sans qu'un seul test ne rougisse. Ce qu'Avi a vu, ce ne sont pas des
+   * pixels, ce sont des libellés repliés.
+   *
+   * Donc on mesure ce qui compte : dans la langue la PLUS LONGUE que nous
+   * servions — le français, celle d'Avi — aucun titre ni aucun bouton du
+   * panneau ne tient sur plus d'une ligne à 390 px. Les paragraphes, eux, ont
+   * le droit de se replier : c'est leur nature.
+   */
+  test.describe('rien ne se replie en français', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('titres et boutons tiennent sur une ligne à 390 px', async ({ page, request }) => {
+      test.setTimeout(180_000);
+
+      await page.context().addCookies([{ name: 'vibecore-lang', value: 'fr', url: appBaseUrl }]);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      const replies = await page.evaluate(() => {
+        const racine = document.querySelector('.bolt-publication');
+
+        if (!racine) {
+          return null;
+        }
+
+        const cibles = racine.querySelectorAll<HTMLElement>('h2, h3, button');
+        const trop: Array<{ texte: string; lignes: number; px: string }> = [];
+
+        cibles.forEach((el) => {
+          const texte = (el.textContent ?? '').trim();
+
+          if (!texte || el.childElementCount > 1) {
+            return;
+          }
+
+          /*
+           * Le VRAI nombre de lignes rendues : on compte les ORDONNÉES
+           * distinctes des rectangles d'un `Range` posé sur le contenu.
+           *
+           * DEUX mesures fausses avant celle-ci, et chacune accusait un
+           * élément parfaitement correct :
+           *   - hauteur ÷ interligne : deux boutons hauts de 44 px — la cible
+           *     tactile minimale d'iOS — passaient pour repliés ;
+           *   - nombre de rectangles : un rectangle par BOÎTE en ligne, donc
+           *     le bouton « Republier » et son icône de fusée en rendaient
+           *     deux… côte à côte, sur la même ligne ;
+           *   - ordonnées distinctes : la même icône, haute d'un cadratin et
+           *     centrée, ne commence pas au même pixel que le texte.
+           *
+           * Le critère qui tient : deux boîtes sont sur la MÊME ligne si elles
+           * se chevauchent verticalement. On compte donc les groupes qui ne se
+           * chevauchent pas (règle 4 : vérifier qu'une mesure mesure bien ce
+           * qu'on croit).
+           */
+          const plage = document.createRange();
+          plage.selectNodeContents(el);
+
+          const rects = [...plage.getClientRects()].filter((r) => r.height > 0).sort((a, b) => a.top - b.top);
+
+          let lignes = rects.length > 0 ? 1 : 1;
+          let basDeLigne = rects[0]?.bottom ?? 0;
+
+          for (const r of rects.slice(1)) {
+            if (r.top >= basDeLigne - 1) {
+              lignes += 1;
+              basDeLigne = r.bottom;
+            } else {
+              basDeLigne = Math.max(basDeLigne, r.bottom);
+            }
+          }
+
+          if (lignes > 1) {
+            trop.push({ texte: texte.slice(0, 40), lignes, px: getComputedStyle(el).fontSize });
+          }
+        });
+
+        return { trop, examines: cibles.length, langue: document.documentElement.lang };
+      });
+
+      expect(replies, 'le panneau ne s’est pas rendu').not.toBeNull();
+
+      /*
+       * Contrôle de la MESURE avant la conclusion (règle 14) : un relevé qui
+       * n'a rien examiné rendrait « zéro replié » sans rien prouver.
+       */
+      expect(replies!.examines, 'aucun titre ni bouton examiné : la mesure n’a rien mesuré').toBeGreaterThan(3);
+
+      expect(replies!.trop, `repliés sur plusieurs lignes : ${JSON.stringify(replies!.trop)}`).toEqual([]);
+    });
+  });
+
+  /*
+   * RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ».
+   *
+   * Ce qu'il tient surtout : le PRIX est CALCULÉ depuis la carte tarifaire
+   * active, jamais recopié de la capture Replit (« $15 per month »). Et le
+   * panneau ne doit pas se démonter en basculant — premier essai, « Ajuster
+   * les réglages » changeait aussi d'onglet et la vue disparaissait.
+   */
+  test.describe('écran des réglages', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('les gabarits portent un prix calculé, et les gestes sont ceux qui existent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+      const cree = await request.post(`${apiBaseUrl}/projects/${projectId}/deployments`, {
+        headers: { authorization: `Bearer ${token}` },
+        data: { provider: 'static', timeoutSeconds: 30 },
+      });
+
+      expect(cree.ok(), `création du déploiement : ${cree.status()}`).toBe(true);
+
+      await ouvrirOutil(page, 'deployments');
+      await expect(page.getByTestId('publication')).toBeVisible({ timeout: 30_000 });
+
+      await page.getByTestId('publication-reglages').click();
+
+      const corps = page.getByTestId('publication-reglages-corps');
+      await expect(corps, 'la bascule ne doit pas démonter le panneau').toBeVisible({ timeout: 15_000 });
+
+      const gabarits = page.locator('[data-testid="publication-gabarits"] li');
+      await expect(gabarits.first()).toBeVisible();
+
+      const textes = await gabarits.allTextContents();
+
+      expect(textes.length, 'les gabarits viennent de la carte tarifaire').toBeGreaterThan(0);
+
+      /*
+       * Un prix par heure à quatre décimales, dérivé des unités de calcul —
+       * c'est la signature d'un calcul, pas d'une constante.
+       */
+      expect(textes.join(' ')).toMatch(/\$\d+\.\d{4}/u);
+
+      // Et le gabarit du déploiement est marqué comme courant.
+      await expect(page.locator('[data-testid="publication-gabarits"] li[data-courant="true"]')).toHaveCount(1);
+
+      // Les gestes proposés sont ceux que l'API sait faire, pas ceux de Replit.
+      const gestes = await page.locator('[data-testid="publication-gestes"] li button').allTextContents();
+
+      expect(gestes.length).toBeGreaterThan(0);
+      expect(gestes.join(' ')).not.toMatch(/Unpublish|Dépublier/u);
+
+      // Rien ne déborde du panneau.
+      const deborde = await page.evaluate(() => {
+        const racine = document.querySelector<HTMLElement>('.bolt-publication');
+        const rr = racine?.getBoundingClientRect();
+
+        if (!racine || !rr) {
+          return -1;
+        }
+
+        return [...racine.querySelectorAll<HTMLElement>('*')].filter((el) => {
+          const r = el.getBoundingClientRect();
+
+          return r.width > 0 && (r.right > rr.right + 1 || r.left < rr.left - 1);
+        }).length;
+      });
+
+      expect(deborde).toBe(0);
+    });
+  });
+
+  test.describe('« Réparer avec l’agent » ramène sur l’agent', () => {
+    test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+    test('depuis n’importe quel panneau, la demande bascule sur le panneau Agent', async ({ page, request }) => {
+      test.setTimeout(150_000);
+
+      await ouvrirIde(page, request, { fil: true });
+      await ouvrirOutil(page, 'deployments');
+
+      const coque = page.locator('.bolt-responsive-ide-mobile');
+      await expect(coque).toHaveAttribute('data-mobile-panel', /deploy/, { timeout: 30_000 });
+
+      /*
+       * On émet l'événement que les trois surfaces émettent (Sécurité, Git,
+       * Publication). Avant correctif, l'invite partait dans une zone de
+       * saisie que l'utilisateur ne voyait pas : il restait sur son panneau.
+       */
+      await page.evaluate(() =>
+        window.dispatchEvent(
+          new CustomEvent('vibecore:agent-task', {
+            detail: { kind: 'fix-publication', prompt: 'Corrige la publication.' },
+          }),
+        ),
+      );
+
+      await expect(coque, 'la demande doit ramener sur le panneau Agent').toHaveAttribute('data-mobile-panel', 'chat', {
+        timeout: 15_000,
+      });
+
+      /*
+       * ET L'AGENT DÉMARRE. Avi (point 5) : « ça doit me remettre sur le
+       * panneau agent et démarrer l'agent avec le prompt en question ENVOYÉ
+       * par le bouton ». Une invite simplement déposée laissait un geste de
+       * plus à faire — précisément celui que le bouton prétend épargner.
+       *
+       * On vérifie donc que l'invite est PARTIE : elle apparaît dans le fil
+       * comme message utilisateur, et la zone de saisie est vidée. Un test
+       * qui se contenterait de la lire dans le composeur passerait au vert
+       * sur le comportement d'AVANT.
+       */
+      await expect(
+        page.locator('.bolt-user-message-bubble').filter({ hasText: 'Corrige la publication.' }).first(),
+        'l’invite doit être envoyée, pas seulement déposée',
+      ).toBeVisible({ timeout: 30_000 });
+
+      const composeur = page.locator('.bolt-project-agent-composer textarea').first();
+      await expect(composeur, 'un envoi consomme le brouillon').toHaveValue('', { timeout: 15_000 });
+    });
+  });
+});
+
+/*
+ * RP-DB-05 — « Tables », avec « N rows » (captures d'Avi, 08/09 21:07).
+ *
+ * Défaut MESURÉ le 08/09 : la vue lisait `t.name` / `t.rowCount`, l'API rend
+ * `table_name` / `rowsEstimate`. Les deux formes ne se rencontraient jamais —
+ * chaque table sortait avec un nom VIDE, et la clé React valait ce vide pour
+ * toutes. Relevé à l'écran : 0 table rendue. Après : 127.
+ *
+ * Ce test frappe une VRAIE base (celle de la pile) : c'est ce qui distingue un
+ * mappage juste d'un mappage qui compile.
+ */
+test.describe('base de données — les tables portent leur nom et leur compte', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('la liste des tables n’est pas vide, et chaque ligne est nommée', async ({ page, request }) => {
+    test.setTimeout(180_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    /*
+     * On ATTEND la carte de la base avant de cliquer. Une première version
+     * balayait tous les boutons après un délai fixe : quand la liste n'était
+     * pas encore chargée elle ne cliquait rien, et le test devenait
+     * intermittent (vu une fois sur la suite complète, passé au réessai).
+     * Un délai n'est pas une condition (règle 17).
+     */
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    const lignes = page.getByTestId('db-table');
+
+    await expect(lignes.first(), 'les tables de la base doivent s’afficher').toBeVisible({ timeout: 30_000 });
+
+    const noms = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 10).map((el) => (el.querySelector('span')?.textContent ?? '').trim()),
+    );
+
+    expect(noms.length, 'une vraie base a des tables').toBeGreaterThan(0);
+
+    // Le défaut exact : des noms VIDES, tous identiques.
+    expect(
+      noms.every((nom) => nom.length > 0),
+      `noms relevés : ${JSON.stringify(noms)}`,
+    ).toBe(true);
+    expect(new Set(noms).size, 'et des noms distincts, pas la même clé partout').toBe(noms.length);
+
+    // Le compte de lignes est rendu, y compris « 0 » pour une table vide.
+    const comptes = await lignes.evaluateAll((elements) =>
+      elements.slice(0, 5).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    expect(
+      comptes.some((compte) => /\d/u.test(compte)),
+      `comptes relevés : ${JSON.stringify(comptes)}`,
+    ).toBe(true);
+  });
+});
+
+/*
+ * RP-DB-06 — l'onglet « Mes données » de Replit : un rail de tables à gauche,
+ * des en-têtes TYPÉS à droite (`id text`, `label varchar(255)`), et une
+ * pagination visible « 50 / 0 ».
+ *
+ * Les trois manquaient, et le rail était carrément VIDE. Deux causes
+ * distinctes, mesurées le 09/09 sur une vraie base de 127 tables :
+ *
+ *   1. le studio lisait `databases ?? connections` — or `??` ne retombe pas
+ *      sur un tableau VIDE, et `databases` vaut `[]` dans le cas normal. Il
+ *      n'avait donc aucune connexion, ne demandait aucun schéma, et affichait
+ *      « aucune table » sans jamais rien avoir demandé ;
+ *   2. son lecteur de schéma cherchait `table.name` / `table.columns`, quand
+ *      l'API rend `table_name` et une liste de colonnes PLATE — le même
+ *      défaut que RP-DB-05, à un second endroit.
+ *
+ * Ce test frappe une VRAIE base : c'est ce qui distingue un branchement juste
+ * d'un branchement qui compile.
+ */
+test.describe('base de données — « Mes données » à la Replit', () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+
+  test('le rail liste les tables, les en-têtes portent leur type, la page est annoncée', async ({ page, request }) => {
+    test.setTimeout(240_000);
+
+    const urlBase = process.env.DATABASE_URL;
+
+    test.skip(!urlBase, 'DATABASE_URL absente : ce test veut une VRAIE base, pas une simulation');
+
+    const { token, projectId } = await ouvrirIde(page, request, { fil: false });
+
+    await request.put(`${apiBaseUrl}/projects/${projectId}/env-vars`, {
+      headers: { authorization: `Bearer ${token}` },
+      data: { key: 'DATABASE_URL', value: urlBase },
+    });
+
+    await ouvrirOutil(page, 'database');
+
+    const carte = page.getByTestId('db-carte').first();
+
+    await expect(carte, 'la liste des bases doit se charger').toBeVisible({ timeout: 30_000 });
+    await carte.click();
+
+    /*
+     * L'onglet « Mes données », par son libellé, dans les deux langues. On
+     * ATTEND qu'il existe avant de cliquer : la bande d'onglets n'apparaît
+     * qu'une fois la base ouverte, et un clic lancé avant ne touche rien —
+     * le test devenait alors intermittent sans rien dire du produit.
+     */
+    await page.waitForFunction(
+      () =>
+        Array.from(document.querySelectorAll('button')).some((b) =>
+          ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+        ),
+      { timeout: 30_000 },
+    );
+
+    await page.evaluate(() => {
+      const cible = Array.from(document.querySelectorAll('button')).find((b) =>
+        ['My data', 'Mes données'].includes((b.textContent ?? '').trim()),
+      );
+
+      (cible as HTMLButtonElement | undefined)?.click();
+    });
+
+    // 1. Le rail : le défaut exact était ZÉRO table sur une base qui en a 127.
+    const tablesDuRail = page.getByTestId('studio-table');
+
+    await expect(tablesDuRail.first(), 'le rail des tables doit se remplir').toBeVisible({ timeout: 60_000 });
+
+    const nomsDuRail = await tablesDuRail.evaluateAll((els) =>
+      els.slice(0, 6).map((el) => (el.textContent ?? '').trim()),
+    );
+
+    expect(
+      nomsDuRail.every((nom) => nom.length > 0),
+      `rail : ${JSON.stringify(nomsDuRail)}`,
+    ).toBe(true);
+    expect(new Set(nomsDuRail).size, 'des noms distincts, pas la même clé partout').toBe(nomsDuRail.length);
+
+    /*
+     * 2. Parcourir une table : en-têtes typés + pagination annoncée.
+     *
+     * On vise `_prisma_migrations`, la seule table dont on SAIT qu'elle porte
+     * des lignes sur toute base migrée. La première du rail est
+     * alphabétique — `AbuseEvent`, vide — et sans ligne il n'y a pas de
+     * grille, donc pas d'en-tête : le test aurait échoué sur un produit
+     * correct.
+     */
+    const tableAvecLignes = tablesDuRail.filter({ hasText: '_prisma_migrations' }).first();
+
+    await expect(tableAvecLignes, 'une base migrée porte cette table').toBeVisible({ timeout: 30_000 });
+    await tableAvecLignes.click();
+
+    const pagination = page.getByTestId('studio-pagination');
+
+    await expect(pagination, 'la page parcourue doit être annoncée').toBeVisible({ timeout: 60_000 });
+    await expect(pagination, 'Replit écrit « 50 / 0 » : la limite et le décalage').toContainText('50 / 0');
+
+    const entetes = page.getByTestId('studio-entete');
+
+    await expect(entetes.first(), 'la grille doit rendre ses en-têtes').toBeVisible({ timeout: 60_000 });
+
+    const types = await entetes.evaluateAll((els) =>
+      els.slice(0, 8).map((el) => (el.querySelectorAll('span')[1]?.textContent ?? '').trim()),
+    );
+
+    /*
+     * Le TYPE est la valeur ajoutée de RP-DB-06 : sans lui, l'en-tête n'est
+     * qu'un nom de colonne, et c'est ce qu'il était.
+     */
+    expect(
+      types.some((type) => type.length > 0),
+      `types relevés : ${JSON.stringify(types)}`,
+    ).toBe(true);
   });
 });

@@ -45,6 +45,7 @@ rassurant.** Aucun n'a produit d'erreur visible. Chacun est daté et chiffré.
 | 37 | **un verdict VRAI sur le mauvais objet** | `git checkout <branche-d-une-autre-session>` a ÉCHOUÉ — un fichier non suivi bloquait l'écrasement — et la commande suivante a rendu `Tests 12 passed (12)`. Le worktree était resté sur le commit précédent : je mesurais MA combinaison locale en croyant certifier SA branche | j'allais certifier une branche que je n'avais jamais exécutée. **Le verdict n'était pas faux** — douze tests passaient réellement — il portait simplement sur un autre arbre. La ligne d'erreur du `checkout` était juste au-dessus, noyée entre deux sorties | **toutes les autres entrées de ce registre visent des verdicts FAUX ; celle-ci vise un verdict vrai mal attribué, et aucune règle ne l'attrape.** Avant de lire un résultat, vérifier que la commande QUI PLACE L'OBJET a réussi : `git rev-parse --short HEAD` après un `checkout`, le chemin après un `cd`, l'identifiant du pod après un `exec`. Le verdict ne dit jamais sur quoi il porte |
 | 38 | **un garde trop large bloque tout le monde** | une assertion `not.toContain('.bolt-project-panel-toolbar button {')` dans une spec partagée : une recherche de SOUS-CHAÎNE, qui ne distingue pas le gabarit nu qu'elle vise du sélecteur imbriqué légitime `.bolt-responsive-ide-mobile … .bolt-project-panel-toolbar button {`. Le test voisin, dans la MÊME spec, avait déjà résolu le problème avec un ancrage en début de ligne — le correctif n'avait pas été reporté d'une assertion à l'autre | `main` rouge **pour toutes les branches à la fois**, donc la porte de livraison a refusé le déploiement d'un correctif de **perte de données** sans aucun rapport. Plusieurs heures d'immobilisation, sur un défaut qui n'en était pas un : la règle SCSS incriminée était correcte | **ce n'est pas un défaut de test, c'est un défaut d'infrastructure d'équipe.** Une assertion de spec partagée arbitre le travail de tous ceux qui touchent le fichier. Ancrer sur la STRUCTURE (`/^\s*\.selecteur \{/m`) et non sur une sous-chaîne ; et vérifier que le garde attrape encore le cas visé — ici il en attrape un de plus, le gabarit nu INDENTÉ, que l'ancrage `^\.` du voisin ratait |
 | 39 | recherche d'un marqueur dans les **assets servis** | j'ai sondé **une** feuille de style sur cinq (456 Ko sur 1 070 Ko), puis les 37 bundles JS de la seule page d'accueil — alors que les morceaux du parseur sont **chargés paresseusement** et ne sont référencés par aucune page publique | **deux zéros consécutifs**, tous deux faux : « le correctif #455 n'est pas déployé » (il l'était, `1` sur l'ensemble des feuilles) et « le parseur n'est pas dans le bundle » (témoin `boltArtifact` également à `0`, ce qui est impossible) | **un témoin positif dans la MÊME sonde** — un motif dont on sait qu'il doit être présent (`bolt-project-statusbar-pill`, `boltArtifact`). Quand le témoin rend `0` lui aussi, ce n'est pas le code qui manque, c'est la sonde qui regarde au mauvais endroit. La règle 14 dit de vérifier qu'un `0` vient d'une recherche qui a fonctionné ; ce cas ajoute qu'une recherche peut **parfaitement fonctionner sur la mauvaise moitié de la cible** |
+| 40 | **comparer une branche à `main` APRÈS une fusion en squash** | une fusion en squash crée sur `main` un commit qui **n'est pas un ancêtre de la branche** : la base commune n'avance jamais. `git diff main...branche` continue donc à rapporter TOUTE la contribution de la branche — 422 insertions sur 4 fichiers — alors que `main` en détient déjà le contenu exact | on s'y est trompé **dans les deux sens en une heure** : d'abord `git diff main branche` (deux points) annonçant « 37 lignes supprimées » — un écart d'ÉTAT lu comme un effet de fusion ; puis `git diff main...branche` (trois points) annonçant « 422 insertions » — une contribution déjà absorbée lue comme un travail non fusionné. Une branche a failli être supprimée sur la première, et refusionnée sur la seconde | **aucun des deux diffs ne répond à la question « est-ce déjà dans `main` ? ».** Seuls trois signaux y répondent : l'**empreinte du contenu** (`git show main:f \| shasum` contre la branche), l'**existence du fichier** dans `main`, et l'**état de la PR** chez GitHub. Face jumelle de l'entrée 22 : là on comparait des sujets de commits, ici des diffs — même cause, le squash |
 
 ## La règle qui en découle
 
@@ -79,7 +80,7 @@ couvrait **3**.
 
 ---
 
-## La règle que ces trente-huit cas imposent
+## La règle que ces trente-neuf cas imposent
 
 **Avant de croire un outil qui dit « rien à signaler », vérifie qu'il tourne
 encore.**
@@ -292,34 +293,6 @@ présentées comme des réparations réussies.
 
 ---
 
-## 41. Sonder un SOUS-ENSEMBLE et lire le zéro comme une absence
-
-**2026-09-07, en datant le banc d'audit.** Deux fois de suite dans la même
-demi-heure, la même faute, rattrapée les deux fois par un témoin positif.
-
-* Cherché le marqueur du correctif de tooltip (`#455`) dans **la première**
-  feuille de style servie : `0`. Conclusion tentante : « le banc est vieux ».
-  En téléchargeant **les cinq** feuilles référencées : `1`. Le correctif était
-  là. La sonde avait mesuré 456 Ko sur 1 070 Ko.
-* Cherché `boltArtifact` dans les 37 bundles JS de la page d'accueil : `0`.
-  Or ce motif existe forcément dans l'application. Les morceaux du parseur sont
-  **chargés paresseusement** et ne sont référencés par aucune page publique.
-
-Dans les deux cas, le zéro était vrai *pour ce qui a été lu*, et faux pour la
-question posée. La règle 14 dit « vérifier qu'un 0 vient d'une recherche qui a
-fonctionné » ; ces deux cas ajoutent : **une recherche peut parfaitement
-fonctionner sur la mauvaise moitié de la cible.**
-
-**Ce qui a sauvé les deux** : un témoin positif choisi *dans la même sonde* —
-un motif dont on sait qu'il DOIT être présent. `bolt-project-statusbar-pill`
-pour le CSS, `boltArtifact` pour le JS. Quand le témoin rend `0` lui aussi, ce
-n'est pas le code qui manque, c'est la sonde qui ne regarde pas au bon endroit.
-
-**Le geste** : ne jamais poser une question à une sonde sans lui poser, dans le
-même souffle, une question dont on connaît déjà la réponse.
-
----
-
 ## 42. « Impossible sans refactor » est presque toujours un obstacle d'INSTALLATION
 
 **2026-09-07, deux sessions, la même erreur de diagnostic le même jour.**
@@ -362,3 +335,63 @@ priorisé.
 **Le signal qui doit alerter** : toute phrase de la forme « il faudrait d'abord
 refactorer X » écrite par quelqu'un qui n'a pas encore cherché de patron
 existant. Sur ces deux cas, elle était fausse deux fois sur deux.
+
+---
+
+## 43. Le piège qui protège, et l'ordre des opérations de démontage
+
+**2026-09-07, purge complète de la production.** Deux leçons d'une même heure,
+et la première est agréable pour une fois.
+
+### Le piège qui, cette fois, a protégé
+
+Première commande de la purge : supprimer neuf clusters PostgreSQL.
+
+```sh
+cibles=$(kubectl get cluster -o name | grep -E '^db-cm')
+for c in $cibles; do kubectl delete cluster "$c"; done
+```
+
+zsh ne découpe pas une variable non quotée. La boucle a donc tourné **une seule
+fois**, avec un « nom de cluster » contenant les neuf noms séparés par des sauts
+de ligne. L'API Kubernetes a répondu `BadRequest` et **rien n'a été supprimé**.
+
+C'est exactement le piège consigné à l'entrée sur les faux résultats — celui qui
+m'avait fait lire `--include=*.ts` comme un motif et rendre de faux zéros. Ici il
+s'est retourné : sur une commande **destructive**, le non-découpage a produit un
+nom invalide, et l'invalidité a sauvé la mise.
+
+**Ce qu'il faut en retenir, et ce n'est pas « on a eu de la chance ».** Un nom
+mal formé est refusé par une API stricte ; un nom *bien formé mais faux* ne l'est
+pas. Le vrai enseignement est que la protection venait de la **validation côté
+serveur**, pas de ma prudence. Sur une opération irréversible, itérer avec
+`while IFS= read -r` et vérifier le compte de cibles AVANT la boucle reste la
+seule garantie — ce jour-là, `retenus : 9 exclus : shared-pg-0` était la ligne
+qui comptait, pas la boucle.
+
+### Couper la source avant de démonter
+
+Deuxième moment. En supprimant les volumes de workspace, l'un d'eux refusait de
+partir : `deletionTimestamp` posé, finaliseur `kubernetes.io/pvc-protection`
+actif. Un pod le montait — un pod **recréé 52 secondes plus tôt**, alors que je
+venais de le supprimer.
+
+La réconciliation repartait de la base : la ligne `Workspace` disait `RUNNING`,
+donc quelque chose reprovisionnait. Je luttais contre un système qui faisait
+exactement son travail.
+
+**La règle : sur une ressource réconciliée, l'ordre n'est pas « ressources puis
+lignes », c'est « couper la source de vérité, puis les ressources, puis les
+lignes ».** Ici : supprimer les lignes `Workspace` (300), puis le pod, puis le
+volume — qui s'est libéré seul.
+
+C'est un raffinement de l'ordre qu'on croyait bon. « Ressources d'abord, lignes
+ensuite » évite les orphelines quand la ligne porte la POIGNÉE. Mais quand la
+ligne porte aussi l'INTENTION — « ce workspace doit tourner » —, la garder
+pendant le démontage fait recréer ce qu'on retire. Les deux besoins coexistent :
+lire la poignée avant, effacer l'intention avant, supprimer la ligne après.
+
+**Le signal qui l'annonce** : une ressource qui réapparaît, ou un finaliseur qui
+ne se libère pas. Ce n'est pas un blocage à forcer — c'est un réconciliateur qui
+travaille, et forcer le finaliseur aurait laissé le disque orphelin côté GCP tout
+en effaçant sa trace côté Kubernetes.

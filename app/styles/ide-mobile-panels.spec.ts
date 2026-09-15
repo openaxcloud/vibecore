@@ -323,6 +323,23 @@ describe('7. captures iPhone 06/09 10:35–10:36 : Journaux du serveur, Problèm
     expect(regle).toMatch(/overflow-wrap:\s*anywhere/);
   });
 
+  /*
+   * BUG-PORTS-MOBILE-001 — LE PIÈGE : la règle vit dans `index.scss`, l'URL
+   * qu'elle déplie vit dans `BaseChat.tsx`. Retirer `font-mono` de cette URL,
+   * ou renommer le conteneur des outils mobiles, ne rend AUCUN test rouge — la
+   * règle existe toujours, elle ne touche simplement plus rien, et l'URL
+   * redevient tronquée sur l'iPhone. La règle SCSS seule n'est que la MOITIÉ de
+   * la garde (règle 6).
+   */
+  it('le balisage des Ports porte `truncate font-mono` sous `.bolt-workbench-mobile` — la moitié DOM', () => {
+    /* L'URL de l'aperçu, capture du 06/09 : c'est CE couple de classes que le sélecteur vise. */
+    expect(BASE_CHAT).toContain('className="bolt-project-managed-panel bolt-project-ports-panel"');
+    expect(BASE_CHAT).toContain('className="mt-0.5 truncate font-mono text-bolt-elements-textSecondary"');
+
+    /* L'ancêtre : sans lui, le sélecteur ne descend jamais jusqu'à l'URL. */
+    expect(BASE_CHAT).toContain('bolt-workbench-mobile bolt-workbench-mobile-service');
+  });
+
   it('les journaux du serveur de la Webview et le message d’un problème passent par la lecture humaine', () => {
     const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
 
@@ -384,8 +401,13 @@ describe('9. captures iPhone 06/09 11:03–11:04 : clavier levé, carte d’acti
   });
 
   it('l’attribut est posé par BaseChat depuis la mesure de la fenêtre visuelle, et retiré au démontage', () => {
-    expect(BASE_CHAT).toContain('import { clavierProbablementOuvert, recouvrementBasDuNavigateur } from');
-    expect(BASE_CHAT).toContain('if (clavierProbablementOuvert(recouvrementBas)) {');
+    // 08/09 (BUG-KEYBOARD-ZOOM-001) : détection par le RÉTRÉCISSEMENT de la fenêtre visuelle, insensible au défilement de Safari.
+    expect(BASE_CHAT).toMatch(
+      /import \{[^}]*clavierProbablementOuvert,[^}]*retrecissementDeLaVue,[^}]*\} from '\.\/visual-viewport-bottom';/u,
+    );
+    expect(BASE_CHAT).toContain(
+      'if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {',
+    );
     expect(BASE_CHAT).toContain("document.documentElement.setAttribute('data-vc-clavier', 'ouvert');");
     expect(BASE_CHAT.match(/document\.documentElement\.removeAttribute\('data-vc-clavier'\)/g)?.length).toBe(2);
   });
@@ -454,6 +476,38 @@ describe('10. captures iPhone 06/09 12:17–12:19 : menu de message, sélection,
     expect(bloc('.bolt-responsive-ide-mobile .bolt-agent-plan li > span:last-child')).toMatch(/flex:\s*1 1 100%/);
     expect(bloc('.bolt-responsive-ide-mobile .bolt-panel-row')).toMatch(/justify-content:\s*space-between/);
     expect(BASE_CHAT).toContain('className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary"');
+
+    /*
+     * BUG-PLAN-MOBILE-001 — PIÈGE : les quatre lignes ci-dessus ne tiennent que
+     * la FEUILLE. La règle vise `li > span:last-child` ; trois gestes anodins
+     * côté MARQUAGE la débranchent en silence, sans rien casser d'autre —
+     * renommer `.bolt-agent-plan`, ou glisser le moindre élément APRÈS le titre
+     * (pastille d'état, durée), car `:last-child` désigne alors le nouveau venu
+     * et la tâche retombe dans sa colonne de quatre mots, exactement la capture
+     * du 06/09. Les deux moitiés doivent donc rougir ensemble (règle 6).
+     */
+    const assistant = readFileSync(join(__dirname, '..', 'components', 'chat', 'AssistantMessage.tsx'), 'utf8');
+    const debutPlan = assistant.indexOf('className="bolt-agent-plan');
+
+    expect(debutPlan, 'le crochet `.bolt-agent-plan` visé par la feuille a disparu du marquage').toBeGreaterThan(-1);
+
+    const finPlan = assistant.indexOf('</ol>', debutPlan);
+
+    expect(finPlan, 'la liste du plan est introuvable — la garde ne mesure rien').toBeGreaterThan(debutPlan);
+
+    const item = assistant.slice(assistant.indexOf('<li', debutPlan), assistant.indexOf('</li>', debutPlan));
+    const spans = [...item.matchAll(/<span\b[^>]*/g)].map((m) => m[0]);
+
+    expect(spans.length, 'aucun span dans la tâche — la lecture a échoué (règle 14)').toBeGreaterThan(1);
+
+    /*
+     * LE couplage : le DERNIER span de la tâche doit rester celui du titre,
+     * c'est-à-dire celui que la règle CSS élargit à toute la ligne.
+     */
+    expect(
+      spans[spans.length - 1],
+      'un élément a été glissé APRÈS le titre : `span:last-child` ne le vise plus',
+    ).toContain('flex-1');
   });
 
   it('« télécommande » ne traduit plus « remote » : dépôt distant', () => {
@@ -728,7 +782,18 @@ describe('20. capture iPhone 07/09 07:59 : espace mort sous la zone de saisie, b
     // Le PREMIER bloc : le dernier est la variante « clavier ouvert », qui colle le composeur au clavier.
     const composeur = bloc(".bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-composer");
 
-    expect(composeur).toMatch(/bottom:\s*calc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/);
+    /*
+     * 08/09 (RP-CKPT-01) : les 8 px au-dessus du socle sont désormais portés
+     * par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`, et le
+     * composeur colle à 0 — le rectangle de collage étant la boîte de contenu
+     * du conteneur, un `bottom` à `barre + 8px` le faisait remonter de 80 px
+     * de trop, par-dessus la boîte qui défile.
+     */
+    expect(composeur).toMatch(/bottom:\s*0\s*!important/);
+    expect(composeur).not.toMatch(/bottom:\s*calc\(/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-project-agent-scroll')).toMatch(
+      /padding:[^;]*\bcalc\(var\(--mobile-nav-height\) \+ 8px\)\s*!important/,
+    );
     expect(composeur).toMatch(/padding-bottom:\s*0\b/);
     expect(composeur).not.toMatch(/padding-bottom:\s*8px/);
 
@@ -775,13 +840,11 @@ describe('21. captures iPhone 07/09 08:03 : menu d’un message — barre d’ic
     );
   });
 
-  it('le voile du menu est transparent — la règle de thème des bulles le peignait en couleur de carte', () => {
-    /*
-     * `[class*='message']` attrape `bolt-message-context-menu-veil`. Mesuré sur
-     * WebKitGTK : rgb(238 242 247) sur tout l'écran — le fil disparaissait.
-     */
-    expect(bloc('.bolt-message-context-menu-veil')).toMatch(/background:\s*transparent/);
-    expect(INDEX).toMatch(/\[class\*='message'\]:not\(svg\)/);
+  it('plus de voile derrière le menu : c’est lui qui avalait le geste suivant et bloquait le défilement (BUG-MESSAGE-MENU-IOS-001)', () => {
+    expect(INDEX).not.toContain('.bolt-message-context-menu-veil');
+    expect(
+      readFileSync(new URL('../components/chat/MessageContextMenu.tsx', import.meta.url).pathname, 'utf8'),
+    ).not.toContain('bolt-message-context-menu-veil');
   });
 
   it('le menu se rend à la racine mobile, se place dans la zone utile, et le focus ne fait pas défiler le fil', () => {
@@ -846,5 +909,104 @@ describe('22. captures iPhone 07/09 08:07 : le menu « ••• » du composeur
     // Et elle ne passe pas sous l'en-tête fixé du téléphone : 64 px de marge de collision en haut.
     expect(palette).toMatch(/collisionPadding=\{\{ top: 64, right: 12, bottom: 12, left: 12 \}\}/);
     expect(palette).not.toMatch(/max-h-\[min\(620px,calc\(100dvh-64px\)\)\]/);
+  });
+});
+
+describe('23. capture iPhone 07/09 08:19 : Webview — URL en grande police, journaux qu’on ne referme pas', () => {
+  it('sur téléphone, l’URL se lit en 13 px hors édition et le champ garde son plancher de 16 px', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-url-text"/);
+    expect(preview).toMatch(/data-edition=\{adresseEnEdition \? 'true' : 'false'\}/);
+    expect(preview).toMatch(/onBlur=\{\(\) => setAdresseEnEdition\(false\)\}/);
+    expect(bloc('.bolt-preview-url-text')).toMatch(/display:\s*none/);
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/font-size:\s*13px !important/);
+
+    // Mesuré : le plancher tactile de 44 px des boutons gonflait la barre à 50 px.
+    expect(
+      bloc(
+        ".bolt-project-ide-shell\n    .bolt-responsive-ide-mobile\n    .bolt-workbench-mobile\n    .bolt-preview-addressbar[data-edition='false']\n    .bolt-preview-url-text",
+      ),
+    ).toMatch(/min-height:\s*28px !important/);
+    expect(bloc('.bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input')).toMatch(
+      /font-size:\s*16px/,
+    );
+  });
+
+  it('les journaux de la Webview ont une croix qui les referme, visible sur téléphone', () => {
+    const preview = readFileSync(join(__dirname, '..', 'components', 'workbench', 'Preview.tsx'), 'utf8');
+    const catalogue = readFileSync(join(__dirname, '..', 'lib', 'i18n', 'catalogs', 'ide-panels.ts'), 'utf8');
+
+    expect(preview).toMatch(/className="bolt-preview-logs-close"[\s\S]{0,200}onClick=\{\(\) => setLogsOpen\(false\)\}/);
+    expect(catalogue).toContain("'idePanels.preview.hideLogs': 'Masquer les journaux'");
+    expect(
+      bloc('.bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button.bolt-preview-logs-close'),
+    ).toMatch(/display:\s*inline-flex/);
+  });
+});
+
+/*
+ * §24 — BUG-PANEL-BOTTOM-GAP-001 : le voile de la barre du bas ne mange rien
+ * au-dessus de la pastille. Il faisait `nav + 26px` avec un flou d'arrière-plan :
+ * sur iOS, le bord de la boîte floutée est net, et ces 26 px se lisaient comme
+ * une bande vide (capture « Activité », 07/09 08:26).
+ */
+describe('§24 — le voile de la barre du bas s’arrête au bord haut de la pastille', () => {
+  const voile = bloc('.bolt-mobile-replit-nav-bg');
+
+  it('fait exactement la hauteur de la zone de navigation, sans halo au-dessus', () => {
+    expect(voile).toContain('height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));');
+    expect(voile).not.toMatch(/\+ ?26px/);
+  });
+
+  it('garde son flou sous la pastille seulement (la boîte ne dépasse pas)', () => {
+    expect(voile).toContain('inset: auto 0 0;');
+    expect(voile).toContain('backdrop-filter: blur(20px);');
+  });
+});
+
+/*
+ * §25 — BUG-NAV-TABS-CENTER-001 : les onglets fixes sont centrés dans la
+ * rangée de la barre du bas, par des marges automatiques (jamais par
+ * `justify-content: center`, qui couperait le premier onglet en débordement).
+ */
+describe('§25 — les onglets de la barre du bas sont centrés dans leur rangée', () => {
+  it('marges automatiques aux deux bouts de la rangée', () => {
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :first-child')).toContain('margin-inline-start: auto;');
+    expect(bloc('.bolt-mobile-replit-panel-scroll > :last-child')).toContain('margin-inline-end: auto;');
+  });
+
+  it('la rangée reste un défilement ancré sur un onglet (pas de centrage qui coupe)', () => {
+    const rangee = bloc('.bolt-mobile-replit-panel-scroll');
+
+    expect(rangee).toContain('overflow-x: auto;');
+    expect(rangee).toContain('scroll-snap-type: x mandatory;');
+    expect(rangee).not.toContain('justify-content: center');
+  });
+});
+
+describe('§26 — l’état de départ du panneau Agent se pose sous l’en-tête, sans marge morte', () => {
+  /*
+   * BUG-THREAD-TOP-GAP-001 (état de départ). Capture iPhone du 07/09 14:22 :
+   * ~50 px de vide entre l'en-tête et la carte « Agent prêt ». Mesuré Chromium
+   * 390 : marge haute de 55 px, héritée de la bascule de langue retirée
+   * depuis. La marge est une gouttière, plus la barre de contexte si elle est
+   * affichée — jamais un nombre en dur.
+   */
+  const bloc = INDEX.match(/\.bolt-mobile-agent-start-state \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+
+  it('la marge haute est la gouttière plus la barre de contexte', () => {
+    expect(bloc).toContain(
+      'margin: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) auto 0;',
+    );
+  });
+
+  it('plus de 55 px en dur ni de réserve de bascule de langue', () => {
+    expect(bloc).not.toMatch(/55px/);
+    expect(bloc).not.toMatch(/language-switch-reserved-height/);
   });
 });

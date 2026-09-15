@@ -5122,9 +5122,22 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-replit-nav-bg {
   position: absolute;
   inset: auto 0 0;
-  height: calc(var(--mobile-nav-height) + 26px + env(safe-area-inset-bottom, 0px));
+
+  /*
+   * BUG-PANEL-BOTTOM-GAP-001 — Avi, 07/09 08:26, panneau « Activité » : « cette
+   * espace ne sert à rien, on doit gagner de l'espace ». Le voile faisait
+   * `nav + 26px` de haut : 26 px de dégradé ET de `backdrop-filter` AU-DESSUS
+   * de la pastille. Sur iOS, le bord de la boîte floutée est une ligne nette :
+   * tout ce qui passait sous ces 26 px devenait de la bouillie veloutée, lue
+   * comme une bande vide entre le contenu et la barre. Chromium, lui, rend un
+   * fondu doux — c'est pourquoi la mesure locale ne montrait rien.
+   *
+   * Le voile couvre désormais la zone de la pastille et rien au-dessus : le
+   * contenu reste net jusqu'à son bord haut, et passe sous elle en défilant.
+   */
+  height: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
   border-top: 0;
-  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vc-ide-bg-app) 92%, transparent) 46%);
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vc-ide-bg-app) 92%, transparent) 10px);
   backdrop-filter: blur(20px);
   pointer-events: none;
 }
@@ -5318,6 +5331,24 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-mobile-replit-panel-scroll::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * BUG-NAV-TABS-CENTER-001 — Avi, 07/09 08:36 : « les trois panneaux fixes …
+ * doivent être centrés ». La rangée d'onglets prend toute la place entre le
+ * sélecteur et « + » (`flex: 1 1 auto`) et ses onglets se rangeaient à gauche :
+ * mesuré 55 px de vide avant « + » à 430, 39 à 414, 15 à 390. Des marges
+ * automatiques aux deux bouts : elles se partagent l'espace libre quand il y
+ * en a, et valent 0 quand la rangée déborde — le défilement et l'ancrage sur
+ * un onglet (ci-dessus) restent intacts. `justify-content: center` aurait
+ * coupé le premier onglet en cas de débordement.
+ */
+.bolt-mobile-replit-panel-scroll > :first-child {
+  margin-inline-start: auto;
+}
+
+.bolt-mobile-replit-panel-scroll > :last-child {
+  margin-inline-end: auto;
 }
 
 .bolt-mobile-replit-icon-tab svg,
@@ -5574,7 +5605,14 @@ body :where(.lucide, svg[data-lucide]) {
 
 // The visible chip is a smaller element centred inside the larger tap target so
 // the corner control stays compact while remaining easy to hit on touch.
-.bolt-mobile-tab-switcher-close > span {
+//
+// BUG-TAB-CLOSE-CONTRAST-001 — la pastille n'est PAS le span de l'icône. Une
+// icône `i-ph:*` est un masque : sa couleur de trait est sa `background-color`
+// (`currentColor` par défaut). Posée sur l'icône, `background: var(--vc-ide-bg-app)`
+// peignait la croix EN COULEUR DE FOND — mesuré rgb(246, 248, 251) sur la tuile
+// orange « Secrets » en thème clair, invisible. Le sélecteur vise donc une
+// classe propre, et ne doit jamais redevenir `> span`.
+.bolt-mobile-tab-switcher-close-chip {
   display: inline-flex;
   width: 28px;
   height: 28px;
@@ -5592,10 +5630,19 @@ body :where(.lucide, svg[data-lucide]) {
     color 150ms ease;
 }
 
-.bolt-mobile-tab-switcher-close:hover > span,
-.bolt-mobile-tab-switcher-close:focus-visible > span {
+.bolt-mobile-tab-switcher-close:hover .bolt-mobile-tab-switcher-close-chip,
+.bolt-mobile-tab-switcher-close:focus-visible .bolt-mobile-tab-switcher-close-chip {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
+}
+
+// La glyphe se peint dans la couleur du contenu de la tuile, sur tous les thèmes.
+// Taille en px : la remise à zéro des polices de la coque IDE ramène la pastille
+// à 14 px, et une glyphe en `1em` suivrait (mesuré 14 px au lieu de 18).
+.bolt-mobile-tab-switcher-close-chip > span {
+  width: 18px;
+  height: 18px;
+  background-color: currentColor;
 }
 
 .bolt-mobile-tab-switcher-empty {
@@ -5642,21 +5689,28 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-tab-switcher-quick button {
   display: flex;
 
-  /* Exactement les cotes de `.bolt-mobile-tab-switcher-card` : même hauteur figée,
-     même rayon, même bordure, même fond — sinon l'œil voit deux familles. */
-  height: 102px;
-  min-height: 102px;
+  /*
+   * PLUS PETITS QUE LES ONGLETS, ET TOUS ÉGAUX — décision d'Avi, 07/09 08:21,
+   * les quatre raccourcis entourés en rouge : « les carrés doivent être plus
+   * petits que les carrés au-dessus, et tous de même taille ». Le 06/09 ils
+   * avaient été alignés sur les tuiles d'onglets (102 px, « même famille »).
+   * Avi tranche autrement : les onglets ouverts sont la matière, les raccourcis
+   * un second rang. Même rayon, même bordure, même fond ; 72 px de haut, icône
+   * de 32 px, libellé de 12 px. La hauteur est figée : quatre tuiles égales.
+   */
+  height: 72px;
+  min-height: 72px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 14px;
+  padding: 8px 10px;
   text-align: center;
   touch-action: manipulation;
 }
@@ -5673,17 +5727,24 @@ body :where(.lucide, svg[data-lucide]) {
   transform: scale(0.95);
 }
 
-/* AV-UX point 3 — same icon box as `.bolt-mobile-tab-switcher-card-icon`
-   (40×40, radius 10, 20px glyph) so the quick tiles read as the SAME family
-   as Déploiements/Agent/Webview, down to the glyph size. */
+/*
+ * Le libellé à 12 px : la règle de coquille (`.bolt-project-ide-shell :where(span …)`,
+ * 14 px `!important`) l'emportait sur le `font-size: 12px` du bouton — mesuré
+ * sur WebKitGTK, 14 px rendus. Même spécificité (0,3,1) et `!important`.
+ */
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-mobile-tab-switcher-quick button > span:last-child {
+  font-size: 12px !important;
+}
+
+/* Boîte d'icône d'un second rang : 32 × 32, glyphe de 18 px (les onglets : 40 × 40, 20 px). */
 .bolt-mobile-tab-switcher-quick button > span:first-child {
   display: inline-flex;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 20px;
+  border-radius: 8px;
+  font-size: 18px;
 }
 
 .bolt-mobile-tab-switcher-search {
@@ -7855,23 +7916,6 @@ body :where(.lucide, svg[data-lucide]) {
  * Ce sont les MÊMES boutons, déplacés ici : mêmes gestionnaires, mêmes
  * libellés traduits.
  */
-.bolt-message-context-menu-veil {
-  position: fixed;
-  z-index: 12040;
-  inset: 0;
-
-  /*
-   * TRANSPARENT, et il faut le DIRE : la règle de thème des bulles peint tout
-   * élément dont la classe contient « message » (`body :where([class*='message']
-   * …) { background-color: var(--vc-ide-bg-card) }`), et ce voile en fait
-   * partie. Mesuré sur WebKitGTK (07/09) : fond calculé rgb(238 242 247) sur
-   * 390 × 844 — l'écran entier repeint en couleur de carte derrière le menu.
-   * C'est la capture d'Avi, 07/09 08:03 : « on ne voit plus le contenu à
-   * l'arrière-plan ». Le voile ne se voit pas, il ne fait que fermer.
-   */
-  background: transparent;
-}
-
 .bolt-message-context-menu {
   position: fixed;
   z-index: 12041;
@@ -9485,6 +9529,689 @@ body :where(.lucide, svg[data-lucide]) {
   border-color: var(--vc-ide-border-visible);
   background: var(--vc-ide-bg-card-hover);
   color: var(--vc-ide-text-primary);
+}
+
+/*
+ * Onglet Secrets — parité pixel Replit (RP-SEC-01 à 08, captures d'Avi du
+ * 07/09). Trois puces grises arrondies de 44 px par ligne (clé, valeur, ⋮),
+ * un filtre pleine largeur, un formulaire d'ajout en ligne, des menus
+ * flottants. Même gabarit sur bureau et téléphone ; les largeurs s'adaptent.
+ */
+.bolt-secrets {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+
+.bolt-secrets-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+
+/*
+ * TAILLES MESURÉES SUR LES CAPTURES REPLIT D'AVI (07/09, 1260 px de large pour
+ * 393 px CSS, soit ~3,2 px par px CSS) : titre « Secrets » ≈ 22 px, texte des
+ * lignes ≈ 13 px, puces ≈ 30 px de haut, bouton « + New Secret » ≈ 30 px,
+ * filtre ≈ 30 px, libellés « Key / Value » ≈ 13 px. Chez nous, mesuré avant
+ * cette passe : titre rendu à 13 px (la règle de 24 px perdait contre la
+ * remise à zéro des polices de la coque, plus spécifique), puces de 44 px à
+ * 14 px. Les tailles de police sont posées ci-dessous avec une spécificité
+ * qui dépasse la coque ; les cibles tactiles restent de 44 px par un
+ * prolongement invisible (`::before`), la boîte visible fait la taille Replit.
+ */
+.bolt-secrets-title {
+  margin: 0;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-title,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-title {
+  font-size: 22px !important;
+}
+
+/*
+ * BUG-DEPLOY-STATIC-FAIL-001 — la cause de l'échec, là où l'utilisateur la
+ * cherche. La carte affichait « Échec » et rien d'autre : pour savoir pourquoi,
+ * il fallait deviner qu'un onglet « Journaux » existe. La ligne se lit comme
+ * une alerte, pas comme du corps de texte, et elle revient à la ligne — un
+ * message de compilation est long et ne doit jamais être coupé (point 8).
+ */
+.bolt-project-deploy-cause {
+  margin-top: 6px;
+  border-left: 3px solid var(--vc-ide-accent-danger, #dc2626);
+  padding-left: 10px;
+  color: var(--vc-ide-text-secondary);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: normal;
+}
+
+/*
+ * BUG-SECURITY-FONT-001 — Avi (point 5) : « pour la tab sécurité est-ce que
+ * c'est la même taille de police que ce qu'on a fait partout ? »
+ *
+ * MESURÉ le 09/09 à 390 px, panneau contre panneau, plutôt que jugé à l'œil :
+ *
+ *   Secrets (la référence, déjà alignée) ... titre 22px, corps 13-14px
+ *   Sécurité ............................... titre 12px, et 12 éléments à 12px
+ *
+ * Le titre « Scanner de sécurité et confidentialité » était donc PLUS PETIT
+ * que le texte qu'il coiffe : son `h3` ne porte aucune classe, il tombait
+ * dans la remise à plat de la coque et personne ne l'avait relevé — Secrets
+ * avait eu son exception, Sécurité non.
+ *
+ * Les 12 px des lignes de détail (`.bolt-panel-row-detail`, `text-xs`) NE SONT
+ * PAS corrigés ici, et c'est délibéré. J'ai essayé, et je ne peux pas montrer
+ * que ça marche : une règle `!important` à (0,3,0) n'a AUCUN effet sur ces
+ * onze éléments. Vérifié le 09/09, dans la page :
+ *
+ *   sélecteur qui correspond (`el.matches`) .............. oui
+ *   règle présente dans la feuille SERVIE ................ oui
+ *   même règle réinjectée en DERNIER, `!important` ....... 12px, inchangé
+ *   `.bolt-panel-row-detail{font-size:41px!important}` ... 12px, inchangé
+ *   témoin positif : la même valeur EN LIGNE ............. 41px, appliqué
+ *
+ * Le témoin positif prouve que la mesure fonctionne : ce sont bien les règles
+ * de feuille qui ne prennent pas, et je n'ai pas trouvé pourquoi. Livrer une
+ * règle dont je ne peux pas démontrer l'effet reviendrait à écrire du CSS
+ * décoratif — la question reste donc ouverte, avec ses mesures.
+ */
+.bolt-project-ide-shell .bolt-project-security-summary h3,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-security-summary h3 {
+  font-size: 22px !important;
+}
+
+/*
+ * BUG-SECURITY-FONT-001, SECOND TOUR — LE TITRE ÉTAIT PLUS PETIT QUE SON TEXTE.
+ *
+ * Avi, point 5 : « pour la tab sécurité est-ce que c'est la même taille de
+ * police que ce qu'on a fait partout ? ». La réponse restait NON, et la mesure
+ * le chiffre — Chromium, 390 px, feuille compilée, DOM reconstitué à
+ * l'identique de la chaîne réelle :
+ *
+ *     Sécurité  h3 « Scanner de sécurité » ....... 22px  ✔ corrigé au 1er tour
+ *     Sécurité  h4 « Comparaison de scans » ....... 12px  ✖ défaut vivant
+ *     Sécurité  <p> juste sous ce h4 .............. 14px
+ *
+ * Un titre à 12 px au-dessus de son propre corps de texte à 14 px. La remise à
+ * plat de la coque (`:where(h3, h4, h5, h6)`, spécificité 0,2,0 + !important)
+ * les écrase tous ; le correctif du premier tour n'a ouvert l'exception que
+ * pour le `h3` du RÉSUMÉ, et laissé les titrailles de l'OUTIL derrière.
+ *
+ * On vise donc la règle et pas la seule occurrence (règle 7) : toutes les
+ * titrailles du panneau. 16 px est le palier entre le corps (14 px) et le titre
+ * principal (22 px) — l'invariant qui compte est qu'aucun titre ne passe sous
+ * le texte qu'il coiffe, et c'est lui que le test tient.
+ */
+.bolt-project-ide-shell .bolt-project-security-tool :where(h4, h5):not([class*='i-']),
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-security-tool :where(h4, h5):not([class*='i-']) {
+  font-size: 16px !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-text,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-text,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add {
+  font-size: 13px !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field > span,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field > span,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-message,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-message {
+  font-size: 13px !important;
+}
+
+/* Les champs restent à 16 px : en dessous, Safari iOS zoome au focus (IOS-ZOOM-001). Le placeholder, lui, suit Replit. */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field input {
+  font-size: 16px !important;
+}
+
+.bolt-secrets-filter input::placeholder {
+  font-size: 14px;
+}
+
+/*
+ * Les boîtes visibles font la taille Replit ; la coque mobile impose
+ * `min-height: 44px` aux boutons et champs des panneaux de service
+ * (spécificité (0,3,0) et plus), on la dépasse ici avec la même méthode que
+ * pour les polices. La cible tactile de 44 px est rendue par `::before`.
+ */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-icon-button,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-icon-button,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add {
+  height: 32px !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip-copy,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip-copy {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-eye,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-eye {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+}
+
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-filter input,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-field input,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-field input {
+  height: 36px !important;
+  min-height: 0 !important;
+}
+
+/* Cible tactile de 44 px sans grossir la boîte visible : un prolongement invisible au-dessus et au-dessous. */
+.bolt-secrets-chip,
+.bolt-secrets-chip-copy,
+.bolt-secrets-eye,
+.bolt-secrets-icon-button,
+.bolt-secrets-new,
+.bolt-secrets-cancel,
+.bolt-secrets-add {
+  position: relative;
+}
+
+.bolt-secrets-chip::before,
+.bolt-secrets-icon-button::before,
+.bolt-secrets-new::before,
+.bolt-secrets-cancel::before,
+.bolt-secrets-add::before,
+.bolt-secrets-eye::before {
+  content: '';
+  position: absolute;
+  inset: -6px 0;
+}
+
+.bolt-secrets-eye::before {
+  inset: -10px;
+}
+
+/* La coque éteint les pseudo-éléments des boutons (`content: none`) : mesuré, le prolongement n'existait pas. */
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-chip::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-chip::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-icon-button::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-icon-button::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-new::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-new::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-cancel::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-cancel::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-add::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-add::before,
+.bolt-project-ide-shell .bolt-secrets .bolt-secrets-eye::before,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-secrets .bolt-secrets-eye::before {
+  content: '' !important;
+  display: block !important;
+}
+
+.bolt-secrets-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.bolt-secrets-icon-button {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 20px;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-icon-button:hover,
+.bolt-secrets-icon-button:focus-visible,
+.bolt-secrets-icon-button[aria-expanded='true'] {
+  background: var(--vc-ide-bg-card-hover);
+}
+
+.bolt-secrets-new {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vc-ide-accent-action, #2563eb);
+  color: #fff;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-new > span[class*='i-'] {
+  width: 16px;
+  height: 16px;
+}
+
+.bolt-secrets-filter {
+  position: relative;
+  min-width: 0;
+}
+
+.bolt-secrets-filter input {
+  width: 100%;
+  height: 36px;
+  padding: 0 40px 0 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  outline: none;
+}
+
+.bolt-secrets-filter input:focus-visible {
+  border-color: var(--vc-ide-accent-action, #2563eb);
+}
+
+.bolt-secrets-filter > span[class*='i-'] {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 18px;
+  height: 18px;
+  transform: translateY(-50%);
+  color: var(--vc-ide-text-secondary);
+  pointer-events: none;
+}
+
+.bolt-secrets-form {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: 8px 12px;
+}
+
+.bolt-secrets-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.bolt-secrets-field > span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  /* Même hauteur avec ou sans l'œil : les deux champs restent sur une rangée. */
+  height: 24px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-secrets-field input {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-code);
+  outline: none;
+}
+
+.bolt-secrets-field input:focus-visible {
+  border-color: var(--vc-ide-accent-action, #2563eb);
+}
+
+.bolt-secrets-field input[aria-invalid='true'] {
+  border-color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-secrets-eye {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  font-size: 16px;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-eye:hover,
+.bolt-secrets-eye:focus-visible {
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-form-error {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--vc-ide-accent-danger, #dc2626);
+  font-size: 13px;
+}
+
+.bolt-secrets-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.bolt-secrets-cancel,
+.bolt-secrets-add {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  font-weight: 500;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-cancel {
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-add {
+  background: var(--vc-ide-accent-action, #2563eb);
+  color: #fff;
+}
+
+.bolt-secrets-add:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bolt-secrets-message {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-secrets-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bolt-secrets-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
+.bolt-secrets-chip {
+  display: flex;
+  height: 32px;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-chip > span[class*='i-'],
+.bolt-secrets-chip-copy > span[class*='i-'] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-secrets-chip-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-secrets-chip--value {
+  padding-right: 4px;
+}
+
+.bolt-secrets-chip-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  letter-spacing: 0.12em;
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-chip--value.is-revealed .bolt-secrets-chip-copy {
+  font-family: var(--vc-font-code);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+
+.bolt-secrets-row-menu {
+  border-radius: 8px;
+  background: var(--vc-ide-bg-card);
+  font-size: 18px;
+}
+
+.bolt-secrets-hidden-form {
+  display: none;
+}
+
+.bolt-secrets-menu {
+  position: fixed;
+  z-index: 12045;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 14px;
+  background: var(--vc-ide-bg-app);
+  box-shadow: 0 12px 32px rgb(15 23 42 / 0.18);
+}
+
+.bolt-secrets-menu-item {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+  touch-action: manipulation;
+}
+
+.bolt-secrets-menu-item > span[class*='i-'] {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+}
+
+.bolt-secrets-menu-item:hover,
+.bolt-secrets-menu-item:focus-visible {
+  background: var(--vc-ide-bg-card-hover);
+}
+
+.bolt-secrets-menu-item--danger {
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+.bolt-secrets-menu-item:disabled {
+  opacity: 0.5;
+}
+
+.bolt-secrets-editor-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 12059;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgb(15 23 42 / 0.35);
+}
+
+.bolt-secrets-editor {
+  display: grid;
+  width: min(100%, 760px);
+  max-height: min(90dvh, 720px);
+  gap: 10px;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+  border-radius: 18px 18px 0 0;
+  background: var(--vc-ide-bg-app);
+  color: var(--vc-ide-text-primary);
+}
+
+.bolt-secrets-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bolt-secrets-editor-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bolt-secrets-editor-help {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-secrets-editor textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-code);
+  font-size: 16px;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+}
+
+.bolt-secrets-editor-errors {
+  margin: 0;
+  padding: 0 0 0 18px;
+  color: var(--vc-ide-accent-danger, #dc2626);
+  font-size: 13px;
+}
+
+@media (min-width: 761px) {
+  .bolt-secrets-editor-veil {
+    align-items: center;
+  }
+
+  .bolt-secrets-editor {
+    border-radius: 18px;
+    padding-bottom: 16px;
+  }
+}
+
+/*
+ * BUG-VOICE-INPUT-001 — la dictée se voit. Pendant l'écoute, le bouton passe
+ * en couleur d'alerte avec un halo qui pulse ; pendant la demande d'accès au
+ * micro, le halo est fixe. Rien ne dépend du survol : c'est ce que voit un
+ * doigt sur iPhone.
+ */
+.bolt-dictee-bouton .bolt-dictee-icone {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bolt-dictee-bouton .bolt-dictee-halo {
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.bolt-dictee-bouton .bolt-dictee-halo[data-phase='ecoute'] {
+  animation: bolt-dictee-pulse 1.2s ease-out infinite;
+}
+
+.bolt-chatbox-toolbar-button.bolt-dictee-active,
+.bolt-chatbox-toolbar-button.bolt-dictee-active:hover:not(:disabled),
+.bolt-chatbox-toolbar-button.bolt-dictee-active:focus-visible {
+  border-color: var(--vc-ide-accent-danger, #dc2626);
+  background: color-mix(in srgb, var(--vc-ide-accent-danger, #dc2626) 12%, transparent);
+  color: var(--vc-ide-accent-danger, #dc2626);
+}
+
+@keyframes bolt-dictee-pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: scale(1.35);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bolt-dictee-bouton .bolt-dictee-halo[data-phase='ecoute'] {
+    animation: none;
+  }
 }
 
 /*
@@ -12330,6 +13057,22 @@ body :where(.lucide, svg[data-lucide]) {
   min-height: min(220px, 42%);
 }
 
+/* Hors téléphone, l'URL est le champ lui-même : le bouton de lecture n'existe pas. */
+.bolt-preview-url-text {
+  display: none;
+}
+
+/* Les journaux se referment partout : une croix, à droite d'« Ancrer à droite ». */
+.bolt-preview-logs-panel header > button:first-of-type {
+  margin-inline-start: auto;
+}
+
+.bolt-preview-logs-panel .bolt-preview-logs-close {
+  min-width: 32px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
 .bolt-preview-logs-panel header,
 .bolt-preview-devtools-panel header {
   display: flex;
@@ -13060,12 +13803,18 @@ body :where(.lucide, svg[data-lucide]) {
   font-weight: 750;
 }
 
+/*
+ * Même règle pour la tâche en cours. C'est précisément la phrase qui explique
+ * l'attente à quelqu'un qui n'est pas ingénieur — « Installation de 1 248
+ * paquets, cela peut prendre une minute » — et la couper la vide de son sens.
+ */
 .bolt-preview-splash-task small {
-  overflow: hidden;
   color: var(--vc-ide-text-muted);
   font-size: 11px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-splash-task button {
@@ -13100,19 +13849,50 @@ body :where(.lucide, svg[data-lucide]) {
   transition: width 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/*
+ * BUG-PREVIEW-CUTOFF-001 (point 8 d'Avi) — « rien ne doit être coupé, et les
+ * écrans doivent être compréhensibles par quelqu'un qui n'est pas ingénieur ».
+ *
+ * ⚠️ CE QUI ÉTAIT RÉELLEMENT CASSÉ, ET OÙ. Une première mesure annonçait des
+ * coupures aux trois formats ; elle avait été prise sur la structure injectée
+ * dans une page NUE. Or un correctif mobile existait déjà — `.bolt-responsive-
+ * ide-mobile .bolt-preview-splash-steps strong`, sous `@media (max-width:
+ * 1199px)` — et n'avait aucune chance de s'y appliquer. Téléphone et tablette
+ * étaient donc DÉJÀ corrects.
+ *
+ * Le défaut vivait au-dessus de 1199 px, là où la règle mobile est inerte et
+ * où celle-ci, la règle de base, s'appliquait seule. Mesuré à 1280 px :
+ * « Démarrage du serveur de développement » = 259 px de texte dans une boîte
+ * de 102 px, « Préparation de l'espace de travail » = 211 px dans 102 px. Le
+ * `text-overflow: ellipsis` faisait son travail : il coupait. L'utilisateur
+ * lisait « Démarrage du serveur de dévelo… » et devait deviner le reste.
+ *
+ * La règle de base fait désormais ce que faisait l'override mobile : deux
+ * colonnes tant qu'on est étroit, et des libellés qui REVIENNENT À LA LIGNE.
+ * Contre-épreuve : en la remettant à l'état d'avant, seul le format web
+ * rougit — téléphone et tablette restent verts, tenus par l'override.
+ */
 .bolt-preview-splash-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: color-mix(in srgb, var(--vc-ide-bg-card), var(--vc-ide-bg-panel) 35%);
   padding: 10px 14px;
 }
 
+@media (min-width: 640px) {
+  .bolt-preview-splash-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .bolt-preview-splash-steps div {
   display: flex;
   min-width: 0;
-  align-items: center;
+
+  /* Le numéro reste aligné sur la PREMIÈRE ligne du libellé, pas centré sur deux. */
+  align-items: flex-start;
   gap: 7px;
   color: var(--vc-ide-text-muted);
 }
@@ -13132,11 +13912,12 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-preview-splash-steps strong {
   min-width: 0;
-  overflow: hidden;
   font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-splash-steps div[data-state='active'] {
@@ -13346,7 +14127,18 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-preview-loading-card {
   display: grid;
   width: min(460px, 100%);
+
+  /*
+   * BUG-PREVIEW-CUTOFF-001 — sans cela, on échange une troncature HORIZONTALE
+   * contre une VERTICALE. Des libellés qui se replient rendent la carte plus
+   * haute ; dans un volet d'aperçu court, le bas sortait du cadre sans moyen
+   * d'y accéder. L'override mobile portait déjà cette garde — elle manquait à
+   * la règle de base, donc à l'ordinateur et à la tablette.
+   */
+  max-height: 100%;
   gap: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 12px;
   background: color-mix(in srgb, var(--vc-ide-bg-card) 96%, transparent);
@@ -13414,20 +14206,47 @@ body :where(.lucide, svg[data-lucide]) {
   transition: width 360ms cubic-bezier(0.2, 0, 0, 1);
 }
 
+/*
+ * BUG-PREVIEW-CUTOFF-001, SECOND TOUR — J'AVAIS CORRIGÉ LA CARTE QUI NE S'AFFICHE PAS.
+ *
+ * Avi, point 8 : « rien ne doit être coupé pour tous les types de devices ». Le
+ * correctif du 09/09 a visé `.bolt-preview-splash-steps`. Or l'écran de
+ * démarrage a DEUX implémentations qui s'excluent (Preview.tsx:3015-3044), et
+ * `shouldShowStartupOverlay` rend TRUE au démarrage à froid ordinaire —
+ * `autoStart` vaut `true` par défaut et `!workspaceReady` suffit. C'est donc
+ * `.bolt-preview-loading-*` qui est à l'écran, et `.bolt-preview-splash-*`
+ * n'est que le repli.
+ *
+ * J'avais donc corrigé la surface qui n'a pas le problème : un vert sur un
+ * écran que l'utilisateur ne voit pas — la pire espèce de faux vert, et
+ * exactement celle que le CLAUDE.md décrit pour Chromium contre Safari.
+ *
+ * Ce bloc aligne la carte RÉELLE sur ce qui a déjà été démontré sur l'autre.
+ */
 .bolt-preview-loading-steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 7px;
+
+  /* Deux colonnes sur téléphone : à quatre, un libellé de 36 caractères se replie sur trois lignes. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
+@media (min-width: 640px) {
+  .bolt-preview-loading-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
 .bolt-preview-loading-steps li {
-  display: grid;
+  display: flex;
   min-width: 0;
-  justify-items: center;
-  gap: 5px;
+
+  /* Le numéro reste aligné sur la PREMIÈRE ligne du libellé, pas centré sur deux. */
+  align-items: flex-start;
+  gap: 7px;
   color: var(--vc-ide-text-muted);
 }
 
@@ -13435,6 +14254,7 @@ body :where(.lucide, svg[data-lucide]) {
   display: inline-grid;
   width: 18px;
   height: 18px;
+  flex: 0 0 auto;
   place-items: center;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 999px;
@@ -13444,12 +14264,13 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-preview-loading-steps strong {
-  max-width: 100%;
-  overflow: hidden;
-  font-size: 10px;
+  min-width: 0;
+  font-size: 11px;
   font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
 }
 
 .bolt-preview-loading-steps li[data-state='active'] {
@@ -13506,6 +14327,39 @@ body :where(.lucide, svg[data-lucide]) {
   border-color: var(--vc-ide-accent-action);
   background: var(--vc-ide-bg-hover);
   outline: 0;
+}
+
+/*
+ * BUG-IDE-006 — l'écran d'un démarrage qui n'avance plus.
+ *
+ * Le 2026-08-12 il a tourné ~20 minutes, identique à celui d'un démarrage lent.
+ * Il doit maintenant se DISTINGUER : la teinte d'avertissement porte le
+ * message, le rouet a déjà disparu côté composant (un rouet qui tourne affirme
+ * une progression), et la sortie est un vrai bouton, pas une invitation à
+ * attendre encore.
+ *
+ * Sobre à dessein : un démarrage lent qui finit par aboutir ne doit pas laisser
+ * le souvenir d'une panne rouge vif.
+ */
+.bolt-preview-loading-card[data-vc-demarrage='bloque'] .bolt-preview-loading-spinner,
+.bolt-preview-splash-task[data-vc-demarrage='bloque'] > span[class*='i-ph:warning-circle'] {
+  color: var(--status-warning-text, var(--vc-ide-text-secondary));
+}
+
+.bolt-preview-demarrage-bloque {
+  margin: 0;
+  border: 1px solid var(--status-warning-border, var(--vc-ide-border-visible));
+  border-radius: 8px;
+  background: var(--status-warning-bg, var(--vc-ide-bg-app));
+  color: var(--status-warning-text, var(--vc-ide-text-primary));
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.bolt-preview-splash-task[data-vc-demarrage='bloque'] small {
+  color: var(--status-warning-text, var(--vc-ide-text-secondary));
 }
 
 @media (max-width: 520px) {
@@ -17161,6 +18015,861 @@ body :where(.lucide, svg[data-lucide]) {
   }
 }
 
+/*
+ * Fin de tour de l'agent — parité Replit (RP-CKPT-02, 03, 07).
+ *
+ * Mesures prises sur les captures iPhone d'Avi du 08/09 (1260 px pour 420 px
+ * CSS, soit 3,0 px par px CSS — étalonné sur notre en-tête de 48 px) : ligne
+ * de 38 px, icône dans un carré de 26 px à bord fin, titre 14 px, chevron à
+ * droite ; carte de détail à fond feutré, rangées de 26 px en 13 px ;
+ * message du commit 14 px, date 13 px atténuée, boutons de 28 px à fond gris.
+ * La police est celle de l'interface (IBM Plex Sans), la même que Replit.
+ */
+/*
+ * RP-PUBLISH-01…06 — le panneau « Publishing » de Replit, appliqué à nos
+ * données. Captures d'Avi du 08/09, 21:00-21:02, mesurées à l'échelle 3,0 px
+ * par px CSS (recalibrée le 08/09 contre notre en-tête de 48 px — et non 3,2,
+ * qui sous-estimait toutes les tailles d'environ 7 %).
+ *
+ * Mesures relevées sur les captures, converties :
+ *   titre « Republish your app » ....  30 px, gras
+ *   sous-titre .....................  15 px
+ *   « Adjust settings » ............  15 px dans une puce de 34 px
+ *   titre de carte .................  17 px
+ *   corps de carte .................  15 px
+ *   barre d'étapes .................  segment de 38 px, rayon plein
+ *   bouton « Republish » ...........  hauteur 56 px, rayon 12 px
+ */
+/*
+ * RP-PUBLISH-01 — la coquille de l'IDE impose ses tailles à tout ce qu'elle
+ * contient, en `!important`. Mesuré à 390 sur le build de production : le
+ * titre sortait à 13 px au lieu de 30, le bouton d'action à 14 au lieu de 17
+ * — la maquette Replit était écrasée sans que rien ne le signale.
+ *
+ * ET UNE PREMIÈRE CORRECTION N'A PAS SUFFI, pour une raison qui se compte :
+ *
+ *   coquille : `.bolt-project-ide-shell :where(…):not([class*="i-"])`
+ *              (0,1,0) + :where = 0 + :not([attribut]) = (0,1,0)  →  (0,2,0)
+ *   la mienne : `.bolt-project-ide-shell .bolt-publication-republier`
+ *                                                              →  (0,2,0)
+ *
+ * `:where()` ne compte pour rien, mais `:not()` prend la spécificité de son
+ * argument — l'attribut vaut une classe. À égalité, c'est l'ordre du fichier
+ * qui tranche, et la règle de coquille est plus bas. D'où (0,3,0) ici, en
+ * passant par la racine `.bolt-publication` : cela vaut à toutes les largeurs,
+ * là où le `.bolt-responsive-ide-mobile` employé ailleurs ne couvrirait que le
+ * téléphone.
+ */
+.bolt-project-ide-shell .bolt-publication .bolt-publication-entete h2,
+.bolt-project-ide-shell .bolt-publication-entete h2 {
+  font-size: 19px !important;
+  line-height: 1.2 !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-entete p,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-segment,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-reglages,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-domaines li span,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-quand,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-vide,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echec-texte p,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-infra dd,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-partage strong,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echecs-liste > button,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-voir,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-reparer > button,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echec-actions > button,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-reparer-menu button {
+  font-size: 13px !important;
+}
+
+/* Les libellés secondaires, un cran en dessous — comme sur la capture. */
+.bolt-project-ide-shell .bolt-publication .bolt-publication-carte-entete button {
+  font-size: 12px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-pastille,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-fraicheur,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-depuis,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-infra dt,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-partage p,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echecs-liste li span,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-historique li span,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echecs-liste code,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-historique code {
+  font-size: 12px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-carte-entete h3,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-echec-texte strong {
+  font-size: 15px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-republier {
+  font-size: 15px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gestes li > button {
+  font-size: 13px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gabarits li > span,
+.bolt-project-ide-shell .bolt-publication .bolt-publication-gestes li > p {
+  font-size: 12px !important;
+}
+
+.bolt-project-ide-shell .bolt-publication .bolt-publication-journal {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+}
+
+/*
+ * BUG-IDE-004 — l'invite de conflit de sauvegarde, dans une notification.
+ * Elle reste ouverte tant que l'utilisateur n'a pas tranché : c'est son
+ * travail qui est en jeu.
+ */
+.bolt-editor-conflit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bolt-editor-conflit p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-editor-conflit button {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bolt-elements-button-primary-background, #0079f2);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+
+  /* Cible tactile : l'iPhone d'Avi, pas seulement la souris. */
+  min-height: 32px;
+}
+
+.bolt-publication {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  padding-bottom: 12px;
+  gap: 10px;
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-interface);
+}
+
+.bolt-publication-entete h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.bolt-publication-entete p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.bolt-publication-reglages {
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 8px;
+  margin-top: 10px;
+  background: var(--bolt-elements-background-depth-2);
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+
+  /* Une pastille ne se replie pas sur deux lignes : elle rétrécit ou rien. */
+  white-space: nowrap;
+}
+
+.bolt-publication-carte {
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  gap: 8px;
+}
+
+.bolt-publication-carte-entete {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-publication-carte-entete h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+
+  /*
+   * BUG-PUBLISH-SIZES-001 — « Domaines connectés » se repliait sur deux
+   * lignes à côté de son bouton, et la carte doublait de hauteur. Le titre
+   * garde sa ligne ; c'est le bouton qui cède la place.
+   */
+  white-space: nowrap;
+}
+
+.bolt-publication-carte-entete button {
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: var(--bolt-elements-background-depth-2);
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.bolt-publication-carte-actions {
+  display: flex;
+  margin-inline-start: auto;
+  gap: 6px;
+}
+
+.bolt-publication-depuis {
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+}
+
+/*
+ * La barre segmentée. L'étape courante porte son nom et occupe la place ; les
+ * autres se réduisent à leur icône, comme sur la capture.
+ */
+.bolt-publication-etapes {
+  display: flex;
+  padding: 0;
+  margin: 0;
+  gap: 4px;
+  list-style: none;
+}
+
+.bolt-publication-segment {
+  display: flex;
+  min-width: 48px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--bolt-elements-background-depth-2);
+  color: var(--vc-ide-text-secondary);
+  font-size: 15px;
+  gap: 8px;
+}
+
+.bolt-publication-segment[data-nomme='true'] {
+  flex: 1;
+}
+
+/*
+ * BUG-PUBLISH-THEME-001 — LES COULEURS DU PANNEAU SUIVENT LE THÈME.
+ *
+ * Avi, 09/09 : « la police et les boutons sont trop gros ou pas comme le
+ * thème ». La police, c'était BUG-PUBLISH-SIZES-001 ; le thème, c'est ici.
+ *
+ * Ce panneau reprenait la palette de Replit EN DUR : son bleu #0079f2, et des
+ * pastels clairs (#e6f4ea, #fbe4e4, #e6f0fb) pensés pour un fond blanc. Or
+ * l'IDE est SOMBRE par défaut (`:root { color-scheme: dark; --vc-ide-bg-card:
+ * #1a2030 }`) et notre action primaire est ORANGE (`--vc-action-primary:
+ * #f97316`). Résultat mesurable : des pastilles presque blanches posées sur un
+ * fond sombre, et le bouton principal peint dans la couleur d'un concurrent.
+ *
+ * Un littéral ne bascule pas. Les jetons `--status-*` et `--vc-action-primary`
+ * existent déjà et sont déclarés dans les DEUX thèmes : on s'y branche.
+ * `app/styles/publication-jetons-de-theme.spec.ts` refuse désormais tout
+ * littéral de couleur dans ce bloc.
+ */
+.bolt-publication-segment[data-etat='encours'] {
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
+}
+
+.bolt-publication-segment[data-etat='fait'] {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.bolt-publication-segment[data-etat='echec'] {
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.bolt-publication-journal {
+  max-height: 320px;
+  padding: 12px;
+  border-radius: 10px;
+  margin: 0;
+  background: var(--bolt-elements-background-depth-2);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-x: auto;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.bolt-publication-echec {
+  display: flex;
+  padding: 14px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.bolt-publication-echec-icone {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 999px;
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.bolt-publication-echec-texte {
+  min-width: 180px;
+  flex: 1;
+}
+
+.bolt-publication-echec-texte strong {
+  font-size: 17px;
+}
+
+.bolt-publication-echec-texte p {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.bolt-publication-echec-actions {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+}
+
+.bolt-publication-echec-actions > button {
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+}
+
+/* Le bouton à menu accolé : un seul bloc d'accent, séparé d'un trait. */
+.bolt-publication-reparer {
+  position: relative;
+  display: flex;
+}
+
+.bolt-publication-reparer > button {
+  height: 40px;
+  border: none;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
+  font-size: 15px;
+}
+
+.bolt-publication-reparer > button:first-child {
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border-radius: 10px 0 0 10px;
+  gap: 8px;
+}
+
+.bolt-publication-reparer > button:nth-child(2) {
+  width: 40px;
+  border-inline-start: 1px solid color-mix(in srgb, var(--vc-action-primary-foreground) 35%, transparent);
+  border-radius: 0 10px 10px 0;
+}
+
+.bolt-publication-reparer-menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  padding: 6px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 12px;
+  margin: 0;
+  background: var(--bolt-elements-background-depth-1);
+
+  /*
+   * L'ombre est déclarée par thème (`--vc-ui-shadow-lg`) : en sombre elle est
+   * plus dense, sinon un menu flottant se confond avec le fond. La géométrie
+   * est identique à celle qui était écrite ici en dur.
+   */
+  box-shadow: var(--vc-ui-shadow-lg);
+  list-style: none;
+}
+
+.bolt-publication-reparer-menu button {
+  display: flex;
+  width: 100%;
+  height: 40px;
+  align-items: center;
+  padding: 0 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  gap: 10px;
+  text-align: start;
+}
+
+.bolt-publication-echecs-liste > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  gap: 8px;
+}
+
+.bolt-publication-fraicheur {
+  margin-inline-start: auto;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+}
+
+.bolt-publication-echecs-liste ul,
+.bolt-publication-domaines,
+.bolt-publication-historique {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  margin: 10px 0 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.bolt-publication-echecs-liste li,
+.bolt-publication-historique li {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 2px;
+}
+
+.bolt-publication-echecs-liste code,
+.bolt-publication-historique code {
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-mono, ui-monospace, monospace);
+  font-size: 14px;
+}
+
+.bolt-publication-echecs-liste li span,
+.bolt-publication-historique li span {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-publication-voir {
+  display: flex;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: var(--bolt-elements-background-depth-2);
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.bolt-publication-pastille {
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-inline-start: auto;
+  background: var(--bolt-elements-background-depth-2);
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+}
+
+.bolt-publication-pastille[data-etat='live'] {
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+}
+
+.bolt-publication-pastille[data-etat='echec'] {
+  background: var(--status-error-bg);
+  color: var(--status-error-text);
+}
+
+.bolt-publication-quand,
+.bolt-publication-vide {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 15px;
+}
+
+.bolt-publication-domaines li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bolt-publication-domaines li span {
+  overflow: hidden;
+  flex: 1;
+  font-size: 15px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-publication-domaines li button {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-publication-partage {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bolt-publication-partage strong {
+  font-size: 15px;
+}
+
+.bolt-publication-partage p {
+  margin: 2px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+}
+
+.bolt-publication-infra {
+  display: grid;
+  margin: 0;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.bolt-publication-infra dt {
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+}
+
+.bolt-publication-infra dd {
+  margin: 2px 0 0;
+  font-size: 15px;
+}
+
+/* RP-PUBLISH-07…12 — l'écran « Ajuster les réglages ». */
+.bolt-publication-reglages-corps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bolt-publication-gabarits,
+.bolt-publication-gestes {
+  display: flex;
+  padding: 0;
+  flex-direction: column;
+  margin: 0;
+  gap: 10px;
+  list-style: none;
+}
+
+.bolt-publication-gabarits li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  padding: 10px;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  gap: 4px 10px;
+}
+
+.bolt-publication-gabarits li[data-courant='true'] {
+  border-color: var(--vc-action-primary);
+}
+
+.bolt-publication-gabarits li > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.bolt-publication-gabarits em {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--status-info-bg);
+  color: var(--status-info-text);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.bolt-publication-gabarits li > span {
+  flex: 1;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+  text-align: end;
+}
+
+.bolt-publication-gestes li > button {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--bolt-elements-borderColor);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  font-size: 15px;
+  gap: 8px;
+}
+
+.bolt-publication-gestes li > p {
+  margin: 6px 0 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Le bouton d'action principal, collant en bas comme sur la capture. */
+/*
+ * BUG-PUBLISH-STICKY-OVERLAP-001 — la barre « Republier » RECOUVRAIT le
+ * contenu (capture d'Avi, 09/09 : on ne voyait plus que le bas des libellés
+ * « Réparer avec l'agent » et « Afficher les journaux »).
+ *
+ * Deux causes, et il fallait les deux :
+ *
+ *   1. le fond était un dégradé dont le HAUT est transparent — le texte
+ *      passait dessous à moitié lisible, ce qui se lit comme un défaut
+ *      d'affichage et non comme une barre ;
+ *   2. sans filet ni plan, rien ne la désignait comme une barre : elle
+ *      passait pour du contenu mal superposé.
+ *
+ * Ce qu'il ne fallait PAS faire, et que j'ai failli faire : réserver une
+ * hauteur en bas du contenu. La barre est le DERNIER enfant du flux — elle
+ * occupe déjà sa place en fin de défilement, et toute réserve n'aurait ajouté
+ * que du vide.
+ */
+.bolt-publication-pied {
+  position: sticky;
+  z-index: 2;
+  bottom: 0;
+  padding: 8px 0 4px;
+  border-top: 1px solid var(--bolt-elements-borderColor);
+  margin-top: 4px;
+  background: var(--bolt-elements-background-depth-1);
+}
+
+.bolt-publication-republier {
+  display: flex;
+  width: 100%;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: var(--vc-action-primary);
+  color: var(--vc-action-primary-foreground);
+  font-size: 15px;
+  font-weight: 600;
+  gap: 8px;
+}
+
+/*
+ * Le bleu délavé de Replit (#94c7f5) ne dit rien de notre accent : l'état
+ * inactif se DÉRIVE de la couleur active, pour rester juste dans les deux
+ * thèmes le jour où l'accent change.
+ */
+.bolt-publication-republier:disabled {
+  background: color-mix(in srgb, var(--vc-action-primary) 45%, transparent);
+  color: color-mix(in srgb, var(--vc-action-primary-foreground) 70%, transparent);
+}
+
+.bolt-fin-de-tour {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 10px;
+  color: var(--vc-ide-text-primary);
+  font-family: var(--vc-font-interface);
+}
+
+.bolt-fin-de-tour-ligne {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.bolt-fin-de-tour-titre {
+  display: flex;
+  width: 100%;
+  min-height: 38px;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  padding: 0 4px 0 0;
+  text-align: start;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-fin-de-tour-titre:active {
+  background: var(--vc-ide-bg-hover);
+}
+
+.bolt-fin-de-tour-icone {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-fin-de-tour-icone > span {
+  width: 15px;
+  height: 15px;
+  font-size: 15px;
+}
+
+.bolt-fin-de-tour-icone-point {
+  color: var(--vc-ide-accent-success, #1f9d55);
+}
+
+.bolt-fin-de-tour-libelle {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: var(--vc-ide-text-secondary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bolt-fin-de-tour-chevron {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  color: var(--vc-ide-text-muted);
+  font-size: 14px;
+}
+
+.bolt-fin-de-tour-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: 10px;
+  background: var(--vc-ide-bg-card);
+  margin: 2px 0 6px;
+  padding: 8px 12px;
+}
+
+.bolt-fin-de-tour-tableau {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+
+.bolt-fin-de-tour-rangee {
+  display: flex;
+  min-height: 26px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.bolt-fin-de-tour-rangee dt {
+  color: var(--vc-ide-text-secondary);
+}
+
+.bolt-fin-de-tour-rangee dd {
+  margin: 0;
+  color: var(--vc-ide-text-primary);
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+}
+
+.bolt-fin-de-tour-commit {
+  margin: 4px 0 0;
+  color: var(--vc-ide-text-primary);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.bolt-fin-de-tour-date {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 13px;
+}
+
+.bolt-fin-de-tour-boutons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px 0 2px;
+}
+
+.bolt-fin-de-tour-boutons > button {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--vc-ide-bg-hover);
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  padding: 0 10px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.bolt-fin-de-tour-boutons > button > span {
+  width: 14px;
+  height: 14px;
+  color: inherit;
+  font-size: 14px;
+}
+
+.bolt-fin-de-tour-boutons > button:active {
+  filter: brightness(0.95);
+}
+
 .bolt-project-rollback-overlay {
   position: fixed;
   inset: 0;
@@ -17171,39 +18880,87 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 20px;
 }
 
+/*
+ * RP-CKPT-05 — la feuille « Rollback to this checkpoint? » de Replit
+ * (capture d'Avi du 08/09, 07:51) : carte centrée à coins de 16 px, croix en
+ * haut à droite, titre 20 px, message du commit 15 px et date 13 px
+ * atténuée, « What will be impacted » 17 px puis trois blocs titre 15 px /
+ * texte 13 px, boutons Cancel (bordé) et bleu plein de 40 px.
+ */
 .bolt-project-rollback-dialog {
+  position: relative;
   display: flex;
-  width: min(620px, calc(100vw - 32px));
-  max-height: min(760px, calc(100vh - 32px));
+  width: min(560px, calc(100vw - 32px));
+  max-height: min(760px, calc(100dvh - 32px));
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 12px;
+  border: 1px solid var(--vc-ide-border-subtle);
+  border-radius: 16px;
   background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
   box-shadow: var(--vc-ui-shadow-xl);
+  font-family: var(--vc-font-interface);
+}
+
+.bolt-project-rollback-fermer {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--vc-ide-text-secondary);
+  cursor: pointer;
+}
+
+.bolt-project-rollback-fermer > span {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
 }
 
 .bolt-project-rollback-body {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   overflow-y: auto;
-  padding: 20px;
+  padding: 20px 20px 8px;
 }
 
 .bolt-project-rollback-body h2 {
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
   margin: 0;
+  padding-right: 36px;
+}
+
+.bolt-project-rollback-cible {
+  display: grid;
+  gap: 6px;
 }
 
 .bolt-project-rollback-body h3 {
-  font-size: 14px;
-  margin: 4px 0;
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.bolt-project-rollback-impact-titre {
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 10px;
 }
 
 .bolt-project-rollback-body p {
   color: var(--vc-ide-text-secondary);
-  font-size: 12px;
+  font-size: 13px;
+  line-height: 1.4;
   margin: 0;
 }
 
@@ -17246,11 +19003,12 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-rollback-impact strong {
-  font-size: 12px;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .bolt-project-rollback-impact p + strong {
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .bolt-project-rollback-option {
@@ -17275,26 +19033,76 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-rollback-dialog footer {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  border-top: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-card);
-  padding: 12px;
+  gap: 10px;
+  padding: 12px 20px 20px;
 }
 
 .bolt-project-rollback-dialog footer button {
-  height: 32px;
+  height: 40px;
   border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
+  border-radius: 8px;
+  background: var(--vc-ide-bg-panel);
   color: var(--vc-ide-text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  padding: 0 12px;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 0 16px;
+  touch-action: manipulation;
 }
 
+/*
+ * Bouton de confirmation BLEU, comme chez Replit (#0079F2 sur la capture du
+ * 08/09 07:51) — pas l'accent orange de la marque : Avi a demandé la feuille
+ * « à l'identique à 100 % ».
+ */
 .bolt-project-rollback-dialog footer button:last-child {
   border-color: transparent;
-  background: var(--vc-ide-accent-action);
+  background: #0079f2;
   color: white;
+}
+
+/*
+ * Les remises à zéro de police de la coque (`.bolt-project-ide-shell :where(h2, h3, p…)`)
+ * écrasent les tailles de la feuille : on les repose avec la même spécificité,
+ * en `!important`, comme pour l'onglet Secrets. Mesures Replit à 3,0 px/px :
+ * titre 20, message 15, date 13, « What will be impacted » 17, blocs 15/13.
+ */
+.bolt-project-ide-shell .bolt-project-rollback-body h2,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-body h2 {
+  font-size: 20px !important;
+  line-height: 1.25 !important;
+}
+
+.bolt-project-ide-shell .bolt-project-rollback-body h3,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-body h3,
+.bolt-project-ide-shell .bolt-project-rollback-impact strong,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-impact strong {
+  font-size: 15px !important;
+  line-height: 1.35 !important;
+}
+
+.bolt-project-ide-shell .bolt-project-rollback-impact-titre,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-impact-titre {
+  font-size: 17px !important;
+  line-height: 1.3 !important;
+}
+
+.bolt-project-ide-shell .bolt-project-rollback-body p,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-body p {
+  font-size: 13px !important;
+  line-height: 1.4 !important;
+}
+
+.bolt-project-ide-shell .bolt-project-rollback-dialog footer button,
+.bolt-project-ide-shell .bolt-responsive-ide-mobile .bolt-project-rollback-dialog footer button {
+  height: 40px !important;
+  min-height: 40px !important;
+  font-size: 15px !important;
+}
+
+/* La feuille passe DEVANT le socle mobile (z 11002) et l'en-tête, comme chez Replit. */
+.bolt-responsive-ide-mobile .bolt-project-rollback-overlay,
+.bolt-project-ide-shell .bolt-project-rollback-overlay {
+  z-index: 12070;
 }
 
 .bolt-project-rollback-dialog footer button:disabled {
@@ -21458,16 +23266,68 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: 100% !important;
     min-height: 0;
     flex-direction: column;
+
+    /*
+     * BUG-PILL-LEAKS-PANELS-001 — Avi, 08/09 20:53 : « parfois je vois dans la
+     * tab preview le scroll icon de l'agent », capture à l'appui, le disque ↓
+     * posé en bas à droite du cadre d'aperçu.
+     *
+     * MESURÉ à 390 : sur les panneaux Aperçu ET Déploiements, la pastille était
+     * encore `display: flex`, `visibility: visible`, `opacity: 1`, à [324, 708]
+     * — et `elementFromPoint` en son centre rendait la pastille, donc elle se
+     * peignait bien PAR-DESSUS le contenu de l'autre panneau. Sur 164 éléments
+     * du fil, elle était la SEULE à s'échapper.
+     *
+     * Pourquoi elle seule : le panneau actif est un calque `position: absolute;
+     * inset: 0` en `z-index: auto`, et il partage le contexte d'empilement de
+     * la pastille (`position: sticky; z-index: 20`) — toute la chaîne jusqu'à
+     * `body` est en `z-index: auto`. Vingt bat zéro.
+     *
+     * La règle posée n'est donc pas « cacher cette pastille » mais « les
+     * `z-index` du fil ne sortent pas du fil » : le conteneur devient son
+     * propre contexte d'empilement. La pastille garde son rang AU-DESSUS des
+     * messages, et ne peut plus rien disputer au panneau qui recouvre le fil —
+     * pas plus qu'aucun futur enfant surélevé.
+     */
+    isolation: isolate;
     /*
      * Push the transcript below the agent context bar so the first prompt isn't
      * hidden behind the fixed header. The context-bar height is 0 unless the bar
      * is actually shown (see [data-mobile-agent-context='true']).
+     *
+     * BUG-THREAD-TOP-GAP-001 — PAS de gouttière ici. Ce conteneur ne défile
+     * pas : la boîte qui défile est le `div` interne de StickToBottom, posée À
+     * L'INTÉRIEUR de ce rembourrage. Chaque pixel de `padding-top` devenait
+     * donc une bande morte entre le bas de l'en-tête et le début du fil — 13 px
+     * à 390 (mesuré le 08/09, capture iPhone d'Avi du 07/09 08:06 : « retire
+     * cette espace, ça cache le contenu et perd de la place »). L'espace de
+     * respiration est rendu au transcript (`padding-top` ci-dessous), où il
+     * défile AVEC les messages au lieu de les cacher.
      */
-    padding: calc(
-        var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px) +
-          var(--vc-mobile-language-switch-reserved-height, 58px)
-      )
-      0 0 !important;
+    /*
+     * RP-CKPT-01 (BUG-MESSAGE-FOOTER-HIDDEN-001) — le composeur est collant et
+     * REMONTÉ de `--mobile-nav-height + 8px` au-dessus du bas de ce conteneur
+     * (règle `[data-mobile-panel='chat'] .bolt-project-agent-composer`). La
+     * boîte qui défile, elle, allait jusqu'au bas : ses 80 derniers pixels
+     * passaient SOUS le composeur — mesuré le 08/09 à 390 : dernier message
+     * jusqu'à 677, composeur dès 642. Le pied du dernier message (« Léger ·
+     * jetons », puis le bloc « Worked for … ») y disparaissait. On réserve ici
+     * exactement la hauteur du soulèvement : la boîte s'arrête là où le
+     * composeur commence.
+     */
+    padding: calc(var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)) 0
+      calc(var(--mobile-nav-height) + 8px) !important;
+
+    /*
+     * Ce conteneur NE DOIT PAS défiler : `modern-scrollbar` lui donnait
+     * `overflow: auto`, et dès que son contenu dépassait (Production E2E 1680,
+     * runner CI : la boîte extérieure débordait, le test faisait défiler
+     * celle-là et la pastille « descendre » n'apparaissait jamais), c'est lui
+     * que le navigateur faisait défiler — composeur emporté hors de vue, fil
+     * immobile. `hidden` reste un contexte de défilement (le composeur
+     * collant s'y accroche exactement pareil) sans jamais bouger.
+     */
+    overflow: hidden !important;
     scroll-padding-top: calc(
       var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)
     );
@@ -21480,6 +23340,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-width: 0;
     flex: 1 0 auto;
     margin-inline: auto;
+
+    /*
+     * BUG-THREAD-TOP-GAP-001 — la respiration sous l'en-tête vit ICI, dans la
+     * boîte qui défile : 6 px, le même écart qu'entre deux messages, pour que
+     * la première bulle se pose sous le trait de l'en-tête au lieu de
+     * commencer 13 px plus bas avec ses 15 premiers pixels rognés.
+     */
+    padding-top: 6px;
 
     /*
      * Réserve la hauteur du composeur QUAND celui-ci recouvre le transcript,
@@ -21516,6 +23384,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     > div:not(.bolt-project-agent-transcript)
     .bolt-project-agent-transcript {
     padding-bottom: 12px;
+  }
+
+  /*
+   * Quai de la ligne d'état de l'agent (« Agent · Génération 67 % »), collant en
+   * haut du fil. Il remonte de la respiration du transcript pour se coller sous
+   * l'en-tête — sans jamais dépasser le haut de la boîte de défilement, ce que
+   * faisait le `-mt-6` d'origine (BUG-THREAD-TOP-GAP-001).
+   */
+  .bolt-responsive-ide-mobile .bolt-agent-statusline-dock {
+    margin-top: -6px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {
@@ -23016,7 +24894,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * interne qui, sur iPhone, laisse la bordure basse hors de la boîte.
      * Désormais : plus de rembourrage bas, 8 px entre la bordure et le socle.
      */
-    bottom: calc(var(--mobile-nav-height) + 8px) !important;
+    /*
+     * RP-CKPT-01 (08/09) — `bottom` vaut 0, PAS `barre + 8px` : le
+     * soulèvement est porté par le `padding-bottom` du conteneur
+     * `.bolt-project-agent-scroll` (80 px). Le rectangle de collage est la
+     * boîte de CONTENU de ce conteneur (mesuré Chromium 390 : avec les deux
+     * à 80, le composeur montait à 562 pour une boîte de défilement finissant
+     * à 642 — 80 px recouverts, exactement comme avant). Avec 0 ici, le
+     * composeur se pose à 642–759, 8 px au-dessus du socle, et la boîte qui
+     * défile s'arrête où il commence.
+     */
+    bottom: 0 !important;
     z-index: 50;
     margin-bottom: 0 !important;
     padding-bottom: 0;
@@ -23056,7 +24944,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * saisie. (Le 07/09, « + 8px » de plus en faisait 16 — la CI l'a dit :
      * agent-action-list-density.spec.ts, ≤ 14 attendus.)
      */
-    bottom: calc(var(--mobile-nav-height) + 8px + 2px);
+    /*
+     * 08/09 (RP-CKPT-01) : la boîte qui défile s'arrête désormais OÙ le
+     * composeur commence (le soulèvement est porté par le `padding-bottom` du
+     * conteneur). La pastille, collante dans cette boîte, n'a donc plus rien à
+     * compenser : 2 px au-dessus du bas de la boîte = 2 px au-dessus du
+     * conteneur du composeur. Avec l'ancien `barre + 8 + 2`, elle flottait à
+     * 82 px du composeur (mesuré Chromium 390, E2E « la pastille est JUSTE
+     * au-dessus de la zone de saisie » : 82 pour ≤ 16). Gardes :
+     * agent-transcript-mobile.spec.ts, agent-action-list-density.spec.ts §2,
+     * agent-scroll-to-latest.spec.ts, ide-mobile-panels.spec.ts §20.
+     */
+    bottom: 2px;
 
     /*
      * CENTRÉE, et le fil ne bouge pas — décision d'Avi, 07/09 07:58 : « l'icône
@@ -23119,6 +25018,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
    * Spécificité : les règles du menu sont à (0,3,0) avec la coquille ; la
    * racine mobile ajoute une classe, (0,4,0).
    */
+  /*
+   * BUG-MESSAGE-MENU-IOS-001 — sur téléphone, l'appui long sur un message
+   * ouvre NOTRE menu, et lui seul : Safari ne doit ni sélectionner le texte
+   * ni afficher sa bulle « Copier » par-dessus (« je comprends pas ce que je
+   * copie »). Copier passe par le menu.
+   */
+  .bolt-responsive-ide-mobile .bolt-chat-message-row {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* La barre est centrée sur l'abscisse posée (le centre de la ligne du message) — voir MenuContextuel. */
+  .bolt-responsive-ide-mobile .bolt-message-context-menu[data-centre='true'] {
+    transform: translateX(-50%);
+  }
+
   .bolt-responsive-ide-mobile .bolt-message-context-menu {
     width: max-content;
     min-width: 0;
@@ -23298,6 +25214,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none;
   }
 
+  /*
+   * … sauf la croix qui referme : sans elle, sur téléphone, les journaux ne se
+   * refermaient plus (Avi, 07/09 08:19). 44 px de large, 36 de haut.
+   */
+  .bolt-responsive-ide-mobile .bolt-preview-logs-panel header > button.bolt-preview-logs-close {
+    display: inline-flex;
+    min-width: 44px;
+    height: 36px;
+    margin-inline-start: auto;
+  }
+
   .bolt-responsive-ide-mobile .bolt-preview-logs-panel [role='tablist'] button {
     white-space: nowrap;
   }
@@ -23385,6 +25312,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar {
+    position: relative; /* le champ retiré de la vue hors édition se positionne par rapport à la barre */
     min-height: 36px;
     gap: 4px;
     padding: 2px;
@@ -23399,6 +25327,45 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar input {
     height: 28px;
     font-size: 16px; /* plancher iOS */
+  }
+
+  /*
+   * L'URL SE LIT EN 13 PX, S'ÉDITE EN 16 PX (Avi, 07/09 08:19 : « tu as réduit
+   * la police du contenu comme le reste, où il y a l'URL »). Le plancher de
+   * 16 px du champ est un plancher d'accessibilité (IOS-ZOOM-001), pas un
+   * style : on ne le baisse pas. Hors édition, le champ est retiré de la vue
+   * (pas de `display: none` : il doit rester focalisable) et un bouton montre
+   * l'adresse à l'échelle du reste ; un appui bascule vers le champ.
+   */
+  .bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-preview-addressbar[data-edition='false'] input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .bolt-project-ide-shell
+    .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile
+    .bolt-preview-addressbar[data-edition='false']
+    .bolt-preview-url-text {
+    display: block;
+    min-width: 0;
+    /* Le plancher tactile de 44 px des boutons du téléphone gonflait la barre à 50 px : ce bouton fait la hauteur du champ. */
+    height: 28px !important;
+    min-height: 28px !important;
+    flex: 1 1 auto;
+    padding: 0 4px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: 13px !important;
+    line-height: 28px;
+    text-align: start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Carte de démarrage : deux colonnes, numéro à gauche, libellé entier à 11px. */
@@ -23592,6 +25559,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
   html[data-vc-clavier='ouvert'] .bolt-mobile-replit-nav {
     display: none;
+  }
+
+  /* Clavier ouvert : le composeur n'est plus soulevé (bottom: 0), la réserve tombe avec lui. */
+  html[data-vc-clavier='ouvert'] .bolt-responsive-ide-mobile[data-mobile-panel='chat'] .bolt-project-agent-scroll {
+    padding-bottom: 0 !important;
   }
 
   /*
@@ -29266,7 +31238,17 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: min(100%, calc(100vw - 20px));
     max-width: var(--chat-max-width);
     gap: 10px;
-    margin: calc(55px + var(--vc-mobile-language-switch-reserved-height, 58px)) auto 0;
+
+    /*
+     * BUG-THREAD-TOP-GAP-001, état de départ. Avi, 07/09 14:22 (capture
+     * iPhone) : ~50 px de vide entre l'en-tête et la carte « Agent prêt ».
+     * Mesuré Chromium 390 : en-tête jusqu'à 49, carte à 103 — 54 px, dont
+     * une marge de 55 px héritée de la bascule de langue flottante, retirée
+     * depuis (la réserve vaut 0, les 55 px étaient restés). La carte se pose
+     * à une gouttière de l'en-tête, plus la barre de contexte quand elle est
+     * affichée.
+     */
+    margin: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) auto 0;
   }
 
   .bolt-mobile-agent-start-card {
