@@ -15,10 +15,20 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 
 const IOS_MIN_FONT_PX = 16;
 
-/** Formats où Safari iOS zoome. Le desktop ne zoome pas au focus. */
+/**
+ * Formats où Safari iOS zoome. Le desktop ne zoome pas au focus.
+ *
+ * La liste ne tenait que deux points — 390 et 768 — alors que le défaut couvre
+ * une PLAGE. Avi le constate entre 640 et 1023 px : un grand téléphone en
+ * paysage, une tablette. Deux points ne prouvent rien d'une plage, et les
+ * bornes sont précisément là où une règle mal bornée se trahit.
+ */
 const VIEWPORTS = [
   { label: 'mobile 390', width: 390, height: 844 },
+  { label: 'plage basse 640', width: 640, height: 900 },
   { label: 'tablette 768', width: 768, height: 1024 },
+  { label: 'plage haute 900', width: 900, height: 900 },
+  { label: 'borne 1023', width: 1023, height: 900 },
 ] as const;
 
 const ROUTES = ['/login', '/signup', '/register', '/forgot-password'] as const;
@@ -197,6 +207,14 @@ async function createProjectSession(request: APIRequestContext) {
 
 for (const viewport of VIEWPORTS) {
   test(`la zone de saisie de l'agent tient le plancher — ${viewport.label}`, async ({ page, request }) => {
+    /*
+     * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
+     * fixture peut donc attendre plusieurs paliers de repli avant d'obtenir une
+     * session. Le délai par défaut de 30 s de la configuration ne le couvre pas,
+     * et c'est la cause n°1 des faux rouges de cette suite.
+     */
+    test.setTimeout(120_000);
+
     const { token, projectId } = await createProjectSession(request);
 
     await page
