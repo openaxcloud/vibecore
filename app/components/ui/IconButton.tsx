@@ -15,6 +15,8 @@ interface BaseIconButtonProps {
   role?: AriaRole;
   ariaExpanded?: boolean;
   ariaHasPopup?: AriaAttributes['aria-haspopup'];
+  ariaPressed?: boolean;
+  dataState?: string;
   disabled?: boolean;
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
 }
@@ -49,6 +51,8 @@ export const IconButton = memo(
         role,
         ariaExpanded,
         ariaHasPopup,
+        ariaPressed,
+        dataState,
         onClick,
         children,
       }: IconButtonProps,
@@ -70,6 +74,8 @@ export const IconButton = memo(
           aria-label={title ?? tooltip}
           aria-expanded={ariaExpanded}
           aria-haspopup={ariaHasPopup}
+          aria-pressed={ariaPressed}
+          data-state={dataState}
           data-vc-tooltip={tooltip ?? title}
           data-vc-tooltip-locked={tooltipLocked ? 'true' : undefined}
           data-testid={dataTestId}

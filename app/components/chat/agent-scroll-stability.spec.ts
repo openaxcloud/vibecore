@@ -34,8 +34,46 @@ describe('stabilité du transcript pendant le stream', () => {
     expect(baseChat).not.toContain('resize="smooth"');
   });
 
-  it('garde l’animation d’arrivée, qui ne joue qu’une fois', () => {
-    expect(baseChat).toContain('initial="smooth"');
+  /*
+   * BUG-WEBKIT-SCROLL-FIL-001 — cette garde disait « garde l'animation
+   * d'arrivée, qui ne joue qu'une fois ». Le raisonnement tenait sur bureau.
+   * Ce que son auteur n'avait pas, c'est la MESURE : le canari WebKit iPhone
+   * (2026-09-10) a rendu `dejaEnHaut` neuf fois sur dix, avec UN SEUL élément
+   * défilant sous le panneau — donc pas un défaut de sonde — et la seule
+   * réussite est l'essai qui a mis 45 s, celui qui a laissé le ressort finir.
+   *
+   * À la première hauteur de contenu, `useStickToBottom` part de
+   * `scrollTop = 0` et ferme ~5 % de la distance par image (raideur 0,05,
+   * masse 1,25). Sur un téléphone, l'utilisateur voit le PREMIER message puis
+   * regarde 2 500 px d'historique défiler devant lui. C'est la famille du
+   * « ça saute » que `resize="instant"` corrige déjà au-dessus, et pour la
+   * même raison.
+   *
+   * La règle est donc à DEUX branches, et la garde les tient toutes les deux :
+   * instantané sur téléphone, animé sur bureau. Ramener l'une vers l'autre
+   * — dans un sens comme dans l'autre — rougit.
+   */
+  it('arrive en bas SANS animer sur téléphone, et garde l’animation d’arrivée sur bureau', () => {
+    expect(baseChat, 'l’arrivée n’est plus conditionnée à la fenêtre de lecture').toContain(
+      "initial={useMobileIde ? 'instant' : 'smooth'}",
+    );
+
+    /*
+     * Contre-forme : ni un « smooth » inconditionnel (le défaut mesuré), ni un
+     * « instant » inconditionnel (le bureau perdrait son animation sans raison).
+     */
+    expect(baseChat).not.toContain('initial="smooth"');
+    expect(baseChat).not.toContain('initial="instant"');
+  });
+
+  it('le drapeau qui décide de l’arrivée est bien celui de la fenêtre de lecture', () => {
+    /*
+     * Règle 14 : la garde ci-dessus lirait « vrai » avec n'importe quel
+     * identifiant du même nom. On vérifie que `useMobileIde` est bien dérivé
+     * de la disposition — c'est ce qui fait que « téléphone » veut dire
+     * téléphone.
+     */
+    expect(baseChat).toContain('const useMobileIde = layout.isMobile || layout.isTablet;');
   });
 
   it('« instant » est bien un raccourci sans ressort dans la bibliothèque', () => {
