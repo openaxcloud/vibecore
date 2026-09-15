@@ -3,21 +3,15 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { createDatabaseClient, type DatabaseClient } from '@vibecore/database';
 
 import { PrismaWorkspaceStore } from './prisma-store.js';
+import { clientDeBaseJoignable } from './base-de-donnees-joignable.js';
 
-async function canReachDatabase(): Promise<DatabaseClient | undefined> {
-  if (!process.env.DATABASE_URL) {
-    return undefined;
-  }
-
-  const prisma = createDatabaseClient();
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return prisma;
-  } catch {
-    await prisma.$disconnect();
-    return undefined;
-  }
-}
+/*
+ * BUG-TEST-DB-HANG-001 — la sonde locale attendait `prisma.$disconnect()` sur
+ * son chemin d'ÉCHEC, appel qui ne se dénoue jamais quand la connexion n'a pas
+ * abouti. Appelée au niveau MODULE juste en dessous, elle bloquait la collecte
+ * du fichier entier.
+ */
+const canReachDatabase = clientDeBaseJoignable;
 
 const prisma = await canReachDatabase();
 const integrationDescribe = prisma ? describe : describe.skip;

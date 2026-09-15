@@ -2,11 +2,13 @@ import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { History, Trash2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Popover from '~/components/ui/Popover';
+import { useCoarsePointer } from '~/lib/hooks/useCoarsePointer';
 import {
   formatDatabaseStudioCopy,
   formatDatabaseStudioNumber,
   getDatabaseStudioCopy,
 } from '~/lib/i18n/catalogs/database-studio';
+import { classNames } from '~/utils/classNames';
 
 /*
  * G14 — Database Studio query history control. Pure presentation: the MRU
@@ -21,6 +23,7 @@ interface QueryHistoryControlProps {
 }
 
 export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: QueryHistoryControlProps) {
+  const coarse = useCoarsePointer();
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getDatabaseStudioCopy(language);
@@ -74,7 +77,16 @@ export function QueryHistoryControl({ entries, onClear, onPick, onRemove }: Quer
                   type="button"
                   aria-label={text(copy['databaseStudio.history.remove'], { statement })}
                   onClick={() => onRemove(statement)}
-                  className="rounded p-1 text-bolt-elements-textTertiary opacity-0 hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:opacity-100 group-hover:opacity-100"
+                  className={classNames(
+                    'rounded p-1 text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus-visible:opacity-100',
+
+                    /*
+                     * Au doigt, ce bouton SUPPRIMER etait invisible : pas de
+                     * survol, et le `focus-visible:` n'arrive qu'apres le
+                     * toucher. Penser au clavier ne couvre pas le tactile.
+                     */
+                    coarse ? 'opacity-100' : 'opacity-0 group-hover:opacity-100',
+                  )}
                 >
                   <X className="h-3 w-3" aria-hidden />
                 </button>

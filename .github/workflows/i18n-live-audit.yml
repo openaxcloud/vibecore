@@ -76,15 +76,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
       - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false
@@ -93,7 +93,28 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
+          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
+          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
+          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
+          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
+          # 09:41, run à 17:16. Rien ne le retentait.
+          #
+          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
+          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
+          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
+          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
+          # dont on lit le résultat.
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update || true
+            sleep 10
+          done
+          pnpm exec playwright install chromium
 
       # Match the production E2E workflow's real local dependencies instead of
       # mocking registration, persistence, mail delivery, or cache behavior.
@@ -237,14 +258,27 @@ jobs:
         if: always()
         shell: bash
         run: |
-          audit_json_count="$(find test-results -type f -path '*/i18n-proof/i18n-audit-*.json' -print | wc -l | tr -d '[:space:]')"
-          screenshot_count="$(find test-results -type f -path '*/i18n-proof/*.png' -print | wc -l | tr -d '[:space:]')"
-          negotiation_json_count="$({
-            find test-results -type f \
-              \( -path '*/i18n-proof/first-visit-language-negotiation.json' \
-              -o -path '*/i18n-proof/navigator-language-fallback.json' \) \
-              -print
-          } | wc -l | tr -d '[:space:]')"
+          # Une REPRISE Playwright réécrit les mêmes preuves dans
+          # `<titre>-retry<N>/`. Compter les FICHIERS comptait donc deux fois un
+          # test instable rattrapé : mesuré le 2026-09-15, le shard tablet-768
+          # a rendu 317/282 avec « 1 flaky, 3 passed » pendant que desktop-1024,
+          # desktop-1440 et mobile-390 rendaient 282/282 sur le MÊME commit.
+          # On compte donc les preuves DISTINCTES : le chemin est conservé en
+          # entier (deux routes ne se confondent pas), seul le suffixe de
+          # reprise est neutralisé. Une preuve réellement absente fait toujours
+          # rougir — le total attendu n'a pas bougé.
+          compter_preuves() {
+            find test-results -type f "$@" -print \
+              | sed -E 's#-retry[0-9]+/#/#g' \
+              | sort -u \
+              | wc -l | tr -d '[:space:]'
+          }
+
+          audit_json_count="$(compter_preuves -path '*/i18n-proof/i18n-audit-*.json')"
+          screenshot_count="$(compter_preuves -path '*/i18n-proof/*.png')"
+          negotiation_json_count="$(compter_preuves \
+            \( -path '*/i18n-proof/first-visit-language-negotiation.json' \
+            -o -path '*/i18n-proof/navigator-language-fallback.json' \) )"
 
           printf 'Audit JSON: %s/%s\n' "$audit_json_count" "$I18N_EXPECTED_AUDIT_JSON"
           printf 'Screenshots: %s/%s\n' "$screenshot_count" "$I18N_EXPECTED_SCREENSHOTS"
@@ -262,7 +296,7 @@ jobs:
 
       - name: Upload i18n audit proof
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: i18n-live-audit-${{ matrix.project }}-${{ github.run_attempt }}
           path: test-results
@@ -271,7 +305,7 @@ jobs:
 
       - name: Upload local stack logs
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: i18n-live-audit-logs-${{ matrix.project }}-${{ github.run_attempt }}
           path: |

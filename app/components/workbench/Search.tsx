@@ -3,6 +3,7 @@ import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+import { rechercheDemandee } from './recherche-demandee';
 import {
   computeReplacement,
   hasUnsavedEdits,
@@ -49,6 +50,7 @@ export function Search() {
    */
   const runtimeAdapter = useRuntimeAdapter();
   const [searchQuery, setSearchQuery] = useState('');
+  const demande = useStore(rechercheDemandee);
   const [replaceQuery, setReplaceQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [isRegex, setIsRegex] = useState(false);
@@ -193,6 +195,34 @@ export function Search() {
   useEffect(() => {
     debouncedSearch(searchQuery);
   }, [searchQuery, debouncedSearch, caseSensitive, isRegex]);
+
+  /*
+   * « Trouver les usages » d'un secret (RP-SEC-08) : un autre panneau a posé
+   * la requête ; on la prend, on cherche, et on remet l'atome à zéro pour que
+   * la prochaine ouverture du panneau ne la rejoue pas.
+   */
+  const handleSearchRef = useRef(handleSearch);
+  handleSearchRef.current = handleSearch;
+
+  const demandeTraiteeRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    /*
+     * Garde-fou mesuré : un harnais de test remplace `useStore` par une valeur
+     * qui n'est pas une chaîne et change à chaque rendu ; sans ce filtre et
+     * sans mémoire de la dernière demande, l'effet relançait une recherche à
+     * chaque rendu et le test ne finissait jamais (CI 4282df9, worker vitest
+     * à court de mémoire après 8 min).
+     */
+    if (typeof demande !== 'string' || !demande.trim() || demandeTraiteeRef.current === demande) {
+      return;
+    }
+
+    demandeTraiteeRef.current = demande;
+    setSearchQuery(demande);
+    rechercheDemandee.set(null);
+    void handleSearchRef.current(demande);
+  }, [demande]);
 
   const handleResultClick = (filePath: string, line?: number) => {
     workbenchStore.setSelectedFile(resolveWorkbenchPath(filePath) ?? filePath);
@@ -475,7 +505,7 @@ export function Search() {
               type="button"
               onClick={saveAllAndRetry}
               disabled={isReplacing}
-              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-[var(--vc-ide-on-accent-action)] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('workbenchSearch.pending.saveRetry')}
             </button>
