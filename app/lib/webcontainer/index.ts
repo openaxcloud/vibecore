@@ -52,6 +52,26 @@ function bootBrowserWebContainer() {
     return response.text();
   });
 
+  /*
+   * Un gestionnaire posé TOUT DE SUITE, sans rien avaler.
+   *
+   * `inspectorScript` est passée plus bas et n'est consommée qu'au moment où
+   * le runtime en a besoin. Entre les deux, si le fetch échoue, la promesse est
+   * rejetée sans que personne n'écoute : Node la signale en « unhandled
+   * rejection », et vitest fait alors échouer TOUT le run.
+   *
+   * Mesuré le 2026-09-04 sur #409 et #417 : « Test Files 991 passed », « Tests
+   * 7466 passed », « Errors 1 error », puis exit 1. Sept mille tests verts et un
+   * CI rouge, sur cette seule ligne :
+   *
+   *   TypeError: Failed to parse URL from /inspector-script.js
+   *
+   * Une URL relative n'a pas de base hors navigateur : sous Node elle rejette
+   * immédiatement. Le rejet reste propagé au vrai consommateur : `.catch` ici ne
+   * remplace pas la promesse, il déclare seulement qu'elle est surveillée.
+   */
+  inspectorScript.catch(() => undefined);
+
   browserRuntime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,
     workdirName: WORK_DIR_NAME,

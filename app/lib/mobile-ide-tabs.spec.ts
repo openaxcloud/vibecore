@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { ECODE_MOBILE_MORE_ITEMS, ECODE_MOBILE_TOOLS, MOBILE_TOOL_TO_MANAGEMENT_PANEL } from './mobile-ide-tabs';
+import {
+  ECODE_MOBILE_MORE_ITEMS,
+  ECODE_MOBILE_TOOLS,
+  MOBILE_TOOL_TO_MANAGEMENT_PANEL,
+  MOBILE_TOOLS_HORS_ROUTAGE,
+  MOBILE_TOOL_ACTIONS,
+} from './mobile-ide-tabs';
 
 /**
  * Management panels that must be reachable from the mobile/tablet IDE. `domains`
@@ -71,7 +77,13 @@ describe('mobile IDE tab configuration', () => {
   });
 
   it('every More/Panels item that names a management panel can be opened', () => {
-    const nonPanelActions = new Set(['agent', 'files', 'editor', 'preview', 'search', 'locks', 'terminal', 'commands']);
+    /*
+     * Listes consommees depuis le module au lieu d'etre recopiees ici : la copie
+     * locale avait derive — `share` y manquait, si bien qu'ajouter `share` au
+     * menu « More » faisait rougir ce test a tort. Les ACTIONS viennent de la
+     * donnee elle-meme (`kind`), les panneaux a bascule propre de la liste.
+     */
+    const nonPanelActions = new Set<string>([...MOBILE_TOOL_ACTIONS, ...MOBILE_TOOLS_HORS_ROUTAGE]);
 
     for (const id of ECODE_MOBILE_MORE_ITEMS) {
       if (nonPanelActions.has(id)) {

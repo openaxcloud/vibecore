@@ -27,6 +27,9 @@ export const baseChatAstEn = {
   'baseChatAst.conversation.currentChat': 'Current conversation',
   'baseChatAst.clipboard.copyFailed': 'The content could not be copied. Try again.',
   'baseChatAst.editor.saveFailed': 'The file could not be saved. Review the Problems panel and try again.',
+  'baseChatAst.editor.saveConflict':
+    '{file} changed elsewhere since you opened it, so your edit was not saved. Overwrite it with your version?',
+  'baseChatAst.editor.saveConflictOverwrite': 'Overwrite with my version',
   'baseChatAst.editor.formatFailed': 'The file could not be formatted. Review the Problems panel.',
   'baseChatAst.models.loadFailedHttp': 'The model list could not be loaded (HTTP {status}).',
   'baseChatAst.models.loadFailed': 'The model list could not be loaded. Check your connection and reopen the picker.',
@@ -49,6 +52,8 @@ export const baseChatAstEn = {
   'baseChatAst.files.create': 'Create',
   'baseChatAst.files.enterPath': 'Enter a path',
   'baseChatAst.status.pending': 'pending',
+  'baseChatAst.status.queued': 'Queued',
+  'baseChatAst.status.building': 'Building',
   'baseChatAst.panel.loadFailedHttp': 'The IDE panel could not be loaded (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'The IDE panel could not be loaded. Try again.',
   'baseChatAst.panel.submitting': 'Submitting action…',
@@ -728,6 +733,9 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.clipboard.copyFailed': 'Impossible de copier le contenu. Réessayez.',
   'baseChatAst.editor.saveFailed':
     'Impossible d’enregistrer le fichier. Consultez le panneau Problèmes, puis réessayez.',
+  'baseChatAst.editor.saveConflict':
+    '{file} a changé ailleurs depuis que vous l’avez ouvert : votre modification n’a pas été enregistrée. L’écraser avec votre version ?',
+  'baseChatAst.editor.saveConflictOverwrite': 'Écraser avec ma version',
   'baseChatAst.editor.formatFailed': 'Impossible de formater le fichier. Consultez le panneau Problèmes.',
   'baseChatAst.models.loadFailedHttp': 'Impossible de charger la liste des modèles (HTTP {status}).',
   'baseChatAst.models.loadFailed':
@@ -751,6 +759,8 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.files.create': 'Créer',
   'baseChatAst.files.enterPath': 'Saisissez un chemin',
   'baseChatAst.status.pending': 'en attente',
+  'baseChatAst.status.queued': 'En file d’attente',
+  'baseChatAst.status.building': 'Construction en cours',
   'baseChatAst.panel.loadFailedHttp': 'Impossible de charger le panneau de l’IDE (HTTP {status}).',
   'baseChatAst.panel.loadFailed': 'Impossible de charger le panneau de l’IDE. Réessayez.',
   'baseChatAst.panel.submitting': 'Envoi de l’action…',
