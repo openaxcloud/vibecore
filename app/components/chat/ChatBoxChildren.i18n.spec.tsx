@@ -170,9 +170,9 @@ describe('ChatBox child surfaces i18n', () => {
       />,
     );
 
-    const startButton = await screen.findByRole('button', { name: 'Démarrer la reconnaissance vocale' });
+    const startButton = await screen.findByRole('button', { name: 'Dicter un message' });
 
-    expect(startButton.textContent).toContain('Saisie vocale');
+    expect(startButton.textContent).toContain('Dicter');
     fireEvent.click(startButton);
     expect(onStart).toHaveBeenCalledOnce();
 
@@ -196,10 +196,10 @@ describe('ChatBox child surfaces i18n', () => {
       </I18nextProvider>,
     );
 
-    const stopButton = await screen.findByRole('button', { name: 'Arrêter l’écoute' });
+    const stopButton = await screen.findByRole('button', { name: 'Arrêter la dictée' });
 
     expect(stopButton.textContent).toContain('Libellé fourni');
-    expect(stopButton.textContent).not.toContain('Stop speech');
+    expect(stopButton.textContent).not.toContain('Stop dictation');
   });
 
   it('renders the MCP dialog in French with mobile-safe wrapping', () => {

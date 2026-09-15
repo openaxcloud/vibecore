@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 
 import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import {
   aiAgentMarketingCopy,
@@ -15,6 +15,7 @@ import {
   pricingPlanCopy,
   productMarketingRouteCopy,
 } from './marketing-product';
+import { prechaufferCoquillePublique } from '~/components/dashboard/prechauffer-coquille-publique';
 import {
   EcodeAiAgentPage,
   EcodePricingPage,
@@ -38,6 +39,8 @@ function renderInFrench(node: ReactNode) {
 }
 
 describe('product marketing EN/FR catalogs', () => {
+  beforeAll(prechaufferCoquillePublique);
+
   it('keeps route, plan and interactive AI Agent data aligned by stable keys', () => {
     expect(Object.keys(productMarketingRouteCopy.fr)).toEqual(Object.keys(productMarketingRouteCopy.en));
     expect(Object.keys(pricingPlanCopy.fr)).toEqual(Object.keys(pricingPlanCopy.en));

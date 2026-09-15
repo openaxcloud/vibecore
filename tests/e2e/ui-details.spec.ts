@@ -1194,6 +1194,7 @@ async function readMobileAgentComposerDetails(page: Page) {
       patchListHeight: patchListRect.height,
       patchReviewHeight: patchReviewRect.height,
       scrollPaddingBottom: scrollStyle.scrollPaddingBottom,
+      scrollWrapperPaddingBottom: scrollStyle.paddingBottom,
       suggestionButtons: Array.from(suggestions.querySelectorAll<HTMLElement>('button')).map((button) => {
         const rect = button.getBoundingClientRect();
 
@@ -1242,9 +1243,19 @@ function expectMobileAgentComposerConstrained(
   label: string,
 ) {
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
-  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
-    details.navHeight + 6,
-  );
+
+  /*
+   * 08/09 (RP-CKPT-01) : le soulèvement du composeur au-dessus du socle est
+   * porté par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`,
+   * le composeur collant restant à `bottom: 0` — à `barre + 8` des deux
+   * côtés, il remontait de 80 px de trop et recouvrait la boîte qui défile.
+   * L'invariant reste « soulevé d'au moins barre + 6 », quel qu'en soit le
+   * porteur.
+   */
+  expect(
+    Number.parseFloat(details.bottomOffset) + Number.parseFloat(details.scrollWrapperPaddingBottom),
+    `${label} composer lift above the nav`,
+  ).toBeGreaterThanOrEqual(details.navHeight + 6);
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
   expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
   expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);
@@ -1756,6 +1767,7 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
+
     // CHARTE-IDE-001 — l'accent d'action suit l'orange de marque.
     themeAction: '#f97316',
     themeOrange: '#f26207',
@@ -1912,6 +1924,108 @@ test('public platform hides the desktop app sidebar on mobile and tablet', async
   expect(desktopMetrics.contentLeft, 'desktop content offset').toBeGreaterThanOrEqual(desktopMetrics.sidebarWidth - 1);
 });
 
+/*
+ * Studio de l'agent, « Modifications de l'IA en attente » — capture iPhone
+ * d'Avi du 06/09 à 14:38 : cinq fichiers rognés sur 20 px chacun. Les cartes
+ * portent `overflow-x: auto` sur téléphone, ce qui ramène leur taille minimale
+ * automatique à zéro ; dans une grille bornée en hauteur, les rangées `auto`
+ * se serraient pour tenir dans la boîte. Le balisage est celui de
+ * `AgentPatchReviewQueue`, posé dans le contexte du Studio
+ * (`.bolt-workbench-mobile-service`), avec la feuille compilée.
+ */
+async function mountStudioPatchReviewDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>${stylesheet}</style>
+      </head>
+      <body>
+        <div class="bolt-project-ide-shell">
+          <main class="bolt-responsive-ide-mobile">
+            <section class="bolt-workbench-mobile-service" style="padding: 16px;">
+              <section class="bolt-project-agent-patch-review" data-testid="studio-patch-review">
+                <div class="bolt-project-agent-patch-review-head">
+                  <div>
+                    <strong>Examiner les modifications apportées à l'IA</strong>
+                    <span>5 modifications de l’IA à vérifier</span>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-bulk" data-testid="studio-patch-bulk">
+                    <button class="bolt-project-agent-patch-review-bulk-accept" type="button">Acceptez tout</button>
+                    <button class="bolt-project-agent-patch-review-bulk-reject" type="button">Rejeter tout</button>
+                  </div>
+                </div>
+                <div class="bolt-project-agent-patch-review-list" data-testid="studio-patch-list">
+                  ${[
+                    'src/styles/global.css',
+                    'src/components/Counter.tsx',
+                    'src/App.tsx',
+                    'src/components/ErrorBoundary.tsx',
+                    'src/main.tsx',
+                  ]
+                    .map(
+                      (chemin) => `
+                        <article class="bolt-project-agent-patch-card" data-testid="studio-patch-card">
+                          <div class="bolt-project-agent-patch-card-head">
+                            <div>
+                              <strong>${chemin}</strong>
+                              <span>1 modification sélectionnée</span>
+                            </div>
+                            <div class="bolt-project-agent-patch-actions">
+                              <button type="button">Accepter</button>
+                              <button type="button">Rejeter</button>
+                            </div>
+                          </div>
+                        </article>
+                      `,
+                    )
+                    .join('')}
+                </div>
+              </section>
+            </section>
+          </main>
+        </div>
+      </body>
+    </html>
+  `);
+}
+
+test('public platform keeps the Studio patch review readable on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mountStudioPatchReviewDocument(page);
+
+  const geometrie = await page.evaluate(() => {
+    const boite = (el: Element) => Math.round(el.getBoundingClientRect().height);
+    const liste = document.querySelector('[data-testid="studio-patch-list"]')!;
+    const revue = document.querySelector('[data-testid="studio-patch-review"]')!;
+    const boutons = [...document.querySelectorAll('[data-testid="studio-patch-bulk"] button')];
+
+    return {
+      cartes: [...document.querySelectorAll('[data-testid="studio-patch-card"]')].map((carte) => ({
+        h: boite(carte),
+        sh: carte.scrollHeight,
+        ch: carte.clientHeight,
+      })),
+      liste: { h: boite(liste), sh: liste.scrollHeight, ch: liste.clientHeight },
+      revue: { sh: revue.scrollHeight, ch: revue.clientHeight, overflow: getComputedStyle(revue).overflow },
+      boutonsSurUneLigne: new Set(boutons.map((b) => Math.round(b.getBoundingClientRect().y))).size === 1,
+    };
+  });
+
+  expect(geometrie.cartes).toHaveLength(5);
+
+  // Mesuré avant : 20 px par carte, chemins coupés.
+  for (const carte of geometrie.cartes) {
+    expect(carte.h, `carte de ${carte.h}px`).toBeGreaterThanOrEqual(40);
+    expect(carte.sh, 'carte rognée').toBeLessThanOrEqual(carte.ch + 1);
+  }
+
+  expect(geometrie.liste.sh, 'la liste ne doit pas cacher de carte').toBeLessThanOrEqual(geometrie.liste.ch + 1);
+  expect(geometrie.revue.sh, 'la file de révision ne doit pas être rognée').toBeLessThanOrEqual(geometrie.revue.ch + 1);
+  expect(geometrie.boutonsSurUneLigne, '« Acceptez tout / Rejeter tout » côte à côte').toBe(true);
+});
+
 test('public platform keeps mobile IDE chrome clear of the bottom navigation', async ({ page }) => {
   for (const viewport of [
     { label: 'tablet portrait', width: 820, height: 1180 },
@@ -1988,4 +2102,222 @@ test('admin console applies section 15 reduced motion preference', async ({ page
   await expect(page.locator('.app')).toBeVisible({ timeout: 30_000 });
   await injectUiDetailsFixture(page);
   await expectReducedMotionDetails(page);
+});
+
+test('le voyant d’état du runtime et les compteurs ne sont pas réduits à zéro', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  /*
+   * Balisage repris de BaseChat : le voyant est un `<span>` SANS classe d'icône,
+   * exactement comme les libellés — il tombait donc dans la règle qui les fait
+   * tronquer (`min-width: 0`) et le conteneur flex le réduisait.
+   *
+   * Mesuré sur la page réelle en 1440 : rendu 0×7. Dans le flux, de la bonne
+   * couleur, et invisible. Le voyant qui dit si l'environnement tourne n'a
+   * jamais rien montré.
+   *
+   * La largeur du conteneur est volontairement trop petite pour son contenu :
+   * c'est ce qui déclenche le rétrécissement, et donc ce que le test doit exercer.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body>
+        <div class="bolt-project-statusbar" style="width: 220px; display: flex;">
+          <button type="button" class="bolt-project-statusbar-pill bolt-project-statusbar-workspace">
+            <span class="bolt-project-statusbar-runtime-dot" data-state="running"></span>
+            <span class="bolt-project-statusbar-label">Environnement de travail</span>
+            <strong>en cours d’exécution depuis douze minutes</strong>
+            <span class="bolt-project-statusbar-error-count">3</span>
+            <span class="bolt-project-statusbar-warning-count">7</span>
+          </button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesures = await page.evaluate(() => {
+    const lire = (selecteur: string) => {
+      const element = document.querySelector(selecteur);
+
+      if (!element) {
+        return null;
+      }
+
+      const boite = element.getBoundingClientRect();
+
+      return { largeur: Math.round(boite.width * 10) / 10, hauteur: Math.round(boite.height * 10) / 10 };
+    };
+
+    return {
+      voyant: lire('.bolt-project-statusbar-runtime-dot'),
+      erreurs: lire('.bolt-project-statusbar-error-count'),
+      avertissements: lire('.bolt-project-statusbar-warning-count'),
+    };
+  });
+
+  expect(mesures.voyant, 'le voyant n’est pas dans le document').not.toBeNull();
+  expect(mesures.voyant!.largeur, 'le voyant du runtime est réduit à zéro : invisible').toBeGreaterThanOrEqual(7);
+  expect(mesures.voyant!.hauteur).toBeGreaterThanOrEqual(7);
+  expect(mesures.erreurs!.largeur, 'le compteur d’erreurs est réduit à zéro').toBeGreaterThanOrEqual(16);
+  expect(mesures.avertissements!.largeur, 'le compteur d’avertissements est réduit à zéro').toBeGreaterThanOrEqual(16);
+});
+
+test('le panneau d’historique tient dans la fenêtre, quel que soit son décalage', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 393, height: 659 });
+
+  /*
+   * Le bloc conteneur est décalé du haut de la fenêtre — c'est le cas réel :
+   * mesuré dans l'IDE en 393×659, le panneau commence à 92 px alors que sa
+   * règle le borne à `100dvh - 72px`, comme s'il commençait à 72.
+   *
+   * Résultat mesuré avant correctif : panneau rendu de 92 à 679 dans une
+   * fenêtre de 659 — ses 20 derniers pixels hors écran, avant même la barre
+   * d'outils du navigateur.
+   *
+   * Le test reproduit le décalage plutôt que de le supposer nul : c'est
+   * exactement ce que la borne doit encaisser.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div style="position: absolute; top: 48px; left: 0; right: 0; bottom: 0;">
+          <div class="bolt-project-conversation-history">
+            <div class="bolt-project-conversation-history-head"><span>Historique</span></div>
+            <div class="bolt-project-conversation-history-list">
+              ${Array.from({ length: 30 }, (_, index) => `<div style="height: 60px">Conversation ${index + 1}</div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const panneau = document.querySelector('.bolt-project-conversation-history');
+    const liste = document.querySelector('.bolt-project-conversation-history-list');
+
+    if (!panneau || !liste) {
+      return null;
+    }
+
+    const boite = panneau.getBoundingClientRect();
+    const avant = liste.scrollTop;
+    liste.scrollTop = 99_999;
+
+    return {
+      haut: Math.round(boite.top),
+      bas: Math.round(boite.bottom),
+      fenetre: window.innerHeight,
+      listeDefile: liste.scrollTop > avant,
+    };
+  });
+
+  expect(mesure, 'le panneau n’est pas monté').not.toBeNull();
+  expect(mesure!.haut, 'le panneau est coupé en haut').toBeGreaterThanOrEqual(0);
+  expect(mesure!.bas, 'le panneau déborde sous la fenêtre').toBeLessThanOrEqual(mesure!.fenetre);
+  expect(mesure!.listeDefile, 'la liste ne défile pas : le reste est inatteignable').toBe(true);
+});
+
+test('la rangée d’onglets mobiles s’arrête sur un onglet, jamais au milieu d’un mot', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 320, height: 568 });
+
+  /*
+   * Avi photographie « ontexte » au lieu de « Contexte ».
+   *
+   * Reproduit en 320×568 sur l'application : la rangée d'onglets déborde de
+   * 52 px et, une fois défilée de 26 px, le premier onglet est coupé de 26 px
+   * à gauche — la majuscule disparaît et le libellé devient un mot inconnu.
+   *
+   * Ce test vérifie le RENDU, pas le texte de la feuille : il lit la propriété
+   * calculée sur un élément réellement monté.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-mobile-replit-panel-scroll" style="width: 160px">
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Webview</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Agent</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Déploiements</button>
+          <button type="button" class="bolt-mobile-replit-panel-tab" style="flex: none">Base de données</button>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const mesure = await page.evaluate(() => {
+    const rangee = document.querySelector('.bolt-mobile-replit-panel-scroll');
+    const onglet = document.querySelector('.bolt-mobile-replit-panel-tab');
+
+    if (!rangee || !onglet) {
+      return null;
+    }
+
+    return {
+      ancrage: getComputedStyle(rangee).scrollSnapType,
+      ancrageOnglet: getComputedStyle(onglet).scrollSnapAlign,
+      deborde: rangee.scrollWidth > rangee.clientWidth,
+    };
+  });
+
+  expect(mesure, 'la rangée n’est pas montée').not.toBeNull();
+  expect(mesure!.deborde, 'sans débordement, le test ne prouve rien').toBe(true);
+  expect(mesure!.ancrage, 'la rangée doit ancrer son défilement').toContain('mandatory');
+  expect(mesure!.ancrageOnglet, 'chaque onglet doit être un point d’arrêt').toContain('start');
+});
+
+test('aucun libellé du panneau Agent sous le plancher de l’échelle', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 390, height: 664 });
+
+  /*
+   * Mesuré en production, format iPhone 13 : « 0 messages », « README.md » et
+   * « Focused on README.md » étaient rendus à 9px — les premiers libellés qu'on
+   * voit en ouvrant le panneau.
+   *
+   * LA CAUSE N'EST PAS celle de #388. Ce n'est pas une variante de bureau
+   * attrapée en mobile : ce sont des `<small>`, et la règle d'étiquettes de
+   * l'IDE leur impose `--vc-type-label-size`. #382 avait couvert la zone de
+   * saisie ; l'en-tête et la carte d'état étaient hors de son périmètre.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-project-ide-shell bolt-responsive-ide bolt-responsive-ide-mobile">
+          <div class="bolt-mobile-ecode-header-title"><strong>Agent</strong><small>0 messages</small></div>
+          <div class="bolt-mobile-agent-start-state">
+            <div class="bolt-mobile-agent-start-card">
+              <span><strong>Agent prêt</strong><small>Centré sur README.md</small></span>
+            </div>
+          </div>
+          <div class="bolt-mobile-agent-context-bar"><small>README.md</small></div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const tailles = await page.evaluate(() => {
+    const petits: string[] = [];
+
+    for (const element of document.querySelectorAll('small, .text-xs')) {
+      const taille = Math.round(parseFloat(getComputedStyle(element).fontSize) * 10) / 10;
+
+      if (taille < 13) {
+        petits.push(`« ${(element.textContent ?? '').trim()} » à ${taille}px`);
+      }
+    }
+
+    return { petits, mesures: document.querySelectorAll('small').length };
+  });
+
+  expect(tailles.mesures, 'aucun libellé monté : le test ne prouverait rien').toBeGreaterThanOrEqual(3);
+  expect(tailles.petits, tailles.petits.join(' ; ')).toEqual([]);
 });
