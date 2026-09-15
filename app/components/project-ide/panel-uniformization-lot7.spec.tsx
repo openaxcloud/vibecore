@@ -160,10 +160,33 @@ describe('UNIF lot 7 — points 3/4 : toolbars restantes de BaseChat sur les pri
 
 describe('UNIF lot 7 — point 5 : styles SCSS nus retirés', () => {
   it('plus de gabarit bouton/input desktop sous .bolt-project-panel-toolbar (les primitives portent le style)', () => {
-    expect(indexScssSource).not.toContain('.bolt-project-panel-toolbar input {');
-    expect(indexScssSource).not.toContain('.bolt-project-panel-toolbar button {');
-    expect(indexScssSource).not.toContain('.bolt-project-panel-toolbar button.selected');
-    expect(indexScssSource).not.toContain('.bolt-project-panel-toolbar button:hover');
+    /*
+     * ANCRAGE EN DÉBUT DE LIGNE, comme le test voisin le fait déjà pour
+     * `.bolt-project-extension-categories`.
+     *
+     * Ces quatre assertions cherchaient une SOUS-CHAÎNE. Or un sélecteur imbriqué
+     * contient le même suffixe : la règle mobile
+     * `.bolt-responsive-ide-mobile .bolt-workbench-mobile-service
+     * .bolt-project-panel-toolbar button {` est légitime — elle pose un plancher
+     * tactile — et elle faisait pourtant rougir ce garde.
+     *
+     * Un garde trop large ne bloque pas que ce qu'il vise : il bloque tout le
+     * monde. Le 2026-09-06, cette assertion a immobilisé plusieurs heures un
+     * correctif de perte de données sans aucun rapport, en rendant `main` rouge
+     * pour toutes les branches à la fois.
+     *
+     * Il était creux dans l'autre sens aussi : la même spec EXIGE plus bas la
+     * présence de `.bolt-project-panel-toolbar button,`. Elle tolérait donc déjà
+     * cette forme sans préfixe, sans pouvoir distinguer le gabarit nu qu'elle
+     * vise du sélecteur imbriqué qu'elle doit laisser passer.
+     *
+     * `^\s*` plutôt que `^` : un gabarit nu peut être indenté dans une règle
+     * parente et resterait un gabarit nu.
+     */
+    expect(indexScssSource).not.toMatch(/^\s*\.bolt-project-panel-toolbar input \{/m);
+    expect(indexScssSource).not.toMatch(/^\s*\.bolt-project-panel-toolbar button \{/m);
+    expect(indexScssSource).not.toMatch(/^\s*\.bolt-project-panel-toolbar button\.selected/m);
+    expect(indexScssSource).not.toMatch(/^\s*\.bolt-project-panel-toolbar button:hover/m);
 
     // Le conteneur flex et le label gardent leur mise en page partagée.
     expect(indexScssSource).toContain('.bolt-project-panel-toolbar {');
