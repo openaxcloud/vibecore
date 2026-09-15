@@ -1,6 +1,7 @@
 import { getFineTunedPrompt } from './prompts/new-prompt';
 import optimized from './prompts/optimized';
 import { getSystemPrompt } from './prompts/prompts';
+import type { PromptRuntimeMode } from './prompts/runtime-constraints';
 import type { DesignScheme } from '~/types/design-scheme';
 
 export interface PromptOptions {
@@ -24,6 +25,14 @@ export interface PromptOptions {
    */
   includeDatabaseInstructions?: boolean;
   includeMobileInstructions?: boolean;
+
+  /*
+   * BUG-AGENT-WEBCLONE-001: the runtime the agent's actions execute in. Omitted
+   * → WebContainer wording (byte-identical); stream-text.ts resolves it from
+   * RUNTIME_MODE / VITE_RUNTIME_MODE so production (remote-kubernetes) stops
+   * telling the model it has no network.
+   */
+  runtimeMode?: PromptRuntimeMode;
 }
 
 export type PromptLibraryId = 'default' | 'original' | 'optimized';
@@ -38,6 +47,7 @@ export class PromptLibrary {
           options.designScheme,
           options.includeDatabaseInstructions,
           options.includeMobileInstructions,
+          options.runtimeMode,
         ),
     },
     original: {
@@ -48,6 +58,7 @@ export class PromptLibrary {
           options.designScheme,
           options.includeDatabaseInstructions,
           options.includeMobileInstructions,
+          options.runtimeMode,
         ),
     },
     optimized: {

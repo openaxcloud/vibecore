@@ -168,7 +168,7 @@ describe('ChatBox i18n', () => {
     expect(
       within(menu).getByRole('button', { name: 'Améliorer ce prompt avec l’IA avant l’envoi' }).textContent,
     ).toContain('Améliorer le prompt');
-    expect(within(menu).getByRole('button', { name: 'Saisie vocale' })).toBeTruthy();
+    expect(within(menu).getByRole('button', { name: 'Dicter' })).toBeTruthy();
     expect(within(menu).getByRole('button', { name: 'Discuter' }).textContent).toContain('Discuter');
     expect(within(menu).getByRole('button', { name: 'Paramètres du modèle' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Raccourcis du prompt' }).getAttribute('data-vc-tooltip')).toBe(

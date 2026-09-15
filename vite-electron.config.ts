@@ -1,11 +1,12 @@
-import { defineConfig } from 'vite';
+import { execSync } from 'node:child_process';
 import { reactRouter } from '@react-router/dev/vite';
 import UnoCSS from 'unocss/vite';
+import { defineConfig } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 import { optimizeCssModules } from 'vite-plugin-optimize-css-modules';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
-import { execSync } from 'child_process';
+import { cataloguesI18nPlugin } from './build-config/catalogues-i18n-plugin';
 
 // Get git hash with fallback
 const getGitHash = () => {
@@ -30,6 +31,15 @@ export default defineConfig((config) => {
         include: ['path', 'buffer', 'process'],
       }),
       reactRouter(),
+
+      /*
+       * BUG-PERF-I18N-RACINE-001 : `catalogues-client.ts` importe le module
+       * virtuel `virtual:catalogues-i18n` — TOUTE config Vite qui construit
+       * `app/` doit porter ce plugin, sinon Rollup refuse l'import (mesuré sur
+       * le job « linux desktop build » de la PR #535). Gardé par
+       * build-config/catalogues-i18n-plugin.spec.ts.
+       */
+      cataloguesI18nPlugin(),
       UnoCSS(),
       tsconfigPaths(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),

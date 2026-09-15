@@ -14,7 +14,10 @@ import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
+  doitArreterLePreview,
   isTransientCommandFailure,
+  previewServerLooksRunning,
+  type RaisonArretPreview,
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
@@ -818,7 +821,7 @@ export class WorkbenchStore {
      * lagging manager status / stale client beacon — otherwise the status bar
      * sat on "Dev: blocked" over a serving app.
      */
-    if (this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)) {
+    if (previewServerLooksRunning(this.previews.get())) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -971,7 +974,7 @@ export class WorkbenchStore {
        * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
        * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
        */
-      await this.stopPreviewServer();
+      await this.stopPreviewServer({ raison: 'redemarrage' });
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
       return workbenchText('workbenchRuntime.preview.existingResult');
@@ -1134,9 +1137,7 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)
-              ? 'running'
-              : 'idle',
+            status: previewServerLooksRunning(this.previews.get()) ? 'running' : 'idle',
             command: command.label,
           });
         }
@@ -1166,7 +1167,7 @@ export class WorkbenchStore {
      * project shapes), preserving the prior behaviour for those.
      */
     if (!pkgEntry || pkgEntry[1]?.type !== 'file') {
-      return this.previews.get().some((preview) => preview.ready !== false);
+      return previewServerLooksRunning(this.previews.get());
     }
 
     let pkg: PreviewPackageManifest = {};
@@ -1216,7 +1217,20 @@ export class WorkbenchStore {
     return Boolean(this.#previewStartPromise) || this.#previewCommandRunning;
   }
 
-  async stopPreviewServer() {
+  async stopPreviewServer(options: { raison?: RaisonArretPreview } = {}) {
+    /*
+     * LE DEMONTAGE N'EST PAS UN ORDRE D'ARRET — voir `doitArreterLePreview`.
+     * On journalise l'abstention : sans trace, un serveur qui survit ressemble
+     * a un serveur qu'on a oublie de tuer.
+     */
+    if (!doitArreterLePreview(options.raison)) {
+      console.info(JSON.stringify({ event: 'preview.arret.refuse', raison: options.raison ?? 'inconnue' }));
+
+      /* Zero processus arrete : la valeur de retour reste homogene avec le cas nominal. */
+      return 0;
+    }
+
+    console.info(JSON.stringify({ event: 'preview.arret.demande', raison: options.raison ?? 'historique' }));
     this.previewServerState.set({ status: 'stopping', command: this.previewServerState.get().command });
 
     const processes = await this.#runtime.listProcesses().catch(() => []);
@@ -1234,6 +1248,19 @@ export class WorkbenchStore {
     });
 
     for (const process of previewProcesses) {
+      /*
+       * CHAQUE MISE A MORT SE NOMME. On a passe une soiree a ignorer QUI tuait
+       * le serveur parce qu'aucun des huit chemins ne le disait. Chaine
+       * litterale + identifiant + raison : le prochain deces se lit d'un coup.
+       */
+      console.info(
+        JSON.stringify({
+          event: 'preview.mort.stopPreviewServer',
+          processId: process.id,
+          commande: [process.command, ...(process.args ?? [])].join(' ').slice(0, 80),
+          raison: options.raison ?? 'historique',
+        }),
+      );
       await this.#runtime.killProcess(process.id).catch((error) => {
         this.appendWorkspaceLog(error instanceof Error ? error.message : String(error));
       });
@@ -1259,7 +1286,7 @@ export class WorkbenchStore {
   }
 
   async restartPreviewServer() {
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     /*
      * forceRestart: an explicit user Run must relaunch for real — punch through a
@@ -1277,7 +1304,7 @@ export class WorkbenchStore {
    */
   async reinstallDependencies() {
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
-    await this.stopPreviewServer();
+    await this.stopPreviewServer({ raison: 'redemarrage' });
 
     return this.startPreviewServer({ forceInstall: true, forceRestart: true });
   }
@@ -1963,6 +1990,81 @@ export class WorkbenchStore {
     for (const proposalId of removedIds) {
       void deleteAgentPatchProposalRemote(projectId, proposalId);
     }
+  }
+
+  /**
+   * Rend la main quand tout ce qui est en file — clôtures d'artefact, attente
+   * des actions, synchronisation du stockage — est passé. Bornée : une action
+   * « start » qui ne rend jamais la main ne doit pas retenir un point de
+   * restauration pour toujours.
+   */
+  attendreLaFinDesTaches(delaiMaxMs = 90_000): Promise<void> {
+    return Promise.race([
+      this.#globalExecutionQueue,
+      new Promise<void>((resoudre) => {
+        setTimeout(resoudre, delaiMaxMs);
+      }),
+    ]);
+  }
+
+  /**
+   * RP-CKPT-04 — point de restauration AUTOMATIQUE de fin de tour, à la
+   * Replit : attend que les fichiers du tour soient dans le stockage du
+   * projet, puis demande un commit + un instantané reliés au message de
+   * l'agent. Rien n'est demandé à l'utilisateur ; l'échec est journalisé,
+   * jamais montré comme une erreur du tour.
+   */
+  async creerLePointDeRestaurationDuTour(input: {
+    messageId: string;
+    conversationId?: string;
+    turnIndex?: number;
+    label: string;
+    statistiques: unknown;
+  }): Promise<{ ok: boolean; commitSha?: string }> {
+    const projectId = this.#projectId;
+
+    if (!projectId || !input.messageId) {
+      return { ok: false };
+    }
+
+    await this.attendreLaFinDesTaches();
+
+    const form = new FormData();
+    form.set('intent', 'checkpoint');
+    form.set('messageId', input.messageId);
+    form.set('label', input.label);
+
+    if (input.conversationId) {
+      form.set('conversationId', input.conversationId);
+    }
+
+    if (typeof input.turnIndex === 'number' && input.turnIndex >= 0) {
+      form.set('turnIndex', String(input.turnIndex));
+    }
+
+    try {
+      form.set('statistiques', JSON.stringify(input.statistiques ?? {}));
+    } catch {
+      form.set('statistiques', '{}');
+    }
+
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/snapshots`, {
+      method: 'POST',
+      body: form,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      throw Object.assign(new Error(), { code: 'CHECKPOINT_ENDPOINT_HTTP_ERROR', status: response.status });
+    }
+
+    const payload = (await response.json().catch(() => ({}))) as { commitSha?: string | null };
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('vibecore:snapshots-changed', { detail: { messageId: input.messageId } }));
+    }
+
+    return { ok: true, commitSha: payload.commitSha ?? undefined };
   }
 
   addToExecutionQueue(callback: () => Promise<void>) {

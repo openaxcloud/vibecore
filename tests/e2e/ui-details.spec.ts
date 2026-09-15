@@ -1194,6 +1194,7 @@ async function readMobileAgentComposerDetails(page: Page) {
       patchListHeight: patchListRect.height,
       patchReviewHeight: patchReviewRect.height,
       scrollPaddingBottom: scrollStyle.scrollPaddingBottom,
+      scrollWrapperPaddingBottom: scrollStyle.paddingBottom,
       suggestionButtons: Array.from(suggestions.querySelectorAll<HTMLElement>('button')).map((button) => {
         const rect = button.getBoundingClientRect();
 
@@ -1242,9 +1243,19 @@ function expectMobileAgentComposerConstrained(
   label: string,
 ) {
   expect(details.documentOverflowsX, `${label} document horizontal overflow`).toBe(false);
-  expect(Number.parseFloat(details.bottomOffset), `${label} composer bottom offset`).toBeGreaterThanOrEqual(
-    details.navHeight + 6,
-  );
+
+  /*
+   * 08/09 (RP-CKPT-01) : le soulèvement du composeur au-dessus du socle est
+   * porté par le `padding-bottom` du conteneur `.bolt-project-agent-scroll`,
+   * le composeur collant restant à `bottom: 0` — à `barre + 8` des deux
+   * côtés, il remontait de 80 px de trop et recouvrait la boîte qui défile.
+   * L'invariant reste « soulevé d'au moins barre + 6 », quel qu'en soit le
+   * porteur.
+   */
+  expect(
+    Number.parseFloat(details.bottomOffset) + Number.parseFloat(details.scrollWrapperPaddingBottom),
+    `${label} composer lift above the nav`,
+  ).toBeGreaterThanOrEqual(details.navHeight + 6);
   expect(Number.parseFloat(details.paddingBottom), `${label} composer padding bottom`).toBeLessThanOrEqual(8);
   expect(details.composerLeft, `${label} composer left edge`).toBeGreaterThanOrEqual(9);
   expect(details.composerRight, `${label} composer right edge`).toBeLessThanOrEqual(details.viewportWidth - 9);
@@ -1756,6 +1767,7 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
+
     // CHARTE-IDE-001 — l'accent d'action suit l'orange de marque.
     themeAction: '#f97316',
     themeOrange: '#f26207',
@@ -1910,6 +1922,108 @@ test('public platform hides the desktop app sidebar on mobile and tablet', async
   expect(desktopMetrics.sidebarWidth, 'desktop sidebar width').toBeGreaterThan(0);
   expect(desktopMetrics.sidebarHeight, 'desktop sidebar height').toBe(720);
   expect(desktopMetrics.contentLeft, 'desktop content offset').toBeGreaterThanOrEqual(desktopMetrics.sidebarWidth - 1);
+});
+
+/*
+ * Studio de l'agent, « Modifications de l'IA en attente » — capture iPhone
+ * d'Avi du 06/09 à 14:38 : cinq fichiers rognés sur 20 px chacun. Les cartes
+ * portent `overflow-x: auto` sur téléphone, ce qui ramène leur taille minimale
+ * automatique à zéro ; dans une grille bornée en hauteur, les rangées `auto`
+ * se serraient pour tenir dans la boîte. Le balisage est celui de
+ * `AgentPatchReviewQueue`, posé dans le contexte du Studio
+ * (`.bolt-workbench-mobile-service`), avec la feuille compilée.
+ */
+async function mountStudioPatchReviewDocument(page: Page) {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setContent(`
+    <html>
+      <head>
+        <style>${stylesheet}</style>
+      </head>
+      <body>
+        <div class="bolt-project-ide-shell">
+          <main class="bolt-responsive-ide-mobile">
+            <section class="bolt-workbench-mobile-service" style="padding: 16px;">
+              <section class="bolt-project-agent-patch-review" data-testid="studio-patch-review">
+                <div class="bolt-project-agent-patch-review-head">
+                  <div>
+                    <strong>Examiner les modifications apportées à l'IA</strong>
+                    <span>5 modifications de l’IA à vérifier</span>
+                  </div>
+                  <div class="bolt-project-agent-patch-review-bulk" data-testid="studio-patch-bulk">
+                    <button class="bolt-project-agent-patch-review-bulk-accept" type="button">Acceptez tout</button>
+                    <button class="bolt-project-agent-patch-review-bulk-reject" type="button">Rejeter tout</button>
+                  </div>
+                </div>
+                <div class="bolt-project-agent-patch-review-list" data-testid="studio-patch-list">
+                  ${[
+                    'src/styles/global.css',
+                    'src/components/Counter.tsx',
+                    'src/App.tsx',
+                    'src/components/ErrorBoundary.tsx',
+                    'src/main.tsx',
+                  ]
+                    .map(
+                      (chemin) => `
+                        <article class="bolt-project-agent-patch-card" data-testid="studio-patch-card">
+                          <div class="bolt-project-agent-patch-card-head">
+                            <div>
+                              <strong>${chemin}</strong>
+                              <span>1 modification sélectionnée</span>
+                            </div>
+                            <div class="bolt-project-agent-patch-actions">
+                              <button type="button">Accepter</button>
+                              <button type="button">Rejeter</button>
+                            </div>
+                          </div>
+                        </article>
+                      `,
+                    )
+                    .join('')}
+                </div>
+              </section>
+            </section>
+          </main>
+        </div>
+      </body>
+    </html>
+  `);
+}
+
+test('public platform keeps the Studio patch review readable on a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mountStudioPatchReviewDocument(page);
+
+  const geometrie = await page.evaluate(() => {
+    const boite = (el: Element) => Math.round(el.getBoundingClientRect().height);
+    const liste = document.querySelector('[data-testid="studio-patch-list"]')!;
+    const revue = document.querySelector('[data-testid="studio-patch-review"]')!;
+    const boutons = [...document.querySelectorAll('[data-testid="studio-patch-bulk"] button')];
+
+    return {
+      cartes: [...document.querySelectorAll('[data-testid="studio-patch-card"]')].map((carte) => ({
+        h: boite(carte),
+        sh: carte.scrollHeight,
+        ch: carte.clientHeight,
+      })),
+      liste: { h: boite(liste), sh: liste.scrollHeight, ch: liste.clientHeight },
+      revue: { sh: revue.scrollHeight, ch: revue.clientHeight, overflow: getComputedStyle(revue).overflow },
+      boutonsSurUneLigne: new Set(boutons.map((b) => Math.round(b.getBoundingClientRect().y))).size === 1,
+    };
+  });
+
+  expect(geometrie.cartes).toHaveLength(5);
+
+  // Mesuré avant : 20 px par carte, chemins coupés.
+  for (const carte of geometrie.cartes) {
+    expect(carte.h, `carte de ${carte.h}px`).toBeGreaterThanOrEqual(40);
+    expect(carte.sh, 'carte rognée').toBeLessThanOrEqual(carte.ch + 1);
+  }
+
+  expect(geometrie.liste.sh, 'la liste ne doit pas cacher de carte').toBeLessThanOrEqual(geometrie.liste.ch + 1);
+  expect(geometrie.revue.sh, 'la file de révision ne doit pas être rognée').toBeLessThanOrEqual(geometrie.revue.ch + 1);
+  expect(geometrie.boutonsSurUneLigne, '« Acceptez tout / Rejeter tout » côte à côte').toBe(true);
 });
 
 test('public platform keeps mobile IDE chrome clear of the bottom navigation', async ({ page }) => {
@@ -2156,4 +2270,54 @@ test('la rangée d’onglets mobiles s’arrête sur un onglet, jamais au milieu
   expect(mesure!.deborde, 'sans débordement, le test ne prouve rien').toBe(true);
   expect(mesure!.ancrage, 'la rangée doit ancrer son défilement').toContain('mandatory');
   expect(mesure!.ancrageOnglet, 'chaque onglet doit être un point d’arrêt').toContain('start');
+});
+
+test('aucun libellé du panneau Agent sous le plancher de l’échelle', async ({ page }) => {
+  const stylesheet = await readCompiledIdeStyles();
+
+  await page.setViewportSize({ width: 390, height: 664 });
+
+  /*
+   * Mesuré en production, format iPhone 13 : « 0 messages », « README.md » et
+   * « Focused on README.md » étaient rendus à 9px — les premiers libellés qu'on
+   * voit en ouvrant le panneau.
+   *
+   * LA CAUSE N'EST PAS celle de #388. Ce n'est pas une variante de bureau
+   * attrapée en mobile : ce sont des `<small>`, et la règle d'étiquettes de
+   * l'IDE leur impose `--vc-type-label-size`. #382 avait couvert la zone de
+   * saisie ; l'en-tête et la carte d'état étaient hors de son périmètre.
+   */
+  await page.setContent(`
+    <html>
+      <head><style>${stylesheet}</style></head>
+      <body style="margin: 0">
+        <div class="bolt-project-ide-shell bolt-responsive-ide bolt-responsive-ide-mobile">
+          <div class="bolt-mobile-ecode-header-title"><strong>Agent</strong><small>0 messages</small></div>
+          <div class="bolt-mobile-agent-start-state">
+            <div class="bolt-mobile-agent-start-card">
+              <span><strong>Agent prêt</strong><small>Centré sur README.md</small></span>
+            </div>
+          </div>
+          <div class="bolt-mobile-agent-context-bar"><small>README.md</small></div>
+        </div>
+      </body>
+    </html>
+  `);
+
+  const tailles = await page.evaluate(() => {
+    const petits: string[] = [];
+
+    for (const element of document.querySelectorAll('small, .text-xs')) {
+      const taille = Math.round(parseFloat(getComputedStyle(element).fontSize) * 10) / 10;
+
+      if (taille < 13) {
+        petits.push(`« ${(element.textContent ?? '').trim()} » à ${taille}px`);
+      }
+    }
+
+    return { petits, mesures: document.querySelectorAll('small').length };
+  });
+
+  expect(tailles.mesures, 'aucun libellé monté : le test ne prouverait rien').toBeGreaterThanOrEqual(3);
+  expect(tailles.petits, tailles.petits.join(' ; ')).toEqual([]);
 });

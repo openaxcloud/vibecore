@@ -780,8 +780,12 @@ describe('workspace-agent', () => {
      * exercised deterministically (and cross-platform) by calling it in
      * isolation. The endpoint contract itself is covered by the smoke test below.
      */
-    const record = (id: string, command: string, output?: string): ProcessRecord =>
-      ({ id, command, output, startedAt: new Date(0).toISOString(), process: {} as never }) satisfies ProcessRecord;
+    const record = (
+      id: string,
+      command: string,
+      output?: string,
+      startedAt = new Date().toISOString(),
+    ): ProcessRecord => ({ id, command, output, startedAt, process: {} as never }) satisfies ProcessRecord;
 
     const fromUrl = detectPortsFromOutput(
       new Map([['a', record('a', 'node server.js', 'Local: http://localhost:4173')]]),
@@ -791,12 +795,35 @@ describe('workspace-agent', () => {
     const fromFlag = detectPortsFromOutput(new Map([['b', record('b', 'serve --port 8080')]]));
     expect(fromFlag).toEqual([{ port: 8080, processId: 'b' }]);
 
-    // Known dev servers fall back to their conventional port when output has none yet.
+    /*
+     * Known dev servers fall back to their conventional port when output has none
+     * YET — i.e. DURING BOOT, between the command starting and vite printing its
+     * URL. That window is what the fallback exists for, and it is preserved.
+     */
     const viteDefault = detectPortsFromOutput(new Map([['c', record('c', 'vite dev')]]));
     expect(viteDefault).toEqual([{ port: 5173, processId: 'c' }]);
 
     const nextDefault = detectPortsFromOutput(new Map([['d', record('d', 'next dev')]]));
     expect(nextDefault).toEqual([{ port: 3000, processId: 'd' }]);
+
+    /*
+     * ...but the guess must NOT outlive that window. detectPorts() only falls back
+     * here when /proc reported nothing — i.e. exactly when nothing is listening.
+     * Past boot, a guessed port no longer describes a server that is arriving; it
+     * describes a DEAD one, and announces it alive. Measured 2026-09-08 in
+     * production (ws-4e6d3c6c540f6a8a): no vite process, nothing on 5173, and the
+     * UI showed "Stop running" — and the guessed port satisfied
+     * shouldUseExistingPreviewServer, so every later start short-circuited to
+     * "reattached" and relaunched NOTHING.
+     */
+    const vieux = new Date(Date.now() - 5 * 60_000).toISOString();
+    expect(detectPortsFromOutput(new Map([['c', record('c', 'vite dev', undefined, vieux)]]))).toEqual([]);
+    expect(detectPortsFromOutput(new Map([['d', record('d', 'next dev', undefined, vieux)]]))).toEqual([]);
+
+    // Une trace REELLE reste lue quel que soit l'age du processus.
+    expect(
+      detectPortsFromOutput(new Map([['e', record('e', 'vite dev', 'Local: http://localhost:4321', vieux)]])),
+    ).toEqual([{ port: 4321, processId: 'e' }]);
 
     // Plain commands with no port signal yield nothing.
     expect(detectPortsFromOutput(new Map([['e', record('e', 'echo hi', 'hi')]]))).toEqual([]);
