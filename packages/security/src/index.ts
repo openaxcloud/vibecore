@@ -288,6 +288,8 @@ export interface AbuseSignal {
     | 'excessive_ai_usage'
     | 'failed_auth_spike'
     | 'workspace_creation_spike'
+    | 'project_creation_spike'
+    | 'deployment_creation_spike'
     | 'storage_abuse'
     | 'cpu_abuse'
     | 'malware_download'
