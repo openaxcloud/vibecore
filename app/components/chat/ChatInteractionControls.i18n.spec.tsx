@@ -259,6 +259,21 @@ describe('remaining interactive chat controls i18n', () => {
      * crochet que la feuille cible, et la mesure réelle en pixels est faite dans
      * tests/e2e/agent-message-density.spec.ts.
      */
+    /*
+     * Le crayon n'est plus posé en permanence dans la bulle : c'est ce qu'Avi
+     * entoure en rouge sur ses captures. Il vit dans le menu contextuel, ouvert
+     * par un appui long au doigt ou un clic droit à la souris.
+     *
+     * L'assertion elle-même est INCHANGÉE — mêmes libellés, même exigence sur
+     * le crochet de style. Seul le chemin pour atteindre le bouton change.
+     */
+    expect(
+      screen.queryByRole('button', { name: 'Modifier et renvoyer ce message' }),
+      'aucun crayon posé en permanence dans la bulle',
+    ).toBeNull();
+
+    fireEvent.contextMenu(document.querySelector('[data-menu-contextuel="true"]')!, { clientX: 20, clientY: 20 });
+
     expect(screen.getByRole('button', { name: 'Modifier et renvoyer ce message' }).className).toContain(
       'bolt-user-message-edit',
     );
