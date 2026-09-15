@@ -5,6 +5,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { horodatageMessageMonotone } from './horodatage-message.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
@@ -13,7 +14,7 @@ import {
 } from './login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, projectSnapshotManifest } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -104,6 +105,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from './store.js';
 
 function now() {
@@ -2674,7 +2676,6 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-
   async listActiveWorkspaces(organizationId: string) {
     return (
       await this.prisma.workspace.findMany({
@@ -2687,7 +2688,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapWorkspace);
   }
 
-  async countSnapshots(organizationId: string) {
+  async countSnapshots(organizationId: string, since?: Date) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
      * snapshots.count quota. They are created automatically on every AI
@@ -2696,8 +2697,17 @@ export class PrismaApiStore implements ApiStore {
      * manual snapshot endpoint even though they took no manual snapshots
      * (self-lockout). The quota governs user-initiated snapshots only.
      */
+    /*
+     * `since` borne le compte à la période d'usage courante. Sans lui, le total
+     * était monotone et finissait par fermer définitivement le retour arrière —
+     * exactement le piège décrit sur `countDeployments` juste en dessous.
+     */
     return this.prisma.projectSnapshot.count({
-      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+      where: {
+        project: { organizationId, deletedAt: null },
+        kind: { not: 'before-ai-change' },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 
@@ -2853,10 +2863,24 @@ export class PrismaApiStore implements ApiStore {
     return snapshot ? mapSnapshot(snapshot) : undefined;
   }
 
-  async listSnapshots(projectId: string) {
-    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
-      mapSnapshot,
-    );
+  /**
+   * PANEL-PERF — la requête est bornable et le manifeste projetable.
+   *
+   * Sans option, le comportement est celui d'avant, à l'identique : toutes les
+   * lignes, manifeste complet. Le tri secondaire sur `id` rend l'ordre TOTAL,
+   * sans quoi deux instantanés du même tour d'agent (même `createdAt` à la
+   * seconde) pourraient s'échanger entre deux pages — et la pagination perdrait
+   * ou dupliquerait une ligne.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const rows = await this.prisma.projectSnapshot.findMany({
+      where: { projectId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(options?.take ? { take: options.take } : {}),
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+    });
+
+    return rows.map((row) => projectSnapshotManifest(mapSnapshot(row), options?.manifest));
   }
 
   async putProjectStorageObject(input: {
@@ -4767,11 +4791,19 @@ export class PrismaApiStore implements ApiStore {
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    /*
+     * Instant STRICTEMENT croissant d'un message au suivant : voir
+     * horodatage-message.ts. Sans lui, question et réponse d'un même tour (ou
+     * une transcription synchronisée en rafale) partagent la milliseconde et
+     * reviennent dans un ordre indéfini au rechargement.
+     */
+    const createdAt = horodatageMessageMonotone();
+
     if (input.id) {
       return mapAiMessage(
         await this.prisma.aiMessage.upsert({
           where: { id: input.id },
-          create: input,
+          create: { ...input, createdAt },
           update: {
             role: input.role,
             content: input.content,
@@ -4780,7 +4812,7 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
+    return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
   async listAiMessages(conversationId: string) {
@@ -4793,7 +4825,12 @@ export class PrismaApiStore implements ApiStore {
 
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+
+      /*
+       * `id` départage deux instants égaux : l'ordre reste alors DÉTERMINISTE
+       * d'une lecture à l'autre, quel que soit le plan choisi par Postgres.
+       */
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_AI_MESSAGES,
     });
 

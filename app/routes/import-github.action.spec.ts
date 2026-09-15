@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { action } from './import-github';
+import { getImportRoutesCopy } from '~/lib/i18n/catalogs/import-routes';
 
 /*
  * Regression: the GitHub-import action called apiRequest with no try/catch.
@@ -57,7 +58,7 @@ function readData<T>(result: unknown): T {
  * Response is `importResponse`.
  */
 function stubFetch(importResponse: Response) {
-  return vi.fn(async (input: RequestInfo | URL) => {
+  return vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
     const url = String(input);
 
     if (url.endsWith('/orgs')) {
@@ -69,6 +70,23 @@ function stubFetch(importResponse: Response) {
     }
 
     throw new Error(`unexpected fetch to ${url}`);
+  });
+}
+
+/**
+ * Le `fetch` de l'import ABANDONNE au lieu de répondre — la forme exacte que
+ * rend `AbortSignal.timeout` (mesurée le 2026-09-10 : `DOMException`,
+ * `name: 'TimeoutError'`).
+ */
+function stubFetchQuiAbandonne() {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+
+    if (url.endsWith('/orgs')) {
+      return jsonResponse(200, { organizations: [ORG] });
+    }
+
+    throw new DOMException('The operation was aborted due to timeout', 'TimeoutError');
   });
 }
 
@@ -114,6 +132,77 @@ describe('import-github action error handling', () => {
 
     expect(readData(result)).toEqual({ errorCode: 'importFailed' });
     expect(JSON.stringify(readData(result))).not.toContain('upstream boom');
+  });
+
+  /*
+   * BUG-CREATE-005 — « l'import GitHub échoue au bout de 3 minutes sur un
+   * message générique ». Le serveur classe désormais l'échec de clone
+   * (`services/api/src/import-echec.ts`) ; ces deux cas vérifient que le client
+   * LIT ce classement. Sans eux, un 504 et un 502 retombaient tous deux dans
+   * `importFailed` — « Réessayez. » — et le travail serveur ne changeait rien
+   * pour l'utilisateur (règle 10 : vérifier l'existence de ce qu'on croit
+   * protéger).
+   */
+  it('un clone qui dépasse le délai (504) ne dit plus « réessayez »', async () => {
+    globalThis.fetch = stubFetch(
+      jsonResponse(504, { ok: false, code: 'IMPORT_CLONE_TIMEOUT', error: 'clone timed out' }),
+    );
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(readData(result)).toEqual({ errorCode: 'timeout' });
+    expect(JSON.stringify(readData(result))).not.toContain('clone timed out');
+  });
+
+  it('un hébergeur injoignable (502) est annoncé comme tel, pas comme un échec du dépôt', async () => {
+    globalThis.fetch = stubFetch(
+      jsonResponse(502, { ok: false, code: 'IMPORT_UPSTREAM_UNREACHABLE', error: 'upstream unreachable' }),
+    );
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(readData(result)).toEqual({ errorCode: 'upstream' });
+    expect(JSON.stringify(readData(result))).not.toContain('upstream unreachable');
+  });
+
+  it('chaque code rendu par l’action a une phrase dans les DEUX langues', async () => {
+    /*
+     * Règle 15 : un code sans phrase rend une chaîne vide dans le `<p role=
+     * "alert">` du formulaire — l'utilisateur voit alors un encart vide, ce qui
+     * est pire que le message générique qu'on remplace.
+     */
+    const en = getImportRoutesCopy('en');
+    const fr = getImportRoutesCopy('fr');
+
+    for (const code of ['urlRequired', 'inaccessible', 'quota', 'timeout', 'upstream', 'importFailed'] as const) {
+      expect(en[`importRoutes.git.error.${code}`], `en/${code}`).toBeTruthy();
+      expect(fr[`importRoutes.git.error.${code}`], `fr/${code}`).toBeTruthy();
+    }
+
+    /* Les trois causes doivent être DISTINGUABLES : trois phrases différentes. */
+    const phrases = new Set(
+      (['inaccessible', 'timeout', 'upstream', 'importFailed'] as const).map(
+        (code) => fr[`importRoutes.git.error.${code}`],
+      ),
+    );
+    expect(phrases.size).toBe(4);
+  });
+
+  /*
+   * BUG-CREATE-005, LE CHEMIN RÉEL (règle 1). Les deux cas ci-dessus décrivent
+   * un serveur qui RÉPOND. Ce qui se passait en vrai est plus bête : le client
+   * raccrochait le premier. `apiRequest` impose `AbortSignal.timeout(30_000)`
+   * par défaut, le serveur s'autorise 120 s pour cloner — et un abandon de
+   * `fetch` n'est pas une `Response`, donc aucune branche `isApiResponse` ne
+   * l'attrapait. On tombait sur `actionError('importFailed', 500)` : très
+   * exactement le `500` + « Réessayez. » relevé à l'inventaire.
+   */
+  it('un abandon côté client ne se déguise plus en « Réessayez »', async () => {
+    globalThis.fetch = stubFetchQuiAbandonne();
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(readData(result)).toEqual({ errorCode: 'timeout' });
   });
 
   it('re-throws a 3xx re-auth redirect so the framework follows it', async () => {
