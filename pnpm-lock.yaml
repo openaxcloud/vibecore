@@ -29,7 +29,7 @@ overrides:
   yaml: ^2.8.4
   tar-fs: ^3.1.2
   glob: ^13.0.6
-  tar: ^7.5.15
+  tar: ^7.5.21
   '@isaacs/brace-expansion': ^5.0.1
   minimatch: ^10.2.5
   flatted: ^3.4.2
@@ -50,8 +50,8 @@ importers:
         specifier: 1.0.6
         version: 1.0.6(zod@3.25.76)
       '@ai-sdk/anthropic':
-        specifier: 0.0.39
-        version: 0.0.39(zod@3.25.76)
+        specifier: 1.2.12
+        version: 1.2.12(zod@3.25.76)
       '@ai-sdk/cerebras':
         specifier: ^0.2.16
         version: 0.2.16(zod@3.25.76)
@@ -65,8 +65,8 @@ importers:
         specifier: ^0.2.16
         version: 0.2.16(zod@3.25.76)
       '@ai-sdk/google':
-        specifier: 0.0.52
-        version: 0.0.52(zod@3.25.76)
+        specifier: 1.2.22
+        version: 1.2.22(zod@3.25.76)
       '@ai-sdk/mistral':
         specifier: 0.0.43
         version: 0.0.43(zod@3.25.76)
@@ -247,6 +247,9 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.1.4
         version: 1.2.7(@types/react-dom@18.3.7(@types/react@18.3.23))(@types/react@18.3.23)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@react-router/express':
+        specifier: ^7.18.0
+        version: 7.18.0(express@4.21.2)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3)
       '@react-router/fs-routes':
         specifier: ^7.18.0
         version: 7.18.0(@react-router/dev@7.18.0(@react-router/serve@7.18.0(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(typescript@5.8.3))(@types/node@25.6.0)(lightningcss@1.32.0)(react-router@7.18.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(sass-embedded@1.99.0)(sass@1.99.0)(typescript@5.8.3)(vite@5.4.21(@types/node@25.6.0)(lightningcss@1.32.0)(sass-embedded@1.99.0)(sass@1.99.0))(wrangler@4.90.0(@cloudflare/workers-types@4.20260507.1)))(typescript@5.8.3)
@@ -325,6 +328,9 @@ importers:
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
+      compression:
+        specifier: ^1.8.1
+        version: 1.8.1
       date-fns:
         specifier: ^3.6.0
         version: 3.6.0
@@ -343,6 +349,9 @@ importers:
       electron-updater:
         specifier: ^6.3.9
         version: 6.6.2
+      express:
+        specifier: ^4.21.2
+        version: 4.21.2
       fastify:
         specifier: ^5.8.5
         version: 5.8.5
@@ -403,6 +412,9 @@ importers:
       mongodb:
         specifier: ^7.2.0
         version: 7.2.0
+      morgan:
+        specifier: ^1.10.1
+        version: 1.10.1
       mysql2:
         specifier: ^3.22.3
         version: 3.22.3(@types/node@25.6.0)
@@ -596,6 +608,9 @@ importers:
       electron-builder-squirrel-windows:
         specifier: ^26.8.1
         version: 26.8.1(dmg-builder@26.8.1)
+      esbuild:
+        specifier: 0.27.7
+        version: 0.27.7
       eslint-config-prettier:
         specifier: ^10.1.1
         version: 10.1.8(eslint@9.31.0(jiti@2.6.1))
@@ -1118,8 +1133,8 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/anthropic@0.0.39':
-    resolution: {integrity: sha512-Ouku41O9ebyRi0EUW7pB8+lk4sI74SfJKydzK7FjynhNmCSvi42+U4WPlEjP64NluXUzpkYLvBa6BAd36VY4/g==}
+  '@ai-sdk/anthropic@1.2.12':
+    resolution: {integrity: sha512-YSzjlko7JvuiyQFmI9RN1tNZdEiZxc+6xld/0tq/VkJaHpEzGAb1yiNxxvmYVcjvfu/PcvCxAAYXmTYQQ63IHQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -1148,8 +1163,8 @@ packages:
     peerDependencies:
       zod: ^3.0.0
 
-  '@ai-sdk/google@0.0.52':
-    resolution: {integrity: sha512-bfsA/1Ae0SQ6NfLwWKs5SU4MBwlzJjVhK6bTVBicYFjUxg9liK/W76P1Tq/qK9OlrODACz3i1STOIWsFPpIOuQ==}
+  '@ai-sdk/google@1.2.22':
+    resolution: {integrity: sha512-Ppxu3DIieF1G9pyQ5O1Z646GYR0gkC57YdBqXJ82qvCdhEhZHu0TWhmnOoeIWe2olSbuDeoOY+MfJrW8dzS3Hw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.0.0
@@ -1196,15 +1211,6 @@ packages:
       zod:
         optional: true
 
-  '@ai-sdk/provider-utils@1.0.9':
-    resolution: {integrity: sha512-yfdanjUiCJbtGoRGXrcrmXn0pTyDfRIeY6ozDG96D66f2wupZaZvAgKptUa3zDYXtUCQQvcNJ+tipBBfQD/UYA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      zod: ^3.0.0
-    peerDependenciesMeta:
-      zod:
-        optional: true
-
   '@ai-sdk/provider-utils@2.0.2':
     resolution: {integrity: sha512-IAvhKhdlXqiSmvx/D4uNlFYCl8dWT+M9K+IuEcSgnE2Aj27GWu8sDIpAf4r4Voc+wOUkOECVKQhFo8g9pozdjA==}
     engines: {node: '>=18'}
@@ -1240,10 +1246,6 @@ packages:
 
   '@ai-sdk/provider@0.0.12':
     resolution: {integrity: sha512-oOwPQD8i2Ynpn22cur4sk26FW3mSy6t6/X/K1Ay2yGBKYiSpRyLfObhOrZEGsXDx+3euKy4nEZ193R36NM+tpQ==}
-    engines: {node: '>=18'}
-
-  '@ai-sdk/provider@0.0.17':
-    resolution: {integrity: sha512-f9j+P5yYRkqKFHxvWae5FI0j6nqROPCoPnMkpc2hc2vC7vKjqzrxBJucD8rpSaUjqiBnY/QuRJ0QeV717Uz5tg==}
     engines: {node: '>=18'}
 
   '@ai-sdk/provider@0.0.24':
@@ -5662,10 +5664,12 @@ packages:
   '@xmldom/xmldom@0.8.14':
     resolution: {integrity: sha512-T4EDRUBVZYRldYApjEJiU0e1stYWaRAX7CuSnKzrpwdZKo53zGV8/pqfzV6FfwNl9YThD2OumQYvqtvjvgG7aQ==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xterm/addon-fit@0.10.0':
     resolution: {integrity: sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==}
@@ -6381,6 +6385,7 @@ packages:
   cron-parser@4.9.0:
     resolution: {integrity: sha512-p0SaNjrHOnQeR8/VnfGbmg9te2kfyYSQ7Sc/j/6DtPL3JQvKxmjO9TSjNFpujqV3vEYYBvNNvXSxzyksBWAx1Q==}
     engines: {node: '>=12.0.0'}
+    deprecated: v4 is no longer maintained, upgrade to v5
 
   cross-dirname@0.1.0:
     resolution: {integrity: sha512-+R08/oI0nl3vfPcqftZRpytksBXDzOUveBq/NBVx0sUp1axwzPQrKinNx5yd5sxPu8j1wIy8AfnVQ+5eFdha6Q==}
@@ -7076,6 +7081,7 @@ packages:
   eslint@9.31.0:
     resolution: {integrity: sha512-QldCVh/ztyKJJZLr4jXNUByx3gR+TDYZCRXEktiZoUR3PGy4qCmSbkxcIle8GEwGpb5JBZazlaJ/CxLidXdEbQ==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: '*'
@@ -10344,8 +10350,8 @@ packages:
   tailwind-merge@2.6.0:
     resolution: {integrity: sha512-P+Vu1qXfzediirmHOC3xKGAYeZtPcV9g76X+xg2FD4tYgR71ewMA35Y3sCz3zhiN/dwefRpJX0yBcgwi1fXNQA==}
 
-  tar@7.5.15:
-    resolution: {integrity: sha512-dzGK0boVlC4W5QFuQN1EFSl3bIDYsk7Tj40U6eIBnK2k/8ml7TZ5agbI5j5+qnoVcAA+rNtBml8SEiLxZpNqRQ==}
+  tar@7.5.22:
+    resolution: {integrity: sha512-MFO/QzvtAOmJbkhOaCTvbGcFN9L9b+JunIsDwaKljSOdcLMea3NJ1k9Usz/rjdfSXTq4dfzfeS7W4p4YOAAHeA==}
     engines: {node: '>=18'}
 
   teeny-request@9.0.0:
@@ -10494,6 +10500,7 @@ packages:
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
     engines: {node: ^18 || >=20}
+    deprecated: unmaintained
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -11251,10 +11258,10 @@ snapshots:
     transitivePeerDependencies:
       - aws-crt
 
-  '@ai-sdk/anthropic@0.0.39(zod@3.25.76)':
+  '@ai-sdk/anthropic@1.2.12(zod@3.25.76)':
     dependencies:
-      '@ai-sdk/provider': 0.0.17
-      '@ai-sdk/provider-utils': 1.0.9(zod@3.25.76)
+      '@ai-sdk/provider': 1.1.3
+      '@ai-sdk/provider-utils': 2.2.8(zod@3.25.76)
       zod: 3.25.76
 
   '@ai-sdk/cerebras@0.2.16(zod@3.25.76)':
@@ -11284,11 +11291,10 @@ snapshots:
       '@ai-sdk/provider-utils': 2.2.8(zod@3.25.76)
       zod: 3.25.76
 
-  '@ai-sdk/google@0.0.52(zod@3.25.76)':
+  '@ai-sdk/google@1.2.22(zod@3.25.76)':
     dependencies:
-      '@ai-sdk/provider': 0.0.24
-      '@ai-sdk/provider-utils': 1.0.20(zod@3.25.76)
-      json-schema: 0.4.0
+      '@ai-sdk/provider': 1.1.3
+      '@ai-sdk/provider-utils': 2.2.8(zod@3.25.76)
       zod: 3.25.76
 
   '@ai-sdk/mistral@0.0.43(zod@3.25.76)':
@@ -11333,15 +11339,6 @@ snapshots:
     optionalDependencies:
       zod: 3.25.76
 
-  '@ai-sdk/provider-utils@1.0.9(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 0.0.17
-      eventsource-parser: 1.1.2
-      nanoid: 3.3.6
-      secure-json-parse: 2.7.0
-    optionalDependencies:
-      zod: 3.25.76
-
   '@ai-sdk/provider-utils@2.0.2(zod@3.25.76)':
     dependencies:
       '@ai-sdk/provider': 1.0.1
@@ -11377,10 +11374,6 @@ snapshots:
       zod: 3.25.76
 
   '@ai-sdk/provider@0.0.12':
-    dependencies:
-      json-schema: 0.4.0
-
-  '@ai-sdk/provider@0.0.17':
     dependencies:
       json-schema: 0.4.0
 
@@ -12106,7 +12099,7 @@ snapshots:
       prompts: 2.4.2
       rimraf: 6.1.3
       semver: 7.7.4
-      tar: 7.5.15
+      tar: 7.5.22
       tslib: 2.8.1
       xml2js: 0.6.2
     transitivePeerDependencies:
@@ -16699,7 +16692,7 @@ snapshots:
       proper-lockfile: 4.1.2
       resedit: 1.7.2
       semver: 7.7.4
-      tar: 7.5.15
+      tar: 7.5.22
       temp-file: 3.4.0
       tiny-async-pool: 1.3.0
       which: 5.0.0
@@ -16857,7 +16850,7 @@ snapshots:
       bytes: 3.1.2
       content-type: 1.0.5
       debug: 4.4.3
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       iconv-lite: 0.7.2
       on-finished: 2.4.1
       qs: 6.15.1
@@ -20488,7 +20481,7 @@ snapshots:
       nopt: 9.0.0
       proc-log: 6.1.0
       semver: 7.7.4
-      tar: 7.5.15
+      tar: 7.5.22
       tinyglobby: 0.2.16
       undici: 6.25.0
       which: 6.0.1
@@ -21828,7 +21821,7 @@ snapshots:
       escape-html: 1.0.3
       etag: 1.8.1
       fresh: 2.0.0
-      http-errors: 2.0.0
+      http-errors: 2.0.1
       mime-types: 3.0.1
       ms: 2.1.3
       on-finished: 2.4.1
@@ -22237,7 +22230,7 @@ snapshots:
 
   tailwind-merge@2.6.0: {}
 
-  tar@7.5.15:
+  tar@7.5.22:
     dependencies:
       '@isaacs/fs-minipass': 4.0.1
       chownr: 3.0.0

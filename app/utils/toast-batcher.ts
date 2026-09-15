@@ -6,6 +6,7 @@ import {
   getClientRuntimeResidualCopy,
 } from '~/lib/i18n/catalogs/client-runtime-residual';
 import { getI18nInstance } from '~/lib/i18n/runtime';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 
 const COALESCE_WINDOW_MS = 800;
 
@@ -43,24 +44,43 @@ function defaultEmit(entries: BatchedFileApplied[]): void {
     .map((entry) => entry.undo)
     .filter((undo): undo is NonNullable<BatchedFileApplied['undo']> => Boolean(undo));
 
-  showCoalescedAppliedToast(files, {
-    onUndoAll: () => {
-      runUndos(undos)
-        .then((failures) => {
-          if (failures > 0) {
+  showCoalescedAppliedToast(
+    files,
+    {
+      onUndoAll: () => {
+        runUndos(undos)
+          .then((failures) => {
+            if (failures > 0) {
+              const i18n = getI18nInstance();
+              toast.error(formatClientRuntimeUndoFailure(failures, i18n.resolvedLanguage ?? i18n.language));
+            } else {
+              toast.dismiss(AGENT_APPLIED_TOAST_ID);
+            }
+          })
+          .catch(() => {
             const i18n = getI18nInstance();
-            toast.error(formatClientRuntimeUndoFailure(failures, i18n.resolvedLanguage ?? i18n.language));
-          } else {
-            toast.dismiss(AGENT_APPLIED_TOAST_ID);
-          }
-        })
-        .catch(() => {
-          const i18n = getI18nInstance();
-          const copy = getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-          toast.error(copy['clientRuntime.undo.failedGeneric']);
-        });
+            const copy = getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
+            toast.error(copy['clientRuntime.undo.failedGeneric']);
+          });
+      },
     },
-  });
+
+    /*
+     * BUG-AGENT-TOAST-HONNETE-001 — le SECOND point d'entrée du bandeau.
+     *
+     * `AppliedFilesToast` sait dire « la génération s'est arrêtée en route » et
+     * `BaseChat.tsx` lui passe bien le constat du tour. Ici, non : ce chemin
+     * peignait « les patchs ont bien été appliqués » avec sa coche verte, même
+     * sur une génération sans point d'entrée. La moitié visible de la garde
+     * était donc contournable par un appelant sur deux — et c'est celui-ci qui
+     * sert quand le lot de fichiers est groupé par le batcher.
+     *
+     * Lecture directe du magasin, comme l'autre appelant : le bandeau n'est pas
+     * réactif, il est peint une fois par flush, et c'est l'état À CET INSTANT
+     * qui doit être dit.
+     */
+    constatDeGenerationStore.get(),
+  );
 }
 
 const state: BatcherState = {
