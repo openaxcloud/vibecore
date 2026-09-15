@@ -31,6 +31,8 @@ import {
   cleTemoin,
   fichierDuCatalogue,
   LANGUES_EMISES,
+  SURFACES_EMISES,
+  temoinDansLaTranchePublique,
 } from '../build-config/catalogues-emis.js';
 import {
   chunksInterdits,
@@ -70,12 +72,32 @@ function autotest(): void {
     echouer('autotest : un manifeste illisible rend une liste au lieu de `undefined` — le vert serait creux.');
   }
 
-  if (cataloguesManquants(['catalogue-en-0123456789.json']).join(',') !== 'fr,es,ar') {
-    echouer('autotest : le contrôle ne voit plus un catalogue JSON manquant.');
+  /*
+   * Une seule tranche présente sur huit : le contrôle doit nommer les sept
+   * autres. Un ancien nom SANS surface (`catalogue-en-<empreinte>.json`) ne
+   * compte pour aucune — c'est ce qui a fait rougir ce contrôle le 2026-09-15,
+   * et c'est bien un défaut, pas un faux positif.
+   */
+  const manquants = cataloguesManquants(['catalogue-en-public-0123456789.json']);
+
+  if (manquants.join(',') !== 'en/app,fr/public,fr/app,es/public,es/app,ar/public,ar/app') {
+    echouer(`autotest : le contrôle ne voit plus une tranche de catalogue manquante (${manquants.join(',')}).`);
+  }
+
+  if (cataloguesManquants(['catalogue-en-0123456789.json']).length !== 8) {
+    echouer('autotest : un catalogue SANS surface est accepté — le contrôle ne verrait pas un plugin périmé.');
   }
 
   if (chunksPortantLeTemoin('chat.copy.x', new Map([['root-x.js', '{"chat.copy.x":"y"}']])).length !== 1) {
     echouer('autotest : le contrôle ne reconnaît plus un catalogue revenu dans un chunk de la racine.');
+  }
+
+  if (!temoinDansLaTranchePublique('chat.copy.x', '{"chat.copy.x":"y"}')) {
+    echouer('autotest : le contrôle ne voit plus une clé d’IDE livrée dans la tranche publique.');
+  }
+
+  if (temoinDansLaTranchePublique('chat.copy.x', '{"common.unavailable":"y"}')) {
+    echouer('autotest : le contrôle croit voir une clé d’IDE dans une tranche publique saine.');
   }
 
   console.log('autotest : le contrôle distingue bien le défaut, le sain et l’illisible.');
@@ -166,25 +188,47 @@ function verifierLesCataloguesEmis(fichiers: string[], imports: string[]): void 
   }
 
   let temoin: string | undefined;
+  let francaisPublic: string | undefined;
 
   for (const langue of LANGUES_EMISES) {
-    const nom = fichierDuCatalogue(fichiers, langue)!;
-    const json = readFileSync(join(DOSSIER_ASSETS, nom), 'utf8');
-    const defaut = catalogueTropPetit(langue, json);
+    for (const surface of SURFACES_EMISES) {
+      const nom = fichierDuCatalogue(fichiers, langue, surface)!;
+      const json = readFileSync(join(DOSSIER_ASSETS, nom), 'utf8');
+      const defaut = catalogueTropPetit(langue, surface, json);
 
-    if (defaut) {
-      echouer(`${nom} : ${defaut}`);
-    }
+      if (defaut) {
+        echouer(`${nom} : ${defaut}`);
+      }
 
-    console.log(`  catalogue ${langue} : ${nom}, ${json.length} octets`);
+      console.log(`  catalogue ${langue}/${surface} : ${nom}, ${json.length} octets`);
 
-    if (langue === 'fr') {
-      temoin = cleTemoin(json);
+      if (langue === 'fr' && surface === 'app') {
+        temoin = cleTemoin(json);
+      }
+
+      if (langue === 'fr' && surface === 'public') {
+        francaisPublic = json;
+      }
     }
   }
 
   if (!temoin) {
-    echouer('aucune clé témoin `chat.copy.*` dans le catalogue français — le contrôle de retour ne mesurerait rien.');
+    echouer(
+      'aucune clé témoin `chat.copy.*` dans la tranche `app` française — le contrôle de retour ne mesurerait rien.',
+    );
+  }
+
+  /*
+   * BUG-PERF-I18N-SURFACE-001 : le témoin est une clé d'IDE. La trouver dans la
+   * tranche `public` signifierait que le découpage a livré le vocabulaire de
+   * l'IDE à la page d'accueil — sans qu'un seul octet de JavaScript ne bouge,
+   * donc invisible pour le cliquet du chemin critique.
+   */
+  if (francaisPublic && temoinDansLaTranchePublique(temoin, francaisPublic)) {
+    echouer(
+      `la clé d’IDE « ${temoin} » est dans la tranche PUBLIQUE française — ` +
+        'le découpage par surface ne tient plus, la page d’accueil retélécharge le vocabulaire de l’IDE.',
+    );
   }
 
   const chunks = new Map<string, string>();

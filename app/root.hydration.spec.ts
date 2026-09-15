@@ -45,15 +45,15 @@ describe('React Router document hydration contract', () => {
 describe('le catalogue i18n de la langue du document', () => {
   const serverEntrySource = readFileSync(join(process.cwd(), 'app/entry.server.tsx'), 'utf8');
 
-  it('est préchargé dans <head>, pour chaque langue requise, aligné sur le fetch (mode cors)', () => {
-    expect(rootSource).toContain('{languesRequises(language).map((langue) => (');
-    expect(rootSource).toContain(
-      '<link key={langue} rel="preload" href={urlDuCatalogue(langue)} as="fetch" crossOrigin="anonymous" />',
-    );
+  it('est préchargé dans <head>, pour chaque langue ET chaque surface requise, aligné sur le fetch (mode cors)', () => {
+    expect(rootSource).toContain('{languesRequises(language).flatMap((langue) =>');
+    expect(rootSource).toContain('surfacesRequises(location.pathname).map((surface) => (');
+    expect(rootSource).toContain('href={urlDuCatalogue(langue, surface)}');
+    expect(rootSource).toContain('crossOrigin="anonymous"');
   });
 
   it('est attendu AVANT hydrateRoot, et l’échec n’empêche pas d’hydrater', () => {
-    const attente = clientEntrySource.indexOf('chargerLesCataloguesDuDocument(document.documentElement.lang)');
+    const attente = clientEntrySource.indexOf('chargerLesCataloguesDuDocument(lang, window.location.pathname)');
     const hydratation = clientEntrySource.indexOf('hydrateRoot(document, <HydratedRouter />)');
 
     expect(attente).toBeGreaterThan(-1);
@@ -62,14 +62,26 @@ describe('le catalogue i18n de la langue du document', () => {
     // Un seul appel à hydrateRoot, enfermé dans `hydrater()` — jamais au niveau du module.
     expect(clientEntrySource.match(/hydrateRoot\(/g)).toHaveLength(1);
     expect(clientEntrySource).toContain('function hydrater()');
-    expect(clientEntrySource).toMatch(/\.then\(hydrater,\s*\(erreur: unknown\) => \{[\s\S]*hydrater\(\);/);
+    expect(clientEntrySource).toMatch(/\.then\(demarrer,\s*\(erreur: unknown\) => \{[\s\S]*demarrer\(\);/);
   });
 
   it('est recréé côté instance si le registre change, sans divergence d’hydratation', () => {
+    /*
+     * BUG-PERF-I18N-SURFACE-001 : l'instantané est le JETON du registre, pas un
+     * booléen. Un booléen resterait `true` à l'arrivée de la SECONDE tranche, et
+     * l'instance i18next ne serait jamais recréée — les clés de la tranche
+     * tardive resteraient « Unavailable » à l'écran pour de bon.
+     */
     expect(rootSource).toMatch(
-      /useSyncExternalStore\(\s*sabonnerAuRegistre,\s*\(\) => catalogueDisponible\(language\),\s*\(\) => true,?\s*\)/,
+      /useSyncExternalStore\(\s*sabonnerAuRegistre,\s*\(\) => jetonDuRegistre\(language\),\s*\(\) => 'public,app',?\s*\)/,
     );
     expect(rootSource).toContain('createI18nInstance(language), [language, catalogueCharge]');
+  });
+
+  it('réclame les tranches manquantes à chaque navigation CLIENT — qui ne repasse pas par entry.client', () => {
+    expect(rootSource).toMatch(
+      /useEffect\(\(\) => \{\s*void chargerLesCataloguesDuDocument\(language, location\.pathname\)[\s\S]*?\}, \[language, location\.pathname\]\);/,
+    );
   });
 
   it('est enregistré côté serveur au chargement du module, avant tout rendu', () => {

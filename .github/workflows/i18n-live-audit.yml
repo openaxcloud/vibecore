@@ -258,14 +258,27 @@ jobs:
         if: always()
         shell: bash
         run: |
-          audit_json_count="$(find test-results -type f -path '*/i18n-proof/i18n-audit-*.json' -print | wc -l | tr -d '[:space:]')"
-          screenshot_count="$(find test-results -type f -path '*/i18n-proof/*.png' -print | wc -l | tr -d '[:space:]')"
-          negotiation_json_count="$({
-            find test-results -type f \
-              \( -path '*/i18n-proof/first-visit-language-negotiation.json' \
-              -o -path '*/i18n-proof/navigator-language-fallback.json' \) \
-              -print
-          } | wc -l | tr -d '[:space:]')"
+          # Une REPRISE Playwright réécrit les mêmes preuves dans
+          # `<titre>-retry<N>/`. Compter les FICHIERS comptait donc deux fois un
+          # test instable rattrapé : mesuré le 2026-09-15, le shard tablet-768
+          # a rendu 317/282 avec « 1 flaky, 3 passed » pendant que desktop-1024,
+          # desktop-1440 et mobile-390 rendaient 282/282 sur le MÊME commit.
+          # On compte donc les preuves DISTINCTES : le chemin est conservé en
+          # entier (deux routes ne se confondent pas), seul le suffixe de
+          # reprise est neutralisé. Une preuve réellement absente fait toujours
+          # rougir — le total attendu n'a pas bougé.
+          compter_preuves() {
+            find test-results -type f "$@" -print \
+              | sed -E 's#-retry[0-9]+/#/#g' \
+              | sort -u \
+              | wc -l | tr -d '[:space:]'
+          }
+
+          audit_json_count="$(compter_preuves -path '*/i18n-proof/i18n-audit-*.json')"
+          screenshot_count="$(compter_preuves -path '*/i18n-proof/*.png')"
+          negotiation_json_count="$(compter_preuves \
+            \( -path '*/i18n-proof/first-visit-language-negotiation.json' \
+            -o -path '*/i18n-proof/navigator-language-fallback.json' \) )"
 
           printf 'Audit JSON: %s/%s\n' "$audit_json_count" "$I18N_EXPECTED_AUDIT_JSON"
           printf 'Screenshots: %s/%s\n' "$screenshot_count" "$I18N_EXPECTED_SCREENSHOTS"

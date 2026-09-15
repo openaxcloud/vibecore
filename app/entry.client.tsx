@@ -2,7 +2,12 @@ import { startTransition } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { HydratedRouter } from 'react-router/dom';
 
-import { chargerLesCataloguesDuDocument } from './lib/i18n/catalogues-client';
+import {
+  cablerLeChargeurDeSecours,
+  chargerLesCataloguesDuDocument,
+  prechargerLeReste,
+} from './lib/i18n/catalogues-client';
+import { estCheminPublic } from './lib/i18n/surfaces';
 
 /*
  * RR7's root `Layout` renders the entire <html> document, so the client must
@@ -26,7 +31,27 @@ function hydrater() {
  * interactive vaut mieux qu'une page morte. L'erreur est consignée, pas
  * avalée.
  */
-chargerLesCataloguesDuDocument(document.documentElement.lang).then(hydrater, (erreur: unknown) => {
+/*
+ * BUG-PERF-I18N-SURFACE-001 : le document ne charge que les tranches dont sa
+ * route a besoin. `surfacesRequises` est fermée par défaut — /ide, /chat,
+ * /projects et toute route inconnue prennent les DEUX tranches AVANT
+ * l'hydratation, donc l'IDE n'ouvre jamais un panneau sur des clés brutes.
+ * Seuls les chemins publics listés obtiennent le régime allégé, et ils vont
+ * chercher le reste dès que le navigateur est au repos.
+ */
+const lang = document.documentElement.lang;
+
+cablerLeChargeurDeSecours();
+
+chargerLesCataloguesDuDocument(lang, window.location.pathname).then(demarrer, (erreur: unknown) => {
   console.error('catalogue i18n non chargé avant hydratation', erreur);
-  hydrater();
+  demarrer();
 });
+
+function demarrer() {
+  hydrater();
+
+  if (estCheminPublic(window.location.pathname)) {
+    prechargerLeReste(lang);
+  }
+}

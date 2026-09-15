@@ -31,13 +31,46 @@ import { initReactI18next } from 'react-i18next';
 import { lireFournisseurSynchrone } from './fournisseur-synchrone';
 import { detectUserLanguage, SUPPORTED_LANGUAGES, type SupportedLanguage } from './language';
 import { en } from './messages/en';
+import { SURFACES, surfaceDeLaCle, type Surface } from './surfaces';
 
 type Catalogue = Record<string, string>;
 
 const registre: Partial<Record<SupportedLanguage, Catalogue>> = {};
+const surfacesChargees = new Map<SupportedLanguage, Set<Surface>>();
 const abonnes = new Set<() => void>();
 
 let initialized = false;
+
+/*
+ * BUG-PERF-I18N-SURFACE-001, verrou 3. Le catalogue arrive en deux tranches ;
+ * un document public ne charge que `public`. Si une clé de la tranche `app` est
+ * malgré tout demandée — un classement trop optimiste, une clé construite
+ * dynamiquement que l'analyse statique n'a pas vue — figer « Unavailable »
+ * serait le pire des deux mondes. On déclenche donc le chargement de la tranche
+ * manquante ; l'abonnement du registre re-rend dès qu'elle arrive.
+ *
+ * Câblé par `catalogues-client.ts` (navigateur seulement). Côté serveur et en
+ * test, tout est déjà enregistré : le chargeur n'est jamais défini, donc jamais
+ * appelé.
+ */
+type ChargeurDeSecours = (langue: SupportedLanguage, surface: Surface) => void;
+
+let chargeurDeSecours: ChargeurDeSecours | undefined;
+
+export function definirChargeurDeSecours(chargeur: ChargeurDeSecours | undefined): void {
+  chargeurDeSecours = chargeur;
+}
+
+function surfacesDe(langue: SupportedLanguage): Set<Surface> {
+  let ensemble = surfacesChargees.get(langue);
+
+  if (!ensemble) {
+    ensemble = new Set();
+    surfacesChargees.set(langue, ensemble);
+  }
+
+  return ensemble;
+}
 
 /*
  * Tests seulement (voir `fournisseur-synchrone.ts`) : le setup de vitest ne
@@ -48,7 +81,16 @@ let initialized = false;
  */
 function catalogueDuRegistre(langue: SupportedLanguage): Catalogue | undefined {
   if (registre[langue] === undefined) {
-    registre[langue] = lireFournisseurSynchrone()?.(langue);
+    const fourni = lireFournisseurSynchrone()?.(langue);
+
+    if (fourni !== undefined) {
+      registre[langue] = fourni;
+
+      // Le fournisseur de test rend le catalogue ENTIER : les deux tranches sont là.
+      for (const surface of SURFACES) {
+        surfacesDe(langue).add(surface);
+      }
+    }
   }
 
   return registre[langue];
@@ -65,8 +107,20 @@ export function languesRequises(langue: SupportedLanguage): SupportedLanguage[] 
   return langue === 'en' || langue === 'fr' ? [langue] : [langue, 'en'];
 }
 
-export function catalogueDisponible(langue: SupportedLanguage): boolean {
-  return catalogueDuRegistre(langue) !== undefined;
+/**
+ * Un instantané du registre pour `useSyncExternalStore` : il CHANGE quand une
+ * tranche arrive. Un booléen « le catalogue est là » resterait `true` à
+ * l'arrivée de la seconde tranche, et l'instance i18next ne serait jamais
+ * recréée — les clés de la tranche tardive resteraient « Unavailable ».
+ */
+export function jetonDuRegistre(langue: SupportedLanguage): string {
+  catalogueDuRegistre(langue);
+
+  return SURFACES.filter((surface) => surfacesDe(langue).has(surface)).join(',');
+}
+
+export function catalogueDisponible(langue: SupportedLanguage, surface: Surface = 'public'): boolean {
+  return catalogueDuRegistre(langue) !== undefined && surfacesDe(langue).has(surface);
 }
 
 /**
@@ -74,8 +128,17 @@ export function catalogueDisponible(langue: SupportedLanguage): boolean {
  * déjà initialisé. Idempotent : ré-enregistrer la même langue est sans effet
  * visible (mêmes clés, mêmes valeurs) mais notifie quand même les abonnés.
  */
-export function enregistrerCatalogue(langue: SupportedLanguage, catalogue: Catalogue): void {
-  registre[langue] = catalogue;
+export function enregistrerCatalogue(
+  langue: SupportedLanguage,
+  catalogue: Catalogue,
+  surfaces: readonly Surface[] = SURFACES,
+): void {
+  // FUSION, jamais remplacement : les tranches arrivent séparément et s'ajoutent.
+  registre[langue] = { ...registre[langue], ...catalogue };
+
+  for (const surface of surfaces) {
+    surfacesDe(langue).add(surface);
+  }
 
   if (initialized) {
     i18next.addResourceBundle(langue, 'translation', catalogue, true, true);
@@ -124,7 +187,15 @@ const runtimeOptions = (language: SupportedLanguage) => ({
   returnNull: false,
   returnEmptyString: false,
   initImmediate: false,
-  parseMissingKeyHandler: () => en['common.unavailable'],
+  parseMissingKeyHandler: (cle: string) => {
+    const surface = surfaceDeLaCle(cle);
+
+    if (chargeurDeSecours && !catalogueDisponible(language, surface)) {
+      chargeurDeSecours(language, surface);
+    }
+
+    return en['common.unavailable'];
+  },
 });
 
 /**
@@ -172,4 +243,5 @@ export function getI18nInstance(): I18nInstance {
  */
 export function resetI18nForTest(): void {
   initialized = false;
+  chargeurDeSecours = undefined;
 }

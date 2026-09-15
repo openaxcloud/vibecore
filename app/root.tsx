@@ -49,8 +49,9 @@ import { I18nextProvider, useTranslation } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
 import { shouldShowGlobalRouteSplash } from './lib/global-route-splash';
-import { urlDuCatalogue } from './lib/i18n/catalogues-client';
-import { catalogueDisponible, createI18nInstance, languesRequises, sabonnerAuRegistre } from './lib/i18n/runtime';
+import { chargerLesCataloguesDuDocument, urlDuCatalogue } from './lib/i18n/catalogues-client';
+import { createI18nInstance, jetonDuRegistre, languesRequises, sabonnerAuRegistre } from './lib/i18n/runtime';
+import { surfacesRequises } from './lib/i18n/surfaces';
 import { resolveLeafDocumentSeoOwnership, type RouteMetaModule } from './lib/i18n/document-seo';
 import { AUTO_LANGUAGE_COOKIE } from './lib/i18n/language';
 import { localeResponseHeaders, resolveRequestLocale } from './lib/i18n/request-locale';
@@ -576,9 +577,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
          * (mode cors, credentials same-origin) — sans lui, le navigateur
          * refait la requête.
          */}
-        {languesRequises(language).map((langue) => (
-          <link key={langue} rel="preload" href={urlDuCatalogue(langue)} as="fetch" crossOrigin="anonymous" />
-        ))}
+        {languesRequises(language).flatMap((langue) =>
+          surfacesRequises(location.pathname).map((surface) => (
+            <link
+              key={`${langue}-${surface}`}
+              rel="preload"
+              href={urlDuCatalogue(langue, surface)}
+              as="fetch"
+              crossOrigin="anonymous"
+            />
+          )),
+        )}
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
         {navigatorLocaleFallback ? <script dangerouslySetInnerHTML={{ __html: inlineNavigatorLocaleCode }} /> : null}
         {/* content is intentionally adjusted client-side by the inline theme boot script
@@ -671,11 +680,22 @@ function AppShell({ children }: { children: React.ReactNode }) {
    */
   const catalogueCharge = useSyncExternalStore(
     sabonnerAuRegistre,
-    () => catalogueDisponible(language),
-    () => true,
+    () => jetonDuRegistre(language),
+    () => 'public,app',
   );
 
   const i18n = useMemo(() => createI18nInstance(language), [language, catalogueCharge]);
+
+  /*
+   * BUG-PERF-I18N-SURFACE-001 : une navigation CLIENT ne repasse pas par
+   * `entry.client.tsx`. Aller de la page d'accueil à /ide doit donc réclamer
+   * la tranche `app` ici — le préchargement au repos l'a le plus souvent déjà
+   * mise dans le registre, auquel cas cet appel se résout immédiatement.
+   */
+  useEffect(() => {
+    void chargerLesCataloguesDuDocument(language, location.pathname).catch(() => undefined);
+  }, [language, location.pathname]);
+
   const showIdeBootFallback = /^\/projects\/[^/]+\/ide(?:\/|$)/.test(location.pathname);
 
   const serverRendersRoute = matches.some((match) => {
