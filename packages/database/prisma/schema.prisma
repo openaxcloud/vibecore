@@ -2517,13 +2517,59 @@ model ImportJob {
   redactedCount   Int      @default(0)
   /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
   creditsReserved Boolean  @default(false)
+
+  /// AUDX-014 — clé d'idempotence du client, DURABLE.
+  ///
+  /// Elle vivait dans une `Map` en processus (`importIdemIndex`). L'api tourne
+  /// à 2 replicas (HPA 6) sans affinité de session : un create rejoué qui
+  /// atterrissait sur l'autre pod ne voyait pas la clé et créait un SECOND job
+  /// avec une SECONDE réservation de crédits — le double débit que la clé
+  /// existe précisément pour empêcher. L'unicité est portée par la base, donc
+  /// deux créations concurrentes sur deux pods ne peuvent plus toutes deux
+  /// gagner.
+  idempotencyKey  String?
   error           String?
   expiresAt       DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  stagedFiles     ImportStagedFile[]
+
+  @@unique([organizationId, idempotencyKey])
   @@index([organizationId, createdAt])
   @@index([state])
+}
+
+/// AUDX-014 — le staging d'import, DURABLE et partagé entre replicas.
+///
+/// Les fichiers mis en scène vivaient dans une `Map` en processus
+/// (`importStaging`). Le flux fait deux sauts HTTP — `POST /imports` puis
+/// `POST /imports/:id/commit` — et l'api tourne à 2 replicas sans affinité de
+/// session (le cookie `vc_upstream` de l'Ingress ne couvre que `/` et
+/// `/runtime` ; l'api est jointe par un Service ClusterIP sans
+/// `sessionAffinity`). Un commit sur l'autre pod ne trouvait rien et renvoyait
+/// `409 IMPORT_STAGING_GONE` : mesuré, ~50 % des imports à 2 replicas, ~83 % à 6.
+///
+/// La table reste ÉPHÉMÈRE : elle est vidée à chaque sortie non committée comme
+/// après un commit réussi, et le `onDelete: Cascade` la nettoie si le job
+/// disparaît. Le contrat d'origine tient : rien n'est écrit dans le projet cible
+/// avant COMMITTED.
+///
+/// ⚠️ Le contenu est stocké en base, comme le fait déjà `ProjectStorageObject`.
+/// AUDX-031 (« sortir les ZIP/base64 hors de PostgreSQL ») s'appliquera aussi
+/// ici le jour venu ; une `Map` en processus n'était pas une alternative, elle
+/// était le défaut.
+model ImportStagedFile {
+  id          String   @id @default(cuid())
+  importJobId String
+  path        String
+  content     String
+  encoding    String?
+  createdAt   DateTime @default(now())
+  importJob   ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+
+  @@unique([importJobId, path])
+  @@index([importJobId])
 }
 
 /// A curated public Gallery listing (TPL-02). Mirrors the CONFIRMED

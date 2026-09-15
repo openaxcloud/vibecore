@@ -26,7 +26,12 @@ vi.mock('~/components/ui/use-toast', () => ({
 }));
 
 import { LockManager } from './LockManager';
-import { formatLockManagerPlural, getLockManagerCopy } from '~/lib/i18n/catalogs/lock-manager';
+import {
+  formatLockManagerPlural,
+  getLockManagerCopy,
+  lockManagerEn,
+  lockManagerFr,
+} from '~/lib/i18n/catalogs/lock-manager';
 import { createI18nInstance } from '~/lib/i18n/runtime';
 
 function withLocale(language: 'en' | 'fr', node: ReactNode) {
@@ -103,5 +108,37 @@ describe('LockManager i18n', () => {
         other: french['lockManager.count.items_other'],
       }),
     ).toBe('2 éléments');
+  });
+});
+
+/**
+ * VERROUS-01 — deux contrôles voisins ne doivent pas porter le MÊME mot.
+ *
+ * Constaté en production le 2026-09-08 (WebKit, iPhone 13, 390 px, thèmes clair
+ * et sombre) : le panneau Verrous affiche « Tous » DEUX FOIS, l'un sous l'autre.
+ * Ce ne sont pas deux rendus de la même chaîne mais deux contrôles distincts —
+ * l'option sélectionnée du filtre par type (`lockManager.filter.all`) et le
+ * libellé de la case « tout sélectionner » (`lockManager.selectAll.label`) —
+ * auxquels le catalogue donnait le même mot dans les deux langues.
+ *
+ * Sur un panneau vide la case est `disabled` et se réduit à un mince filet, ce
+ * qui fait lire le second « Tous » comme un résidu orphelin.
+ *
+ * Même classe que BUG-I18N-008 (« Aucun dépôt distant connecté » affiché deux
+ * fois dans le panneau Git, depuis deux catalogues au texte identique).
+ */
+describe('VERROUS-01 — le filtre et la case « tout sélectionner » ne se confondent pas', () => {
+  it.each([
+    ['en', lockManagerEn],
+    ['fr', lockManagerFr],
+  ])('%s : les deux libellés visibles diffèrent', (_langue, copy) => {
+    /* Témoin : sans lui, une clé renommée rendrait `undefined !== undefined` et le test passerait à vide. */
+    expect(copy['lockManager.filter.all'], 'libellé du filtre présent').toBeTruthy();
+    expect(copy['lockManager.selectAll.label'], 'libellé de la case présent').toBeTruthy();
+
+    expect(
+      copy['lockManager.selectAll.label'],
+      'la case « tout sélectionner » reprend le mot du filtre — les deux se lisent comme un doublon',
+    ).not.toBe(copy['lockManager.filter.all']);
   });
 });
