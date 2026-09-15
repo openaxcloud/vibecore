@@ -28,6 +28,15 @@ export interface DatabaseSettingsProps {
 
   /** The DATABASE_URL value, if the API exposes it (otherwise masked-only). */
   connectionString?: string;
+
+  /*
+   * RP-DB-09 — la valeur n'arrive JAMAIS avec la liste : `listProjectSecrets`
+   * retire `valueEncrypted` et n'expose aucun `value`. L'œil et le bouton
+   * copier restaient donc éteints pour toujours. La valeur se demande à la
+   * route de révélation, sur GESTE explicite — c'est aussi la bonne règle :
+   * elle ne circule que lorsqu'on la réclame.
+   */
+  reveler?: () => Promise<string | undefined>;
   storageUsedBytes?: number;
   storageQuotaBytes?: number;
 
@@ -58,6 +67,7 @@ export function DatabaseSettings({
   name,
   active,
   connectionString,
+  reveler,
   storageUsedBytes,
   storageQuotaBytes,
   connectionDetails,
@@ -68,6 +78,7 @@ export function DatabaseSettings({
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getDatabaseStudioCopy(language);
   const [revealed, setRevealed] = useState(false);
+  const [valeurRevelee, setValeurRevelee] = useState<string | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
@@ -79,13 +90,53 @@ export function DatabaseSettings({
       ? Math.min(100, Math.round((storageUsedBytes / storageQuotaBytes) * 100))
       : undefined;
 
-  const copyConnectionString = () => {
-    if (!connectionString) {
+  const valeur = connectionString ?? valeurRevelee;
+
+  /* Va chercher la valeur si on ne l'a pas encore ; sinon rend celle qu'on a. */
+  const obtenirLaValeur = async () => {
+    if (valeur) {
+      return valeur;
+    }
+
+    if (!reveler) {
+      return undefined;
+    }
+
+    const obtenue = await reveler().catch(() => undefined);
+
+    if (obtenue) {
+      setValeurRevelee(obtenue);
+    }
+
+    return obtenue;
+  };
+
+  const basculerLaRevelation = () => {
+    if (revealed) {
+      setRevealed(false);
       return;
     }
 
-    void navigator.clipboard
-      ?.writeText(connectionString)
+    /*
+     * Quand la valeur est DÉJÀ là, la révélation est immédiate : passer par la
+     * promesse renverrait l'affichage à la microtâche suivante, ce qui casse
+     * autant l'attente de l'utilisateur que celle des tests.
+     */
+    if (valeur) {
+      setRevealed(true);
+      return;
+    }
+
+    void obtenirLaValeur().then((v) => {
+      if (v) {
+        setRevealed(true);
+      }
+    });
+  };
+
+  const copyConnectionString = () => {
+    void obtenirLaValeur()
+      .then((v) => (v ? navigator.clipboard?.writeText(v) : undefined))
       .then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
@@ -95,7 +146,8 @@ export function DatabaseSettings({
       });
   };
 
-  const masked = connectionString ? '•'.repeat(Math.min(32, Math.max(12, connectionString.length))) : '••••••••••••';
+  const disponible = Boolean(valeur) || Boolean(reveler);
+  const masked = valeur ? '•'.repeat(Math.min(32, Math.max(12, valeur.length))) : '••••••••••••';
 
   return (
     <div className="flex min-w-0 flex-col gap-6 overflow-x-hidden p-4">
@@ -114,12 +166,12 @@ export function DatabaseSettings({
         <div className="flex min-w-0 flex-wrap items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 sm:flex-nowrap">
           <span className="shrink-0 font-mono text-[12px] text-bolt-elements-textSecondary">{DATABASE_URL_KEY}</span>
           <span className="min-w-0 flex-1 basis-full truncate font-mono text-[12px] text-bolt-elements-textPrimary sm:basis-auto">
-            {revealed && connectionString ? connectionString : masked}
+            {revealed && valeur ? valeur : masked}
           </span>
           <button
             type="button"
-            onClick={() => setRevealed((v) => !v)}
-            disabled={!connectionString}
+            onClick={basculerLaRevelation}
+            disabled={!disponible}
             title={revealed ? copy['databaseSettings.hide'] : copy['databaseSettings.reveal']}
             aria-label={
               revealed ? copy['databaseSettings.hideConnectionString'] : copy['databaseSettings.revealConnectionString']
@@ -131,7 +183,7 @@ export function DatabaseSettings({
           <button
             type="button"
             onClick={copyConnectionString}
-            disabled={!connectionString}
+            disabled={!disponible}
             title={copied ? copy['databaseSettings.copied'] : copy['databaseSettings.copy']}
             aria-label={copy['databaseSettings.copyConnectionString']}
             className="shrink-0 rounded p-1 text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-40"
@@ -201,19 +253,17 @@ export function DatabaseSettings({
               })}
             </div>
             <dl className="mt-2 grid gap-1.5">
-              {(
-                connectionDetails ?? [
-                  { label: DATABASE_URL_KEY, value: revealed && connectionString ? connectionString : masked },
-                ]
-              ).map((d) => (
-                <div
-                  key={d.label}
-                  className="grid min-w-0 grid-cols-1 gap-1 text-[12px] sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-2"
-                >
-                  <dt className="break-words text-bolt-elements-textSecondary">{d.label}</dt>
-                  <dd className="min-w-0 truncate font-mono text-bolt-elements-textPrimary">{d.value}</dd>
-                </div>
-              ))}
+              {(connectionDetails ?? [{ label: DATABASE_URL_KEY, value: revealed && valeur ? valeur : masked }]).map(
+                (d) => (
+                  <div
+                    key={d.label}
+                    className="grid min-w-0 grid-cols-1 gap-1 text-[12px] sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-2"
+                  >
+                    <dt className="break-words text-bolt-elements-textSecondary">{d.label}</dt>
+                    <dd className="min-w-0 truncate font-mono text-bolt-elements-textPrimary">{d.value}</dd>
+                  </div>
+                ),
+              )}
             </dl>
           </div>
         ) : null}

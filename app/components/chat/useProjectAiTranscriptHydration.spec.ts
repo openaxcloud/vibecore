@@ -144,6 +144,62 @@ describe('useProjectAiTranscriptHydration', () => {
     expect(loadTranscript).not.toHaveBeenCalled();
   });
 
+  it('JETTE une transcription arrivée après que le fil a changé de génération', async () => {
+    /*
+     * Mesuré le 14/09 (run E2E 1969 sur `main`, rejoué en local avec 2,5 s de
+     * retard réseau) : « Effacer l'historique » vidait le fil, puis la réponse
+     * de cette lecture atterrissait et le remplissait à nouveau — puis les
+     * messages étaient persistés dans la conversation NEUVE. La génération
+     * change pendant la lecture : la réponse ne s'applique pas, et le verrou
+     * reste posé (on ne relit pas une conversation qu'on vient de quitter).
+     */
+    const pending = deferred<Message[]>();
+    const applyTranscript = vi.fn();
+    const loadTranscript = vi.fn(() => pending.promise);
+
+    let generation = 0;
+
+    renderHook((props: ProjectAiTranscriptHydrationOptions) => useProjectAiTranscriptHydration(props), {
+      initialProps: baseOptions({ loadTranscript, applyTranscript, generationDuFil: () => generation }),
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(loadTranscript).toHaveBeenCalledTimes(1);
+
+    generation += 1;
+
+    await act(async () => {
+      pending.resolve(transcript);
+      await Promise.resolve();
+    });
+
+    expect(applyTranscript).not.toHaveBeenCalled();
+    expect(loadTranscript, 'pas de relecture non plus').toHaveBeenCalledTimes(1);
+  });
+
+  it('applique une transcription dont la génération n’a PAS bougé — la contre-épreuve', async () => {
+    const pending = deferred<Message[]>();
+    const applyTranscript = vi.fn();
+
+    renderHook((props: ProjectAiTranscriptHydrationOptions) => useProjectAiTranscriptHydration(props), {
+      initialProps: baseOptions({
+        loadTranscript: vi.fn(() => pending.promise),
+        applyTranscript,
+        generationDuFil: () => 7,
+      }),
+    });
+
+    await act(async () => {
+      pending.resolve(transcript);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(applyTranscript).toHaveBeenCalledWith(transcript);
+  });
+
   it('retries a failed load and reports once the bounded retries are exhausted', async () => {
     vi.useFakeTimers();
 

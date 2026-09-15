@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,8 @@ import { GitProviderConnectPanel } from '~/components/git/GitProviderConnectPane
 import { GitSettingsPanel } from '~/components/git/GitSettingsPanel';
 import { GitStatusBadge, GitStatusLegend } from '~/components/git/GitStatusBadge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { commitDemande } from '~/components/workbench/commit-demande';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { useCurrentWorkspace } from '~/lib/runtime/CurrentWorkspaceContext';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -174,10 +177,12 @@ function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
  * jetons. Poser `text-white` sur `--ecode-accent` (#f26207) donnait 3,22:1 :
  * le correctif de BUG-THEME-006 avait bien chassé le bleu sur l'orange
  * (1,07:1) mais l'avait remplacé par du blanc sur le MÊME orange, qui ne passe
- * pas davantage — c'est le constat de BUG-THEME-011, où le blanc sur cet
- * orange plafonne à 2,62:1. La paire sanctionnée bascule avec le thème :
- * #ffffff sur #c2410c = 5,18:1 en clair, #111827 sur #f97316 = 6,33:1 en
- * sombre. Épinglé par `app/styles/on-accent-ink.spec.ts`.
+ * pas davantage. Cet aplat NE BASCULE PAS et reste sous AA dans les DEUX
+ * thèmes — c'est le constat de BUG-THEME-011, où le blanc y plafonne à 2,62:1.
+ * La paire sanctionnée, elle, bascule : #ffffff sur #c2410c = 5,18:1 en clair,
+ * #111827 sur #f97316 = 6,33:1 en sombre.
+ * Épinglé par `app/styles/on-accent-ink.spec.ts` ET
+ * `app/styles/on-accent-white.spec.ts`.
  */
 function PanelButton({
   children,
@@ -789,7 +794,17 @@ export function GitTab({ projectId }: GitTabProps) {
       }
 
       const form = event.currentTarget;
-      const formData = new FormData(form);
+
+      /*
+       * BUG-GIT-001 — « Committer les modifications » répondait 200 et ne
+       * committait rien. L'intention est portée par le BOUTON d'envoi
+       * (`<PanelButton type="submit" name="intent" value="commit">`), et
+       * `new FormData(form)` ne l'inclut pas : elle partait vide, la route ne
+       * reconnaissait aucun cas, n'appelait aucune route git, et répondait
+       * quand même 200. Le panneau annonçait « action effectuée » pendant que
+       * `HEAD` n'avait pas bougé.
+       */
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? 'default');
 
       /*
@@ -999,6 +1014,37 @@ export function GitTab({ projectId }: GitTabProps) {
     [astCopy, projectId, resolvedWorkspaceId],
   );
 
+  /*
+   * RP-CKPT-06 — « Changes » sous un point de restauration du fil : l'onglet
+   * s'ouvre DIRECTEMENT sur le commit demandé, détail chargé et amené à
+   * l'écran. Même garde anti-boucle que la recherche demandée : une demande
+   * n'est traitée qu'une fois, et l'atome est remis à zéro aussitôt.
+   */
+  const commitDemandeCourant = useStore(commitDemande);
+  const loadCommitRef = useRef(loadCommit);
+  loadCommitRef.current = loadCommit;
+
+  const commitTraiteRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof commitDemandeCourant !== 'string' || !commitDemandeCourant.trim()) {
+      return;
+    }
+
+    if (commitTraiteRef.current === commitDemandeCourant) {
+      return;
+    }
+
+    commitTraiteRef.current = commitDemandeCourant;
+    commitDemande.set(null);
+
+    void loadCommitRef.current(commitDemandeCourant).then(() => {
+      window.requestAnimationFrame(() => {
+        document.querySelector('[data-testid="git-commit-detail"]')?.scrollIntoView({ block: 'start' });
+      });
+    });
+  }, [commitDemandeCourant]);
+
   const loadConflictFile = useCallback(
     async (path: string) => {
       if (!path || !projectId) {
@@ -1071,7 +1117,7 @@ export function GitTab({ projectId }: GitTabProps) {
   }
 
   return (
-    <div className="h-full overflow-auto">
+    <div className="bolt-git-tab h-full overflow-auto">
       <div className="grid gap-4 p-4">
         {error && (
           <div className="rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-500">
@@ -2024,13 +2070,24 @@ export function GitTab({ projectId }: GitTabProps) {
               {t('idePanels.git.prTitle')}
             </label>
             <PanelInput id="git-tab-pr-title" name="title" placeholder={t('idePanels.git.prTitleExample')} />
+            {/*
+             * Capture iPhone d'Avi, 06/09 13:08 : deux champs « main » / « main »
+             * sans un mot au-dessus — l'`aria-label` parle au lecteur d'écran,
+             * pas à l'œil. Le libellé devient visible, comme celui du titre.
+             */}
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <PanelInput name="sourceBranch" defaultValue={branch} aria-label={t('idePanels.git.sourceBranch')} />
-              <PanelInput
-                name="targetBranch"
-                defaultValue={project?.gitDefaultBranch ?? 'main'}
-                aria-label={t('idePanels.git.targetBranch')}
-              />
+              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+                {t('idePanels.git.sourceBranch')}
+                <PanelInput name="sourceBranch" defaultValue={branch} data-testid="git-tab-pr-source" />
+              </label>
+              <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
+                {t('idePanels.git.targetBranch')}
+                <PanelInput
+                  name="targetBranch"
+                  defaultValue={project?.gitDefaultBranch ?? 'main'}
+                  data-testid="git-tab-pr-target"
+                />
+              </label>
             </div>
             <textarea
               name="body"

@@ -22,6 +22,8 @@ export const importRoutesEn = {
   'importRoutes.zip.error.archiveRequired': 'Select a zip archive before continuing.',
   'importRoutes.zip.error.tooLarge':
     'This archive is {size}. Zip imports must be smaller than {limit} because they are uploaded in one request. Reduce the archive and try again.',
+  'importRoutes.zip.error.timeout':
+    'Importing this archive took too long and was stopped. Reduce the archive and try again.',
   'importRoutes.zip.error.importFailed': 'The zip archive could not be imported. Check the archive and try again.',
   'importRoutes.empty.meta.title': 'Create an empty project - E-Code',
   'importRoutes.empty.meta.description':
@@ -60,6 +62,10 @@ export const importRoutesEn = {
     'This repository could not be accessed. Check the URL and your permissions, then try again.',
   'importRoutes.git.error.quota':
     'Your workspace has reached its project limit. Upgrade the plan or ask an administrator to increase the quota before importing another repository.',
+  'importRoutes.git.error.timeout':
+    'Cloning this repository took too long and the import was stopped. Try a smaller repository, or import a single branch.',
+  'importRoutes.git.error.upstream':
+    'The repository host could not be reached. This is not a problem with your repository — try again in a few minutes.',
   'importRoutes.git.error.importFailed': 'The repository could not be imported. Try again.',
 } as const;
 
@@ -88,6 +94,8 @@ export const importRoutesFr: ImportRoutesCopy = {
   'importRoutes.zip.error.archiveRequired': 'Sélectionnez une archive zip avant de continuer.',
   'importRoutes.zip.error.tooLarge':
     'Cette archive pèse {size}. Les imports zip doivent être inférieurs à {limit}, car ils sont téléversés en une seule requête. Réduisez l’archive, puis réessayez.',
+  'importRoutes.zip.error.timeout':
+    'L’importation de cette archive a dépassé le délai et a été arrêtée. Réduisez l’archive, puis réessayez.',
   'importRoutes.zip.error.importFailed': 'Impossible d’importer l’archive zip. Vérifiez l’archive, puis réessayez.',
   'importRoutes.empty.meta.title': 'Créer un projet vide - E-Code',
   'importRoutes.empty.meta.description':
@@ -126,6 +134,10 @@ export const importRoutesFr: ImportRoutesCopy = {
     'Impossible d’accéder à ce dépôt. Vérifiez l’URL et vos autorisations, puis réessayez.',
   'importRoutes.git.error.quota':
     'Votre espace de travail a atteint sa limite de projets. Changez d’offre ou demandez à un administrateur d’augmenter le quota avant d’importer un autre dépôt.',
+  'importRoutes.git.error.timeout':
+    'Le clonage de ce dépôt a dépassé le délai et l’importation a été arrêtée. Essayez un dépôt plus petit, ou importez une seule branche.',
+  'importRoutes.git.error.upstream':
+    'L’hébergeur du dépôt n’a pas pu être joint. Le problème ne vient pas de votre dépôt — réessayez dans quelques minutes.',
   'importRoutes.git.error.importFailed': 'Impossible d’importer le dépôt. Réessayez.',
 };
 

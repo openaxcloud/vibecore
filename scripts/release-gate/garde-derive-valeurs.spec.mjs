@@ -90,3 +90,36 @@ describe("le détecteur signale, il n'agit pas", () => {
     expect(source).not.toContain('console.log');
   });
 });
+
+/**
+ * Le garde doit pouvoir S'EXÉCUTER là où il est appelé.
+ *
+ * Mesuré le 2026-09-04 : la première version importait `yaml`, introuvable sur
+ * le runner à ce stade du déploiement. Le contrôle mourait en
+ * ERR_MODULE_NOT_FOUND — et comme le workflow l'appelait en `|| true`, il se
+ * taisait. Un garde contre les réglages silencieux, lui-même silencieux.
+ */
+describe('le détecteur doit pouvoir tourner sur le runner', () => {
+  const source = () =>
+    import('node:fs').then((fs) =>
+      fs.readFileSync(new URL('./detecter-derive-valeurs.mjs', import.meta.url), 'utf8'),
+    );
+
+  // DISCRIMINANT — c'est exactement l'import qui l'a rendu muet en production.
+  it("n'importe aucun paquet externe", async () => {
+    const imports = [...(await source()).matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
+
+    expect(imports.length).toBeGreaterThan(0);
+    expect(imports.filter((i) => !i.startsWith('node:') && !i.startsWith('./') && !i.startsWith('../'))).toEqual([]);
+  });
+
+  // DISCRIMINANT — un `|| true` dans le workflow annule tout le reste.
+  it("n'est pas appelé en `|| true` dans le déploiement", async () => {
+    const fs = await import('node:fs');
+    const flux = fs.readFileSync(new URL('../../.github/workflows/deploy-main.yml', import.meta.url), 'utf8');
+    const appel = flux.split('\n').findIndex((l) => l.includes('detecter-derive-valeurs.mjs'));
+
+    expect(appel).toBeGreaterThan(-1);
+    expect(flux.split('\n').slice(appel, appel + 3).join(' ')).not.toContain('|| true');
+  });
+});
