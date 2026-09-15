@@ -16,6 +16,7 @@ import {
   urlsBuild,
   urlsDev,
 } from './catalogues-i18n-plugin';
+import { SURFACES } from '~/lib/i18n/surfaces';
 
 /**
  * BUG-PERF-I18N-RACINE-001 — ce que le plugin doit tenir, indépendamment du
@@ -24,11 +25,22 @@ import {
  */
 
 const RESSOURCES: Ressources = {
-  en: { translation: { 'root.loadingPage': 'Loading page', 'common.unavailable': 'Unavailable' } },
-  fr: { translation: { 'root.loadingPage': 'Chargement de la page', 'common.unavailable': 'Indisponible' } },
+  en: { translation: { 'root.loadingPage': 'Loading page', 'common.unavailable': 'Unavailable', 'chat.send': 'Send' } },
+  fr: {
+    translation: {
+      'root.loadingPage': 'Chargement de la page',
+      'common.unavailable': 'Indisponible',
+      'chat.send': 'Envoyer',
+    },
+  },
   es: { translation: { 'root.loadingPage': 'Cargando página' } },
   ar: { translation: { 'root.loadingPage': 'جارٍ تحميل الصفحة' } },
 };
+
+/** Toutes les URL d'un jeu de ressources, à plat — les tranches sont un produit langue × surface. */
+function toutesLesUrls(urls: ReturnType<typeof urlsBuild>): string[] {
+  return LANGUES.flatMap((langue) => SURFACES.map((surface) => urls[langue][surface]));
+}
 
 type Hook<T> = T extends (...args: infer A) => infer R ? (this: unknown, ...args: A) => R : never;
 
@@ -50,17 +62,33 @@ describe('catalogues i18n — un JSON par langue', () => {
   it('l’empreinte dépend du contenu, et de rien d’autre', () => {
     const json = cataloguesJson(RESSOURCES);
 
-    expect(empreinte(json.fr)).toBe(empreinte(JSON.stringify(RESSOURCES.fr.translation)));
-    expect(empreinte(json.fr)).not.toBe(empreinte(json.en));
-    expect(empreinte(json.fr)).toMatch(/^[0-9a-f]{10}$/);
+    expect(empreinte(json.fr.public)).toBe(
+      empreinte(JSON.stringify({ 'root.loadingPage': 'Chargement de la page', 'common.unavailable': 'Indisponible' })),
+    );
+    expect(empreinte(json.fr.public)).not.toBe(empreinte(json.en.public));
+    expect(empreinte(json.fr.public)).not.toBe(empreinte(json.fr.app));
+    expect(empreinte(json.fr.public)).toMatch(/^[0-9a-f]{10}$/);
   });
 
-  it('le nom de fichier porte la langue et l’empreinte — deux builds tombent sur la même URL', () => {
+  it('le nom de fichier porte la langue, la SURFACE et l’empreinte — deux builds tombent sur la même URL', () => {
     const json = cataloguesJson(RESSOURCES);
 
-    expect(nomDeFichier('fr', json.fr)).toBe(`assets/catalogue-fr-${empreinte(json.fr)}.json`);
-    expect(urlsBuild('/', json).fr).toBe(`/${nomDeFichier('fr', json.fr)}`);
-    expect(urlsBuild('/sous-chemin/', json).fr).toBe(`/sous-chemin/${nomDeFichier('fr', json.fr)}`);
+    expect(nomDeFichier('fr', 'public', json.fr.public)).toBe(
+      `assets/catalogue-fr-public-${empreinte(json.fr.public)}.json`,
+    );
+    expect(urlsBuild('/', json).fr.public).toBe(`/${nomDeFichier('fr', 'public', json.fr.public)}`);
+    expect(urlsBuild('/sous-chemin/', json).fr.app).toBe(`/sous-chemin/${nomDeFichier('fr', 'app', json.fr.app)}`);
+  });
+
+  it('découpe les clés par surface — et les deux tranches recomposent le catalogue entier', () => {
+    const json = cataloguesJson(RESSOURCES);
+    const publique = JSON.parse(json.fr.public) as Record<string, string>;
+    const reste = JSON.parse(json.fr.app) as Record<string, string>;
+
+    // `chat` n'est pas cité depuis le chemin public : il ne doit pas voyager avec la page d'accueil.
+    expect(Object.keys(publique).sort()).toEqual(['common.unavailable', 'root.loadingPage']);
+    expect(Object.keys(reste)).toEqual(['chat.send']);
+    expect({ ...publique, ...reste }).toEqual(RESSOURCES.fr.translation);
   });
 
   it('changer UNE valeur change l’URL — sinon un navigateur garderait 1 an un catalogue périmé', () => {
@@ -69,15 +97,25 @@ describe('catalogues i18n — un JSON par langue', () => {
       fr: { translation: { ...RESSOURCES.fr.translation, 'root.loadingPage': 'Chargement…' } },
     };
 
-    expect(urlsBuild('/', cataloguesJson(modifie)).fr).not.toBe(urlsBuild('/', cataloguesJson(RESSOURCES)).fr);
-    expect(urlsBuild('/', cataloguesJson(modifie)).en).toBe(urlsBuild('/', cataloguesJson(RESSOURCES)).en);
+    expect(urlsBuild('/', cataloguesJson(modifie)).fr.public).not.toBe(
+      urlsBuild('/', cataloguesJson(RESSOURCES)).fr.public,
+    );
+    expect(urlsBuild('/', cataloguesJson(modifie)).fr.app).toBe(urlsBuild('/', cataloguesJson(RESSOURCES)).fr.app);
+    expect(urlsBuild('/', cataloguesJson(modifie)).en.public).toBe(
+      urlsBuild('/', cataloguesJson(RESSOURCES)).en.public,
+    );
   });
 
   it('le JSON émis se relit tel quel', () => {
     const json = cataloguesJson(RESSOURCES);
 
     for (const langue of LANGUES) {
-      expect(JSON.parse(json[langue])).toEqual(RESSOURCES[langue].translation);
+      const recompose = SURFACES.reduce(
+        (acc, surface) => ({ ...acc, ...(JSON.parse(json[langue][surface]) as Record<string, string>) }),
+        {},
+      );
+
+      expect(recompose).toEqual(RESSOURCES[langue].translation);
     }
   });
 
@@ -92,17 +130,19 @@ describe('catalogues i18n — un JSON par langue', () => {
   it('en dev, les URL pointent sur le middleware ; au build, sur les assets empreintés', async () => {
     const dev = await charger(pluginPret('serve'), `\0${ID_MODULE_VIRTUEL}`);
     expect(dev).toBe(codeDuModuleVirtuel(urlsDev('/')));
-    expect(dev).toContain(`${PREFIXE_DEV}fr.json`);
+    expect(dev).toContain(`${PREFIXE_DEV}fr-public.json`);
+    expect(dev).toContain(`${PREFIXE_DEV}fr-app.json`);
 
     const build = await charger(pluginPret('build'), `\0${ID_MODULE_VIRTUEL}`);
     expect(build).toBe(codeDuModuleVirtuel(urlsBuild('/', cataloguesJson(RESSOURCES))));
-    expect(build).toContain('/assets/catalogue-fr-');
+    expect(build).toContain('/assets/catalogue-fr-public-');
+    expect(build).toContain('/assets/catalogue-fr-app-');
     expect(build).not.toContain(PREFIXE_DEV);
 
     expect(await charger(pluginPret('build'), 'un-autre-module.ts')).toBeUndefined();
   });
 
-  it('le build CLIENT émet les quatre JSON aux noms exacts que le module virtuel annonce', async () => {
+  it('le build CLIENT émet les HUIT JSON aux noms exacts que le module virtuel annonce', async () => {
     const plugin = pluginPret('build');
     const emis: Array<{ fileName: string; source: string }> = [];
     const generateBundle = plugin.generateBundle as Hook<typeof plugin.generateBundle>;
@@ -116,8 +156,9 @@ describe('catalogues i18n — un JSON par langue', () => {
 
     const urls = urlsBuild('/', cataloguesJson(RESSOURCES));
 
-    expect(emis.map((f) => `/${f.fileName}`).sort()).toEqual(Object.values(urls).sort());
-    expect(JSON.parse(emis.find((f) => f.fileName.includes('-fr-'))!.source)).toEqual(RESSOURCES.fr.translation);
+    expect(emis.map((f) => `/${f.fileName}`).sort()).toEqual(toutesLesUrls(urls).sort());
+    expect(emis).toHaveLength(LANGUES.length * SURFACES.length);
+    expect(JSON.parse(emis.find((f) => f.fileName.includes('-fr-app-'))!.source)).toEqual({ 'chat.send': 'Envoyer' });
   });
 
   it('le build SSR n’émet RIEN — il ne fait que nommer, sinon deux fichiers se disputeraient le même nom', async () => {
@@ -128,7 +169,7 @@ describe('catalogues i18n — un JSON par langue', () => {
     await generateBundle.call({ emitFile: (f: unknown) => emis.push(f) }, {} as never, {} as never, false);
 
     expect(emis).toHaveLength(0);
-    expect(await charger(plugin, `\0${ID_MODULE_VIRTUEL}`)).toContain('/assets/catalogue-fr-');
+    expect(await charger(plugin, `\0${ID_MODULE_VIRTUEL}`)).toContain('/assets/catalogue-fr-public-');
   });
 
   it('n’évalue les catalogues qu’UNE fois par build, quel que soit le nombre de hooks', async () => {

@@ -50,7 +50,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IconType } from 'react-icons';
@@ -661,17 +661,46 @@ export interface ProjectCard {
  *
  * L'import différé règle les deux : les ~25 routes publiques qui rendent vraiment
  * `PublicShell` la chargent à leur tour de rôle, et `root` ne la tire plus.
+ *
+ * POURQUOI PAS `lazy()` + `Suspense`. C'était la première forme, et elle a fait
+ * rougir neuf assertions de copie française : `renderToStaticMarkup` est
+ * synchrone et ne franchit pas une frontière Suspense — les specs marketing
+ * n'obtenaient que le repli. Un cache de module fait le même travail sans cette
+ * sémantique : une fois `chargerCoquillePublique()` tenue, TOUT rendu synchrone
+ * voit la vraie coquille, en test comme dans le navigateur.
  */
-const EcodeExactPublicShell = lazy(async () => ({
-  default: (await import('~/components/marketing/ecode-exact/EcodeExactShell')).EcodeExactPublicShell,
-}));
+type CoquillePublique = React.ComponentType<{ children: React.ReactNode }>;
+
+let coquillePublique: CoquillePublique | null = null;
+let chargementDeLaCoquille: Promise<void> | null = null;
+
+/** Charge la coquille marketing une seule fois. Exportée pour les rendus de test. */
+export function chargerCoquillePublique(): Promise<void> {
+  chargementDeLaCoquille ??= import('~/components/marketing/ecode-exact/EcodeExactShell').then((module) => {
+    coquillePublique = module.EcodeExactPublicShell;
+  });
+
+  return chargementDeLaCoquille;
+}
 
 export function PublicShell({ children }: { children: React.ReactNode }) {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-bolt-elements-background-depth-1" aria-busy="true" />}>
-      <EcodeExactPublicShell>{children}</EcodeExactPublicShell>
-    </Suspense>
-  );
+  const [, redessiner] = useState(0);
+
+  useEffect(() => {
+    if (coquillePublique) {
+      return;
+    }
+
+    void chargerCoquillePublique().then(() => redessiner((tour) => tour + 1));
+  }, []);
+
+  const Coquille = coquillePublique;
+
+  if (!Coquille) {
+    return <div className="min-h-screen bg-bolt-elements-background-depth-1" aria-busy="true" />;
+  }
+
+  return <Coquille>{children}</Coquille>;
 }
 
 function EcodeMarketingLogo({ compact = false }: { compact?: boolean }) {
