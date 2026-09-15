@@ -170,3 +170,67 @@ describe('buildRuntimeDiagnostics — refus de quota', () => {
     expect(buildRuntimeDiagnostics({ workspaceLogs: [] })).toEqual([]);
   });
 });
+
+describe('démarrage du serveur de développement — capture iPhone 06/09 14:11', () => {
+  /*
+   * Trois lignes de Vite quand `@vitejs/plugin-react` manque au moment où il
+   * démarre (installation en cours) : elles restaient dans Problèmes pendant
+   * que la Webview servait l'application — la même minute, sur le même écran.
+   */
+  const echecDeDemarrage = [
+    'failed to load config from /workspace/vite.config.ts',
+    'error when starting dev server:',
+    "Error: Cannot find module '@vitejs/plugin-react'",
+  ];
+
+  const serveurPret = ['  VITE v5.4.2  ready in 312 ms', '  ➜  Local:   http://localhost:5173/'];
+
+  it('regroupe l’en-tête « error when starting dev server: » avec la ligne qui le suit', () => {
+    const erreurs = buildRuntimeDiagnostics({ workspaceLogs: echecDeDemarrage }).filter((d) => d.severity === 'error');
+
+    expect(erreurs).toHaveLength(2);
+    expect(erreurs.some((d) => d.message === 'error when starting dev server:')).toBe(false);
+    expect(
+      erreurs.some((d) =>
+        /error when starting dev server: Error: Cannot find module '@vitejs\/plugin-react'/.test(d.message),
+      ),
+    ).toBe(true);
+  });
+
+  it('un serveur qui annonce qu’il est prêt périme les erreurs de son démarrage', () => {
+    const diagnostics = buildRuntimeDiagnostics({ workspaceLogs: [...echecDeDemarrage, ...serveurPret] });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(0);
+  });
+
+  it('une erreur survenue APRÈS le démarrage reste signalée', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [...echecDeDemarrage, ...serveurPret, 'TypeError: Cannot read properties of null'],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
+  });
+
+  it('le signal « page blanche » survit à un serveur prêt', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: ['Preview loaded but the app never mounted (blank page)', ...serveurPret],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
+  });
+
+  it('les avertissements d’installation de npm ne sont pas des problèmes du projet', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [
+        'npm warn install-scripts 1 package has install scripts not yet covered by allowScripts:',
+        'npm warn install-scripts esbuild@0.21.5 (postinstall: node install.js)',
+        'npm warn deprecated inflight@1.0.6: This module is not supported',
+        'Warning: deprecated API', // un avertissement de l’application, lui, reste
+      ],
+    });
+
+    expect(diagnostics.filter((d) => d.severity === 'warning').map((d) => d.message)).toEqual([
+      'Warning: deprecated API',
+    ]);
+  });
+});

@@ -28,6 +28,7 @@ import {
   type GaugeDisplay,
   type ProjectOverviewResources,
 } from '~/lib/project-overview-resources';
+import { libellePersonne } from '~/utils/person-label';
 
 type ProjectOverviewPanelProps = {
   data: {
@@ -313,7 +314,8 @@ function MemberList({
         >
           <div className="flex min-w-0 flex-col items-start gap-2 min-[420px]:flex-row min-[420px]:justify-between min-[420px]:gap-3">
             <strong className="min-w-0 break-all text-sm text-bolt-elements-textPrimary">
-              {member.userId || copy['projectOverview.member.unknown']}
+              {/* La charge de ce panneau ne porte PAS encore de nom : voir person-label.ts. */}
+              {libellePersonne({ userId: member.userId, repli: copy['projectOverview.member.unknown'] })}
             </strong>
             <span className="max-w-full break-words rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary min-[420px]:shrink-0">
               {projectOverviewMemberStatusLabel(member.status, language)}
