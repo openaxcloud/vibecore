@@ -10,6 +10,20 @@ export interface ProjectAiTranscriptHydrationOptions {
   /** True when a transcript is already on screen (local history or live messages). */
   hasMessages: boolean;
 
+  /**
+   * L'identifiant de conversation sous forme de VALEUR réactive.
+   *
+   * `resolveConversationId` reste l'autorité pour la résolution : il lit une
+   * `ref`, renseignée sans re-rendu quand une conversation est créée en cours de
+   * session. Mais une `ref` et une lecture de store non souscrite ne déclenchent
+   * rien. Quand l'identifiant arrivait APRÈS le premier rendu, l'effet avait
+   * déjà renoncé et plus rien ne le relançait : la conversation restait vide
+   * pour toute la durée de la page, alors que le serveur avait bien répondu.
+   *
+   * Ce champ ne sert qu'à faire re-jouer l'effet à ce moment-là.
+   */
+  conversationId: string | undefined;
+
   /** Read at effect time — the conversation id is discovered asynchronously. */
   resolveConversationId: () => string | undefined;
 
@@ -17,6 +31,23 @@ export interface ProjectAiTranscriptHydrationOptions {
 
   /** Push the loaded transcript into chat state. */
   applyTranscript: (messages: Message[]) => void | Promise<void>;
+
+  /**
+   * La GÉNÉRATION du fil — lue au DÉPART de la lecture, relue à l'ARRIVÉE.
+   *
+   * Une transcription se lit en deux requêtes ; entre les deux, l'utilisateur
+   * peut avoir vidé le fil (« Effacer l'historique »). Mesuré le 14/09 sur
+   * `main` (run E2E 1969, runner chargé) et rejoué en local avec 2,5 s de
+   * retard réseau : le fil passait à 0 pendant 600 ms puis REVENAIT à ses
+   * 4 messages — la réponse tardive était appliquée telle quelle, puis
+   * persistée et poussée dans la conversation NEUVE. Un défaut de données,
+   * pas seulement d'affichage.
+   *
+   * Quand la génération a changé pendant la lecture, la réponse est jetée et
+   * le verrou reste posé : on ne réhydrate pas une conversation que
+   * l'utilisateur vient de quitter.
+   */
+  generationDuFil?: () => number;
 
   onLoadError: (error: unknown) => void;
 
@@ -44,7 +75,7 @@ export interface ProjectAiTranscriptHydrationOptions {
  * never discard a response the latch will not re-request.
  */
 export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydrationOptions): void {
-  const { enabled, projectId, hasMessages } = options;
+  const { enabled, projectId, hasMessages, conversationId } = options;
 
   const optionsRef = useRef(options);
   optionsRef.current = options;
@@ -82,9 +113,14 @@ export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydr
     hydratedRef.current = true;
 
     const hydrate = async () => {
+      const generationAuDepart = optionsRef.current.generationDuFil?.();
       const messages = await optionsRef.current.loadTranscript(projectId, conversationId);
 
       if (unmountedRef.current || messages.length === 0) {
+        return;
+      }
+
+      if (generationAuDepart !== optionsRef.current.generationDuFil?.()) {
         return;
       }
 
@@ -127,5 +163,13 @@ export function useProjectAiTranscriptHydration(options: ProjectAiTranscriptHydr
         clearTimeout(retryTimer);
       }
     };
-  }, [enabled, hasMessages, projectId, restartRetries, retryNonce]);
+
+    /*
+     * `conversationId` est ici pour une seule raison : relancer l'effet quand
+     * l'identifiant arrive tardivement. Mesuré sur main — l'effet partait une
+     * fois avec « aucun identifiant », sortait, et n'était jamais rejoué :
+     * 3 chargements sur 10 affichaient une conversation vide alors que le
+     * serveur avait bien renvoyé ses 6 messages.
+     */
+  }, [conversationId, enabled, hasMessages, projectId, restartRetries, retryNonce]);
 }

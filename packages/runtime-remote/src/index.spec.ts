@@ -212,6 +212,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -274,6 +283,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -323,6 +341,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -366,6 +393,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -417,6 +453,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
@@ -466,6 +511,15 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const adapter = new RemoteKubernetesRuntimeAdapter({
       baseUrl: 'https://runtime.example.com',
       authToken: 'token-123',
+
+      /*
+       * BUG-GIT-002 — banc LIÉ, comme l'est l'adaptateur en production.
+       * Il partait sans identifiant sans le voir : son réseau est simulé, là
+       * où le vrai serveur rend 400 RUNTIME_WORKSPACE_ID_REQUIRED sur un corps
+       * sans `workspaceId` ni `projectId`. Ce qu'il teste — écriture, reprises,
+       * re-provisionnement — ne dépend pas de l'absence de liaison.
+       */
+      workspaceId: 'ws-1',
       fetchImpl: fetchMock as typeof fetch,
       WebSocketImpl: FakeWebSocket,
     });
