@@ -193,7 +193,13 @@ describe('service matrix must not drift from the chart or the rollout wait', () 
 
   it('catches a service that would be waited on but never verified', () => {
     const files = realFiles();
-    files.deployWorkflow = files.deployWorkflow.replace('for svc in web api', 'for svc in web admin api');
+    /*
+     * Le sabotage visait `admin`, qui est desormais LEGITIMEMENT dans la liste
+     * d'attente depuis AUDX-173 : l'inserer ne creait plus d'ecart, et le test
+     * passait au vert sur un sabotage devenu sans effet. On vise donc un service
+     * qui n'y est pas — le mecanisme garde est le meme, l'ecart redevient reel.
+     */
+    files.deployWorkflow = files.deployWorkflow.replace('for svc in web admin', 'for svc in web screenshotter admin');
     expect(checkGateWiring(files).join('\n')).toMatch(/do not match the rollout wait list/);
   });
 

@@ -1,10 +1,54 @@
 // iOS Safari auto-zooms the page when a focused form control has a computed
-// font-size under 16px. Enforcing a 16px floor on small viewports prevents the
-// zoom without disabling user pinch-zoom (never add maximum-scale=1).
-@media (max-width: 639.98px) {
-  input:not([type='checkbox']):not([type='radio']):not([type='range']),
-  select,
-  textarea {
-    font-size: max(16px, 1em);
+// font-size under 16px, and never zooms back out. Enforcing a 16px floor on
+// touch viewports prevents it without disabling user pinch-zoom (never add
+// maximum-scale=1 — that breaks accessibility and does not fix the cause).
+//
+// DEUX DÉFAUTS CORRIGÉS ICI, tous deux mesurés et non déduits.
+//
+// 1. LA BORNE ÉTAIT TROP BASSE. Ce bloc s'arrêtait à 639.98px : entre 640 et
+//    1023px — grands téléphones en paysage, tablette 768 que le produit traite
+//    comme du mobile — plus aucun plancher ne s'appliquait ici.
+//
+// 2. LA SPÉCIFICITÉ ÉTAIT ASYMÉTRIQUE. Dans la liste `input:not(…)…, textarea,
+//    select`, la spécificité se calcule PAR SÉLECTEUR : la branche `input`
+//    porte cinq `:not([type=…])`, donc (0,5,1) — elle gagne. Mais `textarea` et
+//    `select` pèsent (0,0,1) et perdent contre la moindre règle de classe.
+//    C'est exactement pourquoi la zone de saisie de l'agent — un `<textarea>` —
+//    restait sous le seuil alors que les `<input>` étaient protégés.
+//
+// Mesuré sur la CSS DÉPLOYÉE en production (`assets/index-*.css`), six familles
+// de règles battaient le plancher sur un champ :
+//
+//   .bolt-project-ide-shell :where(…,input,select,textarea,…):not([class*='i-'])   14px
+//   body :where([role=dialog],.modal,.bolt-project-command-palette,…) :where(…)    14px
+//   :where(.bolt-responsive-ide,.bolt-project-ide-shell) :where(…,input,…)         taille infobulle
+//   .vc-user-area-shell :where([class~=text-xs] / text-sm / text-[13px])           12 / 14 / 13px
+//   .bolt-project-rename-input                                                     12px
+//   .bolt-project-chatbox textarea                                                 13px
+//
+// On nomme donc explicitement ces portées, avec une spécificité qui les dépasse.
+// C'est plus verbeux qu'un sélecteur nu, mais c'est la seule forme qui GAGNE, et
+// la liste dit à qui l'on s'oppose.
+
+// Ce que le plancher ne doit pas toucher : un contrôle sans texte n'a rien à
+// zoomer, et lui imposer une taille de police déforme sa boîte.
+$non-textuel: ':not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"])';
+
+@media (max-width: 1024px), (max-width: 1366px) and (any-pointer: coarse) {
+  input#{$non-textuel},
+  textarea#{$non-textuel},
+  select#{$non-textuel},
+  .bolt-project-ide-shell :is(input, textarea, select)#{$non-textuel},
+  .bolt-project-agent-panel :is(input, textarea, select)#{$non-textuel},
+  .bolt-project-chatbox :is(input, textarea, select)#{$non-textuel},
+  .vc-user-area-shell :is(input, textarea, select)#{$non-textuel},
+  .bolt-responsive-ide :is(input, textarea, select)#{$non-textuel},
+  body
+    :is([role='dialog'], .dialog, .modal, .bolt-project-command-palette, .bolt-web-url-panel)
+    :is(input, textarea, select)#{$non-textuel} {
+    // En PIXELS : la base rem du produit vaut 12px (desktop) / 14px (<=1024px),
+    // donc toute valeur en rem serait déformée. `max()` laisse un champ
+    // volontairement plus grand tranquille.
+    font-size: max(16px, 1em) !important;
   }
 }
