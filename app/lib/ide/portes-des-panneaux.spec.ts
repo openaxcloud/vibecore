@@ -11,6 +11,7 @@ import {
   isIdeAddressablePanel,
   resolveIdePanelKey,
 } from './panel-registry';
+import { baseChatAstEn, baseChatAstFr } from '~/lib/i18n/catalogs/base-chat-ast';
 import { ECODE_MOBILE_TOOLS, MOBILE_TOOL_ACTIONS, MOBILE_TOOL_TO_MANAGEMENT_PANEL } from '~/lib/mobile-ide-tabs';
 import { ECODE_MOBILE_TAB_META_BASE, MOBILE_TOOL_ALIASES, outilCanonique } from '~/lib/mobile-tab-meta';
 
@@ -263,5 +264,52 @@ describe('un panneau, un nom', () => {
     const orphelins = Object.keys(libelles).filter((id) => !connus.has(id));
 
     expect(orphelins, 'libellés sans panneau ni outil — BUG-QA-PANEL-META-ORPHANS-001').toEqual([]);
+  });
+});
+
+/**
+ * LA DÉCISION D'AVI SUR DEUX PORTES, ÉPINGLÉE.
+ *
+ * « Que Deploy ou Publish au lieu de Deployments », et « Agent, pas Chat ».
+ * Ces deux-là ne sont pas des préférences de style : une porte qui change de
+ * nom selon la surface est une porte que l'utilisateur croit double.
+ *
+ * LE PIÈGE, RENCONTRÉ EN APPLIQUANT LA DÉCISION : la clé
+ * `baseChatAst.common.deployments` servait DEUX sens dans le même fichier —
+ * le libellé du PANNEAU (BaseChat, carte panneau → clé) et le type d'entrée
+ * du JOURNAL D'ACTIVITÉ (« un déploiement a eu lieu », à côté de `create`,
+ * `delete`, `deploy`). La renommer en bloc corrigeait la porte et corrompait
+ * le journal. Le panneau a donc sa clé propre, `baseChatAst.common.publish`.
+ */
+describe('les deux noms qu’Avi a tranchés', () => {
+  const source = readFileSync(join(__dirname, '..', '..', 'components', 'chat', 'BaseChat.tsx'), 'utf8');
+
+  it('le panneau de déploiement s’appelle « Publish », sur TOUTES les surfaces', () => {
+    expect(ECODE_MOBILE_TAB_META_BASE.deployments?.name).toBe('Publish');
+
+    // La carte panneau → clé i18n, dans BaseChat : c'est l'autre surface.
+    expect(source, 'le panneau doit pointer sur la clé `publish`, pas sur `deployments`').toContain(
+      "deployments: 'baseChatAst.common.publish',",
+    );
+
+    expect(baseChatAstEn['baseChatAst.common.publish']).toBe('Publish');
+    expect(baseChatAstFr['baseChatAst.common.publish']).toBe('Publier');
+  });
+
+  it('le sens « journal d’activité » n’a PAS été emporté au passage', () => {
+    // Contre-épreuve du piège : `deployments` garde son sens d'événement.
+    expect(source).toContain("deployment: t('baseChatAst.common.deployments'),");
+    expect(baseChatAstEn['baseChatAst.common.deployments']).toBe('Deployments');
+    expect(baseChatAstFr['baseChatAst.common.deployments']).toBe('Déploiements');
+  });
+
+  it('le panneau de conversation s’appelle « Agent », jamais « Chat »', () => {
+    expect(ECODE_MOBILE_TAB_META_BASE.agent?.name).toBe('Agent');
+
+    const nommesChat = Object.entries(ECODE_MOBILE_TAB_META_BASE)
+      .filter(([, meta]) => meta.name === 'Chat')
+      .map(([id]) => id);
+
+    expect(nommesChat, 'une porte nommée « Chat » — la décision dit « Agent »').toEqual([]);
   });
 });
