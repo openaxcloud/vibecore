@@ -10,15 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # https://github.com/amannn/action-semantic-pull-request/releases/tag/v5.5.3
-      - uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017
+      - id: semantique
+        uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           subjectPattern: ^(?![A-Z]).+$
           subjectPatternError: |
-            The subject "{subject}" found in the pull request title "{title}"
-            didn't match the configured pattern. Please ensure that the subject
-            doesn't start with an uppercase character.
+            Le sujet « {subject} » du titre « {title} » est refusé : il ne doit
+            PAS commencer par une majuscule.
+
+            ⚠️ Cela vaut aussi pour les acronymes en tête — CVE-…, AUDX-…,
+            BUG-… font échouer ce contrôle. Déplacez-les entre parenthèses à la
+            fin du sujet.
+
+            Refusé  : fix(security): CVE-2026-59873 — la porte bloquait tout
+            Accepté : fix(security): la porte bloquait tout (CVE-2026-59873)
           types: |
             fix
             feat
@@ -30,3 +37,36 @@ jobs:
             refactor
             revert
             test
+
+      # Le message d'echec de l'action dit « Unknown release type "ops" » SANS
+      # lister ce qui est accepte : il faut deplier le journal complet du run
+      # pour le trouver. Le 2026-09-03, QUATRE PR ont ete refusees ici, aucune
+      # pour un defaut de contenu — dont celle qui portait le deblocage de toute
+      # la chaine de deploiement.
+      #
+      # Un controle qui refuse sur la FORME doit dire ce qu'il attend.
+      - name: Rappeler ce qui est accepté
+        if: failure()
+        run: |
+          {
+            echo "### Titre de PR refusé"
+            echo
+            echo "**Types acceptés — il n'y en a pas d'autres :**"
+            echo
+            echo '`fix` `feat` `chore` `build` `ci` `perf` `docs` `refactor` `revert` `test`'
+            echo
+            echo "⚠️ \`ops\`, \`design\`, \`style\`, \`security\` ne sont **pas** acceptés."
+            echo "Pour de l'infrastructure ou du dimensionnement : \`chore\`."
+            echo "Pour un changement visuel : \`fix\` ou \`feat\`."
+            echo
+            echo "**Casse du sujet :** il ne doit pas commencer par une majuscule,"
+            echo "**acronymes compris** (\`CVE-\`, \`AUDX-\`, \`BUG-\`)."
+            echo "Déplacez-les entre parenthèses à la fin."
+            echo
+            echo "| refusé | accepté |"
+            echo "|---|---|"
+            echo "| \`ops(api): relever la limite\` | \`chore(api): relever la limite\` |"
+            echo "| \`design(agent): feuilles ancrées\` | \`fix(agent): feuilles ancrées\` |"
+            echo "| \`perf(ide): AUDX-167 — honore If-None-Match\` | \`perf(ide): honore If-None-Match (AUDX-167)\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
