@@ -1,0 +1,214 @@
+commit ad835dfe0cef56420139681806fc994703d2e0d9
+Author:     Avi <avi@snatchbot.me>
+AuthorDate: Wed Aug 5 20:17:00 2026 +0300
+Commit:     Avi <avi@snatchbot.me>
+CommitDate: Wed Aug 5 20:17:00 2026 +0300
+
+    fix(deploy): SEC-7 — fermer la fenêtre de rejeu public→protégé (poison_replay)
+    
+    Le scénario poison_replay existant (SEC-2/3) part d'un déploiement DÉJÀ protégé :
+    il ne pouvait donc pas couvrir la transition la plus dangereuse — un déploiement
+    PUBLIC déjà mis en cache, puis protégé.
+    
+    DÉFAUT RÉEL, pas seulement un trou de test : le chemin public posait
+    `Cache-Control: public, max-age=60, must-revalidate`. Un intermédiaire pouvait
+    stocker la réponse publique ; l'activation ultérieure de la protection pose bien
+    `no-store` sur les nouvelles réponses, mais ne purge PAS ce qui est déjà stocké —
+    l'origine ne contrôle pas les caches tiers. Pendant jusqu'à 60 s, un visiteur
+    anonyme pouvait donc recevoir le contenu désormais protégé.
+    
+    Correctif : `public, no-cache, must-revalidate` (+ `Vary: Cookie` dès le public).
+    `no-cache` autorise le stockage mais impose une revalidation auprès de l'origine
+    AVANT chaque réutilisation ; cette revalidation traverse le gate, qui répond
+    401/503. La fenêtre tombe à zéro, et le bénéfice de cache reste acquis pour le
+    contenu inchangé, au prix d'un aller-retour de validation.
+    
+    CONTRÔLE NÉGATIF : en rétablissant `max-age=60`, 2 des 3 tests SEC-7 échouent
+    (« expected 'public, max-age=60, must-revalidate' to contain 'no-cache' »). Le
+    test a donc des dents et la fenêtre était bien réelle.
+    
+    Trois tests ajoutés :
+    - SEC-7 poison_replay : public servi -> protégé -> rejeu anonyme = 401, aucun
+      octet protégé, réponse non réutilisable sans revalidation, Vary: Cookie ;
+    - SEC-7 gate avant HEAD, Range, If-None-Match, If-Modified-Since, asset
+      secondaire, fallback SPA et index explicite — jamais 200, jamais 304 (un 304
+      confirmerait à un cache que son entrée publique est encore valide) ;
+    - SEC-7 stabilité dans les DEUX sens : après retour au public, la directive
+      reste non réutilisable, donc une nouvelle bascule ne rouvre pas de fenêtre.
+    
+    Constat honnête : l'ordre du gate était DÉJÀ correct (il précède toute résolution
+    de chemin, donc HEAD/Range/asset), et la route n'émet aucun ETag/304 — ce test-là
+    passait déjà avant correctif. Le seul défaut était la directive de cache.
+    
+    25/25 (deployment-password + deployment-access) · tsc 0 erreur.
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>
+
+diff --git a/services/api/src/app.ts b/services/api/src/app.ts
+index af463338..ac57a87f 100644
+--- a/services/api/src/app.ts
++++ b/services/api/src/app.ts
+@@ -8544,7 +8544,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+      * (an authorized fetch cached and replayed to anonymous visitors).
+      */
+     if (!gated) {
+-      reply.header('cache-control', 'public, max-age=60, must-revalidate');
++      /*
++       * `no-cache` et NON `max-age=60`.
++       *
++       * Transition la plus dangereuse : un déploiement PUBLIC est mis en cache
++       * par un intermédiaire, PUIS son propriétaire active la protection par mot
++       * de passe. Le `no-store` posé ensuite ne purge pas ce qui est DÉJÀ stocké
++       * — l'origine ne contrôle pas les caches tiers. Avec `max-age=60`, l'entrée
++       * publique restait servable SANS revalidation pendant une minute : un
++       * visiteur anonyme récupérait le contenu désormais protégé.
++       *
++       * `no-cache` autorise le STOCKAGE mais impose une revalidation auprès de
++       * l'origine AVANT chaque réutilisation. La requête de revalidation traverse
++       * donc le gate ci-dessus, qui répond 401/503 — la fenêtre tombe à zéro.
++       * Le bénéfice de cache est conservé pour le contenu inchangé (304 côté
++       * intermédiaire), au prix d'un aller-retour de validation.
++       */
++      reply.header('cache-control', 'public, no-cache, must-revalidate');
++
++      /*
++       * `Vary: Cookie` même en public : la clé de cache dépend ainsi du cookie
++       * dès l'origine, si bien qu'une entrée publique et une réponse post-gating
++       * ne peuvent jamais se confondre dans un cache partagé.
++       */
++      reply.header('vary', 'Cookie');
+     }
+     reply.header('x-vibecore-static-deployment', deploymentId);
+ 
+diff --git a/services/api/src/tests/deployment-password.spec.ts b/services/api/src/tests/deployment-password.spec.ts
+index a1b344ee..58c090b2 100644
+--- a/services/api/src/tests/deployment-password.spec.ts
++++ b/services/api/src/tests/deployment-password.spec.ts
+@@ -204,6 +204,127 @@ describe('password-protected static deployments (endpoint)', () => {
+     expect(replay.body).not.toContain('SECRET CONTENT');
+   });
+ 
++  /*
++   * SEC-7 — LA TRANSITION LA PLUS DANGEREUSE : public + DÉJÀ MIS EN CACHE, puis
++   * activation de la protection.
++   *
++   * Le test SEC-2/3 part d'un déploiement déjà protégé : il ne peut donc pas
++   * voir ce cas. Ici le déploiement est d'abord PUBLIC, il est servi (donc
++   * potentiellement stocké par un intermédiaire), PUIS protégé. L'origine ne
++   * contrôle pas les caches tiers : elle ne peut pas purger ce qui est déjà
++   * stocké. La seule défense correcte est d'avoir émis, DÈS la réponse publique,
++   * une directive qui interdit toute réutilisation sans revalidation.
++   */
++  it("SEC-7 poison_replay: PUBLIC déjà mis en cache -> protégé -> le rejeu anonyme ne rend JAMAIS l'ancienne réponse", async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // (a) PUBLIC : la réponse est servie et pourrait être stockée par un cache.
++    const publicHit = await serve(app, deploymentId);
++    expect(publicHit.statusCode).toBe(200);
++    expect(publicHit.body).toContain('SECRET CONTENT');
++
++    /*
++     * (b) LA propriété qui ferme la fenêtre : la réponse publique n'est jamais
++     * réutilisable SANS revalidation. Avec `max-age=60`, un intermédiaire aurait
++     * pu la resservir pendant une minute APRÈS l'activation de la protection —
++     * un visiteur anonyme aurait alors obtenu le contenu désormais protégé.
++     */
++    const publicCache = String(publicHit.headers['cache-control'] ?? '');
++    expect(publicCache).toContain('no-cache');
++    expect(publicCache).toMatch(/must-revalidate/);
++    // Aucune durée de fraîcheur non nulle : rien n'est servable sans revalider.
++    expect(publicCache).not.toMatch(/max-age=[1-9]/);
++    // La clé de cache dépend du cookie dès l'origine.
++    expect(String(publicHit.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
++
++    // (c) Activation de la protection.
++    const set = await setAccess(app, projectId, deploymentId, auth.token, {
++      mode: 'password',
++      password: 'letmein',
++    });
++    expect(set.statusCode).toBe(200);
++
++    // (d) REJEU anonyme sur la MÊME URL : jamais 200, jamais l'ancien contenu.
++    const replay = await serve(app, deploymentId);
++    expect(replay.statusCode).toBe(401);
++    expect(replay.body).not.toContain('SECRET CONTENT');
++    const replayCache = String(replay.headers['cache-control'] ?? '');
++    expect(replayCache).toContain('no-store');
++    expect(replayCache).not.toContain('public');
++  });
++
++  it('SEC-7: le gate précède HEAD, Range, conditionnelle, asset secondaire et fallback SPA', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // Public d'abord, pour qu'un cache ait pu voir passer chaque variante.
++    expect((await serve(app, deploymentId)).statusCode).toBe(200);
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++
++    const base = `/static-deployments/${deploymentId}`;
++
++    /*
++     * Chaque variante est une façon différente de récupérer des octets. Le gate
++     * doit s'appliquer AVANT toutes, sinon il suffirait de changer de méthode ou
++     * d'en-tête pour contourner la protection.
++     */
++    const variants: Array<{ label: string; options: Record<string, unknown> }> = [
++      { label: 'HEAD', options: { method: 'HEAD', url: `${base}/` } },
++      { label: 'Range', options: { method: 'GET', url: `${base}/`, headers: { range: 'bytes=0-4' } } },
++      {
++        label: 'conditionnelle If-None-Match',
++        options: { method: 'GET', url: `${base}/`, headers: { 'if-none-match': '"quelconque"' } },
++      },
++      {
++        label: 'conditionnelle If-Modified-Since',
++        options: {
++          method: 'GET',
++          url: `${base}/`,
++          headers: { 'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString() },
++        },
++      },
++      { label: 'asset secondaire', options: { method: 'GET', url: `${base}/assets/app.js` } },
++      { label: 'fallback SPA', options: { method: 'GET', url: `${base}/route/profonde` } },
++      { label: 'index explicite', options: { method: 'GET', url: `${base}/index.html` } },
++    ];
++
++    for (const { label, options } of variants) {
++      const response = await app.inject(options as never);
++
++      // Jamais 200, et surtout jamais 304 : un 304 confirmerait à un cache que
++      // son entrée publique est encore valide, donc l'autoriserait à la resservir.
++      expect([401, 403, 404, 503], `${label} -> ${response.statusCode}`).toContain(response.statusCode);
++      expect(response.statusCode, label).not.toBe(200);
++      expect(response.statusCode, label).not.toBe(304);
++      expect(response.body ?? '', label).not.toContain('SECRET CONTENT');
++
++      const cache = String(response.headers['cache-control'] ?? '');
++      expect(cache, label).toContain('no-store');
++      expect(cache, label).not.toContain('public');
++    }
++  });
++
++  it('SEC-7: après retour au public, la réponse reste non réutilisable sans revalidation', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    expect((await serve(app, deploymentId)).statusCode).toBe(401);
++
++    // Retour au public : le contenu redevient accessible…
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
++    const reopened = await serve(app, deploymentId);
++    expect(reopened.statusCode).toBe(200);
++
++    /*
++     * …mais la directive reste `no-cache` : une nouvelle bascule vers protégé ne
++     * rouvrirait pas de fenêtre de rejeu. La propriété est stable dans les DEUX
++     * sens, pas seulement au premier passage.
++     */
++    const cache = String(reopened.headers['cache-control'] ?? '');
++    expect(cache).toContain('no-cache');
++    expect(cache).not.toMatch(/max-age=[1-9]/);
++  });
++
+   it('SEC-5: an EXPIRED (server-verified) token is refused even though the cookie is present', async () => {
+     const { app, store, auth, projectId, deploymentId } = await setup();
+     await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });

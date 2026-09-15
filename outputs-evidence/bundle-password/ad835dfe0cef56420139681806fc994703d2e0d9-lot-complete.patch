@@ -1,0 +1,709 @@
+diff --git a/services/api/src/deployment-access.spec.ts b/services/api/src/deployment-access.spec.ts
+new file mode 100644
+index 00000000..6a6cdc54
+--- /dev/null
++++ b/services/api/src/deployment-access.spec.ts
+@@ -0,0 +1,125 @@
++import { afterEach, beforeEach, describe, expect, it } from 'vitest';
++import { buildDeploymentUrl } from './deployments.js';
++import {
++  accessConfigFromMetadata,
++  accessCookieName,
++  computeAccessToken,
++  deriveDeploymentAccessSecret,
++  isAccessTokenValid,
++  verifyAccessTokenSignature,
++} from './deployment-access.js';
++
++describe('buildDeploymentUrl (P104 gated → API origin, public → dedicated)', () => {
++  const prev = process.env.PREVIEW_DOMAIN;
++  const prevBase = process.env.STATIC_DEPLOY_BASE_URL;
++  beforeEach(() => {
++    process.env.PREVIEW_DOMAIN = 'preview.e-code.test';
++    process.env.STATIC_DEPLOY_BASE_URL = 'https://api.e-code.test';
++  });
++  afterEach(() => {
++    if (prev === undefined) delete process.env.PREVIEW_DOMAIN;
++    else process.env.PREVIEW_DOMAIN = prev;
++    if (prevBase === undefined) delete process.env.STATIC_DEPLOY_BASE_URL;
++    else process.env.STATIC_DEPLOY_BASE_URL = prevBase;
++  });
++
++  const project = { id: 'p1', slug: 'p1', organizationId: 'o1' } as any;
++  const dep = (metadata: unknown) =>
++    ({ id: 'abcdef123456', provider: 'static', environment: 'preview', status: 'READY', metadata } as any);
++
++  it('public static → dedicated s-<id> origin', () => {
++    expect(buildDeploymentUrl(project, dep({}))).toBe('https://s-abcdef123456.preview.e-code.test/');
++  });
++
++  it('password-protected static → API-origin canonical URL', () => {
++    const url = buildDeploymentUrl(project, dep({ access: { mode: 'password', passwordHash: 'h' } }));
++    expect(url).toBe('https://api.e-code.test/static-deployments/abcdef123456/');
++  });
++
++  it('LOCKED (password, missing hash) also → API-origin (never advertises a public URL)', () => {
++    const url = buildDeploymentUrl(project, dep({ access: { mode: 'password' } }));
++    expect(url).toBe('https://api.e-code.test/static-deployments/abcdef123456/');
++  });
++});
++
++describe('accessConfigFromMetadata', () => {
++  it('defaults to public for empty/missing metadata', () => {
++    expect(accessConfigFromMetadata(undefined).mode).toBe('public');
++    expect(accessConfigFromMetadata({}).mode).toBe('public');
++    expect(accessConfigFromMetadata({ access: null }).mode).toBe('public');
++  });
++
++  it('reads a password config', () => {
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 'h' } })).toEqual({
++      mode: 'password',
++      passwordHash: 'h',
++    });
++  });
++
++  it('SEC-1: a password config with a missing/empty hash FAILS CLOSED to locked — never public', () => {
++    expect(accessConfigFromMetadata({ access: { mode: 'password' } }).mode).toBe('locked');
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('locked');
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 123 } }).mode).toBe('locked');
++  });
++});
++
++describe('deriveDeploymentAccessSecret (SEC-6 dedicated key)', () => {
++  it('is deterministic and DISTINCT from the base secret', () => {
++    const base = 'platform-base-secret';
++    const a = deriveDeploymentAccessSecret(base);
++    expect(deriveDeploymentAccessSecret(base)).toBe(a);
++    expect(a).not.toBe(base);
++    expect(deriveDeploymentAccessSecret('other')).not.toBe(a);
++  });
++});
++
++describe('computeAccessToken / isAccessTokenValid (SEC-5 expiry, SEC-6 rotation)', () => {
++  const secret = 'dep-secret';
++  const exp = 1_900_000_000_000; // far future
++  const tok = computeAccessToken(secret, 'd1', 'hash', exp);
++
++  it('token embeds the expiry and is payload.sig shaped', () => {
++    expect(tok).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
++    expect(verifyAccessTokenSignature([secret], 'd1', 'hash', tok)).toBe(exp);
++  });
++
++  it('accepts a valid, unexpired token', () => {
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp - 1)).toBe(true);
++  });
++
++  it('SEC-5: rejects an EXPIRED (but authentically signed) token — server-side check', () => {
++    expect(verifyAccessTokenSignature([secret], 'd1', 'hash', tok)).toBe(exp); // signature is authentic
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp)).toBe(false); // but now >= exp
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp + 1)).toBe(false);
++  });
++
++  it('rejects wrong secret, other deployment, rotated password', () => {
++    expect(isAccessTokenValid(['nope'], 'd1', 'hash', tok, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd2', 'hash', tok, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash2', tok, exp - 1)).toBe(false);
++  });
++
++  it('SEC-6: accepts a token signed by a ROTATED (old) secret in the accept list', () => {
++    const oldTok = computeAccessToken('old-secret', 'd1', 'hash', exp);
++    // mint list is [new, old]; an old cookie still verifies during rotation
++    expect(isAccessTokenValid(['new-secret', 'old-secret'], 'd1', 'hash', oldTok, exp - 1)).toBe(true);
++    expect(isAccessTokenValid(['new-secret'], 'd1', 'hash', oldTok, exp - 1)).toBe(false);
++  });
++
++  it('rejects absent / malformed / tampered tokens', () => {
++    expect(isAccessTokenValid([secret], 'd1', 'hash', undefined, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', '', exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', 'garbage', exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', `${tok}x`, exp - 1)).toBe(false);
++    // tamper the expiry payload (forge a later expiry) → signature no longer matches
++    const forged = `${Buffer.from(String(exp + 10_000)).toString('base64url')}.${tok.split('.')[1]}`;
++    expect(isAccessTokenValid([secret], 'd1', 'hash', forged, exp + 5_000)).toBe(false);
++  });
++});
++
++describe('accessCookieName', () => {
++  it('is per-deployment', () => {
++    expect(accessCookieName('abc')).toBe('vc_dep_abc');
++    expect(accessCookieName('abc')).not.toBe(accessCookieName('abd'));
++  });
++});
+diff --git a/services/api/src/deployment-access.ts b/services/api/src/deployment-access.ts
+new file mode 100644
+index 00000000..fdd50ae1
+--- /dev/null
++++ b/services/api/src/deployment-access.ts
+@@ -0,0 +1,180 @@
++/*
++ * P104 — password-protected deployments (Replit-parity "password protection";
++ * the pricing page advertises "Private / password-protected deployments"). A
++ * published deployment can be gated behind a password so it is NOT world-open.
++ *
++ * This is the pure, unit-testable core: the access config shape, an expiring
++ * proof-of-password cookie token (server-verified), and its rotation-aware check.
++ * No I/O. The config lives in Deployment.metadata.access (no schema migration),
++ * enforcement in the /static-deployments serve route, hashing via @vibecore/auth.
++ *
++ * Cookie token = base64url(expiresAtMs) "." HMAC(secret, id ∥ hash ∥ expiresAtMs),
++ * bound to the CURRENT passwordHash, so rotating (or clearing) the password
++ * invalidates every previously-issued cookie for free — no session store needed.
++ */
++import { createHmac, timingSafeEqual } from 'node:crypto';
++
++// public: world-readable. password (P104): behind a shared password. locked
++// (SEC-1): password-gated but its stored hash is missing/corrupt — serves NOTHING
++// (fail-closed), never falls back to public.
++export type DeploymentAccessMode = 'public' | 'password' | 'locked';
++
++export interface DeploymentAccessConfig {
++  mode: DeploymentAccessMode;
++  /** bcrypt/scrypt hash of the access password; present iff mode === 'password'. */
++  passwordHash?: string;
++}
++
++/** Default lifetime of an unlock cookie/token (server-verified expiry, SEC-5). */
++export const ACCESS_TOKEN_TTL_MS = 12 * 60 * 60 * 1000;
++
++/**
++ * Domain-separation label so a deployment-access key derived from a shared base
++ * secret is DISTINCT key material from every other use of that base (SEC-6).
++ */
++export const DEPLOYMENT_ACCESS_SECRET_LABEL = 'vibecore.deployment-access.v1';
++
++/**
++ * Derive a DEDICATED deployment-access HMAC key from a base platform secret. The
++ * derived key can never coincide with the base secret's other uses (chat-share,
++ * sessions), so a deployment-access token is not a valid token anywhere else and
++ * vice-versa — a dedicated, rotatable key even when no explicit one is set (SEC-6).
++ */
++export function deriveDeploymentAccessSecret(baseSecret: string): string {
++  return createHmac('sha256', baseSecret).update(DEPLOYMENT_ACCESS_SECRET_LABEL).digest('base64url');
++}
++
++/**
++ * Read the access config off a deployment's metadata JSON, defaulting to PUBLIC.
++ *
++ * SEC-1 (fail-closed): a deployment the owner marked `password` whose stored hash
++ * is absent/empty must NOT degrade to public — that would silently expose a
++ * deployment the owner intended to gate. It becomes `locked` (serves nothing)
++ * until a valid password is re-set.
++ */
++export function accessConfigFromMetadata(metadata: unknown): DeploymentAccessConfig {
++  const access = (metadata as { access?: unknown } | null | undefined)?.access as
++    | { mode?: unknown; passwordHash?: unknown }
++    | undefined;
++
++  if (access && access.mode === 'password') {
++    if (typeof access.passwordHash === 'string' && access.passwordHash.length > 0) {
++      return { mode: 'password', passwordHash: access.passwordHash };
++    }
++
++    return { mode: 'locked' };
++  }
++
++  return { mode: 'public' };
++}
++
++/** One cookie per deployment so unlocking one app never unlocks another sharing a host. */
++export function accessCookieName(deploymentId: string): string {
++  return `vc_dep_${deploymentId}`;
++}
++
++/**
++ * Proof-of-password token: `base64url(expiresAtMs) "." HMAC(secret, id ∥ hash ∥
++ * expiresAtMs)`. The expiry is EMBEDDED and signed, so the server verifies it on
++ * every request (SEC-5) — a tampered/extended cookie Max-Age can't outlive it.
++ * Bound to the passwordHash ⇒ changing/clearing the password invalidates it.
++ */
++export function computeAccessToken(
++  secret: string,
++  deploymentId: string,
++  passwordHash: string,
++  expiresAtMs: number,
++): string {
++  const payload = String(Math.floor(expiresAtMs));
++  const sig = createHmac('sha256', secret).update(`${deploymentId} ${passwordHash} ${payload}`).digest('base64url');
++
++  return `${Buffer.from(payload).toString('base64url')}.${sig}`;
++}
++
++/**
++ * Constant-time signature check against ANY accepted secret (key rotation, SEC-6).
++ * Returns the embedded expiry (ms) on a valid signature, else undefined. Does NOT
++ * apply expiry itself — {@link isAccessTokenValid} does, so an authentic-but-expired
++ * token is distinguishable from a forged one.
++ */
++export function verifyAccessTokenSignature(
++  secrets: readonly string[],
++  deploymentId: string,
++  passwordHash: string,
++  token: string | undefined | null,
++): number | undefined {
++  if (!token || typeof token !== 'string') {
++    return undefined;
++  }
++
++  const dot = token.indexOf('.');
++
++  if (dot <= 0 || dot === token.length - 1) {
++    return undefined;
++  }
++
++  let payload: string;
++
++  try {
++    payload = Buffer.from(token.slice(0, dot), 'base64url').toString('utf8');
++  } catch {
++    return undefined;
++  }
++
++  if (!/^\d{1,18}$/.test(payload)) {
++    return undefined;
++  }
++
++  const providedSig = Buffer.from(token.slice(dot + 1));
++
++  for (const secret of secrets) {
++    const expected = Buffer.from(
++      createHmac('sha256', secret).update(`${deploymentId} ${passwordHash} ${payload}`).digest('base64url'),
++    );
++
++    if (providedSig.length === expected.length && timingSafeEqual(providedSig, expected)) {
++      return Number(payload);
++    }
++  }
++
++  return undefined;
++}
++
++/**
++ * Valid iff the token is authentically signed by a current/rotated secret AND its
++ * server-embedded expiry is still in the future (SEC-5). No stored session.
++ */
++export function isAccessTokenValid(
++  secrets: readonly string[],
++  deploymentId: string,
++  passwordHash: string,
++  token: string | undefined | null,
++  nowMs: number = Date.now(),
++): boolean {
++  const expiresAtMs = verifyAccessTokenSignature(secrets, deploymentId, passwordHash, token);
++
++  if (expiresAtMs === undefined) {
++    return false;
++  }
++
++  return nowMs < expiresAtMs;
++}
++
++/**
++ * The scoped CSP to send with the gate page: it needs its own inline style +
++ * inline script (to POST the password as JSON — there is no form-body parser) and
++ * to fetch the relative `__access` endpoint. Nothing else is allowed.
++ */
++export const ACCESS_GATE_CSP =
++  "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'";
++
++/**
++ * Minimal HTML gate for browser visitors (a JSON 401 is returned to non-HTML
++ * clients). Submits the password as JSON to the relative `__access` endpoint,
++ * which sets the access cookie; on success it reloads the page (now served). No
++ * external assets and nothing user-controlled is interpolated. Serve it with
++ * ACCESS_GATE_CSP.
++ */
++export function accessGateHtml(): string {
++  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Password required</title></head><body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0b0f;color:#e8e8ea;display:flex;min-height:100vh;align-items:center;justify-content:center"><form id="g" style="width:min(92vw,360px);background:#16161d;border:1px solid #2a2a35;border-radius:14px;padding:28px"><h1 style="font-size:18px;margin:0 0 6px">This deployment is protected</h1><p style="margin:0 0 18px;color:#a0a0aa;font-size:14px">Enter the password to view this app.</p><p id="e" role="alert" style="display:none;color:#e0555f;margin:0 0 12px;font-size:14px">Incorrect password. Try again.</p><input id="p" type="password" autocomplete="current-password" autofocus required placeholder="Password" style="width:100%;box-sizing:border-box;padding:11px 12px;border-radius:9px;border:1px solid #33333f;background:#0e0e13;color:#fff;font-size:15px;margin-bottom:14px"><button type="submit" style="width:100%;padding:11px;border:0;border-radius:9px;background:#635bff;color:#fff;font-size:15px;font-weight:600;cursor:pointer">Unlock</button></form><script>document.getElementById('g').addEventListener('submit',async function(ev){ev.preventDefault();var r=await fetch('__access',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({password:document.getElementById('p').value})});if(r.ok){location.reload();}else{document.getElementById('e').style.display='block';}});</script></body></html>`;
++}
+diff --git a/services/api/src/tests/deployment-password.spec.ts b/services/api/src/tests/deployment-password.spec.ts
+new file mode 100644
+index 00000000..58c090b2
+--- /dev/null
++++ b/services/api/src/tests/deployment-password.spec.ts
+@@ -0,0 +1,386 @@
++import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
++import { tmpdir } from 'node:os';
++import { join } from 'node:path';
++import { afterEach, beforeEach, describe, expect, it } from 'vitest';
++import { buildApiApp } from '../app.js';
++import { staticDeploymentSnapshotDir } from '../deployments.js';
++import { accessCookieName, computeAccessToken } from '../deployment-access.js';
++import type { EmailProvider } from '../email.js';
++import { TestApiStore } from './test-api-store.js';
++
++// A known dedicated secret so the tests can mint expired / valid tokens directly.
++const DEP_SECRET = 'test-deployment-access-secret';
++
++/*
++ * P104 — password-protected deployments (endpoint wiring).
++ *
++ * Proves the real routes: owner sets a password, an anonymous visitor gets 401
++ * (no bytes), the wrong password is refused, the right password sets a cookie
++ * that unlocks the serve, and switching back to public re-opens it.
++ */
++
++class QuietEmailProvider implements EmailProvider {
++  async send() {}
++}
++
++describe('password-protected static deployments (endpoint)', () => {
++  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
++  const prevSecret = process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
++  let storageDir: string;
++
++  beforeEach(async () => {
++    storageDir = await mkdtemp(join(tmpdir(), 'pwd-'));
++    process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
++    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = DEP_SECRET;
++  });
++
++  afterEach(async () => {
++    if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
++    else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
++    if (prevSecret === undefined) delete process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
++    else process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = prevSecret;
++    await rm(storageDir, { recursive: true, force: true });
++  });
++
++  async function setup() {
++    const store = new TestApiStore();
++    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
++    const reg = await app.inject({
++      method: 'POST',
++      url: '/auth/register',
++      payload: { email: 'pwd@example.com', password: 'password123', name: 'P', organizationName: 'P Org' },
++    });
++    const auth = reg.json() as { token: string; organization: { id: string } };
++    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
++    const proj = await app.inject({
++      method: 'POST',
++      url: `/orgs/${auth.organization.id}/projects`,
++      headers: { authorization: `Bearer ${auth.token}` },
++      payload: { name: 'P Project' },
++    });
++    const projectId = (proj.json() as { project: { id: string } }).project.id;
++
++    const deployment = await store.createDeployment({
++      projectId,
++      provider: 'static',
++      environment: 'preview',
++      status: 'READY',
++      url: 'https://example.test/x',
++    });
++    const dir = staticDeploymentSnapshotDir(deployment.id);
++    await mkdir(dir, { recursive: true });
++    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
++
++    return { app, store, auth, projectId, deploymentId: deployment.id };
++  }
++
++  const setAccess = (app: any, projectId: string, deploymentId: string, token: string, payload: unknown) =>
++    app.inject({
++      method: 'POST',
++      url: `/projects/${projectId}/deployments/${deploymentId}/access`,
++      headers: { authorization: `Bearer ${token}` },
++      payload,
++    });
++  const serve = (app: any, deploymentId: string, cookies?: Record<string, string>) =>
++    app.inject({ method: 'GET', url: `/static-deployments/${deploymentId}/`, ...(cookies ? { cookies } : {}) });
++
++  it('serves publicly by default', async () => {
++    const { app, deploymentId } = await setup();
++    const res = await serve(app, deploymentId);
++    expect(res.statusCode).toBe(200);
++    expect(res.body).toContain('SECRET CONTENT');
++  });
++
++  it('gates anonymous access once a password is set, and unlocks with the right one', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    const set = await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    expect(set.statusCode).toBe(200);
++    expect((set.json() as { accessMode: string }).accessMode).toBe('password');
++
++    // Anonymous → 401, no content leaked.
++    const anon = await serve(app, deploymentId);
++    expect(anon.statusCode).toBe(401);
++    expect(anon.body).not.toContain('SECRET CONTENT');
++
++    // Wrong password → 401, no cookie.
++    const wrong = await app.inject({
++      method: 'POST',
++      url: `/static-deployments/${deploymentId}/__access`,
++      payload: { password: 'nope' },
++    });
++    expect(wrong.statusCode).toBe(401);
++    expect((wrong.json() as { code: string }).code).toBe('DEPLOYMENT_PASSWORD_INCORRECT');
++
++    // Right password → 200 + Set-Cookie.
++    const gate = await app.inject({
++      method: 'POST',
++      url: `/static-deployments/${deploymentId}/__access`,
++      payload: { password: 'letmein' },
++    });
++    expect(gate.statusCode).toBe(200);
++    const cookie = gate.cookies.find((c) => c.name === accessCookieName(deploymentId));
++    if (!cookie) throw new Error('access cookie was not set');
++    expect(cookie.httpOnly).toBe(true);
++
++    // Serve WITH the cookie → 200 + content.
++    const unlocked = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: cookie.value });
++    expect(unlocked.statusCode).toBe(200);
++    expect(unlocked.body).toContain('SECRET CONTENT');
++
++    // A forged/other-deployment cookie value does NOT unlock.
++    const forged = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: 'forged-token' });
++    expect(forged.statusCode).toBe(401);
++  });
++
++  it('rotating the password invalidates the old cookie', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'first' });
++    const g1 = await app.inject({ method: 'POST', url: `/static-deployments/${deploymentId}/__access`, payload: { password: 'first' } });
++    const g1Cookie = g1.cookies.find((c) => c.name === accessCookieName(deploymentId));
++    if (!g1Cookie) throw new Error('access cookie was not set');
++    const oldCookie = g1Cookie.value;
++
++    // Rotate.
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'second' });
++    const stale = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: oldCookie });
++    expect(stale.statusCode).toBe(401);
++  });
++
++  it('switching back to public re-opens it', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    expect((await serve(app, deploymentId)).statusCode).toBe(401);
++
++    const pub = await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
++    expect(pub.statusCode).toBe(200);
++    const open = await serve(app, deploymentId);
++    expect(open.statusCode).toBe(200);
++    expect(open.body).toContain('SECRET CONTENT');
++  });
++
++  it('rejects mode=password without a password (400) and requires owner auth (401)', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++    const noPw = await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password' });
++    expect(noPw.statusCode).toBe(400);
++    const noAuth = await app.inject({
++      method: 'POST',
++      url: `/projects/${projectId}/deployments/${deploymentId}/access`,
++      payload: { mode: 'password', password: 'x1234' },
++    });
++    expect(noAuth.statusCode).toBe(401);
++  });
++
++  // ---- expert P0 security counter-audit (SEC-1..6) --------------------------
++
++  it('SEC-2/3: every gated response is no-store (never public) with Vary: Cookie — no cache poisoning', async () => {
++    const { app, store, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++
++    // (a) the 401 gate must not be cacheable as public
++    const anon = await serve(app, deploymentId);
++    expect(anon.statusCode).toBe(401);
++    const anonCache = String(anon.headers['cache-control'] ?? '');
++    expect(anonCache).toContain('no-store');
++    expect(anonCache).not.toContain('public');
++
++    // (b) the AUTHORIZED 200 must ALSO be no-store + Vary: Cookie, so a shared
++    // cache can never store it and replay to an anonymous visitor (poisoning).
++    const dep = await store.getDeployment(projectId, deploymentId);
++    const passwordHash = ((dep!.metadata as any).access as { passwordHash: string }).passwordHash;
++    const valid = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() + 3_600_000);
++    const ok = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: valid });
++    expect(ok.statusCode).toBe(200);
++    expect(ok.body).toContain('SECRET CONTENT');
++    const okCache = String(ok.headers['cache-control'] ?? '');
++    expect(okCache).toContain('no-store');
++    expect(okCache).not.toContain('public');
++    expect(String(ok.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
++
++    // (c) cache-poisoning replay: after the authorized fetch, the SAME URL fetched
++    // anonymously still leaks NO protected byte.
++    const replay = await serve(app, deploymentId);
++    expect(replay.statusCode).toBe(401);
++    expect(replay.body).not.toContain('SECRET CONTENT');
++  });
++
++  /*
++   * SEC-7 — LA TRANSITION LA PLUS DANGEREUSE : public + DÉJÀ MIS EN CACHE, puis
++   * activation de la protection.
++   *
++   * Le test SEC-2/3 part d'un déploiement déjà protégé : il ne peut donc pas
++   * voir ce cas. Ici le déploiement est d'abord PUBLIC, il est servi (donc
++   * potentiellement stocké par un intermédiaire), PUIS protégé. L'origine ne
++   * contrôle pas les caches tiers : elle ne peut pas purger ce qui est déjà
++   * stocké. La seule défense correcte est d'avoir émis, DÈS la réponse publique,
++   * une directive qui interdit toute réutilisation sans revalidation.
++   */
++  it("SEC-7 poison_replay: PUBLIC déjà mis en cache -> protégé -> le rejeu anonyme ne rend JAMAIS l'ancienne réponse", async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // (a) PUBLIC : la réponse est servie et pourrait être stockée par un cache.
++    const publicHit = await serve(app, deploymentId);
++    expect(publicHit.statusCode).toBe(200);
++    expect(publicHit.body).toContain('SECRET CONTENT');
++
++    /*
++     * (b) LA propriété qui ferme la fenêtre : la réponse publique n'est jamais
++     * réutilisable SANS revalidation. Avec `max-age=60`, un intermédiaire aurait
++     * pu la resservir pendant une minute APRÈS l'activation de la protection —
++     * un visiteur anonyme aurait alors obtenu le contenu désormais protégé.
++     */
++    const publicCache = String(publicHit.headers['cache-control'] ?? '');
++    expect(publicCache).toContain('no-cache');
++    expect(publicCache).toMatch(/must-revalidate/);
++    // Aucune durée de fraîcheur non nulle : rien n'est servable sans revalider.
++    expect(publicCache).not.toMatch(/max-age=[1-9]/);
++    // La clé de cache dépend du cookie dès l'origine.
++    expect(String(publicHit.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
++
++    // (c) Activation de la protection.
++    const set = await setAccess(app, projectId, deploymentId, auth.token, {
++      mode: 'password',
++      password: 'letmein',
++    });
++    expect(set.statusCode).toBe(200);
++
++    // (d) REJEU anonyme sur la MÊME URL : jamais 200, jamais l'ancien contenu.
++    const replay = await serve(app, deploymentId);
++    expect(replay.statusCode).toBe(401);
++    expect(replay.body).not.toContain('SECRET CONTENT');
++    const replayCache = String(replay.headers['cache-control'] ?? '');
++    expect(replayCache).toContain('no-store');
++    expect(replayCache).not.toContain('public');
++  });
++
++  it('SEC-7: le gate précède HEAD, Range, conditionnelle, asset secondaire et fallback SPA', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // Public d'abord, pour qu'un cache ait pu voir passer chaque variante.
++    expect((await serve(app, deploymentId)).statusCode).toBe(200);
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++
++    const base = `/static-deployments/${deploymentId}`;
++
++    /*
++     * Chaque variante est une façon différente de récupérer des octets. Le gate
++     * doit s'appliquer AVANT toutes, sinon il suffirait de changer de méthode ou
++     * d'en-tête pour contourner la protection.
++     */
++    const variants: Array<{ label: string; options: Record<string, unknown> }> = [
++      { label: 'HEAD', options: { method: 'HEAD', url: `${base}/` } },
++      { label: 'Range', options: { method: 'GET', url: `${base}/`, headers: { range: 'bytes=0-4' } } },
++      {
++        label: 'conditionnelle If-None-Match',
++        options: { method: 'GET', url: `${base}/`, headers: { 'if-none-match': '"quelconque"' } },
++      },
++      {
++        label: 'conditionnelle If-Modified-Since',
++        options: {
++          method: 'GET',
++          url: `${base}/`,
++          headers: { 'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString() },
++        },
++      },
++      { label: 'asset secondaire', options: { method: 'GET', url: `${base}/assets/app.js` } },
++      { label: 'fallback SPA', options: { method: 'GET', url: `${base}/route/profonde` } },
++      { label: 'index explicite', options: { method: 'GET', url: `${base}/index.html` } },
++    ];
++
++    for (const { label, options } of variants) {
++      const response = await app.inject(options as never);
++
++      // Jamais 200, et surtout jamais 304 : un 304 confirmerait à un cache que
++      // son entrée publique est encore valide, donc l'autoriserait à la resservir.
++      expect([401, 403, 404, 503], `${label} -> ${response.statusCode}`).toContain(response.statusCode);
++      expect(response.statusCode, label).not.toBe(200);
++      expect(response.statusCode, label).not.toBe(304);
++      expect(response.body ?? '', label).not.toContain('SECRET CONTENT');
++
++      const cache = String(response.headers['cache-control'] ?? '');
++      expect(cache, label).toContain('no-store');
++      expect(cache, label).not.toContain('public');
++    }
++  });
++
++  it('SEC-7: après retour au public, la réponse reste non réutilisable sans revalidation', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    expect((await serve(app, deploymentId)).statusCode).toBe(401);
++
++    // Retour au public : le contenu redevient accessible…
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
++    const reopened = await serve(app, deploymentId);
++    expect(reopened.statusCode).toBe(200);
++
++    /*
++     * …mais la directive reste `no-cache` : une nouvelle bascule vers protégé ne
++     * rouvrirait pas de fenêtre de rejeu. La propriété est stable dans les DEUX
++     * sens, pas seulement au premier passage.
++     */
++    const cache = String(reopened.headers['cache-control'] ?? '');
++    expect(cache).toContain('no-cache');
++    expect(cache).not.toMatch(/max-age=[1-9]/);
++  });
++
++  it('SEC-5: an EXPIRED (server-verified) token is refused even though the cookie is present', async () => {
++    const { app, store, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    const dep = await store.getDeployment(projectId, deploymentId);
++    const passwordHash = ((dep!.metadata as any).access as { passwordHash: string }).passwordHash;
++
++    const expired = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() - 1_000);
++    const res = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: expired });
++    expect(res.statusCode).toBe(401);
++    expect(res.body).not.toContain('SECRET CONTENT');
++
++    const valid = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() + 60_000);
++    const ok = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: valid });
++    expect(ok.statusCode).toBe(200);
++  });
++
++  it('SEC-1: a password deployment whose stored hash is gone is LOCKED (503), never public', async () => {
++    const store = new TestApiStore();
++    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
++    const reg = await app.inject({
++      method: 'POST',
++      url: '/auth/register',
++      payload: { email: 'lock@example.com', password: 'password123', name: 'L', organizationName: 'L Org' },
++    });
++    const auth = reg.json() as { token: string; organization: { id: string } };
++    const proj = await app.inject({
++      method: 'POST',
++      url: `/orgs/${auth.organization.id}/projects`,
++      headers: { authorization: `Bearer ${auth.token}` },
++      payload: { name: 'L Project' },
++    });
++    const projectId = (proj.json() as { project: { id: string } }).project.id;
++    // Corrupt/partial config: mode=password but NO hash.
++    const deployment = await store.createDeployment({
++      projectId,
++      provider: 'static',
++      environment: 'preview',
++      status: 'READY',
++      url: 'https://example.test/x',
++      metadata: { access: { mode: 'password' } },
++    });
++    const dir = staticDeploymentSnapshotDir(deployment.id);
++    await mkdir(dir, { recursive: true });
++    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
++
++    const res = await serve(app, deployment.id);
++    expect(res.statusCode).toBe(503);
++    expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_LOCKED');
++    expect(res.body).not.toContain('SECRET CONTENT');
++
++    // The unlock endpoint also refuses (nothing to unlock).
++    const gate = await app.inject({
++      method: 'POST',
++      url: `/static-deployments/${deployment.id}/__access`,
++      payload: { password: 'anything' },
++    });
++    expect(gate.statusCode).toBe(503);
++  });
++});

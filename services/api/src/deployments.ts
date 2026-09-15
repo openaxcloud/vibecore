@@ -1476,8 +1476,19 @@ export function createDeploymentLogs(
     );
   }
 
+  /*
+   * Stamp the summary block with the QUEUE time, not "now". These lines describe
+   * what was decided when the deploy was queued, but they are persisted at the
+   * END of the pipeline — stamping them with the current clock pushed them past
+   * every real build line, so the Logs panel (which renders the array as stored)
+   * opened with the outcome and buried the build underneath it. Proven live
+   * 2026-08-06: "Deployment ready: …" at 14:42:44 listed above "[install] up to
+   * date" at 14:42:43.
+   */
+  const queuedAt = deployment.startedAt ?? deployment.createdAt ?? new Date().toISOString();
+
   return baseLogs.map((message) => ({
-    timestamp: new Date().toISOString(),
+    timestamp: queuedAt,
     level: 'info' as const,
     message: redactDeploymentLog(message, input.envVars),
   }));

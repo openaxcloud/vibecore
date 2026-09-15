@@ -1,0 +1,3 @@
+2cabebf0 fix(deploy): SEC-1b — fermer le fail-open de accessConfigFromMetadata (mode inconnu -> locked)
+ad835dfe fix(deploy): SEC-7 — fermer la fenêtre de rejeu public→protégé (poison_replay)
+6a17ad24 fix(deploy): P104 SECURITY hardening — expert P0 counter-audit (SEC-1..6)

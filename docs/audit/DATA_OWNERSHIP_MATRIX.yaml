@@ -1,0 +1,427 @@
+schema_version: 1
+document:
+  title: "Gate 1 data ownership matrix"
+  audited_sha: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  classification: "repository observation and target proposal"
+  verdict_ceiling: "IMPLEMENTED_UNPROVEN"
+  signed_proven: false
+  notes:
+    - "Current access was derived from schema, imports and lexical Prisma delegate scans; it is not complete runtime query tracing."
+    - "No tracking state was changed by this document."
+
+tracking_sources:
+  design_program: "DESIGN_PROGRAM_MASTER.md"
+  design_live: "DESIGN_AUDIT_LIVE.md"
+  bugs: "BUG_INVENTORY_LIVE.md"
+  plan: "PLAN_REMAINING_UNIFIED.md"
+  parity: "REPLIT_PARITY.md"
+  operations: "docs/DEPLOY_RUNBOOK.md"
+  state_model:
+    dispatched: "unchanged"
+    coded_on_main: "unchanged"
+    tested_live: "unchanged"
+
+physical_store:
+  type: "PostgreSQL through Prisma"
+  schema: "packages/database/prisma/schema.prisma"
+  observed_models: 122
+  observed_migration_directories: 85
+  migration_prefix_collisions:
+    - "0015"
+    - "0062"
+    - "0063"
+    - "0081"
+  current_status: "PARTIAL"
+  evidence:
+    - path: "packages/database/src/index.ts"
+      lines: "8-63"
+      finding: "DATABASE_URL, pool settings and transaction defaults are centralized in the database package."
+    - path: "services/api/src/store.ts"
+      lines: "1209-2705"
+      finding: "ApiStore exposes persistence operations across most product domains."
+    - path: "services/api/src/prisma-store.ts"
+      lines: "239-6928"
+      finding: "PrismaApiStore implements the broad store and includes transactions and advisory locks."
+
+domains:
+  - id: "DATA-IDENTITY"
+    domain: "identity-access"
+    models:
+      - "User"
+      - "Account"
+      - "Session"
+      - "EmailVerificationToken"
+      - "PasswordResetToken"
+      - "MfaRecoveryCode"
+      - "SsoConfiguration"
+      - "ScimToken"
+    current_nominal_owner: "services/api"
+    observed_direct_readers:
+      - "services/api"
+      - "services/ai-gateway"
+    observed_direct_writers:
+      - "services/api"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "41-137"
+        finding: "Core identity models start with User and session/account records."
+      - path: "services/ai-gateway/src/gateway.ts"
+        lines: "638-768"
+        finding: "Gateway hydrates organization/user-scoped provider configuration from the shared database."
+    current_status: "PARTIAL"
+    target_owner: "identity-access module"
+    forbidden_target_access:
+      - "Direct session or MFA mutation outside identity-access."
+      - "AI gateway loading identity records except through a minimal versioned query."
+    migration_dependency: "M3 then M4"
+    missing_proof:
+      - "Runtime database query trace by service."
+      - "Cross-tenant and session-revocation concurrency tests."
+
+  - id: "DATA-ORGANIZATIONS"
+    domain: "organizations-rbac"
+    models:
+      - "Organization"
+      - "OrganizationMember"
+      - "OrganizationInvite"
+      - "CustomRole"
+      - "OrganizationOAuthAppOverride"
+      - "OrganizationConnectorPolicy"
+    current_nominal_owner: "services/api"
+    observed_direct_readers:
+      - "services/api"
+      - "services/ai-gateway"
+      - "services/connector-proxy"
+    observed_direct_writers:
+      - "services/api"
+      - "services/connector-proxy"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "138-237"
+        finding: "Organization, membership and invitation models share the global schema."
+      - path: "app/lib/rbac-catalog.ts"
+        lines: "3-18"
+        finding: "The web UI manually mirrors the server RBAC catalog."
+    current_status: "PARTIAL"
+    target_owner: "organizations-rbac module"
+    forbidden_target_access:
+      - "Direct membership or policy writes from connector-proxy."
+      - "Client-side permission catalogs acting as authorization authority."
+    migration_dependency: "M2, M3 and M4"
+    missing_proof:
+      - "Deterministic membership add/remove race tests."
+      - "Role escalation and cross-organization negative tests."
+
+  - id: "DATA-PROJECTS"
+    domain: "projects-imports-git"
+    models:
+      - "Project"
+      - "ProjectSlugRedirect"
+      - "ProjectTemplate"
+      - "ImportJob"
+      - "RemixJob"
+      - "GalleryListing"
+    current_nominal_owner: "services/api"
+    observed_direct_readers:
+      - "services/api"
+      - "worker through ProjectActivity"
+    observed_direct_writers:
+      - "services/api"
+      - "services/worker through ProjectActivity"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "238-637"
+        finding: "Project and related IDE, secret, collaborator and template data are colocated."
+      - path: "services/worker/src/index.ts"
+        lines: "151-224"
+        finding: "Retention worker directly deletes project activity data."
+    current_status: "PARTIAL"
+    target_owner: "projects-imports-git module"
+    forbidden_target_access:
+      - "Worker deleting project-owned records without an owner command or event."
+      - "Import or Git code mutating runtime and billing tables directly."
+    migration_dependency: "M3 and M4"
+    missing_proof:
+      - "Import cancellation/staging cleanup trace."
+      - "Large and malicious repository tests."
+
+  - id: "DATA-IDE-COLLAB"
+    domain: "ide-collaboration"
+    models:
+      - "ProjectIdeState"
+      - "WorkspaceIdeState"
+      - "CollaborationPresence"
+      - "CollaborationComment"
+      - "ProjectCollaborator"
+    current_nominal_owner: "services/api"
+    observed_direct_readers:
+      - "services/api"
+      - "web through API and local stores"
+    observed_direct_writers:
+      - "services/api"
+    evidence:
+      - path: "app/lib/stores/workbench.ts"
+        lines: "201-206"
+        finding: "Workbench composes file, editor, terminal and preview state."
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "353-609"
+        finding: "IDE, collaborator and activity state is persisted with Project."
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_owner: "ide-collaboration module"
+    forbidden_target_access:
+      - "Independent UI stores becoming conflicting durable authorities."
+      - "Collaboration writes bypassing the versioned collaboration contract."
+    migration_dependency: "M2 and M3"
+    missing_proof:
+      - "Declared CRDT/OT/locking model."
+      - "Concurrent edit, reconnect and rollback test."
+
+  - id: "DATA-RUNTIME"
+    domain: "workspaces-runtime"
+    models:
+      - "WorkspaceRuntime"
+      - "Workspace"
+      - "WorkspacePostMortem"
+    current_nominal_owner: "workspace-manager"
+    observed_direct_readers:
+      - "services/workspace-manager"
+      - "services/api"
+    observed_direct_writers:
+      - "services/workspace-manager"
+      - "services/api for adjacent workspace records"
+    evidence:
+      - path: "services/workspace-manager/src/manager.ts"
+        lines: "54-285"
+        finding: "WorkspaceStore and WorkspaceManager encapsulate runtime state transitions."
+      - path: "services/workspace-manager/src/prisma-store.ts"
+        lines: "83-end"
+        finding: "Manager persists WorkspaceRuntime through Prisma."
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "1673-1743"
+        finding: "WorkspaceRuntime is a shared-schema model."
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_owner: "workspace-manager and workspaces-runtime context"
+    forbidden_target_access:
+      - "Kubernetes resource mutation outside workspace-manager."
+      - "API or worker writing WorkspaceRuntime directly after migration."
+    migration_dependency: "M2, M3 and M5"
+    missing_proof:
+      - "Full concurrent state-machine test."
+      - "Pod/node/manager/database failure and recovery evidence."
+
+  - id: "DATA-AGENT-AI"
+    domain: "agent-ai"
+    models:
+      - "AiConversation"
+      - "AiMessage"
+      - "AiToolCall"
+      - "AgentRun"
+      - "AgentRunResult"
+      - "ConsensusRecord"
+      - "AgentCheckpoint"
+      - "AgentPatchProposal"
+      - "AgentRepairEvent"
+    current_nominal_owner: "split between services/api and services/ai-gateway"
+    observed_direct_readers:
+      - "services/api"
+      - "services/ai-gateway"
+    observed_direct_writers:
+      - "services/api"
+      - "services/ai-gateway"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "1579-1672"
+        finding: "Agent run and result records are in the global schema."
+      - path: "services/ai-gateway/src/app.ts"
+        lines: "242-322"
+        finding: "AI gateway exposes agent-run and streaming routes."
+    current_status: "PARTIAL"
+    target_owner: "agent-ai context, with AI gateway owning provider invocation and execution state"
+    forbidden_target_access:
+      - "Provider calls outside AI gateway."
+      - "Agent execution writing billing ledger tables directly."
+    migration_dependency: "M2, M3, M4 and M6"
+    missing_proof:
+      - "Crash resume, cancellation and budget race tests."
+      - "Usage-event to billing reconciliation."
+
+  - id: "DATA-CONNECTORS-SECRETS"
+    domain: "connectors-secrets"
+    models:
+      - "UserConnection"
+      - "ProjectConnectionLink"
+      - "OrganizationConnectorPolicy"
+      - "ProjectSecret"
+      - "ProjectEnvVar"
+    current_nominal_owner: "split between services/api and services/connector-proxy"
+    observed_direct_readers:
+      - "services/api"
+      - "services/connector-proxy"
+      - "services/worker"
+    observed_direct_writers:
+      - "services/api"
+      - "services/connector-proxy"
+      - "services/worker"
+    evidence:
+      - path: "services/connector-proxy/src/app.ts"
+        lines: "68-175"
+        finding: "Proxy resolves connection-scoped credentials and forwards provider calls."
+      - path: "services/api/src/app.ts"
+        lines: "11801-11984"
+        finding: "API separately implements GitLab and Bitbucket provider proxies."
+      - path: ".env.example"
+        lines: "139-221"
+        finding: "Legacy VITE provider access-token variables are documented."
+    current_status: "PARTIAL"
+    target_owner: "one connectors-secrets context and one authoritative credential broker"
+    forbidden_target_access:
+      - "Durable provider tokens in browser bundles or localStorage."
+      - "Multiple services independently changing connection status."
+    migration_dependency: "M2, M4, M6 and M7"
+    missing_proof:
+      - "Token rotation/revocation and cache invalidation."
+      - "Cross-user, cross-project and SSRF negative tests."
+
+  - id: "DATA-DATABASES-STORAGE"
+    domain: "databases-object-storage"
+    models:
+      - "DatabaseInstance"
+      - "DatabaseSnapshot"
+      - "DatabaseRestore"
+      - "ProjectStorageObject"
+    current_nominal_owner: "services/api, with Kubernetes resource execution delegated to workspace-manager"
+    observed_direct_readers:
+      - "services/api"
+      - "services/worker through API metering commands"
+      - "services/workspace-manager for CNPG resources"
+    observed_direct_writers:
+      - "services/api"
+      - "services/workspace-manager for Kubernetes objects"
+    evidence:
+      - path: "services/workspace-manager/src/app.ts"
+        lines: "559-651"
+        finding: "Manager applies, reads and deletes guarded CNPG resources and connection Secrets."
+      - path: "services/worker/src/index.ts"
+        lines: "318-424"
+        finding: "Worker calls API-owned storage metering and database maintenance commands."
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_owner: "databases-object-storage context; manager remains infrastructure executor"
+    forbidden_target_access:
+      - "Worker directly aggregating or mutating owner tables."
+      - "Arbitrary Secret or Kubernetes object access through manager."
+    migration_dependency: "M3, M4 and M5"
+    missing_proof:
+      - "Real Postgres backup, restore and PITR."
+      - "Real object-store deletion observation before teardown."
+
+  - id: "DATA-DEPLOYMENTS"
+    domain: "deployments-releases-domains"
+    models:
+      - "Deployment"
+      - "DeploymentEnvironment"
+      - "ReleaseManifest"
+      - "ScheduledTask"
+      - "ScheduledTaskRun"
+    current_nominal_owner: "services/api"
+    observed_direct_readers:
+      - "services/api"
+      - "services/worker through API commands"
+      - "preview-proxy through runtime endpoints"
+    observed_direct_writers:
+      - "services/api"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "774-879"
+        finding: "Deployment and environment records are in the global schema."
+      - path: "services/worker/src/deploy-jobs.ts"
+        lines: "17-95"
+        finding: "Worker drives durable builds and reap through internal API commands."
+    current_status: "IMPLEMENTED_UNPROVEN"
+    target_owner: "deployments-releases-domains context"
+    forbidden_target_access:
+      - "READY inferred only from a database row."
+      - "Mutable image tag used as rollback identity."
+    migration_dependency: "M3, M4 and M8"
+    missing_proof:
+      - "Endpoint/content/digest readiness and rollback exercise."
+      - "Concurrent promotion and rollback test."
+
+  - id: "DATA-BILLING"
+    domain: "billing-metering-ledger"
+    models:
+      - "Subscription"
+      - "UsageEvent"
+      - "CreditWallet"
+      - "CreditLedger"
+      - "LedgerAccount"
+      - "LedgerTransaction"
+      - "LedgerEntry"
+      - "LedgerReservation"
+      - "LedgerReconciliationRun"
+    current_nominal_owner: "services/api and packages/billing"
+    observed_direct_readers:
+      - "services/api"
+      - "services/worker through metering commands"
+    observed_direct_writers:
+      - "services/api"
+    evidence:
+      - path: "packages/database/prisma/schema.prisma"
+        lines: "938-1205,2579-2677"
+        finding: "Subscription, credit and double-entry ledger models share the global schema."
+      - path: "services/worker/src/index.ts"
+        lines: "318-392"
+        finding: "Worker delegates object and database metering to API owner commands."
+    current_status: "PARTIAL"
+    target_owner: "billing-metering-ledger context"
+    forbidden_target_access:
+      - "Non-transactional balance update."
+      - "AI/runtime services posting ledger rows directly."
+    migration_dependency: "M3 and M4"
+    missing_proof:
+      - "Deterministic concurrent reservation/settlement."
+      - "Duplicate webhook and double-charge tests on real Postgres."
+
+  - id: "DATA-AUDIT-ADMIN"
+    domain: "admin-audit-notifications"
+    models:
+      - "AuditLog"
+      - "AdminAuditLog"
+      - "SecurityEventResolution"
+      - "Notification"
+      - "SiemWebhook"
+      - "SupportTicket"
+      - "TicketMessage"
+    current_nominal_owner: "split between services/api and services/worker"
+    observed_direct_readers:
+      - "services/api"
+      - "services/worker"
+      - "services/connector-proxy"
+    observed_direct_writers:
+      - "services/api"
+      - "services/worker"
+      - "services/connector-proxy"
+    evidence:
+      - path: "services/worker/src/index.ts"
+        lines: "38-224"
+        finding: "Worker directly delivers SIEM records and enforces audit/activity retention."
+      - path: "packages/observability/src/index.ts"
+        lines: "12-71"
+        finding: "Platform metric definitions exist, but only selected services import the registry."
+    current_status: "PARTIAL"
+    target_owner: "admin-audit-notifications context with append-only audit contract"
+    forbidden_target_access:
+      - "Mutable or destructive audit writes outside retention policy."
+      - "Connector/runtime services directly creating user notifications."
+    migration_dependency: "M3 and M4"
+    missing_proof:
+      - "Immutable/protected audit storage behavior."
+      - "Retention versus SIEM-delivery failure and concurrency tests."
+
+target_rules:
+  - "Each model has exactly one owning module and one migration owner."
+  - "Cross-domain reads use versioned queries; writes use commands or versioned events."
+  - "Transactional outbox is written in the same transaction as owner state."
+  - "Consumers persist event IDs and are safe under duplicate delivery."
+  - "Physical database separation is optional and occurs only after ownership, tracing, shadow reads and restore proof."
+  - "Generated Prisma clients and migration registries are central files with one active agent owner."
+

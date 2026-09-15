@@ -1,0 +1,165 @@
+# Ephemeral audit test environment overlay.
+#
+# Used as:  helm upgrade --install vibecore infra/helm/platform \
+#             -n vibecore -f infra/helm/platform/values.yaml \
+#             -f infra/helm/platform/values-audit-test.yaml --set global.imageTag=<SHA>
+#
+# NEVER combine this with values-prod.yaml, and never apply it to the
+# `vibecore` release on cluster `vibecore-prod-app`.
+#
+# `__LB_IP__` is substituted by scripts/audit-env/render-values.sh once
+# ingress-nginx has an external IP. Public DNS comes from sslip.io, which
+# resolves <anything>.<ip>.sslip.io to <ip> — real public DNS, no domain to buy.
+
+global:
+  environment: production # exercises the prod code paths (fail-closed secrets, CSRF, etc.)
+  imageRegistry: europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers
+  imageTag: REQUIRED_OVERRIDE_AT_DEPLOY
+  appDomain: app.__LB_IP__.sslip.io
+  previewDomain: preview.__LB_IP__.sslip.io
+  marketingDomain: www.__LB_IP__.sslip.io
+  apiDomain: api.__LB_IP__.sslip.io
+  workspaceManagerDomain: wsm.__LB_IP__.sslip.io
+  # No Cloud DNS zone in the test project: the chart's DNS-01 ClusterIssuer is
+  # suppressed and scripts/audit-env/addons.sh installs an HTTP-01 issuer plus
+  # a self-signed issuer for the preview wildcard instead.
+  dns01:
+    enabled: false
+  labels:
+    app.kubernetes.io/part-of: vibecore
+    env: audit-test
+    ephemeral: 'true'
+
+secrets:
+  existingSecret: vibecore-platform-secrets
+
+ingress:
+  className: nginx
+  issuerName: letsencrypt-http01
+  tlsSecretName: vibecore-platform-tls
+  previewTlsSecretName: vibecore-preview-wildcard-tls
+  proxyReadTimeoutSeconds: 180
+  proxySendTimeoutSeconds: 180
+
+platformEnv:
+  saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  screenshotterUrl: ''
+  screenshotterAllowedHosts: ''
+  publicApiBaseUrl: 'https://api.__LB_IP__.sslip.io'
+  platformAdminEmails: 'audit-admin@audit-test.invalid'
+  trustProxy: 'true'
+  projectStorageDir: '/data/vibecore/projects'
+  staticDeployStorageDir: '/data/vibecore/static-deployments'
+  # The API is fail-closed: with environment=production it REFUSES TO BOOT
+  # without EMAIL_HTTP_ENDPOINT. Rather than weaken the environment (which would
+  # stop exercising the production code paths the audit cares about), outbound
+  # email is pointed at an in-cluster sink that answers 200 and logs the full
+  # request. Better than a real Resend key here: every email is observable via
+  # `kubectl -n vibecore logs deploy/email-sink`, and none ever leaves.
+  email:
+    httpEndpoint: 'http://email-sink.vibecore.svc.cluster.local:8080/'
+    from: 'no-reply@audit-test.example.com'
+  # WITHOUT this override the chart falls back to its hard-coded PRODUCTION
+  # literals and this test environment would aim its database backups at the
+  # production bucket and production service account. Non-negotiable here.
+  dbBackup:
+    bucket: 'vibecore-audit-test-20260807-backups'
+    gsa: 'vibecore-audit-app@vibecore-audit-test-20260807.iam.gserviceaccount.com'
+  runtime:
+    mode: 'remote-kubernetes'
+    apiBaseUrl: 'https://api.__LB_IP__.sslip.io/api/runtime'
+    workspaceManagerUrl: 'http://vibecore-vibecore-platform-workspace-manager.vibecore.svc:3010'
+    aiGatewayUrl: 'http://vibecore-vibecore-platform-ai-gateway.vibecore.svc:3030'
+    workspaceRuntimeNamespace: 'workspaces'
+    workspaceStorageClass: 'standard-rwo'
+    workspaceAgentImage: 'europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/workspace-agent:REQUIRED_OVERRIDE_AT_DEPLOY'
+    previewUrlTemplate: 'https://{workspaceId}-{port}.preview.__LB_IP__.sslip.io/'
+    serverDeployImageRepo: 'europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers'
+    serverDeploySnapshotImage: '1'
+    serverDeployRevisionProjects: ''
+    # No shared Nix store PVC in the test env (that store is a 12GB prod asset).
+    nixStorePvc: ''
+    nixProjects: ''
+
+# Replica counts kept low enough to fit 2x e2-standard-4, but >1 where the
+# audit needs real concurrency (web SSR, api multi-replica over shared RWX).
+services:
+  web:
+    replicas: 2
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: '1', memory: 1Gi }
+  admin:
+    replicas: 1
+    resources:
+      requests: { cpu: 100m, memory: 256Mi }
+      limits: { cpu: 500m, memory: 512Mi }
+  api:
+    replicas: 2
+    resources:
+      requests: { cpu: 200m, memory: 512Mi }
+      limits: { cpu: '1', memory: 1Gi }
+  worker:
+    replicas: 1
+    resources:
+      requests: { cpu: 150m, memory: 384Mi }
+      limits: { cpu: '1', memory: 1Gi }
+  aiGateway:
+    replicas: 1
+    resources:
+      requests: { cpu: 300m, memory: 512Mi }
+      limits: { cpu: '1', memory: 1Gi }
+  workspaceManager:
+    replicas: 1
+    resources:
+      requests: { cpu: 150m, memory: 384Mi }
+      limits: { cpu: '1', memory: 1Gi }
+  previewProxy:
+    replicas: 2
+    host: '*.preview.__LB_IP__.sslip.io'
+    resources:
+      requests: { cpu: 150m, memory: 384Mi }
+      limits: { cpu: '1', memory: 1Gi }
+
+# Filestore substitute: dynamic RWX from the in-cluster NFS provisioner
+# installed by scripts/audit-env/addons.sh. Prod's 1TiB Filestore bills a 1TiB
+# minimum (~$200/month) for an environment that needs a few gigabytes.
+storage:
+  enabled: true
+  mountPath: /data/vibecore
+  projectSubpath: projects
+  staticDeploySubpath: static-deployments
+  pv:
+    create: false
+  pvc:
+    name: vibecore-shared-csi
+    accessModes:
+      - ReadWriteMany
+    storage: 20Gi
+    storageClassName: 'nfs'
+
+podSecurity:
+  enabled: true
+  enforce: restricted
+
+networkPolicy:
+  ingressControllerNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  # The default deny-all makes these two rules load-bearing: get them wrong and
+  # the platform comes up "healthy" but cannot reach its database. `__SQL_CIDR__`
+  # is the Private Service Access range Terraform allocated for Cloud SQL and is
+  # substituted by scripts/audit-env/render-values.sh. Redis runs IN-cluster here
+  # (not Memorystore), so its "egress" target is the pod CIDR, not a VPC range.
+  databaseRedisEgress:
+    postgresCidr: __SQL_CIDR__
+    postgresPort: 5432
+    # 10.30.0.0/20 is the cluster SERVICES range, not the pod range. The API
+    # dials the Redis Service ClusterIP (10.30.x.x) and the policy is evaluated
+    # BEFORE the DNAT to the backing pod, so allowing the pod CIDR (10.20.0.0/16)
+    # is not enough — proven live: pod 10.20.0.49 carried the right label and the
+    # connection still timed out. Prod never hits this because its Redis is
+    # Memorystore, a plain VPC address with no Service in front.
+    redisCidr: 10.30.0.0/20
+    redisPort: 6379

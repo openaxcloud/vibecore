@@ -131,9 +131,11 @@ export const ecodeCampaignMarketingPages = {
 } as const satisfies Record<CampaignPageKey, PageRouteDefinition>;
 
 /*
- * Monthly prices must stay aligned with packages/billing/src/index.ts.
- * The marketing page intentionally keeps Pro at $29 and Team at $99 because
- * those are the backend-enforced Stripe checkout amounts.
+ * Prices must stay aligned with `creditPlanCatalog` in packages/billing/src/index.ts
+ * — the SAME catalog the checkout charges (Core €25/€20, Pro €100/€95). The CTA
+ * links to /subscribe?plan=<key>&interval=<monthly|annual>, so what a visitor sees
+ * here is exactly what Stripe bills. Keys: Starter='free' (no checkout, → /register),
+ * core, pro, enterprise (→ /contact-sales).
  */
 export const ecodePricingPlans = [
   {
@@ -1353,7 +1355,13 @@ export function EcodePricingPage() {
                 </div>
                 <div className="mt-6">
                   <ActionLink
-                    to={plan.enterprise ? '/contact-sales' : '/register'}
+                    to={
+                      plan.enterprise
+                        ? '/contact-sales'
+                        : plan.monthlyCents === 0
+                          ? '/register'
+                          : `/subscribe?plan=${plan.key}&interval=${billingPeriod === 'yearly' ? 'annual' : 'monthly'}`
+                    }
                     fullWidth
                     variant={plan.popular ? 'default' : 'outline'}
                   >

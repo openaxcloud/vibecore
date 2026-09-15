@@ -880,7 +880,19 @@ export const DiffView = memo(({ fileHistory, setFileHistory }: DiffViewProps) =>
 
     try {
       workbenchStore.setCurrentDocumentContent(effectiveOriginalContent);
-      await workbenchStore.saveCurrentDocument();
+
+      /*
+       * Revert still goes through the conflict prompt: if the file moved on disk
+       * since it was loaded, silently clobbering it would destroy someone else's
+       * write. On conflict the dialog takes over and the history entry stays put
+       * until the user actually resolves it.
+       */
+      const outcome = await workbenchStore.saveFileWithConflictPrompt(selectedFile);
+
+      if (outcome === 'conflict') {
+        return;
+      }
+
       setFileHistory((prev) => {
         const next = { ...prev };
         delete next[selectedFile];

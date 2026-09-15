@@ -1,0 +1,51 @@
+# Environnement — bundle IBAN 022f23fc44ea9bd025abab77db55a05fb003076e
+# REJEU SOUS NODE 20 (exigence expert)
+date_utc      : 2026-08-06T06:31:02Z
+node          : v20.20.2
+node path     : /private/tmp/claude-501/-Users-hb-dev-vibecore/ddd1fc44-aed8-4301-a224-a1034392b9ac/scratchpad/node-v20.20.2-darwin-arm64/bin/node
+node source   : https://nodejs.org/dist/v20.20.2/node-v20.20.2-darwin-arm64.tar.gz
+node integrity: SHASUMS256.txt officiel -> OK (vérifié à l'extraction)
+pnpm          : 9.14.4
+os            : Darwin 25.4.0 arm64
+
+## Résultats sous Node 20
+specs remix/gallery : 76 passed (76)   [remix-pipeline + gallery-routes + remix-routes]
+rejeu politique     : 17/17 cas conformes
+
+## git
+rev-parse HEAD : 022f23fc44ea9bd025abab77db55a05fb003076e
+branch         : fix/iban-trailing-group
+origin/main    : 4506f042bb7b8fbfcf033e54b96c9599c5e44d84
+merge-base     : 237b8214eebada0465e1817c411d29f09eb327dc
+git --version  : git version 2.50.1 (Apple Git-155)
+
+## Patch CUMULATIF (base -> SHA)
+commande : git diff 237b8214eebada0465e1817c411d29f09eb327dc 022f23fc44ea9bd025abab77db55a05fb003076e --binary
+reproduction VÉRIFIÉE : appliqué sur la merge-base, l'arbre reconstruit
+  a le même tree-sha que le commit -> e36f098cf65b9dbb43264c1ef2f96f2b902ab8b8
+
+## Commits du lot (base..SHA)
+022f23fc fix(remix): R4 — aucun fragment du candidat journalisé, cardinalité métrique bornée
+dbde310f fix(remix): garde-fous R4 — log échantillonné + tronqué, définition normative du candidat
+94fd05f7 Merge remote-tracking branch 'origin/main' into fix/iban-trailing-group
+b472720f fix(remix): politique IBAN arbitrée — masquer sur pays+longueur, checksum en observation
+0d3613da fix(remix): IBAN masqué par LONGUEUR NATIONALE (ISO 13616), plus par regex
+5bfb23ff fix(remix): l'IBAN était masqué en laissant son dernier groupe en clair
+
+## git status --porcelain (vide = arbre propre)
+## fin status
+
+## Fichiers du lot
+ docs/REMIX_PII_IBAN_POLICY.md                      | 162 +++++++
+ .../2026-08-04-v305-reserves/README.md             | 119 +++++
+ .../live-clone-scan-e41821f377.txt                 |  28 ++
+ .../live-prod-transcript.txt                       |  47 ++
+ .../replay-iban-expert-output.txt                  |  52 +++
+ .../2026-08-04-v305-reserves/replay-iban-expert.ts |  74 +++
+ services/api/src/app.ts                            |  44 +-
+ services/api/src/remix-pii-metrics.ts              | 144 ++++++
+ services/api/src/remix-pipeline.spec.ts            | 396 +++++++++++++++-
+ services/api/src/remix-pipeline.ts                 | 518 ++++++++++++++++++++-
+ services/api/src/tests/gallery-routes.spec.ts      |   4 +
+ tests/e2e/gallery-remix-license.spec.ts            |   3 +
+ 12 files changed, 1568 insertions(+), 23 deletions(-)

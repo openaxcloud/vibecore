@@ -1,0 +1,338 @@
+From 2cabebf0ad574de0ad0d747a943e72efb4450c83 Mon Sep 17 00:00:00 2001
+From: Avi <avi@snatchbot.me>
+Date: Fri, 7 Aug 2026 11:27:40 +0300
+Subject: [PATCH] =?UTF-8?q?fix(deploy):=20SEC-1b=20=E2=80=94=20fermer=20le?=
+ =?UTF-8?q?=20fail-open=20de=20accessConfigFromMetadata=20(mode=20inconnu?=
+ =?UTF-8?q?=20->=20locked)?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Réserve du contre-audit expert sur ad835dfe : la lecture de la configuration
+d'accès était un DENY-LIST déguisé.
+
+    if (access && access.mode === 'password') { … }
+    return { mode: 'public' };
+
+`public` servait donc de repli à TOUT état non reconnu : mode inconnu ou futur,
+mode non-string, bloc `access` présent mais malformé, migration partiellement
+appliquée, JSON corrompu — tous silencieusement lisibles par le monde entier.
+
+Le cas le plus net est `locked` lui-même. Cette fonction classait un déploiement
+`locked` quand son hash était absent (SEC-1), mais relisait ensuite ce même
+`locked` comme PUBLIC. La décision fail-closed ne survivait pas à son propre
+aller-retour de persistance : le déploiement se rouvrait au monde au premier
+rechargement.
+
+Nouvelle politique — ALLOW-LIST. Seuls deux états peuvent servir publiquement,
+et tous deux doivent être reconnus POSITIVEMENT :
+  1. `access` totalement absent (ou null)            -> public
+  2. `mode === 'public'` explicite                    -> public
+  3. `mode === 'password'` + hash string non vide     -> password
+  4. TOUT LE RESTE                                    -> locked (503)
+
+Un bloc `access` présent mais inexploitable (chaîne, nombre, tableau, objet
+vide) ne peut pas être traité comme « pas de configuration » : quelqu'un a
+écrit quelque chose là, et on ne sait pas quoi. Refuser de servir est
+récupérable — le propriétaire re-pose un mot de passe ; servir ne l'est pas.
+
+Vérifié avant de durcir : le SEUL écrivain est `metadata.access = { mode:
+'password', passwordHash }` ou `delete metadata.access`. Aucune donnée existante
+ne bascule donc en `locked` — le durcissement n'ouvre aucune régression.
+
+TEST NÉGATIF DÉTERMINISTE, aux deux niveaux :
+  unitaire (deployment-access.spec.ts) — `private`, `locked`, `123`,
+    `password-protected`, `PASSWORD`, mode futur, chaîne vide, modes non-string,
+    `access` non-objet, bloc vide -> tous `locked`, jamais `public`. Plus un
+    contrôle de couverture qui ÉNUMÈRE les entrées produisant `public` et
+    échouerait si un nouveau chemin ouvrant apparaissait.
+  route (deployment-password.spec.ts) — chaque mode inconnu sur la vraie route
+    de service, avec du contenu réel sur disque : 503, code
+    DEPLOYMENT_ACCESS_LOCKED, ZÉRO octet applicatif, `no-store` + `Vary: Cookie`,
+    et l'endpoint de déverrouillage refuse aussi.
+
+PREUVE QUE LES TESTS ONT DES DENTS : avec l'ancienne logique restaurée,
+11 des 26 tests unitaires TOMBENT, tandis que les tests SEC-5/6/7 existants
+restent verts — les nouveaux tests attrapent exactement le défaut visé, sans
+recouvrir les garanties déjà acquises.
+
+43/43 tests (26 unitaires + 17 route, dont les 3 SEC-7 poison_replay intacts).
+Build strict `tsc` de services/api : 0 erreur.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+---
+ services/api/src/deployment-access.spec.ts    | 88 +++++++++++++++++++
+ services/api/src/deployment-access.ts         | 65 +++++++++++---
+ .../api/src/tests/deployment-password.spec.ts | 74 ++++++++++++++++
+ 3 files changed, 215 insertions(+), 12 deletions(-)
+
+diff --git a/services/api/src/deployment-access.spec.ts b/services/api/src/deployment-access.spec.ts
+index 6a6cdc54..29d97abf 100644
+--- a/services/api/src/deployment-access.spec.ts
++++ b/services/api/src/deployment-access.spec.ts
+@@ -61,6 +61,94 @@ describe('accessConfigFromMetadata', () => {
+     expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('locked');
+     expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 123 } }).mode).toBe('locked');
+   });
++
++  it('reads an EXPLICIT public config as public', () => {
++    // L'ouverture doit être reconnue positivement, pas obtenue par défaut.
++    expect(accessConfigFromMetadata({ access: { mode: 'public' } }).mode).toBe('public');
++  });
++
++  /*
++   * SEC-1b — le fail-open que le contre-audit a trouvé.
++   *
++   * L'ancienne forme était `if (mode === 'password') {…} return public` : PUBLIC
++   * servait de repli à tout état non reconnu. Ces cas ne sont pas théoriques —
++   * `locked` en fait partie, donc la décision fail-closed de SEC-1 ne survivait
++   * même pas à son propre aller-retour de persistance.
++   */
++  describe('SEC-1b: an UNRECOGNISED access config fails closed to locked — never public', () => {
++    const unknownModes = [
++      'private',
++      'locked', // ← relu depuis la base : l'ancien code le rouvrait en public
++      '123',
++      'password-protected', // proche de `password`, mais PAS `password`
++      'PASSWORD', // la casse ne doit pas ouvrir
++      'future-mode-not-yet-known',
++      '',
++    ];
++
++    for (const mode of unknownModes) {
++      it(`mode ${JSON.stringify(mode)} → locked`, () => {
++        const config = accessConfigFromMetadata({ access: { mode } });
++
++        expect(config.mode).toBe('locked');
++        expect(config.mode).not.toBe('public');
++        // Un état verrouillé ne doit jamais transporter de secret exploitable.
++        expect(config.passwordHash).toBeUndefined();
++      });
++    }
++
++    it('a non-string mode → locked', () => {
++      for (const mode of [123, true, null, {}, [], undefined]) {
++        expect(accessConfigFromMetadata({ access: { mode } }).mode, JSON.stringify(mode)).toBe('locked');
++      }
++    });
++
++    it('an access block that is present but not an object → locked', () => {
++      /*
++       * `{ access: 'password' }` est le piège : quelqu'un a écrit quelque chose,
++       * mais pas la forme attendue. Le traiter comme « absent » le rendrait
++       * public.
++       */
++      for (const access of ['password', 'public', 42, true, []]) {
++        expect(accessConfigFromMetadata({ access }).mode, JSON.stringify(access)).toBe('locked');
++      }
++    });
++
++    it('an EMPTY access block (partially applied migration) → locked', () => {
++      expect(accessConfigFromMetadata({ access: {} }).mode).toBe('locked');
++      expect(accessConfigFromMetadata({ access: { passwordHash: 'h' } }).mode).toBe('locked');
++    });
++
++    it('the ONLY inputs that yield public are: no access at all, or an explicit public mode', () => {
++      /*
++       * Contrôle de couverture : on énumère un échantillon large et on vérifie
++       * que l'ensemble des entrées « publiques » est exactement celui attendu.
++       * Sans lui, ajouter un nouveau chemin ouvrant passerait inaperçu.
++       */
++      const inputs: Array<{ label: string; metadata: unknown }> = [
++        { label: 'undefined', metadata: undefined },
++        { label: 'null', metadata: null },
++        { label: '{}', metadata: {} },
++        { label: 'access: null', metadata: { access: null } },
++        { label: 'access: undefined', metadata: { access: undefined } },
++        { label: 'mode public', metadata: { access: { mode: 'public' } } },
++        { label: 'mode password + hash', metadata: { access: { mode: 'password', passwordHash: 'h' } } },
++        { label: 'mode password sans hash', metadata: { access: { mode: 'password' } } },
++        { label: 'mode private', metadata: { access: { mode: 'private' } } },
++        { label: 'mode locked', metadata: { access: { mode: 'locked' } } },
++        { label: 'access chaîne', metadata: { access: 'password' } },
++        { label: 'access vide', metadata: { access: {} } },
++      ];
++
++      const publicOnes = inputs
++        .filter((i) => accessConfigFromMetadata(i.metadata).mode === 'public')
++        .map((i) => i.label);
++
++      expect(publicOnes.sort()).toEqual(
++        ['undefined', 'null', '{}', 'access: null', 'access: undefined', 'mode public'].sort(),
++      );
++    });
++  });
+ });
+ 
+ describe('deriveDeploymentAccessSecret (SEC-6 dedicated key)', () => {
+diff --git a/services/api/src/deployment-access.ts b/services/api/src/deployment-access.ts
+index fdd50ae1..316fa2cc 100644
+--- a/services/api/src/deployment-access.ts
++++ b/services/api/src/deployment-access.ts
+@@ -45,27 +45,68 @@ export function deriveDeploymentAccessSecret(baseSecret: string): string {
+ }
+ 
+ /**
+- * Read the access config off a deployment's metadata JSON, defaulting to PUBLIC.
++ * Read the access config off a deployment's metadata JSON.
+  *
+- * SEC-1 (fail-closed): a deployment the owner marked `password` whose stored hash
+- * is absent/empty must NOT degrade to public — that would silently expose a
+- * deployment the owner intended to gate. It becomes `locked` (serves nothing)
+- * until a valid password is re-set.
++ * SEC-1 (fail-closed) — ALLOW-LIST, not deny-list. Only two states may serve
++ * content publicly, and both must be recognised POSITIVELY:
++ *
++ *   1. `access` totally absent (or null)  → public — the legitimate default for
++ *      a deployment that was never gated.
++ *   2. `mode === 'public'` explicitly     → public — the owner said so.
++ *   3. `mode === 'password'` + non-empty string hash → password.
++ *   4. ANYTHING ELSE                      → locked (serves nothing, 503).
++ *
++ * The previous shape was `if (mode === 'password') {…} return public`, which
++ * made public the fallback for every unrecognised state: an unknown or future
++ * mode, a non-string mode, a partially-applied migration, corrupted JSON — all
++ * silently world-readable. Worst of all it did not survive its own round-trip:
++ * a deployment this very function had classified `locked` was read back as
++ * PUBLIC, so the SEC-1 fail-closed decision leaked open the moment it was
++ * persisted and re-read.
++ *
++ * Rule of thumb encoded here: an access config we cannot fully understand is
++ * evidence that SOMETHING was configured. Refusing to serve is recoverable
++ * (the owner re-sets the password); serving is not (the content is out).
+  */
+ export function accessConfigFromMetadata(metadata: unknown): DeploymentAccessConfig {
+-  const access = (metadata as { access?: unknown } | null | undefined)?.access as
+-    | { mode?: unknown; passwordHash?: unknown }
+-    | undefined;
++  const container = metadata as { access?: unknown } | null | undefined;
++  const access = container && typeof container === 'object' ? container.access : undefined;
++
++  // 1. Jamais configuré → public. C'est le seul défaut ouvert légitime.
++  if (access === undefined || access === null) {
++    return { mode: 'public' };
++  }
++
++  /*
++   * Une configuration PRÉSENTE mais inexploitable (chaîne, nombre, tableau) ne
++   * peut pas être traitée comme « pas de configuration » : quelqu'un a écrit
++   * quelque chose là, et on ne sait pas quoi.
++   */
++  if (typeof access !== 'object' || Array.isArray(access)) {
++    return { mode: 'locked' };
++  }
++
++  const { mode, passwordHash } = access as { mode?: unknown; passwordHash?: unknown };
++
++  // 2. Ouverture EXPLICITE — reconnue positivement, jamais par défaut.
++  if (mode === 'public') {
++    return { mode: 'public' };
++  }
+ 
+-  if (access && access.mode === 'password') {
+-    if (typeof access.passwordHash === 'string' && access.passwordHash.length > 0) {
+-      return { mode: 'password', passwordHash: access.passwordHash };
++  // 3. Protégé : n'est exploitable qu'avec un hash réellement utilisable.
++  if (mode === 'password') {
++    if (typeof passwordHash === 'string' && passwordHash.length > 0) {
++      return { mode: 'password', passwordHash };
+     }
+ 
+     return { mode: 'locked' };
+   }
+ 
+-  return { mode: 'public' };
++  /*
++   * 4. Tout le reste — `locked` relu depuis la base, mode inconnu ou futur,
++   * mode non-string, valeur corrompue. On refuse de servir.
++   */
++  return { mode: 'locked' };
+ }
+ 
+ /** One cookie per deployment so unlocking one app never unlocks another sharing a host. */
+diff --git a/services/api/src/tests/deployment-password.spec.ts b/services/api/src/tests/deployment-password.spec.ts
+index 58c090b2..7e2dad98 100644
+--- a/services/api/src/tests/deployment-password.spec.ts
++++ b/services/api/src/tests/deployment-password.spec.ts
+@@ -383,4 +383,78 @@ describe('password-protected static deployments (endpoint)', () => {
+     });
+     expect(gate.statusCode).toBe(503);
+   });
++
++  /*
++   * SEC-1b — le fail-open relevé par le contre-audit, prouvé DE BOUT EN BOUT.
++   *
++   * `accessConfigFromMetadata` retombait sur `public` pour tout mode qui n'était
++   * pas exactement `password`. Le cas le plus net est `locked` lui-même : la
++   * décision fail-closed de SEC-1 ne survivait pas à un aller-retour en base — le
++   * déploiement était reservi au monde entier au rechargement suivant.
++   *
++   * Chaque mode est vérifié sur la vraie route de service, avec du contenu réel
++   * sur disque, pour que la preuve ne dépende pas d'un raisonnement sur le code.
++   */
++  const unknownAccessModes = ['private', 'locked', '123', 'password-protected', 'PASSWORD', 'future-mode'];
++
++  for (const [index, mode] of unknownAccessModes.entries()) {
++    it(`SEC-1b: mode d'accès inconnu ${JSON.stringify(mode)} -> 503 verrouillé, JAMAIS public`, async () => {
++      const store = new TestApiStore();
++      const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
++      const reg = await app.inject({
++        method: 'POST',
++        url: '/auth/register',
++        payload: {
++          email: `unknown-mode-${index}@example.com`,
++          password: 'password123',
++          name: 'U',
++          organizationName: 'U Org',
++        },
++      });
++      const auth = reg.json() as { token: string; organization: { id: string } };
++      const proj = await app.inject({
++        method: 'POST',
++        url: `/orgs/${auth.organization.id}/projects`,
++        headers: { authorization: `Bearer ${auth.token}` },
++        payload: { name: 'U Project' },
++      });
++      const projectId = (proj.json() as { project: { id: string } }).project.id;
++
++      const deployment = await store.createDeployment({
++        projectId,
++        provider: 'static',
++        environment: 'preview',
++        status: 'READY',
++        url: 'https://example.test/x',
++        metadata: { access: { mode } },
++      });
++      const dir = staticDeploymentSnapshotDir(deployment.id);
++      await mkdir(dir, { recursive: true });
++      await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
++
++      const res = await serve(app, deployment.id);
++
++      expect(res.statusCode).toBe(503);
++      expect(res.statusCode).not.toBe(200);
++      expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_LOCKED');
++
++      // ZÉRO octet applicatif : c'est la propriété qui compte, pas le seul statut.
++      expect(res.body).not.toContain('SECRET CONTENT');
++
++      /*
++       * Un état verrouillé est « gated » : sa réponse ne doit jamais être
++       * réutilisable par un cache partagé pour un autre visiteur.
++       */
++      expect(res.headers['cache-control']).toContain('no-store');
++      expect(String(res.headers.vary ?? '')).toContain('Cookie');
++
++      // Et il n'existe aucun mot de passe capable de le déverrouiller.
++      const gate = await app.inject({
++        method: 'POST',
++        url: `/static-deployments/${deployment.id}/__access`,
++        payload: { password: 'anything' },
++      });
++      expect(gate.statusCode).toBe(503);
++    });
++  }
+ });
+-- 
+2.50.1 (Apple Git-155)
+

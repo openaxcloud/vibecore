@@ -30,6 +30,16 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
+    # Integrated project database (CNPG). Without this the user's app cannot open
+    # a socket to its own Postgres from the IDE runtime, while the same code works
+    # once deployed (server-deploy-egress already allows 5432).
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: project-databases
+      ports:
+        - protocol: TCP
+          port: 5432
     - to:
         - ipBlock:
             cidr: 0.0.0.0/0

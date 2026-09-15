@@ -359,6 +359,55 @@ export function creditPlanByKey(key: string | undefined): CreditBillingPlan {
   return findCreditPlan(toCreditPlanKey(key)) ?? creditPlanCatalog[0];
 }
 
+// ===========================================================================
+// Canonical Replit-parity plan surface (Starter/Core/Pro/Enterprise).
+// After the P7 cutover these are the ONLY plan keys used from the pricing page
+// through checkout, the Subscription row, and the AI gateway. `billingPlans`
+// above survives only as the internal limit/resource tiers that each credit
+// plan's `.limits` derive from — it is never a user-facing or stored plan key.
+// ===========================================================================
+
+export type BillingInterval = 'monthly' | 'annual';
+
+/** The credit plans that go through Stripe self-serve checkout. Starter is free
+ * (no checkout) and Enterprise is sales-led (contact-sales). */
+export const SELF_SERVE_CHECKOUT_PLAN_KEYS: readonly CreditPlanKey[] = ['core', 'pro'];
+
+export function isSelfServeCheckoutPlan(key: string | undefined): key is 'core' | 'pro' {
+  return key === 'core' || key === 'pro';
+}
+
+/** Amount actually charged for a plan at a billing interval, in cents. Monthly =
+ * the per-month price; Annual = the single yearly charge (annualCents). This is
+ * the single source of truth the pricing page displays AND checkout charges. */
+export function creditPlanChargeCents(plan: CreditBillingPlan, interval: BillingInterval): number {
+  return interval === 'annual' ? plan.annualCents : plan.monthlyCents;
+}
+
+/** Per-month figure to DISPLAY for an interval (annual shows the discounted
+ * effective monthly, monthly shows the sticker price). */
+export function creditPlanDisplayMonthlyCents(plan: CreditBillingPlan, interval: BillingInterval): number {
+  return interval === 'annual' ? plan.annualMonthlyCents : plan.monthlyCents;
+}
+
+/** Map a Replit-parity plan key to the AI gateway's model-tier key. Starter uses
+ * base models (gateway `free`), Core the mid tier (`pro`), Pro the most powerful
+ * models (`business` — Pro has `topModels: true`), Enterprise everything. Any
+ * legacy key is normalised first, so `team` → `pro` → `business`. */
+export function creditPlanToGatewayTier(key: string | undefined): 'free' | 'pro' | 'business' | 'enterprise' {
+  switch (toCreditPlanKey(key)) {
+    case 'core':
+      return 'pro';
+    case 'pro':
+      return 'business';
+    case 'enterprise':
+      return 'enterprise';
+    case 'starter':
+    default:
+      return 'free';
+  }
+}
+
 // --- Credit packs (one-time purchases, Replit parity) ----------------------
 //
 // Replit sells four pre-paid credit packs at a volume discount; the credits

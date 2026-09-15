@@ -1,0 +1,191 @@
+schema_version: 1
+audit:
+  repository: openaxcloud/vibecore
+  remote_url: https://github.com/openaxcloud/vibecore.git
+  branch_at_start: main
+  code_sha: 8a93e995b37de513a142acaf41fed364787c5e4e
+  code_parent_sha: d3081c344d7089addb05fa4d3cc29517bfb45550
+  requested_sha: 6c1589229fb9131adb15f4ec1416629ebb8ac596
+  requested_sha_is_ancestor: true
+  commits_after_requested_sha: 9
+  audit_started_date: "2026-08-07"
+  consultation_date: "2026-08-07"
+  clean_detached_worktree: /private/tmp/vibecore-gate1.6gpjnH/repo
+  initial_tree_clean: true
+  production_modified: false
+  cloud_resources_created: false
+  note: >-
+    origin/main a avancé à 65f52894ebb3b2d763c5241355bafb89e034675c
+    pendant l'audit. Toutes les preuves restent volontairement gelées sur code_sha.
+
+git_metadata:
+  submodules: []
+  tags_at_code_sha: []
+  remote_head_count_at_capture: 195
+  open_pr_count_initial: 52
+  open_pr_count_final: 49
+  remote_heads_listing_sha256: 288de9dd5c1068b8bf378091ebc5c3e579330db0c065ecc8d47cf4ae9fe8ff94
+  open_pr_listing_sha256: 17bb06234738ec8e1540273236e7078dc28d1c1cd11fcb064e5fc9c3c275d0d9
+
+commands:
+  - evidence_id: GIT-BASELINE-001
+    command: "git rev-parse HEAD && git status --porcelain=v1 && git remote -v"
+    result: "HEAD exact; arbre initial propre; origin correct"
+    status: PASS
+  - evidence_id: INSTALL-001
+    command: "pnpm install --frozen-lockfile"
+    result: "36 projets, 2052 paquets, 11.5 s"
+    status: PASS
+  - evidence_id: PRISMA-001
+    command: "pnpm prisma:generate"
+    result: "Prisma 7.8.0 généré"
+    status: PASS
+  - evidence_id: DB-FRESH-001
+    command: "migrations Prisma contre PostgreSQL éphémère vierge"
+    result: "85 migrations, 123 tables, vector 0.8.2, zéro échec"
+    status: PASS
+  - evidence_id: DB-UPGRADE-001
+    command: "upgrade 1d5c1b48d2246e5562640f46f61299ccc737a687 vers code_sha"
+    result: "84 puis 85 migrations, seed conservé"
+    status: PASS_LIMITED
+  - evidence_id: TYPES-001
+    command: "pnpm typecheck"
+    result: "exit 0"
+    status: PASS
+  - evidence_id: LINT-001
+    command: "pnpm lint"
+    result: "exit 0, 48 avertissements no-empty-function, scope app"
+    status: PASS_WITH_RESERVES
+  - evidence_id: UNIT-001
+    command: "pnpm test"
+    result: "555 fichiers, 4334 tests passés, 61.93 s"
+    status: PASS
+  - evidence_id: SERVICES-001
+    command: "suites services ciblées"
+    result: "worker 37 passés; autres suites affectées par ENFILE"
+    status: BLOCKED_HOST_RESOURCE
+  - evidence_id: BUILD-001
+    command: "pnpm build"
+    result: "ENFILE après 498 modules"
+    status: BLOCKED_HOST_RESOURCE
+  - evidence_id: INFRA-001
+    command: "node infra/scripts/validate.mjs"
+    result: "exit 1, networkpolicies/workspaces-deny-default.yaml absent"
+    status: BROKEN
+  - evidence_id: HELM-001
+    command: "helm lint/template avec values-prod et tag sha-8a93e995"
+    result: "lint pass; 64 ressources rendues"
+    status: PASS_STATIC
+    artifact_sha256: 8d4fea5edb45475a89fdfaf6e89f3722f32a9ab5058fd364f95d85ef257daa82
+  - evidence_id: TERRAFORM-001
+    command: "terraform fmt; init -backend=false; validate pour staging et prod"
+    result: "succès; aucun plan appliqué"
+    status: PASS_STATIC
+  - evidence_id: PNPM-AUDIT-001
+    command: "pnpm audit --prod --audit-level high --json"
+    result: "registre sans résultat exploitable; arrêt contrôlé exit 130"
+    status: BLOCKED_NETWORK_OR_REGISTRY
+  - evidence_id: GITLEAKS-001
+    command: "gitleaks detect --source . --no-git --config .gitleaks.toml --redact"
+    result: >-
+      gitleaks 8.30.1 exit 1; 12 candidats redacted dans des captures HTML
+      docs/deploy-evidence, docs/parity/baseline et un bundle public. Aucune
+      valeur candidate n'est stockée dans les artefacts Gate 1.
+    status: BROKEN_NEEDS_SECRET_TRIAGE
+
+github_runs:
+  - run_id: 31165120287
+    name: Production CI
+    sha: d3081c344d7089addb05fa4d3cc29517bfb45550
+    conclusion: success
+    exact_audit_sha: false
+    log_sha256: d23d21ee7f89143750d8a323cbad887afcf2a8459b573af1a2ab2e4f11056483
+  - run_id: 31165120337
+    name: Security Analysis
+    sha: d3081c344d7089addb05fa4d3cc29517bfb45550
+    conclusion: success_with_non_blocking_dependency_findings
+    exact_audit_sha: false
+    log_sha256: 0afaf75ac6cc533028886a6bf1544c4eb228dce44a82cad178e96a958d5a111d
+  - run_id: 31165120246
+    name: Parity registry
+    sha: d3081c344d7089addb05fa4d3cc29517bfb45550
+    conclusion: success_created_audit_sha
+    exact_audit_sha: false
+    log_sha256: 898280559c2db0f7ee5f59af994632a9e88aa7b5d6df4e738431df7235f43718
+  - run_id: 31165120211
+    name: Deploy main
+    sha: d3081c344d7089addb05fa4d3cc29517bfb45550
+    conclusion: cancelled
+    exact_audit_sha: false
+    log_sha256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+
+source_hashes:
+  DESIGN_PROGRAM_MASTER.md: 051cab749e4390c71e4c87fa4364e068c00984452ba4878e2d277629a9fe5444
+  DESIGN_AUDIT_LIVE.md: 8994d51ecbc8f785946683973188161231884dafc6a47b1e0159ce0adcc9b334
+  BUG_INVENTORY_LIVE.md: c3dcadf94961acc1b4fc71985ff9f62bd7ff9a1ad002a0c11dea9c8c5b73316d
+  PLAN_REMAINING_UNIFIED.md: 958c39ef2582a9eada30780209fe6dd61f9ba69e13b9a26888a4c73bcc04be16
+  REPLIT_PARITY.md: ee055b5d2bf73fbd846c0f2102569f52a2cdf248115b0b5ed903bf9c4fe500ec
+  docs/DEPLOY_RUNBOOK.md: f682bb3d15bc016523b5f843f4e8a557da72494f33cfd3403ed8159c99de0120
+  docs/parity/IMPLEMENTATION_STATUS.yaml: fa8e56ee8aafd663bcdf9862d42e94d2c734c9f6a6fe3afc7cfc668bb1d1a8b0
+  services/api/src/app.ts: 33c085d1af3302d29459352a3aa3e06392c03b89554a9eeeee807a18a8346035
+  services/api/src/ledger-store.ts: a2bb9d5de9e37f13fd106fa65dfa6018ce72d6d28c0721cce85baca2125d7de9
+  services/api/src/object-storage.ts: 14656b2be1d9a1864ab042a24a8f91cab9c070c451f6de80063ee493d60c4a9f
+  services/api/src/metering-service.ts: 7a6d4d182fa40a856b8c72e6b06ab5f7c863da491bac358c6e7a3bea883cfb1e
+  services/api/src/credits-service.ts: d512dc3dc3b57196b736729ba9ae1eacbc42abee5dc22e40c25075a5375f78ca
+  services/api/src/database-provisioner.ts: 94e1c05835a91afcba17db1e91daf2b318d1516982a835295696c90ac58764f5
+  services/api/src/project-storage.ts: 60576f2034d76e9784f068a671c90cbf0ced549a1affd86e047cd863b6ed964e
+  services/workspace-manager/src/manager.ts: a46c772922bd342cb589f28527c5831452417999943044fbc6a029404a5865dd
+  services/preview-proxy/src/app.ts: 62c6c54178552d1ca625072286229b5f3dcb79d626cd154c79257272929c593a
+  packages/k8s-client/src/index.ts: 8344bacaa976979348a6e1c4b3a4ef03f3f8114ec2111c44e95a44a903d63535
+  packages/database/prisma/schema.prisma: c2517192157b1941dc52a19957a567fd83f35faa5a845c0f8ae24e5c9d366c63
+  packages/editor/src/index.ts: 88c5008cfffdfa6878eb9c9230aaa9b466f8b6fce989ee0c205843c7b0bb1f7f
+  app/lib/hooks/useMessageParser.ts: 80cf34e649365832f7107c3765032b2b8823537b8fb71c8153f3ef7f73bc93a6
+  app/lib/stores/workbench.ts: 68bc93d56792cd34bbcee93dc56d6b4b2d8b3a5a33e2db0e11c72bcb7f022d87
+  .github/workflows/deploy-main.yml: e499ff69e0249a5b0c9125127e5eb82762ad5f53f8d1128e6dc3ff0820b81f57
+  cloudbuild.yaml: 50f9f737f4a8a35682f510c61260cdf9388c61b277b4358bd6d91c9370e16d5d
+  infra/scripts/validate.mjs: e8e1a6dbf6c5bb4b37798e3d9651e97d125f27219f48342d7d4c29bcf7fef5ad
+  infra/helm/platform/values-prod.yaml: 159b7565397ae501a0fe051ca5c87908342729ef86cdeb9c11d34f119f4ebc13
+
+external_live_evidence:
+  postgres_migrations: executed_ephemeral
+  postgres_backup_restore_cutover: not_executed
+  kubernetes_runtime: not_executed
+  object_storage_gcs: not_executed
+  browser_playwright: not_executed
+  reverse_proxy: not_executed
+  deployment_and_rollback: not_executed
+  production: explicitly_not_modified
+
+teardown:
+  postgres_container: removed_and_absence_verified
+  redis_container: removed_and_absence_verified
+  terraform_generated_directories: removed
+  terraform_local_lock_drift: restored_to_audit_sha
+  audit_worktree_clean_after_diagnostics: true
+  audit_worktrees_removed_after_evidence_capture: true
+  temporary_root_absence_verified: true
+
+gate1_artifact_hashes:
+  docs/audit/AGENT_WORK_PACKAGES.yaml: 37a02fa89175daf28abf1b4017ace5267d7c18b1d5d8c6c965145052862cdc2e
+  docs/audit/ARCHITECTURE_DECISION.md: 61c86c88f780f76cbf0b09cf30be7da3b9740cc692d9f3654f5ebb05d2b57770
+  docs/audit/BASELINE_TEST_REPORT.md: 0efd5acb2351f2cf9d3f545d9cb3d50215cd41843ed8150346e68a885ffb022c
+  docs/audit/CONFIGURATION_REGISTRY.yaml: f955174ad3bdcb858f71984e4fb34d8cfe5ae5f5d21ebece37cf78e1752fff23
+  docs/audit/CONTRACT_REGISTRY.yaml: 13cca2dda5e65e34a5b1d5e800f747aae39c1f836d340b40fc3e42cfe375cd75
+  docs/audit/DATA_OWNERSHIP_MATRIX.yaml: 2709ca20152af60b478a9a6f8e918da41b9acaf633f5f974f7cee0437077b8ec
+  docs/audit/DEPENDENCY_GRAPH.md: 6526c2d92b841de3e63215553dc328e9d3a0132f5f99584cbab4b1c26fd2cc4a
+  docs/audit/DISASTER_RECOVERY_REPORT.md: e970e92a9446332974841fa68b877c836bba736237bc8e7e148bfe885adb22e5
+  docs/audit/GAP_REGISTER.yaml: 546537d01e4db9365efeac724870f294de04dd378f2a1da70cd2ef7e436760f0
+  docs/audit/GATE1_REPORT.md: 087dde794a661271416f7bd70bc3e8c2b87cf4569d66c457ba452970bc28e2d1
+  docs/audit/MIGRATION_DAG.md: 61d0172c13e3bb9aadc84e30f9771da275e04573c94a486d801e6946d37f64e3
+  docs/audit/PARITY_MATRIX.yaml: b8708dae798b135cd4c03de45cef40f48b57156a61c40b3e85fc79cb1415a349
+  docs/audit/PRE_EXISTING_FAILURES.yaml: b62335f27e858ca2e052f8858ea7231b821fadef278bec1a103af49a5fc76cdd
+  docs/audit/REPOSITORY_BASELINE.md: 332ccf30616d219437ffe176f3f6595e569ca685f8e1987830f57bb8f66a3445
+  docs/audit/REPOSITORY_MAP.md: 59c9b7c2a3bdbfaad36538f134f4285a4ab819c326c6528cbcba4a26c1e86512
+  docs/audit/RISK_REGISTER.yaml: 69b582d433a3a01f455b187bd0c64e2d893bd48740f0911af0db0c82f1b0dbf1
+  docs/audit/ROLLBACK_PLAN.md: 58f7fc9f6fdb6448a3e11ffd286a242e65f2c383d9a1a4b87550234aea15b72e
+  docs/audit/SECURITY_THREAT_MODEL.md: df7d9e2249139d645472b3808de0319b2e3b09afbcfd3bf19267083ec439c4b0
+  docs/audit/SLO_AND_CAPACITY_PLAN.md: 8476e3b838eef9d9a3cb5aa4ea227760e90ad27be6ffbf8c980b3631ae082d61
+self_hash_policy: >-
+  Le manifeste ne peut pas contenir son propre hash sans récursion. Son hash
+  final est communiqué avec le rapport de remise; les autres artefacts sont
+  ajoutés ici après génération et validation.

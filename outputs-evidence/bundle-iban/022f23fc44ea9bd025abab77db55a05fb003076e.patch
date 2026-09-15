@@ -1,0 +1,418 @@
+commit 022f23fc44ea9bd025abab77db55a05fb003076e
+Author:     Avi <avi@snatchbot.me>
+AuthorDate: Wed Aug 5 20:15:49 2026 +0300
+Commit:     Avi <avi@snatchbot.me>
+CommitDate: Wed Aug 5 20:15:49 2026 +0300
+
+    fix(remix): R4 — aucun fragment du candidat journalisé, cardinalité métrique bornée
+    
+    Deux durcissements demandés par Avi (2026-08-05), qui touchent le CODE et pas
+    seulement les tests.
+    
+    1. AUCUN FRAGMENT DU CANDIDAT NE SORT — pas même tronqué
+       Le spécimen `ZZ91…` est RETIRÉ : la clé de contrôle est dérivée du numéro de
+       compte, et rien n'oblige à la journaliser pour savoir qu'un pays manque au
+       registre. UnknownIbanCandidate ne porte plus que le code pays, la longueur
+       normalisée et une CATÉGORIE DE DÉCISION (`UNKNOWN_COUNTRY_CODE`). Le log
+       `app.ts` en fait autant.
+    
+       Le test balaie TOUS les préfixes du candidat (de 3 caractères à la valeur
+       entière) et vérifie qu'aucun n'apparaît dans la charge utile, en plus des
+       formes espacée/compacte et de la clé de contrôle isolée.
+    
+    2. CARDINALITÉ DES MÉTRIQUES BORNÉE
+       `unknown_country_code` est indexé par code pays : un libellé alimenté par des
+       DONNÉES, donc une porte ouverte à l'explosion de séries temporelles (676 codes
+       à deux lettres possibles). Au plus 20 libellés NOMMÉS ; au-delà, tout s'agrège
+       sous `__other__`. Le TOTAL reste exact : seule la ventilation est bornée.
+       Le test injecte 60 codes distincts et vérifie <= 21 libellés, la présence du
+       fourre-tout, la conservation du total, et que le rendu Prometheus ne produit
+       pas plus de séries que de libellés.
+    
+    Tests ajoutés pour la revue experte (couverture des 5 points demandés) :
+    - « R4 — AUCUN fragment du candidat ne sort : ni corps, ni clé, ni préfixe »
+    - « GARDE-FOU — la CARDINALITÉ DES MÉTRIQUES est bornée, le total reste exact »
+    - « MAPPING — les bornes restent celles du texte ORIGINAL malgré la
+      normalisation » (espaces ordinaires, INSÉCABLES, insécable ÉTROITE mélangée,
+      forme COMPACTE ; vérifie aussi que l'avant et l'après sont intacts au
+      caractère près)
+    - « MAPPING — plusieurs IBAN sur UNE MÊME LIGNE : bornes distinctes et exactes »
+    
+    76 tests remix/gallery verts, rejeu 17/17, typecheck 0 erreur, lint app.ts à
+    187/173 = parité exacte avec origin/main.
+
+diff --git a/docs/REMIX_PII_IBAN_POLICY.md b/docs/REMIX_PII_IBAN_POLICY.md
+index ac49f312..1395d86f 100644
+--- a/docs/REMIX_PII_IBAN_POLICY.md
++++ b/docs/REMIX_PII_IBAN_POLICY.md
+@@ -93,19 +93,39 @@ de mille lignes ne doit pas produire mille lignes de journal.
+   codes pays.
+ - Une remise à zéro de la fenêtre (`resetRemixPiiMetrics()`) réarme le log.
+ 
+-**Le log ne porte jamais l'IBAN en clair.** Il contient le code pays, la longueur
+-normalisée, et un **spécimen tronqué** : les **4 premiers caractères** (pays + clé de
+-contrôle) suivis d'une ellipse — `ZZ91…`. Le **corps**, c'est-à-dire le numéro de compte,
+-n'apparaît jamais. La clé de contrôle est un checksum du corps : elle n'en révèle pas le
+-contenu.
++**Le log ne porte AUCUN fragment du candidat — pas même tronqué.** Ni le corps, ni la
++clé de contrôle, ni un préfixe. Un spécimen tronqué (`ZZ91…`) avait été envisagé puis
++**retiré** : la clé de contrôle est dérivée du numéro de compte, et rien n'oblige à la
++journaliser pour savoir qu'un pays manque au registre.
++
++Le log ne contient que des **métadonnées non sensibles** :
++
++| champ | exemple | pourquoi c'est sûr |
++|---|---|---|
++| `countryCode` | `ZZ` | c'est **l'information à diagnostiquer** |
++| `normalizedLength` | `24` | une longueur, pas une valeur |
++| `decision` | `UNKNOWN_COUNTRY_CODE` | catégorie de décision |
++| `remixJobId` | `cms…` | corrélation, sans donnée personnelle |
+ 
+ ```
+ WARN  remix PII: IBAN-shaped value whose country code is absent from the ISO 13616
+-      table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (sample truncated, further
+-      occurrences of this country are not logged)
+-      countryCode=ZZ  normalizedLength=24  sample=ZZ91…  remixJobId=…
++      table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is
++      logged; further occurrences of this country are not logged)
++      countryCode=ZZ  normalizedLength=24  decision=UNKNOWN_COUNTRY_CODE  remixJobId=…
+ ```
+ 
++### Cardinalité des métriques
++
++`unknown_country_code` est indexé **par code pays** : c'est un libellé alimenté par des
++**données**, donc une porte ouverte à l'explosion de séries temporelles. Elle est bornée :
++
++- au plus **20 libellés nommés** ;
++- au-delà, tout s'agrège sous `__other__` ;
++- le **total reste exact** — seule la ventilation est bornée, rien n'est perdu.
++
++Le rendu Prometheus ne produit donc jamais plus de 21 séries pour cette métrique, quelles
++que soient les données rencontrées.
++
+ ## Métriques
+ 
+ Exposées par `formatRemixPiiMetrics()` :
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt
+index b378770d..f8d62d35 100644
+--- a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt
+@@ -47,6 +47,6 @@ OK    R3 — plus long que le pays
+         in  "ES9121000418450200051332EXTRA"
+         out "ES9121000418450200051332EXTRA"
+ OK    R4 — code pays inconnu SIGNALÉ
+-        unknownCandidates = [{"countryCode":"ZZ","normalizedLength":24,"redactedSample":"ZZ91…"}]
++        unknownCandidates = [{"countryCode":"ZZ","normalizedLength":24,"decision":"UNKNOWN_COUNTRY_CODE"}]
+ 
+ 17/17 cas conformes
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
+index 40799fb5..2298aa42 100644
+--- a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
+@@ -61,7 +61,7 @@ const { observations } = maskPiiInFiles([
+ const signalled =
+   observations.ibanUnknownCandidates.length === 1 &&
+   observations.ibanUnknownCandidates[0].countryCode === 'ZZ' &&
+-  observations.ibanUnknownCandidates[0].redactedSample === 'ZZ91…';
++  observations.ibanUnknownCandidates[0].decision === 'UNKNOWN_COUNTRY_CODE';
+ 
+ console.log(`${signalled ? 'OK  ' : 'ECHEC'}  R4 — code pays inconnu SIGNALÉ`);
+ console.log(`        unknownCandidates = ${JSON.stringify(observations.ibanUnknownCandidates)}`);
+diff --git a/services/api/src/app.ts b/services/api/src/app.ts
+index 049178f3..52169291 100644
+--- a/services/api/src/app.ts
++++ b/services/api/src/app.ts
+@@ -22438,14 +22438,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+           recordUnknownIbanCountry(candidate.countryCode);
+ 
+           if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
++            /*
++             * Le log ne porte AUCUN fragment du candidat — pas même tronqué :
++             * ni corps, ni clé de contrôle, ni préfixe. Code pays, longueur,
++             * catégorie de décision et identifiant de job suffisent à agir.
++             */
+             request.log.warn(
+               {
+                 countryCode: candidate.countryCode,
+                 normalizedLength: candidate.normalizedLength,
+-                sample: candidate.redactedSample,
++                decision: candidate.decision,
+                 remixJobId: job.id,
+               },
+-              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (sample truncated, further occurrences of this country are not logged)',
++              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is logged; further occurrences of this country are not logged)',
+             );
+           }
+         }
+diff --git a/services/api/src/remix-pii-metrics.ts b/services/api/src/remix-pii-metrics.ts
+index 1b1e92e7..6ea1dbd2 100644
+--- a/services/api/src/remix-pii-metrics.ts
++++ b/services/api/src/remix-pii-metrics.ts
+@@ -19,6 +19,11 @@ export interface RemixPiiMetrics {
+    * Codes pays qui ressemblent à un IBAN mais sont absents du registre ISO
+    * 13616. NON masqués — comptés pour qu'un nouveau pays devienne visible et
+    * que la table soit mise à jour, plutôt que la fuite passe inaperçue.
++   *
++   * CARDINALITÉ BORNÉE : au plus {@link MAX_METRIC_COUNTRIES} libellés nommés ;
++   * au-delà, tout est agrégé sous {@link OTHER_COUNTRY_LABEL}. Le TOTAL reste
++   * donc exact même sous des données adverses, sans faire exploser le nombre de
++   * séries temporelles côté Prometheus.
+    */
+   unknownCountryCode: Record<string, number>;
+ }
+@@ -46,6 +51,24 @@ let metrics: RemixPiiMetrics = emptyMetrics();
+ 
+ const MAX_LOGGED_COUNTRIES = 10;
+ 
++/*
++ * ------------------------------------------------------------------------- *
++ * CARDINALITÉ DES MÉTRIQUES (garde-fou 2)
++ *
++ * `unknown_country_code` est indexé PAR CODE PAYS : c'est un libellé alimenté
++ * par des DONNÉES, donc une porte ouverte à l'explosion de séries temporelles
++ * (676 codes à deux lettres possibles, et rien n'oblige un fichier hostile à
++ * s'en tenir aux vrais). On borne donc le nombre de libellés NOMMÉS ; le reste
++ * s'agrège sous un libellé unique, ce qui préserve le TOTAL sans multiplier
++ * les séries.
++ * -------------------------------------------------------------------------
++ */
++
++const MAX_METRIC_COUNTRIES = 20;
++
++/** Libellé fourre-tout une fois le plafond de libellés nommés atteint. */
++export const OTHER_COUNTRY_LABEL = '__other__';
++
+ let loggedCountries = new Set<string>();
+ 
+ /**
+@@ -74,9 +97,19 @@ export function recordIbanMasked(checksumValid: boolean): void {
+   }
+ }
+ 
+-/** Un candidat IBAN d'un pays hors registre a été rencontré (et NON masqué). */
++/**
++ * Un candidat IBAN d'un pays hors registre a été rencontré (et NON masqué).
++ *
++ * Chaque occurrence compte. Seule la RÉPARTITION est bornée : passé
++ * {@link MAX_METRIC_COUNTRIES} libellés nommés, les codes suivants tombent dans
++ * {@link OTHER_COUNTRY_LABEL} — le total, lui, reste exact.
++ */
+ export function recordUnknownIbanCountry(countryCode: string): void {
+-  metrics.unknownCountryCode[countryCode] = (metrics.unknownCountryCode[countryCode] ?? 0) + 1;
++  const known = Object.prototype.hasOwnProperty.call(metrics.unknownCountryCode, countryCode);
++  const saturated = Object.keys(metrics.unknownCountryCode).length >= MAX_METRIC_COUNTRIES;
++  const label = known || !saturated ? countryCode : OTHER_COUNTRY_LABEL;
++
++  metrics.unknownCountryCode[label] = (metrics.unknownCountryCode[label] ?? 0) + 1;
+ }
+ 
+ /** Instantané immuable — pour l'exposition Prometheus et les tests. */
+diff --git a/services/api/src/remix-pipeline.spec.ts b/services/api/src/remix-pipeline.spec.ts
+index 2e05705f..6507cb68 100644
+--- a/services/api/src/remix-pipeline.spec.ts
++++ b/services/api/src/remix-pipeline.spec.ts
+@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
+ 
+ import {
+   formatRemixPiiMetrics,
++  OTHER_COUNTRY_LABEL,
+   recordIbanMasked,
+   recordUnknownIbanCountry,
+   resetRemixPiiMetrics,
+@@ -419,21 +420,37 @@ describe('person-name masking (I-RMX-3)', () => {
+ 
+       expect(files[0].content).toBe(line);
+       expect(observations.ibanUnknownCandidates).toEqual([
+-        { countryCode: 'ZZ', normalizedLength: 24, redactedSample: 'ZZ91…' },
++        { countryCode: 'ZZ', normalizedLength: 24, decision: 'UNKNOWN_COUNTRY_CODE' },
+       ]);
+     });
+ 
+-    it("R4 — le spécimen est TRONQUÉ : le corps de l'IBAN n'apparaît jamais", () => {
+-      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' }]);
+-
++    it('R4 — AUCUN fragment du candidat ne sort : ni corps, ni clé, ni préfixe', () => {
++      const iban = 'ZZ91 2100 0418 4502 0005 1332';
++      const compact = iban.replace(/ /g, '');
++      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: iban }]);
+       const [candidate] = observations.ibanUnknownCandidates;
+ 
+-      expect(candidate.redactedSample).toBe('ZZ91…');
+-      expect(candidate.redactedSample).not.toContain('2100');
+-      expect(candidate.redactedSample).not.toContain('1332');
++      // La charge utile se limite à des métadonnées non sensibles.
++      expect(Object.keys(candidate).sort()).toEqual(['countryCode', 'decision', 'normalizedLength']);
++      expect(candidate.decision).toBe('UNKNOWN_COUNTRY_CODE');
++
++      const payload = JSON.stringify(observations);
++
++      /*
++       * Ni la valeur complète, ni la forme espacée, ni la clé de contrôle,
++       * ni AUCUN préfixe du corps au-delà du code pays.
++       */
++      expect(payload).not.toContain(compact);
++      expect(payload).not.toContain(iban);
++      expect(payload).not.toContain('ZZ91');
++      expect(payload).not.toContain('91');
+ 
+-      // Rien dans l'observation ne porte la valeur complète.
+-      expect(JSON.stringify(observations)).not.toContain('210004184502');
++      for (let cut = 3; cut <= compact.length; cut += 1) {
++        expect(payload, `préfixe de ${cut} caractères`).not.toContain(compact.slice(0, cut));
++      }
++
++      // Le code pays SEUL reste (c'est l'information à diagnostiquer).
++      expect(candidate.countryCode).toBe('ZZ');
+     });
+ 
+     it('R4 — pas de faux signal sur du bruit court', () => {
+@@ -543,6 +560,93 @@ describe('person-name masking (I-RMX-3)', () => {
+       resetRemixPiiMetrics();
+     });
+ 
++    it('GARDE-FOU — la CARDINALITÉ DES MÉTRIQUES est bornée, le total reste exact', () => {
++      resetRemixPiiMetrics();
++
++      // 60 codes pays distincts : de quoi faire exploser les séries temporelles.
++      const codes: string[] = [];
++
++      for (let a = 0; a < 6; a += 1) {
++        for (let b = 0; b < 10; b += 1) {
++          codes.push(`${String.fromCharCode(74 + a)}${String.fromCharCode(48 + b)}`);
++        }
++      }
++
++      for (const code of codes) {
++        recordUnknownIbanCountry(code);
++      }
++
++      const snapshot = snapshotRemixPiiMetrics();
++      const labels = Object.keys(snapshot.unknownCountryCode);
++
++      // Au plus 20 libellés nommés + le fourre-tout.
++      expect(labels.length).toBeLessThanOrEqual(21);
++      expect(labels).toContain(OTHER_COUNTRY_LABEL);
++
++      // Le TOTAL est préservé : rien n'est perdu, seule la ventilation est bornée.
++      const total = Object.values(snapshot.unknownCountryCode).reduce((sum, n) => sum + n, 0);
++      expect(total).toBe(codes.length);
++
++      // Le rendu Prometheus ne produit pas plus de séries que de libellés.
++      const series = formatRemixPiiMetrics()
++        .split('\n')
++        .filter((line) => line.startsWith('remix_pii_iban_unknown_country_code'));
++      expect(series.length).toBe(labels.length);
++
++      resetRemixPiiMetrics();
++    });
++
++    it('MAPPING — les bornes restent celles du texte ORIGINAL malgré la normalisation', () => {
++      const cases: Array<{ label: string; line: string; expected: string }> = [
++        {
++          label: 'espaces ordinaires',
++          line: 'solde ES91 2100 0418 4502 0005 1332 EUR',
++          expected: 'ES91 2100 0418 4502 0005 1332',
++        },
++        {
++          label: 'espaces INSÉCABLES',
++          line: 'solde ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332 EUR',
++          expected: 'ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332',
++        },
++        {
++          label: 'forme COMPACTE',
++          line: 'solde ES9121000418450200051332 EUR',
++          expected: 'ES9121000418450200051332',
++        },
++        {
++          label: 'insécable ÉTROITE mélangée',
++          line: 'solde ES91\u202F2100 0418\u202F4502 0005\u202F1332 EUR',
++          expected: 'ES91\u202F2100 0418\u202F4502 0005\u202F1332',
++        },
++      ];
++
++      for (const { label, line, expected } of cases) {
++        const [span] = ibanSpans(line);
++
++        // La tranche du texte ORIGINAL redonne exactement le candidat…
++        expect(line.slice(span.start, span.end), label).toBe(expected);
++
++        // …et ce qui suit est intact, au caractère près.
++        expect(line.slice(span.end), label).toBe(' EUR');
++
++        // …et ce qui précède aussi.
++        expect(line.slice(0, span.start), label).toBe('solde ');
++      }
++    });
++
++    it('MAPPING — plusieurs IBAN sur UNE MÊME LIGNE : bornes distinctes et exactes', () => {
++      const line = 'de ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR';
++      const spans = ibanSpans(line);
++
++      expect(spans).toHaveLength(2);
++      expect(line.slice(spans[0].start, spans[0].end)).toBe('ES91 2100 0418 4502 0005 1332');
++      expect(line.slice(spans[1].start, spans[1].end)).toBe('NL91 ABNA 0417 1643 00');
++
++      // Les plages ne se chevauchent pas et respectent l'ordre du texte.
++      expect(spans[0].end).toBeLessThan(spans[1].start);
++      expect(line.slice(spans[1].end)).toBe(', 50 EUR');
++    });
++
+     it('les plages rendues sont celles du texte ORIGINAL', () => {
+       const line = 'x ES91 2100 0418 4502 0005 1332 EUR';
+       const [span] = ibanSpans(line);
+diff --git a/services/api/src/remix-pipeline.ts b/services/api/src/remix-pipeline.ts
+index 63c29ab5..5b506bec 100644
+--- a/services/api/src/remix-pipeline.ts
++++ b/services/api/src/remix-pipeline.ts
+@@ -482,14 +482,6 @@ export function ibanChecksumValid(compact: string): boolean {
+ const IBAN_MIN_LENGTH = 15;
+ const IBAN_MAX_LENGTH = 34;
+ 
+-/**
+- * Réduit un candidat à ce qui est diagnostiquable SANS exposer le numéro : les
+- * 4 premiers caractères (pays + clé de contrôle) puis une ellipse.
+- */
+-function redactIbanCandidate(compact: string): string {
+-  return `${compact.slice(0, 4).toUpperCase()}…`;
+-}
+-
+ /**
+  * Ce que le masquage a OBSERVÉ — remonté au bord (`remix-pii-metrics.ts`)
+  * plutôt que compté ici, pour garder ce module pur et testable.
+@@ -525,17 +517,23 @@ export interface IbanSpan {
+  * et un spécimen TRONQUÉ — de quoi diagnostiquer, rien pour reconstituer.
+  */
+ export interface UnknownIbanCandidate {
++  /** Code pays ISO 3166 alpha-2, normalisé en majuscules. */
+   countryCode: string;
+ 
+   /** Longueur du candidat APRÈS normalisation (séparateurs retirés). */
+   normalizedLength: number;
+ 
+   /**
+-   * Spécimen tronqué : les 4 premiers caractères (code pays + clé de contrôle)
+-   * puis une ellipse. Le CORPS — le numéro de compte — n'apparaît jamais. La
+-   * clé de contrôle est un checksum du corps, elle n'en révèle pas le contenu.
++   * CATÉGORIE DE DÉCISION — pourquoi ce candidat n'a pas été masqué.
++   *
++   * Ce type ne porte AUCUN fragment de la valeur, pas même tronqué : ni le
++   * corps, ni la clé de contrôle, ni un préfixe. Seuls le code pays (qui EST
++   * l'information à diagnostiquer), la longueur et la catégorie sortent d'ici.
++   * Un spécimen tronqué avait été envisagé puis RETIRÉ : la clé de contrôle
++   * est dérivée du numéro de compte, et rien n'oblige à la journaliser pour
++   * savoir qu'un pays manque au registre.
+    */
+-  redactedSample: string;
++  decision: 'UNKNOWN_COUNTRY_CODE';
+ }
+ 
+ export interface IbanScan {
+@@ -606,7 +604,7 @@ export function scanIbans(line: string): IbanScan {
+         unknownCandidates.push({
+           countryCode,
+           normalizedLength: probe.taken,
+-          redactedSample: redactIbanCandidate(probe.compact),
++          decision: 'UNKNOWN_COUNTRY_CODE',
+         });
+       }
+ 

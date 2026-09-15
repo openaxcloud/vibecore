@@ -735,6 +735,21 @@ export class ActionRunner {
         logger.warn(`Sanitized ${sanitized.stripped} stray control characters from ${relativePath} before writing`);
       }
 
+      /*
+       * BUG-AGENT-TRANSPORT-MARKUP — the model leaked its own function-call
+       * wrapper into the file body. The bytes are already clean (the write
+       * boundary strips them), but this is never normal: report it loudly so a
+       * recurrence is visible in the workspace log rather than silently healed.
+       * Any syntax damage left behind is caught by the AST self-repair loop
+       * immediately below, which regenerates the file.
+       */
+      if (sanitized.transportMarkupStripped > 0) {
+        logger.warn(
+          `Rejected ${sanitized.transportMarkupStripped} model transport-markup fragment(s) from ${relativePath} ` +
+            `before writing: ${sanitized.transportMarkupSamples.join(' ')}`,
+        );
+      }
+
       payload = sanitized.sanitized;
     } catch (error) {
       if (error instanceof JsonValidationError) {

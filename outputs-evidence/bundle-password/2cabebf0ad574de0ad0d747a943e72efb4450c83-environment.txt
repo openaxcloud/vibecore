@@ -1,0 +1,6 @@
+v24.10.0
+date_utc=2026-08-07T08:28:17Z
+sha=2cabebf0ad574de0ad0d747a943e72efb4450c83
+base=eb8bf87d929f646977fa6c2c26acfd490c3b3a0c
+node=v24.10.0
+vitest=3.2.6

@@ -1,0 +1,571 @@
+schema_version: 1
+document: "E-Code Replit and Cursor parity matrix"
+baseline:
+  repository: "openaxcloud/vibecore"
+  branch: "main"
+  audited_commit: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  audit_date: "2026-08-07"
+  audit_mode: "Gate 1 read-only repository inspection"
+  external_systems_exercised: false
+  independent_counter_audit_completed: false
+status_policy:
+  allowed:
+    - SIGNED_PROVEN
+    - PROVEN_REVIEW_PENDING
+    - IMPLEMENTED_UNPROVEN
+    - PARTIAL
+    - STUB
+    - BROKEN
+    - ABSENT
+    - OUT_OF_SCOPE
+    - BLOCKED
+    - UNKNOWN
+    - REFUSED
+  signed_proven_allowed_in_this_matrix: false
+  rationale: "No exact-SHA external proof or independent counter-audit was completed. Source tests were inspected but not treated as live proof."
+tracking_alignment:
+  source: "REPLIT_PARITY.md"
+  scope: "Gallery, import, remix, empty-project, and Gallery application sub-scope only; it is not the complete Replit or Cursor parity source."
+  exact_sha_live_tracking_replayed: false
+  reservation: "Existing tracking claims and evidence were not replayed on 8a93e995b37de513a142acaf41fed364787c5e4e and therefore do not upgrade any row to PROVEN_REVIEW_PENDING or SIGNED_PROVEN."
+entries:
+  - stable_id: "REPLIT-CREATE-IMPORT-001"
+    capability: "Project creation and import"
+    official_reference: "https://docs.replit.com/replit-app/import-to-replit"
+    user_journey: "Create an empty project or import GitHub, Bitbucket, ZIP, template, monorepo, branches, submodules, LFS, and large or hostile repositories with resumable, atomic cleanup."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/lib/import-hub.ts:85-197 — import hub tile catalogue"
+    api:
+      - "services/api/src/app.ts:19233-19542 — secure import staging and execution route"
+    code_evidence:
+      - "services/api/src/import-pipeline.ts:62-79 — import state machine"
+      - "services/api/src/import-pipeline.ts:158-193 — only github, bitbucket, zip, and empty are executed"
+      - "services/api/src/import-pipeline.ts:251-370 — secret scanning and consent checks"
+      - "services/api/src/project-storage.ts:915-954 — shallow Git clone with --depth=1"
+      - "services/api/src/app.ts:19484-19502 — target Project is created before file writes"
+      - "services/api/src/app.ts:19533-19541 — catch path does not delete the partially created Project"
+      - "services/api/src/app.ts:19190-19194 — cleanup removes staging only"
+    positive_evidence: "Source tests exercise import routes with test stores and doubles; they were not rerun as exact-SHA external imports."
+    negative_evidence: "No proof for private GitHub credentials, full history, branches, submodules, LFS, archive bombs, malicious repositories, or absence of residual target data after failure."
+    concurrency_evidence: "Idempotency state is process-local; no distributed two-request race proof."
+    live_evidence: "BLOCKED — requires dedicated public/private Git repositories, hostile fixtures, large repositories, and an ephemeral storage/database environment."
+    risk: "A failed import can leave a visible partial project, and shallow clone breaks history-preservation parity."
+    reservation: "Import hub breadth is greater than the actually executed provider set. The failure rollback path is BROKEN."
+    owner: "Projects and Imports"
+    pr_required: true
+
+  - stable_id: "REPLIT-EDITOR-002"
+    capability: "Cloud editor, files, search, diagnostics, and language intelligence"
+    official_reference: "https://docs.replit.com/replit-workspace/workspace-features"
+    user_journey: "Edit multiple files, search and replace, save, navigate symbols, format, complete, rename, reconnect, and avoid data loss on desktop, tablet, and mobile."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/routes/projects.$projectId.ide.tsx:108-176 — IDE loader and provider composition"
+      - "app/components/workbench/EditorPanel.tsx:149-326 — files, search, locks, save, definition, references, and rename controls"
+      - "app/components/workbench/Search.tsx:105-188,225-375 — search and replace-all workflow"
+    api: []
+    code_evidence:
+      - "packages/editor/src/index.ts:223-229 — Monaco desktop and CodeMirror mobile/tablet selection"
+      - "packages/editor/src/index.ts:223-235 — semantic index capped at 250 files and 500 KB"
+      - "packages/editor/src/index.ts:406-428,627-918 — regex and lexical symbol providers"
+      - "packages/editor/src/index.ts:838-845 — rename is file-local"
+      - "app/components/editor/codemirror/languages.ts:3-102 — syntax mode catalogue"
+    positive_evidence: "Editor components and local providers are wired in the IDE; no exact-SHA browser suite was executed for this audit."
+    negative_evidence: "No language-server client, server, protocol transport, or cross-file LSP proof was found. Symlinks, binary edit behavior, encodings, huge files, and reconnect data-loss tests remain missing."
+    concurrency_evidence: "No deterministic simultaneous edit/save conflict proof."
+    live_evidence: "BLOCKED — requires Playwright on desktop/tablet/mobile and real reconnect, large-file, encoding, and language-server fixtures."
+    risk: "UI labels can imply language intelligence beyond the lexical implementation; reconnect or concurrent edits may lose changes."
+    reservation: "File editing and search are wired, but LSP is ABSENT and full responsive/live behavior is unproven."
+    owner: "IDE and Editor"
+    pr_required: true
+
+  - stable_id: "REPLIT-TERMINAL-003"
+    capability: "Interactive terminal and PTY"
+    official_reference: "https://docs.replit.com/replit-workspace/workspace-features/shell"
+    user_journey: "Open multiple real terminals, interact with ANSI programs, resize, signal, interrupt, reconnect, retain scrollback, and remain isolated from hosts and other tenants."
+    ecode_status: IMPLEMENTED_UNPROVEN
+    ui_entry:
+      - "app/routes/projects.$projectId.ide.tsx:108-176 — IDE surface hosting the terminal panel"
+    api:
+      - "services/api/src/app.ts:16752-16883 — terminal authentication and quota routes"
+    code_evidence:
+      - "services/workspace-agent/src/terminal-session.ts:7-25,59-75,124-161 — node-pty preferred with pipe fallback"
+      - "services/workspace-agent/src/terminal-session.ts:327-525 — scrollback, five-minute reattach, deduplication, and 16-session quota"
+      - "services/workspace-agent/Dockerfile:35-50 — node-pty verification"
+      - "packages/runtime-remote/src/index.ts:622-737 — WebSocket reconnection and backoff"
+    positive_evidence: "Runtime-remote tests cover protocol behavior with fake WebSockets."
+    negative_evidence: "No live negative proof for host access, cloud metadata, cross-project files, cross-tenant secrets, escape, quota enforcement, or pipe-fallback limitations."
+    concurrency_evidence: "Session deduplication exists in code; multi-terminal and reconnect races were not exercised against a real workspace agent."
+    live_evidence: "BLOCKED — requires a real workspace container and browser with ANSI, resize, SIGINT, long process, reconnect, and hostile isolation scenarios."
+    risk: "A fallback pipe is not equivalent to a PTY, and sandbox boundaries remain unproven."
+    reservation: "Real PTY code exists, but no exact-SHA live workspace proof qualifies it as proven."
+    owner: "Workspace Runtime"
+    pr_required: true
+
+  - stable_id: "REPLIT-WORKSPACE-004"
+    capability: "Workspace lifecycle, persistence, sandbox, and recovery"
+    official_reference: "https://docs.replit.com/replit-workspace"
+    user_journey: "Create, start, race-start, stop, sleep, wake, restart, recover, delete, and garbage-collect isolated persistent workspaces through infrastructure failures."
+    ecode_status: BROKEN
+    ui_entry:
+      - "app/lib/runtime/ProjectWorkspaceProvider.tsx:90-245 — boot, hydration, start, and warm reattach"
+      - "app/lib/runtime/ProjectWorkspaceProvider.tsx:326-410 — heartbeat and failure cleanup"
+    api: []
+    code_evidence:
+      - "services/workspace-manager/src/manager.ts:20 — STARTING, RUNNING, STOPPED, FAILED, and DELETED states"
+      - "services/workspace-manager/src/manager.ts:507-676 — PVC, Secret, Pod, Service, readiness, and concurrent create handling"
+      - "services/workspace-manager/src/manager.ts:677-729 — create failure cleanup"
+      - "services/workspace-manager/src/manager.ts:1094-1177 — stop, restart, and delete"
+      - "services/workspace-manager/src/manager.ts:1166-1175 — delete ignores rejected Kubernetes deletions then marks DELETED"
+      - "services/workspace-manager/src/manager.ts:1203-1206 — GC lists only non-deleted records"
+      - "packages/k8s-client/src/index.ts:659-773 — gVisor, non-root, seccomp, resource limits, and environment filtering"
+      - "infra/helm/workspaces-runtime/templates/networkpolicy.yaml:1-176 — deny-by-default network policy"
+    positive_evidence: "Unit tests use a TestWorkspaceK8sClient; lifecycle branches exist in code."
+    negative_evidence: "No real proof for pod/node/manager/database loss, disk full, inaccessible PVC/image, missing secret, saturation, egress restriction, metadata denial, or multi-zone behavior."
+    concurrency_evidence: "Concurrent create is handled, but GC locking is process-local and delete failure races are not closed."
+    live_evidence: "BLOCKED — requires an ephemeral Kubernetes cluster with failure injection, resource inspection, and post-delete disappearance checks."
+    risk: "Failed Pod, PVC, Secret, or Service deletion can be permanently hidden from GC and leak resources or data."
+    reservation: "The delete invariant is broken; no explicit sleep/wake state exists, and bare Pods lack controller-driven node-loss recovery."
+    owner: "Workspace Runtime and Infrastructure"
+    pr_required: true
+
+  - stable_id: "REPLIT-LANGUAGES-005"
+    capability: "Languages and framework compatibility"
+    official_reference: "https://docs.replit.com/replit-workspace/configuring-repl"
+    user_journey: "Detect, install, run, test, preview, restart, persist, build, and publish each supported language and framework."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/routes/projects.$projectId.deployments.tsx:458-640 — deployment detection and publish controls"
+    api: []
+    code_evidence:
+      - "services/api/src/server-runtime-detect.ts:18-29 — Node-family framework list"
+      - "services/api/src/server-runtime-detect.ts:75-85 — npm, pnpm, yarn, and bun detection"
+      - "services/api/src/server-runtime-detect.ts:106-270 — package.json-based detection"
+      - "app/components/editor/codemirror/languages.ts:3-102 — syntax support is not runtime support"
+    positive_evidence: "Pure unit tests cover Node-family detection."
+    negative_evidence: "No end-to-end fixtures prove Python, Go, Rust, Java, PHP, Ruby, or C/C++ across install, run, preview, persistence, error recovery, and publish."
+    concurrency_evidence: "Not demonstrated for dependency installation caches or simultaneous starts."
+    live_evidence: "BLOCKED — requires a fixture matrix executed in real workspaces and deployment targets."
+    risk: "Marketing or UI may interpret syntax highlighting and arbitrary commands as production multi-language support."
+    reservation: "Only the Node family has explicit deployment detection; other languages remain IMPLEMENTED_UNPROVEN or outside the demonstrated scope."
+    owner: "Workspace Runtime and Deployments"
+    pr_required: true
+
+  - stable_id: "REPLIT-PREVIEW-006"
+    capability: "Preview, ports, reverse proxy, and access control"
+    official_reference: "https://docs.replit.com/replit-workspace/workspace-features/preview"
+    user_journey: "Discover and switch multiple ports, proxy HTTP, WebSocket, SSE, uploads and streaming, wake previews, and prevent tenant or private-port exposure."
+    ecode_status: BROKEN
+    ui_entry:
+      - "app/components/workbench/PortDropdown.tsx:20-111 — multi-port selection"
+    api:
+      - "services/api/src/app.ts:16093-16179 — port aggregation and content probing"
+      - "services/api/src/app.ts:17066-17181 — port watcher"
+      - "services/api/src/app.ts:16201-16235 — preview URL probe"
+      - "services/api/src/app.ts:16273-16368 — same-origin preview proxy"
+    code_evidence:
+      - "packages/runtime-remote/src/index.ts:831-843 — port list and preview URL"
+      - "services/preview-proxy/src/preview-ws-proxy.ts — WebSocket and HMR proxy"
+      - "services/preview-proxy/src/app.ts:504-520 — private and tenant enforcement flags default false"
+      - "services/preview-proxy/src/app.ts:520-539 — private-port lookup fails open"
+      - "services/preview-proxy/src/app.ts:1219-1246 — checks run only when flags are enabled"
+      - "infra/helm/platform/templates/configmap.yaml:146-158 — private-port enforcement remains off"
+    positive_evidence: "Proxy unit tests and a Playwright preview-runtime source test exist, but were not executed on the audited SHA."
+    negative_evidence: "No exact-SHA live test for tenant crossover, private ports, auth-service failure, WebSocket/SSE authorization, collision, cookies, uploads, long streams, TLS, or internal-port exposure."
+    concurrency_evidence: "No proof for simultaneous wake, port changes, or two workspaces sharing the same exposed port."
+    live_evidence: "BLOCKED — requires a real reverse proxy, two tenants, several runtime ports, and fail-closed fault injection."
+    risk: "A private or cross-tenant preview can be exposed because enforcement is disabled and lookup failure is permissive."
+    reservation: "Transport plumbing is substantial, but the critical authorization boundary is BROKEN."
+    owner: "Preview Proxy and Security"
+    pr_required: true
+
+  - stable_id: "REPLIT-GIT-007"
+    capability: "Git lifecycle and pull requests"
+    official_reference: "https://docs.replit.com/replit-workspace/workspace-features/version-control"
+    user_journey: "Inspect status and diff, stage, commit, branch, checkout, merge, rebase, resolve conflicts, pull, push, use private credentials, and create or review pull requests."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/components/git/GitTab.tsx — Git status, staging, graph, conflicts, stashes, remote, and pull-request form"
+      - "app/components/git/GitTab.tsx:1963-1988 — Create GitHub PR control"
+    api:
+      - "services/api/src/app.ts:29362-29956 — Git routes"
+    code_evidence:
+      - "services/api/src/project-storage.ts:777-913 — CLI Git with prompts disabled and timeouts"
+      - "services/api/src/project-storage.ts:1012-1067 — selected-file commit"
+      - "services/api/src/project-storage.ts:1070-1113 — push and pull"
+      - "services/api/src/project-storage.ts:1439-1460 — pull-request creation always returns 501 NOT_SUPPORTED"
+      - "services/api/src/project-storage.ts:915-954 — imported repositories are shallow clones"
+    positive_evidence: "API route tests cover parts of the Git surface with controlled stores and processes."
+    negative_evidence: "No complete merge, rebase, private HTTPS credential rotation, GitHub App, LFS, submodule, worktree, protected-branch, or exact-history proof."
+    concurrency_evidence: "No proof for simultaneous manual and agent edits during checkout, pull, conflict resolution, or rollback."
+    live_evidence: "BLOCKED — requires ephemeral public/private remotes and real conflict, credential, branch-protection, and PR flows."
+    risk: "The UI offers pull-request creation although the backend route is a permanent 501 stub."
+    reservation: "Core local Git operations exist, but PR creation is STUB and advanced/private workflows are unproven."
+    owner: "Git and IDE"
+    pr_required: true
+
+  - stable_id: "REPLIT-COLLAB-008"
+    capability: "Realtime collaboration, presence, comments, and concurrent editing"
+    official_reference: "https://docs.replit.com/replit-workspace/workspace-features/multiplayer"
+    user_journey: "Invite and revoke users, show presence and cursors, edit simultaneously, reconnect, resolve order and conflicts, and preserve tenant isolation."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/components/chat/BaseChat.tsx:2337-2348 — collaboration connection"
+      - "app/components/chat/BaseChat.tsx:12151-12177 — UI claims live cursor and selection"
+    api:
+      - "services/api/src/app.ts:21559-21691 — presence and comments"
+      - "services/api/src/app.ts:21693-21808 — whole-document optimistic edit endpoint"
+      - "services/api/src/app.ts:22221-22453 — collaboration ticket and WebSocket"
+    code_evidence:
+      - "services/api/src/app.ts:7294-7350 — Redis broker degrades to local-only on failure"
+      - "app/lib/collaboration/projectCollaborationClient.ts:150-450 — reconnect and backoff"
+      - "app/lib/hooks/useProjectCollaboration.ts:121-139 — sends status, path, and mode but no cursor or selection"
+      - "services/api/src/app.ts:22389-22453 — WebSocket accepts presence and comments, not document operations"
+    positive_evidence: "Presence and comments are wired; optimistic document versioning returns 409 on stale writes."
+    negative_evidence: "No frontend consumer of /collaboration/edit was found, and no cursor, selection, CRDT, or OT transport is connected to the editor."
+    concurrency_evidence: "No deterministic two-browser concurrent edit, rollback, delete, or migration test."
+    live_evidence: "BLOCKED — requires two real browser sessions, network interruption, Redis failure, invitation revocation, and cross-tenant negative tests."
+    risk: "Product copy promises live cursors and simultaneous editing that the editor does not deliver; whole-document conflicts can lose work."
+    reservation: "Presence, comments, and sharing are partial; document coediting and cursors are STUB/BROKEN."
+    owner: "Collaboration"
+    pr_required: true
+
+  - stable_id: "REPLIT-SECRETS-009"
+    capability: "Secrets, environment variables, and integrations"
+    official_reference: "https://docs.replit.com/cloud-services/storage-and-databases/secrets"
+    user_journey: "Create scoped secrets and integrations, inject them only into authorized runtimes, mask and rotate them, and prevent browser, log, agent, preview, or cross-tenant exfiltration."
+    ecode_status: BROKEN
+    ui_entry: []
+    api:
+      - "services/api/src/app.ts:21083-21124 — environment-variable read route returns values"
+      - "services/api/src/app.ts:21227-21339 — secret reveal and CRUD routes"
+    code_evidence:
+      - "packages/database/prisma/schema.prisma:513-539 — encrypted ProjectSecret but plaintext ProjectEnvVar"
+      - "services/api/src/app.ts:21198-21209 — AUTH_JWT_SECRET scaffold is stored as a plaintext ProjectEnvVar"
+      - "services/api/src/app.ts:21227-21258 — reveal=true decrypts a secret to an authorized browser"
+      - "services/api/src/app.ts:13149-13177,15282-15320 — workspace injection of all project environment and secrets"
+      - "services/workspace-manager/src/manager.ts:507-645 — agent token and project secrets share one Kubernetes Secret"
+    positive_evidence: "Encryption and role checks exist for ProjectSecret CRUD."
+    negative_evidence: "No negative proof for browser return, logs, prompt exfiltration, agent versus deployment scope, hot rotation, revocation, cross-project access, or compromised connector behavior."
+    concurrency_evidence: "No rotation/revocation race proof while workspaces, agents, previews, or deployments are running."
+    live_evidence: "BLOCKED — requires isolated users/projects, real workspace and deployment injection, log inspection, and adversarial exfiltration tests."
+    risk: "Sensitive values can reach the browser and plaintext environment storage; broad injection increases blast radius."
+    reservation: "Integration adapters exist only for a subset of the UI catalogue, and the secret boundary does not meet the required non-return invariant."
+    owner: "Security and Integrations"
+    pr_required: true
+
+  - stable_id: "REPLIT-DATABASE-010"
+    capability: "Managed database provisioning, backup, restore, and deletion"
+    official_reference: "https://docs.replit.com/cloud-services/storage-and-databases"
+    user_journey: "Provision a project database, inject credentials, migrate, back up, restore with cutover, roll back, export, delete, and prove physical tenant isolation and purge."
+    ecode_status: BROKEN
+    ui_entry: []
+    api:
+      - "services/api/src/app.ts:30083-30515 — database lifecycle routes"
+    code_evidence:
+      - "services/api/src/database-provisioner.ts:47-97,478-790 — CloudNativePG provisioner"
+      - "infra/helm/platform/templates/configmap.yaml:117-128 — database feature enabled in production configuration"
+      - "services/api/src/database-provisioner.ts:388-392 — restore contract promises DATABASE_URL repointing"
+      - "services/api/src/database-provisioner.ts:657-665 — restore progress checks only recovery-cluster health"
+      - "services/api/src/app.ts:28576-28585 — maintenance marks restore COMPLETED on cluster health"
+      - "services/api/src/database-provisioner.ts:668-675 — teardown covers isolated clusters, not a complete shared tenant purge"
+    positive_evidence: "Manifest generation and provisioner unit paths exist."
+    negative_evidence: "No implementation was found that cuts DATABASE_URL over to the restored cluster, and no physical shared-database/role purge proof exists."
+    concurrency_evidence: "No deterministic restore versus migration, workspace, deletion, backup, or concurrent restore test."
+    live_evidence: "BLOCKED — requires a real PostgreSQL or CloudNativePG test cluster with data checks before and after restore, cutover, rollback, crash recovery, and deletion."
+    risk: "The system can report restore COMPLETED while applications still use the old database."
+    reservation: "Provisioning is partial; restore correctness and shared-tenant deletion are BROKEN."
+    owner: "Data Platform"
+    pr_required: true
+
+  - stable_id: "REPLIT-OBJECT-STORAGE-011"
+    capability: "Object storage lifecycle and purge"
+    official_reference: "https://docs.replit.com/cloud-services/storage-and-databases/object-storage"
+    user_journey: "Create storage, upload, download, list, move, sign, delete, enforce quotas and lifecycle, and prove complete physical purge under failure and concurrency."
+    ecode_status: PARTIAL
+    ui_entry: []
+    api:
+      - "services/api/src/app.ts:30567-30708 — object-storage routes"
+    code_evidence:
+      - "infra/helm/platform/templates/configmap.yaml:128-139 — production object-storage configuration"
+      - "services/api/src/app.ts:3186-3255 — project HMAC token with seven-day default TTL"
+      - "services/api/src/object-storage.ts:221-375 — Google Cloud Storage implementation"
+      - "services/api/src/object-storage.ts:257-280 — list capped at 1000 without a continuation token"
+      - "services/api/src/object-storage.ts:329-337 — move is non-atomic copy then delete"
+      - "services/api/src/object-storage.ts:348-355 — prefix deletion covers only the first 1000 objects"
+      - "services/api/src/object-storage.ts:358-375 — bucket deletion lacks a post-disappearance check"
+    positive_evidence: "Application routes and GCS adapter exist."
+    negative_evidence: "No live GCS evidence for signed URLs, more than 1000 objects, quota, lifecycle, partial move, purge disappearance, or inability to recreate during purge."
+    concurrency_evidence: "No upload/move/delete race or idempotent purge test."
+    live_evidence: "BLOCKED — requires an ephemeral GCS bucket with failure injection and disappearance verification before teardown."
+    risk: "Large prefixes can be incompletely purged and non-atomic moves can duplicate or lose object state."
+    reservation: "Implementation exists but isolation relies on application tokens rather than demonstrated per-project IAM."
+    owner: "Data Platform"
+    pr_required: true
+
+  - stable_id: "REPLIT-CHECKPOINTS-012"
+    capability: "Project checkpoints, preview, and rollback"
+    official_reference: "https://docs.replit.com/replitai/agent"
+    user_journey: "Create and inspect a checkpoint, restore files and all declared project state, survive a failed or concurrent restore, and prove manifest-digest identity."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/components/chat/BaseChat.tsx:9380-9394 — restore UI claims Agent memory reset"
+    api:
+      - "services/api/src/app.ts:23662-23954 — create, preview, safety snapshot, and restore routes"
+    code_evidence:
+      - "packages/database/prisma/schema.prisma:733-771 — snapshot manifest, storage key, hash, and persisted storage object"
+      - "services/api/src/app.ts:14798-14874 — durable archive handling and hash fallback"
+      - "services/api/src/app.ts:23709-23721 — file manifest with runtime secrets excluded"
+      - "services/api/src/project-storage.ts:676-719 — ZIP snapshot and restore while preserving current .git"
+      - "app/lib/stores/workbench.ts:3405-3431 — automatic snapshot only for remote Kubernetes and file content at least 8000 characters"
+    positive_evidence: "Manual and safety-snapshot routes are implemented, with manifest hashes for durable objects."
+    negative_evidence: "No restore of Git history, dependencies, PVC, configuration, secrets, database data, object storage, deployments, conversations, or Agent memory was found. Runtime synchronization is best-effort and restore is not transactional."
+    concurrency_evidence: "No restore versus edit, Agent action, DB migration, deployment, or second restore proof."
+    live_evidence: "BLOCKED — requires real files, Git, runtime, database, object, deployment, and crash-injected restore fixtures with digest comparison."
+    risk: "The UI overstates restored state, and a partial restore can leave code, runtime, and external data inconsistent."
+    reservation: "Current checkpoint semantics are principally file snapshots; Agent-memory reset and external-state rollback are not implemented."
+    owner: "Projects, Agent, and Data Platform"
+    pr_required: true
+
+  - stable_id: "REPLIT-DEPLOY-013"
+    capability: "Publication, autoscale, scheduled tasks, domains, TLS, readiness, and rollback"
+    official_reference: "https://docs.replit.com/cloud-services/deployments/about-deployments"
+    user_journey: "Publish static and server applications, use immutable revision-bound artifacts, scale to zero, schedule jobs, attach domains and TLS, observe readiness, republish, roll back, and remove workloads."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/routes/projects.$projectId.deployments.tsx:124-965 — deployment actions, polling, history, cancel, redeploy, and rollback"
+      - "app/routes/projects.$projectId.deployments.tsx:729-760 — custom-domain UI says managed TLS is coming soon"
+      - "app/components/deploy/deployment-types.ts:1-97 — static, autoscale, scheduled, and reserved-VM taxonomy"
+    api:
+      - "services/api/src/app.ts:30780-33800 — build, publish, queue, logs, cancel, republish, and rollback"
+      - "services/api/src/app.ts:32171-32507 — scheduled-task routes"
+    code_evidence:
+      - "services/api/src/app.ts:8395-8655 — dedicated static origin, containment, and CSP"
+      - "services/workspace-manager/src/manager.ts:885-1091 — scale-to-zero lifecycle"
+      - "services/preview-proxy/src/app.ts:840-1195 — wake-on-request proxy"
+      - "services/api/src/app.ts:6644-6725 — best-effort release manifest"
+      - "services/api/src/deployments.ts:747-793 — published deployment clones a READY row and reuses source URL/artifact"
+      - "infra/helm/platform/values-prod.yaml:137-142 — serverDeployRevisionProjects is empty, disabling revision-bound server deploys"
+      - "infra/helm/platform/values-prod.yaml:329-376 — shared RWX Filestore configuration for static artifacts"
+    positive_evidence: "Unit suites cover publish, rollback digest, reconciliation, proxy behavior, and manager behavior using test stores, fake fetch, or fake Kubernetes clients; a browser preview-runtime source test exists."
+    negative_evidence: "No exact-SHA real resource, endpoint content, digest-to-commit, logs, readiness, custom DNS, Ingress, TLS, private/password deployment, rollback, or deletion proof."
+    concurrency_evidence: "No publish/rollback/cancel race, duplicate queue delivery, simultaneous wake, or migration-deploy concurrency proof."
+    live_evidence: "BLOCKED — requires ephemeral Kubernetes, registry, reverse proxy, DNS/TLS test domain, immutable artifact verification, endpoint checks, and real rollback."
+    risk: "A server image can be built from mutable workspace state rather than audited HEAD; a READY database row is not workload readiness, and domain/TLS capability is not implemented."
+    reservation: "Static, server, scheduled, and scale-to-zero paths exist, but custom domains, private deployment, revision integrity, promotion semantics, and live rollback remain incomplete or unproven."
+    owner: "Deployments and Infrastructure"
+    pr_required: true
+
+  - stable_id: "CURSOR-INLINE-001"
+    capability: "AI inline completion and edit"
+    official_reference: "https://docs.cursor.com/tab/overview"
+    user_journey: "Receive single-line, multiline, and cross-file AI completions; partially accept or reject; cancel; preserve formatting; and avoid edits outside the selected region."
+    ecode_status: ABSENT
+    ui_entry:
+      - "packages/editor/src/index.ts:1068 — inlineSuggest editor option is enabled"
+    api: []
+    code_evidence:
+      - "packages/editor/src/index.ts:703-760 — completion provider returns lexical symbols and snippets, not model completions"
+    positive_evidence: "Editor-native lexical completion exists."
+    negative_evidence: "No AI completion API, model request, cross-file completion provider, partial acceptance protocol, latency measurement, or selection-bound inline-edit test was found."
+    concurrency_evidence: "No completion versus manual-edit race behavior."
+    live_evidence: "ABSENT — no implementation is available to prove live."
+    risk: "Basic editor completion can be mistaken for Cursor-style AI completion."
+    reservation: "Syntax and lexical completion do not satisfy AI inline parity."
+    owner: "IDE and Agent"
+    pr_required: true
+
+  - stable_id: "CURSOR-MODES-002"
+    capability: "Agent modes and enforceable permissions"
+    official_reference: "https://docs.cursor.com/chat/agent"
+    user_journey: "Use Ask/read-only, Plan, autonomous Agent, Debug, Refactor, and custom modes with server-enforced file, shell, Git, database, secret, and external-action permissions."
+    ecode_status: BROKEN
+    ui_entry:
+      - "app/components/chat/BaseChat.tsx:532-569 — internal Ask, Edit, Agent, and Architect modes"
+      - "app/components/chat/ChatBoxModeDropdown.tsx:19-39 — public Agent and Assistant options"
+    api:
+      - "app/routes/api.chat.ts:788-907 — plan approval flow"
+    code_evidence:
+      - "app/components/chat/BaseChat.tsx:1794-1844 — Ask read-only behavior is a prompt instruction"
+      - "app/lib/hooks/useMessageParser.ts:9-50,68-76 — parser does not enforce chatMode and parses both assistant and user messages into executable actions"
+    positive_evidence: "Plan approval is wired between API and client."
+    negative_evidence: "No authoritative server-side permission gate prevents file or shell mutation in Ask; Debug and Refactor modes are not distinct public capabilities."
+    concurrency_evidence: "No mode change while actions are streaming or pending review test."
+    live_evidence: "BLOCKED — requires an adversarial model response in Ask mode and proof of zero filesystem, Git, database, secret, or external mutation."
+    risk: "A model instruction violation or injected action can mutate the project in a mode represented as read-only."
+    reservation: "Modes are primarily UX and prompt policy; the read-only invariant is BROKEN."
+    owner: "Agent Platform and Security"
+    pr_required: true
+
+  - stable_id: "CURSOR-CONTEXT-003"
+    capability: "Repository context and codebase indexing"
+    official_reference: "https://docs.cursor.com/context/codebase-indexing"
+    user_journey: "Build and incrementally maintain a branch- and HEAD-consistent semantic/text index that honors ignore rules, deletion, rename, monorepos, retention, tenancy, and erasure."
+    ecode_status: PARTIAL
+    ui_entry: []
+    api: []
+    code_evidence:
+      - "app/lib/.server/llm/select-context.ts:12-36 — fixed ignore patterns rather than repository .gitignore semantics"
+      - "app/lib/.server/llm/select-context.ts:161-231 — file-path selection through an LLM"
+      - "app/lib/.server/llm/select-context.ts:248-334 — parsed selection has no programmatic five-file cap"
+      - "app/lib/.server/llm/select-context.ts:373-377 — repository file list"
+      - "app/routes/api.chat.ts:1180-1230 — in-process per-conversation memo"
+      - "app/lib/.server/llm/stream-text.ts:679-716 — selected full files and conversation summary"
+    positive_evidence: "Prompt-time file selection and conversation memory are implemented."
+    negative_evidence: "No durable or incremental repository embeddings, semantic code search, branch/HEAD key, delete/rename invalidation, index status, multi-tenant retention, or erasure implementation was found."
+    concurrency_evidence: "No index versus branch switch, rename, delete, concurrent write, or cache poisoning test."
+    live_evidence: "BLOCKED — requires large and monorepo fixtures, branch changes, ignored secrets, concurrent mutations, and index inspection."
+    risk: "Stale or over-broad context can expose ignored data or answer against a different repository state."
+    reservation: "Conversation memory is not a repository index; current context selection is request-time and partially model-controlled."
+    owner: "Agent Context"
+    pr_required: true
+
+  - stable_id: "CURSOR-TOOLS-004"
+    capability: "Agent tool execution framework"
+    official_reference: "https://docs.cursor.com/agent/tools"
+    user_journey: "Read, search, patch, create, delete, run terminal and tests, use browser, Git, database, deployment, connectors, and MCP with explicit permissions, validation, sandboxing, timeout, retry, idempotence, audit, redaction, cancellation, and crash recovery."
+    ecode_status: PARTIAL
+    ui_entry: []
+    api: []
+    code_evidence:
+      - "app/lib/.server/llm/new-prompt.ts:170-234 — Bolt file, diff, shell, and start action protocol"
+      - "app/lib/.server/llm/prompts.ts:340-425 — legacy action prompt"
+      - "app/lib/hooks/useMessageParser.ts:9-76 — client-side action parsing and execution handoff"
+    positive_evidence: "File, diff, shell, and start actions are integrated with the client runtime."
+    negative_evidence: "No unified server-authoritative registry was found that enforces per-mode permissions, authentication, schema validation, timeout, retry, idempotence, immutable audit, redaction, and crash recovery across every tool."
+    concurrency_evidence: "No duplicate action, cancellation race, branch-change, or same-file multi-tool conflict proof."
+    live_evidence: "BLOCKED — requires a real repository/runtime and an adversarial tool test matrix."
+    risk: "Prompt and client-side policy can be bypassed, and inconsistent tool implementations create uneven security and recovery behavior."
+    reservation: "Core editing and shell actions work, but the production tool governance expected from Cursor parity is incomplete."
+    owner: "Agent Platform"
+    pr_required: true
+
+  - stable_id: "CURSOR-LOOP-005"
+    capability: "Autonomous inspect-edit-test-repair loop"
+    official_reference: "https://docs.cursor.com/chat/agent"
+    user_journey: "Inspect a repository, plan, edit multiple files, run tests, observe failures, diagnose, repair, rerun, present a diff, accept or reject, checkpoint, cancel, budget, and resume after crash."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/components/chat/BaseChat.tsx — agent conversation and action surface"
+    api:
+      - "app/routes/api.chat.ts:1539-1610 — token-length continuation"
+    code_evidence:
+      - "app/lib/.server/llm/new-prompt.ts:170-234 — generated Bolt actions"
+      - "app/lib/stores/workbench.ts:2965-2969 — non-file commands are skipped while review proposals remain open"
+    positive_evidence: "The model can emit several edits and commands, the client executes them, and the user can abort."
+    negative_evidence: "Terminal and test observations are not automatically fed into a general observation-diagnosis-repair loop; continuation handles output length rather than autonomous feedback. No loop budget, stuck-command recovery, flaky-test policy, child-process cleanup, or crash resume was found."
+    concurrency_evidence: "No branch-change, manual-edit, cancellation, or multiple-agent race during an autonomous task."
+    live_evidence: "BLOCKED — requires a repository fixture that intentionally fails tests, then proves automated diagnosis, correction, green rerun, diff review, rejection, and checkpoint restoration."
+    risk: "The agent can stop after producing or skipping actions without reaching or accurately reporting a validated result."
+    reservation: "Multi-action generation exists, but Cursor-like feedback-loop autonomy is not implemented end to end."
+    owner: "Agent Platform"
+    pr_required: true
+
+  - stable_id: "CURSOR-DIFF-006"
+    capability: "Agent diff review, hunk acceptance, rejection, and conflict handling"
+    official_reference: "https://docs.cursor.com/chat/review"
+    user_journey: "Review a global and per-file diff, accept or reject files and hunks, resolve manual-edit conflicts, preserve binary/rename/mode changes, and restore exact Git state."
+    ecode_status: PARTIAL
+    ui_entry:
+      - "app/components/workbench/InlineFileActionDiff.tsx:73-206 — hunk controls"
+    api:
+      - "services/api/src/app.ts:20309-20354 — persisted patch proposal routes"
+    code_evidence:
+      - "app/lib/stores/workbench.ts:2099-2431 — accept, reject, hunk application, revert, mutex, validation, and runtime write"
+      - "app/lib/stores/agentPatchProposalSync.ts:1-123 — open proposal persistence"
+      - "packages/database/prisma/schema.prisma:364-389 — proposal data model"
+      - "app/lib/hooks/useAutoApplyEnabled.ts:1-40 — Require Review defaults false, enabling auto-apply"
+      - "app/components/chat/BaseChat.tsx:1814-1816 — prompt states review is enforced"
+    positive_evidence: "File and hunk review controls are wired and open proposals can be persisted."
+    negative_evidence: "No robust three-way conflict, binary, rename, executable-bit, unsaved-buffer, or exact-Git rollback proof. Default auto-apply contradicts the prompt's enforced-review claim."
+    concurrency_evidence: "Same-path concurrent changes are effectively last-write-wins; no deterministic user-versus-agent conflict test."
+    live_evidence: "BLOCKED — requires browser and Git fixtures with hunks, manual edits, rename, binary, mode changes, rejection, and exact tree comparison."
+    risk: "Agent output can be applied without review, or overwrite manual work under same-file races."
+    reservation: "The review UI is material but incomplete as a conflict-safe change-management system."
+    owner: "IDE and Agent"
+    pr_required: true
+
+  - stable_id: "CURSOR-BACKGROUND-007"
+    capability: "Background agents"
+    official_reference: "https://docs.cursor.com/background-agent"
+    user_journey: "Queue an isolated background task, stream status and logs, follow up, cancel, resume, expire, retain, commit, push, open a PR, resolve conflicts, enforce quotas, and clean up its environment."
+    ecode_status: ABSENT
+    ui_entry: []
+    api: []
+    code_evidence:
+      - "packages/database/prisma/schema.prisma:1579-1633 — AgentRun records results but is not a background task lifecycle"
+    positive_evidence: "Agent result persistence exists."
+    negative_evidence: "No background-agent queue, lifecycle API, isolated branch/worktree, status/log follow-up, cancel/resume, expiration, retention, push/PR, quota, or cleanup implementation was found."
+    concurrency_evidence: "ABSENT — no background execution primitive to test."
+    live_evidence: "ABSENT — implementation is required before live proof."
+    risk: "Long-running work cannot be safely detached, recovered, or isolated from the foreground IDE session."
+    reservation: "Synchronous model fan-out and AgentRun persistence do not constitute background agents."
+    owner: "Agent Platform"
+    pr_required: true
+
+  - stable_id: "CURSOR-PARALLEL-008"
+    capability: "Parallel coding agents and merge coordination"
+    official_reference: "https://docs.cursor.com/background-agent"
+    user_journey: "Run multiple agents from an exact base commit with disjoint file contracts, budgets, worktrees or branches, tests, structured outcomes, merge strategy, and conflict-safe cleanup."
+    ecode_status: STUB
+    ui_entry: []
+    api:
+      - "services/ai-gateway/src/agent-executor.ts:674-833 — streaming parallel lane execution"
+    code_evidence:
+      - "app/lib/.server/llm/agent-orchestration.ts:4-190,207-370 — role and plan generation"
+      - "services/ai-gateway/src/agent-executor.ts:442-468,495-514,528-648 — JSON advisory lanes, normalization, Promise.all, and consensus"
+      - "packages/database/prisma/schema.prisma:1579-1633 — AgentRun persistence"
+    positive_evidence: "Several advisory model lanes can execute concurrently and produce a consensus result."
+    negative_evidence: "Lanes do not independently edit repositories, run tests, own worktrees, receive base SHA or file allow/deny lists, commit, push, create PRs, or merge."
+    concurrency_evidence: "Only concurrent model analysis is represented; no concurrent filesystem or Git isolation proof."
+    live_evidence: "BLOCKED — requires two or more real isolated coding agents with disjoint and intentionally conflicting fixtures."
+    risk: "Calling advisory fan-out parallel coding can hide uncontrolled same-file, migration, contract, and manifest collisions."
+    reservation: "This is analysis fan-out, not Cursor-style parallel background coding."
+    owner: "Agent Platform"
+    pr_required: true
+
+  - stable_id: "CURSOR-RULES-SKILLS-MCP-009"
+    capability: "Rules, skills, and MCP governance"
+    official_reference: "https://docs.cursor.com/context/rules"
+    user_journey: "Load global, repository, and folder-scoped rules and skills with deterministic priority and integrity, then run approved MCP tools with permissions, validation, timeout, audit, redaction, revocation, and prompt-injection resistance."
+    ecode_status: PARTIAL
+    ui_entry: []
+    api: []
+    code_evidence:
+      - "app/lib/.server/llm/project-rules.ts:4-125 — AGENTS, .cursorrules, CLAUDE, .ecode, and .cursor/rules loading"
+      - "services/api/src/skill-manifest.ts:24-65,260-337 — skill manifest and allowedTools parsing"
+      - "services/api/src/skill-audit.ts:93-151,183-255 — static regex audit, hash, rejection, and quarantine"
+      - "app/lib/services/mcpService.ts:41-114 — stdio, SSE, and HTTP transports"
+      - "app/lib/services/mcpService.ts:158-164 — singleton is documented as unsafe"
+      - "app/lib/services/mcpService.ts:187-258 — stdio default block and literal URL guard"
+      - "app/lib/services/mcpService.ts:306-319 — later tool name can override a collision"
+      - "app/lib/services/mcpService.ts:467-557 — approval and execution, including full argument logging"
+    positive_evidence: "Repository rules, skill manifests, static auditing, quarantine, MCP connection, and user approval exist."
+    negative_evidence: "No real folder/glob matching, conditional priority, conflict resolution, version policy, signed content integrity, or execution enforcement of skill allowedTools was found. MCP lacks demonstrated execute timeout, retry, idempotence, immutable audit, secret redaction, DNS resolution, redirect, and rebinding defense."
+    concurrency_evidence: "No collision, revocation-during-call, reconnect, duplicate invocation, or multi-tenant MCP server test."
+    live_evidence: "BLOCKED — requires hostile rule/skill packages and MCP servers covering prompt injection, SSRF, DNS rebinding, timeout, secret exfiltration, revocation, and audit."
+    risk: "Untrusted repository instructions enter the system prompt, and MCP arguments or secrets can be exposed or routed to an unsafe endpoint."
+    reservation: "The foundations exist, but policy and runtime enforcement are incomplete. Official MCP behavior must also be scoped against https://docs.cursor.com/context/model-context-protocol before parity signing."
+    owner: "Agent Platform and Security"
+    pr_required: true
+
+  - stable_id: "CURSOR-PR-REVIEW-010"
+    capability: "Automated pull-request review"
+    official_reference: "https://docs.cursor.com/bugbot"
+    user_journey: "Review the exact SHA of new and updated pull requests, comment without duplication, handle forks and untrusted code, resist prompt injection, classify blocking status, and suggest safe fixes."
+    ecode_status: ABSENT
+    ui_entry:
+      - "app/components/git/GitTab.tsx:1963-1988 — pull-request creation form, not automated review"
+    api: []
+    code_evidence:
+      - "services/api/src/project-storage.ts:1439-1460 — pull-request creation returns 501 NOT_SUPPORTED"
+      - "docs/IDE_PANEL_AUDIT.md:138 — Git panel is not a complete pull-request review workspace"
+    positive_evidence: "Repository CI workflows exist, but none implements automated AI pull-request review."
+    negative_evidence: "No PR event trigger, exact-SHA review service, inline comment deduplication, fork permission policy, prompt-injection defense, security review, status check, or suggested-fix flow was found."
+    concurrency_evidence: "No updated-PR, force-push, duplicate webhook, or parallel-review test."
+    live_evidence: "ABSENT — no implementation is available to exercise."
+    risk: "E-Code cannot claim Cursor-style automated PR review, and the existing PR creation UI itself targets a stub backend."
+    reservation: "General Git UI and CI do not satisfy automated review parity."
+    owner: "Git, Agent Platform, and Security"
+    pr_required: true

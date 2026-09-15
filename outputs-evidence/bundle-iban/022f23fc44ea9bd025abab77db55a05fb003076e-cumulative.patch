@@ -1,0 +1,1819 @@
+diff --git a/docs/REMIX_PII_IBAN_POLICY.md b/docs/REMIX_PII_IBAN_POLICY.md
+new file mode 100644
+index 00000000..1395d86f
+--- /dev/null
++++ b/docs/REMIX_PII_IBAN_POLICY.md
+@@ -0,0 +1,162 @@
++# Politique de masquage des IBAN au remix
++
++**Arbitrage Avi du 2026-08-05.** Implémentation : `services/api/src/remix-pipeline.ts`
++(`scanIbans`) et `services/api/src/remix-pii-metrics.ts`. Contexte : P0-V3-05.
++
++## Les 4 règles
++
++| # | Situation | Décision |
++|---|---|---|
++| **R1** | Pays **connu** du registre + longueur nationale **exacte** | **MASQUER TOUJOURS** — checksum MOD-97 valide **ou non** |
++| **R2** | — | Le checksum **n'est jamais une condition**. Il ne sert qu'à **qualifier** (métrique `checksum_valid`) et ne laisse jamais réapparaître le numéro |
++| **R3** | Pays connu + longueur **incorrecte** (trop court ou trop long) | **NE PAS masquer** — ce n'est pas un IBAN de ce pays |
++| **R4** | Pays **absent** de la table | **NE PAS masquer** + **log d'avertissement** + compteur `unknown_country_code` |
++| **R5** | — | **Ne jamais dépasser** la longueur officielle : aucun texte voisin absorbé |
++
++## Pourquoi R1 : la confidentialité prime
++
++Un IBAN mal saisi **reste une donnée bancaire sensible**. Avant cet arbitrage, le
++checksum conditionnait le masquage : une faute de frappe suffisait à laisser le numéro
++en clair dans le clone. C'était un arbitrage à l'envers — on protégeait la propreté du
++texte au détriment de la donnée personnelle.
++
++Le checksum garde une utilité réelle, mais **en observation seulement** : un taux élevé
++de `checksum_valid="false"` signale soit des données de test, soit un problème de
++qualité en amont. Il ne décide plus rien.
++
++## Pourquoi R3 et R4 : ne jamais corrompre
++
++Deux tentatives par regex ont échoué en production avant d'en arriver là :
++
++| version | groupe final | défaut |
++|---|---|---|
++| v1 | `[A-Z0-9]{0,3}` collé | `FR76 … 189` : fragment terminal **laissé en clair** |
++| v2 | `(?:\s?[A-Z0-9]{1,3})?` | `ES91 … 1332 EUR` : **avale** ` EUR` — corruption silencieuse |
++
++Un IBAN **n'est pas auto-délimitant**. Trop court → fuite ; trop long → corruption. Seule
++la **longueur nationale** tranche, d'où la table `IBAN_LENGTH_BY_COUNTRY`
++(ISO 13616-1 / Swift IBAN Registry, gelée, provenance datée dans
++`IBAN_REGISTRY_PROVENANCE`).
++
++R4 est le corollaire honnête : si le pays est inconnu, on ne peut pas connaître la
++longueur, donc **on ne masque pas** — mais on refuse que ça passe inaperçu. Le log et le
++compteur existent pour qu'un nouveau pays au registre devienne **visible** et déclenche
++une mise à jour de la table, plutôt qu'une fuite silencieuse.
++
++Le signalement R4 ne se déclenche que sur un **candidat plausible**, défini
++précisément ci-dessous : sans ce garde-fou, tout `ab12` d'un fichier source noierait la
++métrique.
++
++## Définition normative — « candidat plausible »
++
++C'est le **contrat de stabilité de R4** : le modifier change ce que mesure
++`unknown_country_code`. Miroir exact du bloc `DÉFINITION NORMATIVE` dans
++`remix-pipeline.ts` (`scanIbans`). Un jeton est un candidat plausible **si et seulement
++si** les 4 conditions tiennent.
++
++**C1 — Structure.** Exactement **2 lettres ASCII** puis **2 chiffres ASCII**
++(`/[A-Za-z]{2}[0-9]{2}/`), puis un corps **alphanumérique ASCII**. La casse est libre ;
++le code pays est normalisé en majuscules.
++
++**C2 — Normalisation.** On retire les **séparateurs internes** pour mesurer :
++
++| autorisé | code |
++|---|---|
++| espace | `U+0020` |
++| tabulation | `U+0009` |
++| espace insécable | `U+00A0` |
++| insécable étroite | `U+202F` |
++| espace numérique | `U+2007` |
++| espace fine | `U+2009` |
++| gluon (word joiner) | `U+2060` |
++
++Un séparateur n'est franchi **que s'il est suivi d'un alphanumérique** : il n'est jamais
++consommé en fin de jeton. Le **trait d'union est exclu** — il sépare deux champs voisins
++bien plus souvent qu'il ne groupe un IBAN, et le consommer rejouerait le bug « EUR ».
++
++**C3 — Longueur.** La longueur **après normalisation** est comprise entre **15 et 34
++inclus** (bornes du registre ISO 13616, tous pays confondus).
++
++**C4 — Délimitation.** Le caractère qui **précède** le début n'est pas alphanumérique, et
++celui qui **suit** la fin ne l'est pas non plus. Un jeton plus long qu'un IBAN n'est donc
++jamais un candidat.
++
++## Échantillonnage du log (garde-fou)
++
++La **métrique** compte **chaque** candidat plausible — c'est elle qui dit si le phénomène
++monte. Le **log** ne sert qu'à *diagnostiquer*, et il est **borné** : un fichier de seed
++de mille lignes ne doit pas produire mille lignes de journal.
++
++- **Règle** : le **premier candidat de chaque code pays** par fenêtre d'observation.
++- **Plafond** : au plus **10 codes pays distincts** journalisés par fenêtre — la
++  cardinalité reste bornée même face à des données adverses qui feraient défiler les
++  codes pays.
++- Une remise à zéro de la fenêtre (`resetRemixPiiMetrics()`) réarme le log.
++
++**Le log ne porte AUCUN fragment du candidat — pas même tronqué.** Ni le corps, ni la
++clé de contrôle, ni un préfixe. Un spécimen tronqué (`ZZ91…`) avait été envisagé puis
++**retiré** : la clé de contrôle est dérivée du numéro de compte, et rien n'oblige à la
++journaliser pour savoir qu'un pays manque au registre.
++
++Le log ne contient que des **métadonnées non sensibles** :
++
++| champ | exemple | pourquoi c'est sûr |
++|---|---|---|
++| `countryCode` | `ZZ` | c'est **l'information à diagnostiquer** |
++| `normalizedLength` | `24` | une longueur, pas une valeur |
++| `decision` | `UNKNOWN_COUNTRY_CODE` | catégorie de décision |
++| `remixJobId` | `cms…` | corrélation, sans donnée personnelle |
++
++```
++WARN  remix PII: IBAN-shaped value whose country code is absent from the ISO 13616
++      table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is
++      logged; further occurrences of this country are not logged)
++      countryCode=ZZ  normalizedLength=24  decision=UNKNOWN_COUNTRY_CODE  remixJobId=…
++```
++
++### Cardinalité des métriques
++
++`unknown_country_code` est indexé **par code pays** : c'est un libellé alimenté par des
++**données**, donc une porte ouverte à l'explosion de séries temporelles. Elle est bornée :
++
++- au plus **20 libellés nommés** ;
++- au-delà, tout s'agrège sous `__other__` ;
++- le **total reste exact** — seule la ventilation est bornée, rien n'est perdu.
++
++Le rendu Prometheus ne produit donc jamais plus de 21 séries pour cette métrique, quelles
++que soient les données rencontrées.
++
++## Métriques
++
++Exposées par `formatRemixPiiMetrics()` :
++
++```
++remix_pii_iban_masked{checksum_valid="true"}  N
++remix_pii_iban_masked{checksum_valid="false"} N
++remix_pii_iban_unknown_country_code{country="ZZ"} N
++```
++
++Le pipeline de masquage reste **pur** : `maskPiiInFiles()` **renvoie** ses observations
++(`PiiMaskingObservations`), et c'est `app.ts` — au bord — qui incrémente les compteurs et
++émet le `log.warn`. La décision de masquer ne dépend donc jamais d'un état global.
++
++## Limites déclarées
++
++- **Pays hors table non masqué** (R4). Choix assumé : ne pas masquer plutôt que corrompre
++  du texte voisin. Le compteur est là pour que ce trou soit *mesurable*, pas ignoré.
++- Le masquage ne couvre pas les **fichiers binaires** ni les **chemins de fichiers** —
++  limites générales du pipeline PII, indépendantes de l'IBAN.
++
++## Rejeu
++
++```bash
++npx tsx docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
++```
++
++17 cas : devises adjacentes (EUR/USD/GBP/CHF), colonnes CSV, tabulation, ponctuation,
++plusieurs IBAN dans une phrase, espaces insécables, forme compacte, **checksum faux
++désormais masqué**, longueurs incorrectes non masquées, **pays inconnu non masqué et
++signalé**.
++
++Les garde-fous d'échantillonnage et la définition C1–C4 sont couverts par
++`services/api/src/remix-pipeline.spec.ts` (bloc « IBAN — longueur nationale »).
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/README.md b/docs/deploy-evidence/2026-08-04-v305-reserves/README.md
+index c4286519..83f23aa4 100644
+--- a/docs/deploy-evidence/2026-08-04-v305-reserves/README.md
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/README.md
+@@ -104,3 +104,122 @@ Les 6 autres réserves de l'audit du 03/08 sont **inchangées** et restent décl
+ Et une limite propre à ce lot : le masquage des noms **ne couvre pas la prose**. Un nom
+ cité dans un commentaire ou un README n'est pas masqué — c'est un choix délibéré, pas un
+ oubli, mais il doit être connu de l'expert.
++
++---
++
++# Preuve LIVE PROD exécutée le 2026-08-04 (image `api:e41821f377`)
++
++Transcript complet : `live-prod-transcript.txt` · fouille du clone : `live-clone-scan-e41821f377.txt`
++
++| Réserve | Preuve live | Résultat |
++|---|---|---|
++| #7 licence non dérivable | `POST /admin/gallery-listings` `licenseId="PROPRIETARY — NO DERIVATIVES"` | **400 `REMIX_LICENSE_NOT_DERIVATIVE`** |
++| #7 licence dérivable | même route, `licenseId="mit"` | **201**, persisté **`MIT`** (canonique) |
++| #8 trace auditable | relecture SQL de la ligne après curation | `rightsConfirmedAt/By` + `piiPolicyAcceptedAt/By` **renseignés**, acteur = userId admin |
++| #2 masquage | remix réel puis fouille du clone | **201**, `piiMaskedCount=5`, **les 5 catégories ABSENTES** |
++
++Le clone curé, verbatim :
++
++```
++data/products.csv  | name,price,stock
++data/products.csv  | Desk Lamp,4200,7          <- catalogue produit INTACT
++seed/customers.csv | name,email,phone,iban,card
++seed/customers.csv | [PII:name masked on remix],[PII:email masked on remix],[PII:phone masked on remix],[PII:iban masked on remix] 189,[PII:card masked on remix]
++```
++
++## Exposition publique : 6 secondes, sans PII
++
++Contrainte tenue : **aucun listing porteur de PII n'a été laissé dans la gallery publique.**
++Le listing a été curé en `PENDING_REVIEW` (invisible), publié **6 secondes** le temps de
++l'appel de remix, puis dépublié. Les métadonnées publiques (titre, description, licence)
++n'ont jamais contenu de PII — celle-ci n'existe que dans le snapshot source, ce que le
++masquage neutralise précisément. La PII utilisée est **synthétique**.
++
++## Défaut trouvé PENDANT la preuve
++
++L'extrait verbatim ci-dessus le montre : `[PII:iban masked on remix] **189**`. Le dernier
++groupe de l'IBAN français (3 caractères, pas 4) **survivait**. L'IBAN complet était bien
++introuvable — la recherche de chaîne passait — mais **seule la lecture du contenu curé** a
++révélé le fragment. Un masqueur qui laisse des résidus ne tiendra pas devant un expert.
++
++Corrigé (branche `fix/iban-trailing-group`) : `IBAN_RE` consomme désormais un groupe
++terminal de 1 à 3 caractères précédé d'une espace. Ajouté : 2 tests unitaires couvrant
++5 formats nationaux (FR/DE/GB/NL/ES) et une assertion **anti-résidu** au niveau route et e2e.
++**Ce correctif n'est pas encore déployé en prod** au moment où ces lignes sont écrites.
++
++## Leçon de méthode
++
++Chercher les chaînes exactes ne suffit pas : il faut **relire le contenu curé**. La fouille
++disait « les 5 catégories sont absentes » et c'était vrai ; le fragment d'IBAN n'apparaissait
++que dans l'extrait verbatim. Les assertions anti-résidu ajoutées ferment cet angle mort.
++
++---
++
++# Refus expert du correctif IBAN (#89) — corrigé en v3
++
++## Le refus était fondé
++
++Rejeu ciblé de l'expert : `ES91 2100 0418 4502 0005 1332 EUR`. Reproduit sur le code de #89 :
++
++```
++"ES91 2100 0418 4502 0005 1332 EUR"      -> "[MASK]"            <- « EUR » DÉTRUIT
++"FR76 3000 6000 0112 3456 7890 189 EUR"  -> "[MASK] EUR"
++```
++
++`ES` fait **24 caractères**, atteints pile après `1332`. Le groupe optionnel
++`(?:\s?[A-Z0-9]{1,3})?` de la v2 avalait alors ` EUR`. Ce n'est plus une fuite de PII
++mais une **corruption des données voisines** — plus insidieux, car silencieux.
++
++## Pourquoi aucune regex générique ne peut marcher
++
++Un IBAN **n'est pas auto-délimitant** : c'est une suite d'alphanumériques dont seule la
++**longueur nationale** dit où elle s'arrête. Deux tentatives, deux échecs symétriques :
++
++| version | motif du groupe final | défaut |
++|---|---|---|
++| v1 | `[A-Z0-9]{0,3}` (collé) | `FR76 … 189` : fragment terminal **laissé en clair** |
++| v2 | `(?:\s?[A-Z0-9]{1,3})?` | `ES91 … 1332 EUR` : **avale** les données voisines |
++
++Trop court → fuite. Trop long → corruption. Il n'existe pas de réglage intermédiaire :
++il faut **lire le code pays**.
++
++## v3 — détection par longueur de registre
++
++1. **Code pays** lu sur les 2 lettres initiales.
++2. **Longueur nationale exacte** depuis `IBAN_LENGTH_BY_COUNTRY` — table **ISO 13616-1 /
++   Swift IBAN Registry**, `Object.freeze`, avec provenance et date
++   (`IBAN_REGISTRY_PROVENANCE`, figée le 2026-08-04). Pays absent → **jamais masqué**
++   (fail-open assumé : mieux vaut ne pas masquer que corrompre).
++3. **Correspondance normalisé ↔ original** : `ibanSpans()` consomme exactement N
++   alphanumériques en franchissant les espaces internes (y compris **insécables**), et
++   rend les bornes `[start, end)` dans le **texte d'origine**.
++4. **Masquage de la plage exacte** — ni plus, ni moins. Un séparateur n'est jamais
++   consommé en fin ; la borne droite refuse de couper au milieu d'un jeton.
++5. **Checksum ISO 7064 MOD-97-10** (`ibanChecksumValid`) pour écarter les sosies.
++
++## Rejeu — 14/14
++
++`replay-iban-expert.ts` (sortie complète : `replay-iban-expert-output.txt`) :
++
++```
++OK    REFUS EXPERT — EUR doit survivre
++        in  "ES91 2100 0418 4502 0005 1332 EUR"
++        out "[PII:iban masked on remix] EUR"
++...
++14/14 cas conformes
++```
++
++Couverture : devises EUR/USD/GBP/CHF adjacentes · colonnes CSV · tabulation ·
++ponctuation · **deux IBAN dans la même phrase** · espaces **insécables** · forme
++**compacte** · et 4 sosies non masqués (checksum faux, pays inconnu, jeton
++alphanumérique, chaîne plus longue que la longueur nationale).
++
++Tests unitaires : 10 formats nationaux (NO 15 → MT/SC 31), plages sur le texte original,
++provenance de la table, gel de l'objet.
++
++## Contrepartie DÉCLARÉE
++
++Le contrôle MOD-97 est ce qui permet de ne pas masquer un sosie — mais **un IBAN
++comportant une faute de frappe échappe au masquage**. C'est un arbitrage explicite,
++pas un oubli : sans checksum, tout jeton de la bonne longueur commençant par un code
++pays valide serait masqué, ce que le test « sosie » interdit.
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/live-clone-scan-e41821f377.txt b/docs/deploy-evidence/2026-08-04-v305-reserves/live-clone-scan-e41821f377.txt
+new file mode 100644
+index 00000000..6ac64f7e
+--- /dev/null
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/live-clone-scan-e41821f377.txt
+@@ -0,0 +1,28 @@
++CLONE PROD cmse8lyd1000j0n7ishaegziq — image api:e41821f377
++  fichiers=9  octets de texte=3702
++
++  --- ON CHERCHE LES DONNEES PERSONNELLES DE LA SOURCE DANS LE CLONE ---
++    name   Jane Doe                             -> ABSENT
++    email  jane.doe@acme-corp.fr                -> ABSENT
++    phone  +33 6 12 34 56 78                    -> ABSENT
++    iban   FR76 3000 6000 0112 3456 7890 189    -> ABSENT
++    card   4242 4242 4242 4242                  -> ABSENT
++
++  --- marqueurs de masquage presents ---
++    name   -> present
++    email  -> present
++    phone  -> present
++    iban   -> present
++    card   -> present
++
++  --- non-regression ---
++    catalogue produit "Desk Lamp" conserve  : True
++    fixture RFC2606 support@example.com     : True
++
++  --- contenu cure (extrait verbatim) ---
++    data/products.csv | name,price,stock
++    data/products.csv | Desk Lamp,4200,7
++    seed/customers.csv | name,email,phone,iban,card
++    seed/customers.csv | [PII:name masked on remix],[PII:email masked on remix],[PII:phone masked on remix],[PII:iban masked on remix] 189,[PII:card masked on remix]
++
++  VERDICT: LES 5 CATEGORIES SONT ABSENTES DU CLONE
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/live-prod-transcript.txt b/docs/deploy-evidence/2026-08-04-v305-reserves/live-prod-transcript.txt
+new file mode 100644
+index 00000000..c059463a
+--- /dev/null
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/live-prod-transcript.txt
+@@ -0,0 +1,47 @@
++# P0-V3-05 — PREUVE LIVE PROD des 3 réserves — 2026-08-04
++# Image API déployée : api:e41821f377 (rollout terminé 05:47Z)
++# Migration 0081_remix_license_spdx_consent_trace appliquée 2026-08-04T05:42:27.774Z, rolled_back_at=null
++# Colonnes créées : piiPolicyAcceptedAt, piiPolicyAcceptedBy, rightsConfirmedAt, rightsConfirmedBy
++# Listings prod après migration : total=15, remixables=14 (clause rétroactive = no-op, comme prédit au dry-run)
++
++## RÉSERVE #7 — curation avec une licence NON dérivable  → REFUS
++POST /admin/gallery-listings  licenseId="PROPRIETARY — NO DERIVATIVES"
++HTTP 400
++{"error":"License \"PROPRIETARY — NO DERIVATIVES\" is not a recognised SPDX id that allows derivative works.",
++ "code":"REMIX_LICENSE_NOT_DERIVATIVE","reason":"UNKNOWN_LICENSE",
++ "allowedLicenseIds":["0BSD","Apache-2.0","Artistic-2.0","BSD-2-Clause","BSD-3-Clause","BSD-3-Clause-Clear",
++ "BSL-1.0","CC0-1.0","ISC","MIT","MIT-0","MS-PL","PostgreSQL","Unlicense","Zlib","AGPL-3.0-only",
++ "AGPL-3.0-or-later", ...]}
++
++## RÉSERVE #7 (positif) — licence dérivable → ACCEPTÉE + NORMALISÉE
++POST /admin/gallery-listings  licenseId="mit"  (saisie brute, minuscules)
++HTTP 201 — licenseId persisté = "MIT"   (l'identifiant CANONIQUE, jamais la saisie)
++
++## RÉSERVE #8 — trace auditable RELUE EN BASE
++select slug,"licenseId","rightsConfirmedAt","rightsConfirmedBy","piiPolicyAcceptedAt","piiPolicyAcceptedBy"
++  from "GalleryListing" where slug='v305-isolated-1785822455';
++{
++ "slug": "v305-isolated-1785822455",
++ "licenseId": "MIT",
++ "rightsConfirmedAt": "2026-08-04T05:47:45.568Z",
++ "rightsConfirmedBy": "bc8c8aa8-7f80-4208-a774-569933a18e27",
++ "piiPolicyAcceptedAt": "2026-08-04T05:47:45.568Z",
++ "piiPolicyAcceptedBy": "bc8c8aa8-7f80-4208-a774-569933a18e27"
++}
++(bc8c8aa8-… = userId de l'admin plateforme qui a curé — l'acteur est nommé, pas seulement l'instant)
++
++## RÉSERVE #2 — remix autorisé puis FOUILLE du clone
++POST /gallery/v305-isolated-1785822455/remix   HTTP 201
++  piiMaskedCount = 5   licenceSnapshot.licenseId = MIT
++  fenêtre de publication publique = 6 secondes (PENDING_REVIEW -> PUBLISHED -> UNPUBLISHED)
++  AUCUNE PII n'a jamais figuré dans les métadonnées publiques du listing.
++-> voir live-clone-scan-e41821f377.txt
++
++## DÉFAUT TROUVÉ PENDANT CETTE PREUVE (et corrigé ensuite)
++L'extrait verbatim du clone montrait :
++    [PII:iban masked on remix] 189
++Le dernier groupe de l'IBAN français (3 caractères, pas 4) survivait au masquage.
++L'IBAN COMPLET était bien introuvable, mais laisser un fragment est un défaut réel.
++Corrigé par la branche fix/iban-trailing-group (IBAN_RE consomme un groupe terminal
++de 1 à 3 caractères précédé d'une espace) + 2 tests unitaires couvrant 5 formats
++nationaux + assertions anti-résidu au niveau route et e2e.
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt
+new file mode 100644
+index 00000000..f8d62d35
+--- /dev/null
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert-output.txt
+@@ -0,0 +1,52 @@
++OK    REFUS EXPERT — EUR doit survivre
++        in  "ES91 2100 0418 4502 0005 1332 EUR"
++        out "[PII:iban masked on remix] EUR"
++OK    devise GBP
++        in  "GB29 NWBK 6016 1331 9268 19 GBP"
++        out "[PII:iban masked on remix] GBP"
++OK    devise USD
++        in  "DE89 3704 0044 0532 0130 00 USD"
++        out "[PII:iban masked on remix] USD"
++OK    groupe terminal de 3 (bug v1)
++        in  "FR76 3000 6000 0112 3456 7890 189 EUR"
++        out "[PII:iban masked on remix] EUR"
++OK    colonne CSV
++        in  "ES91 2100 0418 4502 0005 1332,EUR,1200"
++        out "[PII:iban masked on remix],EUR,1200"
++OK    tabulation
++        in  "ES91 2100 0418 4502 0005 1332\tEUR"
++        out "[PII:iban masked on remix]\tEUR"
++OK    ponctuation
++        in  "Compte (ES91 2100 0418 4502 0005 1332)."
++        out "Compte ([PII:iban masked on remix])."
++OK    DEUX IBAN dans la phrase
++        in  "De ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR."
++        out "De [PII:iban masked on remix] vers [PII:iban masked on remix], 50 EUR."
++OK    espaces INSÉCABLES
++        in  "ES91 2100 0418 4502 0005 1332 EUR"
++        out "[PII:iban masked on remix] EUR"
++OK    forme COMPACTE
++        in  "compact ES9121000418450200051332 fin"
++        out "compact [PII:iban masked on remix] fin"
++OK    R1 — checksum FAUX, longueur bonne -> MASQUÉ
++        in  "ES91 2100 0418 4502 0005 1333"
++        out "[PII:iban masked on remix]"
++OK    R1 — checksum faux + voisin intact
++        in  "ES91 2100 0418 4502 0005 1333 EUR"
++        out "[PII:iban masked on remix] EUR"
++OK    R3 — trop court pour GB -> non masqué
++        in  "GB29 NWBK 6016 1331 9268 1"
++        out "GB29 NWBK 6016 1331 9268 1"
++OK    R4 — pays inconnu -> non masqué (et signalé)
++        in  "ZZ91 2100 0418 4502 0005 1332"
++        out "ZZ91 2100 0418 4502 0005 1332"
++OK    R3 — jeton quelconque
++        in  "ref ABCD1234EFGH5678IJKL9012 fin"
++        out "ref ABCD1234EFGH5678IJKL9012 fin"
++OK    R3 — plus long que le pays
++        in  "ES9121000418450200051332EXTRA"
++        out "ES9121000418450200051332EXTRA"
++OK    R4 — code pays inconnu SIGNALÉ
++        unknownCandidates = [{"countryCode":"ZZ","normalizedLength":24,"decision":"UNKNOWN_COUNTRY_CODE"}]
++
++17/17 cas conformes
+diff --git a/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
+new file mode 100644
+index 00000000..2298aa42
+--- /dev/null
++++ b/docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
+@@ -0,0 +1,74 @@
++/**
++ * Rejeu du REFUS EXPERT du 2026-08-04 sur le masquage IBAN.
++ *
++ *   npx tsx docs/deploy-evidence/2026-08-04-v305-reserves/replay-iban-expert.ts
++ *
++ * Sort 1 si un seul cas régresse. Le cas nominal du refus est
++ * « ES91 2100 0418 4502 0005 1332 EUR » : l'IBAN doit partir, « EUR » rester.
++ */
++import { maskPiiInFiles } from '../../../services/api/src/remix-pipeline.js';
++
++const M = '[PII:iban masked on remix]';
++const mask = (s: string) => maskPiiInFiles([{ path: 'x.txt', content: s }]).files[0].content;
++
++const cases: Array<[string, string, string]> = [
++  ['REFUS EXPERT — EUR doit survivre', 'ES91 2100 0418 4502 0005 1332 EUR', `${M} EUR`],
++  ['devise GBP', 'GB29 NWBK 6016 1331 9268 19 GBP', `${M} GBP`],
++  ['devise USD', 'DE89 3704 0044 0532 0130 00 USD', `${M} USD`],
++  ['groupe terminal de 3 (bug v1)', 'FR76 3000 6000 0112 3456 7890 189 EUR', `${M} EUR`],
++  ['colonne CSV', 'ES91 2100 0418 4502 0005 1332,EUR,1200', `${M},EUR,1200`],
++  ['tabulation', 'ES91 2100 0418 4502 0005 1332\tEUR', `${M}\tEUR`],
++  ['ponctuation', 'Compte (ES91 2100 0418 4502 0005 1332).', `Compte (${M}).`],
++  [
++    'DEUX IBAN dans la phrase',
++    'De ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR.',
++    `De ${M} vers ${M}, 50 EUR.`,
++  ],
++  ['espaces INSÉCABLES', 'ES91 2100 0418 4502 0005 1332 EUR', `${M} EUR`],
++  ['forme COMPACTE', 'compact ES9121000418450200051332 fin', `compact ${M} fin`],
++  // R1 (arbitrage 2026-08-05) : ex-« sosie », DÉSORMAIS MASQUÉ.
++  ['R1 — checksum FAUX, longueur bonne -> MASQUÉ', 'ES91 2100 0418 4502 0005 1333', `${M}`],
++  ['R1 — checksum faux + voisin intact', 'ES91 2100 0418 4502 0005 1333 EUR', `${M} EUR`],
++  ['R3 — trop court pour GB -> non masqué', 'GB29 NWBK 6016 1331 9268 1', 'GB29 NWBK 6016 1331 9268 1'],
++  ['R4 — pays inconnu -> non masqué (et signalé)', 'ZZ91 2100 0418 4502 0005 1332', 'ZZ91 2100 0418 4502 0005 1332'],
++  ['R3 — jeton quelconque', 'ref ABCD1234EFGH5678IJKL9012 fin', 'ref ABCD1234EFGH5678IJKL9012 fin'],
++  ['R3 — plus long que le pays', 'ES9121000418450200051332EXTRA', 'ES9121000418450200051332EXTRA'],
++];
++
++let failed = 0;
++
++for (const [label, input, expected] of cases) {
++  const got = mask(input);
++  const ok = got === expected;
++
++  if (!ok) {
++    failed += 1;
++  }
++
++  console.log(`${ok ? 'OK  ' : 'ECHEC'}  ${label}`);
++  console.log(`        in  ${JSON.stringify(input)}`);
++  console.log(`        out ${JSON.stringify(got)}`);
++
++  if (!ok) {
++    console.log(`        att ${JSON.stringify(expected)}`);
++  }
++}
++
++// R4 — le pays hors registre doit être SIGNALÉ, pas seulement laissé intact.
++const { observations } = maskPiiInFiles([
++  { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332' },
++]);
++const signalled =
++  observations.ibanUnknownCandidates.length === 1 &&
++  observations.ibanUnknownCandidates[0].countryCode === 'ZZ' &&
++  observations.ibanUnknownCandidates[0].decision === 'UNKNOWN_COUNTRY_CODE';
++
++console.log(`${signalled ? 'OK  ' : 'ECHEC'}  R4 — code pays inconnu SIGNALÉ`);
++console.log(`        unknownCandidates = ${JSON.stringify(observations.ibanUnknownCandidates)}`);
++
++if (!signalled) {
++  failed += 1;
++}
++
++console.log(`\n${cases.length + 1 - failed}/${cases.length + 1} cas conformes`);
++process.exit(failed === 0 ? 0 : 1);
+diff --git a/services/api/src/app.ts b/services/api/src/app.ts
+index 62d9fa25..52169291 100644
+--- a/services/api/src/app.ts
++++ b/services/api/src/app.ts
+@@ -319,6 +319,7 @@ import {
+   RollbackManifestError,
+   selectPreviousRelease,
+ } from './release-manifest.js';
++import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
+ import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
+ import { aggregatePreviewReadiness } from './runtime-readiness.js';
+ import {
+@@ -22411,7 +22412,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+           content: file.content,
+           encoding: file.encoding,
+         }));
+-        const { files: maskedFiles, masked } = maskPiiInFiles(remixFiles);
++        const { files: maskedFiles, masked, observations } = maskPiiInFiles(remixFiles);
++
++        /*
++         * Observabilité du masquage IBAN (politique du 2026-08-05) : le checksum
++         * MOD-97 ne conditionne PAS le masquage, il l'étiquette. Un code pays hors
++         * registre ISO 13616 n'est PAS masqué — on le journalise et on le compte
++         * pour qu'un nouveau pays devienne visible et que la table soit mise à
++         * jour, plutôt que la fuite passe inaperçue.
++         */
++        for (let n = 0; n < observations.ibanMaskedChecksumValid; n += 1) {
++          recordIbanMasked(true);
++        }
++
++        for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
++          recordIbanMasked(false);
++        }
++
++        /*
++         * La MÉTRIQUE compte CHAQUE candidat ; le LOG est ÉCHANTILLONNÉ (1er par
++         * code pays et par fenêtre, cardinalité bornée) et ne porte qu'un
++         * spécimen TRONQUÉ — jamais l'IBAN en clair.
++         */
++        for (const candidate of observations.ibanUnknownCandidates) {
++          recordUnknownIbanCountry(candidate.countryCode);
++
++          if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
++            /*
++             * Le log ne porte AUCUN fragment du candidat — pas même tronqué :
++             * ni corps, ni clé de contrôle, ni préfixe. Code pays, longueur,
++             * catégorie de décision et identifiant de job suffisent à agir.
++             */
++            request.log.warn(
++              {
++                countryCode: candidate.countryCode,
++                normalizedLength: candidate.normalizedLength,
++                decision: candidate.decision,
++                remixJobId: job.id,
++              },
++              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is logged; further occurrences of this country are not logged)',
++            );
++          }
++        }
+ 
+         const residual = scanFilesForPii(maskedFiles);
+         if (residual.length > 0) {
+diff --git a/services/api/src/remix-pii-metrics.ts b/services/api/src/remix-pii-metrics.ts
+new file mode 100644
+index 00000000..6ea1dbd2
+--- /dev/null
++++ b/services/api/src/remix-pii-metrics.ts
+@@ -0,0 +1,144 @@
++/**
++ * Compteurs d'observation du masquage PII au remix (P0-V3-05).
++ *
++ * Le pipeline de masquage (`remix-pipeline.ts`) reste PUR : il se contente de
++ * RENVOYER ce qu'il a observé. C'est ici, au bord, qu'on accumule — de sorte
++ * que la décision de masquer ne dépende jamais d'un état global, et que les
++ * compteurs restent assertables dans un test.
++ *
++ * Arbitrage Avi du 2026-08-05 : le checksum MOD-97 n'est PLUS une condition de
++ * masquage, seulement une étiquette de confiance. `ibanMasked` se lit donc
++ * comme `iban_masked{checksum_valid=true|false}`.
++ */
++
++export interface RemixPiiMetrics {
++  /** Masquages d'IBAN, ventilés par validité du checksum (jamais une condition). */
++  ibanMasked: { checksumValid: number; checksumInvalid: number };
++
++  /**
++   * Codes pays qui ressemblent à un IBAN mais sont absents du registre ISO
++   * 13616. NON masqués — comptés pour qu'un nouveau pays devienne visible et
++   * que la table soit mise à jour, plutôt que la fuite passe inaperçue.
++   *
++   * CARDINALITÉ BORNÉE : au plus {@link MAX_METRIC_COUNTRIES} libellés nommés ;
++   * au-delà, tout est agrégé sous {@link OTHER_COUNTRY_LABEL}. Le TOTAL reste
++   * donc exact même sous des données adverses, sans faire exploser le nombre de
++   * séries temporelles côté Prometheus.
++   */
++  unknownCountryCode: Record<string, number>;
++}
++
++function emptyMetrics(): RemixPiiMetrics {
++  return { ibanMasked: { checksumValid: 0, checksumInvalid: 0 }, unknownCountryCode: {} };
++}
++
++let metrics: RemixPiiMetrics = emptyMetrics();
++
++/*
++ * ------------------------------------------------------------------------- *
++ * ÉCHANTILLONNAGE DU LOG (garde-fou 1)
++ *
++ * La MÉTRIQUE compte CHAQUE candidat plausible — c'est elle qui dit si le
++ * phénomène monte. Le LOG, lui, est borné : il ne sert qu'à DIAGNOSTIQUER, et
++ * un fichier de seed contenant mille lignes ne doit pas produire mille lignes
++ * de journal.
++ *
++ * Règle : le PREMIER candidat de chaque code pays par fenêtre d'observation,
++ * et au plus MAX_LOGGED_COUNTRIES codes distincts — cardinalité bornée même
++ * face à des données adverses qui feraient défiler les codes pays.
++ * -------------------------------------------------------------------------
++ */
++
++const MAX_LOGGED_COUNTRIES = 10;
++
++/*
++ * ------------------------------------------------------------------------- *
++ * CARDINALITÉ DES MÉTRIQUES (garde-fou 2)
++ *
++ * `unknown_country_code` est indexé PAR CODE PAYS : c'est un libellé alimenté
++ * par des DONNÉES, donc une porte ouverte à l'explosion de séries temporelles
++ * (676 codes à deux lettres possibles, et rien n'oblige un fichier hostile à
++ * s'en tenir aux vrais). On borne donc le nombre de libellés NOMMÉS ; le reste
++ * s'agrège sous un libellé unique, ce qui préserve le TOTAL sans multiplier
++ * les séries.
++ * -------------------------------------------------------------------------
++ */
++
++const MAX_METRIC_COUNTRIES = 20;
++
++/** Libellé fourre-tout une fois le plafond de libellés nommés atteint. */
++export const OTHER_COUNTRY_LABEL = '__other__';
++
++let loggedCountries = new Set<string>();
++
++/**
++ * Faut-il journaliser CE candidat ? Vrai une seule fois par code pays et par
++ * fenêtre, dans la limite de {@link MAX_LOGGED_COUNTRIES} codes distincts.
++ *
++ * Appeler cette fonction CONSOMME l'autorisation : elle a un effet de bord
++ * assumé, pour que l'appelant ne puisse pas journaliser deux fois par mégarde.
++ */
++export function shouldLogUnknownIbanCountry(countryCode: string): boolean {
++  if (loggedCountries.has(countryCode) || loggedCountries.size >= MAX_LOGGED_COUNTRIES) {
++    return false;
++  }
++
++  loggedCountries.add(countryCode);
++
++  return true;
++}
++
++/** Un IBAN a été masqué ; `checksumValid` qualifie, il ne conditionne pas. */
++export function recordIbanMasked(checksumValid: boolean): void {
++  if (checksumValid) {
++    metrics.ibanMasked.checksumValid += 1;
++  } else {
++    metrics.ibanMasked.checksumInvalid += 1;
++  }
++}
++
++/**
++ * Un candidat IBAN d'un pays hors registre a été rencontré (et NON masqué).
++ *
++ * Chaque occurrence compte. Seule la RÉPARTITION est bornée : passé
++ * {@link MAX_METRIC_COUNTRIES} libellés nommés, les codes suivants tombent dans
++ * {@link OTHER_COUNTRY_LABEL} — le total, lui, reste exact.
++ */
++export function recordUnknownIbanCountry(countryCode: string): void {
++  const known = Object.prototype.hasOwnProperty.call(metrics.unknownCountryCode, countryCode);
++  const saturated = Object.keys(metrics.unknownCountryCode).length >= MAX_METRIC_COUNTRIES;
++  const label = known || !saturated ? countryCode : OTHER_COUNTRY_LABEL;
++
++  metrics.unknownCountryCode[label] = (metrics.unknownCountryCode[label] ?? 0) + 1;
++}
++
++/** Instantané immuable — pour l'exposition Prometheus et les tests. */
++export function snapshotRemixPiiMetrics(): RemixPiiMetrics {
++  return {
++    ibanMasked: { ...metrics.ibanMasked },
++    unknownCountryCode: { ...metrics.unknownCountryCode },
++  };
++}
++
++/** Remise à zéro (tests, et rotation d'une fenêtre d'observation). */
++export function resetRemixPiiMetrics(): void {
++  metrics = emptyMetrics();
++  loggedCountries = new Set<string>();
++}
++
++/**
++ * Rendu texte façon Prometheus — `iban_masked{checksum_valid="false"} 3`,
++ * `iban_unknown_country_code{country="ZZ"} 1`.
++ */
++export function formatRemixPiiMetrics(): string {
++  const lines = [
++    `remix_pii_iban_masked{checksum_valid="true"} ${metrics.ibanMasked.checksumValid}`,
++    `remix_pii_iban_masked{checksum_valid="false"} ${metrics.ibanMasked.checksumInvalid}`,
++  ];
++
++  for (const [country, count] of Object.entries(metrics.unknownCountryCode).sort()) {
++    lines.push(`remix_pii_iban_unknown_country_code{country="${country}"} ${count}`);
++  }
++
++  return lines.join('\n');
++}
+diff --git a/services/api/src/remix-pipeline.spec.ts b/services/api/src/remix-pipeline.spec.ts
+index 3392ed51..6507cb68 100644
+--- a/services/api/src/remix-pipeline.spec.ts
++++ b/services/api/src/remix-pipeline.spec.ts
+@@ -1,11 +1,24 @@
+ import { describe, expect, it } from 'vitest';
+ 
+ import {
++  formatRemixPiiMetrics,
++  OTHER_COUNTRY_LABEL,
++  recordIbanMasked,
++  recordUnknownIbanCountry,
++  resetRemixPiiMetrics,
++  shouldLogUnknownIbanCountry,
++  snapshotRemixPiiMetrics,
++} from './remix-pii-metrics.js';
++import {
++  IBAN_LENGTH_BY_COUNTRY,
++  IBAN_REGISTRY_PROVENANCE,
+   REMIX_STATE_ORDER,
+   REMIX_STORAGE_POLICIES,
+   RemixInvariantError,
+   assertRemixTransition,
+   detachCredentials,
++  ibanChecksumValid,
++  ibanSpans,
+   luhnValid,
+   maskPiiInFiles,
+   scanClonedFilesForSecrets,
+@@ -134,6 +147,7 @@ describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
+     expect(REMIX_STATE_ORDER[detachedIdx + 2]).toBe('CLONING');
+     expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'SOURCE_SANITIZED')).not.toThrow();
+     expect(() => assertRemixTransition('SOURCE_SANITIZED', 'CLONING')).not.toThrow();
++
+     // Skipping sanitization is an illegal transition, like any skipped step.
+     expect(() => assertRemixTransition('CREDENTIALS_DETACHED', 'CLONING')).toThrow(RemixInvariantError);
+   });
+@@ -185,9 +199,8 @@ describe('SOURCE_SANITIZED — PII masking (I-RMX-3, P0-V3-05)', () => {
+   });
+ 
+   it('masked output re-scans CLEAN — findings carry kind + location, never the value', () => {
+-    const dirty = [
+-      { path: 'seed.csv', content: 'jane@acme-corp.fr,+33612345678,4242424242424242\n' },
+-    ];
++    const dirty = [{ path: 'seed.csv', content: 'jane@acme-corp.fr,+33612345678,4242424242424242\n' }];
++
+     const { files, masked } = maskPiiInFiles(dirty);
+ 
+     expect(masked.length).toBeGreaterThanOrEqual(3);
+@@ -209,7 +222,8 @@ describe('person-name masking (I-RMX-3)', () => {
+     const { files, masked } = maskPiiInFiles([
+       {
+         path: 'seed/customers.csv',
+-        content: 'name,email,phone\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78\nJean-Pierre Dupont,jp@acme-corp.fr,+33 1 44 55 66 77\n',
++        content:
++          'name,email,phone\nJane Doe,jane.doe@acme-corp.fr,+33 6 12 34 56 78\nJean-Pierre Dupont,jp@acme-corp.fr,+33 1 44 55 66 77\n',
+       },
+     ]);
+ 
+@@ -261,7 +275,8 @@ describe('person-name masking (I-RMX-3)', () => {
+     const { files, masked } = maskPiiInFiles([
+       {
+         path: 'template.json',
+-        content: '{\n  "firstName": "{{first}}",\n  "lastName": "",\n  "contactName": "admin",\n  "ownerName": "user_1"\n}\n',
++        content:
++          '{\n  "firstName": "{{first}}",\n  "lastName": "",\n  "contactName": "admin",\n  "ownerName": "user_1"\n}\n',
+       },
+     ]);
+ 
+@@ -270,6 +285,377 @@ describe('person-name masking (I-RMX-3)', () => {
+     expect(masked).toEqual([]);
+   });
+ 
++  /*
++   * --------------------------------------------------------------------- *
++   * IBAN — refus expert du 2026-08-04 sur la v2 par regex.
++   *
++   * v1 laissait le groupe terminal en clair (« … 189 »).
++   * v2 avalait les données voisines (« ES91 … 1332 EUR » -> « EUR » détruit).
++   * v3 lit le code pays et applique la longueur du registre ISO 13616.
++   * ---------------------------------------------------------------------
++   */
++  describe('IBAN — longueur nationale (ISO 13616), pas de regex générique', () => {
++    const mask = (content: string) => maskPiiInFiles([{ path: 'x.txt', content }]).files[0].content;
++
++    it("REJEU DU REFUS EXPERT — « ES91 … 1332 EUR » : l'IBAN part, EUR RESTE", () => {
++      const out = mask('ES91 2100 0418 4502 0005 1332 EUR');
++
++      expect(out).toBe('[PII:iban masked on remix] EUR');
++      expect(out).toContain('EUR');
++      expect(out).not.toContain('1332');
++    });
++
++    it('ne mange pas la devise adjacente, quelle qu’elle soit', () => {
++      expect(mask('FR76 3000 6000 0112 3456 7890 189 EUR')).toBe('[PII:iban masked on remix] EUR');
++      expect(mask('GB29 NWBK 6016 1331 9268 19 GBP')).toBe('[PII:iban masked on remix] GBP');
++      expect(mask('DE89 3704 0044 0532 0130 00 USD')).toBe('[PII:iban masked on remix] USD');
++      expect(mask('NL91 ABNA 0417 1643 00 CHF')).toBe('[PII:iban masked on remix] CHF');
++    });
++
++    it('masque intégralement sur 10 formats nationaux (aucun résidu)', () => {
++      const ibans = [
++        'NO93 8601 1117 947', // 15
++        'BE68 5390 0754 7034', // 16
++        'NL91 ABNA 0417 1643 00', // 18
++        'CH93 0076 2011 6238 5295 7', // 21
++        'DE89 3704 0044 0532 0130 00', // 22
++        'GB29 NWBK 6016 1331 9268 19', // 22
++        'ES91 2100 0418 4502 0005 1332', // 24
++        'FR76 3000 6000 0112 3456 7890 189', // 27 — groupe final de 3
++        'IT60 X054 2811 1010 0000 0123 456', // 27 — lettre dans le BBAN
++        'FR14 2004 1010 0505 0001 3M02 606', // 27 — alphanumérique
++      ];
++
++      for (const iban of ibans) {
++        expect(mask(iban), iban).toBe('[PII:iban masked on remix]');
++      }
++    });
++
++    it('respecte la ponctuation et les colonnes CSV', () => {
++      expect(mask('iban,currency,amount\nES91 2100 0418 4502 0005 1332,EUR,1200')).toBe(
++        'iban,currency,amount\n[PII:iban masked on remix],EUR,1200',
++      );
++      expect(mask('IBAN\tES91 2100 0418 4502 0005 1332\tEUR')).toBe('IBAN\t[PII:iban masked on remix]\tEUR');
++      expect(mask('Compte (ES91 2100 0418 4502 0005 1332).')).toBe('Compte ([PII:iban masked on remix]).');
++    });
++
++    it('gère PLUSIEURS IBAN dans la même phrase', () => {
++      expect(mask('Virement de ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR.')).toBe(
++        'Virement de [PII:iban masked on remix] vers [PII:iban masked on remix], 50 EUR.',
++      );
++    });
++
++    it('gère les espaces INSÉCABLES et la forme COMPACTE', () => {
++      expect(mask('ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332 EUR')).toBe('[PII:iban masked on remix] EUR');
++      expect(mask('ES912100041845020005133\u202F2 EUR')).toBe('[PII:iban masked on remix] EUR');
++      expect(mask('compact: ES9121000418450200051332 fin')).toBe('compact: [PII:iban masked on remix] fin');
++    });
++
++    it('NE masque PAS un texte alphanumérique qui ressemble à un IBAN', () => {
++      // Code pays inconnu du registre.
++      expect(mask('ZZ91 2100 0418 4502 0005 1332')).toBe('ZZ91 2100 0418 4502 0005 1332');
++
++      // Jetons quelconques de la bonne longueur.
++      expect(mask('ref ABCD1234EFGH5678IJKL9012 fin')).toBe('ref ABCD1234EFGH5678IJKL9012 fin');
++      expect(mask('sha AB12CDEF34567890ABCDEF12')).toBe('sha AB12CDEF34567890ABCDEF12');
++
++      // Chaîne PLUS LONGUE que la longueur nationale -> pas un IBAN.
++      expect(mask('ES9121000418450200051332EXTRA')).toBe('ES9121000418450200051332EXTRA');
++    });
++
++    it('checksum MOD-97 : accepte les vrais, refuse les altérés', () => {
++      expect(ibanChecksumValid('ES9121000418450200051332')).toBe(true);
++      expect(ibanChecksumValid('FR7630006000011234567890189')).toBe(true);
++      expect(ibanChecksumValid('ES9121000418450200051333')).toBe(false);
++      expect(ibanChecksumValid('nawak')).toBe(false);
++    });
++
++    /*
++     * R1/R2 — arbitrage Avi du 2026-08-05 : priorité CONFIDENTIALITÉ. Un IBAN
++     * mal tapé reste une donnée bancaire : longueur nationale correcte => on
++     * masque, que le checksum soit valide ou non.
++     */
++    it('R1 — checksum FAUX mais longueur correcte : MASQUÉ QUAND MÊME', () => {
++      const bad = 'ES91 2100 0418 4502 0005 1333'; // dernier chiffre altéré
++
++      expect(ibanChecksumValid(bad.replace(/ /g, ''))).toBe(false);
++      expect(mask(bad)).toBe('[PII:iban masked on remix]');
++      expect(mask(`${bad} EUR`)).toBe('[PII:iban masked on remix] EUR');
++    });
++
++    it('R2 — le checksum QUALIFIE seulement : ventilé dans les observations', () => {
++      const { observations } = maskPiiInFiles([
++        {
++          path: 'a.csv',
++          content: ['ES91 2100 0418 4502 0005 1332', 'ES91 2100 0418 4502 0005 1333'].join('\n'),
++        },
++      ]);
++
++      expect(observations.ibanMaskedChecksumValid).toBe(1);
++      expect(observations.ibanMaskedChecksumInvalid).toBe(1);
++      expect(observations.ibanUnknownCandidates).toEqual([]);
++    });
++
++    it('R3 — longueur INCORRECTE pour le pays : AUCUN masquage IBAN', () => {
++      /*
++       * On assied l'assertion sur l'ABSENCE du marqueur IBAN, pas sur l'égalité
++       * de la ligne : un IBAN tronqué peut être une suite de 19 chiffres
++       * Luhn-valide, que le matcher CARTE masque alors à bon droit. Les deux
++       * détecteurs sont indépendants ; c'est bien la règle IBAN qu'on teste ici.
++       */
++      const noIban = (line: string) => expect(mask(line), line).not.toContain('[PII:iban masked on remix]');
++
++      noIban('ES91 2100 0418 4502 0005 133'); // 23 — ES en attend 24
++      noIban('ES9121000418450200051332X'); // 25 — trop long
++      noIban('FR76 3000 6000 0112 3456 7890 18'); // 26 — FR en attend 27
++      noIban('GB29 NWBK 6016 1331 9268 1'); // 21 — GB en attend 22
++
++      // Sans chiffres exploitables par Luhn, la ligne reste littéralement intacte.
++      expect(mask('GB29 NWBK 6016 1331 9268 1')).toBe('GB29 NWBK 6016 1331 9268 1');
++    });
++
++    it('R4 — pays ABSENT du registre : NON masqué, mais SIGNALÉ', () => {
++      const line = 'ZZ91 2100 0418 4502 0005 1332';
++      const { files, observations } = maskPiiInFiles([{ path: 'a.csv', content: line }]);
++
++      expect(files[0].content).toBe(line);
++      expect(observations.ibanUnknownCandidates).toEqual([
++        { countryCode: 'ZZ', normalizedLength: 24, decision: 'UNKNOWN_COUNTRY_CODE' },
++      ]);
++    });
++
++    it('R4 — AUCUN fragment du candidat ne sort : ni corps, ni clé, ni préfixe', () => {
++      const iban = 'ZZ91 2100 0418 4502 0005 1332';
++      const compact = iban.replace(/ /g, '');
++      const { observations } = maskPiiInFiles([{ path: 'a.csv', content: iban }]);
++      const [candidate] = observations.ibanUnknownCandidates;
++
++      // La charge utile se limite à des métadonnées non sensibles.
++      expect(Object.keys(candidate).sort()).toEqual(['countryCode', 'decision', 'normalizedLength']);
++      expect(candidate.decision).toBe('UNKNOWN_COUNTRY_CODE');
++
++      const payload = JSON.stringify(observations);
++
++      /*
++       * Ni la valeur complète, ni la forme espacée, ni la clé de contrôle,
++       * ni AUCUN préfixe du corps au-delà du code pays.
++       */
++      expect(payload).not.toContain(compact);
++      expect(payload).not.toContain(iban);
++      expect(payload).not.toContain('ZZ91');
++      expect(payload).not.toContain('91');
++
++      for (let cut = 3; cut <= compact.length; cut += 1) {
++        expect(payload, `préfixe de ${cut} caractères`).not.toContain(compact.slice(0, cut));
++      }
++
++      // Le code pays SEUL reste (c'est l'information à diagnostiquer).
++      expect(candidate.countryCode).toBe('ZZ');
++    });
++
++    it('R4 — pas de faux signal sur du bruit court', () => {
++      const { observations } = maskPiiInFiles([{ path: 'a.ts', content: 'const ab12 = 3; // xy99 ok' }]);
++
++      expect(observations.ibanUnknownCandidates).toEqual([]);
++    });
++
++    it('R4 — définition du candidat plausible : bornes 15-34 et délimitation', () => {
++      const tooShort = maskPiiInFiles([{ path: 'a.txt', content: 'ZZ91 2100 0418 45' }]); // 14
++      expect(tooShort.observations.ibanUnknownCandidates).toEqual([]);
++
++      const tooLong = maskPiiInFiles([
++        { path: 'a.txt', content: `ZZ91${'A'.repeat(31)}` }, // 35
++      ]);
++      expect(tooLong.observations.ibanUnknownCandidates).toEqual([]);
++
++      const justRight = maskPiiInFiles([{ path: 'a.txt', content: `ZZ91${'A'.repeat(11)}` }]); // 15
++      expect(justRight.observations.ibanUnknownCandidates).toHaveLength(1);
++      expect(justRight.observations.ibanUnknownCandidates[0].normalizedLength).toBe(15);
++    });
++
++    it('R4 — le compteur métrique `unknown_country_code` est incrémenté', () => {
++      resetRemixPiiMetrics();
++
++      const { observations } = maskPiiInFiles([
++        { path: 'a.csv', content: 'ZZ91 2100 0418 4502 0005 1332\nES91 2100 0418 4502 0005 1333' },
++      ]);
++
++      for (const candidate of observations.ibanUnknownCandidates) {
++        recordUnknownIbanCountry(candidate.countryCode);
++      }
++
++      for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
++        recordIbanMasked(false);
++      }
++
++      const snapshot = snapshotRemixPiiMetrics();
++
++      expect(snapshot.unknownCountryCode).toEqual({ ZZ: 1 });
++      expect(snapshot.ibanMasked.checksumInvalid).toBe(1);
++      expect(formatRemixPiiMetrics()).toContain('remix_pii_iban_unknown_country_code{country="ZZ"} 1');
++      expect(formatRemixPiiMetrics()).toContain('remix_pii_iban_masked{checksum_valid="false"} 1');
++
++      resetRemixPiiMetrics();
++    });
++
++    it('la table du registre est versionnée et porte sa provenance', () => {
++      expect(IBAN_REGISTRY_PROVENANCE).toMatch(/ISO 13616/);
++      expect(IBAN_REGISTRY_PROVENANCE).toMatch(/2026-08-04/);
++      expect(IBAN_LENGTH_BY_COUNTRY.FR).toBe(27);
++      expect(IBAN_LENGTH_BY_COUNTRY.ES).toBe(24);
++      expect(IBAN_LENGTH_BY_COUNTRY.NO).toBe(15);
++      expect(Object.isFrozen(IBAN_LENGTH_BY_COUNTRY)).toBe(true);
++    });
++
++    it('GARDE-FOU — la métrique compte TOUT, le log est BORNÉ (échantillonnage)', () => {
++      resetRemixPiiMetrics();
++
++      // 5 occurrences du même pays inconnu + 1 d'un second pays.
++      const rows = Array.from({ length: 5 }, () => 'ZZ91 2100 0418 4502 0005 1332');
++      rows.push('QQ91 2100 0418 4502 0005 1332');
++
++      const { observations } = maskPiiInFiles([{ path: 'seed.csv', content: rows.join('\n') }]);
++
++      // Aucune déduplication : 6 candidats observés.
++      expect(observations.ibanUnknownCandidates).toHaveLength(6);
++
++      let logLines = 0;
++
++      for (const candidate of observations.ibanUnknownCandidates) {
++        recordUnknownIbanCountry(candidate.countryCode);
++
++        if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
++          logLines += 1;
++        }
++      }
++
++      // LA MÉTRIQUE compte chaque occurrence…
++      expect(snapshotRemixPiiMetrics().unknownCountryCode).toEqual({ ZZ: 5, QQ: 1 });
++
++      // …mais le LOG est borné à un exemple par code pays.
++      expect(logLines).toBe(2);
++
++      resetRemixPiiMetrics();
++    });
++
++    it('GARDE-FOU — la cardinalité des codes journalisés est plafonnée', () => {
++      resetRemixPiiMetrics();
++
++      const codes = Array.from({ length: 25 }, (_, n) => `Q${String.fromCharCode(65 + (n % 25))}`);
++      const logged = codes.filter((code) => shouldLogUnknownIbanCountry(code)).length;
++
++      expect(logged).toBe(10); // MAX_LOGGED_COUNTRIES
++
++      resetRemixPiiMetrics();
++    });
++
++    it('GARDE-FOU — après remise à zéro de la fenêtre, on re-journalise', () => {
++      resetRemixPiiMetrics();
++      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(true);
++      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(false);
++
++      resetRemixPiiMetrics();
++      expect(shouldLogUnknownIbanCountry('ZZ')).toBe(true);
++
++      resetRemixPiiMetrics();
++    });
++
++    it('GARDE-FOU — la CARDINALITÉ DES MÉTRIQUES est bornée, le total reste exact', () => {
++      resetRemixPiiMetrics();
++
++      // 60 codes pays distincts : de quoi faire exploser les séries temporelles.
++      const codes: string[] = [];
++
++      for (let a = 0; a < 6; a += 1) {
++        for (let b = 0; b < 10; b += 1) {
++          codes.push(`${String.fromCharCode(74 + a)}${String.fromCharCode(48 + b)}`);
++        }
++      }
++
++      for (const code of codes) {
++        recordUnknownIbanCountry(code);
++      }
++
++      const snapshot = snapshotRemixPiiMetrics();
++      const labels = Object.keys(snapshot.unknownCountryCode);
++
++      // Au plus 20 libellés nommés + le fourre-tout.
++      expect(labels.length).toBeLessThanOrEqual(21);
++      expect(labels).toContain(OTHER_COUNTRY_LABEL);
++
++      // Le TOTAL est préservé : rien n'est perdu, seule la ventilation est bornée.
++      const total = Object.values(snapshot.unknownCountryCode).reduce((sum, n) => sum + n, 0);
++      expect(total).toBe(codes.length);
++
++      // Le rendu Prometheus ne produit pas plus de séries que de libellés.
++      const series = formatRemixPiiMetrics()
++        .split('\n')
++        .filter((line) => line.startsWith('remix_pii_iban_unknown_country_code'));
++      expect(series.length).toBe(labels.length);
++
++      resetRemixPiiMetrics();
++    });
++
++    it('MAPPING — les bornes restent celles du texte ORIGINAL malgré la normalisation', () => {
++      const cases: Array<{ label: string; line: string; expected: string }> = [
++        {
++          label: 'espaces ordinaires',
++          line: 'solde ES91 2100 0418 4502 0005 1332 EUR',
++          expected: 'ES91 2100 0418 4502 0005 1332',
++        },
++        {
++          label: 'espaces INSÉCABLES',
++          line: 'solde ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332 EUR',
++          expected: 'ES91\u00A02100\u00A00418\u00A04502\u00A00005\u00A01332',
++        },
++        {
++          label: 'forme COMPACTE',
++          line: 'solde ES9121000418450200051332 EUR',
++          expected: 'ES9121000418450200051332',
++        },
++        {
++          label: 'insécable ÉTROITE mélangée',
++          line: 'solde ES91\u202F2100 0418\u202F4502 0005\u202F1332 EUR',
++          expected: 'ES91\u202F2100 0418\u202F4502 0005\u202F1332',
++        },
++      ];
++
++      for (const { label, line, expected } of cases) {
++        const [span] = ibanSpans(line);
++
++        // La tranche du texte ORIGINAL redonne exactement le candidat…
++        expect(line.slice(span.start, span.end), label).toBe(expected);
++
++        // …et ce qui suit est intact, au caractère près.
++        expect(line.slice(span.end), label).toBe(' EUR');
++
++        // …et ce qui précède aussi.
++        expect(line.slice(0, span.start), label).toBe('solde ');
++      }
++    });
++
++    it('MAPPING — plusieurs IBAN sur UNE MÊME LIGNE : bornes distinctes et exactes', () => {
++      const line = 'de ES91 2100 0418 4502 0005 1332 vers NL91 ABNA 0417 1643 00, 50 EUR';
++      const spans = ibanSpans(line);
++
++      expect(spans).toHaveLength(2);
++      expect(line.slice(spans[0].start, spans[0].end)).toBe('ES91 2100 0418 4502 0005 1332');
++      expect(line.slice(spans[1].start, spans[1].end)).toBe('NL91 ABNA 0417 1643 00');
++
++      // Les plages ne se chevauchent pas et respectent l'ordre du texte.
++      expect(spans[0].end).toBeLessThan(spans[1].start);
++      expect(line.slice(spans[1].end)).toBe(', 50 EUR');
++    });
++
++    it('les plages rendues sont celles du texte ORIGINAL', () => {
++      const line = 'x ES91 2100 0418 4502 0005 1332 EUR';
++      const [span] = ibanSpans(line);
++
++      expect(line.slice(span.start, span.end)).toBe('ES91 2100 0418 4502 0005 1332');
++      expect(line.slice(span.end)).toBe(' EUR');
++    });
++  });
++
+   it('the 5 categories together re-scan CLEAN on one person record', () => {
+     const { files, masked } = maskPiiInFiles([
+       {
+diff --git a/services/api/src/remix-pipeline.ts b/services/api/src/remix-pipeline.ts
+index e88c07cc..5b506bec 100644
+--- a/services/api/src/remix-pipeline.ts
++++ b/services/api/src/remix-pipeline.ts
+@@ -246,9 +246,11 @@ export function scrubSecretsFromFiles(
+   return { files: cleaned, removed };
+ }
+ 
+-/* ------------------------------------------------------------------------- *
++/*
++ * ------------------------------------------------------------------------- *
+  * SOURCE_SANITIZED (I-RMX-3, P0-V3-05) — PII masking before cloning.
+- * ------------------------------------------------------------------------- */
++ * -------------------------------------------------------------------------
++ */
+ 
+ export type PiiKind = 'email' | 'phone' | 'iban' | 'card' | 'name';
+ 
+@@ -278,8 +280,406 @@ const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  */
+ const PHONE_RE = /\+\d(?:[\s().-]?\d){7,14}/g;
+ 
+-/** IBAN: 2 letters + 2 check digits + 11-30 alphanumerics (word-bounded). */
+-const IBAN_RE = /\b[A-Z]{2}\d{2}(?:\s?[A-Z0-9]{4}){2,7}[A-Z0-9]{0,3}\b/g;
++/*
++ * ------------------------------------------------------------------------- *
++ * IBAN — détection par LONGUEUR NATIONALE, pas par regex
++ *
++ * Un IBAN n'a PAS de forme auto-délimitante : c'est une suite d'alphanumériques
++ * dont seule la LONGUEUR, fixée par le pays, dit où elle s'arrête. Deux
++ * tentatives par regex ont échoué en production :
++ *
++ *   v1  /(?:\s?[A-Z0-9]{4}){2,7}[A-Z0-9]{0,3}/
++ *       → « FR76 … 7890 189 » : le groupe terminal de 3 caractères SURVIVAIT
++ *         (fragment de PII laissé en clair).
++ *   v2  /(?:\s?[A-Z0-9]{4}){2,7}(?:\s?[A-Z0-9]{1,3})?/
++ *       → « ES91 … 1332 EUR » : ES fait 24 caractères, atteints pile après
++ *         « 1332 » ; le groupe optionnel avalait alors « EUR ».
++ *         CORRUPTION des données voisines (devise, colonne suivante).
++ *
++ * Aucun quantificateur générique ne peut trancher : il faut lire le code pays,
++ * appliquer la longueur du registre, et masquer EXACTEMENT cette plage.
++ * -------------------------------------------------------------------------
++ */
++
++/**
++ * Longueurs IBAN par pays — registre **ISO 13616-1 / Swift IBAN Registry**.
++ *
++ * Provenance : table figée le **2026-08-04** à partir du registre IBAN publié
++ * par Swift en tant qu'autorité d'enregistrement ISO 13616. Chaque entrée est
++ * la longueur TOTALE de l'IBAN (code pays + clé de contrôle + BBAN).
++ *
++ * Cette table est VERSIONNÉE volontairement : un pays qui rejoint le registre
++ * ou change de longueur doit faire l'objet d'une mise à jour explicite et
++ * datée. Un code pays absent de la table n'est JAMAIS masqué (fail-open assumé
++ * et déclaré : mieux vaut ne pas masquer que corrompre du texte voisin).
++ */
++export const IBAN_REGISTRY_PROVENANCE = 'ISO 13616-1 / Swift IBAN Registry — table figée le 2026-08-04';
++
++export const IBAN_LENGTH_BY_COUNTRY: Readonly<Record<string, number>> = Object.freeze({
++  AD: 24,
++  AE: 23,
++  AL: 28,
++  AT: 20,
++  AZ: 28,
++  BA: 20,
++  BE: 16,
++  BG: 22,
++  BH: 22,
++  BI: 27,
++  BR: 29,
++  BY: 28,
++  CH: 21,
++  CR: 22,
++  CY: 28,
++  CZ: 24,
++  DE: 22,
++  DJ: 27,
++  DK: 18,
++  DO: 28,
++  EE: 20,
++  EG: 29,
++  ES: 24,
++  FI: 18,
++  FK: 18,
++  FO: 18,
++  FR: 27,
++  GB: 22,
++  GE: 22,
++  GI: 23,
++  GL: 18,
++  GR: 27,
++  GT: 28,
++  HN: 28,
++  HR: 21,
++  HU: 28,
++  IE: 22,
++  IL: 23,
++  IQ: 23,
++  IS: 26,
++  IT: 27,
++  JO: 30,
++  KW: 30,
++  KZ: 20,
++  LB: 28,
++  LC: 32,
++  LI: 21,
++  LT: 20,
++  LU: 20,
++  LV: 21,
++  LY: 25,
++  MC: 27,
++  MD: 24,
++  ME: 22,
++  MK: 19,
++  MN: 20,
++  MR: 27,
++  MT: 31,
++  MU: 30,
++  NI: 28,
++  NL: 18,
++  NO: 15,
++  OM: 23,
++  PK: 24,
++  PL: 28,
++  PS: 29,
++  PT: 25,
++  QA: 29,
++  RO: 24,
++  RS: 22,
++  RU: 33,
++  SA: 24,
++  SC: 31,
++  SD: 18,
++  SE: 24,
++  SI: 19,
++  SK: 24,
++  SM: 27,
++  SO: 23,
++  ST: 25,
++  SV: 28,
++  TL: 23,
++  TN: 24,
++  TR: 26,
++  UA: 29,
++  VA: 22,
++  VG: 24,
++  XK: 20,
++  YE: 30,
++});
++
++/**
++ * Séparateurs tolérés À L'INTÉRIEUR d'un IBAN : uniquement des espaces, y
++ * compris insécables. Le trait d'union est volontairement EXCLU — il sépare
++ * bien plus souvent deux champs voisins qu'il ne groupe un IBAN, et le
++ * consommer rejouerait exactement le bug « EUR ».
++ */
++const IBAN_INNER_SEPARATOR = /[ \t\u00A0\u202F\u2007\u2009\u2060]/;
++
++const ALNUM = /[A-Za-z0-9]/;
++
++/**
++ * Checksum ISO 7064 MOD-97-10 : déplace les 4 premiers caractères à la fin,
++ * convertit les lettres (A=10 … Z=35) puis exige un reste de 1.
++ *
++ * ⚠️ ARBITRAGE 2026-08-05 : ce contrôle N'EST PLUS une condition de masquage.
++ * Il ne sert QU'À qualifier la confiance (métrique `checksum_valid`). Un IBAN
++ * mal saisi reste une donnée bancaire : on le masque quand même.
++ */
++export function ibanChecksumValid(compact: string): boolean {
++  const s = compact.toUpperCase();
++
++  if (!/^[A-Z]{2}\d{2}[A-Z0-9]{7,30}$/.test(s)) {
++    return false;
++  }
++
++  let remainder = 0;
++
++  for (const ch of `${s.slice(4)}${s.slice(0, 4)}`) {
++    const digits = ch >= '0' && ch <= '9' ? ch : String(ch.charCodeAt(0) - 55);
++
++    for (const d of digits) {
++      remainder = (remainder * 10 + Number(d)) % 97;
++    }
++  }
++
++  return remainder === 1;
++}
++
++/*
++ * ------------------------------------------------------------------------- *
++ * DÉFINITION NORMATIVE — « candidat plausible » (R4)
++ *
++ * R4 ne signale un code pays inconnu que si le jeton rencontré ressemble
++ * VRAIMENT à un IBAN. Sans ce filtre, chaque `ab12` d'un fichier source
++ * incrémenterait la métrique et la rendrait inexploitable. Un jeton est un
++ * candidat plausible si et seulement si les 4 conditions suivantes tiennent :
++ *
++ *  C1. STRUCTURE — exactement 2 lettres ASCII puis 2 chiffres ASCII
++ *      (`/[A-Za-z]{2}[0-9]{2}/`), puis un corps alphanumérique ASCII. La casse
++ *      est libre ; le code pays est normalisé en majuscules.
++ *
++ *  C2. NORMALISATION — on retire les SÉPARATEURS INTERNES pour mesurer :
++ *      espace, tabulation, insécable U+00A0, insécable étroite U+202F, espace
++ *      numérique U+2007, espace fine U+2009, gluon U+2060. Un séparateur n'est
++ *      franchi QUE s'il est suivi d'un alphanumérique : il n'est jamais
++ *      consommé en fin de jeton. Le trait d'union est EXCLU — il sépare deux
++ *      champs voisins bien plus souvent qu'il ne groupe un IBAN, et le
++ *      consommer rejouerait le bug « EUR ».
++ *
++ *  C3. LONGUEUR — la longueur normalisée est comprise entre 15 et 34 inclus,
++ *      bornes du registre ISO 13616 tous pays confondus.
++ *
++ *  C4. DÉLIMITATION — le caractère qui PRÉCÈDE le début n'est pas
++ *      alphanumérique, et celui qui SUIT la fin ne l'est pas non plus. Un
++ *      jeton plus long qu'un IBAN n'est donc jamais un candidat.
++ *
++ * Cette définition est le contrat de stabilité de R4 : la modifier change ce
++ * que mesure `unknown_country_code`. Voir docs/REMIX_PII_IBAN_POLICY.md.
++ * -------------------------------------------------------------------------
++ */
++
++/** Bornes plausibles d'un IBAN, tous pays confondus (ISO 13616 : 15 → 34). */
++const IBAN_MIN_LENGTH = 15;
++const IBAN_MAX_LENGTH = 34;
++
++/**
++ * Ce que le masquage a OBSERVÉ — remonté au bord (`remix-pii-metrics.ts`)
++ * plutôt que compté ici, pour garder ce module pur et testable.
++ */
++export interface PiiMaskingObservations {
++  /** IBAN masqués dont le checksum MOD-97 est valide. */
++  ibanMaskedChecksumValid: number;
++
++  /** IBAN masqués MALGRÉ un checksum invalide (R1 : on masque quand même). */
++  ibanMaskedChecksumInvalid: number;
++
++  /**
++   * Candidats hors registre rencontrés (R4) — non masqués, à signaler. UNE
++   * ENTRÉE PAR OCCURRENCE : la métrique compte tout, le log est borné en aval.
++   */
++  ibanUnknownCandidates: UnknownIbanCandidate[];
++}
++
++/** Une occurrence d'IBAN : bornes dans le texte ORIGINAL + qualification. */
++export interface IbanSpan {
++  start: number;
++  end: number;
++  countryCode: string;
++
++  /** Qualité seulement — n'a AUCUN effet sur la décision de masquer. */
++  checksumValid: boolean;
++}
++
++/**
++ * Un candidat qui RESSEMBLE à un IBAN mais dont le pays est hors registre.
++ *
++ * Ne porte JAMAIS la valeur : seulement le code pays, la longueur normalisée
++ * et un spécimen TRONQUÉ — de quoi diagnostiquer, rien pour reconstituer.
++ */
++export interface UnknownIbanCandidate {
++  /** Code pays ISO 3166 alpha-2, normalisé en majuscules. */
++  countryCode: string;
++
++  /** Longueur du candidat APRÈS normalisation (séparateurs retirés). */
++  normalizedLength: number;
++
++  /**
++   * CATÉGORIE DE DÉCISION — pourquoi ce candidat n'a pas été masqué.
++   *
++   * Ce type ne porte AUCUN fragment de la valeur, pas même tronqué : ni le
++   * corps, ni la clé de contrôle, ni un préfixe. Seuls le code pays (qui EST
++   * l'information à diagnostiquer), la longueur et la catégorie sortent d'ici.
++   * Un spécimen tronqué avait été envisagé puis RETIRÉ : la clé de contrôle
++   * est dérivée du numéro de compte, et rien n'oblige à la journaliser pour
++   * savoir qu'un pays manque au registre.
++   */
++  decision: 'UNKNOWN_COUNTRY_CODE';
++}
++
++export interface IbanScan {
++  spans: IbanSpan[];
++
++  /**
++   * Candidats plausibles dont le pays est absent du registre. NON masqués — et
++   * signalés, pour que la table soit mise à jour plutôt que la fuite passe
++   * inaperçue. UNE ENTRÉE PAR OCCURRENCE (pas de déduplication) : la métrique
++   * doit compter chaque candidat, c'est le LOG qui est borné en aval.
++   */
++  unknownCandidates: UnknownIbanCandidate[];
++}
++
++/*
++ * ------------------------------------------------------------------------- *
++ * POLITIQUE DE MASQUAGE IBAN — arbitrage Avi du 2026-08-05
++ *
++ *  R1. Pays CONNU + longueur nationale EXACTE  → MASQUER TOUJOURS,
++ *      que le checksum MOD-97 soit valide ou non (priorité confidentialité :
++ *      un IBAN mal tapé reste une donnée bancaire sensible).
++ *  R2. Le checksum n'est JAMAIS une condition. Il ne sert qu'à qualifier la
++ *      confiance (métrique `checksum_valid`) et ne laisse jamais réapparaître
++ *      le numéro.
++ *  R3. Pays CONNU + longueur INCORRECTE (trop court ou trop long) → NE PAS
++ *      masquer : ce n'est pas un IBAN de ce pays.
++ *  R4. Pays ABSENT de la table → NE PAS masquer, mais LOGUER + incrémenter
++ *      `unknown_country_code`, pour qu'un nouveau pays devienne visible.
++ *  R5. NE JAMAIS dépasser la longueur officielle : aucun texte voisin (EUR,
++ *      USD, ponctuation, espaces) ne doit être absorbé.
++ * -------------------------------------------------------------------------
++ */
++export function scanIbans(line: string): IbanScan {
++  const spans: IbanSpan[] = [];
++  const unknownCandidates: UnknownIbanCandidate[] = [];
++  const candidate = /[A-Za-z]{2}[0-9]{2}/g;
++
++  let match: RegExpExecArray | null;
++
++  while ((match = candidate.exec(line)) !== null) {
++    const start = match.index;
++
++    // Borne GAUCHE : refuser un départ au milieu d'un jeton alphanumérique.
++    if (start > 0 && ALNUM.test(line[start - 1])) {
++      continue;
++    }
++
++    const countryCode = line.slice(start, start + 2).toUpperCase();
++    const expected = IBAN_LENGTH_BY_COUNTRY[countryCode];
++
++    if (expected === undefined) {
++      /*
++       * R4 — signaler UNIQUEMENT ce qui ressemble vraiment à un IBAN, sinon
++       * la métrique se noierait sous les « ab12 » de n'importe quel code.
++       */
++      const probe = consumeIban(line, start, IBAN_MAX_LENGTH);
++
++      /*
++       * C3 + C4 de la DÉFINITION NORMATIVE ci-dessus. AUCUNE déduplication :
++       * chaque occurrence doit compter dans la métrique — c'est le LOG qui est
++       * borné, en aval (voir shouldLogUnknownIbanCountry).
++       */
++      if (
++        probe.taken >= IBAN_MIN_LENGTH &&
++        probe.taken <= IBAN_MAX_LENGTH &&
++        (probe.end >= line.length || !ALNUM.test(line[probe.end]))
++      ) {
++        unknownCandidates.push({
++          countryCode,
++          normalizedLength: probe.taken,
++          decision: 'UNKNOWN_COUNTRY_CODE',
++        });
++      }
++
++      continue;
++    }
++
++    const run = consumeIban(line, start, expected);
++
++    // R3 — trop COURT pour ce pays.
++    if (run.taken !== expected || run.end < 0) {
++      continue;
++    }
++
++    // R3 — trop LONG : le jeton continue au-delà de la longueur nationale.
++    if (run.end < line.length && ALNUM.test(line[run.end])) {
++      continue;
++    }
++
++    // R1 + R2 — on masque ; le checksum ne fait que qualifier.
++    spans.push({
++      start,
++      end: run.end,
++      countryCode,
++      checksumValid: ibanChecksumValid(run.compact),
++    });
++
++    candidate.lastIndex = run.end;
++  }
++
++  return { spans, unknownCandidates };
++}
++
++/**
++ * Consomme au plus `limit` alphanumériques depuis `start`, en franchissant les
++ * espaces INTERNES (y compris insécables) mais jamais un séparateur terminal.
++ * `end` est l'index de fin dans le texte ORIGINAL (R5 : la plage rendue ne
++ * déborde jamais sur le voisinage).
++ */
++function consumeIban(line: string, start: number, limit: number): { taken: number; end: number; compact: string } {
++  let cursor = start;
++  let taken = 0;
++  let compact = '';
++  let end = -1;
++
++  while (cursor < line.length && taken < limit) {
++    const ch = line[cursor];
++
++    if (ALNUM.test(ch)) {
++      compact += ch;
++      taken += 1;
++      cursor += 1;
++      end = cursor;
++
++      continue;
++    }
++
++    if (!IBAN_INNER_SEPARATOR.test(ch)) {
++      break;
++    }
++
++    let peek = cursor;
++
++    while (peek < line.length && IBAN_INNER_SEPARATOR.test(line[peek])) {
++      peek += 1;
++    }
++
++    if (peek >= line.length || !ALNUM.test(line[peek])) {
++      break;
++    }
++
++    cursor = peek;
++  }
++
++  return { taken, end, compact };
++}
+ 
+ /** Candidate payment-card numbers: 13-19 digits, optional space/dash groups. */
+ const CARD_RE = /\b\d(?:[ -]?\d){12,18}\b/g;
+@@ -311,14 +711,35 @@ export function luhnValid(digits: string): boolean {
+   return sum % 10 === 0;
+ }
+ 
+-const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string) => boolean }> = [
++/** Plages d'IBAN d'une ligne (voir {@link scanIbans} pour la politique). */
++export function ibanSpans(line: string): IbanSpan[] {
++  return scanIbans(line).spans;
++}
++
++interface PiiMatcher {
++  kind: PiiKind;
++
++  /** Détection par motif — suffisant quand la forme est auto-délimitante. */
++  re?: RegExp;
++
++  accept?: (match: string) => boolean;
++
++  /**
++   * Détection par PLAGES — pour les formes dont un regex ne peut pas décider
++   * la fin (IBAN : longueur portée par le code pays, cf. IBAN_LENGTH_BY_COUNTRY).
++   */
++  spans?: (line: string) => Array<{ start: number; end: number }>;
++}
++
++const PII_MATCHERS: PiiMatcher[] = [
+   { kind: 'email', re: EMAIL_RE, accept: (m) => !PII_EXEMPT_EMAIL_DOMAIN.test(m) },
+   { kind: 'phone', re: PHONE_RE },
+-  { kind: 'iban', re: IBAN_RE },
++  { kind: 'iban', spans: ibanSpans },
+   { kind: 'card', re: CARD_RE, accept: luhnValid },
+ ];
+ 
+-/* ------------------------------------------------------------------------- *
++/*
++ * ------------------------------------------------------------------------- *
+  * NOMS DE PERSONNES (P0-V3-05, réserve #2)
+  *
+  * Un nom n'a pas de forme lexicale distinctive : « Jane Doe » et « Meridian
+@@ -336,7 +757,8 @@ const PII_MATCHERS: Array<{ kind: PiiKind; re: RegExp; accept?: (match: string)
+  * Biais assumé : sur signal structurel on masque même une raison sociale
+  * (« name: Acme Corp » dans un fichier de contacts). Sur-masquer une entreprise
+  * coûte infiniment moins cher que laisser fuiter le nom d'une personne.
+- * ------------------------------------------------------------------------- */
++ * -------------------------------------------------------------------------
++ */
+ 
+ /**
+  * Clés dont le nom SEUL suffit à établir qu'on tient l'identité d'une personne.
+@@ -399,6 +821,7 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
+ 
+   const isCsv = /\.(?:csv|tsv)$/i.test(path);
+   const sep = /\.tsv$/i.test(path) ? '\t' : ',';
++
+   let csvColumns: number[] = [];
+ 
+   if (isCsv) {
+@@ -413,6 +836,7 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
+         }
+ 
+         const cells = splitCsvRow(out[i], sep);
++
+         let touched = false;
+ 
+         for (const col of csvColumns) {
+@@ -467,19 +891,32 @@ function rewritePersonNames(path: string, lines: string[]): { lines: string[]; f
+  * the consent version on the job instead — "PII masquées OU consentement
+  * explicite" (plan §8.2), never silently unmasked.
+  */
+-export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked: PiiFinding[] } {
++export function maskPiiInFiles(files: RemixFile[]): {
++  files: RemixFile[];
++  masked: PiiFinding[];
++  observations: PiiMaskingObservations;
++} {
+   const masked: PiiFinding[] = [];
+ 
++  const observations: PiiMaskingObservations = {
++    ibanMaskedChecksumValid: 0,
++    ibanMaskedChecksumInvalid: 0,
++    ibanUnknownCandidates: [],
++  };
++
+   const cleaned = files.map((file) => {
+     if (file.encoding && file.encoding !== 'utf-8' && file.encoding !== 'utf8') {
+       return file; // binary blob — nothing maskable as text
+     }
+ 
+-    // Pré-passe NOMS (signal structurel, cf. rewritePersonNames) : elle tourne
+-    // AVANT les matchers lexicaux pour que `name,email,phone` voie encore ses
+-    // colonnes email/phone intactes au moment de les masquer à leur tour.
++    /*
++     * Pré-passe NOMS (signal structurel, cf. rewritePersonNames) : elle tourne
++     * AVANT les matchers lexicaux pour que `name,email,phone` voie encore ses
++     * colonnes email/phone intactes au moment de les masquer à leur tour.
++     */
+     const named = rewritePersonNames(file.path, file.content.split('\n'));
+     const lines = named.lines;
++
+     let touched = named.findings.length > 0;
+ 
+     masked.push(...named.findings);
+@@ -488,7 +925,42 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
+       let out = line;
+ 
+       for (const matcher of PII_MATCHERS) {
+-        out = out.replace(matcher.re, (match) => {
++        if (matcher.kind === 'iban') {
++          const scan = scanIbans(out);
++
++          observations.ibanUnknownCandidates.push(...scan.unknownCandidates);
++
++          /*
++           * Réécriture À REBOURS : masquer de la fin vers le début garde les
++           * index des plages restantes valides.
++           */
++          for (const span of [...scan.spans].reverse()) {
++            out = `${out.slice(0, span.start)}[PII:iban masked on remix]${out.slice(span.end)}`;
++            masked.push({ path: file.path, kind: 'iban', line: index + 1 });
++            touched = true;
++
++            // R2 : le checksum QUALIFIE le masquage, il ne le conditionne pas.
++            if (span.checksumValid) {
++              observations.ibanMaskedChecksumValid += 1;
++            } else {
++              observations.ibanMaskedChecksumInvalid += 1;
++            }
++          }
++
++          continue;
++        }
++
++        if (matcher.spans) {
++          for (const span of [...matcher.spans(out)].reverse()) {
++            out = `${out.slice(0, span.start)}[PII:${matcher.kind} masked on remix]${out.slice(span.end)}`;
++            masked.push({ path: file.path, kind: matcher.kind, line: index + 1 });
++            touched = true;
++          }
++
++          continue;
++        }
++
++        out = out.replace(matcher.re!, (match) => {
+           if (matcher.accept && !matcher.accept(match)) {
+             return match;
+           }
+@@ -506,7 +978,7 @@ export function maskPiiInFiles(files: RemixFile[]): { files: RemixFile[]; masked
+     return touched ? { ...file, content: rewritten.join('\n') } : file;
+   });
+ 
+-  return { files: cleaned, masked };
++  return { files: cleaned, masked, observations };
+ }
+ 
+ /**
+@@ -524,13 +996,25 @@ export function scanFilesForPii(files: RemixFile[]): PiiFinding[] {
+ 
+     const lines = file.content.split('\n');
+ 
+-    // Même chemin que le masquage : ce que rewritePersonNames RÉÉCRIRAIT est
+-    // exactement ce que le scan REMONTE, donc un nom non masqué est détecté.
++    /*
++     * Même chemin que le masquage : ce que rewritePersonNames RÉÉCRIRAIT est
++     * exactement ce que le scan REMONTE, donc un nom non masqué est détecté.
++     */
+     findings.push(...rewritePersonNames(file.path, lines).findings);
+ 
+     for (let i = 0; i < lines.length; i++) {
+       for (const matcher of PII_MATCHERS) {
+-        for (const match of lines[i].match(matcher.re) ?? []) {
++        if (matcher.spans) {
++          const hits = matcher.spans(lines[i]).length;
++
++          for (let n = 0; n < hits; n += 1) {
++            findings.push({ path: file.path, kind: matcher.kind, line: i + 1 });
++          }
++
++          continue;
++        }
++
++        for (const match of lines[i].match(matcher.re!) ?? []) {
+           if (matcher.accept && !matcher.accept(match)) {
+             continue;
+           }
+diff --git a/services/api/src/tests/gallery-routes.spec.ts b/services/api/src/tests/gallery-routes.spec.ts
+index d8147382..2a4a058b 100644
+--- a/services/api/src/tests/gallery-routes.spec.ts
++++ b/services/api/src/tests/gallery-routes.spec.ts
+@@ -590,6 +590,10 @@ describe('Gallery remix — versioned license + consent + PII masking (P0-V3-05
+       expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
+     }
+ 
++    // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas
++    // survivre au masquage (défaut vu en preuve live le 2026-08-04).
++    expect(allText).not.toContain('189');
++
+     // RFC 2606 fixture addresses are NOT someone's data — kept.
+     expect(allText).toContain('support@example.com');
+ 
+diff --git a/tests/e2e/gallery-remix-license.spec.ts b/tests/e2e/gallery-remix-license.spec.ts
+index bb39ae9f..5245092c 100644
+--- a/tests/e2e/gallery-remix-license.spec.ts
++++ b/tests/e2e/gallery-remix-license.spec.ts
+@@ -225,6 +225,9 @@ test('gallery remix shows the versioned license, requires explicit consent, and
+     expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
+   }
+ 
++  // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas survivre.
++  expect(allText).not.toContain('189');
++
+   expect(allText).toContain('support@example.com'); // RFC 2606 fixture kept
+   // Non-régression : le catalogue produit traverse le remix intact.
+   expect(allText).toContain('Desk Lamp');

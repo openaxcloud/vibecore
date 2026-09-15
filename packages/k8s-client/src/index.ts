@@ -156,7 +156,9 @@ export interface WorkspaceRuntimeInput {
   agentTokenSecretName: string;
   env: Record<string, string>;
   secretEnv: Record<string, string>;
-  plan: WorkspacePlan;
+  // Public plan key (Starter/Core/Pro/Enterprise or legacy free/pro/team); mapped
+  // to an internal resource tier by `normalizeWorkspacePlan`.
+  plan: string;
   resourceLimits?: WorkspaceResourceLimits;
   tokenSecret?: string;
   storageClassName?: string;
@@ -444,6 +446,30 @@ const PLAN_RESOURCE_DEFAULTS: Record<WorkspacePlan, PlanResources> = {
 };
 
 const PLAN_KEYS: WorkspacePlan[] = ['free', 'pro', 'team', 'enterprise'];
+
+/*
+ * The public plan vocabulary is Starter/Core/Pro/Enterprise (Replit parity);
+ * the workspace pod-sizing tiers here (free/pro/team/enterprise) are an internal
+ * detail. Map a public plan key to its resource tier: Starter→free (base),
+ * Core→pro (mid), Pro→team (top), Enterprise→enterprise. Any unknown/legacy key
+ * falls back to the base tier so pod sizing can never crash on a new key.
+ */
+export function normalizeWorkspacePlan(plan: string | undefined): WorkspacePlan {
+  switch (plan) {
+    case 'pro':
+      return 'team';
+    case 'core':
+      return 'pro';
+    case 'team':
+      return 'team';
+    case 'enterprise':
+      return 'enterprise';
+    case 'free':
+    case 'starter':
+    default:
+      return 'free';
+  }
+}
 
 /** Parse a Kubernetes CPU quantity (`"250m"`, `"1"`, `"1.5"`) to millicores; undefined if malformed. */
 function parseCpuMillicores(value: unknown): number | undefined {
@@ -1167,7 +1193,7 @@ export const WORKSPACE_CONTAINER_MAX_RAM_MB = 8192;
 export const WORKSPACE_CONTAINER_MAX_DISK_GB = 100;
 
 function resolveWorkspaceResources(input: WorkspaceRuntimeInput) {
-  const plan = getPlanResources()[input.plan];
+  const plan = getPlanResources()[normalizeWorkspacePlan(input.plan)];
 
   const cpuMillicores = clampPositive(
     positiveInteger(input.resourceLimits?.cpuMillicores),

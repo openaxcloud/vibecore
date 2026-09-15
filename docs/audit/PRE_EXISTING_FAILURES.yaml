@@ -1,0 +1,219 @@
+schema_version: 1
+audit_sha: 8a93e995b37de513a142acaf41fed364787c5e4e
+generated_at: "2026-08-07"
+scope_note: >-
+  Gate 1 n'a modifié aucun code produit. Toutes les défaillances ci-dessous
+  existaient donc sur la baseline auditée; les blocages d'hôte sont séparés.
+failures:
+  - id: BASE-CI-001
+    severity: P1
+    category: ci
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "GitHub check-runs/statuses/runs pour 8a93e995...: zéro"
+      - ".github/workflows/deploy-main.yml"
+    invariant: "Le SHA livré doit posséder sa propre CI et ses propres artefacts."
+    required_fix: "Déclencher les validations sur le commit d'attestation ou supprimer le commit post-CI non validé."
+
+  - id: BASE-INFRA-002
+    severity: P1
+    category: infrastructure
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "infra/scripts/validate.mjs:60"
+      - "commande node infra/scripts/validate.mjs, exit 1"
+    invariant: "Le validateur infra versionné doit réussir sur main."
+    observed: >-
+      infra/kubernetes/networkpolicies/workspaces-deny-default.yaml et
+      platform-deny-default.yaml sont exigés mais absents.
+    required_fix: "Aligner le validateur et la source de vérité Helm/Kubernetes, puis tester les policies sur cluster."
+
+  - id: BASE-BILL-003
+    severity: P0
+    category: billing
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/ledger-store.ts:195-264"
+      - "services/api/src/credits-service.ts"
+    invariant: "Deux réservations concurrentes ne peuvent pas dépenser le même solde."
+    observed: "Lecture puis écritures multi-étapes; crash/rejeu peut laisser ou mal régler une réservation."
+    required_tests:
+      - "deux idempotency keys concurrentes sur le dernier crédit"
+      - "crash après réservation, avant hold"
+      - "crash après COMMITTED, avant settlement"
+
+  - id: BASE-STRIPE-004
+    severity: P0
+    category: billing
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/app.ts"
+      - "packages/database/prisma/schema.prisma"
+    invariant: "Un événement Stripe produit au plus un crédit, y compris après panne partielle."
+    observed: >-
+      La déduplication est retirée en cas d'échec aval; le pack peut être créé
+      avant l'audit et stripePaymentIntentId n'est pas unique.
+    required_tests:
+      - "livraisons simultanées du même webhook"
+      - "échec après grant avant audit, puis retry"
+
+  - id: BASE-DEPLOY-005
+    severity: P0
+    category: deployment
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/app.ts:6644-6725"
+      - "PR #94 b0690bfe1a137912fa39cc1c21ba6c50740acdb3 non incluse"
+    invariant: "Un rollback ne devient READY qu'après vérification du digest de la destination."
+    observed: >-
+      Le rollback statique publie avant la vérification finale et substitue le
+      digest source en cas d'échec; l'écriture du manifeste est best-effort.
+    required_tests:
+      - "transformation corrompue après copie"
+      - "échec manifeste après publication"
+      - "rollback réel et contenu exact"
+
+  - id: BASE-PREVIEW-006
+    severity: P0
+    category: tenant_isolation
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/preview-proxy/src/app.ts:504-539"
+      - "infra/helm/platform/templates/configmap.yaml:146-158"
+    invariant: "Une preview privée ou d'un autre tenant doit échouer fermée."
+    observed: "Contrôle de ports privés désactivé par défaut et lookup privé fail-open."
+    required_tests:
+      - "deux tenants, HTTP/WS/SSE et port privé"
+      - "service d'autorisation indisponible"
+
+  - id: BASE-ASK-007
+    severity: P0
+    category: agent_permissions
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "app/lib/hooks/useMessageParser.ts:9-76"
+      - "app/components/chat/BaseChat.tsx:1794-1844"
+    invariant: "Le mode Ask ne peut provoquer aucune mutation."
+    observed: "La lecture seule repose sur le prompt; le parser client peut exécuter des actions fichier/shell."
+    required_tests:
+      - "sortie hostile file/delete/shell en Ask et preuve zéro mutation"
+
+  - id: BASE-SECRETS-008
+    severity: P0
+    category: secrets
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/app.ts:21083-21339"
+      - "services/workspace-manager/src/manager.ts:507-645"
+    invariant: "Les secrets serveur ne reviennent pas au navigateur et sont séparés par usage."
+    observed: >-
+      ProjectEnvVar est renvoyable en clair, reveal=true déchiffre vers le
+      navigateur et AUTH_JWT_SECRET est scaffoldé en clair; injection K8s non scopée.
+    required_tests:
+      - "exfiltration UI/logs/agent"
+      - "rotation et révocation sous session active"
+
+  - id: BASE-WORKSPACE-009
+    severity: P1
+    category: lifecycle
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/workspace-manager/src/manager.ts:1166-1175"
+      - "services/workspace-manager/src/manager.ts:1203-1206"
+    invariant: "DELETED implique disparition prouvée de Pod/PVC/Secret/Service."
+    observed: "Promise.allSettled masque les échecs puis le GC ignore la ligne DELETED."
+    required_tests:
+      - "pannes injectées sur chaque delete, restart manager et GC"
+
+  - id: BASE-DATA-010
+    severity: P1
+    category: database_restore
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/database-provisioner.ts:388-392"
+      - "services/api/src/database-provisioner.ts:657-665"
+      - "services/api/src/app.ts:28576-28585"
+    invariant: "Une restauration COMPLETED repointe réellement la connexion et sert les données restaurées."
+    observed: "La santé du cluster de récupération suffit; aucun cutover DATABASE_URL n'est effectué."
+    required_tests:
+      - "backup, restore, cutover, lecture de marqueur, rollback"
+
+  - id: BASE-IMPORT-011
+    severity: P1
+    category: import
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/app.ts:19484-19541"
+      - "services/api/src/project-storage.ts:915-954"
+    invariant: "Un import échoué ne laisse ni projet cible ni staging résiduel."
+    observed: "Le projet est créé avant writeFiles; le catch ne le supprime pas; idempotence en mémoire."
+    required_tests:
+      - "échec déterministe après création cible"
+      - "deux imports concurrents avec même clé"
+
+  - id: BASE-OBJECT-012
+    severity: P1
+    category: object_storage
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "services/api/src/object-storage.ts:257-375"
+    invariant: "Une purge est exhaustive, clôturée et protégée de la recréation concurrente."
+    observed: "Limite 1 000 objets, move non atomique, aucun deletion fence ni constat de disparition."
+    required_tests:
+      - "GCS réel avec plus de 1 000 objets"
+      - "purge concurrente et échec partiel"
+
+  - id: BASE-TRACK-013
+    severity: P2
+    category: governance
+    caused_by_gate1: false
+    status: BROKEN
+    evidence:
+      - "BUG_INVENTORY_LIVE.md"
+      - "REPLIT_PARITY.md"
+      - "PLAN_REMAINING_UNIFIED.md"
+      - "IMPLEMENTATION_STATUS.yaml racine absent; docs/parity/IMPLEMENTATION_STATUS.yaml généré depuis d3081c34"
+    invariant: "Les trois états dispatché/codé/testé live sont cohérents et rattachés au SHA."
+    observed: "IDs dupliqués, lignes contradictoires ou périmètre incomplet; preuves non rejouées."
+    required_fix: "Réconcilier après validation Gate 1, sans promouvoir de statut historique."
+
+  - id: BASE-SECRET-SCAN-014
+    severity: P1
+    category: secret_scanning
+    caused_by_gate1: false
+    status: BROKEN_NEEDS_TRIAGE
+    evidence:
+      - ".github/workflows/security.yaml:126-155 épingle gitleaks 8.21.2"
+      - "gitleaks 8.30.1 exact worktree: exit 1, 12 candidats redacted"
+      - "candidats limités à docs/deploy-evidence, docs/parity/baseline et public/ecode-static"
+    invariant: "Le scan bloquant et reproductible ne laisse aucun secret réel dans les artefacts suivis."
+    observed: "Le scan plus récent diverge du workflow parent vert; aucune valeur candidate n'est reproduite ici."
+    required_fix: "Épingler une version commune, trier sans exposer les valeurs, supprimer/rotater tout secret réel et rescan complet."
+
+environment_blockers:
+  - id: HOST-ENFILE-001
+    status: BLOCKED_HOST_RESOURCE
+    not_a_code_failure: true
+    observed: "Limite système de fichiers ouverts presque saturée par des processus externes."
+    affected: [service_tests, production_build, playwright]
+  - id: EXT-LIVE-002
+    status: BLOCKED_EXTERNAL_RESOURCE
+    not_a_code_failure: true
+    missing:
+      - "cluster Kubernetes de test isolé et contrôlable"
+      - "bucket GCS éphémère et identités de test"
+      - "CNPG/Postgres avec scénario backup-restore-cutover"
+      - "reverse proxy et DNS de test"
+      - "identités Stripe/test et navigateurs multi-tenant"

@@ -1,0 +1,4 @@
+# environment for the Node 20 contract rerun (b0690bfe-tests-node20.log)
+v20.20.2
+9.14.4
+b0690bfe1a137912fa39cc1c21ba6c50740acdb3

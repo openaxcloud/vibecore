@@ -1,0 +1,75 @@
+=== environment (rejeu Node 20) ===
+date_utc:   2026-08-06T06:31:48Z
+node:       v20.20.2
+node_source: https://nodejs.org/dist/v20.20.2/node-v20.20.2-darwin-arm64.tar.gz (sha256 vérifié / SHASUMS256.txt officiel)
+npm:        10.8.2
+pnpm:       9.14.4
+vitest:     vitest/3.2.6 darwin-arm64 node-v20.20.2
+typescript: Version 5.8.3
+os:         Darwin 25.4.0 arm64
+
+NOTE : le log initial (-tests.log) a été produit sous Node v24.10.0 (toolchain par défaut
+de la machine). Le rejeu exigé est dans -tests-node20.log, sous Node v20.20.2.
+
+=== git ===
+HEAD:            ad835dfe0cef56420139681806fc994703d2e0d9
+branche:         feat/deploy-password-protect
+origin/main:     4506f042bb7b8fbfcf033e54b96c9599c5e44d84
+merge-base:      eb8bf87d929f646977fa6c2c26acfd490c3b3a0c
+
+--- git status --porcelain ---
+(vide = arbre propre)
+
+=== patches ===
+ad835dfe0cef56420139681806fc994703d2e0d9.patch            : dernier commit seul (delta SEC-7)
+ad835dfe0cef56420139681806fc994703d2e0d9-cumulative.patch : git diff merge-base..SHA — SEC-1..7 (formule demandée)
+ad835dfe0cef56420139681806fc994703d2e0d9-lot-complete.patch : git diff origin/main..SHA sur les 3 fichiers PROPRES au lot
+  (deployment-access.ts, deployment-access.spec.ts, deployment-password.spec.ts)
+  -> ces fichiers sont ABSENTS de main (revert c61bba01), le patch les CRÉE intégralement.
+
+--- git log -1 --format=fuller ---
+commit ad835dfe0cef56420139681806fc994703d2e0d9
+Author:     Avi <avi@snatchbot.me>
+AuthorDate: Wed Aug 5 20:17:00 2026 +0300
+Commit:     Avi <avi@snatchbot.me>
+CommitDate: Wed Aug 5 20:17:00 2026 +0300
+
+    fix(deploy): SEC-7 — fermer la fenêtre de rejeu public→protégé (poison_replay)
+    
+    Le scénario poison_replay existant (SEC-2/3) part d'un déploiement DÉJÀ protégé :
+    il ne pouvait donc pas couvrir la transition la plus dangereuse — un déploiement
+    PUBLIC déjà mis en cache, puis protégé.
+    
+    DÉFAUT RÉEL, pas seulement un trou de test : le chemin public posait
+    `Cache-Control: public, max-age=60, must-revalidate`. Un intermédiaire pouvait
+    stocker la réponse publique ; l'activation ultérieure de la protection pose bien
+    `no-store` sur les nouvelles réponses, mais ne purge PAS ce qui est déjà stocké —
+    l'origine ne contrôle pas les caches tiers. Pendant jusqu'à 60 s, un visiteur
+    anonyme pouvait donc recevoir le contenu désormais protégé.
+    
+    Correctif : `public, no-cache, must-revalidate` (+ `Vary: Cookie` dès le public).
+    `no-cache` autorise le stockage mais impose une revalidation auprès de l'origine
+    AVANT chaque réutilisation ; cette revalidation traverse le gate, qui répond
+    401/503. La fenêtre tombe à zéro, et le bénéfice de cache reste acquis pour le
+    contenu inchangé, au prix d'un aller-retour de validation.
+    
+    CONTRÔLE NÉGATIF : en rétablissant `max-age=60`, 2 des 3 tests SEC-7 échouent
+    (« expected 'public, max-age=60, must-revalidate' to contain 'no-cache' »). Le
+    test a donc des dents et la fenêtre était bien réelle.
+    
+    Trois tests ajoutés :
+    - SEC-7 poison_replay : public servi -> protégé -> rejeu anonyme = 401, aucun
+      octet protégé, réponse non réutilisable sans revalidation, Vary: Cookie ;
+    - SEC-7 gate avant HEAD, Range, If-None-Match, If-Modified-Since, asset
+      secondaire, fallback SPA et index explicite — jamais 200, jamais 304 (un 304
+      confirmerait à un cache que son entrée publique est encore valide) ;
+    - SEC-7 stabilité dans les DEUX sens : après retour au public, la directive
+      reste non réutilisable, donc une nouvelle bascule ne rouvre pas de fenêtre.
+    
+    Constat honnête : l'ordre du gate était DÉJÀ correct (il précède toute résolution
+    de chemin, donc HEAD/Range/asset), et la route n'émet aucun ETag/304 — ce test-là
+    passait déjà avant correctif. Le seul défaut était la directive de cache.
+    
+    25/25 (deployment-password + deployment-access) · tsc 0 erreur.
+    
+    Co-Authored-By: Claude <noreply@anthropic.com>

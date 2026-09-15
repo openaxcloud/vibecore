@@ -684,7 +684,36 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
          * "Skills" panel) are injected into the system prompt so toggling a skill
          * actually changes agent behaviour. Fails open to "no skills".
          */
-        const projectSkills = await retrieveSkillsForAgentContext(request, { projectId });
+        /*
+         * RPL-SK-001.2 — pass the latest user message so installed skills are
+         * disclosed progressively: L1 (name+description) always, L2 (full body)
+         * only for skills relevant to this request.
+         */
+        const latestUserMessageForSkills = processedMessages.filter((message) => message.role === 'user').slice(-1)[0];
+
+        const skillUserPrompt = latestUserMessageForSkills
+          ? extractPropertiesFromMessage(latestUserMessageForSkills).content
+          : undefined;
+
+        const projectSkills = await retrieveSkillsForAgentContext(request, { projectId, userPrompt: skillUserPrompt });
+
+        /*
+         * RPL-SK-001.2 — surface the progressive-disclosure trace as an annotation
+         * so the lazy loading (L1 for all installed skills, L2 only for triggered
+         * ones) is observable per turn, not just claimed.
+         */
+        if (projectSkills?.disclosureTrace.length) {
+          dataStream.writeMessageAnnotation({
+            type: 'skillDisclosure',
+            triggered: projectSkills.triggeredSkills,
+            trace: projectSkills.disclosureTrace.map((entry) => ({
+              seq: entry.seq,
+              level: entry.level,
+              skill: entry.skill,
+              bytes: entry.bytes,
+            })),
+          } as unknown as ContextAnnotation);
+        }
 
         /*
          * Project rules → agent context (AGENTS.md / .cursorrules / .cursor/rules).

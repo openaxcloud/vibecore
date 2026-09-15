@@ -1,0 +1,30 @@
+# ef13a979 — build/verification environment (Node 20 re-run)
+generated-from: worktree /Users/hb/dev/vibecore/.claude/worktrees/b6-b7-supply-chain
+
+## git
+rev-parse HEAD      : ef13a9794aabcea4493182fbe7a4956d8fa259d2
+rev-parse HEAD~1    : 818228a4c9c01d765b53fe8b94f3c8a1ab4591a8   # code fixes (818228a4)
+merge-base w/ main  : 1748eec853bd46a5a82c9a0a6a3090e4ecb06793   # base of ef13a979-cumulative.patch
+branch              : worktree-b6-b7-supply-chain
+git version         : git version 2.50.1 (Apple Git-155)
+
+## git status (must be clean)
+  (clean)
+
+## toolchain (Node 20 pinned for this re-run)
+node                : v20.20.2   (official v20.20.2 darwin-arm64, sha256 466e05f3…65b6 verified)
+npm                 : 10.8.2
+pnpm                : 9.14.4
+python3             : Python 3.9.6
+docker              : Docker version 29.4.0, build 9d7ad9f
+
+## supply-chain tools (3-case proof)
+cosign              : v2.4.3  (pipeline-pinned v2.4.3)
+kyverno CLI         : 1.13.4
+
+## pinned cosign provenance (defect 1)
+image digest        : sha256:c77247c92f4dfea851c70555738226498393e34e2f9ca83cb959e51c230e4ad7
+amd64 binary sha256 : 37db5533587f87c2f9225c5896b39e1ee238205e3a71ba9ff9f0c84a2fd14474
+
+## host
+uname               : Darwin 25.4.0 arm64

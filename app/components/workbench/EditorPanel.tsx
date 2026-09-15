@@ -3,6 +3,7 @@ import * as Tabs from '@radix-ui/react-tabs';
 import { EditorAdapter, TouchSymbolToolbar, useResponsiveLayout } from '@vibecore/editor';
 import { memo, useEffect, useMemo } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { EditorHistoryOverlay } from './EditorHistoryOverlay';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { LockManager } from './LockManager'; // <-- Import LockManager
@@ -257,7 +258,7 @@ export const EditorPanel = memo(
             }}
           />
         )}
-        <div className="h-full flex-1 overflow-hidden modern-scrollbar" data-testid="responsive-code-editor">
+        <div className="relative h-full flex-1 overflow-hidden modern-scrollbar" data-testid="responsive-code-editor">
           {isLargeFile && (
             <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs text-bolt-elements-textSecondary">
               Large file mode: rich editor features are reduced to keep typing and scrolling responsive.
@@ -317,6 +318,11 @@ export const EditorPanel = memo(
             <div className="flex h-full items-center justify-center text-sm text-bolt-elements-textSecondary">
               {editorDocument?.isBinary ? 'Binary files can’t be previewed in the editor.' : 'No file selected.'}
             </div>
+          )}
+
+          {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
+          {editorDocument && !editorDocument.isBinary && (
+            <EditorHistoryOverlay filePath={editorDocument.filePath} content={editorDocument.value} />
           )}
         </div>
       </div>

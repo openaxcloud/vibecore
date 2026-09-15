@@ -2037,10 +2037,10 @@ describe('SaaS API', () => {
       method: 'POST',
       url: '/admin/plan-overrides',
       headers: { authorization: `Bearer ${admin.token}` },
-      payload: { organizationId: customer.organization.id, planKey: 'team', reason: 'contract upgrade' },
+      payload: { organizationId: customer.organization.id, planKey: 'pro', reason: 'contract upgrade' },
     });
     expect(override.statusCode).toBe(200);
-    expect((await store.getSubscription(customer.organization.id))?.planKey).toBe('team');
+    expect((await store.getSubscription(customer.organization.id))?.planKey).toBe('pro');
     expect((await store.listAdminAuditLogs()).some((event) => event.action === 'admin.plan.override')).toBe(true);
     delete process.env.PLATFORM_ADMIN_EMAILS;
     await app.close();
@@ -2621,9 +2621,9 @@ describe('SaaS API', () => {
 
   it('rejects invalid Stripe webhook signatures and processes duplicate events idempotently', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
+    const previousProPrice = process.env.STRIPE_PRO_PRICE_MONTHLY_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_test_secret';
-    process.env.STRIPE_PRO_PRICE_ID = 'price_pro_test';
+    process.env.STRIPE_PRO_PRICE_MONTHLY_ID = 'price_pro_test';
 
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -2679,7 +2679,7 @@ describe('SaaS API', () => {
       expect(store.stripeEvents.size).toBe(1);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
-      process.env.STRIPE_PRO_PRICE_ID = previousProPrice;
+      process.env.STRIPE_PRO_PRICE_MONTHLY_ID = previousProPrice;
       await app.close();
     }
   });
@@ -2952,14 +2952,14 @@ describe('SaaS API', () => {
 
   it('plan upgrade updates backend quotas used by protected actions', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
+    const previousProPrice = process.env.STRIPE_PRO_PRICE_MONTHLY_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_upgrade_secret';
-    process.env.STRIPE_PRO_PRICE_ID = 'price_pro_upgrade';
+    process.env.STRIPE_PRO_PRICE_MONTHLY_ID = 'price_pro_upgrade';
 
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'upgrade@example.com', organizationName: 'Upgrade Org' });
-    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'free', status: 'ACTIVE' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'starter', status: 'ACTIVE' });
 
     try {
       const payload = JSON.stringify({
@@ -2995,7 +2995,7 @@ describe('SaaS API', () => {
       expect(billing.json().limits['projects.count']).toBeGreaterThan(3);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
-      process.env.STRIPE_PRO_PRICE_ID = previousProPrice;
+      process.env.STRIPE_PRO_PRICE_MONTHLY_ID = previousProPrice;
       await app.close();
     }
   });
@@ -3011,7 +3011,7 @@ describe('SaaS API', () => {
         url: `/orgs/${auth.organization.id}/billing/checkout`,
         headers: { authorization: `Bearer ${auth.token}` },
         payload: {
-          planKey: 'free',
+          planKey: 'starter',
           successUrl: 'https://app.example.com/billing/success',
           cancelUrl: 'https://app.example.com/billing/cancel',
         },
@@ -3039,9 +3039,9 @@ describe('SaaS API', () => {
   it('creates Stripe checkout through a configured billing endpoint', async () => {
     const previousSecretKey = process.env.STRIPE_SECRET_KEY;
     const previousApiBase = process.env.STRIPE_API_BASE_URL;
-    const previousProPrice = process.env.STRIPE_PRO_PRICE_ID;
+    const previousProPrice = process.env.STRIPE_PRO_PRICE_MONTHLY_ID;
     process.env.STRIPE_SECRET_KEY = 'sk_test_checkout';
-    process.env.STRIPE_PRO_PRICE_ID = 'price_checkout_pro';
+    process.env.STRIPE_PRO_PRICE_MONTHLY_ID = 'price_checkout_pro';
 
     const requests: Array<{ url?: string; body: Record<string, string> }> = [];
 
@@ -3111,7 +3111,7 @@ describe('SaaS API', () => {
     } finally {
       process.env.STRIPE_SECRET_KEY = previousSecretKey;
       process.env.STRIPE_API_BASE_URL = previousApiBase;
-      process.env.STRIPE_PRO_PRICE_ID = previousProPrice;
+      process.env.STRIPE_PRO_PRICE_MONTHLY_ID = previousProPrice;
       await app.close();
       await new Promise<void>((resolve, reject) => stripeServer.close((error) => (error ? reject(error) : resolve())));
     }
@@ -3278,9 +3278,9 @@ describe('SaaS API', () => {
 
   it('maps checkout completed webhooks from checkout metadata when subscription items are absent', async () => {
     const previousSecret = process.env.STRIPE_WEBHOOK_SECRET;
-    const previousTeamPrice = process.env.STRIPE_TEAM_PRICE_ID;
+    const previousProPrice = process.env.STRIPE_PRO_PRICE_MONTHLY_ID;
     process.env.STRIPE_WEBHOOK_SECRET = 'whsec_checkout_completed';
-    process.env.STRIPE_TEAM_PRICE_ID = 'price_team_checkout';
+    process.env.STRIPE_PRO_PRICE_MONTHLY_ID = 'price_pro_checkout';
 
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
@@ -3300,8 +3300,8 @@ describe('SaaS API', () => {
           status: 'complete',
           metadata: {
             organizationId: auth.organization.id,
-            planKey: 'team',
-            priceId: 'price_team_checkout',
+            planKey: 'pro',
+            priceId: 'price_pro_checkout',
           },
         },
       },
@@ -3318,11 +3318,11 @@ describe('SaaS API', () => {
         payload: Buffer.from(payload),
       });
       expect(response.statusCode).toBe(200);
-      expect((await store.getSubscription(auth.organization.id))?.planKey).toBe('team');
+      expect((await store.getSubscription(auth.organization.id))?.planKey).toBe('pro');
       expect((await store.getSubscription(auth.organization.id))?.externalId).toBe('sub_from_checkout');
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
-      process.env.STRIPE_TEAM_PRICE_ID = previousTeamPrice;
+      process.env.STRIPE_PRO_PRICE_MONTHLY_ID = previousProPrice;
       await app.close();
     }
   });
@@ -3368,7 +3368,7 @@ describe('SaaS API', () => {
         headers: { authorization: `Bearer ${auth.token}` },
       });
       expect(billing.statusCode).toBe(200);
-      expect(billing.json().plan.key).toBe('free');
+      expect(billing.json().plan.key).toBe('starter');
       expect(billing.json().limits['projects.count']).toBe(3);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
@@ -6402,15 +6402,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     expect(body.ai.inputTokens.remaining).toBeGreaterThan(0);
     expect(body.ai.messages.limit).toBe(50);
 
-    // free plan is managed-mode → BYOK disallowed
+    // Starter plan is managed-mode → BYOK disallowed
     expect(body.byok.allowed).toBe(false);
-    expect(body.byok.plan).toBe('free');
+    expect(body.byok.plan).toBe('starter');
     expect(body.byok.reason).toBe('managed-mode-plan');
 
     await app.close();
   });
 
-  it('check-quota allows BYOK on team and enterprise plans', async () => {
+  it('check-quota allows BYOK on pro and enterprise plans', async () => {
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'byok@example.com', organizationName: 'BYOK Org' });
@@ -6426,7 +6426,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     await store.upsertSubscription({
       organizationId: auth.organization.id,
-      planKey: 'team',
+      planKey: 'pro',
       status: 'ACTIVE',
     });
 
@@ -6441,7 +6441,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
     const body = check.json();
     expect(body.byok.allowed).toBe(true);
-    expect(body.byok.plan).toBe('team');
+    expect(body.byok.plan).toBe('pro');
     expect(body.byok.reason).toBe('plan-allows-byok');
 
     await app.close();

@@ -26,7 +26,9 @@ const input: WorkspaceRuntimeInput = {
   agentTokenSecretName: 'workspace-agent-token',
   env: { NODE_ENV: 'production' },
   secretEnv: { API_KEY: 'api-key' },
-  plan: 'pro',
+  // Core is the mid self-serve tier → the 2 vCPU / 4Gi resource tier (Pro is now
+  // the top tier and maps to 4 vCPU / 8Gi, so this fixture uses Core for mid).
+  plan: 'core',
 };
 
 describe('workspace Kubernetes manifests', () => {

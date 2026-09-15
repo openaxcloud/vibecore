@@ -1,0 +1,380 @@
+schema_version: 1
+document:
+  title: "Gate 1 configuration and secret registry"
+  audited_sha: "8a93e995b37de513a142acaf41fed364787c5e4e"
+  classification: "observed configuration surface and proposed ownership"
+  verdict_ceiling: "IMPLEMENTED_UNPROVEN"
+  signed_proven: false
+
+tracking:
+  sources:
+    - "DESIGN_PROGRAM_MASTER.md"
+    - "DESIGN_AUDIT_LIVE.md"
+    - "BUG_INVENTORY_LIVE.md"
+    - "PLAN_REMAINING_UNIFIED.md"
+    - "REPLIT_PARITY.md"
+    - "docs/DEPLOY_RUNBOOK.md"
+  states_changed: false
+
+scan_summary:
+  process_env_identifiers: 371
+  import_meta_env_identifiers:
+    - "BASE_URL"
+    - "DEV"
+    - "PROD"
+    - "RUNTIME_API_BASE_URL"
+    - "RUNTIME_MODE"
+    - "SSR"
+    - "VITE_APP_PATH_ROOT"
+    - "VITE_BYOK_DISABLED"
+    - "VITE_DISABLE_PERSISTENCE"
+    - "VITE_LOG_LEVEL"
+    - "VITE_NETLIFY_ACCESS_TOKEN"
+    - "VITE_RUNTIME_API_BASE_URL"
+    - "VITE_RUNTIME_MODE"
+    - "VITE_SAAS_COMMERCIAL"
+  caveat: "Lexical scan includes scripts and tests and can miss computed environment access."
+
+current_sources:
+  - id: "CFG-ENV-DEV"
+    path: ".env.example"
+    observed_role: "Local provider, connector, deployment and runtime examples."
+    status: "PARTIAL"
+  - id: "CFG-ENV-PROD"
+    path: ".env.production.example"
+    observed_role: "Production core, runtime, provider, SSO, email, Stripe, deploy and compliance variables."
+    status: "PARTIAL"
+  - id: "CFG-HELM-VALUES"
+    path: "infra/helm/platform/values-prod.yaml"
+    observed_role: "Production image, service, Secret Manager map and runtime flags."
+    status: "IMPLEMENTED_UNPROVEN"
+  - id: "CFG-HELM-CONFIGMAP"
+    path: "infra/helm/platform/templates/configmap.yaml"
+    observed_role: "Platform-wide non-secret configuration and hard-coded rollout flags."
+    status: "IMPLEMENTED_UNPROVEN"
+  - id: "CFG-HELM-SECRETS"
+    path: "infra/helm/platform/templates/deployments.yaml"
+    observed_role: "Global platform and AI Secrets mounted into every workload."
+    status: "PARTIAL"
+  - id: "CFG-TYPED-PACKAGE"
+    path: "packages/config/src/index.ts"
+    observed_role: "Empty export; no active typed configuration registry."
+    status: "STUB"
+
+groups:
+  - id: "CONFIG-CORE-DATA"
+    keys:
+      - "DATABASE_URL"
+      - "REDIS_URL"
+    classification: "secret connection configuration"
+    current_consumers:
+      - "api"
+      - "worker"
+      - "workspace-manager"
+      - "ai-gateway"
+      - "connector-proxy"
+    current_owner: "platform Secret shared across services"
+    target_owner: "per-service connection Secret and typed schema"
+    startup_policy: "Required only for services that actually access the resource; fail closed."
+    evidence:
+      - "packages/database/src/index.ts:8-36"
+      - "services/worker/src/index.ts:427-535"
+      - "infra/helm/platform/values-prod.yaml:39-46"
+    status: "PARTIAL"
+    missing_proof:
+      - "Credential rotation and connection recovery."
+      - "A service without DB ownership cannot obtain DB credentials."
+
+  - id: "CONFIG-AUTH-ENCRYPTION"
+    keys:
+      - "JWT_SECRET"
+      - "COOKIE_SECRET"
+      - "CONFIG_ENCRYPTION_KEY"
+      - "WORKSPACE_AGENT_TOKEN_SECRET"
+      - "WORKSPACE_MANAGER_SHARED_SECRET"
+      - "PREVIEW_PROXY_SHARED_SECRET"
+      - "AI_GATEWAY_SHARED_SECRET"
+      - "INTERNAL_API_SHARED_SECRET"
+    classification: "authentication and encryption secrets"
+    current_consumers:
+      - "api"
+      - "workspace-manager"
+      - "workspace-agent"
+      - "preview-proxy"
+      - "ai-gateway"
+      - "worker"
+    current_owner: "shared Helm Secret with some service-specific checks"
+    target_owner: "separate trust-domain Secrets with rotation metadata"
+    startup_policy: "Production consumers fail closed when their required trust secret is absent."
+    evidence:
+      - "infra/helm/platform/values-prod.yaml:40-77"
+      - "infra/helm/platform/templates/deployments.yaml:98-109"
+      - "services/workspace-manager/src/app.ts:215-265"
+    status: "PARTIAL"
+    missing_proof:
+      - "Rotation with overlapping key window."
+      - "Negative use of one service secret against another service."
+
+  - id: "CONFIG-RUNTIME"
+    keys:
+      - "VITE_RUNTIME_MODE"
+      - "VITE_RUNTIME_API_BASE_URL"
+      - "WORKSPACE_MANAGER_URL"
+      - "WORKSPACE_RUNTIME_NAMESPACE"
+      - "WORKSPACE_AGENT_IMAGE"
+      - "WORKSPACE_STORAGE_CLASS"
+      - "WORKSPACE_DISABLE_SANDBOX_SCHEDULING"
+      - "KUBECTL_TIMEOUT_MS"
+      - "KUBECTL_REQUEST_TIMEOUT"
+    classification: "runtime endpoint, image and policy configuration"
+    current_consumers:
+      - "web"
+      - "api"
+      - "worker"
+      - "workspace-manager"
+      - "k8s-client"
+    current_owner: "Helm ConfigMap plus direct environment reads"
+    target_owner: "runtime config schema owned by workspaces-runtime"
+    startup_policy: "Commercial production requires remote Kubernetes and sandbox scheduling; invalid endpoints fail closed."
+    evidence:
+      - "app/lib/runtime/RuntimeAdapterProvider.tsx:66-109"
+      - "packages/k8s-client/src/index.ts:35-103,645-690"
+      - ".env.production.example:15-22"
+    status: "IMPLEMENTED_UNPROVEN"
+    missing_proof:
+      - "Live configured mode and image digest."
+      - "Sandbox kill-switch denial in production validation."
+
+  - id: "CONFIG-PREVIEW"
+    keys:
+      - "PREVIEW_URL_TEMPLATE"
+      - "PREVIEW_DOMAIN"
+      - "PREVIEW_PROXY_SHARED_SECRET"
+      - "PREVIEW_TENANT_SECRET"
+      - "PREVIEW_PROXY_ENFORCE_TENANT"
+      - "PREVIEW_ENFORCE_PRIVATE_PORTS"
+      - "PREVIEW_PRIVATE_PORTS_ENABLED"
+      - "API_BASE_URL"
+    classification: "preview routing and access policy"
+    current_consumers:
+      - "api"
+      - "preview-proxy"
+      - "web"
+    current_owner: "platform ConfigMap and service environment"
+    target_owner: "preview service schema with explicit enforcement mode"
+    startup_policy: "Any enabled private/tenant enforcement requires every dependent key; otherwise refuse startup."
+    evidence:
+      - "services/preview-proxy/src/app.ts:474-516"
+      - "infra/helm/platform/templates/configmap.yaml:146-164"
+    status: "PARTIAL"
+    missing_proof:
+      - "Fail-closed behavior on API outage/cache poisoning."
+      - "Real cookie, WebSocket, SSE and multi-port proxy tests."
+
+  - id: "CONFIG-AI-PROVIDERS"
+    keys:
+      - "OPENAI_API_KEY"
+      - "ANTHROPIC_API_KEY"
+      - "GOOGLE_GEMINI_API_KEY"
+      - "OPENROUTER_API_KEY"
+      - "MISTRAL_API_KEY"
+      - "GROQ_API_KEY"
+      - "XAI_API_KEY"
+      - "MOONSHOT_API_KEY"
+      - "OLLAMA_BASE_URL"
+      - "AI_FALLBACK_PROVIDERS"
+    classification: "provider secret or endpoint"
+    current_consumers:
+      - "ai-gateway"
+      - "legacy web provider paths"
+    current_owner: "platform Secret and database provider configuration"
+    target_owner: "AI gateway only, with encrypted database override and audited cache invalidation"
+    startup_policy: "At least one enabled provider must be valid; unavailable requested providers return typed failure."
+    evidence:
+      - "services/ai-gateway/src/gateway.ts:97-153,638-768"
+      - ".env.production.example:24-32"
+      - "infra/helm/platform/values-prod.yaml:58-68"
+    status: "PARTIAL"
+    missing_proof:
+      - "Provider key rotation and stale-cache invalidation."
+      - "Fallback billing and no silent provider downgrade."
+
+  - id: "CONFIG-AGENT-ORCHESTRATION"
+    keys:
+      - "ECODE_PARALLEL_SUBAGENTS_ENABLED"
+      - "ECODE_SUBAGENT_EXECUTOR_URL"
+      - "ECODE_SUBAGENT_EXECUTOR_TOKEN"
+      - "ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_PER_MINUTE"
+      - "ECODE_SUBAGENT_EXECUTOR_RATE_LIMIT_REDIS_PREFIX"
+    classification: "agent execution policy and credential"
+    current_consumers:
+      - "web server agent path"
+      - "ai-gateway"
+    current_owner: "platform ConfigMap and shared AI secret"
+    target_owner: "agent-AI configuration schema"
+    startup_policy: "Enabling subagents requires authenticated executor, timeout, cancellation, rate limit and budget."
+    evidence:
+      - ".env.production.example:34-41"
+      - "infra/helm/platform/templates/configmap.yaml:165-179"
+    status: "IMPLEMENTED_UNPROVEN"
+    missing_proof:
+      - "Crash resume, cancellation and queue/backpressure behavior."
+
+  - id: "CONFIG-OAUTH-CONNECTORS"
+    keys:
+      - "GITHUB_CLIENT_ID"
+      - "GITHUB_CLIENT_SECRET"
+      - "INTEGRATION_GITHUB_CLIENT_ID"
+      - "INTEGRATION_GITHUB_CLIENT_SECRET"
+      - "INTEGRATION_GITLAB_CLIENT_ID"
+      - "INTEGRATION_GITLAB_CLIENT_SECRET"
+      - "INTEGRATION_BITBUCKET_CLIENT_ID"
+      - "INTEGRATION_BITBUCKET_CLIENT_SECRET"
+      - "CONNECTOR_PROXY_ACCESS_TOKEN_SECRET"
+    classification: "OAuth and connector broker secrets"
+    current_consumers:
+      - "api"
+      - "connector-proxy"
+    current_owner: "shared platform Secret"
+    target_owner: "connectors-secrets context and broker-specific Secret"
+    startup_policy: "Enabled connector requires complete OAuth/broker configuration; tokens never return to browser."
+    evidence:
+      - ".env.example:144-197"
+      - "services/connector-proxy/src/app.ts:139-175"
+      - "infra/helm/platform/values-prod.yaml:48-57"
+    status: "PARTIAL"
+    missing_proof:
+      - "End-to-end OAuth, revocation and proxy token scoping."
+
+  - id: "CONFIG-BROWSER-LEGACY-TOKENS"
+    keys:
+      - "VITE_GITHUB_ACCESS_TOKEN"
+      - "VITE_GITLAB_ACCESS_TOKEN"
+      - "VITE_VERCEL_ACCESS_TOKEN"
+      - "VITE_NETLIFY_ACCESS_TOKEN"
+      - "VITE_SUPABASE_ACCESS_TOKEN"
+    classification: "unsafe long-lived browser credential pattern"
+    current_consumers:
+      - "legacy web connector stores"
+    current_owner: "browser bundle and localStorage"
+    target_owner: "none in browser; server credential broker only"
+    startup_policy: "Production build rejects populated long-lived VITE provider access tokens."
+    evidence:
+      - ".env.example:139-221,253-258"
+      - "app/lib/stores/vercel.ts:7-10"
+      - "app/lib/stores/netlify.ts:7-15"
+      - "app/lib/stores/supabase.ts:54-62"
+    status: "BROKEN"
+    missing_proof:
+      - "Bundle scan proving absence of secrets."
+      - "Migration and revocation of locally persisted credentials."
+
+  - id: "CONFIG-BILLING"
+    keys:
+      - "STRIPE_SECRET_KEY"
+      - "STRIPE_WEBHOOK_SECRET"
+      - "STRIPE_FREE_PRICE_ID"
+      - "STRIPE_PRO_PRICE_ID"
+      - "STRIPE_TEAM_PRICE_ID"
+      - "BILLING_CREDITS_SHADOW"
+      - "BILLING_CREDITS_ENABLED"
+    classification: "billing secret, catalog and rollout flags"
+    current_consumers:
+      - "api"
+      - "web selector/UI"
+    current_owner: "platform Secret and ConfigMap"
+    target_owner: "billing-metering-ledger config schema"
+    startup_policy: "Live debit requires valid Stripe/webhook/catalog config and explicit non-shadow activation."
+    evidence:
+      - ".env.production.example:88-98"
+      - "infra/helm/platform/templates/configmap.yaml:79-87"
+    status: "PARTIAL"
+    missing_proof:
+      - "Duplicate webhook and concurrent billing behavior."
+      - "Catalog reconciliation against Stripe test resources."
+
+  - id: "CONFIG-DATA-SERVICES"
+    keys:
+      - "DB_ROLLBACK_ENABLED"
+      - "DB_BACKUP_BUCKET"
+      - "DB_BACKUP_GSA"
+      - "DB_SHARED_CLUSTER"
+      - "OBJECT_STORAGE_ENABLED"
+      - "OBJECT_STORAGE_API_URL"
+      - "OBJECT_STORAGE_ACCESS_TOKEN"
+    classification: "database/object-store topology, feature flags and credentials"
+    current_consumers:
+      - "api"
+      - "workspace-manager"
+      - "workspace-agent"
+      - "worker"
+    current_owner: "platform ConfigMap and Secret"
+    target_owner: "databases-object-storage context"
+    startup_policy: "Enabled feature requires reachable test-backed resource and scoped identity; otherwise return typed unavailable."
+    evidence:
+      - "infra/helm/platform/templates/configmap.yaml:117-145"
+      - "services/workspace-manager/src/app.ts:559-651"
+    status: "IMPLEMENTED_UNPROVEN"
+    missing_proof:
+      - "Real backup/restore/PITR and object lifecycle."
+
+  - id: "CONFIG-NIX"
+    keys:
+      - "WORKSPACE_NIX_STORE_PVC"
+      - "WORKSPACE_NIX_PROJECTS"
+      - "NIX_STORE_PVC_ZONES"
+      - "NIX_STORE_GENERATION_HASH"
+      - "NIX_STORE_GENERATIONS"
+    classification: "runtime generation and immutable environment pins"
+    current_consumers:
+      - "api"
+      - "workspace-manager"
+      - "k8s-client"
+    current_owner: "Helm production values"
+    target_owner: "versioned signed generation registry produced by a reproducible Nix pipeline"
+    startup_policy: "Revoked, unknown or drifted generation fails closed."
+    evidence:
+      - "infra/helm/platform/values-prod.yaml:143-162"
+      - "packages/k8s-client/src/nix-generations.ts:97-227"
+      - "packages/k8s-client/src/ecode-lock.ts:213-289"
+    status: "IMPLEMENTED_UNPROVEN"
+    missing_proof:
+      - "Tracked derivation/build source."
+      - "Signature, provenance and real language fixture execution."
+
+  - id: "CONFIG-OBSERVABILITY-COMPLIANCE"
+    keys:
+      - "OTEL_SERVICE_NAME"
+      - "OTEL_EXPORTER_OTLP_ENDPOINT"
+      - "SENTRY_DSN"
+      - "LOG_REDACTION_ENABLED"
+      - "SIEM_WEBHOOK_URL"
+      - "SIEM_SIGNING_SECRET"
+      - "AUDIT_RETENTION_DAYS"
+      - "BACKUP_ENCRYPTION_KEY"
+    classification: "telemetry, audit and compliance configuration"
+    current_consumers:
+      - "api"
+      - "worker"
+      - "workspace-agent"
+    current_owner: "platform Secret and environment"
+    target_owner: "per-service observability schema and audit-security owner"
+    startup_policy: "Secret redaction and audit integrity fail closed for production-sensitive flows."
+    evidence:
+      - ".env.production.example:119-134"
+      - "packages/observability/src/index.ts:12-71"
+      - "services/worker/src/index.ts:38-224"
+    status: "PARTIAL"
+    missing_proof:
+      - "End-to-end trace correlation."
+      - "Redaction/exfiltration negative tests."
+
+target_controls:
+  - "Implement packages/config with strict per-service schemas and startup validation."
+  - "Generate a machine-readable list of allowed keys for each image."
+  - "Separate public build-time browser values from runtime server configuration."
+  - "Reject production builds containing long-lived provider credentials in VITE variables."
+  - "Mount per-service Secrets and Workload Identities, not one global Secret."
+  - "Record owner, classification, requiredness, default, rotation and redaction policy for every key."
+  - "Add configuration contract tests to Helm rendering and every service startup suite."
+

@@ -1,0 +1,743 @@
+diff --git a/services/api/src/app.ts b/services/api/src/app.ts
+index 4445854e..ac57a87f 100644
+--- a/services/api/src/app.ts
++++ b/services/api/src/app.ts
+@@ -315,10 +315,12 @@ import {
+ import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+ import {
+   ACCESS_GATE_CSP,
++  ACCESS_TOKEN_TTL_MS,
+   accessConfigFromMetadata,
+   accessCookieName,
+   accessGateHtml,
+   computeAccessToken,
++  deriveDeploymentAccessSecret,
+   isAccessTokenValid,
+ } from './deployment-access.js';
+ import {
+@@ -1910,6 +1912,39 @@ function chatShareTokenSecret() {
+   return secret;
+ }
+ 
++/*
++ * SEC-6: the HMAC key(s) for deployment password-unlock cookies. A DEDICATED,
++ * rotatable key — never the generic share/JWT/cookie secret used directly:
++ *  - explicit DEPLOYMENT_ACCESS_TOKEN_SECRET (+ _OLD for zero-downtime rotation)
++ *    wins when set (mint with the primary, still accept _OLD);
++ *  - otherwise derive a domain-separated key from a base platform secret, so the
++ *    deployment-access key is DISTINCT material from every other use of that base
++ *    (a deployment cookie can't forge a share/session token, or vice-versa).
++ * Verification accepts every returned secret (rotation); minting uses the first.
++ */
++function deploymentAccessTokenSecrets(): string[] {
++  const explicit = [
++    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET,
++    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET_OLD,
++  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
++
++  if (explicit.length > 0) {
++    return explicit;
++  }
++
++  const base = process.env.SHARE_LINK_SECRET ?? process.env.JWT_SECRET ?? process.env.COOKIE_SECRET;
++
++  if (base) {
++    return [deriveDeploymentAccessSecret(base)];
++  }
++
++  if (process.env.NODE_ENV === 'production') {
++    throw new Error('No deployment-access HMAC secret (DEPLOYMENT_ACCESS_TOKEN_SECRET or a base secret) configured');
++  }
++
++  return [deriveDeploymentAccessSecret('dev')];
++}
++
+ function signChatShareToken(raw: string) {
+   const signature = createHmac('sha256', chatShareTokenSecret()).update(raw).digest('base64url');
+ 
+@@ -8310,27 +8345,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+       return reply.code(404).send({ error: 'Static deployment artifact not found', code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND' });
+     }
+ 
++    // Every response on this credential-checking route is per-request: never cache.
++    reply.header('cache-control', 'private, no-store, max-age=0');
++
+     const access = accessConfigFromMetadata(ownerStatus.metadata);
+ 
++    // SEC-1: a gated deployment with a missing/corrupt hash is LOCKED — it cannot
++    // be unlocked (there is no valid password to match), and must never open.
++    if (access.mode === 'locked') {
++      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
++    }
++
+     // Not gated: nothing to unlock. Report OK so a stale gate form degrades gracefully.
+     if (access.mode !== 'password' || !access.passwordHash) {
+       return reply.code(200).send({ ok: true, gated: false });
+     }
+ 
+     if (!password || !verifyPassword(password, access.passwordHash)) {
+-      reply.header('cache-control', 'no-store');
+-
+       return reply.code(401).send({ error: 'Incorrect password', code: 'DEPLOYMENT_PASSWORD_INCORRECT' });
+     }
+ 
+-    const token = computeAccessToken(chatShareTokenSecret(), deploymentId, access.passwordHash);
++    // SEC-5/6: an EXPIRING token (server-verified) signed with the DEDICATED key.
++    const expiresAtMs = Date.now() + ACCESS_TOKEN_TTL_MS;
++    const token = computeAccessToken(deploymentAccessTokenSecrets()[0], deploymentId, access.passwordHash, expiresAtMs);
+ 
+     reply.setCookie(accessCookieName(deploymentId), token, {
+       httpOnly: true,
+       secure: isProduction,
+       sameSite: 'lax',
+       path: '/',
+-      maxAge: 60 * 60 * 12,
++      maxAge: Math.floor(ACCESS_TOKEN_TTL_MS / 1000),
+     });
+ 
+     return reply.code(200).send({ ok: true, gated: true });
+@@ -8387,14 +8431,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+      * clients a JSON 401.
+      */
+     const access = accessConfigFromMetadata(ownerStatus.metadata);
++    const gated = access.mode !== 'public';
++
++    /*
++     * SEC-2/3: a gated deployment's bytes must NEVER be cached by a shared
++     * proxy/CDN and re-served to another visitor. Apply no-store to EVERY response
++     * for a gated deployment — the gate page, the 401/404/403 errors, and the
++     * authorized 200 (see the success path below, which no longer sets `public`).
++     * `Vary: Cookie` additionally keys any cache on the unlock cookie.
++     */
++    if (gated) {
++      reply.header('cache-control', 'private, no-store, max-age=0, must-revalidate');
++      reply.header('vary', 'Cookie');
++      reply.header('pragma', 'no-cache');
++    }
++
++    // SEC-1: a locked deployment (password mode, hash gone) serves nothing.
++    if (access.mode === 'locked') {
++      return reply.code(503).send({ error: 'This deployment is locked.', code: 'DEPLOYMENT_ACCESS_LOCKED' });
++    }
+ 
+     if (access.mode === 'password' && access.passwordHash) {
+-      const expected = computeAccessToken(chatShareTokenSecret(), deploymentId, access.passwordHash);
+       const provided = request.cookies?.[accessCookieName(deploymentId)];
+ 
+-      if (!isAccessTokenValid(provided, expected)) {
+-        reply.header('cache-control', 'no-store');
+-
++      // SEC-5/6: verify the cookie's signature (dedicated, rotatable key) AND its
++      // server-embedded expiry — a forged or EXPIRED token is refused here.
++      if (!isAccessTokenValid(deploymentAccessTokenSecrets(), deploymentId, access.passwordHash, provided)) {
+         if ((request.headers.accept ?? '').includes('text/html')) {
+           return reply
+             .code(401)
+@@ -8475,8 +8537,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+      * Stream the (realpath-validated) artifact instead of buffering the whole
+      * file into memory — this is a public, unauthenticated route serving
+      * attacker-controlled build output, so a full read amplifies memory use.
++     *
++     * SEC-2/3: only a PUBLIC deployment may be cached by shared proxies. A gated
++     * one already carries `private, no-store` + `Vary: Cookie` (set above) and
++     * must NOT be downgraded to `public` here — that was the cache-poisoning hole
++     * (an authorized fetch cached and replayed to anonymous visitors).
+      */
+-    reply.header('cache-control', 'public, max-age=60, must-revalidate');
++    if (!gated) {
++      /*
++       * `no-cache` et NON `max-age=60`.
++       *
++       * Transition la plus dangereuse : un déploiement PUBLIC est mis en cache
++       * par un intermédiaire, PUIS son propriétaire active la protection par mot
++       * de passe. Le `no-store` posé ensuite ne purge pas ce qui est DÉJÀ stocké
++       * — l'origine ne contrôle pas les caches tiers. Avec `max-age=60`, l'entrée
++       * publique restait servable SANS revalidation pendant une minute : un
++       * visiteur anonyme récupérait le contenu désormais protégé.
++       *
++       * `no-cache` autorise le STOCKAGE mais impose une revalidation auprès de
++       * l'origine AVANT chaque réutilisation. La requête de revalidation traverse
++       * donc le gate ci-dessus, qui répond 401/503 — la fenêtre tombe à zéro.
++       * Le bénéfice de cache est conservé pour le contenu inchangé (304 côté
++       * intermédiaire), au prix d'un aller-retour de validation.
++       */
++      reply.header('cache-control', 'public, no-cache, must-revalidate');
++
++      /*
++       * `Vary: Cookie` même en public : la clé de cache dépend ainsi du cookie
++       * dès l'origine, si bien qu'une entrée publique et une réponse post-gating
++       * ne peuvent jamais se confondre dans un cache partagé.
++       */
++      reply.header('vary', 'Cookie');
++    }
+     reply.header('x-vibecore-static-deployment', deploymentId);
+ 
+     /*
+@@ -8519,7 +8611,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
+      * sandbox; a gated app trades that for a working password flow (its localStorage
+      * stays opaque on the API origin — an accepted limitation behind a password).
+      */
+-    if (dedicatedOrigin && !onDedicatedHost && access.mode !== 'password') {
++    if (dedicatedOrigin && !onDedicatedHost && access.mode === 'public') {
+       const search = request.url.includes('?') ? request.url.slice(request.url.indexOf('?')) : '';
+ 
+       return reply.redirect(`${dedicatedOrigin}/${normalizedRequest}${search}`, 302);
+diff --git a/services/api/src/deployment-access.spec.ts b/services/api/src/deployment-access.spec.ts
+index 68dba062..29d97abf 100644
+--- a/services/api/src/deployment-access.spec.ts
++++ b/services/api/src/deployment-access.spec.ts
+@@ -4,7 +4,9 @@ import {
+   accessConfigFromMetadata,
+   accessCookieName,
+   computeAccessToken,
++  deriveDeploymentAccessSecret,
+   isAccessTokenValid,
++  verifyAccessTokenSignature,
+ } from './deployment-access.js';
+ 
+ describe('buildDeploymentUrl (P104 gated → API origin, public → dedicated)', () => {
+@@ -33,6 +35,11 @@ describe('buildDeploymentUrl (P104 gated → API origin, public → dedicated)',
+     const url = buildDeploymentUrl(project, dep({ access: { mode: 'password', passwordHash: 'h' } }));
+     expect(url).toBe('https://api.e-code.test/static-deployments/abcdef123456/');
+   });
++
++  it('LOCKED (password, missing hash) also → API-origin (never advertises a public URL)', () => {
++    const url = buildDeploymentUrl(project, dep({ access: { mode: 'password' } }));
++    expect(url).toBe('https://api.e-code.test/static-deployments/abcdef123456/');
++  });
+ });
+ 
+ describe('accessConfigFromMetadata', () => {
+@@ -43,44 +50,158 @@ describe('accessConfigFromMetadata', () => {
+   });
+ 
+   it('reads a password config', () => {
+-    const cfg = accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 'h' } });
+-    expect(cfg).toEqual({ mode: 'password', passwordHash: 'h' });
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 'h' } })).toEqual({
++      mode: 'password',
++      passwordHash: 'h',
++    });
+   });
+ 
+-  it('degrades a malformed password config (no hash) to public — never locks everyone out', () => {
+-    expect(accessConfigFromMetadata({ access: { mode: 'password' } }).mode).toBe('public');
+-    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('public');
++  it('SEC-1: a password config with a missing/empty hash FAILS CLOSED to locked — never public', () => {
++    expect(accessConfigFromMetadata({ access: { mode: 'password' } }).mode).toBe('locked');
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: '' } }).mode).toBe('locked');
++    expect(accessConfigFromMetadata({ access: { mode: 'password', passwordHash: 123 } }).mode).toBe('locked');
+   });
+-});
+ 
+-describe('computeAccessToken', () => {
+-  it('is deterministic per (secret, deploymentId, passwordHash)', () => {
+-    const a = computeAccessToken('s', 'd1', 'hash');
+-    const b = computeAccessToken('s', 'd1', 'hash');
+-    expect(a).toBe(b);
+-    expect(a).toMatch(/^[A-Za-z0-9_-]+$/);
++  it('reads an EXPLICIT public config as public', () => {
++    // L'ouverture doit être reconnue positivement, pas obtenue par défaut.
++    expect(accessConfigFromMetadata({ access: { mode: 'public' } }).mode).toBe('public');
+   });
+ 
+-  it('differs per deployment, per hash, and per secret (no cross-unlock)', () => {
+-    const base = computeAccessToken('s', 'd1', 'hash');
+-    expect(computeAccessToken('s', 'd2', 'hash')).not.toBe(base); // other deployment
+-    expect(computeAccessToken('s', 'd1', 'hash2')).not.toBe(base); // rotated password
+-    expect(computeAccessToken('s2', 'd1', 'hash')).not.toBe(base); // other secret
++  /*
++   * SEC-1b — le fail-open que le contre-audit a trouvé.
++   *
++   * L'ancienne forme était `if (mode === 'password') {…} return public` : PUBLIC
++   * servait de repli à tout état non reconnu. Ces cas ne sont pas théoriques —
++   * `locked` en fait partie, donc la décision fail-closed de SEC-1 ne survivait
++   * même pas à son propre aller-retour de persistance.
++   */
++  describe('SEC-1b: an UNRECOGNISED access config fails closed to locked — never public', () => {
++    const unknownModes = [
++      'private',
++      'locked', // ← relu depuis la base : l'ancien code le rouvrait en public
++      '123',
++      'password-protected', // proche de `password`, mais PAS `password`
++      'PASSWORD', // la casse ne doit pas ouvrir
++      'future-mode-not-yet-known',
++      '',
++    ];
++
++    for (const mode of unknownModes) {
++      it(`mode ${JSON.stringify(mode)} → locked`, () => {
++        const config = accessConfigFromMetadata({ access: { mode } });
++
++        expect(config.mode).toBe('locked');
++        expect(config.mode).not.toBe('public');
++        // Un état verrouillé ne doit jamais transporter de secret exploitable.
++        expect(config.passwordHash).toBeUndefined();
++      });
++    }
++
++    it('a non-string mode → locked', () => {
++      for (const mode of [123, true, null, {}, [], undefined]) {
++        expect(accessConfigFromMetadata({ access: { mode } }).mode, JSON.stringify(mode)).toBe('locked');
++      }
++    });
++
++    it('an access block that is present but not an object → locked', () => {
++      /*
++       * `{ access: 'password' }` est le piège : quelqu'un a écrit quelque chose,
++       * mais pas la forme attendue. Le traiter comme « absent » le rendrait
++       * public.
++       */
++      for (const access of ['password', 'public', 42, true, []]) {
++        expect(accessConfigFromMetadata({ access }).mode, JSON.stringify(access)).toBe('locked');
++      }
++    });
++
++    it('an EMPTY access block (partially applied migration) → locked', () => {
++      expect(accessConfigFromMetadata({ access: {} }).mode).toBe('locked');
++      expect(accessConfigFromMetadata({ access: { passwordHash: 'h' } }).mode).toBe('locked');
++    });
++
++    it('the ONLY inputs that yield public are: no access at all, or an explicit public mode', () => {
++      /*
++       * Contrôle de couverture : on énumère un échantillon large et on vérifie
++       * que l'ensemble des entrées « publiques » est exactement celui attendu.
++       * Sans lui, ajouter un nouveau chemin ouvrant passerait inaperçu.
++       */
++      const inputs: Array<{ label: string; metadata: unknown }> = [
++        { label: 'undefined', metadata: undefined },
++        { label: 'null', metadata: null },
++        { label: '{}', metadata: {} },
++        { label: 'access: null', metadata: { access: null } },
++        { label: 'access: undefined', metadata: { access: undefined } },
++        { label: 'mode public', metadata: { access: { mode: 'public' } } },
++        { label: 'mode password + hash', metadata: { access: { mode: 'password', passwordHash: 'h' } } },
++        { label: 'mode password sans hash', metadata: { access: { mode: 'password' } } },
++        { label: 'mode private', metadata: { access: { mode: 'private' } } },
++        { label: 'mode locked', metadata: { access: { mode: 'locked' } } },
++        { label: 'access chaîne', metadata: { access: 'password' } },
++        { label: 'access vide', metadata: { access: {} } },
++      ];
++
++      const publicOnes = inputs
++        .filter((i) => accessConfigFromMetadata(i.metadata).mode === 'public')
++        .map((i) => i.label);
++
++      expect(publicOnes.sort()).toEqual(
++        ['undefined', 'null', '{}', 'access: null', 'access: undefined', 'mode public'].sort(),
++      );
++    });
+   });
+ });
+ 
+-describe('isAccessTokenValid (constant-time)', () => {
+-  const tok = computeAccessToken('s', 'd1', 'hash');
++describe('deriveDeploymentAccessSecret (SEC-6 dedicated key)', () => {
++  it('is deterministic and DISTINCT from the base secret', () => {
++    const base = 'platform-base-secret';
++    const a = deriveDeploymentAccessSecret(base);
++    expect(deriveDeploymentAccessSecret(base)).toBe(a);
++    expect(a).not.toBe(base);
++    expect(deriveDeploymentAccessSecret('other')).not.toBe(a);
++  });
++});
++
++describe('computeAccessToken / isAccessTokenValid (SEC-5 expiry, SEC-6 rotation)', () => {
++  const secret = 'dep-secret';
++  const exp = 1_900_000_000_000; // far future
++  const tok = computeAccessToken(secret, 'd1', 'hash', exp);
++
++  it('token embeds the expiry and is payload.sig shaped', () => {
++    expect(tok).toMatch(/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
++    expect(verifyAccessTokenSignature([secret], 'd1', 'hash', tok)).toBe(exp);
++  });
++
++  it('accepts a valid, unexpired token', () => {
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp - 1)).toBe(true);
++  });
++
++  it('SEC-5: rejects an EXPIRED (but authentically signed) token — server-side check', () => {
++    expect(verifyAccessTokenSignature([secret], 'd1', 'hash', tok)).toBe(exp); // signature is authentic
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp)).toBe(false); // but now >= exp
++    expect(isAccessTokenValid([secret], 'd1', 'hash', tok, exp + 1)).toBe(false);
++  });
++
++  it('rejects wrong secret, other deployment, rotated password', () => {
++    expect(isAccessTokenValid(['nope'], 'd1', 'hash', tok, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd2', 'hash', tok, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash2', tok, exp - 1)).toBe(false);
++  });
+ 
+-  it('accepts the exact token', () => {
+-    expect(isAccessTokenValid(tok, tok)).toBe(true);
++  it('SEC-6: accepts a token signed by a ROTATED (old) secret in the accept list', () => {
++    const oldTok = computeAccessToken('old-secret', 'd1', 'hash', exp);
++    // mint list is [new, old]; an old cookie still verifies during rotation
++    expect(isAccessTokenValid(['new-secret', 'old-secret'], 'd1', 'hash', oldTok, exp - 1)).toBe(true);
++    expect(isAccessTokenValid(['new-secret'], 'd1', 'hash', oldTok, exp - 1)).toBe(false);
+   });
+ 
+-  it('rejects absent / wrong / length-mismatched tokens', () => {
+-    expect(isAccessTokenValid(undefined, tok)).toBe(false);
+-    expect(isAccessTokenValid('', tok)).toBe(false);
+-    expect(isAccessTokenValid(`${tok}x`, tok)).toBe(false);
+-    expect(isAccessTokenValid(computeAccessToken('s', 'd1', 'other'), tok)).toBe(false);
++  it('rejects absent / malformed / tampered tokens', () => {
++    expect(isAccessTokenValid([secret], 'd1', 'hash', undefined, exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', '', exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', 'garbage', exp - 1)).toBe(false);
++    expect(isAccessTokenValid([secret], 'd1', 'hash', `${tok}x`, exp - 1)).toBe(false);
++    // tamper the expiry payload (forge a later expiry) → signature no longer matches
++    const forged = `${Buffer.from(String(exp + 10_000)).toString('base64url')}.${tok.split('.')[1]}`;
++    expect(isAccessTokenValid([secret], 'd1', 'hash', forged, exp + 5_000)).toBe(false);
+   });
+ });
+ 
+diff --git a/services/api/src/deployment-access.ts b/services/api/src/deployment-access.ts
+index cb43b680..316fa2cc 100644
+Binary files a/services/api/src/deployment-access.ts and b/services/api/src/deployment-access.ts differ
+diff --git a/services/api/src/deployments.ts b/services/api/src/deployments.ts
+index 28fb7182..f5ab93ad 100644
+--- a/services/api/src/deployments.ts
++++ b/services/api/src/deployments.ts
+@@ -725,7 +725,7 @@ export function buildDeploymentUrl(project: ProjectRecord, deployment: Deploymen
+      * its public URL must be the API-origin one. Public static deploys keep the
+      * dedicated origin for the same-origin sandbox.
+      */
+-    const gated = accessConfigFromMetadata(deployment.metadata).mode === 'password';
++    const gated = accessConfigFromMetadata(deployment.metadata).mode !== 'public';
+     const dedicated = staticDeployDedicatedOrigin(deployment.id);
+ 
+     if (dedicated && !gated) {
+diff --git a/services/api/src/tests/deployment-password.spec.ts b/services/api/src/tests/deployment-password.spec.ts
+index 8237435e..7e2dad98 100644
+--- a/services/api/src/tests/deployment-password.spec.ts
++++ b/services/api/src/tests/deployment-password.spec.ts
+@@ -4,10 +4,13 @@ import { join } from 'node:path';
+ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+ import { buildApiApp } from '../app.js';
+ import { staticDeploymentSnapshotDir } from '../deployments.js';
+-import { accessCookieName } from '../deployment-access.js';
++import { accessCookieName, computeAccessToken } from '../deployment-access.js';
+ import type { EmailProvider } from '../email.js';
+ import { TestApiStore } from './test-api-store.js';
+ 
++// A known dedicated secret so the tests can mint expired / valid tokens directly.
++const DEP_SECRET = 'test-deployment-access-secret';
++
+ /*
+  * P104 — password-protected deployments (endpoint wiring).
+  *
+@@ -22,16 +25,20 @@ class QuietEmailProvider implements EmailProvider {
+ 
+ describe('password-protected static deployments (endpoint)', () => {
+   const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
++  const prevSecret = process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
+   let storageDir: string;
+ 
+   beforeEach(async () => {
+     storageDir = await mkdtemp(join(tmpdir(), 'pwd-'));
+     process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
++    process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = DEP_SECRET;
+   });
+ 
+   afterEach(async () => {
+     if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+     else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
++    if (prevSecret === undefined) delete process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET;
++    else process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET = prevSecret;
+     await rm(storageDir, { recursive: true, force: true });
+   });
+ 
+@@ -163,4 +170,291 @@ describe('password-protected static deployments (endpoint)', () => {
+     });
+     expect(noAuth.statusCode).toBe(401);
+   });
++
++  // ---- expert P0 security counter-audit (SEC-1..6) --------------------------
++
++  it('SEC-2/3: every gated response is no-store (never public) with Vary: Cookie — no cache poisoning', async () => {
++    const { app, store, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++
++    // (a) the 401 gate must not be cacheable as public
++    const anon = await serve(app, deploymentId);
++    expect(anon.statusCode).toBe(401);
++    const anonCache = String(anon.headers['cache-control'] ?? '');
++    expect(anonCache).toContain('no-store');
++    expect(anonCache).not.toContain('public');
++
++    // (b) the AUTHORIZED 200 must ALSO be no-store + Vary: Cookie, so a shared
++    // cache can never store it and replay to an anonymous visitor (poisoning).
++    const dep = await store.getDeployment(projectId, deploymentId);
++    const passwordHash = ((dep!.metadata as any).access as { passwordHash: string }).passwordHash;
++    const valid = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() + 3_600_000);
++    const ok = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: valid });
++    expect(ok.statusCode).toBe(200);
++    expect(ok.body).toContain('SECRET CONTENT');
++    const okCache = String(ok.headers['cache-control'] ?? '');
++    expect(okCache).toContain('no-store');
++    expect(okCache).not.toContain('public');
++    expect(String(ok.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
++
++    // (c) cache-poisoning replay: after the authorized fetch, the SAME URL fetched
++    // anonymously still leaks NO protected byte.
++    const replay = await serve(app, deploymentId);
++    expect(replay.statusCode).toBe(401);
++    expect(replay.body).not.toContain('SECRET CONTENT');
++  });
++
++  /*
++   * SEC-7 — LA TRANSITION LA PLUS DANGEREUSE : public + DÉJÀ MIS EN CACHE, puis
++   * activation de la protection.
++   *
++   * Le test SEC-2/3 part d'un déploiement déjà protégé : il ne peut donc pas
++   * voir ce cas. Ici le déploiement est d'abord PUBLIC, il est servi (donc
++   * potentiellement stocké par un intermédiaire), PUIS protégé. L'origine ne
++   * contrôle pas les caches tiers : elle ne peut pas purger ce qui est déjà
++   * stocké. La seule défense correcte est d'avoir émis, DÈS la réponse publique,
++   * une directive qui interdit toute réutilisation sans revalidation.
++   */
++  it("SEC-7 poison_replay: PUBLIC déjà mis en cache -> protégé -> le rejeu anonyme ne rend JAMAIS l'ancienne réponse", async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // (a) PUBLIC : la réponse est servie et pourrait être stockée par un cache.
++    const publicHit = await serve(app, deploymentId);
++    expect(publicHit.statusCode).toBe(200);
++    expect(publicHit.body).toContain('SECRET CONTENT');
++
++    /*
++     * (b) LA propriété qui ferme la fenêtre : la réponse publique n'est jamais
++     * réutilisable SANS revalidation. Avec `max-age=60`, un intermédiaire aurait
++     * pu la resservir pendant une minute APRÈS l'activation de la protection —
++     * un visiteur anonyme aurait alors obtenu le contenu désormais protégé.
++     */
++    const publicCache = String(publicHit.headers['cache-control'] ?? '');
++    expect(publicCache).toContain('no-cache');
++    expect(publicCache).toMatch(/must-revalidate/);
++    // Aucune durée de fraîcheur non nulle : rien n'est servable sans revalider.
++    expect(publicCache).not.toMatch(/max-age=[1-9]/);
++    // La clé de cache dépend du cookie dès l'origine.
++    expect(String(publicHit.headers['vary'] ?? '').toLowerCase()).toContain('cookie');
++
++    // (c) Activation de la protection.
++    const set = await setAccess(app, projectId, deploymentId, auth.token, {
++      mode: 'password',
++      password: 'letmein',
++    });
++    expect(set.statusCode).toBe(200);
++
++    // (d) REJEU anonyme sur la MÊME URL : jamais 200, jamais l'ancien contenu.
++    const replay = await serve(app, deploymentId);
++    expect(replay.statusCode).toBe(401);
++    expect(replay.body).not.toContain('SECRET CONTENT');
++    const replayCache = String(replay.headers['cache-control'] ?? '');
++    expect(replayCache).toContain('no-store');
++    expect(replayCache).not.toContain('public');
++  });
++
++  it('SEC-7: le gate précède HEAD, Range, conditionnelle, asset secondaire et fallback SPA', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    // Public d'abord, pour qu'un cache ait pu voir passer chaque variante.
++    expect((await serve(app, deploymentId)).statusCode).toBe(200);
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++
++    const base = `/static-deployments/${deploymentId}`;
++
++    /*
++     * Chaque variante est une façon différente de récupérer des octets. Le gate
++     * doit s'appliquer AVANT toutes, sinon il suffirait de changer de méthode ou
++     * d'en-tête pour contourner la protection.
++     */
++    const variants: Array<{ label: string; options: Record<string, unknown> }> = [
++      { label: 'HEAD', options: { method: 'HEAD', url: `${base}/` } },
++      { label: 'Range', options: { method: 'GET', url: `${base}/`, headers: { range: 'bytes=0-4' } } },
++      {
++        label: 'conditionnelle If-None-Match',
++        options: { method: 'GET', url: `${base}/`, headers: { 'if-none-match': '"quelconque"' } },
++      },
++      {
++        label: 'conditionnelle If-Modified-Since',
++        options: {
++          method: 'GET',
++          url: `${base}/`,
++          headers: { 'if-modified-since': new Date(Date.now() + 86_400_000).toUTCString() },
++        },
++      },
++      { label: 'asset secondaire', options: { method: 'GET', url: `${base}/assets/app.js` } },
++      { label: 'fallback SPA', options: { method: 'GET', url: `${base}/route/profonde` } },
++      { label: 'index explicite', options: { method: 'GET', url: `${base}/index.html` } },
++    ];
++
++    for (const { label, options } of variants) {
++      const response = await app.inject(options as never);
++
++      // Jamais 200, et surtout jamais 304 : un 304 confirmerait à un cache que
++      // son entrée publique est encore valide, donc l'autoriserait à la resservir.
++      expect([401, 403, 404, 503], `${label} -> ${response.statusCode}`).toContain(response.statusCode);
++      expect(response.statusCode, label).not.toBe(200);
++      expect(response.statusCode, label).not.toBe(304);
++      expect(response.body ?? '', label).not.toContain('SECRET CONTENT');
++
++      const cache = String(response.headers['cache-control'] ?? '');
++      expect(cache, label).toContain('no-store');
++      expect(cache, label).not.toContain('public');
++    }
++  });
++
++  it('SEC-7: après retour au public, la réponse reste non réutilisable sans revalidation', async () => {
++    const { app, auth, projectId, deploymentId } = await setup();
++
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    expect((await serve(app, deploymentId)).statusCode).toBe(401);
++
++    // Retour au public : le contenu redevient accessible…
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'public' });
++    const reopened = await serve(app, deploymentId);
++    expect(reopened.statusCode).toBe(200);
++
++    /*
++     * …mais la directive reste `no-cache` : une nouvelle bascule vers protégé ne
++     * rouvrirait pas de fenêtre de rejeu. La propriété est stable dans les DEUX
++     * sens, pas seulement au premier passage.
++     */
++    const cache = String(reopened.headers['cache-control'] ?? '');
++    expect(cache).toContain('no-cache');
++    expect(cache).not.toMatch(/max-age=[1-9]/);
++  });
++
++  it('SEC-5: an EXPIRED (server-verified) token is refused even though the cookie is present', async () => {
++    const { app, store, auth, projectId, deploymentId } = await setup();
++    await setAccess(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
++    const dep = await store.getDeployment(projectId, deploymentId);
++    const passwordHash = ((dep!.metadata as any).access as { passwordHash: string }).passwordHash;
++
++    const expired = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() - 1_000);
++    const res = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: expired });
++    expect(res.statusCode).toBe(401);
++    expect(res.body).not.toContain('SECRET CONTENT');
++
++    const valid = computeAccessToken(DEP_SECRET, deploymentId, passwordHash, Date.now() + 60_000);
++    const ok = await serve(app, deploymentId, { [accessCookieName(deploymentId)]: valid });
++    expect(ok.statusCode).toBe(200);
++  });
++
++  it('SEC-1: a password deployment whose stored hash is gone is LOCKED (503), never public', async () => {
++    const store = new TestApiStore();
++    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
++    const reg = await app.inject({
++      method: 'POST',
++      url: '/auth/register',
++      payload: { email: 'lock@example.com', password: 'password123', name: 'L', organizationName: 'L Org' },
++    });
++    const auth = reg.json() as { token: string; organization: { id: string } };
++    const proj = await app.inject({
++      method: 'POST',
++      url: `/orgs/${auth.organization.id}/projects`,
++      headers: { authorization: `Bearer ${auth.token}` },
++      payload: { name: 'L Project' },
++    });
++    const projectId = (proj.json() as { project: { id: string } }).project.id;
++    // Corrupt/partial config: mode=password but NO hash.
++    const deployment = await store.createDeployment({
++      projectId,
++      provider: 'static',
++      environment: 'preview',
++      status: 'READY',
++      url: 'https://example.test/x',
++      metadata: { access: { mode: 'password' } },
++    });
++    const dir = staticDeploymentSnapshotDir(deployment.id);
++    await mkdir(dir, { recursive: true });
++    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
++
++    const res = await serve(app, deployment.id);
++    expect(res.statusCode).toBe(503);
++    expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_LOCKED');
++    expect(res.body).not.toContain('SECRET CONTENT');
++
++    // The unlock endpoint also refuses (nothing to unlock).
++    const gate = await app.inject({
++      method: 'POST',
++      url: `/static-deployments/${deployment.id}/__access`,
++      payload: { password: 'anything' },
++    });
++    expect(gate.statusCode).toBe(503);
++  });
++
++  /*
++   * SEC-1b — le fail-open relevé par le contre-audit, prouvé DE BOUT EN BOUT.
++   *
++   * `accessConfigFromMetadata` retombait sur `public` pour tout mode qui n'était
++   * pas exactement `password`. Le cas le plus net est `locked` lui-même : la
++   * décision fail-closed de SEC-1 ne survivait pas à un aller-retour en base — le
++   * déploiement était reservi au monde entier au rechargement suivant.
++   *
++   * Chaque mode est vérifié sur la vraie route de service, avec du contenu réel
++   * sur disque, pour que la preuve ne dépende pas d'un raisonnement sur le code.
++   */
++  const unknownAccessModes = ['private', 'locked', '123', 'password-protected', 'PASSWORD', 'future-mode'];
++
++  for (const [index, mode] of unknownAccessModes.entries()) {
++    it(`SEC-1b: mode d'accès inconnu ${JSON.stringify(mode)} -> 503 verrouillé, JAMAIS public`, async () => {
++      const store = new TestApiStore();
++      const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
++      const reg = await app.inject({
++        method: 'POST',
++        url: '/auth/register',
++        payload: {
++          email: `unknown-mode-${index}@example.com`,
++          password: 'password123',
++          name: 'U',
++          organizationName: 'U Org',
++        },
++      });
++      const auth = reg.json() as { token: string; organization: { id: string } };
++      const proj = await app.inject({
++        method: 'POST',
++        url: `/orgs/${auth.organization.id}/projects`,
++        headers: { authorization: `Bearer ${auth.token}` },
++        payload: { name: 'U Project' },
++      });
++      const projectId = (proj.json() as { project: { id: string } }).project.id;
++
++      const deployment = await store.createDeployment({
++        projectId,
++        provider: 'static',
++        environment: 'preview',
++        status: 'READY',
++        url: 'https://example.test/x',
++        metadata: { access: { mode } },
++      });
++      const dir = staticDeploymentSnapshotDir(deployment.id);
++      await mkdir(dir, { recursive: true });
++      await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
++
++      const res = await serve(app, deployment.id);
++
++      expect(res.statusCode).toBe(503);
++      expect(res.statusCode).not.toBe(200);
++      expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_LOCKED');
++
++      // ZÉRO octet applicatif : c'est la propriété qui compte, pas le seul statut.
++      expect(res.body).not.toContain('SECRET CONTENT');
++
++      /*
++       * Un état verrouillé est « gated » : sa réponse ne doit jamais être
++       * réutilisable par un cache partagé pour un autre visiteur.
++       */
++      expect(res.headers['cache-control']).toContain('no-store');
++      expect(String(res.headers.vary ?? '')).toContain('Cookie');
++
++      // Et il n'existe aucun mot de passe capable de le déverrouiller.
++      const gate = await app.inject({
++        method: 'POST',
++        url: `/static-deployments/${deployment.id}/__access`,
++        payload: { password: 'anything' },
++      });
++      expect(gate.statusCode).toBe(503);
++    });
++  }
+ });

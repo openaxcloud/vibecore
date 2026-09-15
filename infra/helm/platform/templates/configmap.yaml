@@ -123,8 +123,20 @@ data:
   # DB_ROLLBACK_ENABLED is "true"; setting it "false" fully disables the feature.
   # Bucket/GSA/shared-cluster are this prod cluster's CNPG coordinates (Phase 1).
   DB_ROLLBACK_ENABLED: "true"
-  DB_BACKUP_BUCKET: "vibecore-495216-vibecore-prod-backups"
-  DB_BACKUP_GSA: "cnpg-backups@vibecore-495216.iam.gserviceaccount.com"
+{{- /*
+  Overridable, but DEFAULTING to the prod literals so the `--reuse-values` CD
+  path renders byte-identically to before (a dropped values key falls back to
+  the literal). The override exists so a NON-prod install of this chart — the
+  ephemeral audit environment — cannot point its database backups at the
+  production bucket and production service account. Nil-safe: `platformEnv.
+  dbBackup` is absent under --reuse-values.
+
+  Deliberately a Helm comment, not a YAML `#` comment: anything rendered into
+  this ConfigMap changes `checksum/platform-env` and would roll all seven
+  production Deployments on the next deploy.
+*/}}
+  DB_BACKUP_BUCKET: {{ (.Values.platformEnv.dbBackup | default dict).bucket | default "vibecore-495216-vibecore-prod-backups" | quote }}
+  DB_BACKUP_GSA: {{ (.Values.platformEnv.dbBackup | default dict).gsa | default "cnpg-backups@vibecore-495216.iam.gserviceaccount.com" | quote }}
   DB_SHARED_CLUSTER: "shared-pg-0"
   # Per-project GCS object storage (services/api/src/object-storage.ts). Same
   # hardcoded-literal rule as DB_ROLLBACK_ENABLED above: a manual `kubectl set
@@ -250,28 +262,31 @@ data:
   {{- end }}
 
   {{- with .Values.platformEnv.stripe }}
-  {{- if .freeProductId }}
-  STRIPE_FREE_PRODUCT_ID: {{ .freeProductId | quote }}
+  {{/* Replit-parity catalog (Starter/Core/Pro/Enterprise), EUR, monthly + annual.
+       Only Core and Pro are self-serve checkout tiers, so only they need Product +
+       monthly + annual Price IDs. Starter is free (no checkout) and Enterprise is
+       sales-led (contact-sales). Empty values are omitted so a blank never masks a
+       Secret-sourced value. seedBillingPlans reads STRIPE_<KEY>_PRICE_MONTHLY_ID /
+       _ANNUAL_ID. */}}
+  {{- if .coreProductId }}
+  STRIPE_CORE_PRODUCT_ID: {{ .coreProductId | quote }}
   {{- end }}
-  {{- if .freePriceId }}
-  STRIPE_FREE_PRICE_ID: {{ .freePriceId | quote }}
+  {{- if .corePriceMonthlyId }}
+  STRIPE_CORE_PRICE_MONTHLY_ID: {{ .corePriceMonthlyId | quote }}
+  {{- end }}
+  {{- if .corePriceAnnualId }}
+  STRIPE_CORE_PRICE_ANNUAL_ID: {{ .corePriceAnnualId | quote }}
   {{- end }}
   {{- if .proProductId }}
   STRIPE_PRO_PRODUCT_ID: {{ .proProductId | quote }}
   {{- end }}
-  {{- if .proPriceId }}
-  STRIPE_PRO_PRICE_ID: {{ .proPriceId | quote }}
+  {{- if .proPriceMonthlyId }}
+  STRIPE_PRO_PRICE_MONTHLY_ID: {{ .proPriceMonthlyId | quote }}
   {{- end }}
-  {{- if .teamProductId }}
-  STRIPE_TEAM_PRODUCT_ID: {{ .teamProductId | quote }}
-  {{- end }}
-  {{- if .teamPriceId }}
-  STRIPE_TEAM_PRICE_ID: {{ .teamPriceId | quote }}
+  {{- if .proPriceAnnualId }}
+  STRIPE_PRO_PRICE_ANNUAL_ID: {{ .proPriceAnnualId | quote }}
   {{- end }}
   {{- if .enterpriseProductId }}
   STRIPE_ENTERPRISE_PRODUCT_ID: {{ .enterpriseProductId | quote }}
-  {{- end }}
-  {{- if .enterprisePriceId }}
-  STRIPE_ENTERPRISE_PRICE_ID: {{ .enterprisePriceId | quote }}
   {{- end }}
   {{- end }}

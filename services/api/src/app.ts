@@ -34,7 +34,6 @@ import {
   aiModelCatalog,
   availableMachineSizes,
   machineSizeFromCard,
-  billingPlans,
   ceilCents,
   computeAgentCallBilling,
   computeAiCostCents,
@@ -54,6 +53,10 @@ import {
   DEFAULT_AGENT_MODE,
   objectStorageCents,
   planByKey,
+  creditPlanCatalog,
+  creditPlanByKey,
+  creditPlanToGatewayTier,
+  isSelfServeCheckoutPlan,
   planCreditConfig,
   toCreditPlanKey,
   verifyStripeSignature,
@@ -148,6 +151,7 @@ import { runAppImageBuild } from './app-image-build.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import {
+  applyPlanGrant,
   checkServiceShutdown,
   openCheckpoint,
   reportCheckpointPaygUsage,
@@ -1485,7 +1489,7 @@ const adminAbuseParams = z.object({ abuseEventId: z.string().min(1) });
 
 const adminPlanOverrideSchema = z.object({
   organizationId: z.string().min(1),
-  planKey: z.enum(['free', 'pro', 'team', 'enterprise']),
+  planKey: z.enum(['starter', 'core', 'pro', 'enterprise']),
   reason: z.string().min(1),
 });
 
@@ -1548,7 +1552,7 @@ const adminIncidentSchema = z.object({
   active: z.boolean().default(true),
 });
 const billingCheckoutSchema = z.object({
-  planKey: z.enum(['free', 'pro', 'team', 'enterprise']),
+  planKey: z.enum(['starter', 'core', 'pro', 'enterprise']),
 
   // Replit-parity: monthly vs annual (discounted) billing.
   interval: z.enum(['monthly', 'annual']).default('monthly'),
@@ -7535,22 +7539,21 @@ async function seedBillingPlans(store: ApiStore) {
    */
   const existing = new Map((await store.listBillingPlans()).map((plan) => [plan.key, plan]));
 
+  /*
+   * P7 cutover: the Plan table is the Replit-parity catalog (Starter/Core/Pro/
+   * Enterprise, EUR, monthly + annual). Its `.limits` are the internal tier
+   * limits each credit plan derives from, so `ensureQuota` keeps the exact same
+   * numbers. Price ids come from env by convention STRIPE_<KEY>_PRICE_MONTHLY_ID /
+   * _ANNUAL_ID; an admin-persisted id (via /admin/stripe) wins over env so a
+   * console edit survives the next restart. `stripePriceId` stays = monthly for
+   * backward-compat with the single-price checkout fallback.
+   */
   await Promise.all(
-    billingPlans.map((plan) => {
-      /*
-       * Replit-parity: distinct monthly/annual price ids by convention
-       * STRIPE_<KEY>_PRICE_MONTHLY_ID / _ANNUAL_ID; the legacy STRIPE_<KEY>_PRICE_ID
-       * stays as the monthly fallback so existing single-price setups keep working.
-       */
-      const upper = plan.key.toUpperCase();
+    creditPlanCatalog.map((plan) => {
       const prior = existing.get(plan.key);
 
-      const monthly =
-        prior?.stripePriceMonthlyId ??
-        process.env[`STRIPE_${upper}_PRICE_MONTHLY_ID`] ??
-        process.env[plan.stripePriceEnv];
-
-      const annual = prior?.stripePriceAnnualId ?? process.env[`STRIPE_${upper}_PRICE_ANNUAL_ID`];
+      const monthly = prior?.stripePriceMonthlyId ?? process.env[plan.stripePriceMonthlyEnv];
+      const annual = prior?.stripePriceAnnualId ?? process.env[plan.stripePriceAnnualEnv];
 
       return store.upsertBillingPlan({
         key: plan.key,
@@ -7558,7 +7561,7 @@ async function seedBillingPlans(store: ApiStore) {
         monthlyCents: plan.monthlyCents,
         limits: plan.limits,
         stripeProductId: prior?.stripeProductId ?? process.env[plan.stripeProductEnv],
-        stripePriceId: prior?.stripePriceId ?? process.env[plan.stripePriceEnv],
+        stripePriceId: prior?.stripePriceId ?? monthly,
         stripePriceMonthlyId: monthly,
         stripePriceAnnualId: annual,
       });
@@ -13145,9 +13148,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           signal: controller.signal,
         });
 
-        // Drain the body so the socket returns to the pool; we only need the status.
-        await response.body?.cancel().catch(() => undefined);
-        probe = { kind: 'response', status: response.status };
+        /*
+         * Read the body (not just drain it): a bound-but-not-serving dev server
+         * answers 200 with zero bytes, and treating that as ready is part of the
+         * "port open + blank webview" lie. Capped so a large document can't cost
+         * us more than the first chunk — we only need "is it non-empty".
+         */
+        let bodyBytes = 0;
+
+        const reader = response.body?.getReader();
+
+        if (reader) {
+          try {
+            const first = await reader.read();
+            bodyBytes = first.value?.byteLength ?? 0;
+          } finally {
+            await reader.cancel().catch(() => undefined);
+          }
+        }
+
+        probe = { kind: 'response', status: response.status, bodyBytes };
       } finally {
         clearTimeout(timer);
       }
@@ -13841,25 +13861,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * Send the org's REAL plan so the gateway's model-tier gating applies. It was
      * hardcoded to 'business', so a free org got business-tier models for free.
-     * Map the billing plan key to the gateway's AiPlanKey (billing 'team' ==
-     * gateway 'business'); unknown/free → 'free'.
+     * Map the Replit-parity plan key to the gateway's AiPlanKey via
+     * `creditPlanToGatewayTier` (Starter→free, Core→pro, Pro→business — Pro has
+     * the most powerful models, Enterprise→enterprise). Legacy keys normalise
+     * first (team→pro→business).
      *
      * Use the STATUS-GATED entitled plan (billingState().plan.key), NOT the raw
      * subscription.planKey: a past_due/canceled/unpaid subscription still carries
      * its contracted planKey, so keying off it let a lapsed org keep premium-tier
-     * models. plan.key downgrades to free when the subscription isn't entitled
-     * (same source used for workspace resource limits).
+     * models. plan.key downgrades to the free tier when the subscription isn't
+     * entitled (same source used for workspace resource limits).
      */
     const entitledPlanKey = (await billingState(input.project.organizationId).catch(() => undefined))?.plan?.key;
 
-    const gatewayPlan =
-      entitledPlanKey === 'team'
-        ? 'business'
-        : entitledPlanKey === 'pro'
-          ? 'pro'
-          : entitledPlanKey === 'enterprise'
-            ? 'enterprise'
-            : 'free';
+    const gatewayPlan = creditPlanToGatewayTier(entitledPlanKey);
 
     try {
       /*
@@ -13935,15 +13950,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const billingState = async (organizationId: string) => {
     const subscription = await store.getSubscription(organizationId);
 
+    /*
+     * Status-gated entitlement (unchanged): a CANCELED/UNPAID sub downgrades to
+     * the free tier even though its row still carries a paid planKey. The free
+     * key is now `starter` (Replit-parity catalog). `creditPlanByKey` resolves
+     * Core/Pro to their real limits instead of `planByKey` silently falling back
+     * to Free for any non-legacy key.
+     */
     const entitledPlanKey =
-      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status)
+        ? subscription.planKey
+        : 'starter';
     const plan = (await store.getBillingPlan(entitledPlanKey)) ??
-      (await store.getBillingPlan('free')) ?? {
-        key: 'free' as PlanKey,
-        limits: planByKey('free').limits,
+      (await store.getBillingPlan('starter')) ?? {
+        key: 'starter' as PlanKey,
+        limits: creditPlanByKey('starter').limits,
       };
 
-    const catalogPlan = planByKey(plan.key);
+    const catalogPlan = creditPlanByKey(plan.key);
 
     return {
       subscription,
@@ -16327,8 +16351,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const wasKnown = known.has(port);
         const wasReady = readyState.get(port) ?? false;
 
-        // Emit on first appearance, or when an already-open port flips to ready.
-        if (!wasKnown || (!wasReady && ready)) {
+        /*
+         * Emit on first appearance, or on EITHER readiness edge. The
+         * ready -> not-ready arm is what makes a preview that stops serving
+         * (dev server crashed, upstream started 5xx-ing) visible to the client:
+         * without it the IDE kept `ready: true` forever and reported a healthy
+         * preview over a dead app (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
+         */
+        if (!wasKnown || wasReady !== ready) {
           emit(descriptor, 'open', ready);
         }
 
@@ -18952,6 +18982,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       git: await gitProvider.status(project.id),
       recentActivity: await store.listProjectActivity(project.id, { limit: 20, order: 'desc' }),
+
+      /*
+       * The IDE Monitoring panel reads `data.deployments` for its Deployments
+       * metric and its deployment timeline, and this payload is what feeds it.
+       * Without the key both fell back to the empty array, so a project with
+       * live READY deployments reported "0" and "No deployment recorded"
+       * (proven live 2026-08-06 on a project with three READY static deploys).
+       * Read-only listing — no provider reconcile, which belongs to the
+       * deployments routes.
+       */
+      deployments: await store.listDeployments(project.id).catch(() => []),
     };
   });
   app.get('/projects/:projectId/packages', async (request) => {
@@ -23221,15 +23262,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const messageUsed = await usageForQuota(project.organizationId, 'ai.messages', request);
 
     /*
-     * C1.b.6 — BYOK policy. Managed-mode plans (free + pro) force the
+     * C1.b.6 — BYOK policy. Managed-mode plans (Starter + Core) force the
      * server-side env keys (ANTHROPIC_API_KEY etc.) so a user can't
      * silently bypass vibecore's quota by pasting their own provider
-     * key into the Bolt UI cookies. Team + enterprise are advanced
+     * key into the Bolt UI cookies. Pro + Enterprise are advanced
      * tiers where bringing-your-own-key is a legitimate feature.
      * Override via the ENTERPRISE_FORCE_MANAGED_KEYS env knob if a
      * specific deployment wants everyone on managed.
      */
-    const byokAllowedPlans: PlanKey[] = ['team', 'enterprise'];
+    const byokAllowedPlans: PlanKey[] = ['pro', 'enterprise'];
     const forceManaged = process.env.ENTERPRISE_FORCE_MANAGED_KEYS === 'true';
 
     /*
@@ -23942,7 +23983,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       activeWorkspaces: await store.countActiveWorkspaces(orgId),
       usage: await store.listUsageEvents(orgId, { take: 500 }),
       overrides: (await store.listQuotaOverrides(orgId)).filter((o) => isQuotaOverrideActive(o)),
-      upgradePrompts: billingPlans
+      upgradePrompts: creditPlanCatalog
         .filter((plan) => plan.monthlyCents > (state.plan.monthlyCents ?? 0))
         .map((plan) => ({ planKey: plan.key, name: plan.name })),
     };
@@ -24192,10 +24233,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(billingCheckoutSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
 
-    if (body.planKey === 'free') {
+    if (body.planKey === 'starter') {
       throw Object.assign(
         new Error(
-          'Free plan has no checkout. Cancel any paid subscription via /orgs/:orgId/billing/portal to return to free.',
+          'Starter is free and has no checkout. Cancel any paid subscription via /orgs/:orgId/billing/portal to return to Starter.',
         ),
         { statusCode: 400, code: 'STRIPE_FREE_NO_CHECKOUT' },
       );
@@ -24915,6 +24956,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             currentPeriodEnd: existing.currentPeriodEnd ? new Date(existing.currentPeriodEnd) : undefined,
             lastStripeEventAt: eventCreatedAt,
           });
+        }
+
+        /*
+         * Replit-parity monthly credit grant. invoice.paid fires ONCE per billing
+         * period (the initial subscription invoice and each renewal), and the whole
+         * webhook is deduped on event.id, so this is the correct idempotency boundary
+         * to top up the org's included plan credits (Core €25 / Pro €100; Starter's
+         * daily grant is applied by the scheduler, not here). Guarded by an explicit
+         * subscription-id match so an unrelated one-off invoice never grants. Behind
+         * BILLING_CREDITS_ENABLED and best-effort — a grant failure must never fail
+         * the webhook ack (Stripe would retry and the dedup is already committed).
+         */
+        if (process.env.BILLING_CREDITS_ENABLED === 'true' && subscriptionMatches && !isStaleByTimestamp) {
+          const sub = await store.getSubscription(organizationId).catch(() => undefined);
+
+          if (sub && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(sub.status)) {
+            await applyPlanGrant(store, { organizationId, planKey: sub.planKey, nowMs: Date.now() }).catch((err) =>
+              request.log.warn({ err, organizationId }, 'plan credit grant on invoice.paid failed'),
+            );
+          }
         }
       }
 
@@ -29781,6 +29842,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
       let serverError: string | undefined;
 
+      /*
+       * The runtime the pipeline actually detected (or that .ecode/deploy.json
+       * declared), lifted out of the detection block so the persisted row can
+       * carry it. The row is created with the STATIC heuristic's guess
+       * (outputDirectory 'dist' → "vite"), which the panel then showed for a
+       * plain Node app — proven live 2026-08-06 (BUG-DEPLOY-006).
+       */
+      let detectedFramework: string | undefined;
+
       const serverPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
 
       /*
@@ -29997,6 +30067,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             const detectionError = detection as { error: string };
             serverError = `${detectionError.error} You can also declare {"run": "<command>"} in .ecode/deploy.json.`;
           } else {
+            detectedFramework = runPlan.framework;
+
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
@@ -30259,6 +30331,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const readyRow = await store.updateDeployment(project.id, queued.id, {
         status: serverStatus,
+
+        /*
+         * The row was created with the STATIC heuristic's guess (outputDirectory
+         * 'dist' → "vite"), which the panel then showed for a plain Node/Express
+         * app whose real run plan the pipeline had already detected and logged as
+         * "node". Persist what actually ran.
+         */
+        framework: detectedFramework ?? queued.framework,
         url: ok ? serverUrl : undefined,
         previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
         productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
@@ -30279,7 +30359,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
           },
         },
-        logs: [...createDeploymentLogs(body, { ...queued, url: serverUrl }, project), ...liveLog],
+        logs: [
+          ...createDeploymentLogs(
+            body,
+            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            project,
+          ),
+          ...liveLog,
+        ],
 
         /*
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
