@@ -124,6 +124,13 @@ export interface AgentMemoryRepository {
     projectId?: string;
   }): Promise<number>;
   archive(input: { id: string; userId: string }): Promise<AgentMemoryRecord | undefined>;
+
+  /*
+   * RP-CKPT-05 — retour à un point de restauration : les souvenirs du projet
+   * appris APRÈS ce point sont archivés, jamais effacés. Optionnel pour les
+   * doublons de test ; le service rend 0 quand le dépôt ne sait pas faire.
+   */
+  archiveProjectMemoriesCreatedAfter?(input: { projectId: string; since: Date }): Promise<number>;
   getPreference(input: {
     userId: string;
     organizationId?: string;
@@ -558,6 +565,17 @@ export class PostgresAgentMemoryRepository implements AgentMemoryRepository {
     return rows[0] ? rowToMemory(rows[0]) : undefined;
   }
 
+  async archiveProjectMemoriesCreatedAfter(input: { projectId: string; since: Date }) {
+    const archived = await this.prisma.$executeRawUnsafe(
+      `UPDATE "AgentMemory" SET "archivedAt" = CURRENT_TIMESTAMP
+       WHERE "projectId" = $1 AND "createdAt" > $2 AND "archivedAt" IS NULL`,
+      input.projectId,
+      input.since,
+    );
+
+    return Number(archived);
+  }
+
   async getPreference(input: { userId: string; organizationId?: string; projectId?: string }) {
     const rows = await this.prisma.$queryRawUnsafe<Array<Record<string, any>>>(
       `SELECT "userId", "organizationId", "projectId", "enabled", "createdAt", "updatedAt"
@@ -936,6 +954,15 @@ export class AgentMemoryService {
 
   list(input: { userId: string; organizationId?: string; projectId?: string; limit?: number }) {
     return this.repository.list(input);
+  }
+
+  /** Retour à un point de restauration : oublie ce que le projet a appris après `since`. */
+  async rollbackProject(input: { projectId: string; since: Date }): Promise<{ archived: number }> {
+    if (!this.repository.archiveProjectMemoriesCreatedAfter) {
+      return { archived: 0 };
+    }
+
+    return { archived: await this.repository.archiveProjectMemoriesCreatedAfter(input) };
   }
 
   export(input: { userId: string; organizationId?: string; projectId?: string }) {

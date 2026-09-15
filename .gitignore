@@ -91,3 +91,7 @@ docs/instructions/Roadmap.md
 scratch-matrix/
 
 .blk-*.mjs
+
+# Redis snapshot written when a dev runs `redis-server` from the repo root
+# (the E2E stack does it in a container in CI, but natively in a sandbox).
+dump.rdb
