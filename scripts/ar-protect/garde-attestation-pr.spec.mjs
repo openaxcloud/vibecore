@@ -51,6 +51,31 @@ describe('attestation de parité — chemin autorisé, protection intacte', () =
     expect(wf).not.toMatch(/--admin\b/);
   });
 
+  /*
+   * ATTESTATION-PR-002 — mécanisme DISTINCT des trois précédents : ceux-ci
+   * vérifient la FORME du chemin (pas de push direct, PR, `--auto`), aucun ne
+   * vérifiait sa RÉSILIENCE. `gh pr create` est refusé quand la politique du
+   * dépôt interdit à GitHub Actions de créer des PR — mesuré le 2026-09-01,
+   * run 33541668907 : branche poussée, attestation sauvegardée, job rouge
+   * quand même, parce que l'étape tourne en `bash -e` et que seul
+   * `gh pr merge` était protégé.
+   *
+   * La garde porte sur TOUS les sites d'appel, pas sur le premier : le défaut
+   * d'origine était précisément qu'un des deux blocs avait été oublié.
+   */
+  it('4. aucun `gh pr create` ne peut faire échouer le job', () => {
+    const wf = sansCommentaires(readFileSync(WF, 'utf8'));
+
+    const lignes = wf.split('\n').filter((l) => /gh\s+pr\s+create/.test(l));
+
+    // Témoin : sans site d'appel, l'assertion suivante passerait à vide.
+    expect(lignes.length).toBeGreaterThanOrEqual(2);
+
+    for (const ligne of lignes) {
+      expect(ligne.trimStart()).toMatch(/^if\s+!\s+gh\s+pr\s+create/);
+    }
+  });
+
   it('3. déclare la permission nécessaire à ce chemin', () => {
     const wf = readFileSync(WF, 'utf8');
 
