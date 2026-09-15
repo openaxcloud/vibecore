@@ -138,6 +138,13 @@ describe('BaseChat strengthened-AST catalog', () => {
      * et de n'accepter que des différences qu'on sait nommer.
      *
      * Re-scellements successifs :
+     *   2026-09-09 — les cinq recherches dans `ECODE_MOBILE_TAB_META` passent
+     *     par `outilCanonique(...)`, et le cas particulier
+     *     `mobilePanel === 'chat' ? 'agent' : mobilePanel` disparaît, absorbé
+     *     par la table d'alias. Différences VÉRIFIÉES ligne à ligne contre
+     *     `origin/main` : uniquement des clés de recherche normalisées, aucun
+     *     libellé ni balisage — l'apparence gelée sur la référence d'Avi est
+     *     intacte.
      *
      *   1. externalisation des libellés visibles vers le catalogue FR (3/3) ;
      *   2. RPL-IDE-001.8 — en-tête Spotlight dans la palette de commandes ;
@@ -155,10 +162,23 @@ describe('BaseChat strengthened-AST catalog', () => {
      * l'en-tête de la coque mobile gelée — n'est PAS touché : mêmes valeurs,
      * mêmes classes, même rendu.
      *
+     *   4. BUG-TAB-CLOSE-CONTRAST-001, à la demande d'Avi (07/09 : « la croix
+     *      est blanche sur du clair, il faut la même couleur que le contenu ») :
+     *      dans le sélecteur d'onglets, la croix de fermeture enveloppe son
+     *      icône `i-ph:x` dans un span `bolt-mobile-tab-switcher-close-chip`.
+     *      L'icône est un masque peint par sa `background-color` ; la pastille
+     *      posée sur l'icône elle-même la peignait en couleur de fond.
+     *
+     * Vérifié pour ce re-scellement : la tranche diffère de `d484982` (dernier
+     * `main` vert) par UN hunk de 9 lignes, celui-là seul — l'enveloppe et son
+     * commentaire. En-tête mobile, socle, Terminal : identiques au caractère
+     * près. Mesuré par `difflib` sur la tranche [frozenStartOffset,
+     * frozenEndOffset) des deux versions.
+     *
      * Toute évolution du hash hors de ces cas signale une dérive de mise en
      * page à refuser.
      */
-    expect(frozenHash).toBe('aaf047770a225ef9be205c2a3f921ffaaa84d0b855e07db51762c5b9b70a99aa');
+    expect(frozenHash).toBe('9183f9a8db6184e7f5f4797a54f6d58ffe73bac4fa656e279d153d3351e209cd');
 
     /*
      * Re-scellé après fusion de `origin/main`. Vérifié selon la procédure

@@ -12,7 +12,23 @@ import {
   showDesktopTestNotification,
   type DesktopSettingsStatusKey,
 } from '~/lib/desktop-settings-actions';
+import { requireAuthenticatedUser, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { getDesktopSettingsCopy, resolveDesktopSettingsLanguage } from '~/lib/i18n/catalogs/desktop-settings';
+
+/*
+ * BUG-AUTH-001, règle 7 — la MÊME règle, pas la première occurrence. Cette
+ * route n'avait AUCUN loader, et une page sans loader ne peut pas hériter de
+ * la redirection que `apiRequest` lève sur un 401 : elle rendait 200 à un
+ * visiteur déconnecté exactement comme /workspace-settings.
+ *
+ * Ce loader n'existe QUE pour porter la garde. Il ne rend volontairement
+ * aucune donnée — la page se sert du pont Electron, côté client.
+ */
+export async function loader({ request }: EnterpriseLoaderArgs) {
+  await requireAuthenticatedUser(request);
+
+  return null;
+}
 
 interface DesktopSettingsState {
   proxy: { mode?: string; server?: string };

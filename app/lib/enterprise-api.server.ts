@@ -203,6 +203,43 @@ export function loginRedirectFromRequest(request: Request) {
 }
 
 /*
+ * Ferme une page de l'espace utilisateur à un visiteur non authentifié.
+ *
+ * LE PIÈGE que cette fonction existe pour supprimer : les autres pages de
+ * l'espace utilisateur ne sont pas GARDÉES, elles sont protégées PAR ACCIDENT.
+ * Leur loader appelle l'API, `apiRequest` lève `loginRedirectFromRequest` sur
+ * un 401 de navigation, et la redirection tombe comme un EFFET DE BORD de la
+ * récupération de données. Une page dont le loader ne lit aucune donnée serveur
+ * n'est donc protégée par RIEN — mesuré : sur les 29 routes de
+ * `USER_AREA_ROUTE_PREFIXES`, elles vont de 2 à 12 appels `apiRequest`, sauf
+ * /workspace-settings (0) et /desktop-settings (aucun loader), qui rendaient
+ * toutes deux 200 à un visiteur déconnecté.
+ *
+ * Le corollaire est pire que le symptôme : le jour où quelqu'un retire le
+ * dernier `apiRequest` du loader d'une des vingt-sept autres, elle s'ouvre en
+ * silence, sans un seul test rouge. D'où une garde EXPLICITE, qui ne dépend
+ * d'aucun effet de bord.
+ *
+ * Le cookie ABSENT est tranché sans aller au réseau : c'est le cas courant, et
+ * une page qui n'avait aucune dépendance serveur ne doit pas en gagner une
+ * juste pour dire « va te connecter ». Un cookie PRÉSENT, lui, est vérifié
+ * auprès de l'API : un jeton révoqué ou expiré n'est pas une session.
+ */
+export async function requireAuthenticatedUser(request: Request) {
+  if (!readSessionToken(request)) {
+    throw loginRedirectFromRequest(request);
+  }
+
+  const payload = await apiRequest<{ user?: { id?: string } }>(request, '/auth/me');
+
+  if (!payload.user) {
+    throw loginRedirectFromRequest(request);
+  }
+
+  return payload.user;
+}
+
+/*
  * Gate a page loader behind the platform-admin role. The admin console lives at
  * /admin/* and is intentionally NOT linked from the standard user navigation —
  * it is reached by direct URL only. This makes the route itself enforce the
@@ -348,16 +385,48 @@ export async function apiRequest<T = unknown>(request: Request, path: string, in
       errorHeaders.set('retry-after', retryAfter);
     }
 
-    const upstreamError =
-      typeof payload === 'object' && payload && typeof (payload as { error?: unknown }).error === 'string'
-        ? (payload as { error: string }).error.trim()
+    const champ = (nom: 'error' | 'message') =>
+      typeof payload === 'object' && payload && typeof (payload as Record<string, unknown>)[nom] === 'string'
+        ? (payload as Record<string, string>)[nom].trim()
         : '';
+
+    /*
+     * BUG-DEPLOY-DEAD-001 — certaines routes de l'API mettent le JETON dans
+     * `error` et la PHRASE dans `message` :
+     *
+     *   { error: 'PROVIDER_NOT_CONFIGURED',
+     *     message: 'Deploying to Vercel requires the following configuration:
+     *               VERCEL_DEPLOY_HOOK_URL. Contact your administrator.' }
+     *
+     * En ne gardant que `error`, on jetait ici la seule phrase utile — et
+     * l'utilisateur se retrouvait devant un jeton en majuscules, ou devant le
+     * message générique de son appelant. Mesuré sur le chemin réel le 08/09 :
+     * l'action de déploiement rendait « PROVIDER_NOT_CONFIGURED » tout court.
+     *
+     * Un `error` déjà rédigé n'est jamais touché : la substitution ne vaut que
+     * lorsqu'il ressemble à un identifiant machine (MAJUSCULES et tirets bas).
+     */
+    const jetonSeul = /^[A-Z][A-Z0-9_]*$/u;
+    const brutError = champ('error');
+    const brutMessage = champ('message');
+    const jetonDansError = jetonSeul.test(brutError) ? brutError : '';
+    const upstreamError = jetonDansError && brutMessage ? brutMessage : brutError;
+
+    /*
+     * Et le jeton ne se PERD pas en chemin : sur ces réponses, `code` vaut
+     * « API_ERROR » — l'identité réelle n'existe que dans `error`. En y
+     * substituant la phrase sans reclasser le jeton, on rendait la panne
+     * lisible mais anonyme, et les appelants qui la reconnaissent au code
+     * (`actionablePanelFailure`) ne la voyaient plus. Mesuré : les six
+     * fournisseurs non configurés étaient retombés sur le message générique.
+     */
+    const codeEffectif = jetonDansError && (!payloadCode || payloadCode === 'API_ERROR') ? jetonDansError : payloadCode;
 
     throw jsonResponse(
       {
         ok: false,
         error: upstreamError || copy.requestFailed,
-        code: payloadCode,
+        code: codeEffectif,
       },
       { status: response.status, headers: errorHeaders },
     );

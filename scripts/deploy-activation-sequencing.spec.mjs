@@ -352,6 +352,192 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
     }
   });
 
+  /**
+   * Exécute le VRAI script de la barrière avec un kubectl factice qui rapporte
+   * l'image de l'api, et, si demandé, un manifeste de release dans le répertoire
+   * de travail. Rend le code de sortie, la sortie, et le contenu de $GITHUB_OUTPUT.
+   */
+  function runBarrierStep({ image, manifest = null, shortSha = 'newsha1234' }) {
+    const dir = mkdtempSync(join(tmpdir(), 'sec10-'));
+
+    try {
+      const bin = join(dir, 'bin');
+      mkdirSync(bin);
+      writeFileSync(join(bin, 'kubectl'), `#!/bin/sh\nprintf "%s" "${image}"\n`);
+      chmodSync(join(bin, 'kubectl'), 0o755);
+
+      /*
+       * La barrière enchaîne sur scripts/deploy-cache-window.mjs quand elle certifie :
+       * ce test porte sur la décision, pas sur l'attente — un remplaçant qui rend 0.
+       */
+      mkdirSync(join(dir, 'scripts'));
+      writeFileSync(join(dir, 'scripts/deploy-cache-window.mjs'), 'process.exit(0);\n');
+
+      if (manifest) {
+        writeFileSync(join(dir, 'release-manifest.json'), JSON.stringify(manifest));
+      }
+
+      const outputFile = join(dir, 'github_output');
+      writeFileSync(outputFile, '');
+
+      let code = 0;
+      let out = '';
+
+      try {
+        out = execFileSync('bash', ['-c', stepByName(BARRIER_STEP).run], {
+          cwd: dir,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            HELM_NAMESPACE: 'vibecore',
+            HELM_RELEASE: 'vibecore',
+            SHORT_SHA: shortSha,
+            GITHUB_OUTPUT: outputFile,
+          },
+        });
+      } catch (error) {
+        code = error.status ?? 1;
+        out = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+      }
+
+      return { code, out, outputs: readFileSync(outputFile, 'utf8') };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  const DIGEST = `sha256:${'a'.repeat(64)}`;
+  const PINNED = `eu.pkg.dev/p/r/api@${DIGEST}`;
+  const apiEntry = (fields) => ({ services: [{ service: 'api', image: 'api', digest: DIGEST, ...fields }] });
+
+  it('SEC-10 par DIGEST : une image épinglée que le manifeste attribue au commit certifié est armable', () => {
+    /*
+     * Mesuré au run 1460 (be197c3) : le Deployment porte `…/api@sha256:…`
+     * depuis le déploiement par digest, et le motif `*:<sha10>` ne pouvait
+     * plus jamais correspondre — phase 2 sautée à CHAQUE cutover, interlock
+     * figé à 0, vérification finale rouge sur un déploiement sain. Le
+     * manifeste de release sait quel digest ce run a construit et de quel
+     * commit : c'est lui qui certifie.
+     */
+    const { code, out, outputs } = runBarrierStep({
+      image: PINNED,
+      manifest: apiEntry({ tag: 'newsha1234', sourceSha: `newsha1234${'0'.repeat(30)}`, rebuilt: true }),
+    });
+
+    expect(code).toBe(0);
+    expect(out).toContain('SEC-10 ok');
+    expect(outputs).toContain('armable=true');
+  });
+
+  it('SEC-10 par DIGEST : le même digest attribué à un AUTRE commit ne certifie rien', () => {
+    const { code, out, outputs } = runBarrierStep({
+      image: PINNED,
+      manifest: apiEntry({ tag: 'oldsha0000', sourceSha: `oldsha0000${'0'.repeat(30)}`, rebuilt: false }),
+    });
+
+    expect(code).toBe(0);
+    expect(out).toContain('::warning::');
+    expect(outputs).toContain('armable=false');
+  });
+
+  it('SEC-10 par DIGEST : un digest que le manifeste ne porte pas, ou pas de manifeste, reste fermé', () => {
+    const autre = runBarrierStep({
+      image: PINNED,
+      manifest: { services: [{ service: 'api', image: 'api', digest: `sha256:${'b'.repeat(64)}`, tag: 'newsha1234' }] },
+    });
+
+    const sansManifeste = runBarrierStep({ image: PINNED });
+
+    for (const { code, outputs } of [autre, sansManifeste]) {
+      expect(code).toBe(0);
+      expect(outputs).toContain('armable=false');
+    }
+  });
+
+  /**
+   * Exécute le VRAI script de vérification finale, ses expressions `${{ }}`
+   * remplacées par les sorties d'étapes données, contre un kubectl factice.
+   */
+  function runVerifyStep({ barrier, armable, phase1, final, live }) {
+    const dir = mkdtempSync(join(tmpdir(), 'sec8-verify-'));
+
+    try {
+      const bin = join(dir, 'bin');
+      mkdirSync(bin);
+      writeFileSync(
+        join(bin, 'kubectl'),
+        [
+          '#!/bin/sh',
+          'case "$*" in',
+          `  *configmap*) printf '%s' '${live}' ;;`,
+          `  *) printf '%s' '{"env":[],"envFrom":[{"configMapRef":{"name":"vibecore-vibecore-platform-platform-env"}}]}' ;;`,
+          'esac',
+          '',
+        ].join('\n'),
+      );
+      chmodSync(join(bin, 'kubectl'), 0o755);
+
+      const script = stepByName(VERIFY_STEP)
+        .run.replaceAll('${{ steps.cutover.outputs.final_flag }}', final)
+        .replaceAll('${{ steps.cutover.outputs.phase1_flag }}', phase1)
+        .replaceAll('${{ steps.cutover.outputs.barrier }}', barrier)
+        .replaceAll('${{ steps.barrier.outputs.armable }}', armable);
+
+      expect(script, 'une expression ${{ }} non remplacée').not.toContain('${{');
+
+      const summary = join(dir, 'summary');
+      writeFileSync(summary, '');
+
+      let code = 0;
+      let out = '';
+
+      try {
+        out = execFileSync('bash', ['-c', script], {
+          cwd: dir,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            HELM_NAMESPACE: 'vibecore',
+            HELM_RELEASE: 'vibecore',
+            GITHUB_STEP_SUMMARY: summary,
+          },
+        });
+      } catch (error) {
+        code = error.status ?? 1;
+        out = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+      }
+
+      return { code, out };
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  }
+
+  it('la vérification finale attend la valeur de PHASE 1 quand SEC-10 a retenu l’armement — et le dit', () => {
+    // Run 1460 : barrière tournée, phase 2 retenue, interlock à 0 → rouge sur un déploiement sain.
+    const { code, out } = runVerifyStep({ barrier: 'true', armable: 'false', phase1: '0', final: '1', live: '0' });
+
+    expect(code).toBe(0);
+    expect(out).toContain('::warning::');
+    expect(out).toContain("expected '0'");
+  });
+
+  it('la vérification finale exige « 1 » quand la phase 2 a bien armé — un 0 vivant reste une erreur', () => {
+    const { code, out } = runVerifyStep({ barrier: 'true', armable: 'true', phase1: '0', final: '1', live: '0' });
+
+    expect(code).not.toBe(0);
+    expect(out).toContain("expected '1'");
+  });
+
+  it('la vérification finale en régime établi : « 1 » attendu, « 1 » vivant, vert sans avertissement', () => {
+    const { code, out } = runVerifyStep({ barrier: 'false', armable: '', phase1: '1', final: '1', live: '1' });
+
+    expect(code).toBe(0);
+    expect(out).not.toContain('::warning::');
+  });
+
   it('waits longer than the legacy max-age it has to outlast', () => {
     const barrier = stepByName(BARRIER_STEP);
 
