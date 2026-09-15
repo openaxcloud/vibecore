@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { AppliedFilesToast } from './AppliedFilesToast';
 import { createI18nInstance } from '~/lib/i18n/runtime';
+import type { ConstatDeGeneration } from '~/lib/runtime/generation-incomplete';
 
 afterEach(cleanup);
 
@@ -50,5 +51,38 @@ describe('<AppliedFilesToast /> i18n', () => {
 
     expect(screen.getByText('1 file applied')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Undo all' })).toBeTruthy();
+  });
+});
+
+describe('<AppliedFilesToast /> — une génération tronquée ne s’annonce pas comme réussie', () => {
+  const constatCasse: ConstatDeGeneration = {
+    tronquee: true,
+    entreesManquantes: ['src/main.tsx'],
+    aucunFichier: false,
+  };
+
+  const constatSain: ConstatDeGeneration = { tronquee: false, entreesManquantes: [], aucunFichier: false };
+
+  it('remplace le message de succès et NOMME le module manquant', () => {
+    render(
+      <AppliedFilesToast
+        files={['src/components/ProductGrid.tsx']}
+        onUndoAll={vi.fn()}
+        onDismissAll={vi.fn()}
+        constat={constatCasse}
+      />,
+    );
+
+    expect(screen.queryByText(/applied successfully/i), 'le succès ne doit plus être promis').toBeNull();
+    expect(screen.getByText(/stopped early/i)).toBeTruthy();
+    expect(screen.getByText(/src\/main\.tsx/)).toBeTruthy();
+  });
+
+  it('TÉMOIN POSITIF — une génération saine garde le message d’origine', () => {
+    render(
+      <AppliedFilesToast files={['src/App.tsx']} onUndoAll={vi.fn()} onDismissAll={vi.fn()} constat={constatSain} />,
+    );
+
+    expect(screen.getByText(/applied successfully/i)).toBeTruthy();
   });
 });

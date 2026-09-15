@@ -40,7 +40,23 @@ describe('base en cours de provisionnement — visible dans le panneau', () => {
   });
 
   it('la route renvoie l’instance en cours quand aucune connexion n’existe', () => {
-    expect(ROUTE).toMatch(/connections\.length === 0\s*\?\s*await store\.getDatabaseInstanceByProject\(/);
+    /*
+     * ⚠️ Cette assertion épinglait la forme EXACTE d'une expression :
+     * `connections.length === 0 ? await store.getDatabaseInstanceByProject(`.
+     * Elle a rougi le 08/09 sur un changement qui ne touchait PAS la règle —
+     * l'appel a simplement été sorti dans une variable, parce que la
+     * reclassification dev/prod en avait besoin plus haut. Le comportement
+     * était intact ; seul le texte avait bougé.
+     *
+     * Ce qu'il faut tenir, ce sont les DEUX faits : la route lit l'instance,
+     * et elle ne la retient que sans connexion. Un test qui exige en plus
+     * qu'ils tiennent sur une seule ligne mesure la mise en forme, pas la
+     * règle — et se met à rougir sur des changements sains.
+     */
+    expect(ROUTE, 'la route doit lire l’instance du projet').toMatch(/store\.getDatabaseInstanceByProject\(/);
+    expect(ROUTE, 'elle ne la retient QUE si aucune connexion n’existe').toMatch(
+      /const instanceEnCours =[^;]*connections\.length === 0[^;]*;/,
+    );
     expect(ROUTE, 'la clé `databases` doit figurer dans la réponse').toMatch(/^\s*databases,\s*$/m);
   });
 

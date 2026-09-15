@@ -69,7 +69,19 @@ async function seedConversation(request: APIRequestContext) {
       {
         clientId: `a-${turn}`,
         role: 'assistant',
-        content: `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et la compilation passe.`,
+
+        /*
+         * Le `code` INLINE est délibéré, et il doit le rester : le rendu
+         * Markdown route les blocs clôturés vers `CodeBlock`, dont le `<pre>`
+         * n'apparaît qu'APRÈS une coloration asynchrone — une mesure prise
+         * avant elle lirait un élément absent et rendrait un vert creux
+         * (règle 14). Un `code` inline est rendu au premier passage.
+         *
+         * Il porte la SECONDE moitié de la contre-épreuve de
+         * BUG-SELECT-TOUCH-001 : la bulle ne se sélectionne plus au doigt,
+         * le code s'y sélectionne toujours.
+         */
+        content: `Je vais ajouter la page de contact (tour ${turn}).\n\nLa page est créée et \`pnpm build\` passe.`,
       },
     ]);
 
@@ -118,8 +130,60 @@ async function measureRows(page: Page) {
 
     const footers = [...document.querySelectorAll('.bolt-assistant-message-footer')];
 
+    /*
+     * Diagnostic de la dernière ligne : sa barre reste dépliée par
+     * `:last-child`, donc tout frère rendu APRÈS elle (indicateur de
+     * flux, sentinelle) la replie. Rouge en CI (E2E 1339, 3/3) sans qu'on
+     * puisse lire pourquoi : on le note ici, dans le message d'échec.
+     */
+    const lastRow = rows.at(-1) ?? null;
+    const trailing = lastRow?.nextElementSibling ?? null;
+
+    /*
+     * Diagnostic de la PREMIÈRE barre, celle que le survol et le toucher
+     * visent. Rouge 3/3 en CI (E2E 1351 : survol → opacité 0, toucher →
+     * hauteur 0) et vert sur le MÊME build en local : la mesure doit dire, dans
+     * le message d'échec, si la barre est bien dans la ligne visée, ce que le
+     * moteur calcule pour elle, et ce que les media queries rendent.
+     */
+    const firstRow = rows[1] ?? null;
+    const firstFooter = footers[0] ?? null;
+    const firstStyle = firstFooter ? getComputedStyle(firstFooter) : null;
+
+    const diagnostic = {
+      hoverMedia: matchMedia('(hover: hover)').matches ? 'hover' : matchMedia('(hover: none)').matches ? 'none' : '?',
+      pointerMedia: matchMedia('(pointer: coarse)').matches
+        ? 'coarse'
+        : matchMedia('(pointer: fine)').matches
+          ? 'fine'
+          : '?',
+      viewport: `${innerWidth}x${innerHeight}`,
+      firstFooterInFirstRow: firstRow && firstFooter ? firstRow.contains(firstFooter) : null,
+      firstRowHovered: firstRow ? firstRow.matches(':hover') : null,
+      firstRowRevealed: firstRow?.getAttribute('data-actions-revealed') ?? null,
+      firstRowFocusWithin: firstRow ? firstRow.matches(':focus-within') : null,
+      firstFooter: firstStyle
+        ? `display=${firstStyle.display} height=${firstStyle.height} opacity=${firstStyle.opacity} overflow=${firstStyle.overflow} children=${firstFooter?.childElementCount}`
+        : null,
+      styleSheets: document.styleSheets.length,
+      footerRules: [...document.styleSheets].reduce((total, sheet) => {
+        try {
+          return (
+            total + [...sheet.cssRules].filter((rule) => rule.cssText.includes('bolt-assistant-message-footer')).length
+          );
+        } catch {
+          return total;
+        }
+      }, 0),
+      activeElement: document.activeElement ? document.activeElement.tagName.toLowerCase() : null,
+    };
+
     return {
+      diagnostic: JSON.stringify(diagnostic),
       rowCount: rows.length,
+      lastRowIsLastChild: lastRow ? lastRow.parentElement?.lastElementChild === lastRow : null,
+      trailing: trailing ? `${trailing.tagName.toLowerCase()}.${[...trailing.classList].join('.')}` : null,
+      statusCount: lastRow?.parentElement?.querySelectorAll('[role="status"]').length ?? null,
       maxGap: gaps.length ? Math.max(...gaps) : null,
       bandeaux: document.querySelectorAll('.bolt-assistant-message-mobile-head').length,
       footerCount: footers.length,
@@ -133,46 +197,37 @@ async function measureRows(page: Page) {
 test.describe('densité des messages — pointeur fin', () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
-  test('actions masquées au repos, révélées au survol du message', async ({ page, request }) => {
+  test('aucune barre d’actions sous les messages ; le clic droit ouvre le menu', async ({ page, request }) => {
     /*
-     * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
-     * fixture peut donc attendre plusieurs paliers de repli avant d'obtenir une
-     * session. Le délai par défaut de 30 s de la configuration ne le couvre pas,
-     * et c'est la cause n°1 des faux rouges de cette suite.
+     * CE TEST A CHANGÉ DE SENS, et il faut le dire.
+     *
+     * Il vérifiait « actions masquées au repos, révélées au survol ». Avi a
+     * tranché l'inverse : il a entouré en rouge la rangée d'actions sous chaque
+     * message. Elle est SUPPRIMÉE, et les mêmes boutons vivent dans un menu
+     * contextuel — clic droit à la souris, appui long au doigt.
+     *
+     * Ce qui est conservé, et ce que ce test garde désormais : les actions
+     * restent atteignables, avec leurs libellés, et le fil reste dense.
      */
     test.setTimeout(120_000);
 
     const rows = await openTranscript(page, request);
     const atRest = await measureRows(page);
 
-    /*
-     * Témoin positif : sans lui, un sélecteur périmé donnerait « aucune barre
-     * d'actions visible » sur une page où rien n'a été mesuré.
-     */
-    expect(atRest.footerCount, 'aucune barre d’actions mesurée').toBeGreaterThanOrEqual(3);
-
+    expect(atRest.footerCount, 'une rangée d’actions subsiste sous les messages').toBe(0);
     expect(atRest.bandeaux, 'le bandeau « Agent » se répète encore au-dessus des messages').toBe(0);
-    expect(
-      atRest.footerBorders.every((width) => width === '0px'),
-      'filet au-dessus des actions',
-    ).toBe(true);
-    expect(
-      atRest.footerOpacities.every((opacity) => opacity === 0),
-      'actions visibles au repos',
-    ).toBe(true);
     expect(atRest.maxGap!, `écart entre lignes : ${atRest.maxGap}px`).toBeLessThanOrEqual(MAX_ROW_GAP_PX);
 
-    // Survoler la PREMIÈRE réponse ne doit révéler QUE la sienne.
-    await rows.nth(1).hover();
-    await page.waitForTimeout(300);
+    /* Le clic droit sur la bulle ouvre le menu, et les actions y sont. */
+    await rows.nth(1).click({ button: 'right' });
 
-    const hovered = await measureRows(page);
+    const menu = page.locator('.bolt-message-context-menu');
 
-    expect(hovered.footerOpacities[0], 'le survol ne révèle pas les actions du message').toBe(1);
-    expect(
-      hovered.footerOpacities.slice(1).every((opacity) => opacity === 0),
-      'le survol révèle les actions des AUTRES messages',
-    ).toBe(true);
+    await expect(menu, 'le clic droit n’ouvre pas le menu contextuel').toBeVisible({ timeout: 10_000 });
+    await expect(
+      menu.locator('.bolt-assistant-message-action').first(),
+      'le menu s’ouvre sans ses actions',
+    ).toBeVisible();
   });
 });
 
@@ -185,110 +240,101 @@ test.describe('densité des messages — pointeur grossier', () => {
    */
   test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
 
-  test('actions repliées au repos, dépliées au toucher du message', async ({ page, request }) => {
+  test('aucune barre d’actions au doigt ; l’appui long ouvre le menu', async ({ page, request }) => {
     /*
-     * `/auth/register` est limité à ~10 par minute et par IP : la préparation du
-     * fixture peut donc attendre plusieurs paliers de repli avant d'obtenir une
-     * session. Le délai par défaut de 30 s de la configuration ne le couvre pas,
-     * et c'est la cause n°1 des faux rouges de cette suite.
+     * Même changement de sens qu'au pointeur fin, et pour la même raison : la
+     * rangée d'actions ne se replie plus, elle n'existe plus. « En mobile ou
+     * tablet ça doit être comme WhatsApp quand on appuie longtemps ».
      */
     test.setTimeout(120_000);
 
     const rows = await openTranscript(page, request);
-
-    const media = await page.evaluate(() => matchMedia('(hover: none)').matches);
-    expect(media, 'le contexte de test n’émule pas un pointeur sans survol').toBe(true);
-
     const atRest = await measureRows(page);
 
-    expect(atRest.footerCount, 'aucune barre d’actions mesurée').toBeGreaterThanOrEqual(3);
-    expect(atRest.bandeaux, 'le bandeau « Agent » se répète encore au-dessus des messages').toBe(0);
+    expect(atRest.footerCount, 'une rangée d’actions subsiste sous les messages').toBe(0);
     expect(atRest.maxGap!, `écart entre lignes : ${atRest.maxGap}px`).toBeLessThanOrEqual(MAX_ROW_GAP_PX);
 
     /*
-     * Sans survol, la place n'est pas réservée : les barres des messages autres
-     * que le dernier sont repliées à zéro. Le dernier garde la sienne, c'est
-     * celui sur lequel on agit.
+     * Appui long : on le compose à la main. `tap()` est trop bref, et les
+     * gestes du produit écoutent les événements de POINTEUR — pas le focus,
+     * que Safari iOS ne donne pas à un conteneur non interactif.
      */
-    expect(
-      atRest.footerHeights.slice(0, -1).every((height) => height === 0),
-      'actions dépliées au repos',
-    ).toBe(true);
-    expect(atRest.footerHeights.at(-1), 'la dernière réponse n’expose pas ses actions').toBeGreaterThan(0);
+    const boite = (await rows.nth(1).boundingBox())!;
+    await page.touchscreen.tap(boite.x + 20, boite.y + 10);
+    await rows.nth(1).dispatchEvent('pointerdown', {
+      pointerType: 'touch',
+      button: 0,
+      isPrimary: true,
+      clientX: boite.x + 20,
+      clientY: boite.y + 10,
+    });
+    await page.waitForTimeout(700);
+
+    const menu = page.locator('.bolt-message-context-menu');
+
+    await expect(menu, 'l’appui long n’ouvre pas le menu contextuel').toBeVisible({ timeout: 10_000 });
 
     /*
-     * On vise la PROSE du message, pas le centre géométrique de la ligne : une
-     * fois la barre ouverte la ligne grandit, et son centre tombe alors SUR la
-     * barre — un appui sur une commande ne doit pas replier, donc le geste ne
-     * serait plus « toucher le message ».
+     * BUG-SELECT-TOUCH-001 — L'ASSERTION QUI MANQUAIT, et elle ne pouvait pas
+     * exister avant aujourd'hui.
+     *
+     * Le correctif est en place et déployé depuis le 06/09, mais ses DEUX gardes
+     * (`app/styles/ide-mobile-panels.spec.ts` §10 et
+     * `app/components/chat/MessageContextMenu.spec.tsx`) LISENT LE SCSS. Une
+     * règle trouvée dans un fichier ne prouve pas qu'un moteur l'applique — et
+     * le défaut d'Avi était justement un défaut de MOTEUR : Safari bleuissait
+     * toute la page et posait sa bulle « Copier · ⌘ · › » par-dessus notre menu
+     * (capture 06/09 12:18). Un vert Chromium n'aurait rien dit de cela.
+     *
+     * Ce fichier tourne sous le projet `webkit-iphone` : la mesure ci-dessous
+     * a lieu sur le moteur d'Avi, pas sur un substitut.
+     *
+     * Contre-épreuve dans les deux sens (règle 6) : la bulle ne se sélectionne
+     * plus, ET le code s'y sélectionne toujours. Retirer le bloc
+     * `@media (hover: none)` fait rougir la première ; retirer l'exemption
+     * `:where(pre, code, …)` fait rougir la seconde.
      */
-    const prose = () => rows.nth(1).locator('[class*="MarkdownContent"]').first();
+    const selection = await rows.nth(1).evaluate((ligne) => {
+      const lire = (element: Element, propriete: string) => {
+        const style = getComputedStyle(element);
+        return style.getPropertyValue(propriete) || style.getPropertyValue(`-webkit-${propriete}`) || '';
+      };
 
-    await prose().tap();
-    await page.waitForTimeout(300);
+      const bulle = ligne.querySelector('[data-menu-contextuel="true"]');
+      const code = bulle?.querySelector('code') ?? null;
+
+      return {
+        bulleTrouvee: Boolean(bulle),
+        codeTrouve: Boolean(code),
+        bulle: bulle ? lire(bulle, 'user-select') : null,
+        code: code ? lire(code, 'user-select') : null,
+        callout: bulle ? lire(bulle, 'touch-callout') : null,
+        calloutCode: code ? lire(code, 'touch-callout') : null,
+      };
+    });
+
+    const releve = JSON.stringify(selection);
 
     /*
-     * La révélation ne doit PAS dépendre du focus. Elle reposait sur
-     * `:focus-within` — donc sur le fait que le moteur focalise un `<div
-     * tabindex="-1">` au toucher. Chromium le fait, Safari iOS ne le fait pas :
-     * un test vert ici n'aurait rien dit de l'appareil d'Avi. On vérifie donc
-     * l'attribut explicite que l'appui pose, PUIS son effet mesuré.
+     * Règle 14 : un « 0 résultat » n'informe que si la recherche a porté. Sans
+     * ces deux témoins, une bulle ou un `code` introuvables rendraient `null`
+     * et les assertions suivantes mesureraient le vide.
      */
-    const marque = await rows.nth(1).getAttribute('data-actions-revealed');
-    expect(marque, 'l’appui n’a pas marqué la ligne comme dépliée').toBe('true');
+    expect(selection.bulleTrouvee, `aucune bulle [data-menu-contextuel] dans la ligne : ${releve}`).toBe(true);
+    expect(selection.codeTrouve, `aucun \`code\` inline dans la bulle : ${releve}`).toBe(true);
 
-    const tapped = await measureRows(page);
-
-    expect(tapped.footerHeights[0], 'le toucher ne déplie pas les actions du message').toBeGreaterThan(0);
+    expect(selection.bulle, `la bulle reste sélectionnable au doigt : ${releve}`).toBe('none');
+    expect(selection.code, `le code n'est plus sélectionnable : ${releve}`).toBe('text');
 
     /*
-     * Contre-vérification du même mécanisme SANS focus : on retire le focus, la
-     * barre doit rester ouverte parce que c'est l'attribut qui la tient.
+     * `-webkit-touch-callout` n'existe que sur WebKit ; Chromium de bureau rend
+     * une chaîne vide. On l'affirme donc là où le moteur le publie — c'est-à-dire
+     * exactement là où la bulle « Copier » d'iOS apparaissait — et le relèvement
+     * complet reste dans le message d'échec pour qu'un silence se voie.
      */
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page.waitForTimeout(200);
-
-    const sansFocus = await measureRows(page);
-
-    expect(
-      sansFocus.footerHeights[0],
-      'la barre se referme dès que le focus part — elle dépend encore du focus',
-    ).toBeGreaterThan(0);
-
-    /*
-     * Un second appui referme : une seule ligne dépliée à la fois. On retire le
-     * focus AVANT de mesurer — l'appui refocalise la ligne sous Chromium, et
-     * `:focus-within` la garderait ouverte : ce serait mesurer le repli du
-     * focus, pas celui de l'attribut.
-     */
-    await prose().tap();
-    await page.waitForTimeout(300);
-    await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
-    await page.waitForTimeout(200);
-
-    const referme = await measureRows(page);
-
-    expect(await rows.nth(1).getAttribute('data-actions-revealed'), 'la ligne reste marquée dépliée').toBeNull();
-    expect(referme.footerHeights[0], 'un second appui ne referme pas les actions').toBe(0);
-    expect(tapped.footerOpacities[0], 'les actions dépliées restent invisibles').toBe(1);
-
-    /*
-     * Plancher tactile MESURÉ, en pixels. Un test unitaire vérifiait la présence
-     * de `min-h-11` : 2,75rem, soit 44 px avec une base de 16 — mais la base rem
-     * du produit vaut 14 px sous 1024 px, donc la classe rendait 38,5 px et le
-     * test restait vert sur une cible trop petite. Seule la boîte rendue tranche.
-     */
-    const cibles = await page.evaluate(() =>
-      [...document.querySelectorAll('.bolt-assistant-message-action, .bolt-user-message-edit')]
-        .map((element) => element.getBoundingClientRect())
-        .filter((box) => box.width > 0 && box.height > 0)
-        .map((box) => ({ w: Math.round(box.width), h: Math.round(box.height) })),
-    );
-
-    expect(cibles.length, 'aucune cible tactile mesurée').toBeGreaterThanOrEqual(5);
-    expect(
-      cibles.filter((cible) => cible.w < 44 || cible.h < 44),
-      'cibles tactiles sous 44px',
-    ).toEqual([]);
+    if (selection.callout) {
+      expect(selection.callout, `la bulle « Copier » d'iOS peut encore s'ouvrir : ${releve}`).toBe('none');
+      expect(selection.calloutCode, `le code a perdu son menu système : ${releve}`).toBe('default');
+    }
   });
 });
