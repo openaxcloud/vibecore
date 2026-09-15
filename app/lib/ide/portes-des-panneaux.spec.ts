@@ -6,12 +6,13 @@ import { describe, expect, it } from 'vitest';
 import {
   IDE_ADDRESSABLE_PANELS,
   IDE_MANAGEMENT_PANELS,
+  IDE_NON_ADDRESSABLE_TAB_KEYS,
   IDE_PANEL_ALIASES,
   isIdeAddressablePanel,
   resolveIdePanelKey,
 } from './panel-registry';
-import { MOBILE_TOOL_TO_MANAGEMENT_PANEL } from '~/lib/mobile-ide-tabs';
-import { MOBILE_TOOL_ALIASES, outilCanonique } from '~/lib/mobile-tab-meta';
+import { ECODE_MOBILE_TOOLS, MOBILE_TOOL_ACTIONS, MOBILE_TOOL_TO_MANAGEMENT_PANEL } from '~/lib/mobile-ide-tabs';
+import { ECODE_MOBILE_TAB_META_BASE, MOBILE_TOOL_ALIASES, outilCanonique } from '~/lib/mobile-tab-meta';
 
 /*
  * UN PANNEAU, UNE PORTE.
@@ -205,5 +206,62 @@ describe('un panneau, une porte', () => {
     expect(Object.keys(MOBILE_TOOL_ALIASES).length).toBeGreaterThanOrEqual(15);
     expect(Object.keys(MOBILE_TOOL_TO_MANAGEMENT_PANEL).length).toBeGreaterThanOrEqual(30);
     expect(PANNEAUX_CANONIQUES.size).toBeGreaterThanOrEqual(30);
+  });
+});
+
+/**
+ * LES LIBELLÉS — la seconde moitié de la fidélité du registre.
+ *
+ * Les tests ci-dessus tiennent le ROUTAGE : une clé, une porte, un panneau.
+ * Ceux-ci tiennent le NOM. `mobile-tab-meta.ts` le dit lui-même : ce bloc
+ * vivait dans `BaseChat.tsx`, donc hors de la source unique, « et c'est une
+ * cause directe des divergences ». Sorti de là, il n'était toujours tenu par
+ * AUCUN test — rien n'empêchait un panneau d'arriver sans nom, deux panneaux
+ * de porter le même, ou un nom de survivre au panneau qu'il désignait.
+ *
+ * Mesuré le 2026-09-15 : 31 panneaux adressables, 33 entrées de libellé (les
+ * deux en plus sont les ACTIONS `commands` et `share`), 0 doublon, 0 manque,
+ * 0 orphelin. C'est l'état sain — ces quatre cas le figent.
+ */
+describe('un panneau, un nom', () => {
+  const libelles = ECODE_MOBILE_TAB_META_BASE;
+  const panneaux = [...IDE_ADDRESSABLE_PANELS] as string[];
+
+  it('TÉMOIN — la table des libellés n’est pas vide', () => {
+    // Sans ce témoin, une table vidée passerait les trois cas suivants.
+    expect(Object.keys(libelles).length).toBeGreaterThanOrEqual(30);
+    expect(panneaux.length).toBeGreaterThanOrEqual(30);
+  });
+
+  it('chaque panneau adressable a un nom, et un nom non vide', () => {
+    const sansNom = panneaux.filter((panneau) => !libelles[panneau]?.name?.trim());
+
+    expect(sansNom, 'panneaux adressables sans libellé — ils s’afficheront par leur identifiant').toEqual([]);
+  });
+
+  it('aucun nom n’est porté par deux panneaux — deux portes de même nom sont indiscernables', () => {
+    const noms = Object.entries(libelles).map(([id, meta]) => [meta.name, id] as const);
+    const parNom = new Map<string, string[]>();
+
+    for (const [nom, id] of noms) {
+      parNom.set(nom, [...(parNom.get(nom) ?? []), id]);
+    }
+
+    const doublons = [...parNom].filter(([, ids]) => ids.length > 1);
+
+    expect(doublons, 'un même libellé pour plusieurs panneaux').toEqual([]);
+  });
+
+  it('aucun nom ne survit au panneau qu’il désignait', () => {
+    const connus = new Set<string>([
+      ...panneaux,
+      ...IDE_NON_ADDRESSABLE_TAB_KEYS,
+      ...MOBILE_TOOL_ACTIONS,
+      ...ECODE_MOBILE_TOOLS.map((outil) => outil.id),
+    ]);
+
+    const orphelins = Object.keys(libelles).filter((id) => !connus.has(id));
+
+    expect(orphelins, 'libellés sans panneau ni outil — BUG-QA-PANEL-META-ORPHANS-001').toEqual([]);
   });
 });
