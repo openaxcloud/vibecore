@@ -535,7 +535,12 @@ jobs:
             else
               RUNTIME=false; WEB=false; WSAGENT=false; ADMIN=false
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
+              # AUDX-173 — `apps/admin/` compte dans le tier web. Il n'etait dans
+              # AUCUN motif : une modification de l'admin ne declenchait donc
+              # aucun tier, et l'image n'etait de toute facon pas construite par
+              # les fichiers de tier (elle ne l'etait que par le `cloudbuild.yaml`
+              # racine, reserve aux builds manuels).
+              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|apps/admin/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
               printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
               # `apps/admin/` ne matchait AUCUN motif : un changement admin tombait dans
               # le repli « web+runtime » ci-dessous, et l'image n'etait jamais reconstruite.
@@ -804,8 +809,21 @@ jobs:
           #                  must be resolvable on EVERY run (rebuilt or carried forward)
           #   rolled       — this workflow waits for its rollout and checks its imageIDs
           #
-          # admin: an enabled chart service this continuous path never builds or rolls.
-          # Its current digest is carried forward so the release stays fully pinned.
+          # admin — AUDX-173. Cette ligne portait `tier=none`, donc `rebuilt=false`
+          # a chaque run, donc le digest DEJA EN PRODUCTION etait repris tel quel.
+          # Le commentaire d'origine decrivait cela comme un choix (« an enabled
+          # chart service this continuous path never builds or rolls ») ; l'effet
+          # reel etait qu'un service vivant (`enabled: true`, `replicas: 2`, expose
+          # sur `/admin`) ne recevait AUCUN correctif de securite, jamais.
+          #
+          # Mesure : 32 commits touchant `apps/admin/` en six mois, aucun livre.
+          #
+          # Il rejoint le tier `web` — qui le construit desormais
+          # (infra/cloudbuild/single-web.yaml) — et devient `rolled=true` : sans
+          # attente de rollout, on deduirait a nouveau le succes de l'absence
+          # d'echec, ce qui est exactement ce qui a laisse le trou ouvert.
+          # ⚠️ Ce `rolled=true` est une porte NOUVELLE : un deploiement echouera
+          # desormais si le rollout de l'admin n'aboutit pas. C'est voulu.
           #
           # screenshotter is a chart service like any other. The chart AND values-prod
           # both say `enabled: false`, but the live production release has it TRUE — set
