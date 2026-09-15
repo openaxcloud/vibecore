@@ -1,5 +1,43 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
 // @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
+/*
+ * DETTE MESURÉE le 2026-08-30, directive retirée le temps de la mesure : 16
+ * erreurs. Les quatre `TS2304` qu'elle masquait — le panneau Intégrations qui ne
+ * s'affichait pas du tout — sont CORRIGÉES, avec deux autres plantages.
+ *
+ * Deuxième passe le 2026-08-31 : les 5 erreurs à risque d'exécution sont
+ * traitées (TS2339 champ absent du type de l'état, TS18048/TS2345 sur deux
+ * `filter(Boolean)` qui ne restreignaient rien, TS2345 sur un corps réseau
+ * `unknown`, TS2684 qui cachait un vrai décalage d'indentation des branches
+ * racines). 12 → 7.
+ *
+ * Il reste 7 erreurs, toutes de la même famille : des types structurellement
+ * voisins (`IdePaneTab` vs `ProjectIdePaneTab`) que TypeScript refuse
+ * d'assimiler. Aucune n'a de conséquence à l'exécution. Elles ne sont pas
+ * oubliées : `BaseChat.ts-nocheck-debt.spec.ts` fige le compte et échoue s'il
+ * remonte.
+ *
+ * La directive reste une ligne `//` et non un bloc : en bloc, tsc l'ignore
+ * silencieusement.
+ */
+import { ProjectSecretsPanel } from '~/components/chat/ProjectSecretsPanel';
+import {
+  formaterLaDateDuPoint,
+  ilYA,
+  pointsDeRestaurationParMessage,
+  type PointDeRestauration,
+} from '~/components/chat/fin-de-tour';
+import { commitDemande } from '~/components/workbench/commit-demande';
+import { getFinDeTourCopy } from '~/lib/i18n/catalogs/fin-de-tour';
+import {
+  composerLaSaisie,
+  langueDeDictee,
+  messageDErreurDeDictee,
+  reduireLaDictee,
+  transcriptionDepuisResultats,
+  type EvenementDictee,
+  type PhaseDictee,
+} from '~/components/chat/dictee-vocale';
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -17,22 +55,39 @@ import type { JSONValue, Message } from 'ai';
 import type { TFunction } from 'i18next';
 import Cookies from 'js-cookie';
 import { Copy, Download, Trash2, Users } from 'lucide-react';
-import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  type RefCallback,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import {
   bringFloatingPaneToFront as engineBringFloatingPaneToFront,
   dockPane as engineDockPane,
   floatPane as engineFloatPane,
+  moveTab as engineMoveTab,
+  reorderTab as engineReorderTab,
   setSplitRatio as engineSetSplitRatio,
   splitPane as engineSplitPane,
   updateFloatingBounds as engineUpdateFloatingBounds,
+  updatePane as engineUpdatePane,
   type ProjectEditorWindowState,
 } from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
+
+import { computeComposerReservedSpace, shouldRewriteReservedSpace } from './composer-reserved-space';
 import { toast } from 'react-toastify';
 
 import { AGENT_APPLIED_TOAST_ID, showCoalescedAppliedToast } from './AppliedFilesToast';
+import { constatDeGenerationStore } from '~/lib/stores/constat-de-generation';
 import {
   PNG_HEADER_SCAN_BYTES,
   decideImageAttachment,
@@ -42,7 +97,20 @@ import {
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
 import { devServerStatusText } from './dev-server-status';
-import { describeSkipReason, parseDotEnv } from './parse-dot-env';
+
+import {
+  TAB_DRAG_PANE_MIME,
+  TAB_DRAG_TAB_MIME,
+  dropSlotForTab,
+  isProjectEditorTabDrag,
+  samePaneReorderIndex,
+} from './project-editor-tab-drag';
+import {
+  PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS,
+  PROJECT_EDITOR_TOOL_SHORTCUTS,
+  projectEditorToolList,
+  projectEditorToolsByCategory,
+} from './project-editor-tool-catalog';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
   describeAutoApplyFailure,
@@ -74,10 +142,19 @@ import GitCloneButton from './GitCloneButton';
 import { AgentRepairHistory } from './AgentRepairHistory';
 import { ConversationBranchesMenu } from './ConversationBranchesMenu';
 import { Messages } from './Messages.client';
+import { laDispositionPeutEtreRestauree } from './ide-layout-restore';
+import { creerGardeDeRestauration } from './project-ide-restore-guard';
 import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import {
+  clavierProbablementOuvert,
+  decalageAAnnulerClavierOuvert,
+  recouvrementBasDuNavigateur,
+  retrecissementDeLaVue,
+} from './visual-viewport-bottom';
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
+import { initialesPersonne, libellePersonne } from '~/utils/person-label';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -92,7 +169,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { panelIcon } from '~/components/project-ide/panel-meta';
 import {
   IdePanelHeader,
   PanelButton,
@@ -110,7 +187,7 @@ import {
   defaultProjectAgentPanelWidth,
   projectAgentStopLabel,
 } from '~/lib/project-agent-layout';
-import type { FileMap } from '~/lib/stores/files';
+import { CODE_CONFLIT_DISTANT, type FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -151,6 +228,7 @@ import { StickToBottom, useKeybindings, useStickToBottomContext } from '~/lib/ho
 import { useTextDirection } from '~/lib/i18n/direction';
 import { ChatBox } from './ChatBox';
 import { HeaderOverflowMenu } from './HeaderOverflowMenu';
+import { platformStateLabel } from './platform-state-label';
 import { modelListFromResponse } from './modelList';
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
@@ -175,11 +253,19 @@ import {
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
+import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
-  isRedundantPanelSearchParamUpdate,
-  readPanelSearchParam,
-  withPanelSearchParam,
-} from '~/utils/project-ide-panel-url';
+  IDE_AGENT_PANEL,
+  ideMobileTarget,
+  isIdeRightPanel,
+  isIdeWorkspacePanel,
+  resolveIdePanelKey,
+  type IdeManagementPanel,
+  type IdeRightPanel,
+  type IdeWorkspacePanel,
+} from '~/lib/ide/panel-registry';
+import { readProjectPanelCache, writeProjectPanelCache } from '~/lib/ide/panel-payload-cache';
+import { resolvePendingSelectedFile } from '~/lib/ide/pending-selected-file';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -209,6 +295,16 @@ import {
 } from '~/lib/keybindings';
 import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
+import { PublicationReplit, type DemandeDeReparation } from '~/components/deploy/PublicationReplit';
+import {
+  detailDeTacheDeReparation,
+  gesteDeLancementDeLAgent,
+  TACHE_DE_REPARATION,
+} from '~/components/deploy/reparation-agent';
+import { fournisseurParDefaut, fournisseursOffrables } from '~/components/deploy/fournisseurs-disponibles';
+import { donneesDuFormulaire } from '~/lib/forms/donnees-du-formulaire';
+import { causeDeLEchec, intentionDeRepublication } from '~/components/deploy/publication';
+import { ligneRuntimeLisible } from '~/lib/ide/runtime-log-line';
 import {
   formatBaseChatAstDate,
   formatBaseChatAstDateTime,
@@ -393,48 +489,11 @@ function readProjectBottomTerminalUiState() {
   }
 }
 
-const IDE_MANAGEMENT_PANELS = [
-  'overview',
-  'studio',
-
-  /*
-   * BUG-IDE-013 — « Problèmes » doit être un panneau à part entière.
-   *
-   * La barre d'état comptait juste (« Problèmes 1 0 ») mais le clic n'ouvrait
-   * rien : `openBottomTerminal('problems')` routait vers la surface TERMINAL,
-   * gelée, qui ignore `bottomTerminalView` et affiche toujours le Shell.
-   * L'utilisateur voyait donc qu'il avait une erreur sans aucun moyen de savoir
-   * laquelle. En faire un panneau lui donne une adresse (`?panel=problems`) et,
-   * sur mobile, une tuile propre — sans toucher à la surface gelée.
-   */
-  'problems',
-  'database',
-  'object-storage',
-  'packages',
-  'skills',
-  'monitoring',
-  'ports',
-  'extensions',
-  'integrations',
-  'workflows',
-  'debugger',
-  'deployments',
-  'security',
-  'env',
-  'secrets',
-  'git',
-  'activity',
-  'terminal',
-  'logs',
-  'collaborators',
-  'domains',
-  'snapshots',
-  'settings',
-] as const;
-
-const IDE_RIGHT_PANELS = ['files'] as const;
-const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS] as const;
-const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
+/*
+ * Les listes de panneaux vivent désormais dans `~/lib/ide/panel-registry` :
+ * une seule source de vérité pour l'URL, l'en-tête et le contenu.
+ * BUG-IDE-PANEL-RESOLUTION-001.
+ */
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
 /*
@@ -448,67 +507,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-/*
- * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
- * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
- * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
- * - `agent` (marque, rendue à part) ;
- * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
- *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
- *   registre (même si la valeur actuelle y est identique).
- */
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
-  agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
-  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
-  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
-  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
-  terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  actions: { id: 'actions', name: 'Agent', icon: 'agent' },
-  assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
-  console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
-  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
-  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
-  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
-  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
-  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
-  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
-  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
-  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
-  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
-  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
-  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
-  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
-  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
-  shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
-  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
-  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
-  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
-  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
-  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
-  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
-  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
-  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
-  tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
-};
+import { ECODE_MOBILE_TAB_META_BASE, outilCanonique } from '~/lib/mobile-tab-meta';
 
 const IDE_FILE_TREE_HIDDEN_PATTERNS = [
   /\/node_modules(?:\/|$)/,
@@ -538,7 +537,7 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   deployments: 'chat.copy.publishYourApp_84e20c23',
   security: 'chat.copy.securityScanner_3993f46d',
   env: 'chat.copy.environmentVariables_1173b2e1',
-  secrets: 'chat.copy.environmentVariables_1173b2e1',
+  secrets: 'chat.copy.secretsToolDescription',
   git: 'chat.copy.versionControl_62f1aa26',
   activity: 'chat.copy.projectTimeline_307c9b37',
   terminal: 'chat.copy.workspaceShellTerminal_21af7c52',
@@ -554,9 +553,6 @@ const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> =
   locks: 'chat.copy.lockedFiles_9c2ea979',
 };
 
-type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
-type IdeManagementPanel = (typeof IDE_MANAGEMENT_PANELS)[number];
-type IdeWorkspacePanel = (typeof IDE_WORKSPACE_PANELS)[number];
 type IdePaneTab = {
   id: string;
   panel: IdeWorkspacePanel;
@@ -572,7 +568,6 @@ type AgentToolAction = {
   icon: string;
 };
 
-const ECODE_MOBILE_MANAGEMENT_PANEL_TABS: Partial<Record<IdeManagementPanel, string>> = {};
 type ProjectSnapshot = {
   id: string;
   label?: string;
@@ -973,89 +968,6 @@ function runtimeStateLabel(t: TFunction, status?: string | null): string {
   return status || t('baseChatAst.status.unknown');
 }
 
-function platformStateLabel(t: TFunction, status: unknown): string {
-  const raw = String(status ?? '').trim();
-  const normalized = raw.toLowerCase().replace(/[\s-]+/g, '_');
-
-  switch (normalized) {
-    case 'active':
-      return t('baseChatAst.status.active');
-    case 'cancelled':
-    case 'canceled':
-      return t('baseChatAst.status.cancelled');
-    case 'critical':
-      return t('baseChatAst.status.critical');
-    case 'completed':
-      return t('baseChatAst.status.completed');
-    case 'connected':
-      return t('baseChatAst.status.connected');
-    case 'disabled':
-      return t('baseChatAst.status.disabled');
-    case 'enabled':
-      return t('baseChatAst.status.enabled');
-    case 'error':
-      return t('baseChatAst.status.error');
-    case 'failed':
-      return t('baseChatAst.status.failed');
-    case 'high':
-      return t('baseChatAst.status.high');
-    case 'info':
-      return t('baseChatAst.status.info');
-    case 'idle':
-      return t('baseChatAst.presence.idle');
-    case 'offline':
-      return t('baseChatAst.status.offline');
-    case 'low':
-      return t('baseChatAst.status.low');
-    case 'medium':
-      return t('baseChatAst.status.medium');
-    case 'moderate':
-      return t('baseChatAst.status.moderate');
-    case 'paused':
-      return t('baseChatAst.status.paused');
-    case 'pending':
-      return t('baseChatAst.status.pending');
-    case 'preview':
-      return t('baseChatAst.status.preview');
-    case 'production':
-      return t('baseChatAst.status.production');
-    case 'ready':
-      return t('baseChatAst.status.ready');
-    case 'reconnecting':
-      return t('baseChatAst.status.reconnecting');
-    case 'running':
-      return t('baseChatAst.status.running');
-    case 'starting':
-      return t('baseChatAst.status.starting');
-    case 'stopped':
-      return t('baseChatAst.status.stopped');
-    case 'staging':
-      return t('baseChatAst.status.staging');
-    case 'succeeded':
-    case 'success':
-      return t('baseChatAst.status.succeeded');
-    case 'trialing':
-      return t('baseChatAst.status.trialing');
-    case 'approved':
-      return t('baseChatAst.status.approved');
-    case 'quarantined':
-      return t('baseChatAst.status.quarantined');
-    case 'rejected':
-      return t('baseChatAst.status.rejected');
-    case 'revoked':
-      return t('baseChatAst.status.revoked');
-    case 'daily':
-      return t('baseChatAst.status.daily');
-    case 'weekly':
-      return t('baseChatAst.status.weekly');
-    case 'warn':
-    case 'warning':
-      return t('baseChatAst.status.warning');
-    default:
-      return raw || t('baseChatAst.status.unknown');
-  }
-}
-
 function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {
   if (Array.isArray(payload)) {
     return payload;
@@ -1133,9 +1045,11 @@ function previewPortCompactText(
 }
 
 /*
- * previewCommandFromLogs / devServerStatusText live in ./dev-server-status so
- * the BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing
- * this whole file (see dev-server-status.spec.ts).
+ * devServerStatusText lives in ./dev-server-status so the
+ * BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing this
+ * whole file (see dev-server-status.spec.ts). Its former `previewCommandFromLogs`
+ * fallback was removed: it recognised an English UI sentence that neither the
+ * current English copy nor the French one produces.
  */
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
@@ -1855,18 +1769,6 @@ function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
   return result;
 }
 
-function isIdeRightPanel(panel: string): panel is IdeRightPanel {
-  return (IDE_RIGHT_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeWorkspacePanel(panel: string): panel is IdeWorkspacePanel {
-  return (IDE_WORKSPACE_PANELS as readonly string[]).includes(panel);
-}
-
-function isIdeManagementPanel(panel: string): panel is IdeManagementPanel {
-  return (IDE_MANAGEMENT_PANELS as readonly string[]).includes(panel);
-}
-
 function makePaneTab(panel: IdeWorkspacePanel, options: Partial<IdePaneTab> = {}): IdePaneTab {
   const suffix =
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
@@ -2120,6 +2022,15 @@ function findLeaf(node: IdePaneNode, paneId: string): IdePaneLeaf | undefined {
   }
 
   return findLeaf(node.first, paneId) ?? findLeaf(node.second, paneId);
+}
+
+/**
+ * RPL-IDE-001.4 — a floating pane is a leaf too, and a tab can be dragged in or
+ * out of one. Floating panes live outside the docked tree, so `findLeaf` alone
+ * misses them.
+ */
+function findFloatingLeaf(floatingPanes: IdeFloatingPane[], paneId: string): IdePaneLeaf | undefined {
+  return floatingPanes.find((floating) => floating.pane.id === paneId)?.pane;
 }
 
 function findLeafContainingTab(node: IdePaneNode, tabId: string): IdePaneLeaf | undefined {
@@ -2537,6 +2448,9 @@ interface BaseChatProps {
   addToolResult?: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
   onWebSearchResult?: (result: string) => void;
   projectIdeMode?: boolean;
+
+  /** Prompt d'origine récupéré depuis `ProjectIdeState.chat` (voir GenerateAppCta). */
+  promptDeSecours?: string;
   projectId?: string;
   projectUrl?: string;
   initialIdePanels?: Record<string, any>;
@@ -2594,6 +2508,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       onWebSearchResult,
       projectIdeMode = false,
+      promptDeSecours,
       projectId,
       projectUrl,
       initialIdePanels,
@@ -2725,6 +2640,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * we simply leave the callback off the context and the command
      * no-ops gracefully (verified in slash-commands.spec.ts).
      */
+    /*
+     * Rappels tenus par RÉFÉRENCE, pas par dépendance.
+     *
+     * `sendMessage` et `isStreaming` changent d'identité à chaque lot de
+     * jetons pendant un tour. Les mettre en dépendance de l'effet ci-dessous
+     * réabonnerait l'écouteur `vibecore:agent-task` en boucle — c'est le
+     * mécanisme exact qui faisait sauter le fil au point 7. La ref donne la
+     * valeur COURANTE sans faire bouger l'effet.
+     */
+    const rappelsAgentTache = useRef({ sendMessage, isStreaming, resetChat });
+
+    useEffect(() => {
+      rappelsAgentTache.current = { sendMessage, isStreaming, resetChat };
+    });
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001 — l'invite qui attend un fil NEUF.
+     *
+     * `resetChat` archive la conversation et vide le fil, mais l'envoi ne peut
+     * pas suivre dans la foulée : `append` poste sur le fil que le crochet
+     * connaît AU MOMENT DE L'APPEL, et à cet instant il n'a pas encore été
+     * vidé. Envoyer tout de suite déposerait la réparation à la fin de la
+     * conversation qu'on venait d'archiver — soit précisément le défaut qu'on
+     * corrige, par un autre chemin.
+     *
+     * On garde donc l'invite ici, et l'effet plus bas l'envoie quand le fil est
+     * RÉELLEMENT vide. Pas de `setTimeout` : la condition est observable.
+     */
+    const [inviteEnAttenteDeFilNeuf, setInviteEnAttenteDeFilNeuf] = useState<string | null>(null);
+
     const insertIntoComposer = useCallback(
       (text: string, opts?: { replace?: boolean }) => {
         if (!handleInputChange) {
@@ -2754,6 +2699,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [handleInputChange, input, textareaRef],
     );
+
+    /*
+     * BUG-PUBLISH-REPARER-CIBLE-001, seconde moitié — on envoie QUAND le fil
+     * est vide, pas quand on a demandé qu'il le soit.
+     *
+     * La dépendance est `messages?.length`, pas `messages` : pendant un tour,
+     * le tableau change d'identité à chaque lot de jetons alors que sa longueur
+     * ne bouge pas. Dépendre du tableau relancerait cet effet des centaines de
+     * fois par réponse — le mécanisme exact de BUG-STREAM-JUMP-001.
+     */
+    useEffect(() => {
+      if (!inviteEnAttenteDeFilNeuf) {
+        return;
+      }
+
+      if ((messages?.length ?? 0) > 0) {
+        return;
+      }
+
+      const invite = inviteEnAttenteDeFilNeuf;
+      setInviteEnAttenteDeFilNeuf(null);
+
+      const { sendMessage: envoyer, isStreaming: tourEnCours } = rappelsAgentTache.current;
+
+      if (!envoyer || tourEnCours) {
+        insertIntoComposer(invite, { replace: true });
+        return;
+      }
+
+      void envoyer({} as unknown as React.UIEvent, invite);
+    }, [inviteEnAttenteDeFilNeuf, messages?.length, insertIntoComposer]);
 
     /*
      * Composer draft persistence — the typed-but-unsent prompt survives a
@@ -2828,8 +2804,102 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               details?: string;
               severity?: string;
               source?: string;
+              prompt?: string;
+              cible?: string;
+              envoyer?: boolean;
             }
           | undefined;
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001 — Avi, 08/09 : « quand je clique sur le
+         * bouton réparer avec l'agent ça doit me remettre sur le panneau agent
+         * et démarrer l'agent avec le prompt en question ».
+         *
+         * L'invite était bien déposée dans la zone de saisie… du panneau
+         * Agent, que l'utilisateur ne voyait pas : il restait sur Sécurité (ou
+         * Git, ou Publication) et rien ne semblait se passer. Basculer fait
+         * partie de l'action, quel que soit le `kind` — une seule règle pour
+         * les trois surfaces qui émettent cet événement (règle 7).
+         */
+        /*
+         * `activateMobileTool` attend l'identifiant D'OUTIL (`agent`) et non le
+         * nom du panneau (`chat`) : c'est lui qui traduit l'un en l'autre. Un
+         * `panel: 'chat'` ne déclenchait rien — mesuré, le panneau restait sur
+         * Déploiements, et le test E2E l'a dit.
+         */
+        const allerAuPanneauAgent = () => {
+          window.dispatchEvent(
+            new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'agent', toolId: 'agent' } }),
+          );
+        };
+
+        /*
+         * BUG-SECURITY-FIX-AGENT-001, seconde moitié — Avi (point 5) : « ça
+         * doit me remettre sur le panneau agent ET DÉMARRER l'agent avec le
+         * prompt en question ENVOYÉ par le bouton ».
+         *
+         * La bascule et le pré-remplissage étaient faits ; l'envoi, non.
+         * L'utilisateur arrivait donc sur l'agent devant une invite qu'il
+         * devait poster lui-même — un geste de plus, exactement celui que le
+         * bouton prétendait lui épargner.
+         *
+         * DEUX GARDES, et elles ne sont pas décoratives :
+         *   - `sendMessage` peut être absent (le composant sert aussi hors
+         *     IDE) : on retombe alors sur l'invite préremplie, ce qui reste
+         *     utilisable ;
+         *   - un tour DÉJÀ en cours ne doit pas être doublé. Envoyer par
+         *     dessus une génération en vol produirait deux tours concurrents
+         *     sur le même fil. On dépose alors l'invite sans l'envoyer, et
+         *     l'utilisateur choisit son moment.
+         */
+        const lancerLAgent = (invite: string, cible?: string | null) => {
+          allerAuPanneauAgent();
+
+          const {
+            sendMessage: envoyer,
+            isStreaming: tourEnCours,
+            resetChat: ouvrirUnFilNeuf,
+          } = rappelsAgentTache.current;
+
+          const geste = gesteDeLancementDeLAgent({
+            cible,
+            peutEnvoyer: Boolean(envoyer),
+            tourEnCours: Boolean(tourEnCours),
+            peutOuvrirUnFilNeuf: Boolean(ouvrirUnFilNeuf),
+          });
+
+          if (geste === 'composeur') {
+            insertIntoComposer(invite, { replace: true });
+            return;
+          }
+
+          /*
+           * BUG-PUBLISH-REPARER-CIBLE-001 — « dans une nouvelle tâche » archive
+           * la conversation courante ; l'invite part ensuite, quand le fil vidé
+           * est commis (voir l'effet `inviteEnAttenteDeFilNeuf`).
+           */
+          if (geste === 'fil-neuf') {
+            ouvrirUnFilNeuf?.();
+            setInviteEnAttenteDeFilNeuf(invite);
+
+            return;
+          }
+
+          /*
+           * L'envoi attend la bascule de panneau : le composeur de l'agent
+           * doit être monté quand le tour démarre, sinon la réponse arrive
+           * dans une surface que personne ne regarde — le défaut d'origine,
+           * par un autre chemin.
+           */
+          window.requestAnimationFrame(() => envoyer?.({} as unknown as React.UIEvent, invite));
+        };
+
+        /* Une invite déjà rédigée par l'appelant : on ne la reformule pas. */
+        if (detail?.kind === TACHE_DE_REPARATION && typeof detail.prompt === 'string' && detail.prompt.trim()) {
+          lancerLAgent(detail.prompt, detail.cible);
+
+          return;
+        }
 
         if (detail?.kind === 'resolve-git-conflicts') {
           const files = Array.isArray(detail.files) ? detail.files : [];
@@ -2848,7 +2918,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'For each file: read the <<<<<<< / ======= / >>>>>>> conflict markers, merge both sides correctly, write the resolved file, then `git add` it. Do NOT push, and do NOT finish the merge or commit until I confirm.',
           ].join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
 
           return;
         }
@@ -2867,7 +2937,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .filter(Boolean)
             .join('\n');
 
-          insertIntoComposer(prompt, { replace: true });
+          lancerLAgent(prompt);
         }
       };
 
@@ -3049,8 +3119,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const updateVisualViewportHeight = () => {
-        const height = window.visualViewport?.height ?? window.innerHeight;
+        const vue = window.visualViewport;
+        const height = vue?.height ?? window.innerHeight;
         document.documentElement.style.setProperty('--vc-mobile-visual-viewport-height', `${Math.round(height)}px`);
+
+        /*
+         * RECOUVREMENT BAS DU NAVIGATEUR — ce que `env(safe-area-inset-bottom)`
+         * ne dit PAS.
+         *
+         * Sur iOS, la barre d'outils de Safari recouvre le bas de la fenêtre de
+         * MISE EN PAGE : un panneau en `position: fixed` ancré à
+         * `bottom: calc(nav + env(safe-area-inset-bottom))` se place donc SOUS
+         * elle. `env(safe-area-inset-bottom)` vaut 0 tant que la barre est
+         * affichée — ce n'est pas une encoche, c'est du chrome de navigateur.
+         *
+         * La seule grandeur qui le décrit est l'écart entre la fenêtre de mise
+         * en page et la fenêtre VISUELLE. Avi le photographie : les panneaux du
+         * composeur passent sous la barre Safari et sous la barre d'outils de
+         * l'IDE, coupés en haut ET en bas.
+         */
+        const recouvrementBas = recouvrementBasDuNavigateur(window.innerHeight, vue ?? undefined);
+        document.documentElement.style.setProperty(
+          '--vc-mobile-visual-viewport-bottom',
+          `${Math.round(recouvrementBas)}px`,
+        );
+
+        /*
+         * Clavier levé : le socle est passé sous lui, le composeur ne doit plus
+         * lui réserver sa place (captures iPhone 06/09 11:04). Le CSS lit cet
+         * attribut — voir « CLAVIER LEVÉ » dans index.scss.
+         */
+        /*
+         * BUG-KEYBOARD-ZOOM-001 (Avi, 08/09 07:58) — la détection se fait sur
+         * le RÉTRÉCISSEMENT de la fenêtre visuelle, pas sur le recouvrement
+         * bas : quand Safari fait défiler le document pour garder le champ
+         * visible, le recouvrement bas tombe à 0 clavier levé. Et ce
+         * défilement est annulé : la coque tient dans la fenêtre visuelle et
+         * se lit depuis le haut du document — décalée, elle sort de l'écran
+         * (page blanche, socle flottant, zone de saisie invisible).
+         */
+        if (clavierProbablementOuvert(retrecissementDeLaVue(window.innerHeight, vue ?? undefined))) {
+          document.documentElement.setAttribute('data-vc-clavier', 'ouvert');
+
+          if (decalageAAnnulerClavierOuvert(window.innerHeight, vue ?? undefined) > 0) {
+            window.scrollTo(0, 0);
+          }
+        } else {
+          document.documentElement.removeAttribute('data-vc-clavier');
+        }
       };
 
       updateVisualViewportHeight();
@@ -3063,6 +3179,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.visualViewport?.removeEventListener('resize', updateVisualViewportHeight);
         window.visualViewport?.removeEventListener('scroll', updateVisualViewportHeight);
         document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-height');
+        document.documentElement.style.removeProperty('--vc-mobile-visual-viewport-bottom');
+        document.documentElement.removeAttribute('data-vc-clavier');
       };
     }, [useMobileIde]);
 
@@ -3095,14 +3213,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return;
         }
 
-        const reserved = Math.round(height) + 16;
+        /*
+         * La reserve doit couvrir TOUT le chrome qui recouvre en permanence le
+         * transcript : la boite de saisie ET la barre de navigation du bas.
+         *
+         * Elle valait `height + 16` — un padding fixe qui n'incluait pas la
+         * barre. Des que celle-ci depasse 16 px (elle fait 72 px, mesure au
+         * 2026-09-01), faire defiler jusqu'au dernier message le laissait
+         * passer dessous. On mesure donc la barre au lieu de la supposer : sa
+         * hauteur depend de `--mobile-nav-height` ET de la zone de securite du
+         * telephone, qu'aucune constante ne peut deviner.
+         */
+        const navBar = document.querySelector<HTMLElement>('.bolt-mobile-replit-nav');
+        const navHeight = navBar ? navBar.getBoundingClientRect().height : 0;
+
+        const reserved = computeComposerReservedSpace(height, navHeight);
 
         /*
          * Only rewrite the reserved space when it changes by a meaningful amount.
          * Sub-pixel/1-2px churn while streaming would otherwise re-shift the
          * transcript on every frame — the very "jumping" we're trying to kill.
          */
-        if (Math.abs(reserved - lastReserved) < 6) {
+        if (!shouldRewriteReservedSpace(lastReserved, reserved)) {
           return;
         }
 
@@ -3254,11 +3386,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
+    /*
+     * Panneau de service rendu par la surface mobile « deploy ». En-tête ET
+     * contenu lisent cette unique valeur — elle est écrite par le seul entonnoir
+     * `setMobileIdePanel`, que l'ouverture vienne de l'URL, d'un onglet ou d'un outil.
+     */
+    const [mobileServicePanel, setMobileServicePanel] = useState<IdeManagementPanel>('deployments');
+
     const { setActivePanel: persistMobilePanel } = useMobileIdePersistence(projectIdeMode ? projectId : undefined);
 
     const ensureMobileOpenTab = useCallback(
       (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        const tab = ECODE_MOBILE_TAB_META[outilCanonique(tabId)] ?? {
           id: tabId,
           name: panelTitle(tabId, t),
           icon: panelIcon(tabId),
@@ -3278,9 +3417,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
     const setMobileIdePanel = useCallback(
       (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
+        const tabId = options.activeTabId ?? (panel === 'chat' ? 'agent' : panel);
+
+        /*
+         * BUG-IDE-PANEL-RESOLUTION-001 — l'onglet demandé décide du contenu ET
+         * de l'en-tête. Sans ça, un onglet ouvert hors URL (outil, raccourci,
+         * barre du bas) laissait le contenu sur sa valeur précédente pendant que
+         * l'en-tête affichait le nouvel onglet.
+         */
+        if (panel === 'deploy') {
+          const tabResolution = resolveIdePanelKey(tabId);
+
+          if (tabResolution.status === 'canonical' || tabResolution.status === 'alias') {
+            const target = ideMobileTarget(tabResolution.panel);
+
+            if (target.servicePanel) {
+              setMobileServicePanel(target.servicePanel);
+            }
+          }
+        }
+
         setMobilePanel(panel);
         persistMobilePanel(panel);
-        ensureMobileOpenTab(options.activeTabId ?? (panel === 'chat' ? 'agent' : panel));
+        ensureMobileOpenTab(tabId);
 
         if (panel !== 'chat') {
           workbenchStore.setShowWorkbench(true);
@@ -3386,9 +3545,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [apiKeys, setApiKeys] = useState<Record<string, string>>(getApiKeysFromCookies());
     const [modelList, setModelList] = useState<ModelInfo[]>([]);
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
-    const [isListening, setIsListening] = useState(false);
+
+    /*
+     * BUG-VOICE-INPUT-001 — la dictée est une machine à trois phases (repos,
+     * demande, écoute) pilotée par `reduireLaDictee` : le bouton, le champ et
+     * le moteur lisent la même phase, et le moteur qui s'arrête seul (silence,
+     * Safari iOS) ramène l'interface au repos.
+     */
+    const [phaseDictee, setPhaseDictee] = useState<PhaseDictee>('repos');
+    const isListening = phaseDictee !== 'repos';
+    const phaseDicteeRef = useRef<PhaseDictee>('repos');
+    phaseDicteeRef.current = phaseDictee;
+
+    const recognitionRef = useRef<SpeechRecognition | null>(null);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
+
+    // Le texte tapé avant la dictée : la dictée s'y ajoute, elle ne l'efface pas.
+    const prefixeDicteeRef = useRef('');
+    const inputCourantRef = useRef(input);
+    inputCourantRef.current = input;
+
+    const handleInputChangeRef = useRef(handleInputChange);
+    handleInputChangeRef.current = handleInputChange;
+
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -3399,6 +3578,26 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
+
+    /*
+     * BUG-PANEL-PERF-004 — miroir de la carte des fichiers COURANTE, lisible
+     * depuis une réponse asynchrone (même forme que `paneTreeRef` plus bas).
+     *
+     * L'effet de restauration ne lit `projectFiles` que pour décider
+     * « je restaure le fichier tout de suite » ou « je le diffère ». Le mettre
+     * dans ses dépendances le faisait REJOUER à chaque vague de chargement de
+     * fichiers — et chaque rejeu relançait `getProjectIdeMemory`, donc une
+     * requête réseau de plus (aucune mise en commun des requêtes en vol), en
+     * plus de ré-appliquer TOUTE la restauration par-dessus ce que
+     * l'utilisateur venait éventuellement de changer.
+     *
+     * Le cas « les fichiers ne sont pas encore là » est déjà couvert, et mieux,
+     * par `pendingProjectSelectedFile` + l'effet qui le consomme.
+     */
+    const projectFilesRef = useRef(projectFiles);
+
+    projectFilesRef.current = projectFiles;
+
     const runtimePreviews = useStore(workbenchStore.previews);
     const runtimeWorkspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLoading = useStore(workbenchStore.workspaceLoading);
@@ -3422,6 +3621,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [workspaceTabs, setWorkspaceTabs] = useState<IdeWorkspacePanel[]>(['editor']);
     const [activeWorkspacePanel, setActiveWorkspacePanel] = useState<IdeWorkspacePanel>('editor');
     const [paneTree, setPaneTree] = useState<IdePaneNode>(() => cloneDefaultPaneTree());
+
+    /*
+     * Miroir de la disposition COURANTE, lisible depuis une réponse asynchrone.
+     * La valeur capturée dans la fermeture de l'effet date de son lancement ;
+     * or c'est précisément l'écart entre les deux qui nous intéresse.
+     */
+    const paneTreeRef = useRef(paneTree);
+
+    paneTreeRef.current = paneTree;
+
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
@@ -3454,8 +3663,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [editorMinimapEnabled, setEditorMinimapEnabled] = useState(true);
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile' | 'custom'>('desktop');
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
+
+    /*
+     * RPL-IDE-001.8 — `spotlight` is a fourth mode of the same palette engine:
+     * it shows every section (files, tools, commands, open tabs) and adds a
+     * project header, and it is what the app name in the topbar opens.
+     */
+    const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files' | 'spotlight'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
+
+    /** RPL-IDE-001.8 — project name shown in the Spotlight header, sent by the topbar. */
+    const [spotlightProjectName, setSpotlightProjectName] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
 
     /*
@@ -3609,22 +3827,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       appliedToastOpenRef.current = true;
 
-      showCoalescedAppliedToast(files, {
-        onUndoAll: () => {
-          for (const proposalId of proposalIds) {
-            void workbenchStore.revertAgentPatchProposal(proposalId);
-          }
+      showCoalescedAppliedToast(
+        files,
+        {
+          onUndoAll: () => {
+            for (const proposalId of proposalIds) {
+              void workbenchStore.revertAgentPatchProposal(proposalId);
+            }
 
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
+          onDismissAll: () => {
+            appliedToastOpenRef.current = false;
+            appliedToastBufferRef.current.reset();
+            toast.dismiss(AGENT_APPLIED_TOAST_ID);
+          },
         },
-        onDismissAll: () => {
-          appliedToastOpenRef.current = false;
-          appliedToastBufferRef.current.reset();
-          toast.dismiss(AGENT_APPLIED_TOAST_ID);
-        },
-      });
+
+        /*
+         * LE CONSTAT D'HONNÊTETÉ DU TOUR, LU AU MOMENT DE L'AFFICHAGE.
+         *
+         * `AppliedFilesToast` acceptait déjà une prop `constat` et savait
+         * afficher le message honnête — mais RIEN ne la lui passait : la moitié
+         * visible de la garde était du code mort, et le bandeau annonçait « les
+         * patchs ont bien été appliqués » sur une application sans point
+         * d'entrée. Lecture directe du magasin plutôt qu'abonnement : le bandeau
+         * n'est pas un composant réactif, il est peint une fois par flush, et
+         * c'est l'état À CET INSTANT qui doit être dit.
+         */
+        constatDeGenerationStore.get(),
+      );
     }, []);
 
     const scheduleAppliedFilesToast = useCallback(
@@ -3729,12 +3963,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [agentPatchProposals, language, scheduleAppliedFilesToast, projectAutoApply]);
 
+    /*
+     * `backendConversationId` est optionnel et non absent : les conversations
+     * venues du backend le portent (c'est la clé de rollback côté serveur),
+     * celles reconstruites depuis la mémoire locale non. Le type l'omettait,
+     * alors que `projectConversationCheckpoints` le lit — TS2339 masqué par
+     * `@ts-nocheck`. Le lire restait correct à l'exécution, mais rien
+     * n'empêchait plus de le supprimer par erreur.
+     */
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
-      Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
+      Array<{
+        id: string;
+        title?: string;
+        messages: Message[];
+        createdAt?: string;
+        updatedAt?: string;
+        backendConversationId?: string;
+      }>
     >([]);
 
     const [rollbackTarget, setRollbackTarget] = useState<ProjectConversationCheckpoint | null>(null);
-    const [rollbackDatabase, setRollbackDatabase] = useState(false);
+
+    /*
+     * RP-CKPT-05 — la feuille Replit ne propose pas de case : le retour
+     * arrière remet TOUJOURS les fichiers, la base de données de
+     * développement et la mémoire de l'agent. Le serveur dit ce qu'il a pu
+     * faire ; un échec de la base remonte en avertissement, jamais en silence.
+     */
+    const rollbackDatabase = true;
     const [rollbackBusy, setRollbackBusy] = useState(false);
     const [projectBackendState, setProjectBackendState] = useState<ProjectIdeBackendState>({});
 
@@ -3833,11 +4089,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [closedTabs, setClosedTabs] = useState<IdePaneTab[]>([]);
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
-    const restoredProjectId = useRef<string | undefined>(undefined);
+    const gardeDeRestauration = useRef(creerGardeDeRestauration());
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
-    const activeProjectPanel = readPanelSearchParam(searchParams, IDE_URL_PANELS) || '';
+
+    /*
+     * BUG-IDE-PANEL-RESOLUTION-001 — une seule résolution, explicite, pour tout
+     * l'IDE. `agent`/`chat` sont acceptés (le dock Agent est un panneau
+     * affichable), les alias historiques sont canonisés dans l'URL, et une clé
+     * inconnue n'est plus muette : elle est signalée et retirée de l'URL au
+     * lieu d'afficher un panneau que personne n'a demandé.
+     */
+    const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
+    const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
+    const activeProjectPanel =
+      projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
+        ? projectPanelResolution.panel
+        : '';
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
@@ -3865,9 +4135,42 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [setSearchParams],
     );
 
-    const activeMobileServicePanel = useMemo<IdeManagementPanel>(() => {
-      return isIdeManagementPanel(activeProjectPanel) ? activeProjectPanel : 'deployments';
-    }, [activeProjectPanel]);
+    /*
+     * Canonisation et traitement EXPLICITE de la clé d'URL.
+     *  - alias connu (`chat`, `deploy`, `web`…) → l'URL est réécrite vers la clé
+     *    canonique, pour que le lien partagé et l'état affiché coïncident ;
+     *  - clé inconnue → message visible + paramètre retiré, au lieu du repli
+     *    muet sur `deployments` qui affichait un panneau jamais demandé.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return;
+      }
+
+      if (projectPanelResolution.status === 'alias') {
+        setProjectPanelSearchParam(projectPanelResolution.panel);
+        return;
+      }
+
+      if (projectPanelResolution.status === 'unknown') {
+        // Un seul message par clé : `searchParams` change d'identité à chaque rendu.
+        if (warnedUnknownPanelRef.current !== projectPanelResolution.requested) {
+          warnedUnknownPanelRef.current = projectPanelResolution.requested;
+          toast.warn(t('chat.copy.unknownIdePanel_9d1c4b70', { value0: projectPanelResolution.requested }));
+        }
+
+        setProjectPanelSearchParam(undefined);
+      }
+    }, [projectIdeMode, projectPanelResolution, setProjectPanelSearchParam, t]);
+
+    /*
+     * Le panneau de service affiché sur la surface mobile « deploy ». Il ne se
+     * déduit plus par défaut : il ne change QUE lorsqu'une clé résolue désigne
+     * réellement un panneau de service. L'en-tête lit la même valeur, donc
+     * en-tête et contenu ne peuvent plus diverger (« Agent » au-dessus de
+     * Déploiements), quel que soit l'ordre de montage des onglets.
+     */
+    const activeMobileServicePanel = mobileServicePanel;
 
     const firstProjectFile = useMemo(() => {
       return Object.entries(projectFiles).find(([, file]) => file?.type === 'file')?.[0];
@@ -4055,10 +4358,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
-          logs: workspaceLogs,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading, workspaceLogs],
+      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading],
     );
     const workspaceStatusLabel = useMemo(() => {
       // A live serving port means Running — beats a stale error or a lagging status.
@@ -4094,7 +4396,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       if (isMobilePreviewRunActive) {
         setMobilePreviewRunFeedbackState('stopping');
-        void workbenchStore.stopPreviewServer().catch((error) => {
+        void workbenchStore.stopPreviewServer({ raison: 'utilisateur' }).catch((error) => {
           setMobilePreviewRunFeedbackState(null);
           console.error('Preview server stop failed', error);
           toast.error(t('baseChatAst.preview.stopFailed'));
@@ -4180,7 +4482,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           color: 'var(--vc-ide-accent-error)',
           text: t('chat.copy.varStatusErrorText_f1e5857c'),
         } as const)
-      : workspaceLoading || runtimeWorkspaceStatus === 'STARTING' || runtimeWorkspaceStatus === 'PENDING'
+      : /*
+         * BUG-IDE-008 — `runtimeWorkspaceStatus` est une WorkspaceSession, PAS une
+         * chaîne. Les deux comparaisons `=== 'STARTING'` / `=== 'PENDING'` étaient
+         * donc TOUJOURS fausses (TS2367, que le `@ts-nocheck` en tête de fichier
+         * empêchait de voir).
+         *
+         * Conséquence réelle : pendant tout le démarrage à froid, la barre de statut
+         * annonçait « Connected » au lieu de « Reconnecting ». Le produit affirmait
+         * une connexion qui n'existait pas encore.
+         *
+         * On lit le champ `status` et on compare en minuscules, comme le fait déjà
+         * `workspaceUiState` : le domaine de valeurs mélange les casses selon la
+         * source.
+         */
+        workspaceLoading ||
+          ['starting', 'booting', 'pending'].includes(runtimeWorkspaceStatus?.status?.toLowerCase() ?? '')
         ? ({
             state: 'reconnecting',
             label: t('chat.copy.reconnecting_9d80f91f'),
@@ -4483,7 +4800,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         : t('baseChatAst.mobile.workspaceReady');
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
-      restoredProjectId.current = undefined;
+      gardeDeRestauration.current.oublier();
       pendingProjectSelectedFile.current = undefined;
     }, [projectIdeMode, projectId]);
 
@@ -4709,10 +5026,72 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       void loadProjectSnapshots();
 
+      /*
+       * RP-CKPT-04 — un point de restauration vient d'être pris en fin de
+       * tour (workbench) : la liste se recharge, le bloc « Checkpoint made … »
+       * apparaît sous la réponse sans recharger la page.
+       */
+      const handleSnapshotsChanged = () => {
+        void loadProjectSnapshots();
+      };
+
+      window.addEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
+
       return () => {
         cancelled = true;
+        window.removeEventListener('vibecore:snapshots-changed', handleSnapshotsChanged);
       };
     }, [projectIdeMode, projectId]);
+
+    /*
+     * RP-CKPT-02/03 — les points de restauration de fin de tour, par message
+     * de l'agent, et les deux gestes du bloc FinDeTour : « Rollback here »
+     * ouvre la feuille de retour arrière sur CE point (état d'après le tour),
+     * « Changes » ouvre l'onglet Git directement sur son commit.
+     */
+    const pointsDeRestaurationParMessageId = useMemo(
+      () =>
+        pointsDeRestaurationParMessage(projectSnapshots, {
+          messages: messages ?? [],
+          conversationId: currentAiConversationId,
+        }),
+      [currentAiConversationId, messages, projectSnapshots],
+    );
+
+    const revenirAuPointDeRestauration = useCallback(
+      (point: PointDeRestauration) => {
+        const source = messages ?? [];
+        const index = source.findIndex((message) => message.id === point.messageId);
+
+        setRollbackTarget({
+          id: `point:${point.snapshotId}`,
+          title: point.commitMessage || t('baseChatAst.conversation.checkpoint'),
+          description: formaterLaDateDuPoint(point.createdAt, language),
+          messageId: point.messageId,
+          messageIndex: index >= 0 ? index : source.length - 1,
+          conversationId: `project:${projectId}`,
+          conversationTitle: t('chat.copy.currentProjectConversation_1df5a771'),
+          createdAt: point.createdAt,
+          ageLabel: ilYA(point.createdAt, language),
+          commitSha: point.commitSha?.slice(0, 8),
+          snapshot: projectSnapshots.find((snapshot) => snapshot.id === point.snapshotId),
+          messages: index >= 0 ? source.slice(0, index + 1) : source,
+          backendConversationId: currentAiConversationId,
+        });
+      },
+      [currentAiConversationId, language, messages, projectId, projectSnapshots, t],
+    );
+
+    const ouvrirLesChangementsDuPoint = useCallback((point: PointDeRestauration) => {
+      if (!point.commitSha) {
+        return;
+      }
+
+      commitDemande.set(point.commitSha);
+      window.dispatchEvent(
+        new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git', toolId: 'git' } }),
+      );
+    }, []);
 
     useEffect(() => {
       if (!projectIdeMode || !projectId) {
@@ -4775,15 +5154,30 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }),
         );
 
-        return hydrated.filter(Boolean);
+        /*
+         * Même correction qu'en mémoire : `filter(Boolean)` retire bien les
+         * conversations dont l'hydratation a échoué (retour `undefined`), mais
+         * seul un prédicat de type le dit à TypeScript.
+         */
+        return hydrated.filter((conversation): conversation is NonNullable<typeof conversation> =>
+          Boolean(conversation),
+        );
       }
 
       async function loadProjectConversationMemory() {
         try {
           const memory = await getProjectIdeMemory(safeProjectId, safeWorkspaceId);
 
+          /*
+           * Prédicat de type et non simple booléen : le filtre RETIRE bien les
+           * entrées nulles à l'exécution, mais sans `is` TypeScript garde
+           * `possibly undefined` sur chaque élément (TS18048, masqué par
+           * `@ts-nocheck`). Le comportement est identique ; c'est le type qui
+           * décrit enfin ce que le filtre garantit.
+           */
           const memoryConversations = (memory?.chat?.conversations ?? []).filter(
-            (conversation) => conversation && Array.isArray(conversation.messages),
+            (conversation): conversation is NonNullable<typeof conversation> =>
+              Boolean(conversation) && Array.isArray(conversation?.messages),
           );
 
           const liveAiConversationId = memory?.chat?.metadata?.aiConversationId;
@@ -4812,12 +5206,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
-      if (!projectIdeMode || !projectId || restoredProjectId.current === projectId) {
+      if (!projectIdeMode || !projectId || !gardeDeRestauration.current.peutLancer(projectId)) {
         return undefined;
       }
 
       let cancelled = false;
-      restoredProjectId.current = projectId;
+
+      const jeton = gardeDeRestauration.current.lancer(projectId);
 
       const restoreFallbackTimer = window.setTimeout(() => {
         if (!cancelled) {
@@ -4876,12 +5271,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ? normalizePaneTree(windowSlice.paneTree)
               : undefined;
 
-          if (restoredTree) {
+          /*
+           * Ne pas écraser une disposition que l'utilisateur vient de changer.
+           *
+           * Tracé le 2026-09-02 : split demandé à t=24 104 ms, restauration
+           * appliquée à t=24 361 ms — le split avait disparu. Tant que la
+           * restauration n'aboutissait jamais, le défaut restait invisible ;
+           * la réparer l'a mis au jour.
+           */
+          const dispositionIntacte = laDispositionPeutEtreRestauree(paneTreeRef.current, cloneDefaultPaneTree());
+
+          if (restoredTree && dispositionIntacte) {
             setPaneTree(restoredTree);
           }
 
           const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
-          setFloatingPanes(restoredFloating);
+
+          if (dispositionIntacte) {
+            setFloatingPanes(restoredFloating);
+          }
 
           const dockedLeafIds = new Set(restoredTree ? flattenPaneLeafIds(restoredTree) : flattenPaneLeafIds(paneTree));
           restoredFloating.forEach((floating) => dockedLeafIds.add(floating.pane.id));
@@ -4892,7 +5300,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               : restoredTree
                 ? (findFirstLeaf(restoredTree)?.id ?? 'pane-main')
                 : 'pane-main';
-          setActivePaneId(restoredActivePaneId);
+
+          if (dispositionIntacte) {
+            setActivePaneId(restoredActivePaneId);
+          }
 
           if (restoredTree) {
             projectEditorWindowSyncRef.current = projectEditorLayoutSignature(
@@ -4961,7 +5372,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           if (ui?.selectedFile) {
-            if (projectFiles[ui.selectedFile]?.type === 'file') {
+            if (projectFilesRef.current[ui.selectedFile]?.type === 'file') {
               workbenchStore.setSelectedFile(ui.selectedFile);
               pendingProjectSelectedFile.current = undefined;
             } else {
@@ -4986,11 +5397,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           if (Array.isArray(ui?.deletedPaths)) {
             workbenchStore.setDeletedPaths(ui.deletedPaths.filter((filePath: unknown) => typeof filePath === 'string'));
           }
+
+          /*
+           * Le garde se pose ICI, après une restauration réellement appliquée —
+           * jamais à l'entrée de l'opération.
+           */
+          gardeDeRestauration.current.reussir(projectId);
         })
         .catch((error) => {
           console.error('Failed to restore project IDE state', error);
         })
         .finally(() => {
+          gardeDeRestauration.current.liberer(jeton);
           window.clearTimeout(restoreFallbackTimer);
 
           if (!cancelled) {
@@ -5000,21 +5418,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
       return () => {
         cancelled = true;
+        gardeDeRestauration.current.liberer(jeton);
         window.clearTimeout(restoreFallbackTimer);
       };
-    }, [activeProjectPanel, projectFiles, projectIdeMode, projectId, currentWorkspaceId]);
+    }, [activeProjectPanel, projectIdeMode, projectId, currentWorkspaceId]);
 
     useEffect(() => {
       const pendingSelectedFile = pendingProjectSelectedFile.current;
 
-      const resolvedPendingFile =
-        pendingSelectedFile && projectFiles[pendingSelectedFile]?.type === 'file'
-          ? pendingSelectedFile
-          : pendingSelectedFile
-            ? Object.keys(projectFiles).find(
-                (filePath) => projectFiles[filePath]?.type === 'file' && filePath.endsWith(pendingSelectedFile),
-              )
-            : undefined;
+      const resolvedPendingFile = resolvePendingSelectedFile(projectFiles, pendingSelectedFile);
 
       if (!projectIdeMode || !pendingSelectedFile || !resolvedPendingFile) {
         return;
@@ -5526,7 +5938,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [activePaneId, openProjectFilesPanel, openWorkspacePanel],
     );
 
-    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' = 'all') => {
+    const openCommandPalette = useCallback((mode: 'all' | 'tools' | 'files' | 'spotlight' = 'all') => {
       setCommandPaletteMode(mode);
       setCommandPaletteQuery('');
       setCommandPaletteIndex(0);
@@ -5689,6 +6101,32 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       };
     }, [activateMobileTool, openCommandPalette, openIdeTool, projectIdeMode, useMobileIde]);
 
+    /*
+     * RPL-IDE-001.8 — the app name lives in the topbar (`projects.$projectId.ide.tsx`)
+     * while Spotlight is rendered here, inside the workspace shell. They talk over
+     * the same window-event channel the topbar already uses to open tool panels,
+     * rather than threading a callback through the whole route tree.
+     */
+    useEffect(() => {
+      if (!projectIdeMode) {
+        return undefined;
+      }
+
+      const handleOpenSpotlight = (event: Event) => {
+        const name = (event as CustomEvent<{ projectName?: string }>).detail?.projectName;
+
+        if (name) {
+          setSpotlightProjectName(name);
+        }
+
+        openCommandPalette('spotlight');
+      };
+
+      window.addEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+
+      return () => window.removeEventListener('vibecore:open-project-spotlight', handleOpenSpotlight);
+    }, [openCommandPalette, projectIdeMode]);
+
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {
         setWorkspaceTabs((currentTabs) => {
@@ -5742,32 +6180,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
+      // Le dock Agent est un panneau affichable : `?panel=agent` doit l'ouvrir, pas être ignoré.
+      if (activeProjectPanel === IDE_AGENT_PANEL) {
+        if (useMobileIde) {
+          setMobileIdePanel('chat');
+        } else {
+          setProjectAgentPanelOpen(true);
+        }
+
+        return;
+      }
+
       if (isIdeWorkspacePanel(activeProjectPanel)) {
         if (useMobileIde) {
-          if (activeProjectPanel === 'terminal') {
-            setMobileIdePanel('terminal');
-          } else if (activeProjectPanel === 'preview') {
-            setMobileIdePanel('preview');
-          } else if (activeProjectPanel === 'files') {
-            setMobileIdePanel('files');
-          } else if (activeProjectPanel === 'search') {
-            setMobileIdePanel('search');
-          } else if (activeProjectPanel === 'editor') {
-            setMobileIdePanel('editor');
-          } else if (activeProjectPanel === 'locks') {
-            setMobileIdePanel('locks');
-          } else if (isIdeManagementPanel(activeProjectPanel)) {
-            setMobileIdePanel('deploy', {
-              activeTabId: ECODE_MOBILE_MANAGEMENT_PANEL_TABS[activeProjectPanel] ?? activeProjectPanel,
-            });
-          }
+          const target = ideMobileTarget(activeProjectPanel);
+          setMobileIdePanel(target.surface, { activeTabId: target.tabId });
 
           return;
         }
 
         openWorkspacePanel(activeProjectPanel, { replaceUrl: false });
       }
-    }, [activeProjectPanel, openWorkspacePanel, projectIdeMode, projectStateReady, setMobileIdePanel, useMobileIde]);
+    }, [
+      activeProjectPanel,
+      openWorkspacePanel,
+      projectIdeMode,
+      projectStateReady,
+      setMobileIdePanel,
+      setProjectAgentPanelOpen,
+      useMobileIde,
+    ]);
 
     /*
      * Audit v3 (M): surface save failures. Previously the result was
@@ -5776,10 +6218,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * runtime write error — left the user believing the file was saved when
      * it was not (silent data loss).
      */
+    /*
+     * BUG-IDE-004 — UN CONFLIT DOIT AVOIR UNE SORTIE.
+     *
+     * Le garde de concurrence protégeait le fichier distant en sacrifiant le
+     * travail de l'utilisateur : mesuré le 06/08, l'onglet restait sale après
+     * le bouton Save, Ctrl+S ET Cmd+S, et l'édition n'était persistée dans
+     * AUCUN des trois magasins. Chaque tentative échouait, indéfiniment, sur
+     * un message générique.
+     *
+     * Un conflit se distingue donc d'une panne d'écriture, il se NOMME, et il
+     * propose le seul geste qui sauve le travail : écrire quand même. Jamais
+     * automatiquement — c'est l'utilisateur qui tranche, en connaissance de
+     * cause.
+     */
     const handleSaveError = useCallback(
-      (error: unknown) => {
+      (error: unknown, filePath?: string) => {
         console.error('Project file save failed', error);
-        toast.error(t('baseChatAst.editor.saveFailed'));
+
+        const conflit = (error as { code?: string } | null)?.code === CODE_CONFLIT_DISTANT;
+        const chemin = filePath ?? (error as { filePath?: string } | null)?.filePath;
+
+        if (!conflit || !chemin) {
+          toast.error(t('baseChatAst.editor.saveFailed'));
+          return;
+        }
+
+        toast.error(
+          ({ closeToast }) => (
+            <div className="bolt-editor-conflit">
+              <p>{t('baseChatAst.editor.saveConflict', { file: chemin.split('/').pop() ?? chemin })}</p>
+              <button
+                type="button"
+                data-testid="editor-conflit-ecraser"
+                onClick={() => {
+                  closeToast?.();
+                  workbenchStore
+                    .saveFile(chemin, { onRemoteConflict: 'overwrite' })
+                    .catch(() => toast.error(t('baseChatAst.editor.saveFailed')));
+                }}
+              >
+                {t('baseChatAst.editor.saveConflictOverwrite')}
+              </button>
+            </div>
+          ),
+          { toastId: `save-conflict-${chemin}`, autoClose: false },
+        );
       },
       [t],
     );
@@ -5796,7 +6280,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFile(filePath).catch((error) => handleSaveError(error, filePath));
       },
       [handleSaveError],
     );
@@ -6145,10 +6629,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     }, [data]);
     useEffect(() => {
-      console.log(transcript);
-    }, [transcript]);
-
-    useEffect(() => {
       onStreamingChange?.(isStreaming);
     }, [isStreaming, onStreamingChange]);
 
@@ -6273,27 +6753,37 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         recognition.continuous = true;
         recognition.interimResults = true;
 
+        const transiter = (evenement: EvenementDictee) => {
+          const { phase } = reduireLaDictee(phaseDicteeRef.current, evenement);
+          phaseDicteeRef.current = phase;
+          setPhaseDictee(phase);
+        };
+
+        // Le moteur confirme qu'il capte : c'est là que l'on passe « en écoute », pas à l'appui.
+        recognition.onstart = () => transiter({ type: 'start' });
+
+        /*
+         * Le moteur s'arrête seul : silence, limite de durée (Safari iOS coupe
+         * après quelques secondes sans parole), perte du micro. Mesuré avant
+         * correction : sans ce gestionnaire, l'interface restait « en écoute »
+         * et il fallait deux appuis pour relancer.
+         */
+        recognition.onend = () => transiter({ type: 'end' });
+
         recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
+          const transcription = transcriptionDepuisResultats(event.results);
 
-          setTranscript(transcript);
-
-          if (handleInputChange) {
-            const syntheticEvent = {
-              target: { value: transcript },
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            handleInputChange(syntheticEvent);
-          }
+          handleInputChangeRef.current?.({
+            target: { value: composerLaSaisie(prefixeDicteeRef.current, transcription) },
+          } as React.ChangeEvent<HTMLTextAreaElement>);
         };
 
         recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
+          transiter({ type: 'erreur' });
 
-          if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          const message = messageDErreurDeDictee(event.error);
+
+          if (message === 'permission') {
             /*
              * Mic permission is blocked at the browser level — explain it once
              * per session (sessionStorage guard), not on every click.
@@ -6315,9 +6805,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 toastId: 'mic-permission-blocked',
               });
             }
+          } else if (message === 'micro-absent') {
+            toast.error(t('chat.copy.dictationNoMicrophone'), { toastId: 'dictation-no-microphone' });
+          } else if (message === 'reseau') {
+            toast.error(t('chat.copy.dictationNetwork'), { toastId: 'dictation-network' });
+          } else if (message === 'silence') {
+            toast.info(t('chat.copy.dictationNoSpeech'), { toastId: 'dictation-no-speech' });
+          } else {
+            console.error('Speech recognition error:', event.error);
           }
         };
 
+        recognitionRef.current = recognition;
         setRecognition(recognition);
 
         return () => {
@@ -6325,8 +6824,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            * Tear down the recognizer on unmount so it stops capturing the mic
            * and releases the underlying SpeechRecognition resource.
            */
+          recognition.onstart = null;
+          recognition.onend = null;
           recognition.onresult = null;
           recognition.onerror = null;
+          recognitionRef.current = null;
 
           try {
             recognition.abort();
@@ -6415,33 +6917,50 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const startListening = () => {
-      if (!recognition) {
+      const moteur = recognitionRef.current;
+
+      if (!moteur) {
         // The mic button hides itself when the API is absent, but never let a click be inert.
         toast.error(t('chat.copy.speechRecognitionIsNotAvailableIn_af2b2f6a'), { toastId: 'speech-unavailable' });
         return;
       }
 
+      const transition = reduireLaDictee(phaseDicteeRef.current, { type: 'appui' });
+
+      if (transition.action !== 'start') {
+        stopListening();
+        return;
+      }
+
+      // La langue de l'interface, et le texte déjà tapé que la dictée prolongera.
+      moteur.lang = langueDeDictee(i18n.resolvedLanguage ?? i18n.language);
+      prefixeDicteeRef.current = inputCourantRef.current;
+
       try {
-        recognition.start();
+        moteur.start();
+        phaseDicteeRef.current = transition.phase;
+        setPhaseDictee(transition.phase);
       } catch (error) {
         /*
          * start() throws InvalidStateError when recognition is already
-         * running — swallow it and let the state below resync the UI so the
-         * click still has a visible effect.
+         * running — the engine is live, so show « écoute » and let the user stop it.
          */
         console.error('Speech recognition start failed:', error);
+        phaseDicteeRef.current = 'ecoute';
+        setPhaseDictee('ecoute');
       }
-
-      setIsListening(true);
     };
 
     const stopListening = () => {
-      if (recognition) {
-        recognition.stop();
+      try {
+        recognitionRef.current?.stop();
+      } catch {
+        // stop() on a recognizer that never started: nothing to stop.
       }
 
       // Always resync the UI, even if the recognizer is gone.
-      setIsListening(false);
+      phaseDicteeRef.current = 'repos';
+      setPhaseDictee('repos');
     };
 
     const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
@@ -6455,8 +6974,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
-          setIsListening(false);
+          phaseDicteeRef.current = 'repos';
+          setPhaseDictee('repos');
 
           // Clear the input by triggering handleInputChange with empty value
           if (handleInputChange) {
@@ -6757,6 +7276,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           form.set('intent', 'restore');
           form.set('snapshotId', rollbackTarget.snapshot.id);
           form.set('restoreDatabase', rollbackDatabase ? 'true' : 'false');
+          form.set('restoreAgentMemory', 'true');
+
+          if (rollbackTarget.createdAt) {
+            form.set('since', rollbackTarget.createdAt);
+          }
 
           const response = await fetch(`/api/projects/${projectId}/ide-panel/snapshots`, {
             method: 'POST',
@@ -7026,7 +7550,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         disabled={!rollbackAvailable}
                         aria-label={t('chat.copy.rollbackToCheckpointValue0_2131e13b', { value0: checkpoint.title })}
                         onClick={() => {
-                          setRollbackDatabase(false);
                           setRollbackTarget(checkpoint);
                         }}
                       >
@@ -7083,8 +7606,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
          * (`state.scrollTop = state.calculatedTargetScrollTop`) : le bas reste
          * collé, sans animation qui court après lui.
          *
-         * `initial` reste en « smooth » : c'est l'animation d'ARRIVÉE sur le
-         * fil, jouée une fois, jamais pendant le stream.
+         * `initial` — l'animation d'ARRIVÉE sur le fil, jouée une fois — reste
+         * en « smooth » sur BUREAU, et passe en « instant » sur TÉLÉPHONE.
+         *
+         * BUG-WEBKIT-SCROLL-FIL-001, mesuré le 2026-09-10 par le canari WebKit
+         * iPhone puis lu ligne à ligne dans `useStickToBottom` : à la première
+         * hauteur de contenu, le ressort (raideur 0,05, masse 1,25) part de
+         * `scrollTop = 0` et ferme ~5 % de la distance par image. Pour un fil
+         * de 2 563 px dans une fenêtre de 599, c'est ~90 images ou plus —
+         * 1,5 s à 60 Hz, le double si le moteur ralentit. Pendant ce temps,
+         * l'utilisateur voit le PREMIER message, puis regarde tout l'historique
+         * défiler devant lui. C'est la même famille que le « ça saute » corrigé
+         * juste au-dessus par `resize="instant"`, et pour la même raison : sur
+         * une fenêtre de lecture courte, une animation qui traverse le fil est
+         * une gêne, pas un agrément.
+         *
+         * Mesuré avant de conclure : la sonde du test rendait `dejaEnHaut` avec
+         * UN SEUL élément défilant sous le panneau (donc pas un défaut de
+         * mesure), neuf échecs sur dix sur WebKit, et la seule réussite est
+         * l'essai qui a mis 45 s — celui qui a laissé le ressort finir.
          */}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
@@ -7092,7 +7632,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             'bolt-project-agent-scroll': projectIdeMode,
           })}
           resize="instant"
-          initial="smooth"
+          initial={useMobileIde ? 'instant' : 'smooth'}
         >
           <StickToBottom.Content
             className={classNames('flex flex-col gap-4 relative', {
@@ -7105,12 +7645,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             {/*
              * Thin agent status line, sticky at the TOP of the panel (agent-panel
-             * UX refonte, point 2). Full-bleed via negative margins that cancel the
-             * scroll container's pt-6/px padding; stays pinned while the transcript
-             * scrolls underneath it.
+             * UX refonte, point 2); stays pinned while the transcript scrolls
+             * underneath it.
+             *
+             * BUG-THREAD-TOP-GAP-001 — deux pièges retirés ici :
+             * 1. `progressAnnotations && …` rendait TOUJOURS le quai (un tableau
+             *    vide est vrai) : un enfant flex de 0 px, plus l'écart de la
+             *    colonne, s'intercalait avant le premier message.
+             * 2. `-mt-6 -mx-2` prétendait annuler le `pt-6` du conteneur — mais la
+             *    boîte qui DÉFILE est le `div` interne de StickToBottom, à
+             *    l'intérieur de ce rembourrage : une marge négative y déborde en
+             *    territoire de défilement négatif, inatteignable, et rognait les
+             *    15 premiers pixels de la première bulle à 390 (mesuré le 08/09).
+             * Le quai ne se rend donc que s'il a quelque chose à montrer, sans
+             * marge négative ; sa place sous l'en-tête est réglée en CSS
+             * (`.bolt-agent-statusline-dock`).
              */}
-            {progressAnnotations && (
-              <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+            {progressAnnotations.length > 0 && (
+              <div className="bolt-agent-statusline-dock sticky top-0 z-10">
                 {/*
                  * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
                  * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
@@ -7138,6 +7690,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <Messages
                       className="flex flex-col w-full flex-1 max-w-chat pb-4 mx-auto z-1"
                       messages={messages}
+                      finDeTour={{
+                        pointsParMessage: pointsDeRestaurationParMessageId,
+                        language,
+                        onRollback: revenirAuPointDeRestauration,
+                        onChanges: ouvrirLesChangementsDuPoint,
+                      }}
                       isStreaming={isStreaming}
                       append={append}
                       chatMode={chatMode}
@@ -7268,6 +7826,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               {projectIdeMode && (
                 <GenerateAppCta
                   files={projectFiles}
+                  promptDeSecours={promptDeSecours}
                   hasMessages={(messages?.length ?? 0) > 0}
                   isGenerating={isAgentRunning}
                   onGenerate={(prompt) => handleProjectAgentSendMessage({} as React.UIEvent, prompt)}
@@ -7302,6 +7861,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 enhancingPrompt={enhancingPrompt}
                 enhancePrompt={enhancePrompt}
                 isListening={isListening}
+                dictationPhase={phaseDictee}
                 startListening={startListening}
                 stopListening={stopListening}
                 chatStarted={chatStarted}
@@ -7613,70 +8173,116 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       [projectId, currentWorkspaceId],
     );
 
-    const swapPaneTabs = useCallback(
-      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
-        if (sourcePaneId === targetPaneId) {
-          setPaneTree((currentTree) =>
-            updateLeaf(currentTree, sourcePaneId, (leaf) => {
-              const sourceIndex = leaf.tabs.findIndex((tab) => tab.id === sourceTabId);
-
-              const targetIndex = targetTabId
-                ? leaf.tabs.findIndex((tab) => tab.id === targetTabId)
-                : leaf.tabs.length - 1;
-
-              if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) {
-                return leaf;
-              }
-
-              const tabs = [...leaf.tabs];
-              const [sourceTab] = tabs.splice(sourceIndex, 1);
-              const insertionIndex = sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
-              tabs.splice(insertionIndex, 0, sourceTab);
-
-              return {
-                ...leaf,
-                tabs,
-                activeTabId: sourceTab.id,
-              };
-            }),
-          );
-          return;
-        }
-
-        const sourceLeaf = findLeaf(paneTree, sourcePaneId);
-        const targetLeaf = findLeaf(paneTree, targetPaneId);
+    /**
+     * RPL-IDE-001.4 — move a tab to a slot in a (possibly different) pane.
+     *
+     * `toIndex` is the insertion slot expressed against the destination pane's
+     * tab array **as it currently stands** ("insert before the tab at index i",
+     * `tabs.length` meaning append). That is exactly what the engine's
+     * `moveTab` expects for a cross-pane move; for a same-pane reorder the
+     * engine's `reorderTab` wants a *post-removal* index instead, so the slot is
+     * shifted down by one when the tab travels rightwards. Keeping the
+     * conversion here means every call site — tab strip, pane body, keyboard —
+     * speaks the same, simpler language.
+     *
+     * The previous implementation *swapped* the dragged tab with whatever tab
+     * sat under the pointer. That is not the Replit/Cursor gesture: dropping a
+     * tab on another pane must MOVE it there, leaving the source pane one tab
+     * lighter (and collapsing it when it empties). Both behaviours now come from
+     * the tested engine rather than being re-derived on the tree.
+     */
+    const moveProjectEditorTab = useCallback(
+      (sourcePaneId: string, sourceTabId: string, targetPaneId: string, toIndex?: number) => {
+        const sourceLeaf = findLeaf(paneTree, sourcePaneId) ?? findFloatingLeaf(floatingPanes, sourcePaneId);
+        const targetLeaf = findLeaf(paneTree, targetPaneId) ?? findFloatingLeaf(floatingPanes, targetPaneId);
         const sourceTab = sourceLeaf?.tabs.find((tab) => tab.id === sourceTabId);
 
-        const targetTab =
-          targetLeaf?.tabs.find((tab) => tab.id === targetTabId) ??
-          targetLeaf?.tabs.find((tab) => tab.id === targetLeaf.activeTabId) ??
-          targetLeaf?.tabs[0];
-
-        if (!sourceLeaf || !targetLeaf || !sourceTab || !targetTab) {
+        if (!sourceLeaf || !targetLeaf || !sourceTab) {
           return;
         }
 
-        setPaneTree((currentTree) => {
-          const withTargetInSource = updateLeaf(currentTree, sourcePaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === sourceTab.id ? targetTab : tab)),
-            activeTabId: targetTab.id,
-          }));
+        if (sourcePaneId === targetPaneId) {
+          const fromIndex = sourceLeaf.tabs.findIndex((tab) => tab.id === sourceTabId);
 
-          return updateLeaf(withTargetInSource, targetPaneId, (leaf) => ({
-            ...leaf,
-            tabs: leaf.tabs.map((tab) => (tab.id === targetTab.id ? sourceTab : tab)),
-            activeTabId: sourceTab.id,
-          }));
-        });
+          const postRemovalIndex = samePaneReorderIndex(
+            fromIndex,
+            toIndex ?? sourceLeaf.tabs.length,
+            sourceLeaf.tabs.length,
+          );
 
-        setActivePaneId(targetPaneId);
+          if (postRemovalIndex === null) {
+            return;
+          }
+
+          applyProjectEditorWindowOp((windowState) =>
+            engineReorderTab(windowState, { paneId: sourcePaneId, tabId: sourceTabId, toIndex: postRemovalIndex }),
+          );
+        } else {
+          applyProjectEditorWindowOp((windowState) =>
+            engineMoveTab(windowState, {
+              tabId: sourceTabId,
+              sourcePaneId,
+              targetPaneId,
+              toIndex: toIndex ?? targetLeaf.tabs.length,
+            }),
+          );
+        }
+
         setActiveWorkspacePanel(sourceTab.panel);
         setRecentTabIds((ids) => [sourceTab.id, ...ids.filter((id) => id !== sourceTab.id)].slice(0, 20));
         setProjectPanelSearchParam(sourceTab.panel);
       },
-      [paneTree, setProjectPanelSearchParam],
+      [applyProjectEditorWindowOp, floatingPanes, paneTree, setProjectPanelSearchParam],
     );
+
+    /**
+     * RPL-IDE-001.6 — close a whole pane (Pane scope of the Options menu).
+     * `closePaneTabs(paneId, 'all')` empties the tab list but leaves the pane
+     * standing; the engine's `updatePane` returning null removes it AND
+     * collapses its parent split, which is the behaviour the menu item promises.
+     * Refuses on the last docked pane so the workspace never goes blank.
+     */
+    const closeProjectEditorPane = useCallback(
+      (targetPaneId: string) => {
+        const isFloating = floatingPanes.some((floating) => floating.pane.id === targetPaneId);
+
+        if (!isFloating && countLeaves(paneTree) < 2) {
+          return;
+        }
+
+        applyProjectEditorWindowOp((windowState) => engineUpdatePane(windowState, targetPaneId, () => null));
+      },
+      [applyProjectEditorWindowOp, floatingPanes, paneTree],
+    );
+
+    /**
+     * RPL-IDE-001.6 — every pane in this window, docked then floating, labelled
+     * by the tool it is currently showing so "Move tab to Webview" reads like the
+     * screen rather than like "Move tab to pane-1a2b".
+     */
+    const projectEditorPaneChoices = useMemo(() => {
+      const label = (pane: IdePaneLeaf, index: number) => {
+        const activeTab = pane.tabs.find((tab) => tab.id === pane.activeTabId) ?? pane.tabs[0];
+
+        return activeTab ? panelTitle(activeTab.panel, t) : t('baseChatAst.options.paneNumber', { index: index + 1 });
+      };
+
+      const docked = flattenPaneLeafIds(paneTree)
+        .map((id) => findLeaf(paneTree, id))
+        .filter((pane): pane is IdePaneLeaf => Boolean(pane));
+
+      return [...docked, ...floatingPanes.map((floating) => floating.pane)].map((pane, index) => ({
+        id: pane.id,
+        label: label(pane, index),
+      }));
+    }, [floatingPanes, paneTree, t]);
+
+    /** RPL-IDE-001.6 — Window scope: back to a single default pane. */
+    const resetProjectEditorLayout = useCallback(() => {
+      setPaneTree(cloneDefaultPaneTree());
+      setFloatingPanes([]);
+      setActivePaneId('pane-main');
+    }, []);
 
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
@@ -7882,8 +8488,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       (leaf: IdePaneLeaf) => {
         const activeTab = leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ?? leaf.tabs[0];
 
-        const canAcceptPaneDrop = (event: React.DragEvent) =>
-          Array.from(event.dataTransfer.types).includes('application/x-vibecore-tab-id');
+        const canAcceptPaneDrop = (event: React.DragEvent) => isProjectEditorTabDrag(event.dataTransfer.types);
+
         const activatePaneDrop = (event: React.DragEvent) => {
           if (!canAcceptPaneDrop(event)) {
             return;
@@ -7913,13 +8519,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               }
             }}
             onDrop={(event) => {
-              const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-              const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
+              const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+              const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
 
               if (sourcePaneId && sourceTabId && sourcePaneId !== leaf.id) {
                 event.preventDefault();
                 event.stopPropagation();
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, activeTab?.id);
+
+                // Dropping on the pane body (not on the strip) appends to the end.
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id);
               }
 
               setPaneDropTarget(null);
@@ -7977,9 +8585,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onToggleFloating={() => togglePaneFloating(leaf.id)}
               onOpenNewWindow={(tabId) => openProjectEditorWindow(leaf.tabs.find((tab) => tab.id === tabId))}
               isFloating={floatingPanes.some((floating) => floating.pane.id === leaf.id)}
-              onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
-                swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
+              onMoveTab={(sourcePaneId, sourceTabId, toIndex) =>
+                moveProjectEditorTab(sourcePaneId, sourceTabId, leaf.id, toIndex)
               }
+              paneId={leaf.id}
+              onClosePane={() => closeProjectEditorPane(leaf.id)}
+              onResetLayout={resetProjectEditorLayout}
+              onMoveTabToPane={(targetPaneId) => {
+                const tabId = leaf.activeTabId ?? leaf.tabs[0]?.id;
+
+                if (tabId) {
+                  moveProjectEditorTab(leaf.id, tabId, targetPaneId);
+                }
+              }}
+              otherPanes={projectEditorPaneChoices.filter((pane) => pane.id !== leaf.id)}
               onDragEnd={clearPaneDropTarget}
               onTogglePin={(tabId) => togglePaneTabPinned(leaf.id, tabId)}
               recentFiles={recentProjectFiles}
@@ -8053,7 +8672,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         openProjectEditorWindow,
         floatingPanes,
         scrollPositions,
-        swapPaneTabs,
+        moveProjectEditorTab,
+        closeProjectEditorPane,
+        resetProjectEditorLayout,
+        projectEditorPaneChoices,
         t,
         unsavedFiles,
       ],
@@ -8186,15 +8808,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
+      const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
+      const baseTooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
+      const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
       /*
-       * On passe au formateur du TEXTE déjà résolu, jamais une clé : soit le
-       * titre porté par l'item (déjà traduit), soit la description du panneau
-       * traduite ici. Le formateur, lui, ne traduit plus que ce qu'il possède.
+       * RPL-IDE-001.5 — dock shortcuts. Only tools with a genuinely registered
+       * keybinding advertise one (the catalog spec enforces that), so the dock
+       * never promises a key combination that does nothing.
        */
-      const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
-      const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
-      const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
+      const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[item.panel as keyof typeof PROJECT_EDITOR_TOOL_SHORTCUTS];
+      const shortcutLabel = shortcut ? formatKeybindingCombo(shortcut) : undefined;
+      const tooltip = shortcutLabel ? `${baseTooltip} · ${shortcutLabel}` : baseTooltip;
 
       return (
         <HeaderTip key={item.panel} label={tooltip} side="right">
@@ -8202,19 +8827,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             type="button"
             className="bolt-project-ide-rail-item"
             aria-current={active ? 'page' : undefined}
+            aria-keyshortcuts={shortcut}
             aria-label={formatRailItemLabel(item.label, badgeLabel)}
             title={tooltip}
             data-vc-tooltip={tooltip}
+            data-testid={`ide-dock-${item.panel}`}
             data-tone={item.tone}
             onClick={() => openIdeTool(item.panel)}
           >
             <span className={item.icon} aria-hidden />
             <span className="bolt-project-ide-rail-label">{item.label}</span>
+            {shortcutLabel ? (
+              <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+                {shortcutLabel}
+              </span>
+            ) : null}
             {item.badge ? (
               <span className="bolt-project-ide-rail-badge" aria-hidden>
                 {formatRailBadgeValue(item.badge, language)}
               </span>
             ) : null}
+          </button>
+        </HeaderTip>
+      );
+    };
+
+    /**
+     * RPL-IDE-001.5 — "All tools" at the foot of the dock. The searchable popup
+     * existed only behind the tab strip's "+", which meant the dock could reach
+     * nine tools and nothing else. Opening it in `tools` mode lists the full
+     * catalog and each result opens in a tab of the active pane.
+     */
+    const renderIdeRailAllToolsItem = () => {
+      const label = t('baseChatAst.tool.allTools');
+      const tooltip = `${label} · ${formatKeybindingCombo('cmd+t')}`;
+
+      return (
+        <HeaderTip label={tooltip} side="right">
+          <button
+            type="button"
+            className="bolt-project-ide-rail-item bolt-project-ide-rail-item-all-tools"
+            aria-label={label}
+            aria-haspopup="dialog"
+            aria-keyshortcuts="cmd+t"
+            title={tooltip}
+            data-vc-tooltip={tooltip}
+            data-testid="ide-dock-all-tools"
+            data-tone="neutral"
+            onClick={() => openCommandPalette('tools')}
+          >
+            <span className="i-ph:squares-four" aria-hidden />
+            <span className="bolt-project-ide-rail-label">{label}</span>
+            <span className="bolt-project-ide-rail-shortcut" aria-hidden>
+              {formatKeybindingCombo('cmd+t')}
+            </span>
           </button>
         </HeaderTip>
       );
@@ -8288,6 +8954,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         >
           <aside className="bolt-project-ide-rail" aria-label={t('chat.copy.workspaceTools_7b36c62b')}>
             <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
+            <div className="bolt-project-ide-rail-footer">{renderIdeRailAllToolsItem()}</div>
           </aside>
         </ZoneErrorBoundary>
         <PanelGroup direction="horizontal" className="bolt-project-panel-group">
@@ -8702,7 +9369,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                                     value0: checkpoint.title,
                                   })}
                                   onClick={() => {
-                                    setRollbackDatabase(false);
                                     setRollbackTarget(checkpoint);
                                   }}
                                 >
@@ -8787,37 +9453,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             kind: 'file' as const,
             filePath,
           })),
-          ...[
-            ['files', formatKeybindingCombo('cmd+p')],
-            ['search', ''],
-            ['terminal', formatKeybindingCombo('cmd+`')],
-            ['preview', formatKeybindingCombo('cmd+enter')],
-            ['database', ''],
-            ['object-storage', ''],
-            ['env', ''],
-            ['secrets', ''],
-            ['git', ''],
-            ['packages', ''],
-            ['skills', ''],
-            ['integrations', ''],
-            ['workflows', ''],
-            ['deployments', ''],
-            ['security', ''],
-            ['monitoring', ''],
-            ['ports', ''],
-            ['extensions', ''],
-            ['snapshots', ''],
-            ['settings', formatKeybindingCombo('cmd+,')],
-          ].map(([panel, shortcut]) => ({
-            id: `tool:${panel}`,
-            section: t('baseChatAst.common.tools'),
-            title: panelTitle(panel, t),
-            description: t(IDE_TOOL_DESCRIPTIONS[panel as keyof typeof IDE_TOOL_DESCRIPTIONS]),
-            shortcut,
-            icon: panelIcon(panel),
-            kind: 'tool' as const,
-            panel: panel as IdeWorkspacePanel | IdeRightPanel,
-          })),
+
+          /*
+           * RPL-IDE-001.5 — driven by the shared catalog, so the palette lists
+           * EVERY Project Editor tool. The previous hand-written list stopped at
+           * 20 of 29: `studio`, `domains`, `locks`, `overview`, `logs`,
+           * `activity`, `collaborators`, `debugger` and `editor` were rendered
+           * as panels but could not be reached from here at all.
+           */
+          ...projectEditorToolList().map((tool) => {
+            const shortcut = PROJECT_EDITOR_TOOL_SHORTCUTS[tool.id];
+
+            return {
+              id: `tool:${tool.id}`,
+              section: t('baseChatAst.common.tools'),
+              title: panelTitle(tool.id, t),
+              description: t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+              shortcut: shortcut ? formatKeybindingCombo(shortcut) : '',
+              icon: tool.icon,
+              kind: 'tool' as const,
+              panel: tool.id as IdeWorkspacePanel | IdeRightPanel,
+            };
+          }),
           ...[
             ['run', t('baseChatAst.command.runApp'), t('baseChatAst.command.runAppDescription'), ''],
             ['stop', t('baseChatAst.command.stopApp'), t('baseChatAst.command.stopAppDescription'), ''],
@@ -8923,7 +9580,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             void workbenchStore.startPreviewServer();
           } else if (entry.command === 'stop') {
-            void workbenchStore.stopPreviewServer();
+            void workbenchStore.stopPreviewServer({ raison: 'utilisateur' });
 
             if (useMobileIde) {
               activateMobileTool('logs');
@@ -8957,8 +9614,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
 
-    const mobileHeaderTab = ECODE_MOBILE_TAB_META[activeMobileOpenTabId] ??
-      ECODE_MOBILE_TAB_META[mobilePanel === 'chat' ? 'agent' : mobilePanel] ?? {
+    const mobileHeaderTab = ECODE_MOBILE_TAB_META[outilCanonique(activeMobileOpenTabId)] ??
+      ECODE_MOBILE_TAB_META[outilCanonique(mobilePanel)] ?? {
         id: activeMobileOpenTabId,
         name: panelTitle(activeMobileOpenTabId),
         icon: panelIcon(activeMobileOpenTabId),
@@ -8968,13 +9625,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeMobileOpenTabId === 'agent' ||
       activeMobileOpenTabId === 'assistant' ||
       activeMobileOpenTabId === 'actions';
+
+    /*
+     * L'en-tête dérive du panneau de service RÉSOLU, pas de `activeMobileOpenTabId`
+     * (état d'onglet monté plus tard) : c'est ce décalage qui produisait
+     * `?panel=studio` → Vue d'ensemble et `?panel=debugger` → Git à froid.
+     */
     const mobileServiceHeaderTab =
-      useMobileIde && mobilePanel === 'deploy' && activeMobileOpenTabId ? mobileHeaderTab : undefined;
+      useMobileIde && mobilePanel === 'deploy'
+        ? (ECODE_MOBILE_TAB_META[outilCanonique(activeMobileServicePanel)] ?? {
+            id: activeMobileServicePanel,
+            name: panelTitle(activeMobileServicePanel, t),
+            icon: panelIcon(activeMobileServicePanel),
+          })
+        : undefined;
     const mobileMoreMenuItems = useMemo(
       () =>
         ECODE_MOBILE_MORE_ITEMS.map((itemId) => {
           const tool = ECODE_MOBILE_TOOLS.find((item) => item.id === itemId);
-          const meta = ECODE_MOBILE_TAB_META[itemId];
+          const meta = ECODE_MOBILE_TAB_META[outilCanonique(itemId)];
 
           return {
             id: itemId,
@@ -9145,8 +9814,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-project-command-palette"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.commandPalette_7b6b539e')}
+              data-mode={commandPaletteMode}
+              data-testid={commandPaletteMode === 'spotlight' ? 'project-spotlight' : 'project-command-palette'}
+              aria-label={
+                commandPaletteMode === 'spotlight'
+                  ? t('baseChatAst.spotlight.title')
+                  : t('chat.copy.commandPalette_7b6b539e')
+              }
             >
+              {/*
+                RPL-IDE-001.8 — Spotlight is project-scoped, so it names the
+                project it is searching. Without this header it is just the
+                command palette under another trigger.
+              */}
+              {commandPaletteMode === 'spotlight' ? (
+                <header className="bolt-project-spotlight-head" data-testid="project-spotlight-head">
+                  <span className="i-ph:magic-wand" aria-hidden />
+                  <span>
+                    <strong>{spotlightProjectName}</strong>
+                    <small>{t('baseChatAst.spotlight.subtitle')}</small>
+                  </span>
+                </header>
+              ) : null}
               <input
                 type="text"
                 autoFocus={commandPaletteAutoFocus}
@@ -9673,7 +10362,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           data-testid={`button-close-tab-${tab.id}`}
                           onClick={() => closeMobileOpenTab(tab.id)}
                         >
-                          <span className="i-ph:x" aria-hidden />
+                          {/*
+                           * La pastille et la glyphe sont deux éléments : l'icône est un
+                           * MASQUE, dont la couleur de trait est sa `background-color`.
+                           * Peindre la pastille sur l'icône elle-même peignait la croix
+                           * en couleur de fond — blanche en thème clair (BUG-TAB-CLOSE-CONTRAST-001).
+                           */}
+                          <span className="bolt-mobile-tab-switcher-close-chip">
+                            <span className="i-ph:x" aria-hidden />
+                          </span>
                         </button>
                       ) : null}
                     </div>
@@ -9692,7 +10389,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
                 >
                   {['secrets', 'database', 'settings'].map((toolId) => {
-                    const tool = ECODE_MOBILE_TAB_META[toolId];
+                    const tool = ECODE_MOBILE_TAB_META[outilCanonique(toolId)];
 
                     return (
                       <button
@@ -10050,12 +10747,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   {statusbarDiagnostics.warnings}
                 </span>
               </button>
+              {/*
+               * BUG-CREATE-002 — le rejet de quota n'était signalé que par un « ! »
+               * posé sur ce bouton, dont le clic ouvrait la vue « terminal » : le
+               * Shell, où le message n'est pas rendu. Le diagnostic est pourtant
+               * bien poussé dans le panneau PROBLÈMES (diagnostics.ts:248). On route
+               * donc le clic vers la vue qui contient réellement le message, et on
+               * met ce message dans l'infobulle pour qu'il soit lisible sans ouvrir
+               * quoi que ce soit.
+               */}
               <button
                 type="button"
                 className="bolt-project-statusbar-pill bolt-project-statusbar-workspace"
-                onClick={() => openBottomTerminal('terminal')}
-                title={workspaceStatusTitle}
-                aria-label={workspaceStatusTitle || t('chat.copy.openWorkspaceTerminal_b039db9a')}
+                onClick={() => openBottomTerminal(quotaWarning || billingUpgradePrompt ? 'problems' : 'terminal')}
+                title={quotaWarning || workspaceStatusTitle}
+                aria-label={quotaWarning || workspaceStatusTitle || t('chat.copy.openWorkspaceTerminal_b039db9a')}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
@@ -10257,65 +10963,69 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             role="dialog"
             aria-modal="true"
             aria-labelledby="rollback-title"
+            data-testid="rollback-dialog"
           >
+            {/*
+             * RP-CKPT-05 — la feuille de Replit (capture d'Avi du 08/09, 07:51) :
+             * un titre, le message du commit et sa date, « What will be
+             * impacted » en trois blocs — Files / Database / Agent memory —,
+             * puis Cancel et un bouton bleu. Pas de case à cocher, pas de
+             * capture d'écran fictive : chaque ligne annonce quelque chose que
+             * le serveur fait vraiment (fichiers, base via PITR, mémoire
+             * archivée après le point).
+             */}
             <div className="bolt-project-rollback-dialog">
+              <button
+                type="button"
+                className="bolt-project-rollback-fermer"
+                onClick={() => setRollbackTarget(null)}
+                disabled={rollbackBusy}
+                aria-label={getFinDeTourCopy(language)['finDeTour.rollbackDialog.close']}
+              >
+                <span className="i-ph:x" aria-hidden />
+              </button>
               <div className="bolt-project-rollback-body">
-                <h2 id="rollback-title">{t('chat.copy.rollbackToCheckpoint_b3cc16a0')}</h2>
-                {/*
-                 * No per-checkpoint screenshot is captured or stored, so a static
-                 * 'Screenshot — Preview expired' placeholder would misrepresent the
-                 * state being reverted to in this destructive confirmation. Only
-                 * truthful checkpoint metadata is shown below.
-                 */}
-                <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.targetCheckpoint_8dfbabe1')}</span>
+                <h2 id="rollback-title">{getFinDeTourCopy(language)['finDeTour.rollbackDialog.title']}</h2>
+                <section className="bolt-project-rollback-cible">
                   <h3>{rollbackTarget.title}</h3>
                   <p>{rollbackTarget.description}</p>
-                  <small>
-                    {rollbackTarget.ageLabel}
-                    {rollbackTarget.commitSha ? ` • ${rollbackTarget.commitSha}` : ''}
-                  </small>
                 </section>
                 <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.whatWillBeImpacted_e370579d')}</span>
-                  <div className="bolt-project-rollback-impact">
-                    <strong>{t('chat.copy.files_6ce6c512')}</strong>
+                  <h4 className="bolt-project-rollback-impact-titre">
+                    {getFinDeTourCopy(language)['finDeTour.rollbackDialog.impact']}
+                  </h4>
+                  <div className="bolt-project-rollback-impact" data-testid="rollback-impact">
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.files']}</strong>
                     {rollbackTarget.snapshot?.id ? (
-                      <p>{t('chat.copy.allFilesInYourAppWill_216ac181')}</p>
+                      <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.filesDetail']}</p>
                     ) : (
                       <p>{t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0')}</p>
                     )}
-                    <strong>{t('chat.copy.agentMemory_bcf5354f')}</strong>
-                    <p>{t('chat.copy.theAgentSMemoryWillReset_1cccfbd1')}</p>
-                    <strong>{t('chat.copy.tasks_090ec5f5')}</strong>
-                    <p>{t('chat.copy.allInProgressTasksWillFinish_8502f56c')}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.database']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.databaseDetail']}</p>
+                    <strong>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memory']}</strong>
+                    <p>{getFinDeTourCopy(language)['finDeTour.rollbackDialog.memoryDetail']}</p>
                   </div>
-                </section>
-                <section>
-                  <span className="bolt-project-rollback-label">
-                    {t('chat.copy.additionalRollbackOptions_0a728603')}
-                  </span>
-                  <label className="bolt-project-rollback-option">
-                    <input
-                      type="checkbox"
-                      checked={rollbackDatabase}
-                      onChange={(event) => setRollbackDatabase(event.currentTarget.checked)}
-                    />
-                    <span>
-                      <strong>{t('chat.copy.database_61074f1c')}</strong>
-                      <small>{t('chat.copy.yourDevelopmentDatabaseWillBeRestored_5db4609a')}</small>
-                    </span>
-                  </label>
                 </section>
               </div>
               <footer>
-                <button type="button" onClick={() => setRollbackTarget(null)} disabled={rollbackBusy}>
-                  {t('chat.copy.cancel_77dfd213')}
+                <button
+                  type="button"
+                  onClick={() => setRollbackTarget(null)}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-cancel"
+                >
+                  {getFinDeTourCopy(language)['finDeTour.rollbackDialog.cancel']}
                 </button>
-                <button type="button" onClick={confirmProjectRollback} disabled={rollbackBusy}>
+                <button
+                  type="button"
+                  onClick={confirmProjectRollback}
+                  disabled={rollbackBusy}
+                  data-testid="rollback-confirm"
+                >
                   {rollbackBusy
-                    ? t('chat.copy.rollingBack_1accbd2a')
-                    : t('chat.copy.rollbackToThisCheckpoint_7d8b2a6c')}
+                    ? getFinDeTourCopy(language)['finDeTour.rollbackDialog.busy']
+                    : getFinDeTourCopy(language)['finDeTour.rollbackDialog.confirm']}
                 </button>
               </footer>
             </div>
@@ -10396,41 +11106,6 @@ const PROJECT_PANEL_FETCH_BASE_RETRY_MS = 650;
  * appears when the load is genuinely stuck (e.g. the workspace is still booting).
  */
 const PROJECT_PANEL_SLOW_LOAD_MS = 7000;
-
-/*
- * In-memory cache of the last successful payload per `${projectId}:${panel}`.
- * Panels are keyed by panel name in the workbench, so switching tabs unmounts
- * and remounts ProjectIdeServicePanel — without this, returning to a tab would
- * re-flash the loading skeleton every time. Seeding from this cache lets a
- * revisited tab render its previous content immediately while it refreshes
- * silently in the background. Bounded so it can't grow without limit.
- */
-const PROJECT_PANEL_CACHE_MAX = 60;
-const projectPanelPayloadCache = new Map<string, { payload: any; lastLoadedAt: string }>();
-
-function readProjectPanelCache(key: string | undefined) {
-  return key ? projectPanelPayloadCache.get(key) : undefined;
-}
-
-function writeProjectPanelCache(key: string | undefined, entry: { payload: any; lastLoadedAt: string }) {
-  if (!key) {
-    return;
-  }
-
-  // Refresh insertion order (Map preserves it) so the oldest key evicts first.
-  projectPanelPayloadCache.delete(key);
-  projectPanelPayloadCache.set(key, entry);
-
-  while (projectPanelPayloadCache.size > PROJECT_PANEL_CACHE_MAX) {
-    const oldest = projectPanelPayloadCache.keys().next().value;
-
-    if (oldest === undefined) {
-      break;
-    }
-
-    projectPanelPayloadCache.delete(oldest);
-  }
-}
 
 function projectPanelFetchMethod(init?: RequestInit) {
   return (init?.method ?? 'GET').toUpperCase();
@@ -10731,10 +11406,40 @@ function ProjectIdeApiServicePanel({
     });
   }, [collaborationRealtime.snapshot, panel]);
 
-  async function submit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — CE GESTIONNAIRE REÇOIT DEUX CHOSES,
+   * et il n'en acceptait qu'une.
+   *
+   * Les formulaires du panneau l'appellent avec un ÉVÉNEMENT React. Mais les
+   * gestes de la carte « Gérer votre application » — annuler, republier,
+   * revenir en arrière — l'appellent DIRECTEMENT avec un `FormData` déjà
+   * rempli. Or `FormData` n'a pas de `preventDefault` : la toute première
+   * instruction levait un `TypeError`.
+   *
+   * ET CE TypeError ÉTAIT INVISIBLE, pour deux raisons qui s'additionnent :
+   * la fonction est `async`, donc le throw devient une promesse rejetée au
+   * lieu de remonter dans le gestionnaire de clic ; et l'appelant ne faisait
+   * ni `await` ni `.catch`. Résultat : quatre boutons morts, sans un seul
+   * message à l'écran — « aucun bouton fonctionne » (Avi).
+   *
+   * ⚠️ DONT LE MIEN. Le correctif de BUG-PUBLISH-NOOP-001, ce matin, a retiré
+   * le `setTab('manage')` et mis un vrai envoi à la place. Le bouton a donc
+   * cessé de changer d'onglet — et n'a rien déclenché non plus. J'ai déplacé
+   * le défaut au lieu de le corriger, et ma garde ne l'a pas vu parce qu'elle
+   * vérifiait le CÂBLAGE dans la source sans jamais EXÉCUTER l'appel.
+   *
+   * Ce que le type disait déjà, et que personne n'a lu : `ProjectIdePanelContent`
+   * déclare bien `(event: React.FormEvent<HTMLFormElement>) => void`, mais
+   * `ProjectDeploymentsPanel` re-déclarait la même prop `any` — le `any`
+   * éteignait la seule vérification qui aurait attrapé l'écart à la
+   * construction.
+   */
+  async function submit(entree: React.FormEvent<HTMLFormElement> | FormData) {
+    const formulaire = entree instanceof FormData ? null : entree.currentTarget;
 
-    const form = event.currentTarget;
+    if (formulaire) {
+      (entree as React.FormEvent<HTMLFormElement>).preventDefault();
+    }
 
     if (!projectId) {
       return;
@@ -10744,7 +11449,15 @@ function ProjectIdeApiServicePanel({
     setError(undefined);
     setActionNotice(t('baseChatAst.panel.submitting'));
 
-    const formData = new FormData(form);
+    /*
+     * BUG-GIT-001 — l'intention voyage sur le BOUTON d'envoi, et
+     * `new FormData(form)` ne la contient pas. Sans cet appel, tout panneau
+     * dont l'action est portée par un `<button name="intent">` envoyait une
+     * intention vide et recevait un `200` sans que rien ne se passe.
+     */
+    const formData =
+      entree instanceof FormData ? entree : donneesDuFormulaire(entree as React.FormEvent<HTMLFormElement>);
+
     const intent = String(formData.get('intent') ?? 'default');
 
     try {
@@ -10796,8 +11509,9 @@ function ProjectIdeApiServicePanel({
         setActionNotice(formatProjectPanelActionNotice(t, intent));
       }
 
-      if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
-        form.reset();
+      // Il n'y a rien à réinitialiser quand l'appel ne vient pas d'un formulaire.
+      if (formulaire && shouldResetIdePanelFormAfterSubmit(panel, intent)) {
+        formulaire.reset();
       }
 
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
@@ -10972,7 +11686,7 @@ function ConfirmSubmitForm({
   children,
   ...formProps
 }: Omit<React.FormHTMLAttributes<HTMLFormElement>, 'onSubmit' | 'title'> & {
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   title: string;
   description: string;
   confirmLabel: string;
@@ -11398,7 +12112,8 @@ function ProjectProblemsPanel() {
                       </button>
                     ) : null}
                   </div>
-                  <p>{diagnostic.message}</p>
+                  {/* Une erreur d'exécution arrive en JSON brut (capture iPhone 06/09 10:36) : la même lecture que le Débogueur. */}
+                  <p>{ligneRuntimeLisible(String(diagnostic.message ?? '')).texte}</p>
                   {diagnostic.detail ? <pre>{diagnostic.detail}</pre> : null}
                 </div>
               </li>
@@ -11448,12 +12163,10 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(() => new Set(['.', '/workspace']));
-  const [showEnvForm, setShowEnvForm] = useState(false);
   const [showSshForm, setShowSshForm] = useState(false);
   const [showKeygenForm, setShowKeygenForm] = useState(false);
   const [showScriptForm, setShowScriptForm] = useState(false);
   const [customScript, setCustomScript] = useState('');
-  const [revealedSecrets, setRevealedSecrets] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const data = payload?.data ?? {};
   const envVars = data.envVars ?? [];
@@ -11524,6 +12237,66 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     void loadPanel();
   }, [loadPanel]);
 
+  /*
+   * R-2 — the Environment tab hosts the REAL env/secrets panels, whose forms
+   * must reach their own endpoints (`/ide-panel/env`, `/ide-panel/secrets`),
+   * not the terminal's. Same submit contract as `submit` below, only the target
+   * panel changes; the terminal payload is reloaded afterwards so the mounted
+   * panels see the write they just made.
+   */
+  function submitToPanel(panel: 'env' | 'secrets' | 'ports') {
+    return async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!projectId) {
+        return;
+      }
+
+      const form = event.currentTarget;
+      setBusy(true);
+      setError(undefined);
+      setMessage('');
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}/ide-panel/${panel}`, {
+          method: 'POST',
+          body: donneesDuFormulaire(event),
+        });
+
+        const result = (await response.json().catch(() => ({}))) as any;
+
+        if (!response.ok) {
+          console.warn('Environment action request failed', {
+            panel,
+            status: response.status,
+            serverError: result.error,
+          });
+          setError(t('baseChatAst.terminal.actionFailedHttp', { status: response.status }));
+
+          return;
+        }
+
+        form.reset();
+
+        /*
+         * ProjectEnvPanel clears its controlled key/value inputs on this event
+         * (a DOM-level form.reset() cannot), so it has to fire here too or the
+         * form stays populated and the next create re-submits the old key.
+         */
+        window.dispatchEvent(
+          new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent: 'upsert', ok: true } }),
+        );
+        setMessage(t('baseChatAst.terminal.actionApplied'));
+        await loadPanel();
+      } catch (requestError) {
+        console.error('Environment action request failed', requestError);
+        setError(t('baseChatAst.terminal.actionFailed'));
+      } finally {
+        setBusy(false);
+      }
+    };
+  }
+
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -11539,7 +12312,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     try {
       const response = await fetch(`/api/projects/${projectId}/ide-panel/terminal`, {
         method: 'POST',
-        body: new FormData(form),
+        body: donneesDuFormulaire(event),
       });
 
       const result = (await response.json().catch(() => ({}))) as any;
@@ -11555,7 +12328,6 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       }
 
       form.reset();
-      setShowEnvForm(false);
       setShowSshForm(false);
       setShowKeygenForm(false);
       setShowScriptForm(false);
@@ -11589,49 +12361,6 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
 
       return next;
     });
-  }
-
-  async function copyValue(value: string, label: string) {
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.terminal.valueCopied', { label }));
-    } catch (error) {
-      console.error('Terminal value copy failed', error);
-      setError(t('baseChatAst.clipboard.copyFailed'));
-    }
-  }
-
-  async function revealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    if (revealedSecrets[key]) {
-      setRevealedSecrets((current) => {
-        const next = { ...current };
-        delete next[key];
-
-        return next;
-      });
-      return;
-    }
-
-    const response = await fetch(
-      `/api/projects/${projectId}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(key)}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-
-    if (!response.ok || !result || result.status === 'error') {
-      console.warn('Terminal secret reveal failed', { status: response.status, serverError: result?.error });
-      setError(t('baseChatAst.terminal.revealFailed'));
-
-      return;
-    }
-
-    const secret = result.data?.secrets?.find((item: any) => item.key === key);
-    setRevealedSecrets((current) => ({ ...current, [key]: secret?.value ?? '' }));
   }
 
   function renderFileTree(nodes: any[], depth = 0) {
@@ -11902,91 +12631,38 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             </section>
           )}
 
+          {/*
+           * R-2 — one implementation, mounted here.
+           *
+           * This tab used to carry its OWN env/secrets CRUD: a second set of
+           * forms writing the same `/projects/:id/env-vars` and
+           * `/projects/:id/secrets` endpoints as the Env vars and Secrets
+           * tools. It was not merely redundant, it DIVERGED — the terminal
+           * panel's `add-env`/`delete-env` sent no `scope`, and the store
+           * defaults an omitted scope to production
+           * (`prisma-store.upsertProjectEnvVar` / `deleteProjectEnvVar`). So
+           * this tab listed variables from EVERY scope undifferentiated, then
+           * wrote and deleted only the production row: deleting a
+           * preview-scoped `API_URL` from here silently removed the
+           * PRODUCTION one instead — or nothing, leaving the clicked row on
+           * screen. It also keyed the list on `envVar.key`, which collides in
+           * React as soon as one key exists in two scopes.
+           *
+           * Mounting the real panels keeps everything this tab offered — env
+           * vars AND secrets side by side, which the dedicated tools show
+           * separately — and gains what it never had: scope selection, search,
+           * diff, and .env import.
+           */}
           {activeTab === 'environment' && (
             <section className="bolt-terminal-card" data-testid="card-env-vars">
-              <div className="bolt-terminal-section-head">
-                <div>
-                  <strong>{t('chat.copy.environmentVariables_ec072bba')}</strong>
-                  <small>{t('chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da')}</small>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowEnvForm((value) => !value)}
-                  data-testid="button-add-env-var"
-                >
-                  {t('chat.copy.addVariable_4c2707bc')}
-                </button>
-              </div>
-              {showEnvForm ? (
-                <form onSubmit={submit} className="bolt-terminal-env-form" data-testid="dialog-add-env">
-                  <input type="hidden" name="intent" value="add-env" />
-                  <PanelInput
-                    name="key"
-                    placeholder={t('chat.copy.myVariable_7d794385')}
-                    required
-                    data-testid="input-env-key"
-                  />
-                  <PanelInput name="value" placeholder={t('chat.copy.value_8dce170d')} data-testid="input-env-value" />
-                  <select name="isSecret" defaultValue="false" data-testid="switch-env-secret">
-                    <option value="false">{t('chat.copy.plainVariable_dd1fe819')}</option>
-                    <option value="true">{t('chat.copy.encryptedSecret_0cdff4dc')}</option>
-                  </select>
-                  <PanelButton disabled={busy} data-testid="button-save-env">
-                    {t('chat.copy.saveVariable_568937f7')}
-                  </PanelButton>
-                </form>
-              ) : null}
-              <div className="bolt-terminal-env-list">
-                {envVars.map((envVar: any) => (
-                  <article key={envVar.key} data-testid={`env-var-${envVar.key}`}>
-                    <span className="i-ph:brackets-curly" aria-hidden />
-                    <div>
-                      <strong>{envVar.key}</strong>
-                      <small>{envVar.value || t('chat.copy.emptyValue_2464254a')}</small>
-                    </div>
-                    <button type="button" onClick={() => void copyValue(envVar.value ?? '', envVar.key)}>
-                      {t('chat.copy.copy_af74f7c5')}
-                    </button>
-                    <form onSubmit={submit}>
-                      <input type="hidden" name="intent" value="delete-env" />
-                      <input type="hidden" name="key" value={envVar.key} />
-                      <input type="hidden" name="isSecret" value="false" />
-                      <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
-                      </PanelButton>
-                    </form>
-                  </article>
-                ))}
-                {secrets.map((secret: any) => (
-                  <article key={secret.key} data-testid={`env-var-${secret.key}`}>
-                    <span className="i-ph:lock" aria-hidden />
-                    <div>
-                      <strong>{secret.key}</strong>
-                      <small>{revealedSecrets[secret.key] ?? '••••••••'}</small>
-                    </div>
-                    <button type="button" onClick={() => void revealSecret(secret.key)}>
-                      {revealedSecrets[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => void copyValue(revealedSecrets[secret.key] ?? secret.key, secret.key)}
-                    >
-                      {t('chat.copy.copy_af74f7c5')}
-                    </button>
-                    <form onSubmit={submit}>
-                      <input type="hidden" name="intent" value="delete-env" />
-                      <input type="hidden" name="key" value={secret.key} />
-                      <input type="hidden" name="isSecret" value="true" />
-                      <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
-                      </PanelButton>
-                    </form>
-                  </article>
-                ))}
-                {!envVars.length && !secrets.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noEnvironmentVariables_6b838fa1')}</div>
-                ) : null}
-              </div>
+              <ProjectEnvPanel data={{ envVars }} onSubmit={submitToPanel('env')} busy={busy} />
+              <ProjectSecretsPanel
+                projectId={projectId}
+                data={{ secrets }}
+                onSubmit={submitToPanel('secrets')}
+                busy={busy}
+                reload={loadPanel}
+              />
             </section>
           )}
 
@@ -12095,21 +12771,27 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                   <div className="bolt-project-empty-panel">{t('chat.copy.noRuntimeProcessesReported_f02fbd04')}</div>
                 ) : null}
               </div>
-              <div className="bolt-terminal-port-grid">
-                {runtimePorts.map((port: any) => (
-                  <a key={port.port} href={port.url} target="_blank" rel="noreferrer">
-                    <span className="i-ph:link" aria-hidden />
-                    {t('chat.copy.port_fe035157')}
-                    {port.port}
-                    <small>
-                      {port.ready === false ? t('chat.copy.notReady_970258df') : t('chat.copy.ready_75c05337')}
-                    </small>
-                  </a>
-                ))}
-                {!runtimePorts.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noPreviewPortsOpen_fb7dda37')}</div>
-                ) : null}
-              </div>
+              {/*
+               * R-3 — one ports implementation, mounted here.
+               *
+               * This tab used to re-render the port list itself from the very
+               * same `runtimePortsFromPayload` helper the Ports tool uses, so
+               * the same data had two renderers — and the copy here was the
+               * poorer one: a bare link per port, with no primary-port
+               * selection and no public/private toggle, the two things that
+               * actually change how a port behaves. Mounting the real panel
+               * removes the second renderer AND gives this tab the controls it
+               * never had.
+               *
+               * The process list above stays: it is this panel's own, no tool
+               * duplicates it.
+               */}
+              <ProjectPortsPanel
+                data={{ ports: runtimePorts, portsState: data.portsState }}
+                projectId={projectId}
+                onSubmit={submitToPanel('ports')}
+                busy={busy}
+              />
             </section>
           )}
         </main>
@@ -12368,7 +13050,12 @@ function IdeTabBar({
   onToggleFloating,
   onOpenNewWindow,
   isFloating,
-  onSwapTab,
+  onMoveTab,
+  paneId,
+  onClosePane,
+  onResetLayout,
+  onMoveTabToPane,
+  otherPanes = [],
   onDragEnd,
   onTogglePin,
   recentFiles = [],
@@ -12401,7 +13088,28 @@ function IdeTabBar({
   onToggleFloating?: () => void;
   onOpenNewWindow?: (tabId?: string) => void;
   isFloating?: boolean;
-  onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
+
+  /**
+   * RPL-IDE-001.4 — move `sourceTabId` out of `sourcePaneId` into THIS pane at
+   * `toIndex`, the slot in this pane's current tab array ("insert before the tab
+   * at index i"; omit to append). Same-pane calls are a reorder.
+   */
+  onMoveTab?: (sourcePaneId: string, sourceTabId: string, toIndex?: number) => void;
+
+  /** Id of the pane owning this strip — the drag payload's destination. */
+  paneId?: string;
+
+  /** RPL-IDE-001.6 — Pane scope: close this pane entirely (its tabs go with it). */
+  onClosePane?: () => void;
+
+  /** RPL-IDE-001.6 — Window scope: restore the default single-pane layout. */
+  onResetLayout?: () => void;
+
+  /** RPL-IDE-001.6 — Tab scope: keyboard equivalent of dragging the tab to another pane. */
+  onMoveTabToPane?: (targetPaneId: string) => void;
+
+  /** Panes other than this one, as move destinations. */
+  otherPanes?: Array<{ id: string; label: string }>;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
@@ -12411,7 +13119,16 @@ function IdeTabBar({
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
+
+  /**
+   * RPL-IDE-001.4 — insertion slot under the pointer during a tab drag, drawn as
+   * a caret between two tabs so the drop position is visible before releasing
+   * (Replit/Cursor behaviour). `null` = no drag over this strip.
+   */
+  const [dropSlot, setDropSlot] = useState<number | null>(null);
   const addTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
   const commandPaletteShortcut = formatKeybindingCombo('cmd+k');
 
@@ -12429,6 +13146,151 @@ function IdeTabBar({
     setToolQuery('');
     setOpen(true);
   }, []);
+
+  /*
+   * RPL-IDE-001.6 — the menu is portalled to <body> and positioned from the
+   * trigger's rect. It cannot stay in the normal flow: between the ⋮ button and
+   * the document there are NINE `overflow: hidden` ancestors, the innermost of
+   * them the 40 px-tall tab bar, so the menu was clipped to a single visible
+   * item. (Playwright treats a clipped element as visible — it has a non-empty
+   * box — which is why automated checks never caught it; only a screenshot did.)
+   */
+  const [actionsAnchor, setActionsAnchor] = useState<{ top: number; right: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!actionsOpen) {
+      setActionsAnchor(null);
+
+      return undefined;
+    }
+
+    const place = () => {
+      const rect = actionsButtonRef.current?.getBoundingClientRect();
+
+      if (rect) {
+        setActionsAnchor({ top: rect.bottom + 4, right: Math.max(8, window.innerWidth - rect.right) });
+      }
+    };
+
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+
+    return () => {
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [actionsOpen]);
+
+  const closeOptionsMenu = useCallback((options: { restoreFocus?: boolean } = {}) => {
+    setActionsOpen(false);
+
+    if (options.restoreFocus) {
+      window.requestAnimationFrame(() => actionsButtonRef.current?.focus());
+    }
+  }, []);
+
+  /** Run a menu action, then close and hand focus back to the trigger. */
+  const runOptionsAction = useCallback(
+    (action: () => void) => {
+      action();
+      closeOptionsMenu({ restoreFocus: true });
+    },
+    [closeOptionsMenu],
+  );
+
+  /*
+   * RPL-IDE-001.6 — menu keyboard model. Roving focus over the live
+   * `[role="menuitem"]` list rather than a precomputed index, so the wrapping
+   * stays correct however many items the current pane/window state renders
+   * (Float vs Dock, per-pane Move entries, optional Reset layout).
+   */
+  const handleOptionsMenuKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      const items = Array.from(actionsMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? []);
+
+      if (!items.length) {
+        return;
+      }
+
+      const currentIndex = items.findIndex((item) => item === document.activeElement);
+
+      const focusAt = (index: number) => {
+        event.preventDefault();
+        items[(index + items.length) % items.length]?.focus();
+      };
+
+      if (event.key === 'ArrowDown') {
+        focusAt(currentIndex + 1);
+      } else if (event.key === 'ArrowUp') {
+        focusAt(currentIndex <= 0 ? items.length - 1 : currentIndex - 1);
+      } else if (event.key === 'Home') {
+        focusAt(0);
+      } else if (event.key === 'End') {
+        focusAt(items.length - 1);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptionsMenu({ restoreFocus: true });
+      } else if (event.key === 'Tab') {
+        // Tabbing out of a menu closes it, as in every native menu.
+        closeOptionsMenu();
+      }
+    },
+    [closeOptionsMenu],
+  );
+
+  /* Focus the first item on open, and close on an outside pointer press. */
+  useEffect(() => {
+    if (!actionsOpen) {
+      return undefined;
+    }
+
+    window.requestAnimationFrame(() =>
+      actionsMenuRef.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus(),
+    );
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && (actionsMenuRef.current?.contains(target) || actionsButtonRef.current?.contains(target))) {
+        return;
+      }
+
+      closeOptionsMenu();
+    };
+
+    /*
+     * Escape is handled on the window in the CAPTURE phase, not by the menu's
+     * own onKeyDown.
+     *
+     * Two things defeat the obvious approaches, both established by measuring
+     * the live IDE at 1440 rather than by reasoning: the menu is portalled to
+     * <body>, i.e. outside React's root container, so its React `onKeyDown`
+     * does not reliably receive the event; and the project-wide keybinding
+     * handler already owns Escape (`overlay.close`) and consumes it first, so a
+     * bubble-phase window listener never ran either — the menu stayed open with
+     * exactly one trigger and one menu node in the DOM.
+     *
+     * Capture runs before both, and closing the topmost menu is the correct
+     * precedence for Escape anyway.
+     */
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        closeOptionsMenu({ restoreFocus: true });
+      }
+    };
+
+    window.addEventListener('keydown', handleEscape, true);
+    document.addEventListener('pointerdown', handlePointerDown, true);
+
+    return () => {
+      window.removeEventListener('keydown', handleEscape, true);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+    };
+  }, [actionsOpen, closeOptionsMenu]);
 
   useEffect(() => {
     if (!open) {
@@ -12463,224 +13325,27 @@ function IdeTabBar({
     };
   }, [closeToolMenu, open]);
 
-  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    [
-      'overview',
-      panelTitle('overview', t),
-      t(IDE_TOOL_DESCRIPTIONS.overview),
-      panelIcon('overview'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'editor',
-      panelTitle('editor', t),
-      t(IDE_TOOL_DESCRIPTIONS.editor),
-      panelIcon('editor'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'files',
-      panelTitle('files', t),
-      t(IDE_TOOL_DESCRIPTIONS.files),
-      panelIcon('files'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'search',
-      panelTitle('search', t),
-      t(IDE_TOOL_DESCRIPTIONS.search),
-      panelIcon('search'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'locks',
-      panelTitle('locks', t),
-      t(IDE_TOOL_DESCRIPTIONS.locks),
-      panelIcon('locks'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'terminal',
-      SHELL_TERMINAL_LABEL,
-      t(IDE_TOOL_DESCRIPTIONS.terminal),
-      panelIcon('terminal'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'logs',
-      panelTitle('logs', t),
-      t(IDE_TOOL_DESCRIPTIONS.logs),
-      panelIcon('logs'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'preview',
-      panelTitle('preview', t),
-      t(IDE_TOOL_DESCRIPTIONS.preview),
-      panelIcon('preview'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'database',
-      panelTitle('database', t),
-      t(IDE_TOOL_DESCRIPTIONS.database),
-      panelIcon('database'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'object-storage',
-      panelTitle('object-storage', t),
-      t(IDE_TOOL_DESCRIPTIONS['object-storage']),
-      panelIcon('object-storage'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'env',
-      panelTitle('env', t),
-      t(IDE_TOOL_DESCRIPTIONS.env),
-      panelIcon('env'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'secrets',
-      panelTitle('secrets', t),
-      t(IDE_TOOL_DESCRIPTIONS.secrets),
-      panelIcon('secrets'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'git',
-      panelTitle('git', t),
-      t(IDE_TOOL_DESCRIPTIONS.git),
-      panelIcon('git'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'packages',
-      panelTitle('packages', t),
-      t(IDE_TOOL_DESCRIPTIONS.packages),
-      panelIcon('packages'),
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'skills',
-      panelTitle('skills', t),
-      t(IDE_TOOL_DESCRIPTIONS.skills),
-      panelIcon('skills'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'integrations',
-      panelTitle('integrations', t),
-      t(IDE_TOOL_DESCRIPTIONS.integrations),
-      panelIcon('integrations'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'workflows',
-      panelTitle('workflows', t),
-      t(IDE_TOOL_DESCRIPTIONS.workflows),
-      panelIcon('workflows'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'debugger',
-      panelTitle('debugger', t),
-      t(IDE_TOOL_DESCRIPTIONS.debugger),
-      panelIcon('debugger'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'deployments',
-      panelTitle('deployments', t),
-      t(IDE_TOOL_DESCRIPTIONS.deployments),
-      panelIcon('deployments'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'security',
-      panelTitle('security', t),
-      t(IDE_TOOL_DESCRIPTIONS.security),
-      panelIcon('security'),
-      'var(--vc-ide-accent-error)',
-      t('baseChatAst.common.security'),
-    ],
-    [
-      'monitoring',
-      panelTitle('monitoring', t),
-      t(IDE_TOOL_DESCRIPTIONS.monitoring),
-      panelIcon('monitoring'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'ports',
-      panelTitle('ports', t),
-      t(IDE_TOOL_DESCRIPTIONS.ports),
-      panelIcon('ports'),
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'extensions',
-      panelTitle('extensions', t),
-      t(IDE_TOOL_DESCRIPTIONS.extensions),
-      panelIcon('extensions'),
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'snapshots',
-      panelTitle('snapshots', t),
-      t(IDE_TOOL_DESCRIPTIONS.snapshots),
-      panelIcon('snapshots'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'activity',
-      panelTitle('activity', t),
-      t(IDE_TOOL_DESCRIPTIONS.activity),
-      panelIcon('activity'),
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'collaborators',
-      panelTitle('collaborators', t),
-      t(IDE_TOOL_DESCRIPTIONS.collaborators),
-      panelIcon('collaborators'),
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'settings',
-      panelTitle('settings', t),
-      t(IDE_TOOL_DESCRIPTIONS.settings),
-      panelIcon('settings'),
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.configuration'),
-    ],
-  ];
+  /*
+   * RPL-IDE-001.5 — the All-tools list comes from the shared catalog, which is
+   * derived from the engine's `PROJECT_EDITOR_TOOLS`. It used to be 217 lines of
+   * hand-maintained tuples here that had drifted: `studio` (Agent Studio) and
+   * `domains` were rendered as real panels but appeared in no tool list, so they
+   * could not be opened from this popup at all.
+   */
+  const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> =
+    projectEditorToolsByCategory().flatMap(([category, categoryTools]) =>
+      categoryTools.map(
+        (tool) =>
+          [
+            tool.id as IdeWorkspacePanel | IdeRightPanel,
+            toolDisplayTitle(tool.id, t),
+            t(IDE_TOOL_DESCRIPTIONS[tool.id as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+            tool.icon,
+            tool.accent,
+            t(PROJECT_EDITOR_TOOL_CATEGORY_LABEL_KEYS[category] as never),
+          ] as [IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string],
+      ),
+    );
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
 
@@ -12816,29 +13481,66 @@ function IdeTabBar({
     </div>
   ) : null;
 
+  /*
+   * RPL-IDE-001.4 — `getData` is deliberately blocked during dragover by the
+   * HTML drag protocol (only `types` is readable), so the visual affordance is
+   * driven by the presence of our tab MIME type and the payload is read on drop.
+   */
+  /*
+   * RPL-IDE-001.6 — the trigger names the tab it acts on. "Tab actions" alone
+   * told a screen-reader user nothing about scope when several panes are open.
+   */
+  const optionsMenuActiveTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+
+  const optionsMenuLabel = optionsMenuActiveTab
+    ? t('baseChatAst.options.menuForTab', { label: optionsMenuActiveTab.label })
+    : t('chat.copy.tabActions_b7a78b89');
+
+  const isTabDrag = (event: React.DragEvent) => Boolean(onMoveTab) && isProjectEditorTabDrag(event.dataTransfer.types);
+
+  const clearDropSlot = () => setDropSlot(null);
+
+  const dropTabAt = (event: React.DragEvent, toIndex?: number) => {
+    const sourcePaneId = event.dataTransfer.getData(TAB_DRAG_PANE_MIME);
+    const sourceTabId = event.dataTransfer.getData(TAB_DRAG_TAB_MIME);
+
+    setDropSlot(null);
+
+    if (!sourcePaneId || !sourceTabId || !onMoveTab) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    onMoveTab(sourcePaneId, sourceTabId, toIndex);
+  };
+
   return (
     <>
       <div className="bolt-project-tabbar" data-tools-panel-open={open ? 'true' : undefined}>
         <div
           className="bolt-project-tabs"
           role="tablist"
+          data-pane-strip={paneId}
           onKeyDown={moveTabFocus}
           onDragOver={(event) => {
-            if (onSwapTab) {
-              event.preventDefault();
+            if (!isTabDrag(event)) {
+              return;
             }
-          }}
-          onDrop={(event) => {
-            const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-            const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-            if (sourcePaneId && sourceTabId) {
-              event.preventDefault();
-              onSwapTab?.(sourcePaneId, sourceTabId, activeTabId);
+            // Bare strip area (after the last tab) — append.
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+            setDropSlot(tabs.length);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+              clearDropSlot();
             }
           }}
+          onDrop={(event) => dropTabAt(event, tabs.length)}
         >
-          {tabs.map((tab) => (
+          {tabs.map((tab, index) => (
             <div
               key={tab.id}
               role="tab"
@@ -12847,6 +13549,8 @@ function IdeTabBar({
               data-panel={tab.panel}
               data-pinned={tab.pinned ? 'true' : undefined}
               data-dirty={tab.dirty ? 'true' : undefined}
+              data-drop-before={dropSlot === index ? 'true' : undefined}
+              data-drop-after={dropSlot === index + 1 && index === tabs.length - 1 ? 'true' : undefined}
               aria-label={
                 tab.pinned && tab.dirty
                   ? t('baseChatAst.tab.pinnedUnsaved', { label: tab.label })
@@ -12882,25 +13586,32 @@ function IdeTabBar({
                 }
 
                 event.dataTransfer.effectAllowed = 'move';
-                event.dataTransfer.setData('application/x-vibecore-pane-id', paneId);
-                event.dataTransfer.setData('application/x-vibecore-tab-id', tab.id);
+                event.dataTransfer.setData(TAB_DRAG_PANE_MIME, paneId);
+                event.dataTransfer.setData(TAB_DRAG_TAB_MIME, tab.id);
               }}
-              onDragEnd={onDragEnd}
+              onDragEnd={(event) => {
+                clearDropSlot();
+                onDragEnd?.();
+                void event;
+              }}
               onDragOver={(event) => {
-                if (onSwapTab) {
-                  event.preventDefault();
+                if (!isTabDrag(event)) {
+                  return;
                 }
-              }}
-              onDrop={(event) => {
-                const sourcePaneId = event.dataTransfer.getData('application/x-vibecore-pane-id');
-                const sourceTabId = event.dataTransfer.getData('application/x-vibecore-tab-id');
 
-                if (sourcePaneId && sourceTabId) {
-                  event.preventDefault();
-                  event.stopPropagation();
-                  onSwapTab?.(sourcePaneId, sourceTabId, tab.id);
-                }
+                /*
+                 * Pointer past the tab's midpoint means "insert after me". This
+                 * is what makes the drop position deterministic instead of
+                 * "wherever the browser felt like it".
+                 */
+                event.preventDefault();
+                event.stopPropagation();
+                event.dataTransfer.dropEffect = 'move';
+                setDropSlot(dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()));
               }}
+              onDrop={(event) =>
+                dropTabAt(event, dropSlotForTab(index, event.clientX, event.currentTarget.getBoundingClientRect()))
+              }
             >
               <button
                 type="button"
@@ -12991,113 +13702,200 @@ function IdeTabBar({
             <span className="i-ph:plus" aria-hidden />
           </button>
         </div>
+        {/*
+          RPL-IDE-001.6 — Options (⋮) for the active tab. Previously a flat,
+          unlabelled list of buttons in a plain <div>: no menu semantics, no
+          keyboard navigation, no Escape, no outside-click, and no way to tell
+          which scope an action acted on. It is now a real `role="menu"` split
+          into the three scopes the Project Editor model has — Window, Pane and
+          Tab — with every item wired to a working action.
+        */}
         <div className="bolt-project-tool-popover">
           <button
+            ref={actionsButtonRef}
             type="button"
             className="bolt-project-tab-action"
-            aria-label={t('chat.copy.tabActions_b7a78b89')}
-            title={t('chat.copy.tabActions_b7a78b89')}
+            aria-label={optionsMenuLabel}
+            title={optionsMenuLabel}
+            aria-haspopup="menu"
             aria-expanded={actionsOpen}
+            data-testid="tab-options"
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => {
               closeToolMenu();
               setActionsOpen((value) => !value);
             }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown' && !actionsOpen) {
+                event.preventDefault();
+                closeToolMenu();
+                setActionsOpen(true);
+              }
+            }}
           >
             <span className="i-ph:dots-three" aria-hidden />
           </button>
-          {actionsOpen && (
-            <div className="bolt-project-tab-actions-menu">
-              <button
-                type="button"
-                onClick={() => {
-                  onTogglePin?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
+          {actionsOpen &&
+            typeof document !== 'undefined' &&
+            createPortal(
+              <div
+                ref={actionsMenuRef}
+                className="bolt-project-tab-actions-menu"
+                role="menu"
+                aria-orientation="vertical"
+                aria-label={optionsMenuLabel}
+                data-testid="tab-options-menu"
+                style={
+                  actionsAnchor
+                    ? { top: `${actionsAnchor.top}px`, right: `${actionsAnchor.right}px` }
+                    : { visibility: 'hidden' }
+                }
+                onKeyDown={handleOptionsMenuKeyDown}
               >
-                <span className="i-ph:push-pin-simple" aria-hidden />
-                {tabs.find((tab) => tab.id === activeTabId)?.pinned
-                  ? t('chat.copy.unpinTab_279bad8b')
-                  : t('chat.copy.pinTab_3623fa20')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseOthers?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeOthers_445ef4ad')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseToRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeToRight_8b7725b0')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseAll?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeAll_98553cc8')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onCloseSaved?.();
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.closeSaved_40a993da')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveRight?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveRight_59014f08')}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveDown_7468f839')}
-              </button>
-              {onToggleFloating ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onToggleFloating();
-                    setActionsOpen(false);
-                  }}
-                >
-                  {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
-                </button>
-              ) : null}
-              {onOpenNewWindow ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenNewWindow(activeTabId ?? tabs[0]?.id);
-                    setActionsOpen(false);
-                  }}
-                >
-                  {t('chat.copy.openInNewWindow_a75732d8')}
-                </button>
-              ) : null}
-            </div>
-          )}
+                <div role="group" aria-label={t('baseChatAst.options.windowGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.windowGroup')}
+                  </p>
+                  {onOpenNewWindow ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-open-new-window"
+                      onClick={() => runOptionsAction(() => onOpenNewWindow(activeTabId ?? tabs[0]?.id))}
+                    >
+                      <span className="i-ph:arrow-square-out" aria-hidden />
+                      {t('chat.copy.openInNewWindow_a75732d8')}
+                    </button>
+                  ) : null}
+                  {onResetLayout ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-reset-layout"
+                      onClick={() => runOptionsAction(() => onResetLayout())}
+                    >
+                      <span className="i-ph:layout" aria-hidden />
+                      {t('baseChatAst.options.resetLayout')}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div role="group" aria-label={t('baseChatAst.options.paneGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.paneGroup')}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-split-right"
+                    onClick={() => runOptionsAction(() => onSplitActiveRight?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:columns" aria-hidden />
+                    {t('chat.copy.splitActiveRight_59014f08')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-split-down"
+                    onClick={() => runOptionsAction(() => onSplitActiveDown?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:rows" aria-hidden />
+                    {t('chat.copy.splitActiveDown_7468f839')}
+                  </button>
+                  {onToggleFloating ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-toggle-floating"
+                      onClick={() => runOptionsAction(() => onToggleFloating())}
+                    >
+                      <span className={isFloating ? 'i-ph:push-pin' : 'i-ph:frame-corners'} aria-hidden />
+                      {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
+                    </button>
+                  ) : null}
+                  {onClosePane ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-testid="tab-options-close-pane"
+                      onClick={() => runOptionsAction(() => onClosePane())}
+                    >
+                      <span className="i-ph:x-square" aria-hidden />
+                      {t('baseChatAst.options.closePane')}
+                    </button>
+                  ) : null}
+                </div>
+
+                <div role="group" aria-label={t('baseChatAst.options.tabGroup')}>
+                  <p className="bolt-project-tab-actions-group-label" aria-hidden>
+                    {t('baseChatAst.options.tabGroup')}
+                  </p>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-pin"
+                    onClick={() => runOptionsAction(() => onTogglePin?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    <span className="i-ph:push-pin-simple" aria-hidden />
+                    {tabs.find((tab) => tab.id === activeTabId)?.pinned
+                      ? t('chat.copy.unpinTab_279bad8b')
+                      : t('chat.copy.pinTab_3623fa20')}
+                  </button>
+                  {/*
+                  RPL-IDE-001.4 + .6 — the keyboard route to the cross-pane move.
+                  Dragging a tab is a pointer-only gesture; without this, moving a
+                  tab between panes was unreachable without a mouse.
+                */}
+                  {onMoveTabToPane && otherPanes.length
+                    ? otherPanes.map((pane, index) => (
+                        <button
+                          key={pane.id}
+                          type="button"
+                          role="menuitem"
+                          data-testid={`tab-options-move-to-pane-${index}`}
+                          onClick={() => runOptionsAction(() => onMoveTabToPane(pane.id))}
+                        >
+                          <span className="i-ph:arrow-line-right" aria-hidden />
+                          {t('baseChatAst.options.moveTabToPane', { pane: pane.label })}
+                        </button>
+                      ))
+                    : null}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-others"
+                    onClick={() => runOptionsAction(() => onCloseOthers?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeOthers_445ef4ad')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-to-right"
+                    onClick={() => runOptionsAction(() => onCloseToRight?.(activeTabId ?? tabs[0]?.id))}
+                  >
+                    {t('chat.copy.closeToRight_8b7725b0')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-saved"
+                    onClick={() => runOptionsAction(() => onCloseSaved?.())}
+                  >
+                    {t('chat.copy.closeSaved_40a993da')}
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-testid="tab-options-close-all"
+                    onClick={() => runOptionsAction(() => onCloseAll?.())}
+                  >
+                    {t('chat.copy.closeAll_98553cc8')}
+                  </button>
+                </div>
+              </div>,
+              document.body,
+            )}
         </div>
       </div>
       {toolMenu}
@@ -13176,7 +13974,7 @@ function ProjectIdePanelContent({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   reload?: () => void | Promise<void>;
   lastLoadedAt?: string;
@@ -13375,7 +14173,16 @@ function ProjectIdePanelContent({
   }
 
   if (panel === 'secrets') {
-    return <ProjectSecretsPanel projectId={projectId} data={data} onSubmit={onSubmit} busy={busy} reload={reload} />;
+    return (
+      <ProjectSecretsPanel
+        projectId={projectId}
+        data={data}
+        onSubmit={onSubmit}
+        busy={busy}
+        reload={reload}
+        language={resolvedBaseChatLanguage(i18n)}
+      />
+    );
   }
 
   if (panel === 'collaborators') {
@@ -13417,11 +14224,27 @@ function ProjectIdePanelContent({
           ) : null}
           <div className="bolt-project-collaboration-users">
             {presence.length ? (
-              presence.map((user: any) => (
+              presence.map((user: any, index: number) => (
                 <div key={user.sessionId} className="bolt-project-collaboration-user">
-                  <span className="bolt-project-collaboration-avatar">{String(user.userId ?? 'U').slice(0, 2)}</span>
+                  <span className="bolt-project-collaboration-avatar">
+                    {initialesPersonne(
+                      libellePersonne({
+                        displayName: user.displayName,
+                        name: user.name,
+                        userId: user.userId,
+                        repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                      }),
+                    )}
+                  </span>
                   <div>
-                    <strong>{user.userId}</strong>
+                    <strong>
+                      {libellePersonne({
+                        displayName: user.displayName,
+                        name: user.name,
+                        userId: user.userId,
+                        repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                      })}
+                    </strong>
                     <small>
                       {presenceStateLabel(t, user.mode, 'editing')}{' '}
                       {user.filePath ? t('chat.copy.inValue0_79271ca2', { value0: user.filePath }) : ''}
@@ -13445,9 +14268,16 @@ function ProjectIdePanelContent({
           </div>
           <div className="bolt-project-collaboration-list">
             {collaborators.length ? (
-              collaborators.map((collaborator: any) => (
+              collaborators.map((collaborator: any, index: number) => (
                 <div key={collaborator.id} className="bolt-project-collaboration-row">
-                  <span>{collaborator.userId}</span>
+                  <span>
+                    {libellePersonne({
+                      displayName: collaborator.displayName,
+                      name: collaborator.name,
+                      userId: collaborator.userId,
+                      repli: t('baseChatAst.collaboration.participant', { index: index + 1 }),
+                    })}
+                  </span>
                   <strong>{collaborationRoleLabel(t, collaborator.roleKey)}</strong>
                   <form method="post" onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="terminal-permission" />
@@ -13534,7 +14364,14 @@ function ProjectIdePanelContent({
                     {comment.filePath ?? t('chat.copy.project_f6f4da8d')} {comment.line ? `:${comment.line}` : ''}
                   </strong>
                   <p>{comment.body}</p>
-                  <small>{comment.userId}</small>
+                  <small>
+                    {libellePersonne({
+                      displayName: comment.displayName,
+                      name: comment.name,
+                      userId: comment.userId,
+                      repli: t('baseChatAst.collaboration.participantUnknown'),
+                    })}
+                  </small>
                 </div>
               ))
             ) : (
@@ -13605,14 +14442,17 @@ function ProjectIdePanelContent({
             </div>
           </div>
           <PanelRows
-            rows={activity
-              .slice(-8)
-              .map((event: any) => [
-                formatProjectActivityAction(t, event.action),
-                event.actorUserId
-                  ? t('baseChatAst.collaboration.by', { user: event.actorUserId })
-                  : t('baseChatAst.collaboration.system'),
-              ])}
+            rows={activity.slice(-8).map((event: any) => [
+              formatProjectActivityAction(t, event.action),
+              event.actorUserId
+                ? t('baseChatAst.collaboration.by', {
+                    user: libellePersonne({
+                      userId: event.actorUserId,
+                      repli: t('baseChatAst.collaboration.participantUnknown'),
+                    }),
+                  })
+                : t('baseChatAst.collaboration.system'),
+            ])}
             empty={t('baseChatAst.collaboration.noActivity')}
           />
         </section>
@@ -14543,7 +15383,7 @@ function ProjectSettingsPanel({
 
   function submitWithNotice(message: string) {
     return (event: React.FormEvent<HTMLFormElement>) => {
-      const formData = new FormData(event.currentTarget);
+      const formData = donneesDuFormulaire(event);
       const intent = String(formData.get('intent') ?? '');
 
       if (intent === 'preferences') {
@@ -16036,6 +16876,25 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     void loadStatus();
   }, [loadStatus]);
 
+  /*
+   * Seconds spent on the initial probe, so the waiting state can show that it is
+   * still working. The timer only runs while `enabled` is undecided, and is
+   * cleared as soon as the answer lands — it must not keep ticking behind a
+   * panel that has already rendered its result.
+   */
+  const [checkSeconds, setCheckSeconds] = useState(0);
+
+  useEffect(() => {
+    if (enabled !== null) {
+      return undefined;
+    }
+
+    const started = Date.now();
+    const timer = setInterval(() => setCheckSeconds(Math.round((Date.now() - started) / 1000)), 1000);
+
+    return () => clearInterval(timer);
+  }, [enabled]);
+
   useEffect(() => {
     if (provisioned) {
       void refresh(prefix);
@@ -16252,10 +17111,28 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     : objects;
 
   if (enabled === null) {
+    /*
+     * Measured against a real project: the probe answers `200` three times
+     * while it waits, then fails, and the panel showed this one static line for
+     * 45 seconds before saying anything. Nothing moved, no elapsed time, no
+     * hint that a wait was expected — the panel read as frozen. So: a live
+     * spinner, the seconds counting up once the wait stops being instant, and
+     * an explicit "this can take up to a minute" past the point where a user
+     * starts to assume it is broken.
+     */
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-2 text-sm text-bolt-elements-textSecondary">
-          {t('chat.copy.checkingObjectStorage_959b2900')}
+          <span className="flex items-center gap-2" role="status" aria-live="polite">
+            <span className="i-svg-spinners:3-dots-fade shrink-0" aria-hidden />
+            <span>
+              {t('chat.copy.checkingObjectStorage_959b2900')}
+              {checkSeconds >= 5 ? ` ${t('baseChatAst.storage.checkingElapsed', { seconds: checkSeconds })}` : ''}
+            </span>
+          </span>
+          {checkSeconds >= 15 ? (
+            <span className="text-bolt-elements-textTertiary">{t('baseChatAst.storage.checkingSlow')}</span>
+          ) : null}
         </div>
       </div>
     );
@@ -16895,7 +17772,7 @@ function ProjectSkillsPanel({
   const tabButtonClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
       active
-        ? 'bg-[var(--vc-ide-accent-action)] text-white'
+        ? 'bg-[var(--vc-ide-accent-action)] text-[var(--vc-ide-on-accent-action)]'
         : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
     }`;
 
@@ -17363,7 +18240,7 @@ function InstalledSkillsList({
                         type="button"
                         onClick={() => void onUninstall(skill.ownerRepo, scope)}
                         disabled={busy || pending === `u:${rowKey}`}
-                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                        className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-on-accent-error)] transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {pending === `u:${rowKey}` ? '…' : t('chat.copy.confirm_04a21221')}
                       </button>
@@ -18076,7 +18953,7 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                 <span className="text-bolt-elements-textPrimary">{conflict.description}</span>
                 {conflict.involvedRoles.length ? (
                   <span className="text-bolt-elements-textSecondary">
-                    ({conflict.involvedRoles.map(consensusLaneLabel).join(', ')})
+                    ({conflict.involvedRoles.map((roleId: string) => consensusLaneLabel(t, roleId)).join(', ')})
                   </span>
                 ) : null}
               </li>
@@ -18407,26 +19284,36 @@ function ProjectAgentStudioPanel({
         </PanelSectionTitle>
         {branchCount ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
-            {tree.flatMap(function flatten(node, depth = 0): React.ReactNode[] {
-              const label = node.conversation.title?.trim() || node.conversation.id;
+            {/*
+             * DÉFAUT RÉEL, pas seulement de typage : `flatMap` passe l'INDICE en
+             * deuxième argument. Le paramètre s'appelant `depth`, chaque branche
+             * racine recevait sa position comme profondeur — la 2e racine était
+             * décalée de 12 px, la 3e de 24 px, comme si elles étaient imbriquées
+             * les unes dans les autres. L'enveloppe force `depth = 0` à la
+             * racine ; c'est aussi ce que disait TS2684, masqué par `@ts-nocheck`.
+             */}
+            {tree.flatMap((rootNode) =>
+              (function flatten(node: (typeof tree)[number], depth: number): React.ReactNode[] {
+                const label = node.conversation.title?.trim() || node.conversation.id;
 
-              return [
-                <li key={node.conversation.id} className="flex items-center gap-2 py-1.5 text-sm">
-                  <span className="i-ph:git-branch text-bolt-elements-textSecondary" aria-hidden />
-                  <span
-                    className="truncate text-bolt-elements-textPrimary"
-                    style={{ paddingLeft: `${depth * 12}px` }}
-                    title={label}
-                  >
-                    {label}
-                  </span>
-                  <span className="ml-auto text-xs text-bolt-elements-textSecondary">
-                    {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
-                  </span>
-                </li>,
-                ...node.children.flatMap((child) => flatten(child, depth + 1)),
-              ];
-            })}
+                return [
+                  <li key={node.conversation.id} className="flex items-center gap-2 py-1.5 text-sm">
+                    <span className="i-ph:git-branch text-bolt-elements-textSecondary" aria-hidden />
+                    <span
+                      className="truncate text-bolt-elements-textPrimary"
+                      style={{ paddingLeft: `${depth * 12}px` }}
+                      title={label}
+                    >
+                      {label}
+                    </span>
+                    <span className="ml-auto text-xs text-bolt-elements-textSecondary">
+                      {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
+                    </span>
+                  </li>,
+                  ...node.children.flatMap((child) => flatten(child, depth + 1)),
+                ];
+              })(rootNode, 0),
+            )}
           </ul>
         ) : (
           <p className="text-sm text-bolt-elements-textSecondary">
@@ -19700,7 +20587,20 @@ function ProjectIntegrationsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+
+  /*
+   * BUG-IDE-006 — `language` alimente `formatBaseChatAstNumber` quatre fois plus
+   * bas dans ce composant, sans jamais avoir été déclaré : la migration i18n a
+   * ajouté l'argument aux appels sans ajouter la variable.
+   *
+   * Le `@ts-nocheck` en tête de fichier masquait les quatre TS2304, et le panneau
+   * Intégrations jetait `ReferenceError: language is not defined` AU RENDU —
+   * c'est-à-dire qu'il ne s'affichait pas du tout.
+   *
+   * `ProjectMonitoringPanel` a déjà reçu ce correctif ; celui-ci était resté.
+   */
+  const language = resolvedBaseChatLanguage(i18n);
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
@@ -21731,9 +22631,19 @@ function ProjectDebuggerPanel({
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
               <PanelSectionTitle>{t('chat.copy.runtimeOutput_fb71b522')}</PanelSectionTitle>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
-                {logs.slice(-12).map((log: any, index: number) => (
-                  <div key={`${log.timestamp}-${index}`}>{log.message}</div>
-                ))}
+                {logs.slice(-12).map((log: any, index: number) => {
+                  // L'agent journalise en JSON, parfois tronqué : on montre ce qu'un humain lit.
+                  const lisible = ligneRuntimeLisible(String(log.message ?? ''));
+
+                  return (
+                    <div key={`${log.timestamp}-${index}`} data-level={lisible.niveau ?? undefined}>
+                      {lisible.niveau ? (
+                        <span className="mr-1 uppercase text-bolt-elements-textTertiary">[{lisible.niveau}]</span>
+                      ) : null}
+                      {lisible.texte}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ) : null}
@@ -21856,28 +22766,37 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
 
   return (
     <div className={classNames('bolt-project-console-tool', split && 'bolt-project-console-tool-split')}>
+      {/*
+       * Deux groupes sans effet sur le bureau (`display: contents` — la barre y
+       * reste une seule rangée, comme avant) ; sur téléphone ils deviennent
+       * les rangées de la barre : flux + statut, puis niveaux, puis recherche
+       * et actions en icônes. Voir « PANNEAU JOURNAUX SUR TÉLÉPHONE » dans
+       * index.scss.
+       */}
       <div className="bolt-project-console-header">
-        {[
-          ['console', streamLabels.console],
-          ['workflow', streamLabels.workflow],
-          ['system', streamLabels.system],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={activeStream === id}
-            aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
-            onClick={() => setActiveStream(id as any)}
+        <div className="bolt-project-console-streams">
+          {[
+            ['console', streamLabels.console],
+            ['workflow', streamLabels.workflow],
+            ['system', streamLabels.system],
+          ].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={activeStream === id}
+              aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
+              onClick={() => setActiveStream(id as any)}
+            >
+              {label}
+            </button>
+          ))}
+          <span
+            className="bolt-project-console-status"
+            title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
           >
-            {label}
-          </button>
-        ))}
-        <span
-          className="bolt-project-console-status"
-          title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
-        >
-          {workspaceStatus}
-        </span>
+            {workspaceStatus}
+          </span>
+        </div>
         <div
           className="bolt-project-console-level-chips"
           role="group"
@@ -21907,53 +22826,67 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
             </button>
           ))}
         </div>
-        <input
-          aria-label={t('chat.copy.searchLogs_48225af1')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
-        />
-        <button
-          type="button"
-          aria-pressed={regexEnabled}
-          aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
-          onClick={() => setRegexEnabled((value) => !value)}
-        >
-          {t('chat.copy.regex_6e681935')}
-        </button>
-        <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
-          {t('chat.copy.clearLogs_532ffc7a')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
-          onClick={() => setSplit((value) => !value)}
-        >
-          {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
-          onClick={downloadLogs}
-        >
-          {t('chat.copy.exportTxt_469c1c08')}
-        </button>
-        <button
-          type="button"
-          aria-pressed={liveTail}
-          aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
-          onClick={() => setLiveTail((value) => !value)}
-        >
-          {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
-        </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
-          onClick={() => void reload?.()}
-          disabled={busy}
-        >
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
-        </button>
+        <div className="bolt-project-console-search">
+          <input
+            aria-label={t('chat.copy.searchLogs_48225af1')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
+          />
+          <button
+            type="button"
+            aria-pressed={regexEnabled}
+            aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
+            onClick={() => setRegexEnabled((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:brackets-curly" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.regex_6e681935')}</span>
+          </button>
+          <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
+            <span className="bolt-project-console-action-icon i-ph:eraser" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.clearLogs_532ffc7a')}</span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
+            onClick={() => setSplit((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:columns" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
+            onClick={downloadLogs}
+          >
+            <span className="bolt-project-console-action-icon i-ph:download-simple" aria-hidden />
+            <span className="bolt-project-console-action-label">{t('chat.copy.exportTxt_469c1c08')}</span>
+          </button>
+          <button
+            type="button"
+            aria-pressed={liveTail}
+            aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
+            onClick={() => setLiveTail((value) => !value)}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-line-down" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
+            onClick={() => void reload?.()}
+            disabled={busy}
+          >
+            <span className="bolt-project-console-action-icon i-ph:arrow-clockwise" aria-hidden />
+            <span className="bolt-project-console-action-label">
+              {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
+            </span>
+          </button>
+        </div>
       </div>
       <LogStreamView logs={filteredLogs} empty={activeStreamEmptyMessage} />
       {split && (
@@ -22195,408 +23128,6 @@ function formatLogTime(language: string, value?: string) {
   });
 }
 
-function ProjectSecretsPanel({
-  projectId,
-  data,
-  onSubmit,
-  busy,
-  reload,
-}: {
-  projectId?: string;
-  data: any;
-  onSubmit: any;
-  busy: boolean;
-  reload?: () => void | Promise<void>;
-}) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-  const [revealed, setRevealed] = useState<Record<string, string>>({});
-  const [message, setMessage] = useState('');
-  const [editingKey, setEditingKey] = useState('');
-  const [importOpen, setImportOpen] = useState(false);
-  const [importText, setImportText] = useState('');
-  const [importing, setImporting] = useState(false);
-  const [importProgress, setImportProgress] = useState<{ done: number; total: number } | null>(null);
-  const [importFailures, setImportFailures] = useState<Array<{ key: string; error: string }>>([]);
-  const secrets = data.secrets ?? [];
-
-  // Live preview of the pasted .env block: parsed entries + honestly-reported skipped lines.
-  const importPreview = useMemo(() => parseDotEnv(importText), [importText]);
-  const existingSecretKeys = useMemo(() => new Set<string>(secrets.map((secret: any) => secret.key)), [secrets]);
-  const overwriteCount = importPreview.entries.filter((entry) => existingSecretKeys.has(entry.key)).length;
-
-  // Fetch a secret's real value (reveal endpoint); shared by copy-value + reveal.
-  async function fetchSecretValue(key: string): Promise<string | undefined> {
-    if (!projectId) {
-      return undefined;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-
-    return response.ok && typeof result?.data?.secret?.value === 'string' ? result.data.secret.value : undefined;
-  }
-
-  /*
-   * Replit-style bulk .env import: the pasted block is parsed live into the
-   * preview table; confirming upserts each entry sequentially via the existing
-   * secrets intent (real per-project secrets API), surfacing per-key failures
-   * and progress, then refreshes the list.
-   */
-  async function handleImport() {
-    if (!projectId) {
-      return;
-    }
-
-    const { entries } = importPreview;
-
-    if (!entries.length) {
-      setMessage(t('baseChatAst.secrets.noEntries'));
-      return;
-    }
-
-    setImporting(true);
-    setImportProgress({ done: 0, total: entries.length });
-    setImportFailures([]);
-
-    const failures: Array<{ key: string; error: string }> = [];
-
-    try {
-      for (const [index, { key, value }] of entries.entries()) {
-        const form = new FormData();
-        form.append('intent', 'upsert');
-        form.append('key', key);
-        form.append('value', value);
-
-        try {
-          const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets`, {
-            method: 'POST',
-            body: form,
-          });
-
-          if (!response.ok) {
-            const result = (await response.json().catch(() => null)) as any;
-            failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
-          }
-        } catch (error) {
-          console.error('Secret import request failed', { key, error });
-          failures.push({ key, error: t('baseChatAst.secrets.networkError') });
-        }
-
-        setImportProgress({ done: index + 1, total: entries.length });
-      }
-
-      const ok = entries.length - failures.length;
-
-      if (failures.length) {
-        // Keep the section open so the user can see and retry what failed.
-        setImportFailures(failures);
-        setMessage(
-          t('baseChatAst.secrets.importPartial', {
-            count: entries.length,
-            imported: ok,
-            failed: failures.length,
-          }),
-        );
-      } else {
-        setMessage(t('baseChatAst.secrets.importComplete', { count: entries.length, imported: ok }));
-        setImportText('');
-        setImportOpen(false);
-      }
-
-      await reload?.();
-    } finally {
-      setImporting(false);
-      setImportProgress(null);
-    }
-  }
-
-  async function copySecretValue(key: string) {
-    const value = revealed[key] ?? (await fetchSecretValue(key));
-
-    if (typeof value !== 'string') {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-      return;
-    }
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.secrets.valueCopied', { key }));
-    } catch (error) {
-      console.error('Secret value copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  function revealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    if (revealed[key]) {
-      setRevealed((current) => {
-        const next = { ...current };
-        delete next[key];
-
-        return next;
-      });
-      return;
-    }
-
-    /*
-     * Reveal in place immediately, like a password field's eye toggle — no
-     * blocking confirmation dialog. The value is still fetched only on reveal
-     * (never listed by default) and only kept for this browser session; the
-     * "revealed for this session" notice is surfaced non-blockingly as a toast.
-     */
-    void performRevealSecret(key);
-  }
-
-  async function performRevealSecret(key: string) {
-    if (!projectId) {
-      return;
-    }
-
-    const response = await fetch(
-      `/api/projects/${encodeURIComponent(projectId)}/ide-panel/secrets?reveal=true&confirm=1&key=${encodeURIComponent(
-        key,
-      )}`,
-      { headers: { accept: 'application/json' } },
-    );
-
-    const result = (await response.json().catch(() => null)) as any;
-    const value = response.ok ? result?.data?.secret?.value : undefined;
-
-    if (typeof value === 'string') {
-      setRevealed((current) => ({ ...current, [key]: value }));
-      setMessage(t('baseChatAst.secrets.revealed', { key }));
-    } else {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
-    }
-  }
-
-  async function copySecret(key: string) {
-    const value = revealed[key] ?? key;
-
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(
-        t('baseChatAst.secrets.copied', {
-          label: t(revealed[key] ? 'baseChatAst.secrets.secretValue' : 'baseChatAst.secrets.secretKey'),
-        }),
-      );
-    } catch (error) {
-      console.error('Secret copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
-    }
-  }
-
-  return (
-    <div className="bolt-project-secrets-tool">
-      <form onSubmit={onSubmit} className="bolt-project-inline-form">
-        <input name="intent" value="upsert" type="hidden" />
-        {/*
-         * `key` forces the uncontrolled inputs to remount whenever the user
-         * clicks "Edit" (which sets editingKey). Without it, defaultValue is only
-         * read on first mount, so clicking Edit changed the button label to
-         * "Update secret" but never populated the key field — forcing the user to
-         * retype the key from scratch.
-         */}
-        <PanelInput
-          key={`secret-key-${editingKey}`}
-          name="key"
-          placeholder={t('chat.copy.stripeSecretKey_b147aa52')}
-          required
-          defaultValue={editingKey}
-        />
-        <PanelInput
-          key={`secret-value-${editingKey}`}
-          name="value"
-          placeholder={t('chat.copy.secretValue_50fbacc0')}
-          type="password"
-          required
-        />
-        <PanelButton disabled={busy}>
-          {editingKey ? t('chat.copy.updateSecret_77d1a1a5') : t('chat.copy.newSecret_57764d66')}
-        </PanelButton>
-        <PanelButton
-          type="button"
-          variant="outline"
-          onClick={() => {
-            setImportOpen((open) => !open);
-            setImportFailures([]);
-          }}
-        >
-          {t('chat.copy.importEnv_f0940267')}
-        </PanelButton>
-      </form>
-
-      {importOpen ? (
-        <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-          <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.pasteAEnvFileOne_7111ba2a')}
-            <span className="font-mono">{t('chat.copy.keyValue_a4409af0')}</span>
-            {t('chat.copy.perLineCommentsAndBlankLines_9af5356e')}
-            <textarea
-              value={importText}
-              onChange={(event) => {
-                setImportText(event.target.value);
-                setImportFailures([]);
-              }}
-              placeholder={t('chat.copy.databaseUrlPostgresStripeSecretKey_1e39ac87')}
-              spellCheck={false}
-              style={{ fontFamily: 'var(--vc-font-code)' }}
-              className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
-            />
-          </label>
-
-          {importPreview.entries.length ? (
-            <div className="grid gap-1">
-              <span className="text-xs text-bolt-elements-textSecondary">
-                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
-                {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
-              </span>
-              <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
-                {importPreview.entries.map((entry) => (
-                  <div key={entry.key} className="flex items-center gap-2 text-xs">
-                    <span
-                      className="font-medium text-bolt-elements-textPrimary"
-                      style={{ fontFamily: 'var(--vc-font-code)' }}
-                    >
-                      {entry.key}
-                    </span>
-                    <span className="text-bolt-elements-textTertiary" aria-label={t('chat.copy.valueHidden_4dff2356')}>
-                      •••
-                    </span>
-                    {existingSecretKeys.has(entry.key) ? (
-                      <span
-                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
-                        style={{
-                          background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                          borderLeft: '3px solid var(--vc-ide-accent-warning)',
-                          color: 'var(--vc-ide-accent-warning)',
-                        }}
-                      >
-                        {t('chat.copy.overwritesExisting_b450bd78')}
-                      </span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
-          {importPreview.skipped.length ? (
-            <div
-              className="grid gap-1 rounded-md p-2 text-xs"
-              style={{
-                background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
-                borderLeft: '3px solid var(--vc-ide-accent-warning)',
-              }}
-            >
-              <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
-                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
-              </span>
-              {importPreview.skipped.map((skippedLine) => (
-                <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
-                  {t('chat.copy.line_ea967600')}
-                  {skippedLine.line} ({describeSkipReason(skippedLine.reason, language)}):{' '}
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {importFailures.length ? (
-            <div className="grid gap-1 text-xs text-bolt-elements-icon-error">
-              {importFailures.map((failure) => (
-                <span key={failure.key}>
-                  <span style={{ fontFamily: 'var(--vc-font-code)' }}>{failure.key}</span>: {failure.error}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex items-center gap-2">
-            <PanelButton
-              type="button"
-              onClick={() => void handleImport()}
-              disabled={importing || !importPreview.entries.length}
-            >
-              {importing && importProgress
-                ? t('chat.copy.importingValue0Value1_df968922', {
-                    value0: importProgress.done,
-                    value1: importProgress.total,
-                  })
-                : importPreview.entries.length
-                  ? t('baseChatAst.secrets.importAction', { count: importPreview.entries.length })
-                  : t('chat.copy.importSecrets_9deaeb2d')}
-            </PanelButton>
-            <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
-              {t('chat.copy.cancel_77dfd213')}
-            </PanelButton>
-          </div>
-        </div>
-      ) : null}
-
-      {message && <div className="bolt-project-empty-panel">{message}</div>}
-      <div className="bolt-project-secret-list">
-        {secrets.length ? (
-          secrets.map((secret: any) => (
-            <div key={secret.key} className="bolt-project-secret-row">
-              <strong>{secret.key}</strong>
-              <span>{revealed[secret.key] ?? '••••••'}</span>
-              <button
-                type="button"
-                aria-label={t('chat.copy.revealValue0_e5d8efb3', { value0: secret.key })}
-                onClick={() => revealSecret(secret.key)}
-              >
-                {revealed[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Name_64ac36a4', { value0: secret.key })}
-                onClick={() => void copySecret(secret.key)}
-              >
-                {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Value_8ab75412', { value0: secret.key })}
-                onClick={() => void copySecretValue(secret.key)}
-              >
-                {t('chat.copy.copyValue_4c924dcb')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.editValue0_fad75899', { value0: secret.key })}
-                onClick={() => setEditingKey(secret.key)}
-              >
-                {t('chat.copy.edit_5301648d')}
-              </button>
-              <form onSubmit={onSubmit}>
-                <input name="intent" value="delete" type="hidden" />
-                <input name="key" value={secret.key} type="hidden" />
-                <PanelButton disabled={busy} variant="outline">
-                  {t('chat.copy.delete_f6fdbe48')}
-                </PanelButton>
-              </form>
-            </div>
-          ))
-        ) : (
-          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
-        )}
-      </div>
-    </div>
-  );
-}
-
 /*
  * Deployments panel — Replit-parity tabs (Overview / Logs / Domains / Manage)
  * over the existing deployment data + actions (no backend change). Overview is
@@ -22620,7 +23151,15 @@ function ProjectDeploymentsPanel({
   data: any;
   project: any;
   projectId?: string;
-  onSubmit: any;
+
+  /*
+   * BUG-PUBLISH-ONSUBMIT-FORMDATA-001 — le contrat est EXPLICITE, plus `any`.
+   * Ce panneau appelle `onSubmit` des deux façons : en gestionnaire de
+   * `<form onSubmit={...}>`, et directement avec un `FormData` pour les gestes
+   * de la carte « Gérer votre application ». Le `any` masquait l'écart ; le
+   * type l'énonce, et le compilateur le vérifie.
+   */
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
 }) {
   const { t, i18n } = useTranslation();
@@ -22636,8 +23175,57 @@ function ProjectDeploymentsPanel({
 
   const [tab, setTab] = useState<'overview' | 'logs' | 'domains' | 'manage'>('overview');
 
+  /*
+   * RP-PUBLISH-05 — « Réparer avec l'agent ». On réutilise l'événement
+   * `vibecore:agent-task`, qui bascule désormais sur le panneau Agent et y
+   * dépose l'invite : même chemin que le bouton de l'onglet Sécurité, une
+   * seule règle pour les deux surfaces.
+   */
+  const demanderReparationParLAgent = useCallback((demande: DemandeDeReparation) => {
+    window.dispatchEvent(new CustomEvent('vibecore:agent-task', { detail: detailDeTacheDeReparation(demande) }));
+  }, []);
+
+  /*
+   * BUG-PUBLISH-NOOP-001 — « Republier » DÉPLOIE. Il ne changeait que
+   * d'onglet : le bouton principal du panneau promettait une publication et
+   * n'en lançait aucune. Il rejoue maintenant l'intention `redeploy` sur le
+   * dernier déploiement — le MÊME chemin que l'onglet Gérer, donc rien qui
+   * puisse diverger. Sans historique il n'y a rien à rejouer : on ouvre
+   * l'assistant, et le libellé du bouton dit déjà « Publier » dans ce cas.
+   */
+  const republier = useCallback(() => {
+    const intention = intentionDeRepublication(deployments);
+
+    if (intention.geste === 'assistant') {
+      setTab('manage');
+      return;
+    }
+
+    const donnees = new FormData();
+    donnees.set('intent', 'redeploy');
+    donnees.set('deploymentId', intention.deploymentId);
+    onSubmit(donnees);
+  }, [deployments, onSubmit]);
+
+  /* La même mise en mots que la fin de tour : une seule implémentation. */
+  const ilYADepuis = useCallback(
+    (date: string | undefined | null, langue?: string | null) => ilYA(date ?? undefined, langue),
+    [],
+  );
+
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — ce que le serveur peut réellement déployer.
+   * Sans ce relevé, rien n'est masqué : on préfère un fournisseur offert à
+   * tort qu'un fournisseur qui marche et qu'on aurait caché.
+   */
+  const fournisseurs = useMemo(
+    () => fournisseursOffrables(BOLT_DEPLOY_PROVIDERS, (data as any).providerAvailability),
+    [data],
+  );
+
+  const fournisseurInitial = useMemo(() => fournisseurParDefaut(fournisseurs), [fournisseurs]);
+
   // Real Overview data wired from the deployments loader.
-  const connections = Array.isArray((data as any).connections) ? (data as any).connections : [];
   const gitCommits = Array.isArray((data as any).gitCommits) ? (data as any).gitCommits : [];
 
   return (
@@ -22657,102 +23245,64 @@ function ProjectDeploymentsPanel({
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.latestStatus_d9f96f98')}</span>
-              <strong>
-                {latestDeployment?.status
-                  ? platformStateLabel(t, latestDeployment.status)
-                  : t('chat.copy.noDeployment_26885551')}
-              </strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.environment_d443a118')}</span>
-              <strong>{platformStateLabel(t, latestDeployment?.environment ?? 'preview')}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.framework_fb001b2c')}</span>
-              <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
-            </div>
-          </div>
-
           {/*
-           * Replit Overview widgets. Real values where the backend has them
-           * (Type = provider, Database = live project connections); a graceful
-           * "—" only where the data genuinely does not exist (we run no
-           * Autoscale compute tier, so vCPU/memory resources and compute usage
-           * have no backend). Never mocked.
+           * RP-PUBLISH-01…06 — la vue d'ensemble est désormais le panneau
+           * « Publishing » de Replit (captures d'Avi, 08/09 21:00-21:02),
+           * piloté par NOS données : statut réel du déploiement, journaux
+           * réels, domaines réellement joignables. Les étapes de migration de
+           * base de données que montre Replit ne sont PAS reprises — nous
+           * n'avons pas ce pipeline, et les afficher ferait mentir le produit
+           * sur son propre état.
+           *
+           * L'historique des commits reste dessous : il est réel, utile, et
+           * n'a pas d'équivalent chez Replit.
            */}
-          <div className="bolt-project-deploy-summary">
-            <div>
-              <span>{t('chat.copy.type_3deb7456')}</span>
-              <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.resources_87df60de')}</span>
-              <strong title={t('chat.copy.vcpuMemoryNoAutoscaleComputeBackend_a18a66c2')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.usage_0bb18642')}</span>
-              <strong title={t('chat.copy.computeUsageThisBillingPeriodNo_c6482992')}>—</strong>
-            </div>
-            <div>
-              <span>{t('chat.copy.database_61074f1c')}</span>
-              <strong>
-                {connections.length
-                  ? t('chat.copy.connectedValue0_4e4f1431', { value0: connections.length })
-                  : t('chat.copy.notConnected_8b02f3de')}
-              </strong>
-            </div>
-          </div>
-
-          {deployments.length ? (
-            deployments.map((deployment: any) => (
-              <article key={deployment.id} className="bolt-project-deploy-card">
-                <header>
-                  <div>
-                    <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
-                    </strong>
-                    <span>
-                      {deployment.url ??
-                        deployment.customDomain ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                        t('chat.copy.urlPending_6c60f919')}
-                    </span>
-                  </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
-                </header>
-                {deployment.url ? (
-                  <div className="bolt-project-deploy-actions">
-                    <a href={deployment.url} target="_blank" rel="noreferrer">
-                      {t('chat.copy.open_cf9b7706')}
-                    </a>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          ?.writeText(deployment.url)
-                          .catch(() => toast.error(t('chat.copy.clipboardUnavailable_bec46a29')))
-                      }
-                    >
-                      {t('chat.copy.copyLink_2f84eea5')}
-                    </button>
-                  </div>
-                ) : null}
-              </article>
-            ))
-          ) : (
-            <EmptyState
-              variant="compact"
-              icon="i-ph:rocket-launch"
-              title={t('chat.copy.noDeploymentsYet_b00d97cd')}
-              description={t('chat.copy.shipThisProjectToALive_40d39230')}
-              actionLabel={t('baseChatAst.deploy.goManage')}
-              onAction={() => setTab('manage')}
-            />
-          )}
+          <PublicationReplit
+            deployments={deployments}
+            language={language}
+            ilYA={(date) => ilYADepuis(date, language)}
+            onRepublier={republier}
+            onAjouterUnDomaine={() => setTab('domains')}
+            onAnnuler={(deploymentId) => {
+              /*
+               * BUG-PUBLISH-BOUTONS-001 — `onAnnuler` était déclaré et jamais
+               * passé : la garde `enCours && dernier.id && onAnnuler` du
+               * composant empêchait le bouton d'entrer dans le DOM. Ce n'était
+               * donc pas un bouton inerte, c'était un bouton ABSENT —
+               * l'annulation n'était atteignable qu'en passant par « Ajuster
+               * les réglages ».
+               */
+              const donnees = new FormData();
+              donnees.set('intent', 'cancel');
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
+            onReparerAvecAgent={demanderReparationParLAgent}
+            carteTarifaire={(data as any).rateCard ?? null}
+            onOuvrirLesSecrets={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'secrets', toolId: 'secrets' } }),
+              )
+            }
+            onOuvrirLaBaseDeDonnees={() =>
+              window.dispatchEvent(
+                new CustomEvent('vibecore:open-project-ide-panel', {
+                  detail: { panel: 'database', toolId: 'database' },
+                }),
+              )
+            }
+            onAction={(intent, deploymentId) => {
+              /*
+               * RP-PUBLISH-12 — les gestes de « Gérer votre application »
+               * passent par les MÊMES intentions que l'onglet Gérer : rien de
+               * neuf côté serveur, donc rien qui puisse diverger.
+               */
+              const donnees = new FormData();
+              donnees.set('intent', intent);
+              donnees.set('deploymentId', deploymentId);
+              onSubmit(donnees);
+            }}
+          />
 
           {/* Real commit history (hash + author + date) from the git graph. */}
           <div className="grid gap-1">
@@ -22846,6 +23396,15 @@ function ProjectDeploymentsPanel({
                     </div>
                     <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
                   </header>
+                  {causeDeLEchec(deployment) ? (
+                    <p
+                      className="bolt-project-deploy-cause break-words [overflow-wrap:anywhere]"
+                      data-testid="deploy-cause-echec"
+                      role="alert"
+                    >
+                      {causeDeLEchec(deployment)}
+                    </p>
+                  ) : null}
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
@@ -22888,10 +23447,26 @@ function ProjectDeploymentsPanel({
             <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
             <label>
               {t('chat.copy.provider_7ceee3f3')}
-              <select name="provider" defaultValue="static">
-                {BOLT_DEPLOY_PROVIDERS.map((provider) => (
-                  <option key={provider.id} value={provider.id}>
-                    {provider.name}
+              {/*
+               * BUG-DEPLOY-PROVIDERS-UI-001 — la liste ne propose que ce
+               * qu'elle peut tenir. Un hébergeur sans identifiants reste
+               * visible mais désactivé, en nommant ce qu'il manque : on ne
+               * remplit plus tout l'assistant pour se heurter à un 503.
+               */}
+              <select name="provider" defaultValue={fournisseurInitial} data-testid="deploy-provider-select">
+                {fournisseurs.map(({ fournisseur, utilisable, manquantes }) => (
+                  <option
+                    key={fournisseur.id}
+                    value={fournisseur.id}
+                    disabled={!utilisable}
+                    data-configure={utilisable ? undefined : 'requis'}
+                  >
+                    {utilisable
+                      ? fournisseur.name
+                      : t('chat.copy.providerNeedsConfig_9a1c7f20', {
+                          provider: fournisseur.name,
+                          missing: manquantes.join(', '),
+                        })}
                   </option>
                 ))}
               </select>
@@ -22994,7 +23569,7 @@ function ProjectDeploymentAction({
 }: {
   intent: string;
   deploymentId: string;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (entree: React.FormEvent<HTMLFormElement> | FormData) => void;
   busy: boolean;
   children: React.ReactNode;
 }) {
@@ -23034,11 +23609,14 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
+    <div className="bolt-panel-rows overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
       {normalized.map(([title, detail], index) => (
-        <div key={`${title}-${index}`} className="border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0">
-          <div className="text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
-          <div className="mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
+        <div
+          key={`${title}-${index}`}
+          className="bolt-panel-row border-b border-bolt-elements-borderColor px-4 py-3 last:border-b-0"
+        >
+          <div className="bolt-panel-row-title text-sm font-medium text-bolt-elements-textPrimary">{title}</div>
+          <div className="bolt-panel-row-detail mt-1 text-xs text-bolt-elements-textSecondary">{detail}</div>
         </div>
       ))}
     </div>
@@ -23129,6 +23707,28 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
       <circle cx="17" cy="17" r="3" />
     </svg>
   );
+}
+
+/**
+ * RPL-IDE-001.5 — tool label as the All-tools popup shows it. Identical to
+ * `panelTitle` apart from two labels the popup has always used: the editor reads
+ * "Code" there, and the shell carries the deployment's configured terminal name.
+ */
+function toolDisplayTitle(tool: string, t: TFunction) {
+  /*
+   * T2 — pas d'exception pour `editor`. La palette doit nommer l'éditeur
+   * EXACTEMENT comme son onglet : `panelTitle('editor')` rend « Éditeur ».
+   * Un cas particulier renvoyant `baseChatAst.common.code` réintroduisait
+   * « Code » dans la palette seule, et donc deux noms pour un même panneau.
+   *
+   * Le cas `terminal` ci-dessous, lui, reste : SHELL_TERMINAL_LABEL est un
+   * libellé de marque gelé, utilisé partout ailleurs dans le fichier.
+   */
+  if (tool === 'terminal') {
+    return SHELL_TERMINAL_LABEL;
+  }
+
+  return panelTitle(tool, t);
 }
 
 function panelTitle(panel: string, t?: TFunction) {
@@ -23225,6 +23825,9 @@ function ScrollToBottom() {
       onClick={() => scrollToBottom()}
     >
       <span className="i-ph:arrow-down" aria-hidden />
+      {/* Le libellé est VISIBLE, pas seulement lu par un lecteur d'écran : une
+          icône seule n'annonce pas ce qu'elle fait à qui ne la connaît pas. */}
+      <span className="bolt-agent-scroll-to-bottom__label">{t('chat.copy.scrollToLatest')}</span>
     </button>
   );
 }

@@ -81,6 +81,7 @@ docs/instructions/Roadmap.md
 !REPLIT_PARITY.md
 !DESIGN_PROGRAM_MASTER.md
 !DESIGN_AUDIT_LIVE.md
+!DESIGN_CAPTURES.md
 !LAUNCH_READINESS.md
 .qodo
 .vibecore-audit/
@@ -90,3 +91,7 @@ docs/instructions/Roadmap.md
 scratch-matrix/
 
 .blk-*.mjs
+
+# Redis snapshot written when a dev runs `redis-server` from the repo root
+# (the E2E stack does it in a container in CI, but natively in a sandbox).
+dump.rdb

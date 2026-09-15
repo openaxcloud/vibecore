@@ -234,7 +234,20 @@ export interface RuntimeAdapter {
    * hydrate a file-store entry must set `isBinary` from `encoding === 'base64'`.
    */
   readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }>;
-  writeFile(path: string, content: string): Promise<void>;
+
+  /**
+   * Le troisième paramètre est UNION et non remplacé, pour ne pas casser le
+   * chemin des binaires : les adaptateurs locaux y reçoivent déjà un encodage
+   * (`'base64'` pour les images, décodé avant écriture — un test le garde).
+   *
+   * La forme OBJET porte le marqueur de BUG-CREATE-010 : `streaming: true` sur
+   * une écriture émise pendant le flux de génération. L'API rend l'archive du
+   * projet durable sur une écriture humaine et PAS sur une écriture de flux, où
+   * il y a une requête par fragment et par fichier. Une implémentation qui
+   * ignore le marqueur reste correcte : l'écriture est alors traitée comme
+   * humaine, ce qui est le défaut sûr.
+   */
+  writeFile(path: string, content: string, options?: 'utf8' | 'base64' | { streaming?: boolean }): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;
   deleteFile(path: string): Promise<void>;

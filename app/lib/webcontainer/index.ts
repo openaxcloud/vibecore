@@ -52,6 +52,26 @@ function bootBrowserWebContainer() {
     return response.text();
   });
 
+  /*
+   * Un gestionnaire posé TOUT DE SUITE, sans rien avaler.
+   *
+   * `inspectorScript` est passée plus bas et n'est consommée qu'au moment où
+   * le runtime en a besoin. Entre les deux, si le fetch échoue, la promesse est
+   * rejetée sans que personne n'écoute : Node la signale en « unhandled
+   * rejection », et vitest fait alors échouer TOUT le run.
+   *
+   * Mesuré le 2026-09-04 sur #409 et #417 : « Test Files 991 passed », « Tests
+   * 7466 passed », « Errors 1 error », puis exit 1. Sept mille tests verts et un
+   * CI rouge, sur cette seule ligne :
+   *
+   *   TypeError: Failed to parse URL from /inspector-script.js
+   *
+   * Une URL relative n'a pas de base hors navigateur : sous Node elle rejette
+   * immédiatement. Le rejet reste propagé au vrai consommateur : `.catch` ici ne
+   * remplace pas la promesse, il déclare seulement qu'elle est surveillée.
+   */
+  inspectorScript.catch(() => undefined);
+
   browserRuntime = createBrowserWebContainerRuntime({
     workdir: WORK_DIR,
     workdirName: WORK_DIR_NAME,
@@ -81,7 +101,21 @@ function bootBrowserWebContainer() {
           workbenchStore.actionAlert.set({
             type: 'preview',
             title,
-            description: clientStoresServicesText('clientRuntime.webcontainer.unknownError'),
+
+            /*
+             * Le type EST connu — on vient de le resoudre juste au-dessus, et
+             * l'emplacement aussi. Afficher « une erreur inconnue » alors qu'on
+             * a le type, l'emplacement, le port et la pile est trompeur : ca
+             * fait lire un defaut de l'application generee comme une panne de
+             * la plateforme. Constate le 2026-09-03 sur une capture d'Avi.
+             *
+             * Meme classe de defaut que « Unknown release type "ops" » sans la
+             * liste des types : nommer le probleme sans donner le moyen d'agir.
+             */
+            description: clientStoresServicesText('clientRuntime.webcontainer.previewErrorAt', {
+              title,
+              location,
+            }),
             content: clientStoresServicesText('clientRuntime.webcontainer.previewErrorDetails', {
               location,
               port: message.port,

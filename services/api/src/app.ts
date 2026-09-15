@@ -12,6 +12,16 @@ import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
+import {
+  consumeRateLimit,
+  createFastifyRateLimitStore,
+  LocalRateLimitBackend,
+  parseStoreFailurePolicy,
+  RateLimitStoreUnavailableError,
+  RedisRateLimitBackend,
+  SharedRateLimitBackend,
+  type RateLimitBackend,
+} from './shared-rate-limit.js';
 import websocket from '@fastify/websocket';
 import {
   createOpaqueToken,
@@ -88,6 +98,10 @@ import {
 } from '@vibecore/k8s-client';
 import { createPrometheusRegistry, createSentryReporter, durationSeconds, nowSeconds } from '@vibecore/observability';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { isLockedNow, loginThrottleConfigFromEnv } from './login-throttle.js';
+import { resolveProviderKeyPresence } from './provider-key-presence.js';
+import { decisionEcritureMessage } from './message-ne-raccourcit-pas.js';
+import { refusalDetail } from './deploy-refus.js';
 import {
   redactSecrets,
   redactSecretString,
@@ -110,6 +124,14 @@ import JSZip from 'jszip';
 import { MongoClient } from 'mongodb';
 import mysql from 'mysql2/promise';
 import { Client as PgClient } from 'pg';
+
+import { createPostgresMigrationApplier } from './db-migration-applier.js';
+import {
+  hashStatements,
+  runPublishMigration,
+  type DeclaredMigration,
+  type SqlApplier,
+} from './db-migration-execution.js';
 import WebSocket from 'ws';
 import { SignedXml } from 'xml-crypto';
 import { z, type ZodSchema } from 'zod';
@@ -169,10 +191,12 @@ import {
   localizeCreditLedgerReason,
   type AppPublicCopyKey,
 } from './app-public-copy.js';
+import { classerEchecDImport, type EchecDImport } from './import-echec.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
-import { slugifyRouteSegment } from './slugify.js';
+import { slugify, slugifyRouteSegment } from './slugify.js';
+import { acquireTerminalSlot, releaseTerminalSlot } from './terminal-concurrency.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -191,6 +215,7 @@ import {
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
+  type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
 import {
@@ -207,6 +232,23 @@ import {
   type ImportState,
 } from './import-pipeline.js';
 import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import {
+  CHECKPOINT_ORDER,
+  assertCheckpointTransition,
+  checkpointManifestVisible,
+  projectCheckpointAdmissible,
+  quiesceAdmissible,
+  type CheckpointComponentSnapshot,
+  type CheckpointState,
+} from './lifecycle-state-machines.js';
+import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
+import {
+  declareCheckpointConsistency,
+  declareDatabaseConsistency,
+  declareFilesConsistency,
+  type BarrierScope,
+  type ConsistencyDeclaration,
+} from './checkpoint-consistency.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -240,6 +282,7 @@ import {
   computeStaticSnapshotDigest,
   createDeploymentLogs,
   deployProviderConfigError,
+  disponibiliteDesFournisseurs,
   pollProviderDeploymentStatus,
   removeStaticDeploymentSnapshot,
   restoreStaticSnapshotInto,
@@ -313,12 +356,14 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
-  ObjectStorageError,
-  type ObjectStorage,
+  BUCKET_NOT_PROVISIONED,
   isObjectStorageEnabled,
+  type ObjectStorage,
+  ObjectStorageError,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
 } from './object-storage.js';
+import { teardownProjectExternalResources } from './project-teardown.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
   decodeFileContent,
@@ -331,6 +376,7 @@ import {
   type ProjectFile,
   type ProjectStorage,
   type StoredArchive,
+  sonderEcritureStockage,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -339,6 +385,9 @@ import {
   resetAgentRoutingCache,
   seedAgentRoutingCard,
 } from './agent-routing-service.js';
+import { mapperErreurPasserelle } from './ai-gateway-error-mapping.js';
+import { estProvisionnementPerime } from './database-provisioning-staleness.js';
+import { statutConnexion } from './database-connection-status.js';
 import {
   assertPublicationStartable,
   ExpiredPublicationStartError,
@@ -365,6 +414,7 @@ import {
   deriveDeploymentAccessSecret,
   isAccessTokenValid,
 } from './deployment-access.js';
+import { lireUrlDEnvironnement } from './env-url.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -453,6 +503,8 @@ import {
 } from './tenant-guardrails.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
+import { ReconciliationUneFois } from './reconciliation-une-fois.js';
+import { doitEcrireDansWorkspace, espaceStabilise } from './portee-reconciliation.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -479,10 +531,63 @@ declare module 'fastify' {
 }
 
 /**
+ * Why a workspace-pod static build never even started.
+ *
+ * BUG-DEPLOY-STATIC-FAIL-001 — Avi, 09/09: "impossible de déployer en réel,
+ * aucun fournisseur ne fonctionne", on a card that read "Échec" and NOTHING
+ * else. Five distinct give-up paths all returned a bare `{ handled: false }`,
+ * and the caller turned every one of them into the single message
+ * DEPLOY_WORKSPACE_UNREACHABLE. Four of the five are not "unreachable" at all —
+ * and three of them swallowed the real error in a bare `catch {}`, which is the
+ * one thing a diagnostic must never do (règle 13).
+ *
+ * These are machine CODES, never user copy: they are appended to the localized
+ * message so the deployment log names the actual give-up point.
+ */
+/*
+ * BUG-REDIS-URL-GUILLEMETS-001 — signaler la réparation SANS la répéter.
+ *
+ * Plusieurs points du serveur lisent la même variable. Un journal qui répète
+ * cent fois la même ligne se lit comme du bruit et finit ignoré — exactement ce
+ * qui est arrivé aux `connect ENOENT` qui traînaient déjà là.
+ *
+ * L'avertissement ne porte QUE le nom de la variable : une URL de connexion
+ * contient souvent un mot de passe, et un avertissement ne doit pas faire fuir
+ * ce qu'il signale (règle 12).
+ */
+const urlsCiteesDejaSignalees = new Set<string>();
+
+function avertirUrlCitee(nom: string) {
+  if (urlsCiteesDejaSignalees.has(nom)) {
+    return;
+  }
+
+  urlsCiteesDejaSignalees.add(nom);
+
+  console.warn(
+    `[env] ${nom} was wrapped in quotes; they were stripped. ` +
+      'Left as-is, the client would have discarded the configured URL and fallen back to its default host and port. ' +
+      'Fix the value at its source (configmap, secret, or .env) — the quotes are not part of the URL.',
+  );
+}
+
+/** Test hook: oublie ce qui a déjà été signalé, pour que chaque test parte propre. */
+export function reinitialiserAvertissementsUrlCitee() {
+  urlsCiteesDejaSignalees.clear();
+}
+
+export type WorkspacePodBuildRefusal =
+  | 'NO_USER_CONTEXT'
+  | 'NO_WEBSOCKET_RUNTIME'
+  | 'WORKSPACE_UNREACHABLE'
+  | 'AGENT_TOKEN_UNAVAILABLE'
+  | 'BUILD_INVOCATION_THREW';
+
+/**
  * The workspace-pod static-build seam (#26 sub-part 2). Returns `{ handled: false }`
- * only when the project's workspace pod could not be reached even after a
- * provision + health-poll — in which case the deploy fails cleanly; the build is
- * NEVER retried in-process on the api pod.
+ * only when the build could not be started in the project's workspace pod — in
+ * which case the deploy fails cleanly; the build is NEVER retried in-process on
+ * the api pod. `refusal` (and `detail`, when an error was caught) say WHY.
  */
 export type WorkspacePodStaticBuild = (
   request: any,
@@ -490,7 +595,10 @@ export type WorkspacePodStaticBuild = (
   body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
-) => Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }>;
+) => Promise<
+  | { handled: false; refusal?: WorkspacePodBuildRefusal; detail?: string }
+  | { handled: true; result: RunStaticBuildResult; tempDir: string }
+>;
 
 export interface ApiAppOptions {
   store?: ApiStore;
@@ -507,6 +615,23 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Provisionneur de bases projet. Par défaut résolu depuis l'environnement
+   * (`resolveDefaultDatabaseProvisioner`) ; injectable pour piloter les phases de
+   * backup dans les tests — sans quoi la garde « pas d'apply sans backup vérifié »
+   * ne serait prouvable qu'en théorie.
+   */
+  databaseProvisioner?: DatabaseProvisioner;
+
+  /**
+   * Applicateur SQL des migrations de projet. Par défaut le vrai applicateur
+   * PostgreSQL transactionnel ; injectable pour que les tests CI (sans serveur
+   * Postgres) puissent prouver la MACHINE — verrou, backup, refus — sans dépendre
+   * du réseau. Le comportement transactionnel réel est prouvé séparément contre
+   * un vrai PostgreSQL.
+   */
+  migrationApplier?: SqlApplier;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -905,6 +1030,13 @@ const projectActivityQuerySchema = z.object({
 const agentMemoryScopeSchema = z.enum(['user', 'organization', 'project', 'session']);
 const agentMemoryTypeSchema = z.enum(['episodic', 'semantic', 'procedural', 'working', 'cache']);
 
+const agentMemoryRollbackSchema = z.object({
+  since: z
+    .string()
+    .min(1)
+    .refine((value) => Number.isFinite(Date.parse(value))),
+});
+
 const agentMemoryWriteSchema = z.object({
   scope: agentMemoryScopeSchema.default('user'),
   content: z.string().min(1).max(12000),
@@ -1052,12 +1184,48 @@ function mergeProjectIdeState(existingState: unknown, incomingState: unknown) {
           };
         })();
 
+  /*
+   * BUG-CREATE-010 — le manifeste `files` est le seul nœud que le spread
+   * superficiel laissait écraser, et c'est celui qui décide de la survie du
+   * travail de l'utilisateur.
+   *
+   * Le client fait `{ ...existing }` sur l'état que le SERVEUR lui a rendu, puis
+   * renvoie le tout. Il retransmet donc des clés que son propre type ne déclare
+   * même pas : mesuré en production le 31/08, le type client déclare
+   * `chat, ui, updatedAt` et la charge envoyée contient `ui, chat, files,
+   * updatedAt`. Le `files` renvoyé est la photo prise à l'OUVERTURE ; le spread
+   * nu la laissait remplacer le manifeste, et à la réouverture depuis un autre
+   * appareil `planReseedDeletions` faisait converger le pod vers cette photo.
+   *
+   * On ne peut PAS refuser `files` du client : des chemins légitimes le posent
+   * par cette route — récupération d'un échafaudage depuis le stockage persisté,
+   * indexation des manifestes de paquets. Trois tests d'API le vérifient, et un
+   * refus catégorique les fait tomber (essayé, mesuré, écarté).
+   *
+   * La règle est donc temporelle et non structurelle : le manifeste le plus
+   * RÉCENT gagne. Une photo plus ancienne — ou sans horodatage face à un
+   * horodatage existant — ne peut plus effacer une version plus neuve.
+   */
+  const existingFiles = ideStateRecord(existing.files);
+  const incomingFiles = ideStateRecord(incoming.files);
+  const horodatage = (bloc: Record<string, unknown>) => {
+    const brut = bloc.updatedAt;
+
+    return typeof brut === 'string' ? Date.parse(brut) : Number.NaN;
+  };
+  const dateExistante = horodatage(existingFiles);
+  const dateEntrante = horodatage(incomingFiles);
+  const gardeExistant =
+    incoming.files === undefined ||
+    (Number.isFinite(dateExistante) && (!Number.isFinite(dateEntrante) || dateEntrante < dateExistante));
+
   return {
     ...existing,
     ...incoming,
     chat: mergedChat,
     ui: { ...ideStateRecord(existing.ui), ...ideStateRecord(incoming.ui) },
     collaboration: mergedCollaboration,
+    ...(gardeExistant && existing.files !== undefined ? { files: existing.files } : {}),
   };
 }
 
@@ -1806,7 +1974,28 @@ function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
 }
 
-function aiTranscriptMessageId(conversationId: string, clientId: string) {
+/**
+ * Row id for one client-side transcript message.
+ *
+ * The derivation has to be IDEMPOTENT ACROSS REOPENS, and the plain hash was
+ * not. A project's transcript is written here with the ids the client holds;
+ * when that project is reopened the client loads the transcript back and adopts
+ * OUR row ids as its own message ids. The next sync therefore sent
+ * `clientId = 'aimsg_<a>'`, which re-hashed to a different `aimsg_<b>` — an
+ * INSERT, not an update. Every reopen appended a full copy of the conversation:
+ * measured on a real 6-message thread, ten reopens left 66 rows in the database
+ * and the agent panel header counting them all.
+ *
+ * So an id we already issued for THIS conversation is reused as-is. Membership
+ * in `existingIds` is also the authorisation check: a caller can only address
+ * rows that already belong to the conversation it is allowed to write to, so a
+ * forged `aimsg_…` cannot reach another conversation's message.
+ */
+function aiTranscriptMessageId(conversationId: string, clientId: string, existingIds: ReadonlySet<string>) {
+  if (existingIds.has(clientId)) {
+    return clientId;
+  }
+
   return `aimsg_${createHash('sha256').update(`${conversationId}:${clientId}`).digest('hex').slice(0, 32)}`;
 }
 
@@ -2872,6 +3061,33 @@ async function listDatabaseConnections(store: ApiStore, projectId: string): Prom
   });
 }
 
+/**
+ * Migrations DÉCLARÉES par le projet : `migrations/*.sql`, triées par nom
+ * (ordre lexicographique = ordre d'application, convention usuelle des
+ * horodatages en préfixe). Les fichiers vides sont ignorés : appliquer une
+ * chaîne vide créerait une entrée de registre sans effet réel.
+ */
+async function collectDeclaredMigrations(
+  projectStorage: ProjectStorage,
+  projectId: string,
+  workspaceId?: string,
+): Promise<DeclaredMigration[]> {
+  const files = await projectStorage.listFiles(projectId, workspaceId).catch(() => []);
+
+  return files
+    .filter((file) => /^migrations\/[^/]+\.sql$/i.test(file.path) && file.content.trim().length > 0)
+    .sort((a, b) => a.path.localeCompare(b.path))
+    .map((file) => ({ name: file.path.replace(/^migrations\//i, ''), sql: file.content }));
+}
+
+/**
+ * Applicateur partagé. `sha256` est injecté plutôt qu'importé dans le module
+ * d'application pour garder celui-ci sans dépendance au reste de l'API.
+ */
+const postgresMigrationApplier = createPostgresMigrationApplier({
+  sha256: (value: string) => createHash('sha256').update(value).digest('hex'),
+});
+
 async function requireDatabaseConnection(store: ApiStore, projectId: string, key: string) {
   const connections = await listDatabaseConnections(store, projectId);
   const connection = connections.find((item) => item.key === key);
@@ -2892,16 +3108,66 @@ async function inspectPostgresSchema(connectionString: string) {
   await client.connect();
 
   try {
-    const [tables, columns] = await Promise.all([
+    /*
+     * RP-DB-05 — Replit affiche « N rows » sous chaque table et la taille de la
+     * base sous son nom. Nous ne les avions pas ; les voici, RÉELS.
+     *
+     * `n_live_tup` est l'estimation entretenue par le collecteur de
+     * statistiques : c'est ce qu'on obtient en UNE requête pour toutes les
+     * tables. Un `count(*)` exact demanderait une requête PAR table — 200
+     * allers-retours sur la base de l'utilisateur pour afficher une liste.
+     * Elle est exacte sur une table vide ou petite, le cas qui compte à
+     * l'écran, et se nomme `rowsEstimate` pour que personne ne la prenne un
+     * jour pour un compte exact.
+     *
+     * La TAILLE, elle, est exacte : `pg_total_relation_size` inclut index et
+     * données annexes, comme le fait Replit.
+     */
+    const [tables, columns, statistiques, taille] = await Promise.all([
       client.query(
         "select table_schema, table_name, table_type from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200",
       ),
+      /*
+       * RP-DB-06 — les colonnes des tables QU'ON REND, et pas les 1000
+       * premières de la base.
+       *
+       * Le plafond plat coupait par ordre alphabétique : sur une base de 127
+       * tables, `_prisma_migrations` tombait au-delà du millième, et ses
+       * en-têtes s'affichaient SANS TYPE — mesuré le 09/09. Un plafond plus
+       * haut n'aurait fait que déplacer la coupure. La jointure lie les
+       * colonnes aux 200 tables effectivement listées : les deux ensembles ne
+       * peuvent plus diverger.
+       */
       client.query(
-        "select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name, ordinal_position limit 1000",
+        "select c.table_schema, c.table_name, c.column_name, c.data_type, c.character_maximum_length, c.is_nullable from information_schema.columns c join (select table_schema, table_name from information_schema.tables where table_schema not in ('pg_catalog', 'information_schema') order by table_schema, table_name limit 200) t on t.table_schema = c.table_schema and t.table_name = c.table_name order by c.table_schema, c.table_name, c.ordinal_position limit 20000",
       ),
+      client
+        .query(
+          "select c.relnamespace::regnamespace::text as table_schema, c.relname as table_name, greatest(coalesce(s.n_live_tup, 0), 0) as rows_estimate, pg_total_relation_size(c.oid) as size_bytes from pg_class c left join pg_stat_user_tables s on s.relid = c.oid where c.relkind in ('r', 'p') and c.relnamespace::regnamespace::text not in ('pg_catalog', 'information_schema', 'pg_toast') limit 200",
+        )
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
+      client
+        .query('select pg_database_size(current_database()) as size_bytes')
+        .catch(() => ({ rows: [] as Array<Record<string, unknown>> })),
     ]);
 
-    return { tables: tables.rows, columns: columns.rows };
+    const parCle = new Map<string, { rowsEstimate: number; sizeBytes: number }>();
+
+    for (const ligne of statistiques.rows as Array<Record<string, unknown>>) {
+      parCle.set(`${String(ligne.table_schema)}.${String(ligne.table_name)}`, {
+        rowsEstimate: Number(ligne.rows_estimate ?? 0),
+        sizeBytes: Number(ligne.size_bytes ?? 0),
+      });
+    }
+
+    return {
+      tables: (tables.rows as Array<Record<string, unknown>>).map((table) => ({
+        ...table,
+        ...(parCle.get(`${String(table.table_schema)}.${String(table.table_name)}`) ?? {}),
+      })),
+      columns: columns.rows,
+      databaseSizeBytes: Number((taille.rows as Array<Record<string, unknown>>)[0]?.size_bytes ?? 0) || undefined,
+    };
   } finally {
     await client.end();
   }
@@ -2915,7 +3181,7 @@ async function inspectMysqlSchema(connectionString: string) {
       'select table_schema, table_name, table_type from information_schema.tables where table_schema = database() order by table_name limit 200',
     );
     const [columns] = await connection.query(
-      'select table_schema, table_name, column_name, data_type, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
+      'select table_schema, table_name, column_name, data_type, character_maximum_length, is_nullable from information_schema.columns where table_schema = database() order by table_name, ordinal_position limit 1000',
     );
 
     return { tables: serializeDbRows(tables), columns: serializeDbRows(columns) };
@@ -3268,6 +3534,15 @@ async function requireAuth(request: FastifyRequest, reply: FastifyReply, store: 
   request.currentSession = session;
 
   /*
+   * Idle-timeout heartbeat: refresh this session's lastActiveAt (throttled to one
+   * write per minute). Fire-and-forget and swallow errors — a failed heartbeat
+   * must never break the request, and NOT bumping lastActiveAt only means a
+   * genuinely-idle session correctly ages out (fail-open on the write, fail-closed
+   * on the enforcement, which lives in findSessionByToken).
+   */
+  void store.touchSession(session.id, Date.now()).catch(() => undefined);
+
+  /*
    * Match on the parsed pathname with exact/segment checks. `request.url`
    * includes the query string and was matched only by prefix, so an appended
    * query escaped the gate and sibling paths like `/auth/sessions-export` were
@@ -3577,6 +3852,12 @@ function serverRuntimeDetectionMessage(
 
   return appPublicEnglish(keyByCode[code]);
 }
+
+/**
+ * Plafond de page de la liste d'instantanés. Une limite absurde (`?limit=99999`)
+ * ne doit pas rendre la borne inopérante — c'est le cas que la garde couvre.
+ */
+const SNAPSHOT_LIST_MAX_PAGE = 200;
 
 function localizeSnapshotRecord<T extends Pick<SnapshotRecord, 'kind' | 'label'>>(
   snapshot: T,
@@ -4331,6 +4612,250 @@ async function persistProjectFileManifest(
   );
 }
 
+/**
+ * BUG-CREATE-010 — rend DURABLE une écriture fichier par fichier.
+ *
+ * `persistProjectFileManifest` remplace le manifeste entier : elle convient aux
+ * chemins en masse (création, imports, fermeture d'artefact, restaurations) mais
+ * pas à une sauvegarde unitaire, qui ne connaît qu'un chemin.
+ *
+ * Ici on fusionne UNE entrée dans le manifeste existant, à l'intérieur de la
+ * boucle à version optimiste : la relecture et la fusion se font sous le même
+ * contrôle de version que le reste, donc une édition collaborative concurrente
+ * n'est pas écrasée.
+ *
+ * Appelée UNIQUEMENT hors flux de génération (voir `estEcritureDeFlux`) : sur le
+ * trajet de l'agent, l'archive est déjà rafraîchie en une fois par
+ * `/files/import/zip` à la fermeture de l'artefact, et y brancher le manifeste
+ * ferait une mutation du blob partagé par FRAGMENT de fichier.
+ */
+type EntreeDeManifeste = { path: string; content: string; encoding?: 'base64' };
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — le seul point de passage des mutations UNITAIRES du
+ * manifeste (une écriture, une création, une suppression, un renommage).
+ *
+ * ⚠️ IL NE FABRIQUE JAMAIS UN MANIFESTE À PARTIR DE RIEN, et c'est sa raison
+ * d'être. Le manifeste est AUTORITAIRE : `listProjectFilesIncludingIdeState`
+ * traite `Array.isArray(files.entries)` comme « ce manifeste fait foi » et
+ * appelle `syncProjectStorageWithFileManifest` → `projectStorage.restoreSnapshot`,
+ * qui VIDE l'arbre de travail avant de réécrire les seules entrées reçues.
+ * Un manifeste d'UNE entrée né d'une sauvegarde unitaire détruisait donc, à la
+ * lecture suivante, tous les autres fichiers du projet. Sans manifeste
+ * préexistant on ne touche à rien : l'archive reste telle quelle, exactement
+ * comme avant que la durabilité par écriture n'existe.
+ *
+ * Une SEULE mutation par requête, jamais une par fichier d'un sous-arbre : ce
+ * blob est partagé avec les éditions collaboratives et les autorisations de
+ * terminal, et une suppression de dossier de 40 fichiers faite en 40 mutations
+ * produirait la tempête de contention que `estEcritureDeFlux` évite déjà.
+ */
+function entreesDuManifeste(etat: unknown): EntreeDeManifeste[] | undefined {
+  const racine = (etat ?? {}) as { files?: { entries?: EntreeDeManifeste[] } };
+
+  return Array.isArray(racine.files?.entries) ? racine.files!.entries! : undefined;
+}
+
+/** Vrai si le transformateur a réellement changé quelque chose. */
+function manifesteChange(avant: EntreeDeManifeste[], apres: EntreeDeManifeste[]) {
+  if (avant.length !== apres.length) {
+    return true;
+  }
+
+  return avant.some(
+    (entree, index) =>
+      entree.path !== apres[index]!.path ||
+      entree.content !== apres[index]!.content ||
+      entree.encoding !== apres[index]!.encoding,
+  );
+}
+
+async function mutateProjectFileManifestEntries(
+  store: ApiStore,
+  projectId: string,
+  updatedByUserId: string | undefined,
+  transformer: (entrees: EntreeDeManifeste[]) => EntreeDeManifeste[],
+) {
+  /*
+   * DEUX raisons de renoncer AVANT d'entrer dans `mutateProjectIdeState`, et
+   * elles doivent être décidées ici parce que cette boucle ÉCRIT toujours :
+   * elle appelle `upsertProjectIdeState` sans comparer, donc un « rien à
+   * faire » exprimé à l'intérieur produirait quand même une écriture et une
+   * montée de version.
+   *
+   *  1. PAS DE MANIFESTE → ne rien inventer (voir l'avertissement ci-dessus).
+   *  2. RIEN N'A CHANGÉ → ne rien écrire. Cas courant, pas théorique :
+   *     supprimer un fichier qui n'a jamais atteint le manifeste passe par
+   *     `removeProjectFileEntries` et n'y retire rien. Écrire quand même
+   *     ferait monter la version de ce blob à chaque fois — or l'IDE le
+   *     revalide par `If-None-Match` (AUDX-167) et il n'est PAS borné (jusqu'à
+   *     `API_BODY_LIMIT_BYTES`, 25 Mo) : on rendrait payant, à chaque
+   *     suppression, le rechargement complet qu'AUDX-167 avait supprimé.
+   *
+   * Le transformateur est PUR : l'appeler une fois pour décider puis une fois
+   * dans la boucle à version optimiste ne coûte rien et garde la relecture
+   * sous contrôle de version.
+   */
+  const entreesActuelles = entreesDuManifeste((await store.getProjectIdeState(projectId))?.state);
+
+  if (!entreesActuelles || !manifesteChange(entreesActuelles, transformer([...entreesActuelles]))) {
+    return;
+  }
+
+  await mutateProjectIdeState(store, projectId, updatedByUserId, (_ctx, existing) => {
+    const entrees = entreesDuManifeste(existing?.state);
+
+    /* Le manifeste a disparu entre la décision et ici : ne rien inventer. */
+    if (!entrees) {
+      return mergeProjectIdeState(existing?.state, {});
+    }
+
+    return mergeProjectIdeState(existing?.state, {
+      files: { entries: transformer([...entrees]), updatedAt: new Date().toISOString() },
+    });
+  });
+}
+
+/**
+ * Vrai pour `chemin` lui-même ET pour tout ce qu'il contient.
+ *
+ * Le séparateur est OBLIGATOIRE dans le préfixe : un `startsWith('src')` nu
+ * emporterait `src-old/`, et la perte serait DÉFINITIVE — le manifeste étant
+ * autoritaire, un voisin retiré par erreur est un fichier détruit sur tous les
+ * appareils au prochain réamorçage, pas un affichage faux.
+ */
+function cheminDansLeSousArbre(candidat: string, racine: string) {
+  const normalise = normalizeProjectPath(candidat);
+
+  /*
+   * `normalizeProjectPath` rend `undefined` sur un chemin vide ou porteur d'un
+   * segment de traversée. Dans le doute on GARDE l'entrée : sur un manifeste
+   * autoritaire, retirer à tort détruit un fichier, tandis que garder à tort ne
+   * fait que laisser une entrée morte.
+   */
+  if (!normalise) {
+    return false;
+  }
+
+  return normalise === racine || normalise.startsWith(`${racine}/`);
+}
+
+async function persistProjectFileEntry(
+  store: ApiStore,
+  projectId: string,
+  file: { path: string; content: string; encoding?: FileEncoding },
+  updatedByUserId?: string,
+) {
+  const chemin = normalizeProjectPath(file.path);
+
+  if (!chemin) {
+    return;
+  }
+
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) => {
+    const entree: EntreeDeManifeste = {
+      path: chemin,
+      content: file.content,
+      ...(file.encoding === 'base64' ? { encoding: 'base64' as const } : {}),
+    };
+    const index = entrees.findIndex((e) => normalizeProjectPath(e.path) === chemin);
+
+    if (index === -1) {
+      entrees.push(entree);
+    } else {
+      entrees[index] = entree;
+    }
+
+    return entrees;
+  });
+}
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — une suppression faite dans l'IDE n'atteignait que le
+ * pod. Au réamorçage suivant (`workspace-reseed.ts`, `importZip`) l'archive était
+ * réécrite par-dessus et le fichier RESSUSCITAIT. Le seul « tombstone » existant
+ * est local au navigateur (`files.ts`, `#persistDeletedPaths` → `localStorage`) :
+ * il ne protège donc pas l'appareil suivant, qui est précisément le cas d'usage
+ * signalé.
+ */
+async function removeProjectFileEntries(store: ApiStore, projectId: string, path: string, updatedByUserId?: string) {
+  const chemin = normalizeProjectPath(path);
+
+  if (!chemin) {
+    return;
+  }
+
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) =>
+    entrees.filter((entree) => !cheminDansLeSousArbre(entree.path, chemin)),
+  );
+}
+
+/**
+ * BUG-RUNTIME-DIVERGENCE — un renommage revenait en arrière au réamorçage.
+ *
+ * Le retrait et la réinsertion se font dans UNE seule mutation : en deux temps,
+ * il existerait une fenêtre où le fichier n'est dans aucun des deux chemins, et
+ * une lecture tombant dedans le supprimerait du stockage.
+ */
+async function moveProjectFileEntries(
+  store: ApiStore,
+  projectId: string,
+  from: string,
+  to: string,
+  updatedByUserId?: string,
+) {
+  const source = normalizeProjectPath(from);
+  const cible = normalizeProjectPath(to);
+
+  if (!source || !cible || source === cible) {
+    return;
+  }
+
+  await mutateProjectFileManifestEntries(store, projectId, updatedByUserId, (entrees) => {
+    const deplacees = entrees.map((entree) => {
+      if (!cheminDansLeSousArbre(entree.path, source)) {
+        return entree;
+      }
+
+      const normalise = normalizeProjectPath(entree.path);
+
+      if (!normalise) {
+        return entree;
+      }
+
+      const reste = normalise.slice(source.length);
+
+      return { ...entree, path: `${cible}${reste}` };
+    });
+
+    /*
+     * Un renommage PAR-DESSUS une cible existante (`mv a.ts b.ts` quand `b.ts`
+     * est déjà au manifeste) produirait sinon DEUX entrées au même chemin. Le
+     * manifeste étant reversé tel quel dans le stockage, le doublon rend
+     * `projectFilesMatch` faux à chaque lecture — il compare les longueurs — et
+     * relance un `restoreSnapshot` complet à chaque fois. On garde la DERNIÈRE
+     * occurrence, c'est-à-dire le fichier déplacé, comme le fait `mv`.
+     */
+    const parChemin = new Map<string, EntreeDeManifeste>();
+
+    for (const entree of deplacees) {
+      parChemin.set(normalizeProjectPath(entree.path) ?? entree.path, entree);
+    }
+
+    return [...parChemin.values()];
+  });
+}
+
+/**
+ * Une écriture émise pendant le FLUX de génération de l'agent. Le client la
+ * marque ; en l'absence de marqueur on considère que l'écriture vient d'un
+ * humain, parce qu'un faux « humain » coûte une mutation de trop tandis qu'un
+ * faux « flux » reperd la donnée.
+ */
+function estEcritureDeFlux(request: { headers: Record<string, unknown> }) {
+  return String(request.headers['x-vc-write-origin'] ?? '').toLowerCase() === 'stream';
+}
+
 function persistedIdeMessageContent(message: unknown) {
   if (!message || typeof message !== 'object' || Array.isArray(message)) {
     return '';
@@ -4928,6 +5453,7 @@ const PROVIDER_KEY_ENV: Record<string, string> = {
 /** Local/keyless providers that are "ready" once enabled, no platform key needed. */
 const KEYLESS_LLM_PROVIDERS = new Set(['LMStudio', 'Ollama']);
 
+
 /*
  * Map the ai-gateway's provider `id` (services/ai-gateway/src/gateway.ts:
  * providerConfigs()) onto the user-facing ProviderConfig display name, so its
@@ -5066,14 +5592,9 @@ async function providerHealth(
   for (const name of KNOWN_LLM_PROVIDERS) {
     const config = byProvider.get(name);
     const enabled = config?.enabled ?? false;
-    const envKey = PROVIDER_KEY_ENV[name];
-
-    // DB-first: an admin-set encrypted key beats env; env is the fallback source.
-    const hasDbKey = Boolean(config?.apiKeyEnc);
-    const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
-
-    const keyConfigured = KEYLESS_LLM_PROVIDERS.has(name) || hasDbKey || hasEnvKey;
-    const keySource: ProviderHealthRow['keySource'] = hasDbKey ? 'db' : hasEnvKey ? 'env' : 'none';
+    const presence = resolveProviderKeyPresence(name, config?.apiKeyEnc);
+    const keyConfigured = presence.keyConfigured;
+    const keySource: ProviderHealthRow['keySource'] = presence.source;
 
     let status: ProviderHealthRow['status'];
 
@@ -5183,7 +5704,13 @@ async function providerHealth(
 
 async function adminHealthSummary(store: ApiStore, locale: TransactionalLocale) {
   const databaseUrl = process.env.DATABASE_URL;
-  const redisUrl = process.env.REDIS_URL;
+
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — citée, l'URL n'échoue pas : `ioredis` la
+   * JETTE et retombe sur `localhost:6379`. Une sonde qui lit la variable nue
+   * rapporterait « configuré » sur une URL que le client n'utilise jamais.
+   */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
 
   /*
    * Real connectivity probe against Postgres: issue a trivial query rather than
@@ -7648,7 +8175,9 @@ type CollaborationSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
 
 function createCollaborationBroker() {
   const rooms = new Map<string, Set<CollaborationSocket>>();
-  const redisUrl = process.env.REDIS_URL;
+
+  /* BUG-REDIS-URL-GUILLEMETS-001 — voir `env-url.ts` : citée, l'URL est jetée. */
+  const redisUrl = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
   const channelPrefix = process.env.COLLABORATION_REDIS_CHANNEL_PREFIX ?? 'vibecore:collaboration';
 
   /*
@@ -8155,17 +8684,15 @@ const KNOWN_LLM_PROVIDER_SET = new Set(KNOWN_LLM_PROVIDERS);
  * that echoes a provider so a stored ciphertext can't leak through any of them.
  */
 function providerAdminView(p: ProviderConfigRecord) {
-  const envKey = PROVIDER_KEY_ENV[p.provider];
-  const hasDbKey = Boolean(p.apiKeyEnc);
-  const hasEnvKey = Boolean(envKey) && Boolean(process.env[envKey]?.trim());
+  const presence = resolveProviderKeyPresence(p.provider, p.apiKeyEnc);
 
   return {
     id: p.id,
     provider: p.provider,
     displayName: p.displayName,
     enabled: p.enabled,
-    hasKey: hasDbKey,
-    source: hasDbKey ? ('db' as const) : hasEnvKey ? ('env' as const) : ('none' as const),
+    hasKey: presence.hasDbKey,
+    source: presence.source,
     baseUrl: p.baseUrl ?? null,
     byokAllowed: p.byokAllowed,
     createdAt: p.createdAt,
@@ -8367,7 +8894,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
-  const projectStorage = options.projectStorage ?? new LocalProjectStorage();
+  /**
+   * `rawProjectStorage` = accès direct, réservé à l'orchestrateur de checkpoint :
+   * lui seul doit pouvoir écrire l'arbre pendant que SA propre barrière tient
+   * (restauration). Tout le reste du processus passe par `projectStorage`, qui
+   * refuse les mutations d'arbre sous barrière — garde posée au point
+   * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
+   */
+  const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+  const projectStorage = withCheckpointBarrier(rawProjectStorage, (projectId) =>
+    store.getActiveCheckpointBarrier(projectId),
+  );
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
   /**
@@ -8670,9 +9207,142 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
   });
+  /*
+   * Client Redis DÉDIÉ au rate limiting.
+   *
+   * On borne les commandes par `commandTimeout` au lieu de couper la file
+   * hors-ligne.
+   *
+   * `lazyConnect: true` + `enableOfflineQueue: false` était un piège : la toute
+   * première commande partait avant que la connexion soit établie et échouait
+   * systématiquement (« Stream isn't writeable »). Couplée au fail-closed, la
+   * combinaison faisait répondre 503 à CHAQUE démarrage de pod, le temps que
+   * Redis se connecte — donc à chaque rollout, pas seulement pendant une panne.
+   *
+   * Avec une file bornée : au démarrage à froid les commandes attendent la
+   * connexion (pas de 503 fantôme) ; pendant une vraie coupure elles échouent au
+   * bout du timeout et le fail-closed prend le relais.
+   *
+   * Le timeout NE DOIT PAS être trop serré. Couplé au fail-closed, il transforme
+   * « Redis est lent » en « l'API refuse le trafic » : à 250 ms, une rafale de
+   * charge concurrente suffisait à faire expirer des commandes pourtant saines et
+   * à renvoyer des 503 en série. 1 s laisse passer les à-coups normaux tout en
+   * bornant l'attente pendant une vraie panne.
+   */
+  const rateLimitStoreFailurePolicy = parseStoreFailurePolicy(process.env.RATE_LIMIT_STORE_FAILURE_POLICY);
+
+  /*
+   * Espace de noms des clés de rate limiting.
+   *
+   * En PRODUCTION il est STABLE et commun à tous les pods — c'est précisément ce
+   * qui rend le compteur partagé (le but de ce lot).
+   *
+   * SOUS TEST il est UNIQUE PAR INSTANCE d'app. Les suites construisent des
+   * dizaines d'apps dans un même processus, toutes vues depuis 127.0.0.1 : avec
+   * un espace commun elles se partagent un seul compartiment et s'épuisent
+   * mutuellement (309 tests tombés en 429 la première fois). Avant ce lot, le
+   * cache LOCAL du plugin les isolait par accident ; on restaure explicitement
+   * cette isolation au lieu de la perdre — sans toucher au comportement de prod.
+   *
+   * Le chemin partagé reste couvert par shared-rate-limit.spec.ts et par la
+   * preuve live à 2 instances.
+   */
+  const isTestRuntime = Boolean(process.env.VITEST) || process.env.NODE_ENV === 'test';
+  const rateLimitKeyPrefix =
+    process.env.RATE_LIMIT_KEY_PREFIX ?? (isTestRuntime ? `rl:test:${randomUUID()}` : 'rl');
+
+  /*
+   * SOUS TEST, on n'utilise PAS le store partagé (sauf RATE_LIMIT_FORCE_SHARED=1).
+   *
+   * Raison : le fail-closed rend l'API sensible à la LATENCE du store, pas
+   * seulement à sa panne. 1445 tests d'intégration martelant un seul Redis en
+   * parallèle font expirer des commandes pourtant saines, et chaque expiration
+   * devient un 503 — des dizaines de tests sans aucun rapport avec le rate
+   * limiting tombaient pour cette seule raison. Les faire dépendre de la latence
+   * Redis n'apporte rien à ce qu'ils vérifient.
+   *
+   * Le chemin partagé n'est pas pour autant non testé : il l'est directement par
+   * shared-rate-limit.spec.ts et par la preuve live à 2 instances contre un vrai
+   * Redis. `RATE_LIMIT_FORCE_SHARED=1` permet de l'exercer ici aussi.
+   *
+   * ⚠️ Conséquence de production à connaître : avec le fail-closed, une latence
+   * Redis durablement supérieure à `commandTimeout` refuse du trafic. C'est le
+   * prix assumé de ne pas s'ouvrir pendant une panne — à surveiller côté
+   * exploitation.
+   */
+  /*
+   * BUG-REDIS-URL-GUILLEMETS-001 — la MÊME valeur décidait de l'activation et
+   * servait de cible. Citée, elle rendait `Boolean(...)` vrai — le plafond
+   * partagé s'annonçait actif — pendant que le client partait sur
+   * `localhost:6379`. Le plafond était donc « partagé » avec personne.
+   */
+  const urlRateLimitRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+  const useSharedRateLimitStore =
+    Boolean(urlRateLimitRedis) && (!isTestRuntime || process.env.RATE_LIMIT_FORCE_SHARED === '1');
+
+  const sharedRateLimitRedis = useSharedRateLimitStore
+    ? new Redis(urlRateLimitRedis as string, {
+        connectionName: 'vibecore-rate-limit',
+        commandTimeout: Number(process.env.RATE_LIMIT_REDIS_COMMAND_TIMEOUT_MS ?? 1000),
+        maxRetriesPerRequest: 1,
+      })
+    : undefined;
+
+  /*
+   * ioredis émet une 'error' au niveau processus sur toute faute de connexion ;
+   * sans écouteur, ça devient une 'error' non gérée qui TUE le pod. On loggue et
+   * on avale : le limiteur dégrade, il ne fait pas tomber l'API.
+   */
+  sharedRateLimitRedis?.on('error', (error) =>
+    console.error(
+      JSON.stringify({ level: 'error', service: 'api', component: 'rate-limit-redis', error: String(error) }),
+    ),
+  );
+
+  const globalRateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'api-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : undefined;
+
   await app.register(rateLimit, {
     max: Number(process.env.API_RATE_LIMIT_MAX ?? 2000),
     timeWindow: '1 minute',
+    /*
+     * Store PARTAGÉ. Sans lui, @fastify/rate-limit compte dans un cache local au
+     * processus : avec 2 replicas (HPA → 6), tout plafond valait jusqu'à 6× la
+     * valeur annoncée, y compris ceux qui protègent login/register du brute
+     * force. Le limiteur s'affaiblissait à mesure que la plateforme scalait.
+     *
+     * On passe par NOTRE store plutôt que par l'option `redis` du plugin : les
+     * deux limiteurs (global et admin) partagent ainsi la même politique de
+     * panne et la même erreur typée, au lieu de deux comportements distincts.
+     */
+    ...(globalRateLimitBackend ? { store: createFastifyRateLimitStore(globalRateLimitBackend) } : {}),
+    /*
+     * FAIL-CLOSED. `skipOnError: true` (le défaut de la lib) laisse passer TOUTE
+     * requête quand le store est injoignable : la protection brute force
+     * s'évapore exactement quand un attaquant a intérêt à faire tomber Redis.
+     * À false, un store KO renvoie 429 plutôt que d'ouvrir la vanne.
+     *
+     * Le coût est réel et assumé : une panne Redis dégrade la disponibilité des
+     * routes limitées. Un opérateur qui préfère l'inverse le déclare via
+     * RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local (compteur par pod, jamais
+     * illimité) — jamais par accident.
+     */
+    skipOnError: rateLimitStoreFailurePolicy === 'degrade-local',
     keyGenerator(request) {
       const authorization = request.headers.authorization;
 
@@ -8691,9 +9361,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const credentialKey =
         typeof authorization === 'string' && authorization.startsWith('Bearer ')
           ? hashToken(authorization.slice('Bearer '.length)).slice(0, 16)
-          : 'anonymous';
+          : undefined;
 
-      return `${request.ip}:${credentialKey}`;
+      /*
+       * ISOLATION PAR PORTEUR DE CREDENTIAL.
+       *
+       * Clé authentifiée = le credential SEUL, sans l'IP. En incluant l'IP, le
+       * budget d'un même jeton se dupliquait à chaque adresse source : un
+       * attaquant authentifié disposant de plusieurs IP (proxies, cloud, IPv6
+       * /64) se fabriquait autant de compartiments neufs et sortait de sa propre
+       * limite. Le budget suit désormais le porteur, où qu'il se connecte.
+       *
+       * Corollaire d'isolation : deux tenants ne partagent jamais un compartiment
+       * (jetons distincts ⇒ clés distinctes), donc l'abus de l'un ne consomme pas
+       * le quota de l'autre — y compris derrière une IP de sortie commune.
+       *
+       * Anonyme = par IP : c'est le seul signal non falsifiable avant auth.
+       */
+      return credentialKey ? `${rateLimitKeyPrefix}:cred:${credentialKey}` : `${rateLimitKeyPrefix}:ip:${request.ip}`;
     },
   });
 
@@ -8844,6 +9529,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: 'VALIDATION_ERROR',
         issues: localizeAppValidationIssues(error.issues, locale),
       });
+    }
+
+    /*
+     * FAIL-CLOSED lisible. Le store de rate limiting est injoignable : on refuse,
+     * mais avec un 503 + retry-after plutôt qu'un 500 anonyme. Ce n'est pas un
+     * bug applicatif mais un mode dégradé connu — l'appelant sait qu'il peut
+     * réessayer, et l'astreinte le distingue d'une panne de code.
+     */
+    if (error instanceof RateLimitStoreUnavailableError) {
+      return reply.code(503).header('retry-after', '5').send({
+        error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_REQUEST'),
+        code: error.code,
+        retryable: true,
+      });
+    }
+
+    /*
+     * Refus au point d'étranglement du stockage : la barrière peut être levée
+     * loin du handler (helper, écriture depuis un GET). Sans cette branche, un
+     * gel légitime remonterait en 500 au lieu du 423 contractuel.
+     */
+    if (error instanceof CheckpointBarrierError) {
+      return reply.code(423).send({ error: error.message, code: error.code, barrierId: error.barrierId });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
@@ -9342,10 +10050,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       checks.database = { status: 'unconfigured' };
     }
 
-    if (process.env.REDIS_URL) {
+    /* BUG-REDIS-URL-GUILLEMETS-001 — la sonde doit viser ce que le client vise. */
+    const urlSondeRedis = lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee);
+
+    if (urlSondeRedis) {
       const started = Date.now();
 
-      const probe = new Redis(process.env.REDIS_URL, {
+      const probe = new Redis(urlSondeRedis, {
         lazyConnect: true,
         maxRetriesPerRequest: 1,
         connectTimeout: 1500,
@@ -9378,6 +10089,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     } else {
       checks.redis = { status: 'unconfigured' };
+    }
+
+    /*
+     * LE STOCKAGE PARTAGÉ, parce qu'une sonde qui ne l'écrit pas ne dit rien de
+     * la capacité à écrire.
+     *
+     * Mesuré le 2026-09-07 sur le banc : `mkdir` sur `_locks` en **errno -116
+     * (ESTALE)**, poignée NFS périmée sur UNE des deux répliques. Une création de
+     * projet sur deux rendait 500 — et `readyReplicas` disait 2/2, le compteur de
+     * redémarrages 0, `/health` `ok`, et ce `/ready` ne regardait que la base et
+     * Redis. La réplique est restée dans la rotation, en bonne santé apparente.
+     *
+     * La production a le MÊME montage : PVC `vibecore-shared-csi`, pilote
+     * `filestore.csi.storage.gke.io` (donc NFS), RWX, et
+     * `PROJECT_STORAGE_DIR=/data/vibecore/projects`. Rien n'aurait vu la même
+     * panne ici.
+     *
+     * SEUL un montage mort sort la réplique de la rotation (voir
+     * `CODES_MONTAGE_MORT`). Un délai dépassé ou un `ENOSPC` est signalé dans le
+     * corps mais ne dégrade pas : ces causes-là sont globales, et sortir TOUTES
+     * les répliques transformerait une dégradation en panne totale — y compris
+     * pour les routes qui ne touchent pas le stockage.
+     *
+     * Ce que cette sonde ne fait PAS : elle ne répare rien. Un redémarrage de
+     * conteneur réutilise le même montage ; seule la recréation du POD le
+     * rétablit. Elle arrête l'hémorragie et rend la panne visible — la remise en
+     * état reste un geste d'exploitation.
+     */
+    {
+      const verdict = await sonderEcritureStockage();
+
+      if (verdict.ok) {
+        checks.storage = { status: 'ok', latencyMs: verdict.latencyMs };
+      } else {
+        request.log.error(
+          { code: verdict.code, fatal: verdict.fatal, latencyMs: verdict.latencyMs },
+          'readiness storage probe failed',
+        );
+
+        checks.storage = {
+          status: 'down',
+          latencyMs: verdict.latencyMs,
+          detail: verdict.fatal ? `mount-dead:${verdict.code}` : `transient:${verdict.code}`,
+        };
+
+        if (verdict.fatal) {
+          degraded = true;
+        }
+      }
     }
 
     if (degraded) {
@@ -9561,7 +10321,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       const organization = await store.createOrganization({
         name: body.organizationName ?? `${body.name ?? body.email}'s Organization`,
-        slug: body.organizationName?.toLowerCase().replace(/[^a-z0-9]+/g, '-') ?? `org-${user.id.slice(-8)}`,
+        slug: body.organizationName ? slugify(body.organizationName) : `org-${user.id.slice(-8)}`,
         ownerUserId: user.id,
       });
 
@@ -9621,9 +10381,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     async (request, reply) => {
       const body = parse(loginSchema, request.body);
       const user = await store.findUserByEmail(body.email);
+      const throttleConfig = loginThrottleConfigFromEnv();
+
+      /*
+       * Per-account brute-force lock (defence-in-depth over the per-IP rate limit
+       * — a distributed botnet stays under the IP cap yet still hammers one
+       * account). Checked BEFORE the password so a locked account short-circuits
+       * with the GENERIC invalid-credentials 401 — identical body to a wrong
+       * password, so the lock can't be used to enumerate which emails exist. A
+       * store error is swallowed (fail-open): the lock is ADDITIVE, and the
+       * credential check below still runs, so degrading it never grants access
+       * without the correct password.
+       */
+      if (user) {
+        const lockout = await store.getLoginLockout(user.id).catch(() => undefined);
+
+        if (lockout && isLockedNow(lockout, Date.now())) {
+          metrics.increment('auth_failures_total', { reason: 'account_locked' });
+          return reply
+            .code(401)
+            .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
+        }
+      }
 
       if (!user || !verifyPassword(body.password, user.passwordHash)) {
         metrics.increment('auth_failures_total', { reason: 'invalid_credentials' });
+
+        // Count the failure toward the per-account lock (real accounts only).
+        // Best-effort — a lock-store hiccup must never turn a 401 into a 500.
+        if (user) {
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+        }
+
         return reply
           .code(401)
           .send({ error: appPublicEnglish('AUTH_INVALID_CREDENTIALS'), code: 'AUTH_INVALID_CREDENTIALS' });
@@ -9645,6 +10434,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         if (!totpValid && !recoveryValid) {
           metrics.increment('auth_failures_total', { reason: 'invalid_mfa' });
+          // A wrong MFA code is also a failed auth attempt — count it toward the lock.
+          await store.recordFailedLogin(user.id, Date.now(), throttleConfig).catch(() => undefined);
+
           return reply
             .code(401)
             .send({ error: appPublicEnglish('AUTH_INVALID_MFA_CODE'), code: 'AUTH_INVALID_MFA_CODE' });
@@ -9679,6 +10471,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           code: 'SSO_ENFORCED',
         });
       }
+
+      // Full credential (+ MFA + SSO) success ⇒ reset the per-account failure counter.
+      await store.clearLoginLockout(user.id).catch(() => undefined);
 
       const token = createOpaqueToken('session');
       await createLoginSession({ store, userId: user.id, organizationId: orgIdFromRequest(request), token, request });
@@ -10401,22 +11196,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  const adminRateBuckets = new Map<string, { count: number; resetAt: number }>();
+  /*
+   * Limiteur admin PARTAGÉ entre replicas.
+   *
+   * C'était une `Map` de processus : avec 2 replicas (HPA → 6), le plafond
+   * annoncé de 30 mutations admin/minute en valait jusqu'à 180 — et l'attaquant
+   * n'avait rien à faire, le load balancer répartissait ses requêtes tout seul.
+   * Le compteur vit désormais dans Redis (incrément + TTL atomiques). Sans
+   * REDIS_URL (dev, tests), on garde le compteur local : même sémantique,
+   * portée réduite à un pod, et c'est dit.
+   */
+  const adminRateLocalFallback = new LocalRateLimitBackend();
+  const adminRateLimitBackend: RateLimitBackend = sharedRateLimitRedis
+    ? new SharedRateLimitBackend(new RedisRateLimitBackend(sharedRateLimitRedis), {
+        policy: rateLimitStoreFailurePolicy,
+        fallback: adminRateLocalFallback,
+        onStoreFailure: (error, policy) =>
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              service: 'api',
+              component: 'admin-rate-limit',
+              event: 'shared_store_unavailable',
+              policy,
+              error: String(error),
+            }),
+          ),
+      })
+    : adminRateLocalFallback;
 
   /*
-   * Periodically evict expired buckets. Without this, the map grows without
-   * bound: a caller varying source IP or path component creates a key that is
-   * only ever overwritten when that exact key recurs, so one-off keys live
-   * forever (memory leak / DoS amplifier).
+   * Purge des fenêtres expirées du compteur local. Sans elle, la Map croît sans
+   * borne : une clé vue une seule fois n'est jamais réécrite et vit pour
+   * toujours (fuite mémoire, amplificateur de DoS).
    */
   setInterval(() => {
-    const t = Date.now();
-
-    for (const [k, v] of adminRateBuckets) {
-      if (v.resetAt <= t) {
-        adminRateBuckets.delete(k);
-      }
-    }
+    adminRateLocalFallback.prune();
   }, 60_000).unref();
 
   const parsedAdminRateLimit = Number(process.env.ADMIN_RATE_LIMIT_MAX ?? 30);
@@ -10431,19 +11246,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * attacker bypass the limit by varying the path param (e.g. suspend a
        * different :userId each request), since each target got its own bucket.
        */
-      const key = `${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
-      const now = Date.now();
-      const bucket = adminRateBuckets.get(key);
+      const key = `${rateLimitKeyPrefix}:adminrl:${request.ip}:${request.method}:${request.routeOptions.url ?? request.url.split('?')[0]}`;
+      let decision;
 
-      if (!bucket || bucket.resetAt <= now) {
-        adminRateBuckets.set(key, { count: 1, resetAt: now + adminRateWindowMs });
-      } else if (bucket.count >= adminRateLimit) {
+      try {
+        decision = await consumeRateLimit({
+          backend: adminRateLimitBackend,
+          key,
+          limit: adminRateLimit,
+          windowMs: adminRateWindowMs,
+        });
+      } catch (error) {
+        /*
+         * FAIL-CLOSED : store partagé injoignable ⇒ on REFUSE la mutation admin.
+         * 503 (et non 429) : ce n'est pas l'appelant qui a trop consommé, c'est
+         * la plateforme qui ne peut plus compter. Laisser passer ici ouvrirait
+         * les routes admin au moment le plus défavorable.
+         */
+        if (error instanceof RateLimitStoreUnavailableError) {
+          request.log?.error?.({ err: error }, 'admin rate limit store unavailable — refusing (fail-closed)');
+
+          return reply.code(503).header('retry-after', '5').send({
+            error: appPublicEnglish('RATE_LIMIT_STORE_UNAVAILABLE_ADMIN'),
+            code: 'RATE_LIMIT_STORE_UNAVAILABLE',
+            retryable: true,
+          });
+        }
+
+        throw error;
+      }
+
+      if (!decision.allowed) {
         return reply
           .code(429)
-          .header('retry-after', Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)))
+          .header('retry-after', decision.retryAfterSeconds)
           .send({ error: appPublicEnglish('ADMIN_RATE_LIMITED'), code: 'ADMIN_RATE_LIMITED' });
-      } else {
-        bucket.count += 1;
       }
     }
   });
@@ -11070,6 +11907,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return reply.code(result.memory ? (result.updated ? 200 : 201) : 202).send(result);
+  });
+
+  /*
+   * RP-CKPT-05 — « Rollback to this checkpoint » : la mémoire de l'agent
+   * revient à ce qu'il savait du projet au moment du point. Les souvenirs
+   * appris après sont archivés (`archivedAt`), jamais effacés.
+   */
+  app.post('/projects/:projectId/agent-memory/rollback', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(agentMemoryRollbackSchema, request.body);
+    const since = new Date(body.since);
+
+    const service = requireAgentMemoryService(agentMemory);
+    const result = await service.rollbackProject({ projectId: project.id, since });
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'agent_memory.rollback',
+      metadata: { since: since.toISOString(), archived: result.archived },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'agent_memory.rollback',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { since: since.toISOString(), archived: result.archived },
+    });
+
+    return result;
   });
 
   app.post('/agent-memory/search', async (request) => {
@@ -13789,7 +14661,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const agentSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
   const agentRetryDelay = (attempt: number) => 120 * attempt + Math.floor(Math.random() * 80);
 
-  const agentRequest = async <T = unknown>(workspaceId: string, path: string, init: RequestInit = {}) => {
+  /*
+   * `contexteRequete` sert UNIQUEMENT au démarrage déclenché par une lecture
+   * (voir `declencherDemarrageDepuisLecture`) : il porte l'utilisateur courant,
+   * dont dépend le jeton de stockage objet, et le journal de la requête. Il reste
+   * optionnel pour que les appelants internes (crons, réconciliation) continuent
+   * de fonctionner sans contexte — le démarrage part quand même, simplement sans
+   * identifiant d'utilisateur.
+   */
+  const agentRequest = async <T = unknown>(
+    workspaceId: string,
+    path: string,
+    init: RequestInit = {},
+    contexteRequete?: any,
+  ) => {
     const token = await agentToken(workspaceId);
     const headers = new Headers(init.headers);
     headers.set('authorization', `Bearer ${token}`);
@@ -13857,6 +14742,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * "starting" instead of a server error.
          */
         if (isWorkspaceDnsNotResolvedYet(error)) {
+          /*
+           * L'agent est injoignable sur une LECTURE : on demande le démarrage au
+           * lieu de rendre `425` en boucle sans que personne n'agisse. Réservé aux
+           * méthodes idempotentes — les écritures passent déjà par
+           * `agentMutateEnsuring`, qui ATTEND le démarrage au lieu de le
+           * déclencher en arrière-plan.
+           */
+          if (method === 'GET' || method === 'HEAD') {
+            declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
+          }
+
           throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
             statusCode: 425,
             code: 'WORKSPACE_NOT_STARTED',
@@ -13871,6 +14767,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * agent response so callers (and the local-runtime fallback) treat it as
          * agent-unavailable.
          */
+        /*
+         * Même raison : une connexion refusée sur une lecture veut dire « pod
+         * absent ou éteint », pas « fichier illisible ». Le pod ne se rallumera
+         * jamais tout seul si personne ne le demande.
+         */
+        if (method === 'GET' || method === 'HEAD') {
+          declencherDemarrageDepuisLecture(contexteRequete, workspaceId);
+        }
+
         throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_UNAVAILABLE')), {
           statusCode: 502,
           code: 'WORKSPACE_AGENT_REQUEST_FAILED',
@@ -14002,7 +14907,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const allowedSecretKeys = projectSecrets.map((entry) => entry.key);
     const allowedSecrets = await resolveProjectSecretValues(store, authorized.projectId).catch(() => undefined);
 
-    void managerRequest('/workspaces/start', {
+    /*
+     * L'ÉCHEC N'EST PLUS AVALÉ (BUG-RUNTIME-SILENCE-002).
+     *
+     * C'était `void managerRequest(...).catch(() => undefined)` : un manager
+     * injoignable, un secret désaccordé, un corps refusé — tout disparaissait
+     * sans une ligne de journal. L'utilisateur voyait un `425` éternel et les
+     * journaux ne disaient rien. C'est précisément ce qui a coûté une soirée de
+     * diagnostic le 2026-09-05.
+     *
+     * On garde le caractère NON BLOQUANT — la promesse n'est pas attendue ici,
+     * le sondage de `/health` observe l'arrivée du pod — mais on l'expose au
+     * retour pour que l'appelant qui veut connaître l'issue puisse l'attendre.
+     */
+    const demarrageDemande = managerRequest('/workspaces/start', {
       method: 'POST',
       body: JSON.stringify({
         namespace: runtimeNamespace(),
@@ -14022,13 +14940,118 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceId: authorized.workspaceId,
         }),
       }),
-    }).catch(() => undefined);
+    });
+
+    demarrageDemande.catch((error) => {
+      (request?.log ?? app.log)?.error(
+        { err: error, workspaceId: authorized.workspaceId, event: 'workspace.provision_request_failed' },
+        'la demande de demarrage au workspace-manager a echoue',
+      );
+    });
 
     await store
       .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STARTING' })
       .catch(() => undefined);
 
     emitLifecycle(authorized.workspaceId, 'STARTING', 'provision');
+
+    /*
+     * Rendu dans un OBJET, jamais comme promesse nue : les appelants existants
+     * font `await provisionWorkspaceOnDemand(...)` et doivent continuer à ne PAS
+     * bloquer sur le manager (`ensureWorkspaceReachable` sonde `/health` ensuite).
+     * Attendre `demarrageDemande` est un choix explicite de l'appelant.
+     */
+    return { demarrageDemande };
+  };
+
+  /*
+   * UNE LECTURE DÉCLENCHE LE PROVISIONNEMENT (BUG-RUNTIME-425-001).
+   *
+   * Jusqu'ici, seule l'ÉCRITURE (`ensureWorkspaceReachable`) démarrait un espace
+   * de travail. Une lecture sur un espace éteint constatait l'agent injoignable
+   * et rendait `425` — indéfiniment, parce que rien dans ce chemin ne demandait
+   * jamais de démarrage. Mesuré le 2026-09-05 sur le banc d'audit : 23 lectures,
+   * 24 réponses `425`, ZÉRO appel de démarrage en six heures. L'utilisateur
+   * voyait une plateforme figée sans que rien, côté serveur, ne le débloque.
+   *
+   * La lecture N'ATTEND PAS : elle rend toujours `425` immédiatement, avec le
+   * code que l'interface sait afficher (`PROJECT_FILE_WORKSPACE_STARTING`) et
+   * que le client réessaie (`#isRetryableProvisioningError`). Ce qui change,
+   * c'est qu'un démarrage part enfin en arrière-plan, donc le réessai suivant a
+   * une chance d'aboutir.
+   */
+  const demarragesDeclenchesParLecture = new Map<string, number>();
+
+  /*
+   * MISE EN COMMUN DES APPELS EN VOL.
+   *
+   * Une ouverture d'IDE émet des dizaines de lectures en rafale (mesuré : 95
+   * requêtes par ouverture, dont un pic à 47 en une seconde). Sans cette garde,
+   * chacune déclencherait son propre démarrage.
+   *
+   * Deux protections, parce qu'une seule ne suffit pas :
+   *  - la carte ci-dessus dédoublonne DANS UN POD ;
+   *  - le délai de garde couvre le cas où plusieurs répliques reçoivent la même
+   *    rafale — chacune ne déclenche qu'une fois par fenêtre.
+   * Et `/workspaces/start` est lui-même idempotent : rouvrir avec le même
+   * identifiant déterministe rend le pod existant au lieu d'en créer un second
+   * (vérifié en réel le 2026-09-05 — un espace au statut DELETED redémarre sur
+   * le même identifiant, pod prêt en 20 s, sans doublon).
+   */
+  const DELAI_ENTRE_DEUX_DECLENCHEMENTS_MS = 15_000;
+
+  const declencherDemarrageDepuisLecture = (request: any, workspaceId: string): void => {
+    const journal = request?.log ?? app.log;
+    const dernier = demarragesDeclenchesParLecture.get(workspaceId);
+
+    if (dernier !== undefined && Date.now() - dernier < DELAI_ENTRE_DEUX_DECLENCHEMENTS_MS) {
+      return;
+    }
+
+    demarragesDeclenchesParLecture.set(workspaceId, Date.now());
+
+    void (async () => {
+      const record = await store.getWorkspace(workspaceId);
+
+      if (!record) {
+        /*
+         * Code, pas de prose : cette erreur n'est jamais rendue à un utilisateur
+         * — elle est journalisée avec `workspaceId` en champ structuré, ce qui
+         * porte déjà toute l'information de diagnostic. Une phrase ici ferait
+         * régresser le scan de chaînes en dur sans rien apporter.
+         */
+        throw Object.assign(new Error(), { code: 'WORKSPACE_RECORD_MISSING', workspaceId });
+      }
+
+      const project = await store.getProject(record.projectId);
+
+      const { demarrageDemande } = await provisionWorkspaceOnDemand(request ?? {}, {
+        workspaceId,
+        projectId: record.projectId,
+        organizationId: project?.organizationId,
+      });
+
+      /*
+       * Ici on ATTEND : c'est ce qui distingue « le démarrage est parti » de
+       * « le démarrage a abouti ». Sans cette attente, la fenêtre de garde
+       * protégerait un échec pendant quinze secondes.
+       */
+      await demarrageDemande;
+    })().catch((error) => {
+      /*
+       * JAMAIS AVALÉ (BUG-RUNTIME-SILENCE-002). Ajouter un déclenchement dont
+       * l'échec disparaît dans un `catch` vide remplacerait un blocage
+       * silencieux par un autre : l'utilisateur verrait le même `425` éternel,
+       * et rien dans les journaux ne dirait pourquoi.
+       */
+      journal?.error(
+        { err: error, workspaceId, event: 'workspace.read_triggered_start_failed' },
+        'le demarrage declenche par une lecture a echoue',
+      );
+
+      // Réarmer : la fenêtre de garde ne doit jamais protéger un échec.
+      demarragesDeclenchesParLecture.delete(workspaceId);
+    });
   };
 
   // Ensure the workspace agent is reachable, provisioning + waiting if needed.
@@ -14085,7 +15108,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       return await agentRequest<T>(authorized.workspaceId, path, init);
     } catch (error) {
-      if ((error as { code?: string } | undefined)?.code !== 'WORKSPACE_AGENT_REQUEST_FAILED') {
+      /*
+       * Deux codes, une seule situation : le pod n'est pas joignable.
+       *
+       *   WORKSPACE_AGENT_REQUEST_FAILED  le pod ne répond pas
+       *   WORKSPACE_NOT_STARTED           son nom DNS ne résout pas encore
+       *
+       * Le second a été ajouté pour que l'IDE affiche « démarrage » au lieu d'une
+       * erreur serveur pendant la fenêtre de propagation kube-dns. Mais il n'a pas
+       * été ajouté ICI : `agentMutateEnsuring` ne relançait le provisionnement que
+       * sur le premier code, et relançait l'erreur pour le second.
+       *
+       * Conséquence mesurée en production le 2026-08-30, sur un projet créé la
+       * minute d'avant : `PUT /files/write` répondait 425 en UNE seconde, sans
+       * qu'aucune demande n'atteigne le workspace-manager. Le pod n'ayant jamais
+       * existé, son nom DNS ne résolvait pas — donc `WORKSPACE_NOT_STARTED` —
+       * donc aucun provisionnement. Vingt-cinq minutes plus tard, toujours aucune
+       * ligne `Workspace` en base : le chemin d'écriture ne se réparait jamais
+       * tout seul, il se contentait de dire « pas encore » indéfiniment.
+       *
+       * Le budget de `ensureWorkspaceReachable` est inchangé : un démarrage
+       * réellement lent renvoie toujours 425 une fois le délai écoulé. On tente
+       * simplement le provisionnement avant de le dire.
+       */
+      const failureCode = (error as { code?: string } | undefined)?.code;
+
+      if (failureCode !== 'WORKSPACE_AGENT_REQUEST_FAILED' && failureCode !== 'WORKSPACE_NOT_STARTED') {
         throw error;
       }
 
@@ -14140,30 +15188,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const userId = request.currentUser?.id;
 
     if (!userId) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_USER_CONTEXT' };
     }
 
     const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
 
     if (!WebSocketCtor) {
-      return { handled: false };
+      return { handled: false, refusal: 'NO_WEBSOCKET_RUNTIME' };
     }
 
     const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
+    /*
+     * BUG-DEPLOY-STATIC-FAIL-001 — ces `catch` étaient VIDES. Ils avalaient la
+     * seule phrase qui disait pourquoi le déploiement ne partait pas, et
+     * l'utilisateur recevait « Échec » sans rien d'autre (règle 13).
+     */
     try {
       await ensureWorkspaceReachable(request, authorized);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: refusalDetail(error) };
     }
 
     let token: string;
 
     try {
       token = await agentToken(workspaceId);
-    } catch {
-      return { handled: false };
+    } catch (error) {
+      return { handled: false, refusal: 'AGENT_TOKEN_UNAVAILABLE', detail: refusalDetail(error) };
     }
 
     const buildAgent = createWorkspaceBuildAgent({
@@ -14213,9 +15266,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         buildAgent,
       );
-    } catch {
+    } catch (error) {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'BUILD_INVOCATION_THREW', detail: refusalDetail(error) };
     }
 
     /*
@@ -14226,7 +15279,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     if (!result.ok && result.error === 'AGENT_UNREACHABLE') {
       await rm(tempDir, { recursive: true, force: true }).catch(() => undefined);
-      return { handled: false };
+      return { handled: false, refusal: 'WORKSPACE_UNREACHABLE', detail: 'AGENT_UNREACHABLE' };
     }
 
     return {
@@ -14583,6 +15636,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const reconcileRuntimeSeedFromPersisted = async (
     workspaceId: string,
     projectId: string,
+    /*
+     * `chaud` = le workspace est VIVANT : un serveur de dev y tourne et
+     * l'utilisateur peut y avoir édité. La portée de l'écriture en dépend, voir
+     * `portee-reconciliation.ts`. Défaut `false` : les deux appels historiques
+     * partent d'un pod fraîchement provisionné.
+     */
+    options: { chaud?: boolean } = {},
   ): Promise<{ seeded: boolean; reason: string; missing?: number; diverged?: number }> => {
     let existingTree: unknown;
 
@@ -14610,6 +15670,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const present = flattenRuntimeTreeFilePaths(existingTree);
+
+    /*
+     * UN POD QUI DÉMARRE N'EST PAS UN POD AMPUTÉ.
+     *
+     * Un fichier absent pendant l'ensemencement n'est pas un fichier perdu :
+     * c'est un fichier pas encore arrivé. Cette fonction ne sait pas faire la
+     * différence — elle voit « absent » et elle écrit. Sur un pod chaud dont
+     * l'arbre est encore VIDE, elle écrirait donc tout, déclenchant le
+     * rechargement plein écran que `ide-panel-smoke` interdit, et pour rien :
+     * l'ensemencement allait livrer ces fichiers de lui-même.
+     *
+     * Rien ne presse. Un fichier réellement perdu le sera encore au prochain
+     * passage, et l'arbre sera alors non vide.
+     *
+     * À FROID le cas s'inverse : un pod neuf part de vide, c'est précisément
+     * l'état dans lequel l'ensemencement DOIT écrire — d'où la garde qui ne
+     * s'applique qu'au chemin chaud.
+     */
+    if (!espaceStabilise({ fichiersPresents: present.size, workspaceChaud: Boolean(options.chaud) })) {
+      return { seeded: false, reason: 'espace-non-stabilise' };
+    }
 
     let missing = 0;
     let diverged = 0;
@@ -14648,7 +15729,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           continue;
         }
 
-        if (persistedFileContentMatches(file, { content: runtimeBody.content, encoding: runtimeBody.encoding })) {
+        const identique = persistedFileContentMatches(file, {
+          content: runtimeBody.content,
+          encoding: runtimeBody.encoding,
+        });
+
+        if (!doitEcrireDansWorkspace({ present: true, contenuIdentique: identique, workspaceChaud: Boolean(options.chaud) })) {
           continue;
         }
 
@@ -14692,9 +15778,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Fire the reseed reconciliation without ever letting it break the start/restart
    * response. Records a metric so the flaky-loop fix is observable in prod.
    */
-  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string) => {
+  /*
+   * Un workspace n'est réconcilié qu'UNE FOIS tant qu'il n'a pas été
+   * reprovisionné : la limitation porte sur l'ÉVÉNEMENT, pas sur le temps. Un
+   * minuteur raterait précisément l'ouverture qui compte.
+   */
+  const reconciliationUneFois = new ReconciliationUneFois();
+
+  const reconcileRuntimeSeedSafe = async (workspaceId: string, projectId: string, options: { chaud?: boolean } = {}) => {
     try {
-      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId);
+      const result = await reconcileRuntimeSeedFromPersisted(workspaceId, projectId, options);
 
       if (result.seeded) {
         metrics.increment('workspace_runtime_reseed_total', { reason: result.reason });
@@ -14890,8 +15983,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       child.on('close', (exitCode) => {
         clearTimeout(timer);
         record.status = 'exited';
-        record.exitCode = exitCode ?? 0;
-        resolvePromise(exitCode ?? 0);
+
+        /*
+         * BUG-DEPLOY-010, suspect n°2 — `exitCode === null` signifie TUÉ PAR
+         * SIGNAL, pas « terminé avec succès ». Le `?? 0` faisait passer une
+         * commande locale tuée (délai, OOM) pour une réussite, et l'appelant
+         * enchaînait sur un travail qui n'avait jamais fini. Même règle que la
+         * branche `error` juste au-dessus, qui rend déjà 127.
+         */
+        const codeReel = exitCode ?? 1;
+
+        record.exitCode = codeReel;
+        resolvePromise(codeReel);
       });
     });
 
@@ -15012,7 +16115,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       input.timeoutMs + 60_000,
     );
 
-    return { exitCode: result.exitCode ?? 0, output: result.output ?? '' };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — un run sans code de sortie n'a pas réussi.
+     * Le gestionnaire ne renseigne `exitCode` que lorsque le processus s'est
+     * terminé normalement ; l'absence signifie tué ou interrompu.
+     */
+    return { exitCode: result.exitCode ?? 1, output: result.output ?? '' };
   };
 
   /*
@@ -15038,11 +16146,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const scheduledRequest = { currentUser: undefined, raw: {} };
     const body = { command: 'sh', args: ['-lc', input.command], timeoutMs: input.timeoutMs };
 
-    let result: { code: number; stdout?: string; stderr?: string };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string };
 
     try {
       await ensureWorkspaceReachable(scheduledRequest, authorized, SCHEDULED_COLD_START_BUDGET_MS);
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(workspace.id, '/commands/run', {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -15054,7 +16169,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       result = await runLocalRuntimeCommand(authorized, body as z.infer<typeof runtimeCommandSchema>);
     }
 
-    return { exitCode: result.code ?? 0, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    return { exitCode: result.code ?? 1, output: `${result.stdout ?? ''}${result.stderr ?? ''}` };
   };
 
   /**
@@ -15345,9 +16473,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (!response.ok) {
-      throw Object.assign(new Error(appPublicEnglish('AI_GATEWAY_REQUEST_FAILED')), {
-        statusCode: 502,
-        code: 'AI_GATEWAY_REQUEST_FAILED',
+      /*
+       * BUG-AI-002 — ne plus écraser un statut ACTIONNABLE. La passerelle
+       * distingue soigneusement 403 (plan), 429 (quota) et 400 (requête) ; les
+       * aplatir tous en 502 « Internal server error » prive l'utilisateur de la
+       * seule information qui lui permettrait d'agir.
+       */
+      const corpsAmont = (await response.json().catch(() => undefined)) as
+        | { error?: unknown; code?: unknown }
+        | undefined;
+      const mappee = mapperErreurPasserelle(
+        response.status,
+        corpsAmont,
+        appPublicEnglish('AI_GATEWAY_REQUEST_FAILED'),
+      );
+
+      throw Object.assign(new Error(mappee.message), {
+        statusCode: mappee.statusCode,
+        code: mappee.code,
+        publicMessage: mappee.message,
         upstreamStatus: response.status,
       });
     }
@@ -15447,7 +16591,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (key === 'snapshots.count') {
-      return store.countSnapshots(organizationId);
+      /*
+       * PER-PERIOD, comme `deployments.count` juste en dessous. Le comptage à vie
+       * transformait une allocation renouvelable en plafond définitif : 125
+       * organisations sur 303 étaient au plafond de 5 ou au-dessus, dont une à
+       * 3 451 instantanés — bloquées pour toujours, sans qu'aucune période ne
+       * rouvre quoi que ce soit.
+       */
+      const periodStart = await resolveUsagePeriodStart(organizationId);
+
+      return store.countSnapshots(organizationId, periodStart);
     }
 
     if (key === 'deployments.count') {
@@ -16166,7 +17319,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (toolName === 'list_files') {
-      const nodes = await agentRequest<AgentNode[]>(workspaceId, `/files/tree?path=${encodeURIComponent(path ?? '.')}`);
+      const nodes = await agentRequest<AgentNode[]>(
+        workspaceId,
+        `/files/tree?path=${encodeURIComponent(path ?? '.')}`,
+        {},
+        request,
+      );
       output = mapRuntimeNodes(nodes);
     } else if (toolName === 'read_file') {
       output = { path, content: await agentFileContent(workspaceId, path ?? '.') };
@@ -16192,7 +17350,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       output = { path, newPath, renamed: true, snapshotId };
     } else if (toolName === 'search_code') {
-      const nodes = await agentRequest<AgentNode[]>(workspaceId, '/files/tree');
+      const nodes = await agentRequest<AgentNode[]>(workspaceId, '/files/tree', {}, request);
       const query = input.query ?? '';
       const matches = [];
 
@@ -16618,6 +17776,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * provision / re-provision-after-GC / wiped PVC). No-ops on a warm pod that
        * already carries its files. Best-effort; never blocks the start response.
        */
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -16853,6 +18012,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         .catch(() => undefined);
 
       // Restart can reprovision onto a fresh pod; reseed it from persisted if empty.
+      reconciliationUneFois.oublier(authorized.workspaceId);
       await reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId);
     }
 
@@ -16971,6 +18131,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       `/files/tree?path=${encodeURIComponent(path)}`,
     );
 
+    /*
+     * AUTO-RÉPARATION À L'OUVERTURE.
+     *
+     * `reconcileRuntimeSeedFromPersisted` sait poser dans le workspace les
+     * fichiers que le stockage durable possède et que lui n'a pas — mesuré le
+     * 2026-09-09 : `src/App.tsx` et `src/main.tsx` présents en stockage,
+     * absents du pod, application impossible à démarrer. Mais elle n'était
+     * appelée qu'au provisionnement et au redémarrage : un workspace déjà
+     * `RUNNING` n'était donc JAMAIS réparé.
+     *
+     * EN ARRIÈRE-PLAN, jamais dans la réponse : elle lit un fichier par fichier
+     * déjà présent, ~105 ms l'unité au médian en production, soit ~3,4 s pour
+     * 32 fichiers. La mettre sur le chemin d'ouverture rendrait à l'utilisateur
+     * la latence qu'on lui a retirée la veille. Les fichiers manquants
+     * apparaissent une seconde plus tard — sans conséquence pour un projet
+     * qu'on vient d'ouvrir.
+     */
+    if (path === '.' && authorized.projectId && reconciliationUneFois.doitReconcilier(authorized.workspaceId)) {
+      void reconcileRuntimeSeedSafe(authorized.workspaceId, authorized.projectId, { chaud: true });
+    }
+
     return mapRuntimeNodes(nodes);
   });
   app.get('/api/runtime/workspaces/:workspaceId/files/read', async (request) => {
@@ -16985,7 +18166,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
+      return reply;
+    }
     await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+
+    /*
+     * BUG-CREATE-010 — l'archive du projet doit suivre, sinon la réouverture
+     * depuis un autre appareil réécrit le fichier depuis une archive périmée et
+     * le travail est perdu. Hors flux seulement : voir `persistProjectFileEntry`.
+     *
+     * L'échec de persistance ne fait PAS échouer l'écriture : le fichier est déjà
+     * dans le pod, et rendre 5xx ici ferait reprendre l'appelant alors que son
+     * écriture a réussi. Il est journalisé pour rester visible.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await persistProjectFileEntry(store, authorized.projectId, body, request.currentUser?.id);
+      } catch (error) {
+        request.log.error({ err: error, projectId: authorized.projectId, path: body.path }, 'project manifest persist failed');
+      }
+    }
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',
@@ -17000,6 +18203,40 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(runtimeFileCreateSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentMutateEnsuring(request, authorized, '/files/create', { method: 'POST', body: JSON.stringify(body) });
+
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    /*
+     * `body.directory` est vrai quand ce point d'entrée sert à créer un DOSSIER
+     * (`runtimeFileCreateSchema` le porte, et `POST /directories` s'en sert). Un
+     * manifeste ne liste que des fichiers : y inscrire un dossier comme une
+     * entrée de contenu vide le ferait réapparaître comme un FICHIER vide au
+     * réamorçage, à la place du dossier.
+     */
+    if (authorized.projectId && !body.directory && !estEcritureDeFlux(request)) {
+      try {
+        await persistProjectFileEntry(
+          store,
+          authorized.projectId,
+          { path: body.path, content: body.content ?? '' },
+          request.currentUser?.id,
+        );
+      } catch (error) {
+        request.log.error(
+          { err: error, projectId: authorized.projectId, path: body.path },
+          'project manifest persist failed',
+        );
+      }
+    }
 
     return reply.code(204).send();
   });
@@ -17020,6 +18257,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
     await agentRequest(authorized.workspaceId, '/files/delete', { method: 'POST', body: JSON.stringify({ path }) });
 
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await removeProjectFileEntries(store, authorized.projectId, path, request.currentUser?.id);
+      } catch (error) {
+        request.log.error({ err: error, projectId: authorized.projectId, path }, 'project manifest persist failed');
+      }
+    }
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files/move', async (request, reply) => {
@@ -17031,13 +18287,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       body: JSON.stringify({ from: body.path, to: body.newPath }),
     });
 
+    /*
+     * BUG-RUNTIME-DIVERGENCE — même raison que la route d'écriture juste au-dessus :
+     * sans cette ligne, l'opération n'atteint que le POD. Au réamorçage suivant,
+     * `planReseedDeletions` supprime du pod « ce qui manque à l'archive » et
+     * `importZip` réécrit l'archive par-dessus — le fichier créé est détruit, le
+     * fichier supprimé ressuscite, le renommage revient en arrière. C'est le
+     * symptôme exact signalé à la réouverture sur un autre appareil.
+     *
+     * Non bloquant : l'opération a réussi dans le pod ; rendre 5xx ici ferait
+     * reprendre l'appelant sur une action déjà appliquée.
+     */
+    if (authorized.projectId && !estEcritureDeFlux(request)) {
+      try {
+        await moveProjectFileEntries(store, authorized.projectId, body.path, body.newPath, request.currentUser?.id);
+      } catch (error) {
+        request.log.error(
+          { err: error, projectId: authorized.projectId, path: body.path },
+          'project manifest persist failed',
+        );
+      }
+    }
+
     return reply.code(204).send();
   });
   app.post('/api/runtime/workspaces/:workspaceId/files/search', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeSearchSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
 
     const options = body.options ?? {};
     const resultLimit = options.resultLimit ?? 500;
@@ -17236,10 +18514,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(body) },
@@ -17255,13 +18540,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 
     return {
-      exitCode: result.code ?? 0,
+      exitCode: result.code ?? 1,
       output,
       localRuntime: result.localRuntime === true,
       events: [
         ...(result.stdout ? [{ type: 'stdout', data: result.stdout, timestamp: new Date().toISOString() }] : []),
         ...(result.stderr ? [{ type: 'stderr', data: result.stderr, timestamp: new Date().toISOString() }] : []),
-        { type: 'exit', exitCode: result.code ?? 0, timestamp: new Date().toISOString() },
+        { type: 'exit', exitCode: result.code ?? 1, timestamp: new Date().toISOString() },
       ],
     };
   });
@@ -17303,32 +18588,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
-  /*
-   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Project Editor's Resources
+   * panel. Read inside the workspace container (cgroup + statfs) rather than
+   * from metrics-server: it is the accounting the kernel actually enforces, it
+   * is the only place the PVC's real usage exists, and it does not depend on an
+   * optional cluster add-on.
    *
-   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
-   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
-   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
-   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
-   * ligne d'affichage secondaire.
+   * Deliberately NOT falling back to local runtime figures the way `/ports`
+   * does: a number from the API pod's own cgroup would describe the platform,
+   * not the user's workspace, and would be indistinguishable from a real
+   * reading. When the agent cannot answer, the panel says so.
    */
-  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
 
     try {
-      return await agentRequest(authorized.workspaceId, '/resources');
-    } catch {
-      return {
-        memory: { used: null, limit: null },
-        cpu: { ratio: null, limitCores: null },
-        storage: { used: null, limit: null },
-        measuredAt: new Date().toISOString(),
-        unavailable: true,
-      };
+      return await agentRequest<{
+        capturedAt: string;
+        memory: { usedBytes: number; limitBytes: number | null; source: string } | null;
+        cpu: { usedPercent: number; limitCores: number | null; sampleMs: number; source: string } | null;
+        storage: { usedBytes: number; totalBytes: number; path: string } | null;
+      }>(authorized.workspaceId, '/resources');
+    } catch (error) {
+      request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
+
+      /*
+       * Localised through the shared public-copy catalogue like every other
+       * user-facing API error: the i18n source guard treats a hardcoded string
+       * here as new debt, and rightly so — this message reaches the IDE.
+       */
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
+      return reply.code(503).send({
+        error: message,
+        message,
+        code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
+      });
     }
   });
-
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
@@ -17779,7 +19078,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/api/runtime/workspaces/:workspaceId/export', async (request, reply) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
-    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+    const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
     const zip = new JSZip();
 
     /*
@@ -18149,15 +19448,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const organizationId = authorized.organizationId;
 
       /*
+       * BUG-QUOTA-001 — le créneau appartient à la SESSION, pas au socket. Un
+       * rattachement du même panneau (même `?sessionId`) ne doit pas consommer
+       * un second créneau : sur l'offre gratuite (limite 1), c'est ce qui
+       * rejetait en 429 toute reconnexion — 26× sur un seul `sessionId`, jauge
+       * à 1, un seul shell dans le pod.
+       *
+       * Sans `sessionId`, on retombe sur le décompte par connexion : un
+       * appelant sans identité de panneau stable ne peut pas se rattacher de
+       * toute façon, et lui offrir un créneau gratuit ouvrirait un contournement
+       * du quota (il suffirait d'omettre le paramètre).
+       */
+      const terminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
+      const sessionSlotKey = typeof terminalSessionId === 'string' && terminalSessionId ? terminalSessionId : undefined;
+      const chargeSlot = sessionSlotKey ? acquireTerminalSlot(organizationId, sessionSlotKey) : true;
+
+      /*
        * Serialize the concurrency check + the +1 so two concurrent terminal opens
        * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
        */
-      await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
-        await ensureQuota(request, organizationId, 'terminals.concurrent');
-        await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
-          workspaceId: authorized.workspaceId,
-        });
-      });
+      if (chargeSlot) {
+        try {
+          await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+            await ensureQuota(request, organizationId, 'terminals.concurrent');
+            await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
+              workspaceId: authorized.workspaceId,
+              sessionId: sessionSlotKey,
+            });
+          });
+        } catch (error) {
+          /*
+           * Le quota refuse : ce socket n'aura jamais de `onClose` qui rembourse,
+           * il faut donc rendre la prise du registre tout de suite. Sans ça, une
+           * session refusée resterait marquée vivante et la reconnexion suivante
+           * se croirait en rattachement — elle passerait SANS être facturée.
+           */
+          if (sessionSlotKey) {
+            releaseTerminalSlot(organizationId, sessionSlotKey);
+          }
+
+          throw error;
+        }
+      }
 
       /*
        * `terminals.concurrent` is a live-concurrency gauge, but usage is stored
@@ -18174,8 +19506,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         released = true;
+
+        /* Symétrique de la prise : on ne rembourse qu'au DERNIER socket de la session. */
+        const refund = sessionSlotKey ? releaseTerminalSlot(organizationId, sessionSlotKey) : true;
+
+        if (!refund) {
+          return;
+        }
+
         void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
           workspaceId: authorized.workspaceId,
+          sessionId: sessionSlotKey,
         }).catch(() => {
           // Releasing the quota gauge must never crash socket teardown.
         });
@@ -19205,7 +20546,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     try {
       organization = await store.createOrganization({
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         ownerUserId: request.currentUser!.id,
       });
     } catch (error) {
@@ -20339,7 +21680,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'blank',
       });
@@ -20449,7 +21790,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
         description: body.description,
         sourceType: 'template',
         templateName: body.templateName,
@@ -20520,7 +21861,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'ai',
       });
     });
@@ -20602,10 +21943,64 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mounted before COMMITTED) and COMPENSATES the credit reservation to zero
    * debit — so an import that never committed is never charged (safety rule 3).
    */
+  /*
+   * AUDX-014 — rebuild this pod's view of a reservation from DURABLE facts.
+   *
+   * `ImportCreditLedger` is in-process and indexes reservations by jobId in a
+   * local Map. A commit or cancel routed to another replica therefore threw
+   * BILLING_RESERVATION_MISSING (settle) or silently released nothing
+   * (compensate) — measured: the commit failed with 409 even once the staging
+   * was shared.
+   *
+   * The reservation is DERIVED, not re-invented: the job row carries the client
+   * idempotency key and the `creditsReserved` marker, and the amount is a pure
+   * function of `stagedFileCount`. `reserve` is idempotent by construction, so
+   * rehydrating on the pod that happens to serve the request re-creates exactly
+   * the reservation the first pod took — never a second one.
+   *
+   * No-op when nothing was reserved, so it stays safe on a job that failed
+   * before reserving.
+   */
+  const rehydrateImportReservation = async (importJobId: string) => {
+    if (importLedger.getByJob(importJobId)) {
+      return;
+    }
+
+    const job = await store.getImportJob(importJobId);
+
+    if (!job || !job.creditsReserved) {
+      return;
+    }
+
+    const key = (job as { idempotencyKey?: string }).idempotencyKey;
+
+    if (!key) {
+      // Job created before durable idempotency existed: nothing to rebuild from.
+      return;
+    }
+
+    importLedger.reserve({
+      key,
+      organizationId: job.organizationId,
+      importJobId,
+      reservedCredits: estimateImportReservation(job.stagedFileCount),
+    });
+  };
+
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
-    importStaging.delete(importJobId); // dispose the staging — target never mounted
-    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
-    await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
+    /*
+     * AUDX-014 — both disposals must reach the SHARED state, not just this pod's.
+     * The staging now lives in the store, and the reservation marker with it:
+     * `importLedger.compensateByJob` only ever knew about reservations taken by
+     * THIS process, so a cancel routed to another replica released nothing and
+     * the credits stayed reserved forever.
+     */
+    await store.deleteImportStagedFiles(importJobId).catch(() => undefined);
+    await rehydrateImportReservation(importJobId).catch(() => undefined);
+    importLedger.compensateByJob(importJobId); // now reachable on any replica
+    await store
+      .updateImportJob(importJobId, { state: terminal, creditsReserved: false, ...(error ? { error } : {}) })
+      .catch(() => undefined);
   };
 
   /*
@@ -20620,8 +22015,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const expired = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
 
     for (const id of expired) {
-      importStaging.delete(id);
+      // AUDX-014 — the staging is shared, so the reap must clear it in the store.
+      await store.deleteImportStagedFiles(id).catch(() => undefined);
       importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
+      await store.updateImportJob(id, { creditsReserved: false }).catch(() => undefined);
     }
 
     return expired;
@@ -20658,7 +22055,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * reservation. In-process index; durable idempotency = UsageReservation follow-up.
      */
     const idemMapKey = `${orgId}:${body.idempotencyKey}`;
-    const existingJobId = importIdemIndex.get(idemMapKey);
+
+    /*
+     * AUDX-014 — the key is looked up in the STORE, not in a per-pod Map. The
+     * in-process index meant a retried create landing on another replica did not
+     * see the key, created a SECOND job and took a SECOND credit reservation —
+     * exactly the double charge the key exists to prevent.
+     */
+    const existingJobId =
+      (await store.findImportJobByIdempotencyKey(orgId, body.idempotencyKey))?.id ?? importIdemIndex.get(idemMapKey);
 
     if (existingJobId) {
       const existing = await store.getImportJob(existingJobId);
@@ -20683,13 +22088,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Staging expires (idle) — the sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
 
-    const job = await store.createImportJob({
-      organizationId: orgId,
-      actorUserId: request.currentUser?.id,
-      provider: body.provider,
-      sourceRef: body.sourceRef,
-      expiresAt,
-    });
+    /*
+     * The DB carries a UNIQUE (organizationId, idempotencyKey). Two concurrent
+     * creates on two pods therefore cannot both win: the loser gets a unique
+     * violation and replays the winner's job instead of creating a duplicate.
+     */
+    let job: { id: string; state: string };
+
+    try {
+      job = await store.createImportJob({
+        organizationId: orgId,
+        actorUserId: request.currentUser?.id,
+        provider: body.provider,
+        sourceRef: body.sourceRef,
+        expiresAt,
+        idempotencyKey: body.idempotencyKey,
+      });
+    } catch (error) {
+      const raced = await store.findImportJobByIdempotencyKey(orgId, body.idempotencyKey);
+
+      if (!raced) {
+        throw error;
+      }
+
+      const existing = await store.getImportJob(raced.id);
+
+      if (!existing) {
+        throw error;
+      }
+
+      const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
+
+      return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+        import: {
+          importJobId: existing.id,
+          state: existing.state,
+          provider: existing.provider,
+          findings: (existing.findings as unknown[]) ?? [],
+          stagedFileCount: existing.stagedFileCount,
+          requiresConsent,
+          replayed: true,
+        },
+      });
+    }
+
     importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
@@ -20716,7 +22158,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       await store.updateImportJob(job.id, { creditsReserved: true });
 
-      // STAGING_ISOLATED — files into the disposable staging, NOT the target.
+      /*
+       * STAGING_ISOLATED — files into the disposable staging, NOT the target.
+       * AUDX-014: written to the SHARED store so a commit routed to another
+       * replica can find them. `stagedFileCount` is advanced only AFTER the
+       * write lands, so a crash between the two can never leave a job claiming
+       * files that were never staged.
+       */
+      await store.putImportStagedFiles(job.id, stagedFiles);
       importStaging.set(job.id, stagedFiles);
       await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
@@ -20813,7 +22262,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const staged = importStaging.get(importJobId);
+    /*
+     * AUDX-014 — read the SHARED staging first; the in-process Map is only a
+     * same-pod fast path. Pre-fix this read the Map alone and returned 409
+     * IMPORT_STAGING_GONE for roughly half of all imports at 2 replicas.
+     */
+    const staged = (await store.getImportStagedFiles(importJobId)) ?? importStaging.get(importJobId);
+
+    // The settle below needs this pod to know the reservation the create took.
+    await rehydrateImportReservation(importJobId);
 
     if (!staged) {
       throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
@@ -20838,6 +22295,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     let state = job.state as ImportState;
+
+    /*
+     * AUDX-015 — the project this commit mounts, if it gets that far.
+     *
+     * The catch below announced « full rollback — no partial target », but
+     * `cleanupImport` only disposes the staging and compensates the credits: it
+     * never touched the project. A failure AFTER `createProject` (writeFiles on a
+     * full disk, manifest, quota) therefore left an empty project in the
+     * organization that nothing referenced — `targetProjectId` is only written at
+     * COMMITTED — so it was invisible everywhere except to an operator.
+     *
+     * Set only AFTER `createProject` RESOLVES, never before: latching the id at
+     * the start of the call would make the rollback try to delete a project that
+     * was never created.
+     */
+    let mountedProjectId: string | undefined;
 
     const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
       assertImportTransition(state, to);
@@ -20905,10 +22378,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return store.createProject({
           organizationId: orgId,
           name,
-          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
+          slug: slugify(name) + '-' + importJobId.slice(-6),
           sourceType,
         });
       });
+
+      // AUDX-015 — latched only now that the project actually exists.
+      mountedProjectId = project.id;
 
       const written = await projectStorage.writeFiles(
         project.id,
@@ -20917,7 +22393,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
       await recordUsage(request, orgId, 'projects.count');
 
-      importStaging.delete(importJobId); // staging disposed after successful commit
+      // Staging disposed after a successful commit — in the store AND locally.
+      await store.deleteImportStagedFiles(importJobId).catch(() => undefined);
+      importStaging.delete(importJobId);
       await advance('COMMITTED', { targetProjectId: project.id });
 
       /*
@@ -20951,11 +22429,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     } catch (error) {
       /*
-       * Failure path: full rollback — no partial target, staging disposed, and the
-       * reservation COMPENSATED (zero debit) via cleanupImport. A failure after
-       * reservation therefore never charges. ROLLING_BACK is the terminal here.
+       * Failure path: full rollback — staging disposed and the reservation
+       * COMPENSATED (zero debit) via cleanupImport, so a failure after reservation
+       * never charges. ROLLING_BACK is the terminal here.
+       *
+       * AUDX-015 — and the target is now actually rolled back. If this commit had
+       * already mounted a project, it is removed: an import that did not commit
+       * must leave nothing behind, which is what « no partial target » claimed all
+       * along. `hardDeleteProject` cascades the project graph.
+       *
+       * The deletion never masks the original error: it is the import failure the
+       * caller needs to see, and a rollback that itself fails must not replace it
+       * with a confusing second one.
        */
       const message = error instanceof Error ? error.message : String(error);
+
+      if (mountedProjectId) {
+        await store.hardDeleteProject(mountedProjectId).catch((rollbackError: unknown) => {
+          request.log?.error?.(
+            { importJobId, projectId: mountedProjectId, err: rollbackError },
+            'import rollback could not remove the mounted project',
+          );
+        });
+        mountedProjectId = undefined;
+      }
+
       await cleanupImport(importJobId, 'ROLLING_BACK', message);
       throw error;
     }
@@ -21031,6 +22529,50 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   });
 
+  /*
+   * BUG-CREATE-005 — « l'import GitHub échoue au bout de 3 minutes sur un
+   * message générique ». MESURÉ : les DEUX routes d'import appelaient
+   * `gitProvider.importRepository(...)` sans `try`. Tout échec de clone —
+   * dépôt privé, hôte injoignable, délai de 120 s dépassé
+   * (`project-storage.ts`, `timeout: 120_000`) — remontait en 500 générique,
+   * que le client traduit par « Impossible d'importer le dépôt. Réessayez. »
+   * (`app/routes/import-github.tsx`, branche par défaut). « Réessayez » sur un
+   * dépôt privé est un conseil FAUX : réessayer ne peut pas marcher.
+   *
+   * Un seul point de passage pour les deux routes (règle 7 : même mécanisme,
+   * un seul correctif) — GitHub ici, GitLab et Bitbucket via
+   * `importRepositoryIntoProject` juste en dessous.
+   *
+   * ⚠️ Le `stderr` de `git` ne sort PAS d'ici, ni vers le client ni vers les
+   * journaux : une URL de clone porte parfois un jeton
+   * (`https://x-access-token:<jeton>@github.com/…`) et `error.message` de
+   * `execFile` recopie la commande complète (règle 12). On ne journalise que le
+   * code de classement.
+   */
+  type CloneDImport =
+    | { echec: EchecDImport; imported?: undefined }
+    | { echec?: undefined; imported: Awaited<ReturnType<GitProvider['importRepository']>> };
+
+  async function clonerLeDepotPourImport(
+    request: FastifyRequest,
+    body: { repositoryUrl: string; branch?: string },
+  ): Promise<CloneDImport> {
+    try {
+      return {
+        imported: await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch }),
+      };
+    } catch (error) {
+      const echec = classerEchecDImport(error);
+
+      request.log.warn(
+        { event: 'project.import.clone_failed', code: echec.code, statusCode: echec.statusCode },
+        'repository clone failed',
+      );
+
+      return { echec };
+    }
+  }
+
   app.post('/orgs/:orgId/projects/import/github', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
     const body = parse(githubImportSchema, request.body);
@@ -21044,7 +22586,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
     await ensureQuota(request, orgId, 'projects.count');
 
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+    const clone = await clonerLeDepotPourImport(request, body);
+
+    if (clone.echec) {
+      return reply
+        .code(clone.echec.statusCode)
+        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
+    }
+
+    const imported = clone.imported;
 
     const name =
       body.name ??
@@ -21065,7 +22615,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'github',
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -21111,7 +22661,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await ensureTenantAdmission(request, orgId, 'project.create', { action: 'project.create' }, { preflight: true });
     await ensureQuota(request, orgId, 'projects.count');
 
-    const imported = await gitProvider.importRepository({ repositoryUrl: body.repositoryUrl, branch: body.branch });
+    const clone = await clonerLeDepotPourImport(request, body);
+
+    if (clone.echec) {
+      return reply
+        .code(clone.echec.statusCode)
+        .send({ error: appPublicEnglish(clone.echec.code), code: clone.echec.code });
+    }
+
+    const imported = clone.imported;
 
     const name =
       body.name ??
@@ -21128,7 +22686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: provider,
         gitRepositoryUrl: imported.remoteUrl,
         gitDefaultBranch: imported.defaultBranch,
@@ -21178,7 +22736,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.createProject({
         organizationId: orgId,
         name,
-        slug: body.slug ?? name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(name),
         sourceType: 'zip',
       });
     });
@@ -21410,7 +22968,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree');
+      const nodes = await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree', {}, request);
 
       const runtimePackageFiles = flattenRuntimeFiles(nodes).filter((file) => {
         const basename = file.path.split('/').pop() ?? '';
@@ -21463,10 +23021,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let result: { code: number; stdout?: string; stderr?: string; localRuntime?: boolean };
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — `code` PEUT ÊTRE NULL, et le type le disait
+     * faux. `runCommand` côté agent résout `{ id, code, signal, … }` avec le
+     * `code` de Node, qui vaut `null` quand le processus meurt par SIGNAL.
+     * Déclarer `code: number` faisait passer ce cas pour impossible, et les
+     * `?? 0` plus bas le transformaient en réussite.
+     */
+    let result: { code: number | null; stdout?: string; stderr?: string; localRuntime?: boolean };
 
     try {
-      result = await agentRequest<{ code: number; stdout?: string; stderr?: string }>(
+      result = await agentRequest<{ code: number | null; stdout?: string; stderr?: string }>(
         authorized.workspaceId,
         '/commands/run',
         { method: 'POST', body: JSON.stringify(commandBody) },
@@ -21480,7 +23045,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
-    const exitCode = result.code ?? 0;
+    /*
+     * BUG-DEPLOY-010, suspect n°2 — une commande TUÉE n'est pas une réussite.
+     *
+     * `?? 0` annonçait exit 0 pour tout processus mort par signal — OOM du pod,
+     * moisson, SIGKILL de délai. L'appelant lançait alors l'aperçu sur un
+     * `node_modules` à moitié installé : exactement le scénario que
+     * `foldCommandExitCode` documente déjà pour l'événement `error`.
+     *
+     * `?? 1` plutôt que de propager le `null` : ces champs sont lus DIRECTEMENT
+     * par des appelants qui attendent un nombre, et un `null` y serait retombé
+     * à zéro un cran plus loin — c'est ainsi que ce défaut s'est propagé d'un
+     * bout à l'autre de la chaîne.
+     */
+    const exitCode = result.code ?? 1;
 
     return reply.code(201).send({
       projectId: authorized.projectId,
@@ -21533,8 +23111,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const ideState = (await store.getProjectIdeState(project.id)) ?? null;
 
-    if (ideState) {
-      reply.header('etag', `"${ideState.version}"`);
+    if (!ideState) {
+      return { ideState: null };
+    }
+
+    const etag = `"${ideState.version}"`;
+    reply.header('etag', etag);
+
+    /*
+     * AUDX-167 — honour If-None-Match.
+     *
+     * The ETag was already emitted here and never checked, so every load paid
+     * for the full state blob again: read from Postgres, serialised, and sent
+     * before the first byte reaches the client. The blob is UNBOUNDED (the PUT
+     * accepts up to API_BODY_LIMIT_BYTES, 25 MB by default), which is the shape
+     * that turns a slow response into a functional outage — the IDE abandons at
+     * 5 s and the conversation panel then stays empty for the whole page.
+     *
+     * A revisit with the version it already holds now costs a 304 and no body.
+     * This does NOT make a first load faster; it removes the repeat cost, which
+     * is the part that was being paid over and over for nothing.
+     */
+    const ifNoneMatch = request.headers['if-none-match'];
+
+    if (typeof ifNoneMatch === 'string' && ifNoneMatch.split(',').some((value) => value.trim() === etag)) {
+      return reply.code(304).send();
     }
 
     return { ideState };
@@ -22540,13 +24141,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revision: projectFilesRevision(files) };
   });
-  app.post('/projects/:projectId/files/import/zip', async (request) => {
+  app.post('/projects/:projectId/files/import/zip', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (await rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
@@ -22910,11 +24516,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
     }
 
-    const connections = await listDatabaseConnections(store, project.id);
+    const connectionsBrutes = await listDatabaseConnections(store, project.id);
+
+    /*
+     * RP-DB-02 — « regarde qu'on suit la même logique » (Avi, 08/09).
+     *
+     * Replit sépare franchement la base de DÉVELOPPEMENT et celle de
+     * PRODUCTION. Nous avons cette séparation, mais les deux moitiés du code
+     * se contredisaient :
+     *
+     *   - le provisionneur ÉCRIT l'URI de développement dans `DATABASE_URL`
+     *     (et celle de production dans `PROD_DATABASE_URL`) ;
+     *   - `inferSecretEnvironment` RELIT cette même clé nue et rend
+     *     « shared », faute de préfixe.
+     *
+     * Une base bel et bien de développement était donc présentée comme
+     * indéterminée. On tranche par la source la plus sûre — l'instance GÉRÉE,
+     * qui sait pour quel environnement elle a été créée. Une connexion que
+     * l'utilisateur a collée lui-même reste « shared » : là, nous ne savons
+     * effectivement pas, et le deviner serait pire que l'avouer.
+     */
+    const instanceGeree = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
+    const environnementGere = (instanceGeree as { environment?: string } | undefined)?.environment;
+    const cleGeree = environnementGere === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL';
+
+    const connections = connectionsBrutes.map((connexion) =>
+      instanceGeree && connexion.key === cleGeree && environnementGere
+        ? { ...connexion, environment: environnementGere as typeof connexion.environment }
+        : connexion,
+    );
+
+    /*
+     * Une base EN COURS de provisionnement n'a pas encore de secret, donc aucune
+     * `connection` — et cette route ne renvoyait rien d'autre. Le panneau
+     * affichait donc « Aucune base de données pour le moment » à un projet qui
+     * en a une, en cours de création. Vu de l'utilisateur : on appuie sur
+     * « Créer », et rien ne se passe. C'est le même symptôme que BUG-DB-002,
+     * par un autre chemin.
+     *
+     * C'est aussi le cas qui dure : deux instances de production sont bloquées
+     * en PROVISIONING depuis un mois (BUG-DB-001, défaut d'infrastructure
+     * distinct). Ce correctif ne les débloque pas — il rend leur état VISIBLE
+     * au lieu de le présenter comme une absence de base.
+     *
+     * On ne l'expose que si aucune connexion n'existe : dès que le secret est
+     * semé, la connexion réelle est la meilleure description de la base.
+     */
+    const instanceEnCours = connections.length === 0 ? instanceGeree : undefined;
+
+    const databases =
+      instanceEnCours && instanceEnCours.status !== 'ACTIVE'
+        ? [
+            {
+              key:
+                (instanceEnCours as { environment?: string }).environment === 'production'
+                  ? 'PROD_DATABASE_URL'
+                  : 'DATABASE_URL',
+              name: (instanceEnCours as { environment?: string }).environment ?? 'development',
+              status: instanceEnCours.status,
+            },
+          ]
+        : [];
+
+    /*
+     * BUG-DB-003 — sans cette lecture, la route renvoyait des connexions SANS
+     * statut, et le panneau affichait « Status unavailable » pour une base
+     * ACTIVE. La route CONNAIT pourtant l'etat : elle vient de reconcilier
+     * l'instance en `ACTIVE` quelques lignes plus haut.
+     */
+    const instancePourStatut = await store.getDatabaseInstanceByProject(project.id).catch(() => undefined);
 
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
         ...connection,
+        status: statutConnexion(connection.key, instancePourStatut),
         capabilities:
           connection.kind === 'mongodb'
             ? ['schema', 'find', 'readonly-json']
@@ -22922,6 +24597,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? ['schema', 'readonly-commands']
               : ['schema', 'readonly-sql', 'query'],
       })),
+      databases,
       environments: ['development', 'preview', 'staging', 'production', 'shared'],
     };
   });
@@ -23109,7 +24785,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       aiConversation: collaborationState.aiConversation ?? { shared: false, mode: 'comment' },
       realtime: {
         websocketPath: `/projects/${project.id}/collaboration/ws`,
-        redisPubSub: Boolean(process.env.REDIS_URL),
+
+        /*
+         * BUG-REDIS-URL-GUILLEMETS-001 — ce drapeau ANNONCE au client que le
+         * temps réel passe par Redis. Citée, l'URL le rendait vrai alors que le
+         * courtier ne publiait nulle part.
+         */
+        redisPubSub: Boolean(lireUrlDEnvironnement('REDIS_URL', process.env, avertirUrlCitee)),
       },
     };
   });
@@ -24153,21 +25835,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * AUDX-171 — démonter les ressources EXTERNES avant de perdre la ligne.
+     *
+     * Les lignes cascadent ; ce que le projet a créé hors de PostgreSQL, non.
+     * `DatabaseProvisioner.teardown()` existait, promettait dans son commentaire
+     * « no orphaned production database behind », et n'était appelé PAR PERSONNE
+     * — cette route faisait `hardDeleteProject` + un audit, point final. D'où les
+     * bases, seaux et PVC orphelins retrouvés à la main en production.
+     *
+     * Fait AVANT la suppression de la ligne : le nom du PVC vit sur cette ligne,
+     * et une fois la ligne partie la poignée est perdue avec elle.
+     */
+    const teardown = await teardownProjectExternalResources(
+      {
+        databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+      },
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        persistentVolumeClaim: project.persistentVolumeClaim,
+      },
+    );
+
     const deleted = await store.hardDeleteProject(project.id);
 
     /*
      * No recordProjectActivity here: the project's activity rows cascade-deleted
      * with it, so the org-scoped audit log is the durable trace of this action.
+     *
+     * AUDX-171 — le résultat du démontage est porté par CETTE trace, y compris
+     * les échecs. Un démontage partiel doit laisser une trace nommant la
+     * ressource restée en place : c'est ce qui rend une orpheline réconciliable
+     * au lieu de découvrable à la main, des mois plus tard.
      */
     await audit(request, store, {
       organizationId: project.organizationId,
       action: 'project.hard_delete',
       resourceType: 'project',
       resourceId: project.id,
-      metadata: { name: project.name },
+      metadata: {
+        name: project.name,
+        externalTeardown: {
+          complete: teardown.complete,
+          outcomes: teardown.outcomes,
+        },
+      },
     });
 
-    return { project: deleted };
+    if (!teardown.complete) {
+      request.log?.error?.(
+        { projectId: project.id, failed: teardown.failed, outcomes: teardown.outcomes },
+        'project hard delete left external resources behind',
+      );
+    }
+
+    return { project: deleted, externalTeardown: { complete: teardown.complete, failed: teardown.failed } };
   });
   app.post('/projects/:projectId/transfer', async (request) => {
     const project = await requireProject(
@@ -24217,6 +25941,483 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return { project: transferred };
+  });
+  /*
+   * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
+   * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
+   * à timeout avec DÉGEL GARANTI (finally), snapshots par composant sous la
+   * MÊME barrière logique, manifeste visible seulement une fois tout vérifié.
+   * Un snapshot de pod seul n'est JAMAIS un checkpoint projet.
+   */
+  /*
+   * La barrière est PERSISTÉE (ProjectCheckpoint.barrierExpiresAt), pas gardée en
+   * mémoire de processus. L'API tourne en 2 replicas (HPA → 6) en prod
+   * (values-prod.yaml) : une Map in-process n'est vue que par le pod qui la pose,
+   * donc les écritures routées vers un autre replica passaient à travers la
+   * « barrière ». Le bail en base est commun à tous les replicas ; son expiration
+   * EST le dégel garanti si le processus porteur meurt en vol.
+   */
+  const activeCheckpointBarrier = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+
+  /** 423 pendant la barrière : les écritures API attendent le dégel. */
+  const rejectIfCheckpointBarrier = async (reply: FastifyReply, projectId: string) => {
+    const b = await activeCheckpointBarrier(projectId);
+
+    if (b) {
+      reply.status(423).send({
+        // `reply.request` : ce helper ne reçoit que la réponse, mais Fastify
+        // expose la requête associée — la locale reste donc celle de l'appelant.
+        error: appPublicCopy('CHECKPOINT_PROJECT_QUIESCED', transactionalLocaleForRequest(reply.request)),
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        barrierId: b.barrierId,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const CHECKPOINT_QUIESCE_TIMEOUT_MS = 30_000;
+  const CHECKPOINT_TTL_DAYS = 30;
+
+  const runProjectCheckpoint = async (params: {
+    request: FastifyRequest;
+    projectId: string;
+    includePod?: boolean;
+  }): Promise<{ ok: true; checkpointId: string; manifest: unknown } | { ok: false; code: string; error: string }> => {
+    const { request, projectId } = params;
+    const ckpt = await store.createProjectCheckpoint({ projectId, createdByUserId: request.currentUser?.id });
+
+    let state: CheckpointState = 'PREPARING';
+    const advance = async (to: CheckpointState, patch: Record<string, unknown> = {}) => {
+      assertCheckpointTransition(state, to);
+      state = to;
+      await store.updateProjectCheckpoint(ckpt.id, { state: to, ...patch });
+    };
+
+    // Quiesce admissible AVANT tout gel : timeout fini + dégel garanti.
+    if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_QUIESCE_TIMEOUT_MS, thawGuaranteed: true })) {
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: 'quiesce inadmissible' });
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' });
+      return { ok: false, code: 'CHECKPOINT_QUIESCE_INADMISSIBLE', error: 'quiesce without finite timeout + guaranteed thaw' };
+    }
+
+    const barrierId = `bar_${randomUUID()}`;
+
+    try {
+      await advance('QUIESCING');
+      /*
+       * BARRIÈRE RÉELLE, PERSISTÉE : les endpoints d'écriture fichiers renvoient
+       * 423 tant que le bail tient, sur TOUS les replicas API (il est lu en base,
+       * pas en mémoire). L'expiration du bail = dégel garanti même si ce
+       * processus meurt en vol.
+       */
+      await store.updateProjectCheckpoint(ckpt.id, {
+        logicalBarrierId: barrierId,
+        barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+      });
+      await advance('BARRIER_ESTABLISHED', { logicalBarrierId: barrierId });
+
+      const startedAt = new Date().toISOString();
+      const components: CheckpointComponentSnapshot[] = [];
+      /*
+       * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
+       * `inPodWritersReachable` est vrai dès qu'un workspace existe : on ne peut
+       * pas prouver qu'un dev server / terminal / agent est muet, donc on suppose
+       * qu'il écrit — c'est l'hypothèse qui sous-revendique, jamais l'inverse.
+       */
+      const workspacesForProject = await store.listWorkspaces(projectId).catch(() => []);
+      const barrierScope: BarrierScope = {
+        apiWritesFrozenAllReplicas: true, // bail persisté, lu par tous les replicas
+        inPodWritersReachable: workspacesForProject.length > 0,
+        dbClientWritesReachable: true,
+      };
+      const componentConsistency: Array<{ componentKind: string; consistency: ConsistencyDeclaration }> = [];
+      /** Composants tentés mais NON prouvés — consignés, jamais comptés comme couverture. */
+      const bestEffortComponents: Array<Record<string, unknown>> = [];
+
+      // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
+      await advance('VOLUME_SNAPSHOTTING');
+      // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
+      const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
+      const archive = await rawProjectStorage.createSnapshot({ projectId, label: `checkpoint ${barrierId}`, files });
+      const filesHash = createHash('sha256')
+        .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const fileSnapshot = await store.createSnapshot({
+        projectId,
+        kind: 'manual',
+        manifest: { checkpoint: true, files: files.map((f) => f.path), logicalBarrierId: barrierId, contentHash: filesHash },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser?.id,
+      });
+      const filesConsistency = declareFilesConsistency(barrierScope);
+      componentConsistency.push({ componentKind: 'FILES', consistency: filesConsistency });
+      components.push({
+        componentKind: 'FILES',
+        snapshotId: fileSnapshot.id,
+        logicalBarrierId: barrierId,
+        startedAt,
+        completedAt: new Date().toISOString(),
+        consistencyLevel: filesConsistency.level,
+        consistencyBasis: filesConsistency.basis,
+        unfrozenWriters: filesConsistency.unfrozenWriters,
+        encryptionKeyVersion: 'storage-default',
+        restoreCompatibility: 'project-files-v1',
+        verified: false,
+      });
+
+      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      await advance('DB_SNAPSHOTTING');
+      const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
+      const databaseProvisioned = Boolean(dbInstance);
+      let databaseDependencyDeclared = false;
+
+      /*
+       * Le backup CNPG est soumis quand le flag est actif, mais il n'est JAMAIS
+       * compté comme composant vérifié du checkpoint : `takeSnapshot` rend la main
+       * dès que le CR `Backup` est accepté (database-provisioner.ts) — il n'attend
+       * ni la fin du backup ni sa restaurabilité. Le compter « verified » ferait
+       * croire à une couverture base prouvée. Il est donc consigné en
+       * `bestEffortComponents` avec son état exact, et la base est déclarée en
+       * dépendance ouverte dans les deux cas.
+       */
+      if (databaseProvisioned && isDatabaseRollbackEnabled()) {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+        const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
+        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        const dbConsistency = declareDatabaseConsistency(barrierScope);
+        bestEffortComponents.push({
+          componentKind: 'DATABASE',
+          snapshotId: dbSnapId,
+          logicalBarrierId: barrierId,
+          backupRequestAccepted: applied.applied,
+          /*
+           * Ni le CR terminé ni un restore rejoué : on ne sait pas si ce backup est
+           * restaurable, donc on l'écrit au lieu de le taire.
+           */
+          completionAwaited: false,
+          restoreProven: false,
+          consistencyLevelIfRestorable: dbConsistency.level,
+          consistencyBasis: dbConsistency.basis,
+          restoreCompatibility: 'cnpg-pitr-v1',
+        });
+        databaseDependencyDeclared = true;
+      } else if (databaseProvisioned) {
+        // Base réelle mais infra de snapshot DORMANTE (DB_ROLLBACK_ENABLED off).
+        databaseDependencyDeclared = true;
+      }
+
+      if (params.includePod) {
+        await advance('POD_SNAPSHOTTING');
+        // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
+      }
+
+      await advance('VERIFYING');
+      // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
+      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      const rereadHash = createHash('sha256')
+        .update(reread.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+
+      for (const c of components) {
+        if (c.componentKind === 'FILES') {
+          // Seule vérification réellement faite : relecture de l'archive + re-hash.
+          c.verified = rereadHash === filesHash;
+          c.verificationMethod = 'archive-reread-sha256-match';
+        }
+      }
+
+      const admissible = projectCheckpointAdmissible(components, {
+        databaseProvisioned,
+        databaseDependencyDeclared,
+      });
+
+      if (!admissible.admissible) {
+        throw Object.assign(new Error(admissible.reason ?? 'checkpoint inadmissible'), {
+          code: 'CHECKPOINT_INADMISSIBLE',
+        });
+      }
+
+      const visibility = checkpointManifestVisible(components, barrierId);
+
+      if (!visibility.visible) {
+        throw Object.assign(new Error(visibility.reason ?? 'manifest not visible'), {
+          code: 'CHECKPOINT_UNVERIFIED',
+        });
+      }
+
+      /*
+       * Niveau DÉRIVÉ du composant le plus faible, jamais du plus fort, et
+       * accompagné de sa justification + des niveaux explicitement non
+       * revendiqués. C'est la réponse directe au refus P0-V3-09.
+       */
+      const consistency = declareCheckpointConsistency(componentConsistency);
+
+      const manifest = {
+        logicalBarrierId: barrierId,
+        consistencyLevel: consistency.level,
+        consistencyBasis: consistency.basis,
+        /*
+         * Les composants sont snapshottés en SÉQUENCE : partager un
+         * `logicalBarrierId` ordonne les étapes, ça ne crée pas un instant
+         * atomique commun. Dit tel quel plutôt que sous-entendu.
+         */
+        crossComponentAtomic: consistency.crossComponentAtomic,
+        notClaimed: consistency.notClaimed,
+        barrierScope: {
+          apiWritesFrozenAllReplicas: barrierScope.apiWritesFrozenAllReplicas,
+          inPodWritersReachable: barrierScope.inPodWritersReachable,
+          dbClientWritesReachable: barrierScope.dbClientWritesReachable,
+        },
+        components,
+        bestEffortComponents,
+        contentHashes: { files: filesHash },
+        restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
+        dependenciesDeclared: databaseDependencyDeclared
+          ? [
+              isDatabaseRollbackEnabled()
+                ? 'DATABASE : backup CNPG soumis mais NI attendu NI rejoué — couverture base non prouvée, checkpoint restaurable sur les FICHIERS seulement'
+                : 'DATABASE : base provisionnée mais snapshot CNPG dormant (DB_ROLLBACK_ENABLED off) — checkpoint fichiers-seuls, dit tel quel',
+            ]
+          : [],
+        expiresAt: new Date(Date.now() + CHECKPOINT_TTL_DAYS * 86_400_000).toISOString(),
+      };
+
+      await advance('COMMITTED', {
+        consistencyLevel: manifest.consistencyLevel,
+        manifest,
+        expiresAt: manifest.expiresAt,
+      });
+
+      await audit(request, store, {
+        action: 'project.checkpoint',
+        resourceType: 'project',
+        resourceId: projectId,
+        metadata: { checkpointId: ckpt.id, logicalBarrierId: barrierId, consistencyLevel: manifest.consistencyLevel },
+      });
+
+      return { ok: true, checkpointId: ckpt.id, manifest };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'ABORTING', error: message }).catch(() => undefined);
+      await store.updateProjectCheckpoint(ckpt.id, { state: 'CLEANED' }).catch(() => undefined);
+      return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
+    } finally {
+      // DÉGEL GARANTI — chemin succès ET échec (I-CKP quiesce). Le bail est
+      // relâché en base pour que tous les replicas dégèlent, pas juste celui-ci.
+      await store.updateProjectCheckpoint(ckpt.id, { barrierExpiresAt: null }).catch(() => undefined);
+    }
+  };
+
+  app.post('/projects/:projectId/checkpoints', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const result = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!result.ok) {
+      return reply.status(result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : 500).send({ error: result.error, code: result.code });
+    }
+
+    const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+    return reply.code(201).send({ checkpoint: ckpt });
+  });
+
+  app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id) {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    return { checkpoint: ckpt };
+  });
+
+  /*
+   * Restore VÉRIFIÉ : rejoue le composant FILES dans un projet JETABLE tout
+   * neuf et compare le hash de contenu au manifeste — le restore n'écrase
+   * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+    const restoredHash = createHash('sha256')
+      .update(files.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+      .digest('hex');
+    const matches = restoredHash === manifest.contentHashes.files;
+
+    // Restore effectif dans un projet jetable (preuve de restaurabilité).
+    const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.duplicateProject({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        name: `${project.name} (restore-verify)`,
+        slug: `restore-verify-${Date.now().toString(36)}`,
+      });
+    });
+    await projectStorage.writeFiles(target.id, files);
+
+    await audit(request, store, {
+      action: 'project.checkpoint.restore_verify',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
+    });
+
+    return { restoreVerified: matches, restoredHash, expectedHash: manifest.contentHashes.files, targetProjectId: target.id };
+  });
+
+  /*
+   * RESTORE RÉEL (P0-V3-09) — remet le PROJET LUI-MÊME dans l'état du checkpoint.
+   *
+   * `restore-verify` ci-dessus prouve seulement qu'une archive est relisible dans
+   * un projet jetable ; il ne prouve pas qu'on sait *ramener* un projet cassé.
+   * Ce chemin-ci écrase le projet source, donc il est encadré :
+   *   1. un checkpoint de SÛRETÉ est pris d'abord — sans point de retour on ne
+   *      détruit rien (si sa prise échoue, le restore est refusé) ;
+   *   2. la barrière est réarmée pendant la restauration, sinon une écriture
+   *      concurrente atterrit au milieu de l'arbre en cours de réécriture ;
+   *   3. l'état APRÈS restauration est relu depuis le stockage et re-hashé : la
+   *      réussite est prouvée par le contenu réel, pas par l'absence d'erreur ;
+   *   4. un hash divergent renvoie 409 et le dit — jamais un succès silencieux.
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore', async (request, reply) => {
+    const project = await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z.string().min(1).parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply.status(404).send({ error: appPublicCopy('CHECKPOINT_COMMITTED_NOT_FOUND_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+      dependenciesDeclared?: string[];
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicCopy('CHECKPOINT_NO_FILES_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply.status(409).send({ error: appPublicCopy('CHECKPOINT_SNAPSHOT_MISSING_MESSAGE', transactionalLocaleForRequest(request)), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+
+    // (1) Point de retour AVANT toute écriture destructive.
+    const safety = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!safety.ok) {
+      return reply.status(409).send({
+        error: appPublicCopy('CHECKPOINT_RESTORE_NO_FALLBACK', transactionalLocaleForRequest(request), {
+          reason: String(safety.error ?? ''),
+        }),
+        code: 'CHECKPOINT_SAFETY_FAILED',
+      });
+    }
+
+    // (2) Barrière réarmée sur la ligne du checkpoint de sûreté, le temps du restore.
+    await store.updateProjectCheckpoint(safety.checkpointId, {
+      barrierExpiresAt: new Date(Date.now() + CHECKPOINT_QUIESCE_TIMEOUT_MS).toISOString(),
+    });
+
+    try {
+      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files });
+
+      // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
+      const afterRestore = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
+      const restoredHash = createHash('sha256')
+        .update(afterRestore.map((f) => `${f.path}\n${f.content}`).join('\x00'))
+        .digest('hex');
+      const matches = restoredHash === manifest.contentHashes.files;
+
+      await audit(request, store, {
+        action: 'project.checkpoint.restore',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: {
+          checkpointId: ckpt.id,
+          safetyCheckpointId: safety.checkpointId,
+          hashMatches: matches,
+          restoredHash,
+        },
+      });
+
+      if (!matches) {
+        // (4) Divergence dite, pas avalée : le point de retour reste exploitable.
+        return reply.status(409).send({
+          error: appPublicCopy('CHECKPOINT_RESTORE_HASH_MISMATCH', transactionalLocaleForRequest(request)),
+          code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
+          expectedHash: manifest.contentHashes.files,
+          restoredHash,
+          safetyCheckpointId: safety.checkpointId,
+        });
+      }
+
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser?.id,
+        action: 'project.checkpoint.restore',
+        metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
+      });
+
+      return {
+        restored: true,
+        checkpointId: ckpt.id,
+        /** Point de retour pour annuler CE restore. */
+        safetyCheckpointId: safety.checkpointId,
+        restoredHash,
+        expectedHash: manifest.contentHashes.files,
+        fileCount: afterRestore.length,
+        /*
+         * Le restore ne couvre QUE les fichiers : la base n'est pas rejouée ici.
+         * Repris du manifeste pour que l'appelant ne déduise pas une couverture
+         * qu'il n'a pas.
+         */
+        dependenciesDeclared: manifest.dependenciesDeclared ?? [],
+      };
+    } finally {
+      // Dégel garanti, succès comme échec.
+      await store.updateProjectCheckpoint(safety.checkpointId, { barrierExpiresAt: null }).catch(() => undefined);
+    }
   });
 
   const remixSchema = z.object({
@@ -24420,7 +26621,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           projectId: sourceProject.id,
           organizationId: targetOrganizationId,
           name: params.name,
-          slug: params.slug ?? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+          slug: params.slug ?? slugify(params.name),
         });
       });
 
@@ -25117,7 +27318,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.duplicateProject({
         projectId: project.id,
         name: body.name,
-        slug: body.slug ?? body.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        slug: body.slug ?? slugify(body.name),
       });
     });
 
@@ -25223,12 +27424,82 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(201).send({ workspace });
   });
+  /*
+   * Le statut rendu doit décrire le CLUSTER, pas une ligne qui a cessé d'y
+   * correspondre.
+   *
+   * Mesuré en production le 2026-08-30 : 125 espaces de travail se déclaraient
+   * `RUNNING` en base alors qu'UN SEUL pod tournait dans le namespace
+   * `workspaces`. Un seul enregistrement avait été mis à jour dans les 24
+   * dernières heures. L'IDE lisait ce statut, affichait « en cours d'exécution »,
+   * et chaque opération sur un fichier répondait 425 : le produit mentait à son
+   * utilisateur, puis lui donnait tort.
+   *
+   * La dérive vient de ce que le statut n'est écrit QUE sur des transitions
+   * volontaires. Un pod qui disparaît autrement — éviction, réduction de nœuds,
+   * reclamation d'inactivité côté cluster — ne repasse par aucune de ces
+   * écritures, et la ligne reste indéfiniment sur sa dernière valeur.
+   *
+   * On ne fait pas confiance à la ligne : on SONDE. Et la correction est
+   * persistée, pour que la prochaine lecture — et les tableaux de bord qui
+   * comptent les espaces actifs — parte d'une base juste.
+   */
+  const RUNNING_PROBE_GRACE_MS = 30_000;
+
+  const reconcileWorkspaceStatus = async <T extends { id: string; status: string; updatedAt?: Date | string }>(
+    workspace: T,
+  ): Promise<T> => {
+    if (workspace.status !== 'RUNNING') {
+      /*
+       * PENDING et STARTING ne sont PAS sondés : ne pas être joignable est leur
+       * état normal, et les rétrograder transformerait un démarrage en panne.
+       * STOPPED et FAILED ne prétendent rien : il n'y a rien à corriger.
+       */
+      return workspace;
+    }
+
+    /*
+     * Une écriture toute fraîche a la priorité sur la sonde : un pod qui vient
+     * d'être marqué RUNNING peut n'avoir pas encore de route réseau, et le
+     * rétrograder ici annulerait un démarrage réussi une seconde plus tôt.
+     */
+    const updatedAt = workspace.updatedAt ? new Date(workspace.updatedAt).getTime() : 0;
+
+    if (updatedAt && Date.now() - updatedAt < RUNNING_PROBE_GRACE_MS) {
+      return workspace;
+    }
+
+    let reachable: boolean;
+
+    try {
+      reachable = await probeAgentHealth(workspace.id);
+    } catch {
+      /*
+       * Une sonde qui échoue pour une raison qui ne la regarde pas ne doit pas
+       * décider du statut. Dans le doute, on rend ce qui est stocké : mentir dans
+       * l'autre sens serait tout aussi faux.
+       */
+      return workspace;
+    }
+
+    if (reachable) {
+      return workspace;
+    }
+
+    /*
+     * STOPPED et non FAILED : un pod reclamé n'est pas une panne. C'est aussi
+     * l'état depuis lequel le chemin d'écriture sait relancer un provisionnement
+     * (voir `agentMutateEnsuring`), donc l'utilisateur retrouve son espace en
+     * travaillant, sans geste explicite.
+     */
+    await store.updateWorkspaceStatus({ workspaceId: workspace.id, status: 'STOPPED' }).catch(() => undefined);
+
+    return { ...workspace, status: 'STOPPED' };
+  };
+
   app.get('/workspaces/:workspaceId', async (request) => ({
-    workspace: await requireWorkspace(
-      request,
-      store,
-      parse(workspaceParams, request.params).workspaceId,
-      'workspaces:read',
+    workspace: await reconcileWorkspaceStatus(
+      await requireWorkspace(request, store, parse(workspaceParams, request.params).workspaceId, 'workspaces:read'),
     ),
   }));
 
@@ -25274,8 +27545,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const locale = transactionalLocaleForRequest(request);
+
+    /*
+     * PANEL-PERF — bornage et projection, tous deux OPT-IN.
+     *
+     * Sans `limit` ni `fields`, la réponse est celle d'avant, à l'octet près :
+     * `BaseChat.tsx` lit `manifest.files` (écran des fichiers d'un instantané et
+     * diff entre deux instantanés) et perdrait cet écran si le défaut changeait.
+     *
+     * Mesuré en production le 2026-09-08, projet de 355 instantanés :
+     * 1 281 Ko, 2,85 à 4,41 s au total mais 0,43 à 1,09 s de TTFB — le
+     * transfert pèse donc 80 à 85 % du temps. SQL : 29 à 47 ms. Sérialisation :
+     * 14,1 ms. Le levier est la TAILLE de la réponse, pas le calcul.
+     */
+    const query = (request.query ?? {}) as { limit?: string; cursor?: string; fields?: string };
+    const limitDemandee = Number.parseInt(query.limit ?? '', 10);
+    const limit = Number.isFinite(limitDemandee)
+      ? Math.min(Math.max(limitDemandee, 1), SNAPSHOT_LIST_MAX_PAGE)
+      : undefined;
+    const manifest =
+      query.fields === 'summary' ? 'omit' : query.fields === 'list' ? 'without-files' : ('full' as const);
+
+    /*
+     * On demande UNE ligne de plus que la page : sa présence dit « il en reste »
+     * sans payer un second aller-retour de comptage.
+     */
+    const lignes = await store.listSnapshots(project.id, {
+      ...(limit ? { take: limit + 1 } : {}),
+      ...(query.cursor ? { cursor: query.cursor } : {}),
+      manifest,
+    });
+    const page = limit ? lignes.slice(0, limit) : lignes;
+    const nextCursor = limit && lignes.length > limit ? page[page.length - 1]?.id : undefined;
+
     return {
-      snapshots: (await store.listSnapshots(project.id)).map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      snapshots: page.map((snapshot) => localizeSnapshotRecord(snapshot, locale)),
+      ...(nextCursor ? { nextCursor } : {}),
     };
   });
   app.post('/projects/:projectId/snapshots', async (request, reply) => {
@@ -25781,12 +28086,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const body = parse(aiTranscriptSchema, request.body ?? {});
+    const existants = await store.listAiMessages(conversationId);
+    const existingIds = new Set(existants.map((existant) => existant.id));
+    const contenuExistant = new Map(existants.map((existant) => [existant.id, existant.content]));
     const messages: Awaited<ReturnType<typeof store.createAiMessage>>[] = [];
+    let instantanesPerimes = 0;
+    let caracteresProteges = 0;
 
     for (const message of body.messages) {
+      const id = aiTranscriptMessageId(conversationId, message.clientId, existingIds);
+      const decision = decisionEcritureMessage(contenuExistant.get(id), message.content);
+
+      /*
+       * UN INSTANTANÉ PÉRIMÉ NE REMPLACE PAS CE QUI EST DÉJÀ ÉCRIT.
+       *
+       * La transcription est persistée PENDANT le flux, en `upsert` sur un
+       * identifiant stable. Quand la synchronisation s'arrête avant la fin —
+       * mesuré le 2026-09-08 sur `cmtt810ag…` : dernier PUT 84 s avant la fin du
+       * flux, 37 611 caractères persistés sur 83 703 produits — le message reste
+       * tronqué.
+       *
+       * À la réouverture, le client recharge cette version courte et la RÉÉCRIT
+       * (mesuré à 22:44:49 sur le même projet). La perte devient alors
+       * définitive : l'utilisateur qui rouvre son projet pour comprendre ce qui
+       * s'est passé détruit ce qu'il en restait.
+       *
+       * On refuse donc l'écriture, et on la COMPTE — sans ce journal, la
+       * fréquence réelle du défaut reste introuvable. Ceci ne corrige PAS la
+       * perte : ça l'empêche de s'aggraver.
+       */
+      if (!decision.ecrire) {
+        instantanesPerimes += 1;
+        caracteresProteges += decision.perdus ?? 0;
+        request.log.warn(
+          { conversationId, messageId: id, perdus: decision.perdus },
+          'transcript sync refused: a stale snapshot would have shortened a persisted message',
+        );
+
+        const conserve = existants.find((existant) => existant.id === id);
+
+        if (conserve) {
+          messages.push(conserve);
+        }
+
+        continue;
+      }
+
       messages.push(
         await store.createAiMessage({
-          id: aiTranscriptMessageId(conversationId, message.clientId),
+          id,
           conversationId,
           role: message.role,
           content: message.content,
@@ -25802,6 +28150,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: {
         projectId: project.id,
         messageCount: messages.length,
+        instantanesPerimes,
+        caracteresProteges,
       },
     });
 
@@ -27878,6 +30228,98 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return { projects: await store.listAdminProjects() };
   });
 
+  /*
+   * SUPPRESSION DÉFINITIVE D'UN PROJET PAR UN ADMINISTRATEUR DE PLATEFORME.
+   *
+   * POURQUOI ELLE EXISTE. `DELETE /projects/:projectId/permanent` fait déjà le
+   * bon travail — démontage des ressources externes, puis suppression de la
+   * ligne — mais elle exige une APPARTENANCE RÉELLE à l'organisation du projet
+   * (`requireOrg`). C'est juste pour un utilisateur, et impraticable pour le
+   * propriétaire de la plateforme : au 2026-09-07 la production porte 399
+   * projets répartis sur 277 organisations, dont 347 hors de la sienne.
+   *
+   * Sans cette route, la seule façon d'y arriver serait de FORGER une session
+   * par organisation. C'est exactement ce qu'on refuse : une opération
+   * destructive ne doit pas passer par la fabrication d'identifiants d'autrui,
+   * et la trace d'audit désignerait alors des utilisateurs qui n'ont rien fait.
+   * Ici l'administrateur agit sous SA propre identité, et l'audit le dit.
+   *
+   * CE QU'ELLE NE CHANGE PAS. Elle appelle le MÊME démontage et la MÊME
+   * suppression que la route utilisateur, dans le même ordre, avec la même trace
+   * d'audit portant le résultat du démontage — y compris ses échecs. Une seule
+   * chose diffère : le contrôle d'accès. Dupliquer la logique de destruction
+   * aurait créé deux chemins à maintenir, et c'est ainsi qu'on obtient un
+   * chemin qui oublie de démonter (AUDX-171).
+   *
+   * PAS DE SUPPRESSION EN LOT, volontairement. Un lot est une seule faute de
+   * frappe entre l'intention et 399 destructions irréversibles. L'appelant
+   * boucle ; chaque projet a sa requête, sa réponse et sa ligne d'audit.
+   */
+  app.delete('/admin/projects/:projectId', async (request, reply) => {
+    await requirePlatformAdmin(request);
+
+    const { projectId } = parse(projectParams, request.params);
+
+    /*
+     * `getProject` rend AUSSI les projets déjà supprimés en douceur — c'est
+     * `requireProject` qui filtre ensuite. On veut précisément les deux : un
+     * projet dans la corbeille garde ses ressources externes, et c'est celles-là
+     * qu'on vient démonter.
+     */
+    const project = await store.getProject(projectId);
+
+    if (!project) {
+      return reply.code(404).send({ error: appPublicEnglish('PROJECT_NOT_FOUND'), code: 'PROJECT_NOT_FOUND' });
+    }
+
+    /*
+     * Même garde de confirmation par le nom que la route utilisateur : quand le
+     * client en envoie une, elle doit correspondre. Une suppression d'admin porte
+     * plus loin, pas moins — la garde reste.
+     */
+    const confirmation = parse(projectDeleteConfirmSchema, request.body ?? {});
+
+    if (confirmation.confirmName !== undefined && confirmation.confirmName !== project.name) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_NAME_MISMATCH')), {
+        statusCode: 400,
+        code: 'PROJECT_NAME_MISMATCH',
+      });
+    }
+
+    const teardown = await teardownProjectExternalResources(
+      {
+        databaseProvisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        objectStorage: isObjectStorageEnabled() ? resolveObjectStorage() : undefined,
+      },
+      {
+        id: project.id,
+        organizationId: project.organizationId,
+        persistentVolumeClaim: project.persistentVolumeClaim,
+      },
+    );
+
+    await store.hardDeleteProject(project.id);
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.hard_delete',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: {
+        name: project.name,
+        byPlatformAdmin: true,
+        externalTeardown: { complete: teardown.complete, outcomes: teardown.outcomes },
+      },
+    });
+
+    /*
+     * Le démontage partiel est rendu à l'appelant, pas avalé : c'est ce qui
+     * permet de savoir QUELLE ressource est restée en place, au lieu de la
+     * découvrir des mois plus tard sur une facture.
+     */
+    return { deleted: true, teardown: { complete: teardown.complete, failed: teardown.failed } };
+  });
+
   app.get('/admin/workspaces', async (request) => {
     await requirePlatformAdmin(request);
     return { workspaces: await store.listAdminWorkspaces() };
@@ -28140,8 +30582,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           displayName: byName.get(name)?.displayName ?? name,
           enabled: byName.get(name)?.enabled ?? false,
 
-          // Non-secret: whether a platform key (apiKeyEnc) is stored — never the value.
-          keyConfigured: Boolean(byName.get(name)?.apiKeyEnc),
+          /*
+           * Non-secret : la PRÉSENCE d'une clé et sa provenance, jamais sa
+           * valeur. Tenir compte de l'environnement est indispensable — c'est
+           * de là que viennent les clés en production (BUG-ADMIN-002).
+           */
+          keyConfigured: resolveProviderKeyPresence(name, byName.get(name)?.apiKeyEnc).keyConfigured,
+          keySource: resolveProviderKeyPresence(name, byName.get(name)?.apiKeyEnc).source,
           sampleCount: metric?.sampleCount ?? 0,
           p95LatencyMs: metric?.p95LatencyMs ?? null,
           errorRatePct: metric?.errorRatePct ?? null,
@@ -28786,6 +31233,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   ] as const;
 
   const API_KEY_CONNECTOR_KEYS = ['vercel', 'netlify', 'supabase'] as const;
+
+  /*
+   * Fournisseurs d'IA — LECTURE SEULE, jamais de re-saisie.
+   *
+   * Les quatre cles vivent deja dans le Secret Kubernetes
+   * `vibecore-platform-secrets`, d'ou elles arrivent au processus comme
+   * variables d'environnement. Demander a un administrateur de les RETAPER dans
+   * une interface les ferait transiter par un presse-papiers, un journal de
+   * navigateur et potentiellement un transcript — pour aboutir a une seconde
+   * source de verite qui divergerait de la premiere.
+   *
+   * Cet endpoint expose donc l'ETAT, jamais la valeur : configure ou non, la
+   * longueur, les quatre derniers caracteres, et l'adresse de la console du
+   * fournisseur pour la rotation. Aucun champ de saisie ne lui correspond.
+   */
+  const AI_PROVIDERS = [
+    { provider: 'anthropic', displayName: 'Anthropic', envVar: 'ANTHROPIC_API_KEY',
+      tokenConsoleUrl: 'https://console.anthropic.com/settings/keys' },
+    { provider: 'xai', displayName: 'xAI', envVar: 'XAI_API_KEY',
+      tokenConsoleUrl: 'https://console.x.ai' },
+    { provider: 'moonshot', displayName: 'Moonshot', envVar: 'MOONSHOT_API_KEY',
+      tokenConsoleUrl: 'https://platform.moonshot.cn/console/api-keys' },
+    { provider: 'google', displayName: 'Google Gemini', envVar: 'GOOGLE_GENERATIVE_AI_API_KEY',
+      tokenConsoleUrl: 'https://aistudio.google.com/apikey' },
+  ] as const;
+
+  /**
+   * Ne rend JAMAIS la valeur. Les quatre derniers caracteres suffisent a
+   * reconnaitre une cle et a confirmer une rotation ; ils ne permettent pas de
+   * la reconstituer. En dessous de 8 caracteres on ne montre meme pas cela.
+   */
+  function empreinteCle(valeur: string | undefined) {
+    if (!valeur || valeur.trim().length === 0) {
+      return { configured: false as const, length: 0, last4: null };
+    }
+
+    const nettoyee = valeur.trim();
+
+    return {
+      configured: true as const,
+      length: nettoyee.length,
+      last4: nettoyee.length >= 8 ? nettoyee.slice(-4) : null,
+    };
+  }
+
+  app.get('/admin/providers/ai', async (request) => {
+    await requirePlatformAdmin(request);
+
+    return {
+      providers: AI_PROVIDERS.map((p) => ({
+        provider: p.provider,
+        displayName: p.displayName,
+        envVar: p.envVar,
+        source: 'kubernetes-secret' as const,
+        tokenConsoleUrl: p.tokenConsoleUrl,
+        ...empreinteCle(process.env[p.envVar]),
+      })),
+    };
+  });
 
   app.get('/admin/connectors/api-key', async (request) => {
     await requirePlatformAdmin(request);
@@ -32097,7 +34603,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
     const existing = await store.getDatabaseInstanceByProject(project.id, environment);
 
-    if (existing) {
+    /*
+     * BUG-DB-001, moitié « réessai » — une ligne PROVISIONING périmée enfermait
+     * le projet À VIE.
+     *
+     * Le court-circuit portait sur TOUTE ligne existante. Une instance dont le
+     * provisionnement avait été accepté mais dont la grappe n'aboutissait
+     * jamais restait `PROVISIONING` indéfiniment — `updateDatabaseInstance`
+     * n'est appelée qu'avec `ACTIVE`, donc rien ne la réconcilie — et chaque
+     * nouvelle demande recevait `{ created: false }` : un 200 qui ne fait rien.
+     * L'utilisateur ne pouvait même pas distinguer « ma base marche » de « je
+     * suis bloqué depuis un mois ».
+     *
+     * Mesuré en production le 2026-09-01 : 2 instances `PROVISIONING` depuis
+     * 32,2 et 30,4 jours, `updatedAt` = `createdAt` (jamais réconciliées). Les
+     * DEUX projets ont été SUPPRIMÉS par leur propriétaire dans les heures qui
+     * ont suivi — 2 h 23 et 7 h 48 après. Personne n'est enfermé aujourd'hui,
+     * mais ces utilisateurs ont vraisemblablement abandonné leur projet.
+     *
+     * On ne court-circuite donc plus que sur une instance UTILISABLE, ou sur un
+     * provisionnement RÉCENT réellement en vol. Au-delà du seuil, la demande
+     * relance le provisionnement au lieu de mentir.
+     *
+     * Pourquoi pas un état `FAILED` : l'énumération `DatabaseInstanceStatus` ne
+     * contient que PROVISIONING / ACTIVE / SUSPENDED / DELETED. L'ajouter
+     * demande une migration Prisma — traitée séparément. Ce correctif lève le
+     * piège sans migration.
+     */
+    const provisioningPerime = estProvisionnementPerime(existing);
+
+    if (existing && !provisioningPerime) {
       return { instance: existing, created: false };
     }
 
@@ -32155,12 +34690,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * un reessai repart d'un etat propre (la contrainte unique
      * (projectId, environment) rendait sinon la reprise impossible).
      */
-    const instance = await store.createDatabaseInstance({
-      projectId: project.id,
-      organizationId: project.organizationId,
-      retentionDays: entitlement.retentionDays,
-      environment,
-    });
+    /*
+     * Reprise plutôt que création quand une ligne périmée existe : la
+     * contrainte unique `(projectId, environment)` interdit d'en écrire une
+     * seconde. On rafraîchit la ligne, ce qui remet `updatedAt` à l'heure et
+     * redonne au seuil de péremption un point de départ franc.
+     */
+    const instance = provisioningPerime
+      ? ((await store.updateDatabaseInstance(existing!.id, { status: 'PROVISIONING' })) ?? existing!)
+      : await store.createDatabaseInstance({
+          projectId: project.id,
+          organizationId: project.organizationId,
+          retentionDays: entitlement.retentionDays,
+          environment,
+        });
 
     return reply
       .code(202)
@@ -32405,7 +34948,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      /*
+       * `BUCKET_NOT_PROVISIONED` rejoint 404 et non 422 : un projet qui n'a rien
+       * stocké n'est pas une requête invalide, c'est un projet vide.
+       */
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED' || error.code === BUCKET_NOT_PROVISIONED
+            ? 404
+            : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -32505,7 +35057,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:read');
 
     const query = parse(
-      z.object({ prefix: z.string().max(1024).optional(), delimiter: z.string().max(8).optional() }),
+      z.object({
+        prefix: z.string().max(1024).optional(),
+        delimiter: z.string().max(8).optional(),
+        // AUDX-024 — continuation token so a bucket past 1 000 objects can be
+        // browsed to the end instead of being silently cut at the first page.
+        pageToken: z.string().max(4096).optional(),
+      }),
       request.query ?? {},
     );
 
@@ -32652,8 +35210,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
        * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
+      /*
+       * Le budget porte sur l'OPÉRATION ENTIÈRE, pas sur chaque appel.
+       *
+       * Les deux appels sont séquentiels : appliquer le même délai à chacun
+       * autorisait 10 s au pire, alors que le commentaire ci-dessus promet
+       * qu'une vignette ne retient jamais une requête. Sur un tableau de bord
+       * qui en demande six, ces secondes s'additionnent et repoussent
+       * l'affichage bien au-delà de ce qu'un utilisateur accepte d'attendre.
+       * Le second appel n'a donc droit qu'au reliquat du premier.
+       */
+      const lookupStartedAt = Date.now();
+
+      /*
+       * Le seau du projet est créé à la demande : un projet qui n'a encore rien
+       * stocké n'en a pas. Cette absence se lit comme « pas de vignette », la
+       * même situation que « pas d'objet » quelques lignes plus bas — surtout pas
+       * comme une panne.
+       */
       const { objects } = await withStorageDeadline(
-        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }).catch((error: unknown) => {
+          if (error instanceof ObjectStorageError && error.code === BUCKET_NOT_PROVISIONED) {
+            return { objects: [], folders: [] };
+          }
+
+          throw error;
+        }),
         THUMBNAIL_LOOKUP_DEADLINE_MS,
       );
 
@@ -32661,11 +35243,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
+      /*
+       * Au moins 1 ms : un reliquat nul ou négatif ferait échouer l'appel avant
+       * même de le tenter, transformant une lenteur en absence de vignette
+       * alors que le lien était peut-être immédiat.
+       */
+      const remainingMs = Math.max(1, THUMBNAIL_LOOKUP_DEADLINE_MS - (Date.now() - lookupStartedAt));
+
       return reply.send(
-        await withStorageDeadline(
-          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
-          THUMBNAIL_LOOKUP_DEADLINE_MS,
-        ),
+        await withStorageDeadline(storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }), remainingMs),
       );
     } catch (error) {
       /*
@@ -33423,13 +36009,34 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           workspaceBuildTempDir = workspaceAttempt.tempDir;
           staticBuild = workspaceAttempt.result;
         } else {
-          // Pod unreachable after provision + health-poll → clean failure, no api-pod build.
+          /*
+           * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+           *
+           * Cinq points d'abandon distincts rendaient tous le MÊME message, et
+           * quatre d'entre eux n'ont rien à voir avec un pod injoignable : pas
+           * de contexte utilisateur, pas de `WebSocket` dans l'exécution, jeton
+           * d'agent indisponible, appel du build qui lève. La carte de
+           * publication n'avait donc aucun moyen de dire ce qui s'était passé —
+           * et personne, Avi le premier, n'avait de quoi agir.
+           *
+           * Le message traduit reste ce que l'utilisateur lit ; le CODE d'abandon
+           * (et le détail lavé de l'erreur attrapée, cf. `deploy-refus.ts`) part
+           * dans le journal du déploiement, où il est réellement consultable.
+           */
           const message = appPublicEnglish('DEPLOY_WORKSPACE_UNREACHABLE');
-          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message });
+          const refus = workspaceAttempt.refusal ?? 'WORKSPACE_UNREACHABLE';
+          const detail = workspaceAttempt.detail ? ` ${workspaceAttempt.detail}` : '';
+          const ligne = `${message} [${refus}]${detail}`;
+
+          buildProgress.onLog({ timestamp: new Date().toISOString(), level: 'error', message: ligne });
+          request.log?.error?.(
+            { deploymentId: queued.id, projectId: project.id, refusal: refus, detail: workspaceAttempt.detail },
+            'static deploy refused before the workspace build started',
+          );
           staticBuild = {
             ok: false,
             error: message,
-            logs: [{ timestamp: new Date().toISOString(), level: 'error', message }],
+            logs: [{ timestamp: new Date().toISOString(), level: 'error', message: ligne }],
           };
         }
       } else {
@@ -34130,6 +36737,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * ceiling. The Deploy panel renders its size selector from this — prices and
    * sizes live in the card, never hard-coded in the UI.
    */
+  /*
+   * BUG-DEPLOY-PROVIDERS-UI-001 — quels hébergeurs sont RÉELLEMENT utilisables.
+   *
+   * L'assistant proposait les sept, et six menaient à un 503 après coup :
+   * « les fournisseurs ne fonctionnent pas » (Avi, 09/09). Il lit désormais
+   * cette liste et n'offre que ce qui peut aboutir, en disant pour le reste ce
+   * qu'il manque.
+   *
+   * `missingEnv` ne porte que des NOMS de variables (règle 12), et la lecture
+   * exige `projects:read` : ce n'est pas un inventaire public.
+   */
+  app.get('/projects/:projectId/deployments/providers', async (request) => {
+    await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read');
+
+    return { providers: disponibiliteDesFournisseurs() };
+  });
+
   app.get('/projects/:projectId/deployments/rate-card', async (request) => {
     const project = await requireProject(
       request,
@@ -34896,6 +37520,100 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : appPublicEnglish('DEPLOYMENT_READY_REQUIRED_TO_PUBLISH'),
         code: check.code,
       });
+    }
+
+    /*
+     * La migration s'exécute AVANT la section critique ci-dessous, et non après :
+     * `withSerializedMutation` crée le déploiement, donc y entrer signifie que le
+     * publish est acté. Migrer ensuite reviendrait à publier d'abord et muter le
+     * schéma « au mieux » — exactement ce que cette garantie interdit. Un échec
+     * ici sort en 409 sans jamais toucher au déploiement : la production continue
+     * de servir la version précédente.
+     */
+    /*
+     * ---- Migration de schéma AVANT de publier (P0-V3-11, CTR-DATABASE) ----
+     *
+     * Placée ici À DESSEIN : avant la section critique `withSerializedMutation`,
+     * qui crée le déploiement. Si la migration échoue,
+     * le publish est REFUSÉ et la production continue de servir la version
+     * précédente. Publier d'abord puis migrer « au mieux » exposerait l'inverse :
+     * une application neuve pointée sur un schéma à moitié muté.
+     *
+     * Le lot de migrations est déclaré par le projet dans `migrations/*.sql`
+     * (ordre lexicographique). Sans fichier, il n'y a rien à faire et le publish
+     * suit son cours — un projet sans migration n'est pas pénalisé.
+     */
+    const declaredMigrations = await collectDeclaredMigrations(projectStorage, project.id, source.workspaceId);
+
+    if (declaredMigrations.length > 0) {
+      const prodConnection = await listDatabaseConnections(store, project.id).then((connections) =>
+        connections.find((item) => item.key === 'PROD_DATABASE_URL'),
+      );
+
+      if (!prodConnection) {
+        /*
+         * Des migrations sont déclarées mais aucune base production n'est
+         * joignable : refuser plutôt que publier une application dont le schéma
+         * n'a pas été préparé.
+         */
+        return reply.code(409).send({
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE_MESSAGE', transactionalLocaleForRequest(request)),
+          code: 'MIGRATION_TARGET_UNAVAILABLE',
+        });
+      }
+
+      const migrationOutcome = await runPublishMigration({
+        store,
+        provisioner: options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner(),
+        projectId: project.id,
+        organizationId: project.organizationId,
+        environment: 'production',
+        /*
+         * Clé d'idempotence liée au déploiement ET au contenu : republier le même
+         * déploiement rejoue la même clé et ne ré-applique rien ; un lot modifié
+         * produit une clé différente et une nouvelle exécution.
+         */
+        idempotencyKey: `publish:${source.id}:${hashStatements(declaredMigrations).slice(0, 16)}`,
+        migrations: declaredMigrations,
+        connectionString: prodConnection.value,
+        engine: prodConnection.kind,
+        deploymentId: source.id,
+        createdByUserId: request.currentUser?.id,
+        applySql: options.migrationApplier ?? postgresMigrationApplier,
+      });
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'database.migration.publish',
+        resourceType: 'projectDatabase',
+        resourceId: project.id,
+        metadata: {
+          ok: migrationOutcome.ok,
+          code: migrationOutcome.ok ? 'COMMITTED' : migrationOutcome.code,
+          executionId: migrationOutcome.ok ? migrationOutcome.executionId : migrationOutcome.executionId,
+        },
+      });
+
+      if (!migrationOutcome.ok) {
+        /*
+         * 409 : le publish n'a pas eu lieu ; l'état de la base est décrit par le
+         * code. Le message rendu vient du CATALOGUE, indexé sur ce code stable :
+         * `migrationOutcome.error` est un motif technique rédigé en français
+         * pour l'audit et les journaux, et le renvoyer tel quel servait ce
+         * français à tout le monde, y compris à un utilisateur anglophone. Le
+         * détail technique reste disponible dans `detail`, et l'entrée d'audit
+         * juste au-dessus le conserve intégralement.
+         */
+        const migrationCopyKey = `${migrationOutcome.code}_MESSAGE` as AppPublicCopyKey;
+
+        return reply.code(409).send({
+          error: appPublicCopy(migrationCopyKey, transactionalLocaleForRequest(request)),
+          detail: migrationOutcome.error,
+          code: migrationOutcome.code,
+          executionId: migrationOutcome.executionId,
+          state: migrationOutcome.state,
+        });
+      }
     }
 
     /*

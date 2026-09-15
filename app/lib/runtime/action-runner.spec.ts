@@ -601,7 +601,7 @@ describe('ActionRunner self-repair retry loop', () => {
     runner.addAction(fileAction);
     await runner.runAction(fileAction, false);
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const x = 1;\n', { streaming: false });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(progressEvents).toHaveLength(0);
   });
@@ -645,7 +645,7 @@ describe('ActionRunner self-repair retry loop', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent/self-repair');
 
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const fixed = 1;\n', { streaming: false });
 
     // One "attempt 1/2" progress, then a clearing null.
     expect(progressEvents).toEqual([
@@ -693,7 +693,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await runPromise;
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'still broken 2', { streaming: false });
 
     const clearing = progressEvents.find((event) => event.status === null);
     expect(clearing).toBeDefined();
@@ -794,7 +794,7 @@ describe('ActionRunner self-repair retry loop', () => {
     await vi.advanceTimersByTimeAsync(2_000);
     await runPromise;
 
-    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;');
+    expect(writeFile).toHaveBeenCalledWith('src/App.tsx', 'const broken = ;', { streaming: false });
     expect(progressEvents.some((event) => event.status === null)).toBe(true);
   });
 });
@@ -867,7 +867,7 @@ describe('ActionRunner diff action apply', () => {
     expect(writeFile).toHaveBeenCalledTimes(1);
 
     const expected = original.replace('line 300\n', 'line THREE-HUNDRED\n');
-    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected, { streaming: false });
 
     // project-doctor / reconcile ran AFTER the write on the applied full content.
     expect(applyEntryExportReconcileMock).toHaveBeenCalledTimes(1);
@@ -898,6 +898,52 @@ describe('ActionRunner diff action apply', () => {
     expect(onAlert).toHaveBeenCalledTimes(1);
     expect(onAlert.mock.calls[0][0]).toMatchObject({ type: 'warning', title: 'Diff could not be applied' });
     expect(onAlert.mock.calls[0][0].description).toContain('src/answer.ts');
+  });
+
+  /*
+   * BUG-PERF-001 — amplification d'ecritures agent. Le generateur re-emet la
+   * MEME action de fichier avec un actionId NEUF pour un contenu identique :
+   * mesure du 15/08, 1018 `PUT /files/write` pour 25 fichiers (x40), et
+   * package.json ecrit 96 fois pour une seule taille distincte.
+   *
+   * La parade est `#lastWrittenFingerprint` dans `#runFileAction` : une
+   * empreinte (chemin, contenu) qui saute l'ecriture quand rien n'a change.
+   * Elle n'etait tenue par AUCUN test — regle 15.
+   */
+  it("BUG-PERF-001 : une re-emission a contenu IDENTIQUE n'ecrit qu'une fois", async () => {
+    const contenu = 'export const compteur = 0;\n';
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    /* Dix re-emissions du meme fichier, chacune avec un actionId NEUF. */
+    for (let n = 0; n < 10; n += 1) {
+      const data = fileActionData('src/compteur.ts', contenu, `file-repete-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(
+      writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/compteur.ts').length,
+      "dix re-emissions identiques ont produit plus d'une ecriture",
+    ).toBe(1);
+  });
+
+  it('BUG-PERF-001 : un contenu REELLEMENT different ecrit bien a chaque fois', async () => {
+    /*
+     * Contre-epreuve dans l'autre sens : la deduplication ne doit pas avaler
+     * une vraie modification. Sans ce cas, une empreinte trop large passerait
+     * le test precedent en perdant des ecritures legitimes.
+     */
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    for (let n = 0; n < 3; n += 1) {
+      const data = fileActionData('src/varie.ts', `export const v = ${n};\n`, `file-varie-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/varie.ts').length).toBe(3);
   });
 
   it('AMBIGUOUS anchor (multiple matches) writes nothing and alerts', async () => {
@@ -989,7 +1035,7 @@ describe('ActionRunner diff action apply', () => {
 
     const expected = ['const a = 10;', 'const b = 2;', 'const c = 30;', ''].join('\n');
     expect(writeFile).toHaveBeenCalledTimes(1);
-    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/multi.ts', expected, { streaming: false });
 
     // Sanitize + self-repair validation ran on the applied content, then reconcile.
     expect(validateAndFormatHunkMock).toHaveBeenCalledWith('src/multi.ts', expected);

@@ -70,7 +70,25 @@ export default function VercelConnection() {
       }
     };
 
-    initializeConnection();
+    /*
+     * FAMILLE C — le loquet doit être LIBÉRÉ sur tout chemin d'échec.
+     *
+     * `hasInitialized` est posé à l'entrée, ce qui est juste : il empêche deux
+     * initialisations concurrentes. Mais il n'était libéré NULLE PART — ni
+     * `catch`, ni `finally`. Une auto-connexion qui échouait (jeton expiré,
+     * réseau indisponible) laissait le loquet revendiqué : la connexion
+     * n'était **plus jamais** retentée tant que le composant vivait, et rien
+     * ne le signalait.
+     *
+     * Même forme que `useProjectAiTranscriptHydration`, qui pose le loquet à
+     * l'entrée puis le relâche dans son `catch` — « a returning user with a
+     * real (but transiently unreachable) transcript must never be left with a
+     * silently-empty chat panel ».
+     */
+    initializeConnection().catch((error) => {
+      hasInitialized.current = false;
+      console.error('Vercel: initialisation échouée, loquet libéré pour un nouvel essai', error);
+    });
   }, []); // Empty dependency array to run only once
 
   const handleConnect = async (event: React.FormEvent) => {
@@ -204,7 +222,7 @@ export default function VercelConnection() {
                 disabled={connecting || !connection.token}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'bg-[var(--vc-ide-accent-action)] text-[var(--vc-ide-on-accent-action)]',
                   'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',

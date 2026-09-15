@@ -7,9 +7,19 @@ aspirational design.
 ## TL;DR
 
 - **Trigger:** every push to `main` runs GitHub Actions **`.github/workflows/deploy-main.yml`** (repo `openaxcloud/vibecore` — NOT the `stackblitz-labs/bolt.diy` upstream; `gh` defaults to upstream, so always pass `-R openaxcloud/vibecore`).
-- **Build:** it calls **`gcloud builds submit --config=cloudbuild.yaml`** in region **`europe-west9`**, producing 7 images tagged with the commit's **`git rev-parse --short=10`** SHA.
+- **Build:** it calls **three** regional Cloud Build configs in **`europe-west9`** — `infra/cloudbuild/runtime-tier.yaml`, **`infra/cloudbuild/single-web.yaml`** and `infra/cloudbuild/workspace-agent.yaml` — each tagged with the commit's **`git rev-parse --short=10`** SHA. It does **NOT** use root `cloudbuild.yaml` (verified 2026-09-06: `--config=` appears three times in the workflow, none of them the root file). The `web` image has its own config **because `VITE_RUNTIME_MODE` / `VITE_RUNTIME_API_BASE_URL` are inlined into the client bundle at build time** — a Helm/configmap value is a no-op for the browser, and an image built without them silently ships WebContainer.
 - **Deploy:** **`helm upgrade vibecore infra/helm/platform -n vibecore --reuse-values --atomic --timeout 10m --set services.<tier>.imageTag=<SHA>`**.
 - **No GitOps** (no Argo CD / Flux). **Helm release `vibecore`** in namespace `vibecore` on GKE `vibecore-prod-app` (europe-west9).
+
+> **`_DEPS_TAG` was removed from the manual commands above (2026-09-06).** Cloud
+> Build is strict about substitutions: a key that is passed but **not referenced
+> by any step** fails the submission outright — measured, the error names every
+> offending key. Root `cloudbuild.yaml` never referenced `_DEPS_TAG`, so the
+> documented command could not run at all. `_VITE_RUNTIME_MODE`,
+> `_VITE_RUNTIME_API_BASE_URL` and `_VITE_BYOK_DISABLED` are now **declared and
+> consumed** by its `build-web` step, which **refuses to build** when the mode is
+> empty or unrecognised. Dropping those flags to make the command "work" would
+> ship a WebContainer IDE tagged `:latest`; the step now fails instead.
 
 ## Facts (verified live)
 
@@ -25,37 +35,194 @@ aspirational design.
 | Services rolled every deploy | web + runtime tier (api, workspace-manager, preview-proxy, ai-gateway, worker) |
 | Services rolled only on their own change | admin, ai-gateway, worker (separate `single-service` builds); tags otherwise preserved by `--reuse-values` |
 
+## Release gate — a commit only deploys if its own pipeline is green
+
+> **Switching it on for the first time:** follow
+> [`RELEASE_GATE_CUTOVER.md`](RELEASE_GATE_CUTOVER.md) — ordered steps, the two
+> admin-only prerequisites, and the `Production E2E` decision. This section describes
+> the gate once it is live.
+
+**Added 2026-08-12.** Before this, `deploy-main.yml` built and rolled out every push
+to `main` with no relationship to that commit's test results. Verified against the
+GitHub API, three commits reached production on a red or cancelled pipeline —
+`113c17e8` and `9fc8a243` with `Production CI = failure`, `3a53b439` with CI and
+Quality `cancelled` — and `Production E2E` had never run on any of them, because
+`e2e.yml` did not trigger on push to `main` at all.
+
+The deploy now runs behind a gate:
+
+| Requirement | Where it lives |
+|---|---|
+| Target is one full 40-hex commit; the image tag is *derived* from it, never supplied | `resolve-target` job |
+| Checkout `HEAD` is asserted equal to that commit, in every job that builds or deploys | `resolve-target`, `release-gate`, `preflight-gates`, `build-and-deploy` |
+| CI + E2E + Security + Quality all green **for that exact commit** | `release-gate` job → `scripts/release-gate/verify-required-checks.mjs` |
+| Refusal happens before any Google credential exists | `id-token: write` is granted to `build-and-deploy` **only** |
+| Every service deployed by immutable digest, and the running `imageID`s proven to match | `scripts/release-gate/release-manifest.mjs` |
+| Bypass requires a signed last-known-good manifest + two approvals | `.github/workflows/deploy-break-glass.yml` |
+
+**What the gate refuses.** Missing, queued, in-progress at the deadline, skipped,
+cancelled, failed, produced by a non-`push` event, produced on a branch other than
+`main`, belonging to a different commit, run by a workflow id whose file path no
+longer matches, or a run whose pinned required job was deleted or went red. Required
+workflows are pinned by **numeric workflow id + file path + job name** in
+`scripts/release-gate/required-checks.json` — never by display name, which any commit
+can change.
+
+**Wait vs refuse.** CI and the deploy start on the same push, so a check that is
+still running is not yet a verdict: the gate polls (default 90 min) and refuses at
+the deadline. A check that has already gone red fails the gate immediately.
+
+**Check a commit yourself, without deploying anything:**
+
+```bash
+GITHUB_TOKEN="$(gh auth token)" \
+  node scripts/release-gate/verify-required-checks.mjs --no-wait \
+    --sha "$(git rev-parse origin/main)"
+# exit 0 = would deploy, exit 2 = would be refused (prints why, per workflow)
+```
+
+**Waivers — how to make a check temporarily not-required, safely.** A pipeline can be
+broken for reasons that have nothing to do with release integrity. Making it required
+anyway does not gate anything, it blocks everything. So a required workflow may carry:
+
+```jsonc
+{ "displayName": "Production E2E",
+  "waivedUntil": "2026-08-26",              // hard expiry
+  "waiverReason": "suite red for reasons unrelated to release integrity",
+  "waiverTicket": "BUG-E2E-001" }           // the work that removes the waiver
+```
+
+A waiver is **loud** (printed on every gate run and in the verdict artifact, under
+`⚠️ WAIVERS IN EFFECT — this release was NOT fully gated`) and it **expires**: past
+the date the check is required again and deploys start refusing. Expiry fails closed
+on purpose — this whole gate exists because `Production E2E` was already waived *de
+facto*, by never running, with nobody noticing for months. A waiver missing a reason,
+a ticket, or with a malformed date is a **refusal**, not a silently ignored field.
+
+**Status as of 2026-08-12: nothing is waived, and the E2E suite is red on every
+branch** (0 successes in the last 25 runs). Enabling the gate as written therefore
+refuses every deploy until E2E is fixed. Decide deliberately: fix E2E first, or waive
+it with a date and a ticket — in which case the gate still enforces CI + Security +
+Quality, which alone would have blocked all three commits that shipped red.
+
+**Reproduce the whole digest mechanism locally**, without touching production:
+
+```bash
+bash scripts/release-gate/proof-digest-rollout.sh        # ~6 min, needs docker + kind
+```
+It builds seven *distinct* images (one digest per service, so a cross-service mix-up
+would show), pushes them to a throwaway registry, `helm upgrade --install`s **this
+chart** with `services.<svc>.imageDigest=…`, asserts every rendered reference is
+`@sha256:…`, waits for the rollout, runs the same `verify-imageids` check the deploy
+runs — and then tampers with a digest to prove the check can actually fail.
+
+**Consequence to expect:** a red `main` no longer deploys. `Production CI` has been
+failing on a large share of recent `main` commits, so until those are fixed, pushes
+will be *refused* rather than silently shipped. That is the intended behaviour; the
+fix is to get `main` green, not to widen the gate.
+
 ## The automatic path (normal case — do nothing)
 
 Push to `main` → `deploy-main.yml` does:
 
-1. `SHORT_SHA="$(git rev-parse --short=10 HEAD)"` (or the `workflow_dispatch` `short_sha` input).
+1. Resolve the target commit (`github.sha`, or the `workflow_dispatch` `target_sha`
+   input — which must be a full 40-hex commit that is already an ancestor of
+   `origin/main`). `SHORT_SHA` is the first 10 chars of it, derived, never supplied.
+1b. **Release gate** (see above). Nothing below runs unless it passes.
 2. Detect which tiers changed vs the previous SHA (web-only vs full runtime tier).
 3. Build (regional Cloud Build):
    ```bash
    gcloud builds submit --config=cloudbuild.yaml \
      --project=vibecore-495216 --region=europe-west9 \
-     --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+     --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
    ```
    → pushes `…/<service>:${SHORT_SHA}` (+ `:latest`) for the 7 platform images.
-4. Deploy:
+4. Resolve **every** service to an immutable digest — the tiers just built, plus the
+   ones it didn't build (including `admin`), whose current reference is carried
+   forward as a digest. Scan (Trivy, blocking on fixable CRITICALs), generate a
+   CycloneDX SBOM, and `cosign verify` — all against the **digest**, so the bytes
+   scanned and signed are provably the bytes deployed.
+5. Write the **release manifest** (`service → source SHA → Cloud Build id → digest →
+   signature → SBOM`). The builder refuses to emit one that isn't a proof: no digest,
+   no build id for a rebuilt service, an image built from another commit, or an
+   unverified signature all stop the deploy here.
+6. Deploy **by digest**:
    ```bash
    helm upgrade vibecore infra/helm/platform \
      --namespace vibecore \
      --reuse-values --atomic --timeout 10m \
      --set platformEnv.runtime.previewUrlTemplate="https://{workspaceId}-{port}.preview.e-code.ai/" \
-     --set services.web.imageTag="${SHORT_SHA}" \
-     --set services.api.imageTag="${SHORT_SHA}" \
-     --set services.workspaceManager.imageTag="${SHORT_SHA}" \
-     --set services.previewProxy.imageTag="${SHORT_SHA}" \
-     --set services.aiGateway.imageTag="${SHORT_SHA}" \
-     --set services.worker.imageTag="${SHORT_SHA}"
-   # (only the --set lines for tiers actually rebuilt this run are included;
-   #  skipped tiers keep their live tag via --reuse-values)
+     --set-string services.web.imageDigest="sha256:…" \
+     --set-string services.api.imageDigest="sha256:…" \
+     …one per service, taken from the manifest…
    ```
-5. Verify: `kubectl -n vibecore rollout status deploy/<each> --timeout=5m`.
+   The chart prefers `imageDigest` over `imageTag` and **fails the render** on a
+   malformed digest or an image with neither (`vibecore-platform.imageRef`).
+   `imageTag` is still re-asserted alongside, as human-readable provenance only.
+7. Verify: `kubectl -n vibecore rollout status deploy/<each> --timeout=5m`, then prove
+   the rollout — every running pod of the **current** ReplicaSet must report an
+   `imageID` matching its manifest digest. `helm upgrade` succeeding only proves what
+   was *asked for*; `imageID` is what the kubelet says it actually ran.
+8. Upload the manifest + SBOMs as run artifacts (also on failure).
 
 `--reuse-values` means **a change to `values-prod.yaml` alone never reaches prod** — it must be re-asserted via `--set` (that's why `previewUrlTemplate` is always re-set). A **template** change (e.g. the zero-downtime strategy) *does* take effect on the next upgrade.
+
+## ⚠️ `kubectl set image` skips the schema migration — and the symptom lies
+
+**Any image switch that does not go through Helm leaves the database schema
+behind.** The Prisma `migrate deploy` step is a Helm **pre-install / pre-upgrade
+hook** (`infra/helm/platform/templates/migrations-job.yaml`). `kubectl set image`,
+`kubectl rollout restart`, `kubectl edit deploy` and friends never fire it, so a
+newer image starts against an older schema.
+
+**The symptom does not name the cause.** The API answers `500` with a *generic*
+body — the message is sanitised. Measured on the audit environment on 2026-09-01,
+rolling `web` and `api` from `040dd2976d` to `fce8639ab3` with `kubectl set image`:
+
+```
+POST /auth/register  ->  500  {"error":"Internal server error","code":"P2022"}
+```
+
+Nothing in that response says "migration". `P2022` is Prisma for *the column does
+not exist in the current database*; the environment was **four migrations behind**
+(`0081_project_checkpoint`, `0082_db_migration_execution`, `0083_account_lockout`,
+`0083_session_idle_timeout`). Pods were `Running` and `/ready` answered `200`
+throughout — readiness probes do not exercise the columns the app needs, so
+**every health signal stayed green while registration was dead**.
+
+**If you must switch images by hand**, run the same migration the hook runs, from
+the *new* api image, before or right after the rollout:
+
+```bash
+AUDIT_CTX=...            # ALWAYS pass --context explicitly; see the warning below
+kubectl --context "$AUDIT_CTX" -n vibecore create job qa-migrate-<SHA> --dry-run=client -o yaml ... 
+# container: api:<NEW_SHA>, envFrom secretRef vibecore-platform-secrets, and:
+#   DB_DIR=$(node -e "process.stdout.write(require('path').dirname(require.resolve('@vibecore/database/package.json')))")
+#   cd "$DB_DIR" && node "$(node -e "process.stdout.write(require.resolve('prisma/build/index.js'))")" migrate deploy
+```
+
+Two gotchas met while doing exactly this:
+
+* **PodSecurity `restricted` rejects a naive Job.** The pod is refused with
+  `FailedCreate` and the Job sits at zero pods with **no status at all** — easy to
+  read as "still starting". The pod template needs `runAsNonRoot: true`,
+  `allowPrivilegeEscalation: false`, `capabilities.drop: ["ALL"]` and
+  `seccompProfile.type: RuntimeDefault`.
+* **Quote the image reference.** `"$REGISTRY/$tier:$SHA"` can lose the `:` and the
+  first characters of the tag under some shells (observed: `web:fce8639ab3` became
+  `webe8639ab3`), producing an `ImagePullBackOff` whose message points at a tag
+  nobody wrote. Use `"${REGISTRY}/${tier}:${SHA}"`.
+
+**Preferred alternative**: use `helm upgrade`, which runs the hook for you. Reach
+for `kubectl set image` only when you deliberately want to change *nothing but the
+image* — and then own the migration yourself.
+
+> **Context safety.** The ambient `kubectl` context on a maintainer machine is
+> frequently **production** (verified 2026-09-01). Pass `--kube-context` /
+> `--context` explicitly on every `helm` and `kubectl` command, and guard scripts
+> with a refusal on any context containing `vibecore-prod`. The Helm *release
+> name* protects nothing: the audit release is also called `vibecore`, in a
+> namespace also called `vibecore`.
 
 ## Manual path (what to run by hand — ad-hoc / hotfix / re-deploy a SHA)
 
@@ -63,10 +230,31 @@ You need: `gcloud` (auth'd to `vibecore-495216`), `helm`, `kubectl` context abov
 
 **Option A — re-run the real pipeline (preferred, identical to CI):**
 ```bash
+# FULL 40-hex sha, and it must already be an ancestor of origin/main. The old
+# `short_sha` input is gone: it accepted any 7-40 hex string and used it directly as
+# the image tag to build and deploy, with no requirement that it corresponded to a
+# commit, to main, or to anything that had been tested.
 gh workflow run deploy-main.yml -R openaxcloud/vibecore \
-  -f short_sha="$(git rev-parse --short=10 origin/main)"
+  -f target_sha="$(git rev-parse origin/main)"
 gh run watch -R openaxcloud/vibecore   # follow it
 ```
+This path is gated exactly like a push: same commit binding, same required checks,
+same digest deploy. There is no dispatch input that skips the gate.
+
+**Break-glass (gate down / main red during an incident):** use
+`.github/workflows/deploy-break-glass.yml`. It cannot build or ship new code — it only
+restores the image digests recorded by a previous **successful, gated** production
+deploy, re-verifies every one of those digests against the production cosign KMS key,
+and requires **two approvals** via the `production-break-glass` environment.
+```bash
+gh workflow run deploy-break-glass.yml -R openaxcloud/vibecore \
+  -f manifest_run_id=<run id of the last good deploy> \
+  -f reason="<why the gated path cannot be used>" \
+  -f confirm=BREAK-GLASS
+```
+One-time setup (repo admin): Settings → Environments → `production-break-glass`, with
+**at least two required reviewers** and deployment branches limited to `main`. The
+job asserts this via the API and fails closed if it cannot prove it.
 
 **Option B — build + deploy by hand (mirrors the CI steps):**
 ```bash
@@ -75,7 +263,7 @@ SHORT_SHA="$(git rev-parse --short=10 HEAD)"
 # 1) build + push images (regional Cloud Build)
 gcloud builds submit --config=cloudbuild.yaml \
   --project=vibecore-495216 --region=europe-west9 \
-  --substitutions=_SHORT_SHA="${SHORT_SHA}",_DEPS_TAG="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
+  --substitutions=_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true
 
 # (single service only: `make deploy-<svc> SHORT_SHA=${SHORT_SHA}` — build+push only, no deploy)
 

@@ -1,0 +1,126 @@
+PREUVES ADVERSES — limiteur de débit API partagé
+=================================================
+Base : main @ f5067a27a6cbff352a0e2cf4555295c110f4dd3e
+Banc : 2 instances API RÉELLES (ports 3501/3502) + vrai Redis 7 + vrai PostgreSQL 16
+Plafonds de test : API_RATE_LIMIT_MAX=20, ADMIN_RATE_LIMIT_MAX=5
+
+1. PARTAGE ENTRE REPLICAS (le défaut corrigé)
+---------------------------------------------
+40 requêtes alternées entre pod A et pod B, même credential, plafond 20 :
+    200 : 20      429 : 20
+Clé Redis observée : cred:0b7c15ccf8745cc1   (pas d'IP dans la clé)
+
+CONTRÔLE NÉGATIF (unitaire) : deux compteurs LOCAUX sur le même scénario
+laissent passer 2×LIMIT. C'est l'état d'avant correctif — le test de partage
+a donc des dents.
+
+2. CONCURRENCE — RAFALE SIMULTANÉE
+----------------------------------
+60 requêtes lancées EN PARALLÈLE (aucun await intermédiaire), réparties sur
+les 2 pods, plafond 20 :
+    200 : 20      429 : 40      total : 60
+Unitaire : rafale de 200 simultanées -> exactement 10 autorisées (plafond 10) ;
+les compteurs rendus forment 1..N sans trou ni doublon (incrément atomique).
+
+3. FAIL-CLOSED — PANNE DU STORE PARTAGÉ
+---------------------------------------
+    avant panne          -> HTTP 200
+    Redis STOPPÉ
+    requête 1            -> HTTP 503 | retry-after: 5
+    requête 2            -> HTTP 503 | retry-after: 5
+    corps: {"error":"Rate limiting is temporarily unavailable — request refused.",
+            "code":"RATE_LIMIT_STORE_UNAVAILABLE","retryable":true}
+    Redis REDÉMARRÉ      -> HTTP 200, 200, 200  (reprise sans intervention)
+
+Mode opt-in explicite RATE_LIMIT_STORE_FAILURE_POLICY=degrade-local, Redis coupé,
+plafond 5 :
+    200 : 5       429 : 7      (compté par pod — jamais illimité)
+
+4. FRONTIÈRES / ISOLATION PAR TENANT
+------------------------------------
+Tenant A épuise son budget, DEPUIS LA MÊME IP SOURCE :
+    tenant A (épuisé)     -> HTTP 429
+    tenant B (intact)     -> HTTP 200
+    tenant B depuis pod B -> HTTP 200
+Compartiments distincts en Redis : 2
+
+La clé authentifiée est le credential SEUL (cred:<hash>), sans l'IP : un
+attaquant authentifié tournant sur plusieurs adresses ne se fabrique plus un
+compartiment neuf par IP. L'anonyme reste clé par IP (seul signal non
+falsifiable avant auth).
+
+5. DÉFAUT ATTRAPÉ PAR LA PREUVE LIVE, INVISIBLE EN UNITAIRE
+-----------------------------------------------------------
+Première tentative de câblage : store custom passé via l'option `store` + un
+champ `backend` dans les options du plugin. Résultat live : 40/40 autorisées,
+le limiteur ne comptait RIEN.
+
+Cause : @fastify/rate-limit instancie `new Store(globalParams)` où
+globalParams est reconstruit à partir de SES propres champs (index.js:117) —
+toute option supplémentaire est ignorée, le backend n'arrivait jamais.
+
+Correctif : fabrique `createFastifyRateLimitStore(backend)` qui capture le
+backend par closure, sans dépendre d'un passthrough inexistant.
+Après correctif : 20/20 — partage rétabli.
+
+================================================================
+ITÉRATION 2 — TROIS DÉFAUTS RÉVÉLÉS PAR LA CI ET LA SUITE COMPLÈTE
+================================================================
+
+Les 18 tests unitaires étaient verts pendant que ces trois défauts existaient.
+Ils appellent le backend directement et ne traversent ni le plugin, ni le client
+Redis, ni la suite d'intégration.
+
+DÉFAUT A — 503 à CHAQUE démarrage de pod
+----------------------------------------
+`lazyConnect: true` + `enableOfflineQueue: false` : la toute première commande
+partait avant l'établissement de la connexion et échouait
+(« Stream isn't writeable »). Couplée au fail-closed, elle produisait des 503 à
+chaque rollout, pas seulement pendant une panne Redis.
+Correctif : file hors-ligne conservée, bornée par `commandTimeout`.
+Vérifié : 5 premières requêtes après démarrage à froid -> 200 200 200 200 200,
+0 occurrence de « Stream isn't writeable » dans les logs.
+
+DÉFAUT B — le store partagé cassait l'isolation des tests
+---------------------------------------------------------
+Avant ce lot, le cache LOCAL du plugin isolait par accident chaque instance
+d'app. Avec un compteur partagé, les 1445 tests d'intégration (tous vus depuis
+127.0.0.1) se partageaient un seul compartiment et s'épuisaient mutuellement :
+309 tests en échec.
+Correctif : espace de noms des clés STABLE en production (c'est ce qui rend le
+compteur partagé) et UNIQUE PAR INSTANCE sous test — on restaure explicitement
+l'isolation d'avant au lieu de la perdre.
+
+DÉFAUT C — fail-closed + timeout serré = refus sous simple LATENCE
+------------------------------------------------------------------
+Avec `commandTimeout: 250 ms`, la charge concurrente de la suite faisait expirer
+des commandes Redis pourtant saines ; chaque expiration devenait un 503.
+44 tests admin en échec, tous sur « Command timed out ».
+
+C'est un vrai enseignement de conception, pas un artefact de test : le
+fail-closed rend l'API sensible à la LATENCE du store, pas seulement à sa panne.
+
+Correctifs : timeout porté à 1 s (absorbe les à-coups, borne l'attente en
+panne), et sous test le store partagé n'est pas utilisé (RATE_LIMIT_FORCE_SHARED=1
+pour l'exercer quand même) — faire dépendre 1445 tests sans rapport de la
+latence Redis n'apporte rien.
+
+⚠️ CONSÉQUENCE DE PRODUCTION ASSUMÉE ET DÉCLARÉE : une latence Redis
+durablement supérieure à `commandTimeout` refuse du trafic. C'est le prix de ne
+pas s'ouvrir pendant une panne — à surveiller côté exploitation.
+
+SUITE COMPLÈTE services/api (vrai Redis + vrai PostgreSQL, base neuve)
+----------------------------------------------------------------------
+309 échecs -> 44 -> 6 -> 1443 passés / 1 échec
+Le dernier échec est `vitest-config-discovery.spec.ts`, flake connu et
+pré-existant (vitest imbriqué sous charge), sans rapport avec ce lot.
+
+PREUVES FINALES REJOUÉES SUR LE CODE DÉFINITIF
+-----------------------------------------------
+  démarrage à froid (5 premières)      : 200 200 200 200 200
+  cross-pod, plafond 20, 40 requêtes   : 200:20  429:20
+  rafale SIMULTANÉE 60 req / 2 pods    : 200:20  429:40
+  isolation tenant (même IP)           : A 429, B 200
+  fail-closed (Redis coupé)            : 503 en 1007 ms et 1026 ms
+  unitaires                            : 18/18
+  tsc                                  : 0 erreur

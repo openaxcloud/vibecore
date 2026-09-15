@@ -182,7 +182,7 @@ describe('diff-edit e2e pipeline — SUCCESS (large file, small anchored edit)',
     expect(writeFile).toHaveBeenCalledTimes(1);
 
     const expected = original.replace('line 300\n', 'line THREE-HUNDRED\n');
-    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected);
+    expect(writeFile).toHaveBeenCalledWith('src/big.ts', expected, { streaming: false });
     expect(files.get('src/big.ts')).toBe(expected);
 
     // Assert ONLY the changed region differs from the original.

@@ -25,8 +25,8 @@ import {
   type WorkspaceAgentLocale,
   type WorkspaceAgentPublicError,
 } from './public-i18n.js';
-import { readResourceUsage } from './resource-usage.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
+import { readWorkspaceResources } from './workspace-resources.js';
 
 export interface WorkspaceAgentOptions {
   workspaceRoot?: string;
@@ -36,6 +36,9 @@ export interface WorkspaceAgentOptions {
   maxOutputBytes?: number;
   commandTimeoutMs?: number;
   maxProcesses?: number;
+
+  /** Survie du serveur de dev apres fermeture de la socket. Defaut 10 min. */
+  devServerGraceMs?: number;
 
   /*
    * Running-process registry. Defaults to a fresh Map; injectable so tests can
@@ -745,6 +748,123 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
    */
   const streamTimeoutMs = numericEnv(process.env.WORKSPACE_STREAM_TIMEOUT_MS, 30 * 60_000);
   const maxProcesses = options.maxProcesses ?? numericEnv(process.env.WORKSPACE_MAX_PROCESSES, 8);
+
+  /*
+   * FENETRE DE GRACE APRES LA FERMETURE DE LA SOCKET DE COMMANDE.
+   *
+   * Le serveur de developpement etait tue des que la WebSocket du navigateur se
+   * fermait — sans delai, sans reattache. Safari iOS suspend les onglets en
+   * arriere-plan et coupe les WebSockets en quelques secondes : l'utilisateur
+   * verrouillait son telephone et son application etait morte a son retour.
+   *
+   * DIX MINUTES, et ce chiffre est mesure, pas choisi : `WORKSPACE_IDLE_STOP_MINUTES`
+   * vaut 30 min par defaut (aucun override en production), donc la fenetre reste
+   * STRICTEMENT sous l'inactivite du workspace lui-meme. Elle ne prolonge aucun
+   * pod, n'ajoute aucun disque, et ne coute donc rien de plus : le pod serait
+   * reste debout ces 30 minutes de toute facon.
+   *
+   * Assez long pour couvrir un ecran verrouille, un changement de reseau, un
+   * rechargement de page. Assez court pour qu'un espace de travail abandonne ne
+   * retienne pas un port et un emplacement de `maxProcesses` pendant des heures.
+   */
+  const devServerGraceMs =
+    options.devServerGraceMs ?? numericEnv(process.env.WORKSPACE_DEV_SERVER_GRACE_MS, 10 * 60_000);
+
+  /*
+   * Les enfants qui ont survecu a la fermeture de leur socket, avec le minuteur
+   * qui les moissonnera si personne ne revient. Un nouveau flux de commande les
+   * ADOPTE (annule les minuteurs) : c'est la reattache, sur le modele du
+   * terminal qui se reattache deja par `?sessionId`. Un agent sert UN espace de
+   * travail, donc l'adoption au niveau de l'agent est exacte.
+   */
+  const orphelins = new Map<ChildProcessWithoutNullStreams, ReturnType<typeof setTimeout>>();
+
+  const tuerLeGroupe = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
+    if (child.pid === undefined) {
+      return;
+    }
+
+    /*
+     * Les commandes du flux sont lancees DETACHEES (groupe de processus propre) :
+     * un `child.kill()` nu ne signale que le lanceur et laisse ses enfants — le
+     * serveur de dev, un compilateur lance par `make` — orphelins, a retenir des
+     * emplacements de `maxProcesses` et des ports. On vise le groupe par le pid
+     * negatif, avec repli sur le kill direct si le leader est deja reape.
+     */
+    try {
+      process.kill(-child.pid, signal);
+    } catch {
+      try {
+        child.kill(signal);
+      } catch {
+        // Deja sorti — rien a tuer.
+      }
+    }
+  };
+
+  const armerLaMoisson = (child: ChildProcessWithoutNullStreams) => {
+    const moisson = setTimeout(() => {
+      orphelins.delete(child);
+      tuerLeGroupe(child, 'SIGTERM');
+
+      /*
+       * Un enfant qui piege ou ignore SIGTERM (serveurs de dev, shells) resterait
+       * sinon a retenir un emplacement. On escalade a SIGKILL — mais on ANNULE le
+       * minuteur des qu'il sort, sinon le SIGKILL part 5 s plus tard contre
+       * `-child.pid` et, si le systeme a recycle ce pid, frappe le MAUVAIS groupe.
+       */
+      const sigkill = setTimeout(() => tuerLeGroupe(child, 'SIGKILL'), 5000);
+      sigkill.unref();
+      child.once('exit', () => clearTimeout(sigkill));
+    }, devServerGraceMs);
+
+    moisson.unref();
+    orphelins.set(child, moisson);
+  };
+
+  /*
+   * LE PIEGE DU DECOUPLAGE, ET IL ETAIT REEL.
+   *
+   * L'adoption n'etait accrochee qu'a « un nouveau flux de commande s'ouvre ».
+   * Or un utilisateur qui revient sur un serveur DEJA VIVANT n'en ouvre aucun —
+   * precisement parce que le client detecte correctement qu'il tourne et
+   * court-circuite le relancement. Plus la detection est juste, plus surement le
+   * serveur etait moissonne SOUS LES YEUX de son utilisateur : les deux moities
+   * du correctif se contredisaient.
+   *
+   * Ce que fait reellement un client qui regarde, c'est interroger `/ports`, en
+   * boucle. C'est donc ce signal qui re-arme la fenetre. Il a la bonne
+   * propriete : c'est du HTTP, il ne passe PAS par la WebSocket qu'on vient de
+   * decoupler — la sonde de vivacite ne depend pas de ce qu'elle mesure.
+   *
+   * RE-ARMER, ET NON ANNULER : un seul coup d'oeil ne doit pas rendre le serveur
+   * immortel. La fenetre glisse, de sorte qu'elle signifie « dix minutes sans
+   * que PERSONNE ne regarde » — ce qui est l'intention. `/health` en est
+   * volontairement exclu : c'est la sonde du kubelet, elle ne prouve la presence
+   * d'aucun utilisateur, et la brancher ici serait echanger la fuite contre une
+   * autre.
+   */
+  const quelquUnRegarde = () => {
+    for (const child of [...orphelins.keys()]) {
+      const enCours = orphelins.get(child);
+
+      if (enCours) {
+        clearTimeout(enCours);
+      }
+
+      armerLaMoisson(child);
+    }
+  };
+
+  /* Reattache pleine : l'enfant repasse sous la garde d'un flux vivant. */
+  const adopterLesOrphelins = () => {
+    for (const [, minuteur] of orphelins) {
+      clearTimeout(minuteur);
+    }
+
+    orphelins.clear();
+  };
+
   const processes = options.processes ?? new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
 
@@ -1104,7 +1224,35 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { killed: Boolean(record), id };
   });
 
-  app.get('/ports', async () => ({ ports: await detectPorts(processes) }));
+  app.get('/ports', async () => {
+    /* Quelqu'un regarde : la fenetre de grace glisse. Voir `quelquUnRegarde`. */
+    quelquUnRegarde();
+
+    return { ports: await detectPorts(processes) };
+  });
+
+  /**
+   * RPL-IDE-001.7 — real RAM / CPU / Storage for the Resources panel, read from
+   * this container's own cgroup and the workspace volume's statfs. Authenticated
+   * by the agent-token hook above like every other data route; the workspace
+   * root is the agent's own, so a caller cannot point it at another path.
+   *
+   * SCR-008 (exigence conservée) — les valeurs viennent des cgroup DU
+   * CONTENEUR, jamais de `/proc/meminfo`, qui montrerait la mémoire de l'hôte
+   * et donc un chiffre faux et rassurant pour un pod limité. `readMemory` lit
+   * cgroup v2 puis v1 et renvoie `null` si aucun des deux n'est lisible —
+   * plutôt qu'un chiffre d'hôte trompeur.
+   *
+   * Cette route REMPLACE la `/resources` historique (readResourceUsage) : les
+   * deux avaient survécu à une fusion, Fastify refusait alors de démarrer
+   * (« Method 'GET' already declared for route '/resources' ») et les 27 tests
+   * du workspace-agent tombaient ensemble. C'est celle-ci qui est conservée,
+   * car c'est son contrat ({capturedAt, memory, cpu, storage} avec `source` et
+   * `limitBytes`) que consomme l'API — laquelle répond désormais 503 explicite
+   * quand la mesure échoue, au lieu de jauges vides qui feraient croire à une
+   * consommation nulle.
+   */
+  app.get('/resources', async () => readWorkspaceResources(root));
 
   app.all('/preview/:port/*', async (request, reply) => {
     const port = Number((request.params as { port: string; '*': string }).port);
@@ -1298,17 +1446,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     return { restoredFiles: body.files.length };
   });
 
-  /*
-   * SCR-008 — source des jauges RAM / CPU / stockage de « Vue d'ensemble ».
-   * Valeurs lues dans les cgroup DU CONTENEUR : `/proc/meminfo` montrerait la
-   * mémoire de l'hôte, donc un chiffre faux et rassurant pour un pod limité.
-   */
-  app.get('/resources', async (_request, reply) => {
-    const usage = await readResourceUsage(root);
-
-    return reply.send(usage);
-  });
-
   app.get('/metrics', async (_request, reply) => {
     metrics.setGauge('active_workspaces', { workspaceId: workspaceId ?? 'local' }, 1);
     metrics.setGauge('terminal_sessions', { workspaceId: workspaceId ?? 'local' }, terminalSessions);
@@ -1330,6 +1467,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
        * the maxProcesses budget cluster-wide.
        */
       const activeChildren = new Set<ChildProcessWithoutNullStreams>();
+
+      /*
+       * REATTACHE. Un client qui revient adopte ce qui a survecu : les minuteurs
+       * de moisson sont annules avant meme la premiere trame, de sorte qu'un
+       * rechargement de page ne puisse jamais tomber dans la fenetre.
+       */
+      adopterLesOrphelins();
 
       let socketClosed = false;
 
@@ -1412,45 +1556,30 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         socketClosed = true;
 
         /*
-         * Streamed commands are spawned detached (own process group), so a bare
-         * child.kill() signals only the shell/launcher and leaves its children
-         * (a dev server, a `make`-spawned compiler, etc.) orphaned — leaking
-         * processes and holding maxProcesses slots + ports. Signal the whole
-         * process group via the negative pid, exactly like runCommandStream's
-         * killTree; fall back to a direct kill if the group send fails (e.g. the
-         * leader already reaped).
+         * LA FERMETURE DE LA SOCKET N'EST PLUS UN ARRET.
+         *
+         * Ici, chaque enfant etait tue immediatement. La duree de vie du serveur
+         * de developpement etait donc celle de la WebSocket du NAVIGATEUR : sur
+         * Safari iOS, verrouiller son telephone suffisait a tuer son application.
+         *
+         * Desormais l'enfant est CONFIE a une fenetre de grace. Un nouveau flux
+         * de commande l'adopte (`adopterLesOrphelins`) ; a defaut de retour, il
+         * est moissonne exactement comme avant — SIGTERM puis SIGKILL a +5 s.
+         * Le defaut visible n'est pas echange contre une fuite invisible : la
+         * borne est stricte, et strictement sous l'inactivite du workspace.
          */
-        const killChildGroup = (child: ChildProcessWithoutNullStreams, signal: NodeJS.Signals) => {
-          if (child.pid === undefined) {
-            return;
-          }
-
-          try {
-            process.kill(-child.pid, signal);
-          } catch {
-            try {
-              child.kill(signal);
-            } catch {
-              // Already exited — nothing to kill.
-            }
-          }
-        };
-
         for (const child of activeChildren) {
-          killChildGroup(child, 'SIGTERM');
+          armerLaMoisson(child);
 
-          /*
-           * A child that traps/ignores SIGTERM (dev servers, shells) would
-           * otherwise orphan and keep holding a maxProcesses slot. Escalate to
-           * SIGKILL after a grace period — but CLEAR the timer once the child
-           * exits. Otherwise the SIGKILL fires 5s later against -child.pid, and
-           * if the OS has recycled that pid the group kill hits the WRONG group.
-           */
-          const sigkillTimer = setTimeout(() => {
-            killChildGroup(child, 'SIGKILL');
-          }, 5000);
-          sigkillTimer.unref();
-          child.once('exit', () => clearTimeout(sigkillTimer));
+          // Sorti de lui-meme avant la fin de la fenetre : plus rien a moissonner.
+          child.once('exit', () => {
+            const enAttente = orphelins.get(child);
+
+            if (enAttente) {
+              clearTimeout(enAttente);
+              orphelins.delete(child);
+            }
+          });
         }
 
         activeChildren.clear();
@@ -2645,14 +2774,33 @@ async function runCommandStream(
   sigkillTimer.unref();
 
   await new Promise<void>((resolvePromise) => {
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       clearTimeout(timeoutTimer);
       clearTimeout(sigkillTimer);
 
       if (options.isOpen()) {
         try {
+          /*
+           * BUG-DEPLOY-010, suspect n°2 — UNE ÉTAPE TUÉE N'EST PAS UNE RÉUSSITE.
+           *
+           * `exitCode: code ?? 0` annonçait **exit 0** pour tout processus mort
+           * par signal : Node donne `code === null` dans ce cas. Une préparation
+           * ou une compilation tuée — OOM du pod, moisson, SIGKILL de délai —
+           * remontait donc à l'API comme un succès, et le déploiement continuait
+           * sur un travail qui n'avait jamais fini.
+           *
+           * Le contrat côté API documente déjà `null` (« null when killed by
+           * signal ») et sait le traiter : c'est l'agent qui ne le respectait
+           * pas. On transmet le code TEL QUEL, et le signal avec lui pour que le
+           * journal dise ce qui a tué l'étape.
+           */
           options.socket.send(
-            JSON.stringify({ type: 'exit', exitCode: code ?? 0, timestamp: new Date().toISOString() }),
+            JSON.stringify({
+              type: 'exit',
+              exitCode: code,
+              signal: signal ?? undefined,
+              timestamp: new Date().toISOString(),
+            }),
           );
         } catch {
           // Socket closed between the isOpen() check and the send; nothing to deliver.
@@ -3069,6 +3217,19 @@ function localPreviewHosts(): string[] {
  * exposes unrelated listening sockets), so the output-parsing logic can only be
  * exercised deterministically by calling it directly.
  */
+/*
+ * Fenetre pendant laquelle le port conventionnel d'un serveur de developpement
+ * peut etre suppose faute de sortie exploitable. Au-dela, seule une trace REELLE
+ * compte. Voir le commentaire dans `detectPortsFromOutput`.
+ */
+const DEV_SERVER_BOOT_GUESS_MS = 60_000;
+
+/* Le plus specifique d'abord : `next dev` matcherait aussi un motif generique. */
+const DEV_SERVER_DEFAULT_PORTS: ReadonlyArray<readonly [RegExp, number]> = [
+  [/\bnext dev\b/i, 3000],
+  [/\b(vite|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i, 5173],
+];
+
 export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): DetectedPort[] {
   return [...processes.values()].flatMap((record) => {
     const source = `${record.command}\n${record.output ?? ''}`;
@@ -3079,8 +3240,46 @@ export function detectPortsFromOutput(processes: Map<string, ProcessRecord>): De
 
     const ports = new Set([...matches].map((match) => Number(match[1])).filter((port) => port > 0 && port <= 65535));
 
-    if (!ports.size && /\b(vite|next dev|astro dev|remix dev|npm run dev|pnpm dev|yarn dev)\b/i.test(record.command)) {
-      ports.add(/\bnext dev\b/i.test(record.command) ? 3000 : 5173);
+    /*
+     * LA SUPPOSITION EST BORNEE A LA FENETRE QU'ELLE PRETEND COUVRIR.
+     *
+     * Ici, tout serveur de developpement se voyait attribuer son port
+     * conventionnel (5173, ou 3000 pour Next) des que la commande y ressemblait,
+     * SANS AUCUNE PREUVE qu'un socket ecoute — et pour toujours.
+     *
+     * L'intention d'origine est legitime et on la garde : entre l'instant ou la
+     * commande demarre et celui ou vite imprime son URL, il n'y a rien a lire,
+     * et supposer le port conventionnel permet d'afficher l'aperçu (la page
+     * « Starting your app… ») au lieu d'un vide. C'est le « when output has none
+     * YET » du test d'origine.
+     *
+     * CE QUI N'ETAIT PAS VOULU, c'est que la supposition survive a cette
+     * fenetre. `detectPorts()` ne retombe sur cette heuristique que lorsque
+     * /proc n'a rien donne — c'est-a-dire exactement quand rien n'ecoute. Passe
+     * le demarrage, la supposition ne decrit donc plus un serveur qui arrive :
+     * elle decrit un serveur MORT, et elle l'annonce vivant.
+     *
+     * Mesure du 2026-09-08, production, workspace ws-4e6d3c6c540f6a8a : aucun
+     * processus vite, rien en ecoute sur 5173, et l'interface affichait
+     * « Stop running ». Pire — ce port satisfaisait `shouldUseExistingPreviewServer`,
+     * donc chaque demarrage suivant se court-circuitait en « reattache » et NE
+     * RELANCAIT RIEN. C'est le verrou qui obligeait a lancer le serveur a la main.
+     *
+     * Une minute couvre largement le demarrage d'un serveur de developpement
+     * (vite est pret en ~500 ms, mesure dans le pod ; le reste est l'install,
+     * qui precede la commande). Au-dela, l'ensemble vide dit la verite : rien
+     * n'ecoute. Et une reponse vide est vraie.
+     */
+    if (!ports.size && DEV_SERVER_DEFAULT_PORTS.some(([motif]) => motif.test(record.command))) {
+      const demarreIlYA = Date.now() - Date.parse(record.startedAt);
+
+      if (Number.isFinite(demarreIlYA) && demarreIlYA >= 0 && demarreIlYA <= DEV_SERVER_BOOT_GUESS_MS) {
+        const trouve = DEV_SERVER_DEFAULT_PORTS.find(([motif]) => motif.test(record.command));
+
+        if (trouve) {
+          ports.add(trouve[1]);
+        }
+      }
     }
 
     return [...ports].map((port) => ({ port, processId: record.id }));

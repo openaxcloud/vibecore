@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
+import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
+
 /*
  * BUG-IDE-013 — « le panneau PROBLÈMES ne s'ouvre jamais ».
  *
@@ -26,10 +28,12 @@ function blocDe(nom: string): string {
 
 describe('BUG-IDE-013 — « Problèmes » est un panneau, pas la surface Terminal', () => {
   it('enregistre « problems » parmi les panneaux de gestion', () => {
-    const debut = source.indexOf('const IDE_MANAGEMENT_PANELS = [');
-    const bloc = source.slice(debut, source.indexOf('] as const;', debut));
-
-    expect(bloc).toContain("'problems'");
+    /*
+     * BUG-IDE-PANEL-RESOLUTION-001 — la liste ne vit plus dans BaseChat.tsx :
+     * elle est exportée par le registre unique des panneaux. La garde lit donc
+     * la valeur réelle plutôt que le texte du fichier.
+     */
+    expect([...IDE_MANAGEMENT_PANELS]).toContain('problems');
   });
 
   it('route « Problèmes » vers son panneau au lieu de la surface Terminal gelée', () => {

@@ -15,24 +15,23 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import { GENERIC_PANEL_ICON, PANEL_ICONS, panelIcon } from './panel-meta';
+import { IDE_MANAGEMENT_PANELS } from '~/lib/ide/panel-registry';
+import { MOBILE_TOOL_ACTIONS } from '~/lib/mobile-ide-tabs';
 
 const baseChatSource = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
+
+/*
+ * `ECODE_MOBILE_TAB_META_BASE` ne vit plus dans `BaseChat.tsx` : il a été extrait
+ * pour que les autres surfaces et les tests puissent le consommer. Le bloc se lit
+ * donc désormais dans son module.
+ */
+const metaSource = readFileSync(join(__dirname, '..', '..', 'lib', 'mobile-tab-meta.ts'), 'utf8');
 
 /** Neutralise commentaires (blocs et lignes) pour ne matcher que du code. */
 const codeOnly = (source: string) =>
   source.replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, ' ')).replace(/\/\/.*$/gm, '');
 
 const baseChatCode = codeOnly(baseChatSource);
-
-function extractStringArray(name: string): string[] {
-  const match = baseChatCode.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\] as const;`));
-
-  if (!match) {
-    throw new Error(`Unable to locate const ${name} in BaseChat.tsx`);
-  }
-
-  return [...match[1].matchAll(/'([a-z0-9-]+)'/g)].map((entry) => entry[1]);
-}
 
 function extractBlock(startMarker: string, endMarker: string): string {
   const start = baseChatCode.indexOf(startMarker);
@@ -50,14 +49,7 @@ function extractBlock(startMarker: string, endMarker: string): string {
   return baseChatCode.slice(start, end);
 }
 
-const declaredPanels = [
-  'editor',
-  'preview',
-  'files',
-  'search',
-  'locks',
-  ...extractStringArray('IDE_MANAGEMENT_PANELS'),
-];
+const declaredPanels = ['editor', 'preview', 'files', 'search', 'locks', ...IDE_MANAGEMENT_PANELS];
 
 describe('UNIF-05 — registre unique PANEL_ICONS', () => {
   it('couvre chaque panneau déclaré, sans repli générique', () => {
@@ -97,10 +89,25 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
     expect(baseChatCode).toContain("from '~/components/project-ide/panel-meta'");
   });
 
-  it('la palette « + » tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
+  /*
+   * RPL-IDE-001.5 a déplacé la source : la palette ne porte plus ses entrées en
+   * dur, elle les dérive de `project-editor-tool-catalog.ts`. L'intention
+   * d'UNIF-05 est inchangée — une seule source pour les icônes de panneaux — et
+   * c'est donc le catalogue qu'on vérifie désormais. La règle n'est pas
+   * assouplie : le catalogue redéclarait 29 icônes littérales, dont 5
+   * DIVERGEAIENT du registre (preview, object-storage, packages, workflows,
+   * secrets), soit exactement la dérive que cette porte existe pour empêcher.
+   */
+  it('le catalogue des outils tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
+    const catalog = readFileSync(join(__dirname, '..', 'chat', 'project-editor-tool-catalog.ts'), 'utf8');
+
+    expect(catalog).not.toContain("'i-ph:");
+    expect((catalog.match(/icon: panelIcon\('/g) ?? []).length).toBeGreaterThanOrEqual(25);
+  });
+
+  it('la palette « + » ne réintroduit aucun littéral i-ph', () => {
     const tools = extractBlock('const tools: Array<[IdeWorkspacePanel | IdeRightPanel', '];');
     expect(tools).not.toContain("'i-ph:");
-    expect((tools.match(/panelIcon\('/g) ?? []).length).toBeGreaterThanOrEqual(25);
   });
 
   it('le rail gauche tire ses icônes de panelIcon() — aucun littéral i-ph', () => {
@@ -110,21 +117,49 @@ describe('UNIF-05 — les surfaces consomment le registre', () => {
   });
 
   it('les tuiles mobile référencent PANEL_ICONS (exceptions : agent + Terminal gelé)', () => {
-    const meta = extractBlock('const ECODE_MOBILE_TAB_META_BASE', '};');
-    const literalIcons = [...meta.matchAll(/icon: '([^']+)'/g)].map((entry) => entry[1]);
+    const debut = metaSource.indexOf('const ECODE_MOBILE_TAB_META_BASE');
+    expect(debut, 'bloc du méta introuvable dans mobile-tab-meta.ts').toBeGreaterThan(-1);
+
+    const meta = metaSource.slice(debut, metaSource.indexOf('\n};', debut));
 
     /*
-     * Seules exceptions littérales : la marque `agent` et le glyphe du
-     * Terminal mobile GELÉ (référence IMG_9149 d'Avi — il ne doit jamais
-     * dériver via le registre), plus la tuile utilitaire `tools`.
+     * On ne compare plus des GLYPHES mais les ENTRÉES qui s'autorisent un
+     * littéral : un glyphe autorisé une fois l'était partout, si bien qu'un
+     * panneau réel pouvait copier `i-ph:terminal-window` sans faire rougir.
+     *
+     * Exceptions légitimes, et elles se déduisent :
+     *  - `agent`, marque rendue à part ;
+     *  - `terminal`, glyphe GELÉ sur la référence IMG_9149 d'Avi ;
+     *  - les ACTIONS (`share`, `commands`) — elles ne sont pas des panneaux,
+     *    donc `PANEL_ICONS` ne les porte pas et ne doit pas les porter.
      */
-    expect(new Set(literalIcons)).toEqual(new Set(['agent', 'i-ph:terminal-window', 'i-ph:stack']));
-    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(35);
+    const aIconeLitterale = [...meta.matchAll(/^ {2}'?([a-z-]+)'?: \{ id: '[^']+', name: [^,]+, icon: '/gm)].map(
+      (entry) => entry[1],
+    );
+
+    expect(new Set(aIconeLitterale), 'entrées qui échappent au registre').toEqual(
+      new Set(['agent', 'terminal', ...MOBILE_TOOL_ACTIONS]),
+    );
+
+    /*
+     * Seuil ramené de 35 à 29 : la table comptait 47 entrées dont DIX-NEUF
+     * alias, retirés par ce lot. 29 est le nombre réel de panneaux qui tirent
+     * leur icône du registre — pas un seuil affaibli, le même contrat sur la
+     * table dégraissée.
+     */
+    expect((meta.match(/PANEL_ICONS[.[]/g) ?? []).length).toBeGreaterThanOrEqual(29);
   });
 
   it('la palette nomme l’éditeur comme l’onglet (T2 — plus de « Code »)', () => {
-    const tools = extractBlock('const tools: Array<[IdeWorkspacePanel | IdeRightPanel', '];');
-    expect(tools).toContain("panelTitle('editor', t)");
-    expect(tools).not.toContain('baseChatAst.common.code');
+    /*
+     * L'appel passe désormais par `toolDisplayTitle`, qui délègue à
+     * `panelTitle` — SAUF pour le terminal, dont le libellé de marque est gelé.
+     * Ce qui compte n'a pas changé : aucune exception ne doit renvoyer « Code »
+     * pour l'éditeur, sans quoi la palette et l'onglet nomment différemment le
+     * même panneau.
+     */
+    expect(baseChatCode).toContain('toolDisplayTitle(tool.id, t)');
+    expect(baseChatCode).not.toMatch(/tool === 'editor'[\s\S]{0,120}baseChatAst\.common\.code/);
+    expect(baseChatCode).toMatch(/function toolDisplayTitle[\s\S]{0,600}return panelTitle\(tool, t\)/);
   });
 });
