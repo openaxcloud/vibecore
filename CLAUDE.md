@@ -312,6 +312,39 @@ généraux : ce sont des pièges qui ont déjà coûté.
     Corollaire : quand une suite existante tombe sur un correctif de sécurité,
     **la présomption va à la garde, pas aux tests**.
 
+26. **L'ABSENCE DE VERDICT N'EST JAMAIS UN VERDICT.** Une commande dont on
+    tronque la sortie peut rendre des lignes parfaitement rassurantes sans
+    contenir la moindre conclusion. Lire ces lignes comme un succès, c'est
+    conclure à partir de ce qui a été COUPÉ.
+
+    Vécu le 2026-09-15 : `prisma generate` échouait parce que
+    `generated/client/package.json` portait encore des marqueurs de conflit —
+    donc du JSON invalide. Son message était
+    `Error: Expected property name or '}' in JSON at position 2`. Mais je
+    filtrais sa sortie sur `tail -4`, qui m'a rendu une ligne générique de
+    Prisma (« Start by importing your Prisma Client »), que j'ai prise pour une
+    confirmation. J'ai ensuite poussé un client généré INUTILISABLE, avec ses
+    marqueurs, sur la branche d'une autre session.
+
+    La règle 14 bis dit qu'un résultat NOYÉ trompe autant qu'un résultat
+    absent. Celle-ci vise le cas symétrique et plus insidieux : la sortie n'est
+    pas noyée, elle est **amputée de sa conclusion**, et ce qui reste ressemble
+    à du succès.
+
+    En pratique, sur toute commande dont on lit le résultat :
+    * **filtrer sur la ligne de verdict, jamais sur une position** — `grep -E
+      'Generated|Error|✔|✖'` plutôt que `tail -4` ou `head -N` ;
+    * **lire le code de sortie** quand il existe : `prisma generate` rendait un
+      code non nul que mon filtre ne pouvait pas montrer ;
+    * **si aucune ligne de verdict n'apparaît, le dire** — « la commande n'a
+      pas rendu de conclusion » est une information ; « ça a l'air d'être
+      passé » n'en est pas une.
+
+    Corollaire déjà coûteux deux fois dans la même heure : mes propres
+    contrôles avaient affiché `marqueurs : 1` et je ne m'y suis pas arrêté. Un
+    contrôle qu'on écrit puis qu'on ne lit pas ne vaut pas mieux qu'un contrôle
+    absent.
+
 **Ces trois dernières visent le facteur d'erreur dominant.** Sur cette
 campagne, mes commandes de mesure m'ont plus souvent trompé que le code
 lui-même.
