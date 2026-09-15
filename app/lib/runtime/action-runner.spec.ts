@@ -900,6 +900,52 @@ describe('ActionRunner diff action apply', () => {
     expect(onAlert.mock.calls[0][0].description).toContain('src/answer.ts');
   });
 
+  /*
+   * BUG-PERF-001 — amplification d'ecritures agent. Le generateur re-emet la
+   * MEME action de fichier avec un actionId NEUF pour un contenu identique :
+   * mesure du 15/08, 1018 `PUT /files/write` pour 25 fichiers (x40), et
+   * package.json ecrit 96 fois pour une seule taille distincte.
+   *
+   * La parade est `#lastWrittenFingerprint` dans `#runFileAction` : une
+   * empreinte (chemin, contenu) qui saute l'ecriture quand rien n'a change.
+   * Elle n'etait tenue par AUCUN test — regle 15.
+   */
+  it("BUG-PERF-001 : une re-emission a contenu IDENTIQUE n'ecrit qu'une fois", async () => {
+    const contenu = 'export const compteur = 0;\n';
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    /* Dix re-emissions du meme fichier, chacune avec un actionId NEUF. */
+    for (let n = 0; n < 10; n += 1) {
+      const data = fileActionData('src/compteur.ts', contenu, `file-repete-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(
+      writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/compteur.ts').length,
+      "dix re-emissions identiques ont produit plus d'une ecriture",
+    ).toBe(1);
+  });
+
+  it('BUG-PERF-001 : un contenu REELLEMENT different ecrit bien a chaque fois', async () => {
+    /*
+     * Contre-epreuve dans l'autre sens : la deduplication ne doit pas avaler
+     * une vraie modification. Sans ce cas, une empreinte trop large passerait
+     * le test precedent en perdant des ecritures legitimes.
+     */
+    const { runtime, writeFile } = createStatefulRuntime({});
+    const runner = new ActionRunner(runtime, () => createShell() as any, vi.fn());
+
+    for (let n = 0; n < 3; n += 1) {
+      const data = fileActionData('src/varie.ts', `export const v = ${n};\n`, `file-varie-${n}`);
+      runner.addAction(data);
+      await runner.runAction(data, false);
+    }
+
+    expect(writeFile.mock.calls.filter((appel: unknown[]) => appel[0] === 'src/varie.ts').length).toBe(3);
+  });
+
   it('AMBIGUOUS anchor (multiple matches) writes nothing and alerts', async () => {
     const original = 'value = 1;\nvalue = 1;\n';
     const { runtime, files, writeFile } = createStatefulRuntime({ 'src/dup.ts': original });

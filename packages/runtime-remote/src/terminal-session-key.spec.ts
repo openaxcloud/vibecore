@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { buildTerminalPath, deriveTerminalId } from './terminal-session.js';
+
 /**
  * Régression BUG-TERM-002.
  *
@@ -9,22 +11,16 @@ import { describe, expect, it } from 'vitest';
  * fois : jamais de reattach, budget `maxSessions` (8) épuisé, puis 429 en boucle.
  * Mesuré en réel : 12 `sessionId` distincts en 6 min pour un seul IDE.
  *
- * Ces tests verrouillent la propriété qui rend le reattach possible — même
- * `sessionKey` ⇒ même `sessionId` — sans dépendre du réseau : on reproduit la
- * dérivation d'identifiant et la construction de l'URL exactement comme
- * `openTerminal()` les fait.
+ * ⚠️ CE FICHIER NE TENAIT PAS LE CORRECTIF. Il RECOPIAIT la dérivation de
+ * `index.ts` au lieu de l'importer — « copie fidèle », disait le commentaire.
+ * Contre-épreuve faite : en retirant le correctif du vrai `openTerminal()`, les
+ * 6 tests restaient au VERT. Un garde-fou qui épingle sa propre copie rassure
+ * sans protéger, ce qui est pire que pas de garde-fou.
+ *
+ * Les fonctions viennent désormais de `terminal-session.ts`, celles-là mêmes que
+ * `openTerminal()` appelle : retirer le correctif fait maintenant tomber ces
+ * tests.
  */
-
-/** Copie fidèle de la dérivation de `packages/runtime-remote/src/index.ts`. */
-function deriveTerminalId(sessionKey?: string): string {
-  return sessionKey ? `terminal-${sessionKey}` : `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-}
-
-function buildTerminalPath(workspaceId: string, terminalId: string, cols = 80, rows = 24, managed = false): string {
-  return `/workspaces/${workspaceId}/terminal?sessionId=${encodeURIComponent(terminalId)}&cols=${cols}&rows=${rows}${
-    managed ? '&managed=1' : ''
-  }`;
-}
 
 describe('identité de session terminal (BUG-TERM-002)', () => {
   it('rend le MÊME identifiant pour la même sessionKey — condition du reattach', () => {
