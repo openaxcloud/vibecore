@@ -27,7 +27,7 @@ import { agentRoutingLabel, agentRoutingValidationMessage, type AgentRoutingLoca
 
 export type AgentMode = 'lite' | 'economy' | 'power';
 
-export type AgentRoutingLineKey = AgentMode | 'high-effort' | 'turbo' | 'classifier';
+export type AgentRoutingLineKey = AgentMode | 'high-effort' | 'turbo' | 'classifier' | 'fallback';
 
 export const AGENT_MODES: AgentMode[] = ['lite', 'economy', 'power'];
 
@@ -38,6 +38,7 @@ export const AGENT_ROUTING_LINE_KEYS: AgentRoutingLineKey[] = [
   'high-effort',
   'turbo',
   'classifier',
+  'fallback',
 ];
 
 export interface AgentRoutingLine {
@@ -124,9 +125,9 @@ const PAID_PLANS = ['core', 'pro', 'team', 'enterprise'];
  * as a card row. That is by design: a model change is config, never a deploy.
  */
 export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
-  version: 3,
-  effectiveFrom: '2026-08-20T00:00:00.000Z',
-  sourceDate: '2026-08-20',
+  version: 4,
+  effectiveFrom: '2026-09-15T00:00:00.000Z',
+  sourceDate: '2026-09-15',
   currency: 'usd',
   baseUserInCentsPerM: 650,
   baseUserOutCentsPerM: 3250,
@@ -200,6 +201,36 @@ export const BUILTIN_AGENT_ROUTING_CARD: AgentRoutingCard = {
       costOutCentsPerM: 500,
       multiplier: 0,
       billedToUser: false,
+      availablePlans: ALL_PLANS,
+      active: true,
+    },
+
+    /*
+     * LA SEPTIÈME LIGNE — la redondance, et c'est un FOURNISSEUR DIFFÉRENT.
+     *
+     * Avant elle, Google n'était atteignable que par `PROVIDER_FALLBACK_CHAIN`,
+     * une constante codée en dur dans l'app et que la carte ne connaît pas.
+     * Conséquence : un repli réussi vers Gemini ne correspondait à AUCUNE ligne
+     * de routage — ni prix, ni journal, ni télémétrie. La redondance existait
+     * sans jamais pouvoir être constatée.
+     *
+     * Elle n'est PAS un mode : `AGENT_MODES` reste `lite | economy | power`, et
+     * `AgentPowerControls` ne l'offre pas à l'utilisateur. C'est une
+     * destination de routage, comme `classifier` et `turbo`.
+     *
+     * Coûts au 2026-09-15 pour `gemini-2.5-pro` : 125 cents / 1 M en entrée,
+     * 1 000 cents / 1 M en sortie. Multiplicateur 1 : un repli ne se facture
+     * pas plus cher qu'Economy — l'utilisateur subit la panne, il ne la paie pas.
+     */
+    {
+      key: 'fallback',
+      label: agentRoutingLabel('fallback'),
+      provider: 'google',
+      model: 'gemini-2.5-pro',
+      costInCentsPerM: 125,
+      costOutCentsPerM: 1000,
+      multiplier: 1,
+      billedToUser: true,
       availablePlans: ALL_PLANS,
       active: true,
     },
