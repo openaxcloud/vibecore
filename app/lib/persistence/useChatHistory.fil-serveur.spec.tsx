@@ -1,0 +1,246 @@
+/** @vitest-environment jsdom */
+
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+/**
+ * LE SITE D'APPEL, tenu pour de vrai.
+ *
+ * `serveur-fil-projet.spec.ts` couvre parfaitement le chargeur et la règle de
+ * priorité. Il ne couvre PAS ce fichier-ci : mesuré le 2026-09-06, retirer la
+ * ligne `void completerFilSiVide(...)` de `useChatHistory.ts` laissait ses
+ * **neuf cas au vert**. Le correctif se défaisait sans un seul rouge.
+ *
+ * C'est la classe dominante de cette semaine — la sonde SEC-9 jamais admise, le
+ * garde d'épinglage câblé nulle part : le mécanisme non tenu est presque
+ * toujours le site d'appel, pas la fonction.
+ *
+ * Deux contrats sont épinglés ici, et ils sont distincts :
+ *   1. la banque serveur EST consultée à la restauration d'un projet ;
+ *   2. elle ne BLOQUE pas l'affichage — le fil local paraît d'abord.
+ */
+
+const mocks = vi.hoisted(() => {
+  Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: {} });
+
+  return {
+    loaderData: {} as { id?: string; projectId?: string },
+    completerFilSiVide: vi.fn(),
+    getProjectIdeMemory: vi.fn(),
+    saveProjectIdeMemory: vi.fn(),
+    setMessages: vi.fn(async () => undefined),
+    openDatabase: vi.fn(async () => ({ name: 'fil-serveur-spec-db' })),
+    noop: vi.fn(),
+  };
+});
+
+vi.mock('react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router')>();
+
+  return {
+    ...actual,
+    useLoaderData: () => mocks.loaderData,
+    useNavigate: () => mocks.noop,
+    useSearchParams: () => [new URLSearchParams(), vi.fn()],
+  };
+});
+
+vi.mock('react-toastify', () => ({
+  toast: { info: mocks.noop, error: mocks.noop, success: mocks.noop },
+}));
+
+vi.mock('./db', () => ({
+  openDatabase: () => mocks.openDatabase(),
+  getMessages: vi.fn(async () => undefined),
+  getNextId: vi.fn(async () => 'chat-next'),
+  getUrlId: vi.fn(async () => 'chat-url'),
+  setMessages: (...a: unknown[]) => mocks.setMessages(...a),
+  duplicateChat: vi.fn(),
+  createChatFromMessages: vi.fn(),
+  getSnapshot: vi.fn(async () => undefined),
+  setSnapshot: vi.fn(async () => undefined),
+}));
+
+vi.mock('./projectIdeMemory', () => ({
+  getProjectIdeMemory: (...a: unknown[]) => mocks.getProjectIdeMemory(...a),
+  saveProjectIdeMemory: (...a: unknown[]) => mocks.saveProjectIdeMemory(...a),
+}));
+
+vi.mock('./serveur-fil-projet', () => ({
+  completerFilSiVide: (...a: unknown[]) => mocks.completerFilSiVide(...a),
+}));
+
+vi.mock('~/lib/runtime/RuntimeAdapterProvider', () => ({
+  runtimeAdapter: { workdir: '/home/project', createDirectory: mocks.noop, writeFile: mocks.noop },
+}));
+vi.mock('~/lib/stores/logs', () => ({ logStore: { logError: mocks.noop } }));
+vi.mock('~/lib/stores/workbench', () => ({
+  workbenchStore: { firstArtifact: undefined, files: { get: () => ({}) } },
+}));
+vi.mock('~/utils/projectCommands', () => ({
+  detectProjectCommands: vi.fn(async () => []),
+  createCommandActionsString: vi.fn(() => ''),
+  escapeBoltActionAttribute: vi.fn((v: string) => v),
+}));
+
+import { chatMetadata, useChatHistory } from './useChatHistory';
+
+describe('la restauration d’un projet consulte la banque serveur', () => {
+  beforeEach(() => {
+    mocks.loaderData = { projectId: 'projet-sonde' };
+    localStorage.clear();
+    mocks.completerFilSiVide.mockReset();
+    mocks.getProjectIdeMemory.mockReset();
+    mocks.saveProjectIdeMemory.mockReset().mockResolvedValue(undefined);
+    mocks.setMessages.mockReset().mockResolvedValue(undefined);
+    mocks.completerFilSiVide.mockResolvedValue(undefined);
+    mocks.getProjectIdeMemory.mockResolvedValue({
+      chat: undefined,
+      updatedAt: '2026-09-06T00:00:00.000Z',
+    });
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('CONTRAT 1 — la banque serveur est bien sollicitée, avec le projet et un poseur', async () => {
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    const [messages, projectId, poser] = mocks.completerFilSiVide.mock.calls[0];
+    expect(Array.isArray(messages)).toBe(true);
+    expect(projectId).toBe('projet-sonde');
+    expect(typeof poser).toBe('function');
+  });
+
+  it('CONTRAT 1 bis — le repli reçoit un lecteur d’identité branché sur le store courant', async () => {
+    /*
+     * BUG-HISTORY-CLEAR-002 (14/09) : sans ce lecteur, une lecture partie sous
+     * l'ancienne conversation et arrivée après « Effacer l'historique » posait
+     * le fil effacé et ré-adoptait l'ancienne identité. Le lecteur doit rendre
+     * l'identité du STORE au moment de l'appel, pas une valeur figée.
+     */
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    const lireIdentite = mocks.completerFilSiVide.mock.calls[0][5] as (() => string | undefined) | undefined;
+    expect(typeof lireIdentite).toBe('function');
+
+    chatMetadata.set({ aiConversationId: 'conv-neuve' });
+    expect(lireIdentite!()).toBe('conv-neuve');
+
+    chatMetadata.set({});
+    expect(lireIdentite!()).toBeUndefined();
+  });
+
+  it('CONTRAT 2 — l’affichage n’attend pas le serveur', async () => {
+    /*
+     * Le complément ne se résout JAMAIS : un serveur indéfiniment lent. Le hook
+     * doit tout de même se déclarer prêt. Si l'appel était attendu au lieu d'être
+     * lancé en arrière-plan, ce cas resterait bloqué — c'est exactement ce que
+     * la mise en garde de la session QA demandait d'épingler.
+     */
+    // eslint-disable-next-line @typescript-eslint/no-empty-function -- une promesse qui ne se résout JAMAIS : c'est le contrat testé
+    mocks.completerFilSiVide.mockReturnValue(new Promise(() => {}));
+
+    const { result } = renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    expect(mocks.completerFilSiVide).toHaveBeenCalled();
+  });
+
+  it('le fil local déjà présent est celui qu’on transmet au complément', async () => {
+    mocks.getProjectIdeMemory.mockResolvedValue({
+      chat: { id: 'projet-sonde', messages: [{ id: 'm1', role: 'user', content: 'bonjour' }] },
+      updatedAt: '2026-09-06T00:00:00.000Z',
+    });
+
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    /*
+     * C'est `completerFilSiVide` qui décide de ne rien faire quand le local est
+     * plein — mais encore faut-il qu'on lui passe le VRAI fil local, sinon elle
+     * écraserait un fil frais par celui du serveur.
+     */
+    expect(mocks.completerFilSiVide.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it('un fil effacé est vidé dans IndexedDB aussi, pas seulement dans la mémoire de projet', async () => {
+    /*
+     * Mesuré le 06/09 : « Effacer l'historique » ne vidait que la mémoire de
+     * projet. Au rechargement, la restauration — mémoire vide — retombait sur
+     * IndexedDB, qui rendait les quatre messages et l'ANCIEN identifiant de
+     * conversation. Le fil « effacé » revenait, avec sa conversation.
+     */
+    const { result } = renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(result.current.ready).toBe(true));
+    mocks.setMessages.mockClear();
+
+    await result.current.storeMessageHistory([]);
+
+    const ecritureVide = mocks.setMessages.mock.calls.find(
+      (appel) => appel[1] === 'project:projet-sonde' && Array.isArray(appel[2]) && appel[2].length === 0,
+    );
+
+    expect(ecritureVide, 'IndexedDB doit recevoir le fil vide sous l’identifiant du projet').toBeTruthy();
+    expect(mocks.saveProjectIdeMemory).toHaveBeenCalledWith(
+      'projet-sonde',
+      expect.objectContaining({ chat: expect.objectContaining({ messages: [], clearMessages: true }) }),
+    );
+  });
+
+  /*
+   * CONV-001 (moitié DUPLICATION) — LA MOITIÉ QUI SE PERD.
+   *
+   * `serveur-fil-projet.spec.ts` tient la RÈGLE d'adoption. Elle ne sert à rien
+   * si personne ne passe l'adoptant : le module serait juste et mort, ce que ce
+   * dépôt a déjà payé 56 jours sur l'image admin. Ici on vérifie le CÂBLAGE, et
+   * qu'il écrit là où `ensureProjectAiConversation` va LIRE.
+   */
+  it('CONTRAT 3 — un adoptant est passé, et il écrit là où le prochain envoi ira lire', async () => {
+    renderHook(() => useChatHistory());
+
+    await waitFor(() => expect(mocks.completerFilSiVide).toHaveBeenCalled());
+
+    const adoptant = mocks.completerFilSiVide.mock.calls[0][4];
+    expect(typeof adoptant, 'aucun adoptant passé : le fil restauré reste sans conversation').toBe('function');
+
+    mocks.saveProjectIdeMemory.mockClear();
+    (adoptant as (id: string) => void)('conv-restauree');
+
+    /*
+     * `Chat.client.tsx:502` lit `backendAiConversationIdRef.current ??
+     * chatMetadata.get()?.aiConversationId`. Le STORE est donc ce qui compte
+     * pour le prochain envoi — la persistance ne sert qu'au rechargement.
+     */
+    expect(chatMetadata.get()?.aiConversationId, 'le store n’a pas repris la conversation du serveur').toBe(
+      'conv-restauree',
+    );
+
+    /*
+     * SCOPE NU, délibérément : `saveProjectIdeMemory(projectId, …)` sans
+     * `workspaceId`, exactement comme `ensureProjectAiConversation`. Deux scopes
+     * pour un même identifiant se contrediraient en silence — c'est le défaut
+     * voisin relevé le 10/09, où `BaseChat` lit `workspace:<id>` pendant que le
+     * chat écrit `projectId`.
+     */
+    const ecriture = mocks.saveProjectIdeMemory.mock.calls.find((appel) => appel[0] === 'projet-sonde');
+    expect(ecriture, 'l’adoption n’est pas persistée dans le scope du projet').toBeTruthy();
+    expect(ecriture![1]).toEqual(
+      expect.objectContaining({
+        chat: expect.objectContaining({ metadata: expect.objectContaining({ aiConversationId: 'conv-restauree' }) }),
+      }),
+    );
+    expect(
+      ecriture!.length,
+      'un workspaceId ici enverrait l’identifiant dans un scope que le chat ne relit jamais',
+    ).toBe(2);
+  });
+});

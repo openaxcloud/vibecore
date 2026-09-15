@@ -20,12 +20,35 @@ on:
   workflow_dispatch:
 
 concurrency:
+  # GROUPE PAR COMMIT SUR `main`, par branche ailleurs.
+  #
+  # `cancel-in-progress: false` protège le run EN COURS, mais GitHub annule les
+  # runs EN ATTENTE d'un même groupe dès qu'un plus récent arrive. Avec un groupe
+  # commun à toutes les poussées sur `main`, une cadence soutenue évinçait les
+  # contrôles avant qu'ils ne démarrent : mesuré le 2026-09-06, le CI de
+  # b987b79e98 a été créé à 11:27 et annulé à 11:38 SANS AVOIR LANCÉ UN SEUL JOB.
+  #
+  # La porte de livraison lit un run annulé comme « non vert » et refuse le
+  # déploiement — trois déploiements refusés dans la journée sur des contrôles
+  # qui n'avaient pas échoué, seulement été évincés.
+  #
+  # Un groupe par SHA sur `main` supprime la file, donc l'éviction : chaque commit
+  # va au bout de ses contrôles et la porte peut trouver un SHA vert.
+  #
+  # CE QUE ÇA NE CHANGE PAS : sur les branches, le groupe reste par `ref` et
+  # `cancel-in-progress` reste vrai — une nouvelle poussée annule toujours la
+  # précédente, comme avant.
+  #
+  # PAS DE RISQUE DE CONTENTION : `runs-on: ubuntu-latest` donne une VM DÉDIÉE par
+  # job. Deux runs parallèles ne partagent aucun CPU. La seule contrainte commune
+  # est le plafond de jobs simultanés du compte, qui met en file sans évincer —
+  # les groupes étant distincts.
   # Never cancel on main. This workflow is a REQUIRED check for the production
   # deploy gate, and a cancelled run is not a green run: cancelling main's CI
   # because a second commit arrived would refuse the first commit's deploy on a
   # result that was never allowed to finish. That is exactly how 3a53b439 ended
   # up deployed with `Production CI = cancelled` before the gate existed.
-  group: production-ci-${{ github.ref }}
+  group: production-ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
@@ -170,6 +193,26 @@ jobs:
         timeout-minutes: 20
         run: pnpm run build
 
+      # BUG-PERF-PRELOAD-ALLROUTES — ce que TOUTE page télécharge, y compris la
+      # page d'accueil marketing d'un visiteur qui n'ouvrira jamais l'IDE.
+      #
+      # `build-config/manual-chunks.spec.ts` teste la FONCTION de découpage.
+      # C'est utile et insuffisant : elle ne dit rien du `root-*.js` réellement
+      # produit. Rollup peut remonter monaco dans le chunk racine par un autre
+      # chemin, et ces tests resteraient verts pendant que 654 Ko reviennent sur
+      # chaque page — c'est exactement ce qui a été mesuré en production le
+      # 2026-08-12 (96 imports statiques sur la racine, dont `vendor-monaco-core`
+      # à 573 Ko servis pour n'appeler qu'une fonction de ~20 lignes).
+      #
+      # Ce contrôle mesure L'ARTEFACT, donc il doit venir APRÈS le build. Il
+      # refuse deux choses : un chunk d'éditeur ou de terminal sur le chemin
+      # critique, et une croissance SILENCIEUSE du total — le vrai défaut, que
+      # personne n'a vu arriver.
+      - name: Le chemin critique de la racine reste maigre
+        run: |
+          node --import tsx scripts/verifier-chemin-critique.ts --self-test
+          node --import tsx scripts/verifier-chemin-critique.ts
+
       - name: Build admin
         timeout-minutes: 10
         run: pnpm --filter @vibecore/admin build
@@ -177,6 +220,14 @@ jobs:
       - name: Build services
         timeout-minutes: 15
         run: pnpm --filter './services/**' build
+
+      # Le runbook de déploiement est lu quand la chaîne automatique est en panne
+      # — donc vite, la nuit, avec déjà un problème sur les bras. Quatre de ses
+      # prescriptions étaient inexécutables le 2026-09-06 sans que rien ne le
+      # signale : le code avait des contrôles, la documentation n'en avait aucun.
+      # VALIDATION SEULE : ce contrôle ne lance aucun déploiement.
+      - name: Le runbook de déploiement reste exécutable
+        run: pnpm run runbook:verify
 
       - name: Security checks
         run: |

@@ -24,7 +24,17 @@ import { parse } from 'yaml';
 const repoRoot = resolve(new URL('..', import.meta.url).pathname);
 
 /** Fichiers Cloud Build que la CD exécute réellement (pas le cloudbuild.yaml racine). */
-const TIER_FILES = ['infra/cloudbuild/runtime-tier.yaml', 'infra/cloudbuild/single-web.yaml'];
+const TIER_FILES = [
+  'infra/cloudbuild/runtime-tier.yaml',
+  'infra/cloudbuild/single-web.yaml',
+  /*
+   * `admin-tier.yaml` a été ajouté par main APRÈS l'écriture de cette garde.
+   * Sans lui, la garde déclarait l'admin « construit par aucun tier » alors
+   * qu'il l'est — elle rougissait sur la forme correcte. Une garde qui se
+   * trompe sur l'état sain se fait désactiver, et le trou se rouvre.
+   */
+  'infra/cloudbuild/admin-tier.yaml',
+];
 
 const WORKFLOW = '.github/workflows/deploy-main.yml';
 const VALUES_PROD = 'infra/helm/platform/values-prod.yaml';

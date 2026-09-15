@@ -9,6 +9,7 @@ import {
   apiRequest,
   firstOrganization,
   firstOrganizationOrNull,
+  isApiResponse,
   json,
   redirect,
   type EnterpriseActionArgs,
@@ -21,6 +22,7 @@ import {
   type ImportRoutesCopy,
 } from '~/lib/i18n/catalogs/import-routes';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { estAbandonDeRequete, IMPORT_REQUEST_TIMEOUT_MS } from '~/lib/import-delai';
 import { isReauthRedirect } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
 
@@ -63,7 +65,7 @@ const MAX_ARCHIVE_BYTES = 18 * 1024 * 1024;
 
 type Project = { id: string; slug?: string };
 type ImportZipSource = 'bolt' | 'lovable' | 'base44' | 'previous-agent-export';
-type ImportZipErrorCode = 'archiveRequired' | 'importFailed';
+type ImportZipErrorCode = 'archiveRequired' | 'timeout' | 'importFailed';
 type ImportZipActionData = { errorCode: ImportZipErrorCode };
 
 function base64FromArrayBuffer(buffer: ArrayBuffer) {
@@ -138,6 +140,14 @@ export async function action({ request }: EnterpriseActionArgs) {
     const organization = await firstOrganization(request);
     result = await apiRequest<{ project: Project }>(request, `/orgs/${organization.id}/projects/import/zip`, {
       method: 'POST',
+
+      /*
+       * BUG-CREATE-005, même mécanisme que l'import Git (règle 7) : sans signal,
+       * `apiRequest` coupe à 30 s. Une archive volumineuse — encodée en base64,
+       * puis analysée à la recherche de secrets — dépasse ce budget bien avant
+       * que le serveur ait fini, et l'abandon retombait sur `importFailed`.
+       */
+      signal: AbortSignal.timeout(IMPORT_REQUEST_TIMEOUT_MS),
       body: JSON.stringify({ name, zipBase64: base64FromArrayBuffer(await archive.arrayBuffer()) }),
     });
 
@@ -147,6 +157,11 @@ export async function action({ request }: EnterpriseActionArgs) {
   } catch (error) {
     if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
       throw error;
+    }
+
+    /* Un abandon côté client n'est pas une `Response` : il dit « trop long », pas « raté ». */
+    if (estAbandonDeRequete(error) || isApiResponse(error, 504) || isApiResponse(error, 408)) {
+      return actionError('timeout', 504);
     }
 
     return actionError('importFailed', error instanceof Response ? error.status : 500);

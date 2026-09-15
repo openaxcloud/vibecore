@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp, type ApiAppOptions, type WorkspacePodStaticBuild } from '../app.js';
+import { refusalDetail } from '../deploy-refus.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
 
@@ -116,6 +117,71 @@ describe('deploy builds only in the workspace pod (no api-pod fallback)', () => 
     // The pod build was attempted; the in-api build was NEVER called.
     expect(podBuild).toHaveBeenCalledTimes(1);
     expect(inApiBuildSpy).not.toHaveBeenCalled();
+
+    await app.close();
+  });
+
+  /*
+   * BUG-DEPLOY-STATIC-FAIL-001 — « Échec », et rien d'autre.
+   *
+   * Avi, 09/09 : « impossible de déployer en réel, aucun fournisseur ne
+   * fonctionne ». La carte affichait l'échec sans jamais dire pourquoi, parce
+   * que CINQ points d'abandon distincts rendaient le même `{ handled: false }`
+   * nu — dont trois qui avalaient l'erreur dans un `catch {}` (règle 13). Le
+   * journal du déploiement porte maintenant le CODE de l'abandon.
+   */
+  it('écrit POURQUOI le build en pod n’a pas démarré, pas seulement qu’il a échoué', async () => {
+    const inApiBuildSpy = vi.fn(async () => ({ ok: true as const, outputDir: undefined, logs: [] }));
+
+    const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({
+      handled: false as const,
+      refusal: 'AGENT_TOKEN_UNAVAILABLE' as const,
+      detail: refusalDetail(Object.assign(new Error('mint failed'), { code: 'TOKEN_MINT_FAILED', statusCode: 503 })),
+    }));
+
+    const { app, store, auth, projectId } = await setup({
+      staticBuildRunner: inApiBuildSpy,
+      buildStaticInWorkspacePod: podBuild,
+    });
+
+    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const built = await driveBuild(app, projectId, queued.id, auth.user.id);
+
+    expect(built.statusCode).toBe(200);
+    expect(built.json().deployment.status).toBe('FAILED');
+
+    const journal = JSON.stringify(built.json().deployment.logs);
+
+    // Le message traduit reste — c'est ce que l'utilisateur lit.
+    expect(journal).toContain('Workspace is starting — please retry');
+
+    // …et le code d'abandon est là, avec le détail de l'erreur attrapée.
+    expect(journal).toContain('[AGENT_TOKEN_UNAVAILABLE]');
+    expect(journal).toContain('TOKEN_MINT_FAILED');
+    expect(journal).toContain('HTTP 503');
+
+    await app.close();
+  });
+
+  it('ne laisse JAMAIS un jeton entrer dans le journal d’un déploiement', async () => {
+    const SECRET = 'sk-live-4f9a2c7e18b640d3ae5f0c9127384bde';
+
+    const podBuild: WorkspacePodStaticBuild = vi.fn(async () => ({
+      handled: false as const,
+      refusal: 'WORKSPACE_UNREACHABLE' as const,
+      detail: refusalDetail(new Error(`GET https://agent.internal/health?token=${SECRET} failed`)),
+    }));
+
+    const { app, store, auth, projectId } = await setup({ buildStaticInWorkspacePod: podBuild });
+
+    const queued = await store.createDeployment({ projectId, provider: 'static', status: 'QUEUED' });
+    const built = await driveBuild(app, projectId, queued.id, auth.user.id);
+
+    const corps = JSON.stringify(built.json());
+
+    // On vérifie l'ABSENCE : c'est la seule assertion qui ne fasse pas fuir ce qu'elle mesure (règle 12).
+    expect(corps).not.toContain(SECRET);
+    expect(corps).toContain('[WORKSPACE_UNREACHABLE]');
 
     await app.close();
   });

@@ -72,6 +72,7 @@ function recorder() {
 async function setup(overrides: Record<string, unknown> = {}) {
   const rec = recorder();
   const store = new TestApiStore();
+
   const app = await buildApiApp({
     store,
     emailProvider: new QuietEmailProvider(),
@@ -85,8 +86,10 @@ async function setup(overrides: Record<string, unknown> = {}) {
     name: 'O',
     passwordHash: hashPassword('password123'),
   });
+
   const org = await store.createOrganization({ name: 'Orph', slug: 'orph', ownerUserId: user.id });
   await store.createSession({ userId: user.id, token: 'orph-token', expiresAt: new Date(Date.now() + 3_600_000) });
+
   const project = await store.createProject({ organizationId: org.id, name: 'Doomed', slug: 'doomed' });
 
   return { app, store, org, project, rec, auth: { authorization: 'Bearer orph-token' } };
@@ -192,11 +195,14 @@ describe('AUDX-171 inventaire des ressources externes', () => {
   it('couvre les ressources démontables connues, et chacune est idempotente sur l’absence', async () => {
     const { PROJECT_EXTERNAL_RESOURCES, teardownProjectExternalResources } = await import('../project-teardown.js');
 
-    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual([
-      'database',
-      'object-storage-bucket',
-      'persistent-volume-claim',
-    ]);
+    /*
+     * `persistent-volume-claim` a QUITTÉ cet inventaire le 2026-09-07 pour la liste
+     * des trous connus. Son `remove` ne touchait rien — le nom enregistré sur le
+     * projet (`pvc-<org>-<slug>`) ne désigne aucun volume existant, le vrai étant
+     * `pvc-<workspaceId>` — et il rapportait pourtant `removed: true`. C'est
+     * exactement le mensonge que la note du second cas décrit.
+     */
+    expect(PROJECT_EXTERNAL_RESOURCES.map((resource) => resource.id)).toEqual(['database', 'object-storage-bucket']);
 
     /*
      * Sans aucune dépendance branchée, le démontage doit être un no-op RÉUSSI et
@@ -205,7 +211,7 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      */
     const report = await teardownProjectExternalResources({}, { id: 'p1', organizationId: 'o1' });
     expect(report.complete).toBe(true);
-    expect(report.outcomes).toHaveLength(3);
+    expect(report.outcomes).toHaveLength(2);
   });
 
   it('déclare explicitement les ressources auditées mais NON couvertes', async () => {
@@ -218,5 +224,16 @@ describe('AUDX-171 inventaire des ressources externes', () => {
      * trou lui-même.
      */
     expect(KNOWN_UNCOVERED_PROJECT_RESOURCES.map((entry) => entry.id)).toContain('cnpg-backups-gcs');
+    expect(KNOWN_UNCOVERED_PROJECT_RESOURCES.map((entry) => entry.id)).toContain('workspace-pvc');
+
+    /*
+     * La RAISON doit rester dans le texte, pas seulement l'identifiant : c'est elle
+     * qui empêche quelqu'un de recâbler la suppression sur le nom du projet en
+     * croyant combler un oubli. Le motif nomme la vraie source du nom.
+     */
+    const volume = KNOWN_UNCOVERED_PROJECT_RESOURCES.find((entry) => entry.id === 'workspace-pvc');
+
+    expect(volume?.why).toMatch(/workspace-manager/);
+    expect(volume?.why).toMatch(/pvc-<workspaceId>/);
   });
 });
