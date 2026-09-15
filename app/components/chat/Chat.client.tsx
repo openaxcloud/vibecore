@@ -17,18 +17,32 @@ import {
 } from '~/lib/chat/composer-send-guard';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
+import {
+  caracteresDuFil,
+  evenementPersistance,
+  type CiblePersistance,
+  type EtapePersistance,
+} from '~/lib/persistence/journal-persistance';
+import { projectAiTranscriptMessages } from './project-ai-transcript-messages';
 import { BaseChat } from './BaseChat';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 import { useMessageParser, usePromptEnhancer, useShortcuts } from '~/lib/hooks';
 import { useSettings } from '~/lib/hooks/useSettings';
 import { chatMetadata, description, useChatHistory } from '~/lib/persistence';
-import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
+import { getProjectIdeMemory, saveProjectIdeMemory, type ProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { chatStore } from '~/lib/stores/chat';
 import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { countWorkspaceFiles, decidePendingPromptReplay, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
+import { leTourAEcritDesFichiers, messageDeCommitDuTour, statistiquesDuTour } from '~/components/chat/fin-de-tour';
+import {
+  consommerPrompt,
+  countWorkspaceFiles,
+  decidePendingPromptReplay,
+  promptRecuperable,
+  resolvePendingPrompt,
+} from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import {
   DEFAULT_MODEL,
@@ -48,11 +62,10 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { LlmErrorAlertType } from '~/types/actions';
-import {
-  planTranscriptHydrationRetry,
-  projectAiMessagesToChatMessages,
-  type ProjectAiMessagesResponse,
-} from './projectAiTranscript';
+import { partagerLaCreation } from './creation-partagee';
+import { fautIlAdopterLaTranscriptionRestauree } from './late-stored-transcript';
+import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from './projectAiTranscript';
+import { useProjectAiTranscriptHydration } from './useProjectAiTranscriptHydration';
 import {
   projectModelSelectionFromMetadata,
   projectModelSelectionFromParams,
@@ -159,33 +172,6 @@ type ProjectAiConversationResponse = {
     id?: string;
   };
 };
-
-function projectAiTranscriptMessages(messages: Message[]) {
-  return messages
-    .filter((message) => !message.annotations?.includes('no-store'))
-    .map((message, index) => {
-      const role = String(message.role);
-
-      if (role !== 'system' && role !== 'user' && role !== 'assistant' && role !== 'tool') {
-        return undefined;
-      }
-
-      return {
-        clientId: message.id || `${role}:${index}:${message.content.slice(0, 80)}`,
-        role,
-        content: message.content ?? '',
-      };
-    })
-    .filter(
-      (
-        message,
-      ): message is {
-        clientId: string;
-        role: 'system' | 'user' | 'assistant' | 'tool';
-        content: string;
-      } => Boolean(message),
-    );
-}
 
 export function Chat({
   forceWorkbench = false,
@@ -295,6 +281,14 @@ export const ChatImpl = memo(
     const [imageDataList, setImageDataList] = useState<string[]>([]);
     const [searchParams, setSearchParams] = useSearchParams();
     const [fakeLoading, setFakeLoading] = useState(false);
+
+    /*
+     * Souscrit, pas lu au vol : `chatMetadata.get()` ne déclenche aucun rendu,
+     * si bien que l'hydratation de la transcription n'était jamais relancée
+     * quand l'identifiant de conversation arrivait après le premier rendu.
+     */
+    const metadataAiConversationId = useStore(chatMetadata)?.aiConversationId;
+
     const files = useStore(workbenchStore.files);
     const filesHydrated = useStore(workbenchStore.filesHydrated);
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
@@ -460,20 +454,26 @@ export const ChatImpl = memo(
     const handledCompletionsRef = useRef(0);
     const pendingPersistRef = useRef<Message[] | null>(null);
     const persistInFlightRef = useRef<Promise<void> | null>(null);
+    const rangPersistanceRef = useRef(0);
+
+    /*
+     * GÉNÉRATION DU FIL — incrémentée à chaque « Effacer l'historique ».
+     *
+     * La synchronisation de la transcription attend `ensureProjectAiConversation`.
+     * Si le fil est effacé PENDANT cette attente, l'identifiant rendu est celui
+     * de la conversation NEUVE — et l'ancien fil s'y écrivait. Mesuré le 06/09
+     * (sonde probe-clear.mjs, effacement juste après l'affichage) : quatre
+     * messages `PUT` dans la conversation neuve, puis quatre messages à l'écran
+     * au rechargement. Un instantané pris sous une génération antérieure ne se
+     * synchronise plus.
+     */
+    const generationDuFilRef = useRef(0);
+    const creationDeConversationRef = useRef<Promise<string> | null>(null);
+    const filVideParLUtilisateurRef = useRef(false);
 
     const backendAiConversationIdRef = useRef<string | undefined>(
       projectIdeMode ? chatMetadata.get()?.aiConversationId : undefined,
     );
-
-    const backendTranscriptHydratedRef = useRef(false);
-
-    /*
-     * Counts failed transcript-hydration attempts so a cold/GC'd workspace 502 is
-     * retried with bounded backoff. Bumping transcriptRetryNonce re-runs the
-     * hydration effect (auto-retry or a user-triggered Retry from the toast).
-     */
-    const backendTranscriptRetryRef = useRef(0);
-    const [transcriptRetryNonce, setTranscriptRetryNonce] = useState(0);
 
     /*
      * Tracks an in-flight initial project generation (the queued pendingPrompt) so
@@ -482,7 +482,20 @@ export const ChatImpl = memo(
      * file; a failed/empty/errored attempt keeps it so generation retries on the
      * next open instead of leaving the project stuck with just its seeded README.
      */
-    const pendingGenerationRef = useRef<{ promptId: string; baselineFileCount: number } | null>(null);
+    /*
+     * LE PROMPT RÉCUPÉRABLE, tel qu'il vit vraiment dans `ProjectIdeState.chat`.
+     *
+     * Alimente le bouton « Générer l'application ». Sans lui, ce bouton cherchait
+     * le prompt dans le README — d'où BUG-QA-PROMPT-IN-README l'a retiré — et ne
+     * pouvait donc plus s'afficher pour aucun projet récent.
+     */
+    const [promptDeSecours, setPromptDeSecours] = useState<string | undefined>(undefined);
+
+    const pendingGenerationRef = useRef<{
+      promptId: string;
+      pendingPrompt: NonNullable<NonNullable<ProjectIdeMemory['chat']>['pendingPrompt']>;
+      baselineFileCount: number;
+    } | null>(null);
 
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
@@ -496,42 +509,49 @@ export const ChatImpl = memo(
         return existingConversationId;
       }
 
-      const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+      /*
+       * Un seul `POST` à la fois : l'effacement du fil et la boucle de
+       * persistance peuvent demander une conversation dans la même seconde
+       * (voir `creation-partagee.ts`).
+       */
+      return partagerLaCreation(creationDeConversationRef, async () => {
+        const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ai/conversations`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ title: description?.trim() || copy['chatClient.project.agent'] }),
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
+              status: response.status,
+            }),
+          );
+        }
+
+        const payload = (await response.json()) as ProjectAiConversationResponse;
+        const conversationId = payload.conversation?.id;
+
+        if (!conversationId) {
+          throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
+        }
+
+        const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
+        chatMetadata.set(nextMetadata);
+        backendAiConversationIdRef.current = conversationId;
+
+        await saveProjectIdeMemory(projectId, {
+          chat: {
+            metadata: nextMetadata,
+          },
+        });
+
+        return conversationId;
       });
-
-      if (!response.ok) {
-        throw new Error(
-          formatClientAstResidualCopy(astCopy['clientAst.chat.technical.conversationCreate'], {
-            status: response.status,
-          }),
-        );
-      }
-
-      const payload = (await response.json()) as ProjectAiConversationResponse;
-      const conversationId = payload.conversation?.id;
-
-      if (!conversationId) {
-        throw Object.assign(new Error(), { code: 'CHAT_CONVERSATION_ID_MISSING' });
-      }
-
-      const nextMetadata = { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId };
-      chatMetadata.set(nextMetadata);
-      backendAiConversationIdRef.current = conversationId;
-
-      await saveProjectIdeMemory(projectId, {
-        chat: {
-          metadata: nextMetadata,
-        },
-      });
-
-      return conversationId;
     }, [astCopy, copy, description, projectId, projectIdeMode]);
 
     const syncProjectAiTranscript = useCallback(
-      async (nextMessages: Message[]) => {
+      async (nextMessages: Message[], generation = generationDuFilRef.current) => {
         if (!projectIdeMode || !projectId || nextMessages.length === 0) {
           return;
         }
@@ -542,10 +562,20 @@ export const ChatImpl = memo(
           return;
         }
 
+        /*
+         * Un fil d'une génération passée ne se pousse pas — et ne demande pas
+         * non plus de conversation : mesuré le 14/09, la persistance des
+         * messages d'AVANT l'effacement créait une conversation neuve à côté de
+         * celle que l'effacement venait d'ouvrir.
+         */
+        if (generation !== generationDuFilRef.current) {
+          return;
+        }
+
         try {
           const conversationId = await ensureProjectAiConversation();
 
-          if (!conversationId) {
+          if (!conversationId || generation !== generationDuFilRef.current) {
             return;
           }
 
@@ -585,9 +615,61 @@ export const ChatImpl = memo(
         const drainPendingSaves = async () => {
           while (pendingPersistRef.current) {
             const snapshot = pendingPersistRef.current;
+            const generation = generationDuFilRef.current;
             pendingPersistRef.current = null;
-            await storeMessageHistory(snapshot);
-            void syncProjectAiTranscript(snapshot);
+
+            /*
+             * TROIS HYPOTHÈSES, LE MÊME PROFIL OBSERVABLE.
+             *
+             * `storeMessageHistory` est ATTENDU et `syncProjectAiTranscript` est
+             * en `void` : si le premier ne se résout jamais, la boucle ne repart
+             * pas et le verrou de passage unique reste fermé ; si le second est
+             * rejeté, personne ne l'apprend. Et si la LONGUEUR transportée
+             * plafonne pendant que le flux continue, la perte n'est ni dans l'un
+             * ni dans l'autre mais dans l'assemblage.
+             *
+             * Rien dans les journaux actuels ne sépare ces trois mondes. On
+             * journalise donc entrée, sortie et rejet, avec le rang de l'appel et
+             * le nombre de caractères : une entrée sans sortie est un blocage, un
+             * rejet est un échec silencieux, une longueur qui n'augmente plus est
+             * un défaut d'assemblage.
+             */
+
+            const rang = (rangPersistanceRef.current += 1);
+            const caracteres = caracteresDuFil(snapshot);
+
+            const journal = (cible: CiblePersistance, etape: EtapePersistance, extra?: Record<string, unknown>) =>
+              console.info(
+                evenementPersistance({ rang, cible, etape, caracteres, messages: snapshot.length, ...extra }),
+              );
+
+            const departLocal = Date.now();
+            journal('local', 'entree');
+
+            try {
+              await storeMessageHistory(snapshot);
+              journal('local', 'sortie', { dureeMs: Date.now() - departLocal });
+            } catch (erreur) {
+              journal('local', 'rejet', { dureeMs: Date.now() - departLocal, erreur: String(erreur).slice(0, 200) });
+              throw erreur;
+            }
+
+            const departServeur = Date.now();
+            journal('serveur', 'entree');
+
+            /*
+             * Toujours pas `await` : sérialiser l'écriture durable dans la boucle
+             * changerait le comportement qu'on est en train de mesurer. Mais son
+             * issue n'est plus muette.
+             */
+            void syncProjectAiTranscript(snapshot, generation).then(
+              () => journal('serveur', 'sortie', { dureeMs: Date.now() - departServeur }),
+              (erreur) =>
+                journal('serveur', 'rejet', {
+                  dureeMs: Date.now() - departServeur,
+                  erreur: String(erreur).slice(0, 200),
+                }),
+            );
           }
         };
 
@@ -661,6 +743,36 @@ export const ChatImpl = memo(
       addToolResult,
     } = useChat({
       api: '/api/chat',
+
+      /*
+       * IDENTITÉ STABLE DE LA CONVERSATION.
+       *
+       * Sans `id`, le SDK clé son magasin sur `useId()` — vérifié dans la source
+       * installée (`@ai-sdk/react/dist/index.js`) :
+       *
+       *   const hookId = useId();
+       *   const chatId = id != null ? id : hookId;
+       *   const chatKey = typeof api === 'string' ? [api, chatId] : chatId;
+       *   useSWR([chatKey, 'messages'], …)
+       *
+       * `useId()` dépend de la POSITION du composant dans l'arbre. Toute
+       * recréation de l'instance — une frontière Suspense qui se résout, un
+       * enveloppement conditionnel qui apparaît — produit une clé DIFFÉRENTE, et
+       * le hook lit alors un magasin VIDE. Un `setMessages` déjà appliqué reste
+       * écrit sous l'ancienne clé : il est perdu sans aucune erreur, sans aucun
+       * retrait de nœud, et le panneau affiche un fil vide alors que le réseau a
+       * bien rendu les messages.
+       *
+       * C'est le tableau exact mesuré en production : trois `/messages` en 200
+       * avec du contenu réel, zéro erreur, l'échafaudage du transcript monté et
+       * sa liste à zéro enfant, et la garde `hasMessages` restée fausse après
+       * chaque application — donc `setMessages` n'alimentait pas l'état que la
+       * liste consulte.
+       *
+       * Une conversation a une identité propre ; elle ne doit pas dépendre de la
+       * forme de l'arbre. En mode projet c'est le projet qui la porte.
+       */
+      id: projectIdeMode && projectId ? `project:${projectId}` : undefined,
       body: chatRequestBodyBase,
 
       /*
@@ -695,7 +807,18 @@ export const ChatImpl = memo(
       sendExtraMessageFields: true,
 
       /*
-       * DIAGNOSTIC (temporary): wrap the transport fetch so every request the AI
+       * DIAGNOSTIC — ⚠️ « temporary » DEPUIS DEUX MOIS. Introduit le 2026-07-11
+       * (`fix(chat): reopened project append() posted nothing`), et toujours servi :
+       * `[chat-fetch]` est présent dans le chunk `Chat.client` de l'image de
+       * production, vérifié le 2026-09-10. Il écrit donc dans la console de CHAQUE
+       * utilisateur, à CHAQUE requête.
+       *
+       * Le mot « temporary » ne dit plus rien de vrai : soit on le retire, soit on
+       * assume un diagnostic permanent — mais on ne laisse pas un lecteur croire
+       * qu'il va disparaître de lui-même. Le retirer est un changement de
+       * COMPORTEMENT, hors de cette passe qui ne touche qu'aux commentaires.
+       *
+       * Ce qu'il fait : wrap the transport fetch so every request the AI
        * SDK actually dispatches to /api/chat is visible in the console. The SDK
        * builds the request as `fetch(api, { body: JSON.stringify(body), ... })`,
        * so JSON.stringify evaluates BEFORE fetch is called: a non-serializable
@@ -771,6 +894,39 @@ export const ChatImpl = memo(
           }
         }, 0);
 
+        /*
+         * RP-CKPT-04 — point de restauration automatique, à la Replit : dès
+         * que le tour a écrit des fichiers, un commit + un instantané reliés
+         * à ce message sont pris en arrière-plan (après la synchronisation du
+         * stockage). Le bloc « Checkpoint made … » sous la réponse en vit.
+         * Le message reçu ici porte déjà l'annotation `usage` (durée, coût).
+         */
+        if (projectIdeMode && projectId && message.role === 'assistant' && message.id) {
+          const messageComplet = latestMessagesRef.current.find((candidate) => candidate.id === message.id) ?? message;
+
+          if (leTourAEcritDesFichiers(messageComplet)) {
+            const conversationId = backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId;
+            const fil = latestMessagesRef.current;
+            const position = fil.findIndex((candidate) => candidate.id === message.id);
+
+            const turnIndex = (position >= 0 ? fil.slice(0, position) : fil).filter(
+              (candidate) => candidate.role === 'assistant',
+            ).length;
+
+            void workbenchStore
+              .creerLePointDeRestaurationDuTour({
+                messageId: message.id,
+                conversationId: conversationId ?? undefined,
+                turnIndex,
+                label: messageDeCommitDuTour(messageComplet.content, ''),
+                statistiques: statistiquesDuTour(messageComplet),
+              })
+              .catch((checkpointError) => {
+                logger.warn('Point de restauration de fin de tour non créé', checkpointError);
+              });
+          }
+        }
+
         const generation = pendingGenerationRef.current;
 
         if (generation && projectId) {
@@ -795,7 +951,16 @@ export const ChatImpl = memo(
             });
 
             if (resolution === 'clear') {
-              void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } });
+              /*
+               * DÉPLACÉ, PAS DÉTRUIT. Le prompt reste récupérable et l'effacement
+               * devient traçable — voir `consumedPrompt` dans projectIdeMemory.
+               */
+              void saveProjectIdeMemory(projectId, {
+                chat: {
+                  pendingPrompt: null,
+                  consumedPrompt: consommerPrompt(generation.pendingPrompt, 'generated'),
+                },
+              });
             }
           }, 1500);
         }
@@ -951,30 +1116,16 @@ export const ChatImpl = memo(
       });
     }, [model, projectId, projectIdeMode, provider.name]);
 
-    useEffect(() => {
-      if (
-        !projectIdeMode ||
-        !projectId ||
-        backendTranscriptHydratedRef.current ||
-        initialMessages.length > 0 ||
-        messages.length > 0
-      ) {
-        return undefined;
-      }
-
-      const conversationId = backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId;
-
-      if (!conversationId) {
-        return undefined;
-      }
-
-      let cancelled = false;
-      let retryTimer: ReturnType<typeof setTimeout> | undefined;
-      backendTranscriptHydratedRef.current = true;
-
-      const hydrateBackendTranscript = async () => {
+    useProjectAiTranscriptHydration({
+      enabled: projectIdeMode,
+      projectId,
+      hasMessages: initialMessages.length > 0 || messages.length > 0,
+      conversationId: metadataAiConversationId,
+      generationDuFil: () => generationDuFilRef.current,
+      resolveConversationId: () => backendAiConversationIdRef.current ?? chatMetadata.get()?.aiConversationId,
+      loadTranscript: async (currentProjectId, conversationId) => {
         const response = await fetch(
-          `/api/projects/${encodeURIComponent(projectId)}/ai/conversations/${encodeURIComponent(
+          `/api/projects/${encodeURIComponent(currentProjectId)}/ai/conversations/${encodeURIComponent(
             conversationId,
           )}/messages`,
         );
@@ -988,79 +1139,61 @@ export const ChatImpl = memo(
         }
 
         const payload = (await response.json()) as ProjectAiMessagesResponse;
-        const backendMessages = projectAiMessagesToChatMessages(payload.messages);
 
-        if (cancelled || backendMessages.length === 0) {
-          return;
-        }
-
+        return projectAiMessagesToChatMessages(payload.messages);
+      },
+      applyTranscript: async (backendMessages) => {
         setMessages(backendMessages);
         latestMessagesRef.current = backendMessages;
         setChatStarted(true);
-        backendTranscriptRetryRef.current = 0;
         workbenchStore.setReloadedMessages(backendMessages.map((message) => message.id));
         await storeMessageHistory(backendMessages);
-      };
-
-      void hydrateBackendTranscript().catch((error) => {
-        if (cancelled) {
-          return;
-        }
-
-        /*
-         * Allow this conversation to be hydrated again on the next effect run.
-         * Returning users with a real (but transiently unreachable) transcript
-         * must never be left with a silently-empty chat panel.
-         */
-        backendTranscriptHydratedRef.current = false;
+      },
+      onLoadError: (error) => {
         logStore.logError('Failed to load project AI transcript', error);
-
-        const attempt = backendTranscriptRetryRef.current;
-        const { shouldRetry, delayMs } = planTranscriptHydrationRetry(attempt);
-
-        if (shouldRetry) {
-          backendTranscriptRetryRef.current = attempt + 1;
-          retryTimer = setTimeout(() => {
-            if (!cancelled) {
-              setTranscriptRetryNonce((nonce) => nonce + 1);
-            }
-          }, delayMs);
-
-          return;
-        }
-
+      },
+      onRetriesExhausted: (retry) => {
         toast.error(copy['chatClient.history.loadFailed'], {
           autoClose: false,
-          onClick: () => {
-            backendTranscriptRetryRef.current = 0;
-            setTranscriptRetryNonce((nonce) => nonce + 1);
-          },
+          onClick: retry,
           toastId: 'project-ai-transcript-error',
         });
-      });
-
-      return () => {
-        cancelled = true;
-
-        if (retryTimer) {
-          clearTimeout(retryTimer);
-        }
-      };
-    }, [
-      astCopy,
-      copy,
-      initialMessages.length,
-      messages.length,
-      projectId,
-      projectIdeMode,
-      setMessages,
-      storeMessageHistory,
-      transcriptRetryNonce,
-    ]);
+      },
+    });
 
     useEffect(() => {
       chatStore.setKey('started', initialMessages.length > 0);
     }, []);
+
+    /*
+     * Afficher une transcription arrivée APRÈS le montage.
+     *
+     * ⚠️ Cet effet DOIT dépendre de `initialMessages` et de `messages`. Une
+     * première version de ce correctif était posée dans un effet à dépendances
+     * vides : elle ne s'exécutait qu'au montage, c'est-à-dire précisément quand
+     * la transcription n'est pas encore là. C'est le défaut que ce correctif
+     * répare, reproduit dans le correctif lui-même.
+     */
+    const transcriptionAdoptee = useRef<Message[] | null>(null);
+
+    useEffect(() => {
+      if (
+        !fautIlAdopterLaTranscriptionRestauree({
+          modeProjet: projectIdeMode,
+          messagesRestaures: initialMessages.length,
+          messagesAffiches: messages.length,
+          dejaAdoptee: transcriptionAdoptee.current === initialMessages,
+          filVideParLUtilisateur: filVideParLUtilisateurRef.current,
+        })
+      ) {
+        return;
+      }
+
+      transcriptionAdoptee.current = initialMessages;
+      setMessages(initialMessages);
+      latestMessagesRef.current = initialMessages;
+      setChatStarted(true);
+    }, [initialMessages, messages.length, projectIdeMode, setMessages]);
 
     useEffect(() => {
       processSampledMessages({
@@ -1401,6 +1534,8 @@ export const ChatImpl = memo(
             return;
           }
 
+          setPromptDeSecours(promptRecuperable(memory.chat));
+
           const pendingPrompt = memory.chat?.pendingPrompt;
           const prompt = pendingPrompt?.prompt?.trim();
 
@@ -1434,7 +1569,22 @@ export const ChatImpl = memo(
 
           if (replayDecision === 'skip') {
             submittedProjectPromptRef.current = promptKey;
-            void saveProjectIdeMemory(projectId, { chat: { pendingPrompt: null } }).catch((error) => {
+
+            /*
+             * DÉPLACÉ, PAS DÉTRUIT — et journalisé. C'est cette branche qu'on
+             * soupçonnait sur le projet d'Avi sans pouvoir le prouver : elle
+             * écrivait `null` en silence, indiscernable d'un prompt jamais écrit.
+             */
+            logger.info('pending prompt consumed without replay (app already present)', {
+              projectId,
+              promptId: pendingPrompt.id,
+            });
+            void saveProjectIdeMemory(projectId, {
+              chat: {
+                pendingPrompt: null,
+                consumedPrompt: consommerPrompt(pendingPrompt, 'skipped-existing-app'),
+              },
+            }).catch((error) => {
               logger.warn('failed to clear stale pending prompt', { projectId, error });
             });
 
@@ -1468,6 +1618,14 @@ export const ChatImpl = memo(
            */
           pendingGenerationRef.current = {
             promptId: pendingPrompt.id,
+
+            /*
+             * On garde le prompt LUI-MÊME, pas seulement son identifiant : au
+             * moment de la consommation (1,5 s plus tard) la mémoire a pu être
+             * rechargée, et relire `pendingPrompt` depuis le serveur ferait
+             * perdre exactement ce qu'on cherche à conserver.
+             */
+            pendingPrompt,
             baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
           };
 
@@ -2084,6 +2242,7 @@ export const ChatImpl = memo(
         showChat={showChat}
         chatStarted={forceWorkbench || chatStarted}
         projectIdeMode={projectIdeMode}
+        promptDeSecours={promptDeSecours}
         projectId={projectId}
         projectUrl={projectUrl}
         initialIdePanels={initialIdePanels}
@@ -2189,7 +2348,15 @@ export const ChatImpl = memo(
               .catch((error) => console.error('Failed to archive project conversation', error));
           }
 
+          /*
+           * La transcription restaurée ne doit pas revenir : l'effet d'adoption
+           * la réinjectait dans le fil vidé (voir `fautIlAdopterLaTranscriptionRestauree`).
+           */
+          transcriptionAdoptee.current = initialMessages;
+          filVideParLUtilisateurRef.current = true;
+          generationDuFilRef.current += 1;
           setMessages([]);
+          latestMessagesRef.current = [];
           backendAiConversationIdRef.current = undefined;
 
           if (projectIdeMode && projectId) {
@@ -2205,13 +2372,42 @@ export const ChatImpl = memo(
                 },
               });
             }
+
+            /*
+             * OUVRIR UNE CONVERSATION NEUVE, tout de suite.
+             *
+             * Créée à la demande au premier envoi, la conversation « suivante »
+             * n'existe pas encore au rechargement : le repli serveur
+             * (`completerFilSiVide`, `?limit=1`) retrouve alors la DERNIÈRE
+             * conversation — celle qu'on vient d'effacer — et le fil revient.
+             * Avi, 06/09 : « quand j'efface l'historique ça ouvre pas une
+             * nouvelle conversation ». La créer ici fait d'elle la plus
+             * récente ; l'ancienne reste dans l'historique des branches.
+             */
+            pendingPersistRef.current = null;
+
+            /*
+             * Le fil vide est écrit APRÈS la conversation neuve : il porte
+             * l'identifiant courant, et c'est celui-là qui doit être le neuf
+             * — dans la mémoire de projet comme dans IndexedDB.
+             */
+            ensureProjectAiConversation()
+              .catch((error) => {
+                logStore.logError('Failed to open a fresh project AI conversation', error);
+              })
+              .then(() => persistMessageHistory([]))
+              .catch((error) => {
+                logger.error('Failed to reset chat history', error);
+                toast.error(copy['chatClient.history.resetFailed']);
+              });
+          } else {
+            pendingPersistRef.current = null;
+            persistMessageHistory([]).catch((error) => {
+              logger.error('Failed to reset chat history', error);
+              toast.error(copy['chatClient.history.resetFailed']);
+            });
           }
 
-          pendingPersistRef.current = null;
-          persistMessageHistory([]).catch((error) => {
-            logger.error('Failed to reset chat history', error);
-            toast.error(copy['chatClient.history.resetFailed']);
-          });
           setInput('');
           setData(undefined);
         }}

@@ -5,6 +5,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { horodatageMessageMonotone } from './horodatage-message.js';
 import {
   CLEARED_LOCKOUT,
   nextStateOnFailure,
@@ -13,7 +14,7 @@ import {
 } from './login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from './session-idle.js';
 import { slugify } from './slugify.js';
-import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
+import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES, projectSnapshotManifest } from './store.js';
 import type {
   AbuseEventRecord,
   SecurityEventResolutionRecord,
@@ -104,6 +105,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from './store.js';
 
 function now() {
@@ -1603,6 +1605,7 @@ export class PrismaApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey?: string;
   }) {
     const row = await this.prisma.importJob.create({
       data: {
@@ -1611,11 +1614,82 @@ export class PrismaApiStore implements ApiStore {
         provider: input.provider,
         sourceRef: input.sourceRef ?? null,
         expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+        idempotencyKey: input.idempotencyKey ?? null,
         state: 'RECEIVED',
       },
     });
 
     return { id: row.id, state: row.state };
+  }
+
+  async findImportJobByIdempotencyKey(organizationId: string, idempotencyKey: string) {
+    const row = await this.prisma.importJob.findFirst({
+      where: { organizationId, idempotencyKey },
+      select: { id: true },
+    });
+
+    return row ?? undefined;
+  }
+
+  async putImportStagedFiles(
+    importJobId: string,
+    files: Array<{ path: string; content: string; encoding?: string }>,
+  ): Promise<void> {
+    /*
+     * Replace wholesale, in ONE transaction: a partially-written staging is
+     * indistinguishable from a complete one at commit time, and the commit path
+     * has no way to tell "3 of 5 files" from "3 files".
+     */
+    await this.prisma.$transaction([
+      this.prisma.importStagedFile.deleteMany({ where: { importJobId } }),
+      ...(files.length > 0
+        ? [
+            this.prisma.importStagedFile.createMany({
+              data: files.map((file) => ({
+                importJobId,
+                path: file.path,
+                content: file.content,
+                encoding: file.encoding ?? null,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+  }
+
+  async getImportStagedFiles(importJobId: string) {
+    const rows = await this.prisma.importStagedFile.findMany({
+      where: { importJobId },
+      orderBy: { path: 'asc' },
+      select: { path: true, content: true, encoding: true },
+    });
+
+    /*
+     * `undefined` means NO staging row exists — which the commit path treats as
+     * IMPORT_STAGING_GONE. An empty array is a real, staged-but-empty import and
+     * must stay distinguishable from it: collapsing the two would turn "nothing
+     * was staged" into "an empty import committed successfully".
+     */
+    if (rows.length === 0) {
+      const job = await this.prisma.importJob.findUnique({
+        where: { id: importJobId },
+        select: { stagedFileCount: true, state: true },
+      });
+
+      if (!job || job.state === 'RECEIVED') {
+        return undefined;
+      }
+
+      if (job.stagedFileCount > 0) {
+        return undefined;
+      }
+    }
+
+    return rows.map((row) => ({ path: row.path, content: row.content, encoding: row.encoding ?? undefined }));
+  }
+
+  async deleteImportStagedFiles(importJobId: string): Promise<void> {
+    await this.prisma.importStagedFile.deleteMany({ where: { importJobId } });
   }
 
   async updateImportJob(
@@ -2602,7 +2676,6 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
-
   async listActiveWorkspaces(organizationId: string) {
     return (
       await this.prisma.workspace.findMany({
@@ -2615,7 +2688,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapWorkspace);
   }
 
-  async countSnapshots(organizationId: string) {
+  async countSnapshots(organizationId: string, since?: Date) {
     /*
      * Exclude system-generated 'before-ai-change' snapshots from the user's
      * snapshots.count quota. They are created automatically on every AI
@@ -2624,8 +2697,17 @@ export class PrismaApiStore implements ApiStore {
      * manual snapshot endpoint even though they took no manual snapshots
      * (self-lockout). The quota governs user-initiated snapshots only.
      */
+    /*
+     * `since` borne le compte à la période d'usage courante. Sans lui, le total
+     * était monotone et finissait par fermer définitivement le retour arrière —
+     * exactement le piège décrit sur `countDeployments` juste en dessous.
+     */
     return this.prisma.projectSnapshot.count({
-      where: { project: { organizationId, deletedAt: null }, kind: { not: 'before-ai-change' } },
+      where: {
+        project: { organizationId, deletedAt: null },
+        kind: { not: 'before-ai-change' },
+        ...(since ? { createdAt: { gte: since } } : {}),
+      },
     });
   }
 
@@ -2781,10 +2863,24 @@ export class PrismaApiStore implements ApiStore {
     return snapshot ? mapSnapshot(snapshot) : undefined;
   }
 
-  async listSnapshots(projectId: string) {
-    return (await this.prisma.projectSnapshot.findMany({ where: { projectId }, orderBy: { createdAt: 'desc' } })).map(
-      mapSnapshot,
-    );
+  /**
+   * PANEL-PERF — la requête est bornable et le manifeste projetable.
+   *
+   * Sans option, le comportement est celui d'avant, à l'identique : toutes les
+   * lignes, manifeste complet. Le tri secondaire sur `id` rend l'ordre TOTAL,
+   * sans quoi deux instantanés du même tour d'agent (même `createdAt` à la
+   * seconde) pourraient s'échanger entre deux pages — et la pagination perdrait
+   * ou dupliquerait une ligne.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const rows = await this.prisma.projectSnapshot.findMany({
+      where: { projectId },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      ...(options?.take ? { take: options.take } : {}),
+      ...(options?.cursor ? { cursor: { id: options.cursor }, skip: 1 } : {}),
+    });
+
+    return rows.map((row) => projectSnapshotManifest(mapSnapshot(row), options?.manifest));
   }
 
   async putProjectStorageObject(input: {
@@ -4695,11 +4791,19 @@ export class PrismaApiStore implements ApiStore {
     role: 'system' | 'user' | 'assistant' | 'tool';
     content: string;
   }) {
+    /*
+     * Instant STRICTEMENT croissant d'un message au suivant : voir
+     * horodatage-message.ts. Sans lui, question et réponse d'un même tour (ou
+     * une transcription synchronisée en rafale) partagent la milliseconde et
+     * reviennent dans un ordre indéfini au rechargement.
+     */
+    const createdAt = horodatageMessageMonotone();
+
     if (input.id) {
       return mapAiMessage(
         await this.prisma.aiMessage.upsert({
           where: { id: input.id },
-          create: input,
+          create: { ...input, createdAt },
           update: {
             role: input.role,
             content: input.content,
@@ -4708,7 +4812,7 @@ export class PrismaApiStore implements ApiStore {
       );
     }
 
-    return mapAiMessage(await this.prisma.aiMessage.create({ data: input }));
+    return mapAiMessage(await this.prisma.aiMessage.create({ data: { ...input, createdAt } }));
   }
 
   async listAiMessages(conversationId: string) {
@@ -4721,11 +4825,25 @@ export class PrismaApiStore implements ApiStore {
 
     const rows = await this.prisma.aiMessage.findMany({
       where: { conversationId },
-      orderBy: { createdAt: 'desc' },
+
+      /*
+       * `id` départage deux instants égaux : l'ordre reste alors DÉTERMINISTE
+       * d'une lecture à l'autre, quel que soit le plan choisi par Postgres.
+       */
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: MAX_AI_MESSAGES,
     });
 
     return rows.reverse().map(mapAiMessage);
+  }
+
+  async listAiMessageIds(conversationId: string) {
+    const rows = await this.prisma.aiMessage.findMany({
+      where: { conversationId },
+      select: { id: true },
+    });
+
+    return rows.map((row) => row.id);
   }
 
   async createAiToolCall(input: { messageId: string; name: string; input?: unknown; output?: unknown }) {

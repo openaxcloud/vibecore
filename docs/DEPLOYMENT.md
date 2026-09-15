@@ -210,12 +210,20 @@ pnpm run production:validate:live
 # --no-dotenv so local repo .env files cannot mask missing cluster variables.
 pnpm run production:validate:live -- --no-dotenv
 
+# ⚠️ NE PAS faire `env | grep -i <motif>` : la redaction par sous-chaine ne
+# tient pas. Sur les 49 cles du Secret de production, 25 sont sensibles et un
+# filtre sur « SECRET » n'en masque que 14 — CONFIG_ENCRYPTION_KEY,
+# OPENAI_API_KEY et ANTHROPIC_API_KEY passeraient en clair dans le journal.
+#
+# Regle : ne jamais imprimer une VALEUR. Verifier la PRESENCE et la longueur,
+# ce qui suffit a diagnostiquer une variable manquante ou tronquee.
 kubectl -n vibecore exec deploy/vibecore-vibecore-platform-api -- sh -lc '
-  env | sort | awk -F= "/^STRIPE_/ {
-    if ($1 ~ /SECRET/) printf \"%s=<redacted length=%d>\\n\", $1, length($2);
-    else print
-  }"
+  env | sort | awk -F= "/^STRIPE_/ { printf \"%s=<present length=%d>\\n\", \$1, length(\$2) }"
 '
+
+# Pour comparer une valeur sans jamais l'afficher, utiliser son empreinte :
+kubectl -n vibecore get secret vibecore-platform-secrets \
+  -o jsonpath='{.data.STRIPE_API_KEY}' | base64 -d | shasum -a 256
 ```
 
 `POST /orgs/:orgId/billing/checkout` returns `503 STRIPE_NOT_CONFIGURED`

@@ -60,13 +60,13 @@ jobs:
       GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false
@@ -75,13 +75,43 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install Playwright browsers
-        run: pnpm exec playwright install --with-deps chromium
+        run: |
+          # BUG-CI-008 — `--with-deps` lance un `apt-get update` : quand un
+          # miroir amont réécrit son index PENDANT le run, apt rend « Hash Sum
+          # mismatch » et la porte E2E meurt AVANT le moindre test. Mesuré le
+          # 2026-09-09 (run E2E 1828, sha dcfb310f, 49 s) : `Err:10
+          # https://dl.google.com/linux/chrome-stable/deb` — index publié à
+          # 09:41, run à 17:16. Rien ne le retentait.
+          #
+          # Les deux moitiés sont séparées pour ne retenter QUE celle qui dépend
+          # d'un miroir extérieur. Purger /var/lib/apt/lists est ce qui répare
+          # un Hash Sum mismatch : relancer sans purger réutilise l'index périmé.
+          # Aucune sortie d'erreur n'est masquée (règle 13) — c'est la commande
+          # dont on lit le résultat.
+          for attempt in 1 2 3; do
+            if pnpm exec playwright install-deps chromium; then break; fi
+            echo "::warning::apt en échec (tentative $attempt/3) — purge de l'index puis reprise."
+            if [ "$attempt" = "3" ]; then exit 1; fi
+            sudo rm -rf /var/lib/apt/lists/*
+            sudo apt-get update || true
+            sleep 10
+          done
+          pnpm exec playwright install chromium
 
       - name: Start local dependencies
         run: |
           trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
           touch .env
-          docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          # BUG-CI-008, règle 7 — la seconde tentative n'existait que dans
+          # i18n-live-audit.yml : les trois fichiers portaient trois niveaux de
+          # robustesse différents pour la MÊME pile. `down -v` uniquement dans
+          # la branche d'échec, pour repartir d'un volume propre.
+          if ! docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit; then
+            echo '::warning::Les dépendances ne sont pas devenues saines ; on repart proprement pour une seconde et dernière tentative.'
+            docker compose --env-file .env -f docker-compose.dev.yml logs --tail=80 postgres redis mailpit || true
+            docker compose --env-file .env -f docker-compose.dev.yml down -v || true
+            docker compose --env-file .env -f docker-compose.dev.yml up -d --wait --wait-timeout 180 postgres redis mailpit
+          fi
           npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
 
       - name: Prepare database
@@ -124,7 +154,7 @@ jobs:
 
       - name: Upload E2E traces
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: playwright-report-runtime
           path: |

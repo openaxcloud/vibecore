@@ -50,14 +50,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      # Le pas `running-*` appelle scripts/ar-protect/tag-running.sh : sans
+      # checkout, le job n'a pas le script.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
@@ -71,12 +75,13 @@ jobs:
       - name: Tag running platform images (running-*)
         run: |
           set -euo pipefail
+          # La dérivation du nom de paquet et la tolérance à un échec isolé
+          # vivent dans le script, qui est testé (scripts/ar-protect/*.spec.mjs).
+          # Les garder ici en ligne est ce qui a laissé les deux défauts passer.
           kubectl get pods -A \
             -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
-            | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
-            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%:*}"
-            gcloud artifacts docker tags add "$img" "$REPO_CONTAINERS/$pkg:running-$pkg" --quiet
-          done
+            | sort -u \
+            | scripts/ar-protect/tag-running.sh
 
       - name: Tag Helm-active images (helm-active-*)
         run: |

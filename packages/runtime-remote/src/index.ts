@@ -26,6 +26,7 @@ import {
   onTerminalReconnectScheduled,
   onTerminalReconnected,
 } from './terminal-reconnect.js';
+import { buildTerminalPath, deriveTerminalId } from './terminal-session.js';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;
@@ -82,6 +83,13 @@ function parseRetryAfterMs(header: string | null): number | undefined {
 
   return undefined;
 }
+
+/**
+ * BUG-GIT-002 — code du refus émis SANS toucher au réseau quand aucun
+ * identifiant d'espace de travail n'est disponible. L'appelant le reconnaît
+ * et choisit le message à montrer.
+ */
+export const CODE_IDENTIFIANT_REQUIS = 'RUNTIME_WORKSPACE_ID_REQUIRED';
 
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly mode = 'remote-kubernetes' as const;
@@ -168,6 +176,33 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
 
   async startWorkspace(session: Partial<WorkspaceSession> = {}): Promise<WorkspaceSession> {
     const requestedId = session.id ?? this.#workspaceId;
+
+    /*
+     * BUG-GIT-002 — NE PAS ENVOYER UNE REQUÊTE QUI NE PEUT PAS ABOUTIR.
+     *
+     * `POST /api/runtime/workspaces` exige `projectId`, `metadata.projectId` ou
+     * `workspaceId` : sans aucun des trois, il rend 400
+     * `RUNTIME_WORKSPACE_ID_REQUIRED`, toujours. Or `useGit()` appelait
+     * `startWorkspace()` au montage sans identifiant, et `JSON.stringify`
+     * effaçant les `undefined`, le corps partait à `{}`. Mesuré le 17/08 sur
+     * les trois formats : DEUX 400 à chaque chargement de `/git`, et un
+     * « Impossible de démarrer l'espace de travail » qui n'aide personne.
+     *
+     * On refuse donc AVANT le réseau, avec un code que l'appelant peut
+     * reconnaître — plutôt que de faire dire au serveur ce qu'on savait déjà.
+     */
+    const projectIdDesMetadonnees = String((session.metadata as { projectId?: unknown } | undefined)?.projectId ?? '');
+
+    if (!requestedId && !projectIdDesMetadonnees) {
+      /*
+       * Le message EST le code, et il n'y a qu'une seule source pour les deux.
+       * Les mots destinés à l'utilisateur vivent dans le catalogue
+       * (`gitClone.error.projectRequired`), traduits ; en écrire ici en dur
+       * les dédoublerait dans une seule langue — ce que le garde `i18n:check`
+       * refuse, à raison, et ce qui a fait échouer la CI du run 1579.
+       */
+      throw Object.assign(new Error(CODE_IDENTIFIANT_REQUIS), { code: CODE_IDENTIFIANT_REQUIS });
+    }
 
     let payload: WorkspaceSession | undefined;
 
@@ -596,10 +631,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * same pane must present the same id on every reconnect and remount. The
      * random fallback stays for callers that have no stable pane identity —
      * it works, but it can never reattach.
+     *
+     * Derivation and path live in `terminal-session.ts` so the regression test
+     * exercises THIS code rather than a copy of it (see that file's header).
      */
-    const terminalId = request.sessionKey
-      ? `terminal-${request.sessionKey}`
-      : `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const terminalId = deriveTerminalId(request.sessionKey);
 
     const cols = request.terminal?.cols ?? 80;
     const rows = request.terminal?.rows ?? 24;
@@ -610,9 +646,13 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * on reattach, so reusing the same id across reconnects keeps a single shell alive
      * instead of spawning a fresh one (and losing the running command) each time.
      */
-    const terminalPath = `/workspaces/${this.#requireWorkspaceId()}/terminal?sessionId=${encodeURIComponent(
+    const terminalPath = buildTerminalPath(
+      this.#requireWorkspaceId(),
       terminalId,
-    )}&cols=${cols}&rows=${rows}${request.managed ? '&managed=1' : ''}`;
+      cols,
+      rows,
+      Boolean(request.managed),
+    );
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;

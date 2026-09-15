@@ -24,3 +24,25 @@ export function readRuntimeEnv(key?: string): string | undefined {
 
   return runtimeProcess?.env?.[key];
 }
+
+/**
+ * Le SAC d'environnement complet du vrai processus Node, pour les lecteurs qui
+ * doivent en parcourir plusieurs clés (une table de routage, par exemple) au
+ * lieu d'en nommer une.
+ *
+ * Même piège, même remède que `readRuntimeEnv` : `process.env` nu est le shim
+ * de navigateur injecté par `vite-plugin-node-polyfills` dans le bundle SSR,
+ * et son `env` est `{}`. Rend toujours un objet — jamais `undefined` — pour que
+ * l'appelant n'ait pas à se garder.
+ */
+export function readRuntimeEnvBag(): Record<string, string | undefined> {
+  try {
+    const runtimeProcess = (
+      globalThis as typeof globalThis & { process?: { env?: Record<string, string | undefined> } }
+    ).process;
+
+    return runtimeProcess?.env ?? {};
+  } catch {
+    return {};
+  }
+}

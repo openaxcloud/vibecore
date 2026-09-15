@@ -27,7 +27,16 @@ function wsagentBlock() {
   const start = source.indexOf('WORKSPACE_AGENT_IMAGE is not set in the live configmap');
   expect(start, "le bloc de l'agent de workspace est introuvable").toBeGreaterThan(-1);
 
-  const end = source.indexOf('# What is this service RUNNING right now?', start);
+  /*
+   * Repère de FIN pris sur du CODE, pas sur un commentaire.
+   *
+   * La version précédente s'arrêtait à « # What is this service RUNNING right
+   * now? » — une ligne de prose. Une reformulation aurait fait découper au
+   * mauvais endroit, et le test serait tombé pour une raison sans rapport avec
+   * ce qu'il vérifie. C'est exactement ce qui est arrivé au test tactile, dont
+   * l'ancre « TACTILE-003 » a été citée par un commentaire ajouté ailleurs.
+   */
+  const end = source.indexOf('DEP_IMAGE="$(kubectl', start);
   expect(end).toBeGreaterThan(start);
 
   return source.slice(start, end);

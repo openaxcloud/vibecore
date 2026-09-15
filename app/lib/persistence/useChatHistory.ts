@@ -17,6 +17,7 @@ import {
   type IChatMetadata,
 } from './db';
 import { getProjectIdeMemory, saveProjectIdeMemory } from './projectIdeMemory';
+import { completerFilSiVide } from './serveur-fil-projet';
 import type { Snapshot } from './types';
 import {
   getChatHistoryCopy,
@@ -96,6 +97,39 @@ function logSafeChatHistoryError(message: string) {
   logStore.logError(message);
 }
 
+/*
+ * REPRENDRE LA CONVERSATION D'OÙ VIENT LE FIL RESTAURÉ.
+ *
+ * On restaurait le FIL sans reprendre la CONVERSATION. Sur un contexte neuf —
+ * autre appareil, cache vidé, navigation privée — la banque serveur est la
+ * SEULE à savoir de quelle conversation vient ce qui s'affiche. Personne ne le
+ * notait : `ensureProjectAiConversation` ne trouvait donc aucun identifiant au
+ * premier message suivant et en ouvrait une NEUVE, où
+ * `syncProjectAiTranscript` repoussait la transcription ENTIÈRE. Le même fil se
+ * retrouvait deux fois en base.
+ *
+ * ON ÉCRIT AU MÊME ENDROIT QUE `ensureProjectAiConversation` — le store
+ * `chatMetadata` puis la mémoire de projet, dans le scope NU comme elle — pour
+ * qu'il n'y ait qu'UNE autorité sur cet identifiant. Deux écritures dans deux
+ * scopes se contrediraient en silence, ce qui est exactement le défaut voisin
+ * relevé le 10/09 : `BaseChat` lit `workspace:<id>` pendant que le chat écrit
+ * `projectId`, et sa lecture est donc toujours vide.
+ *
+ * La persistance est « au mieux » : l'adoption qui compte pour le prochain
+ * envoi est celle du STORE, lu par `ensureProjectAiConversation` à chaque
+ * appel. L'écriture disque ne sert qu'au rechargement suivant, et un échec ne
+ * doit pas casser un affichage qui, lui, a réussi.
+ */
+function adopterLaConversationServeur(projectId: string, conversationId: string): void {
+  chatMetadata.set({ ...(chatMetadata.get() ?? {}), aiConversationId: conversationId });
+
+  void saveProjectIdeMemory(projectId, {
+    chat: { metadata: { ...(chatMetadata.get() ?? {}), aiConversationId: conversationId } },
+  }).catch((erreur) => {
+    console.debug('[fil serveur] adoption non persistée, le store fait autorité pour ce tour', erreur);
+  });
+}
+
 export function useChatHistory() {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
@@ -150,6 +184,26 @@ export function useChatHistory() {
 
           setArchivedMessages(memory.chat?.archivedMessages ?? []);
           setInitialMessages(messages);
+
+          /*
+           * TROISIÈME BANQUE, en repli et SANS BLOQUER l'affichage.
+           *
+           * `setInitialMessages` vient d'être appelé : l'écran a déjà ce qu'il
+           * a. On ne met la main sur le serveur que si les deux banques locales
+           * n'ont rien donné — écriture cliente perdue dans une course, ou
+           * contexte navigateur neuf sans IndexedDB.
+           *
+           * Délibérément après le rendu et non devant : un serveur lent doit
+           * retarder le COMPLÉMENT du fil, jamais son affichage.
+           */
+          void completerFilSiVide(
+            messages,
+            projectId,
+            setInitialMessages,
+            undefined,
+            (conversationId) => adopterLaConversationServeur(projectId, conversationId),
+            () => chatMetadata.get()?.aiConversationId,
+          );
           setUrlId(storedMessages?.urlId);
           description.set(
             resolveProjectAssistantDescription(
@@ -432,6 +486,30 @@ ${value.content}
         if (projectId) {
           const finalChatId = chatId.get() ?? `project:${projectId}`;
           chatId.set(finalChatId);
+
+          /*
+           * VIDER AUSSI LA DEUXIÈME BANQUE.
+           *
+           * La restauration lit la mémoire de projet, puis IndexedDB quand
+           * elle est vide. Un fil effacé n'était vidé QUE dans la mémoire :
+           * au rechargement, IndexedDB rendait les quatre messages et
+           * l'ancien identifiant de conversation — mesuré le 06/09 (sonde
+           * probe-clear.mjs) : « Effacer l'historique » tenait jusqu'au
+           * rechargement, puis tout revenait.
+           */
+          if (db) {
+            await setMessages(
+              db,
+              finalChatId,
+              [],
+              urlId,
+              description.get() ?? copy['chatHistory.fallback.projectAssistant'],
+              undefined,
+              chatMetadata.get(),
+            ).catch((error) => {
+              logSafeChatHistoryError(safeError('chatHistory.error.persistProjectMemory', error));
+            });
+          }
 
           await saveProjectIdeMemory(projectId, {
             chat: {
