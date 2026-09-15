@@ -9,7 +9,7 @@ import {
   type LoginThrottleConfig,
 } from '../login-throttle.js';
 import { isSessionIdleExpired, sessionIdleTimeoutMs } from '../session-idle.js';
-import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import { DEFAULT_ENV_VAR_SCOPE, projectSnapshotManifest } from '../store.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -102,6 +102,7 @@ import type {
   InstallSkillInput,
   SkillAuditEventRecord,
   RecordSkillAuditInput,
+  SnapshotListOptions,
 } from '../store.js';
 
 function id(prefix: string) {
@@ -537,6 +538,7 @@ export class TestApiStore implements ApiStore {
   }
 
   private loginLockouts = new Map<string, LoginLockoutState>();
+
   /** Test hook: force getLoginLockout/recordFailedLogin to throw (fail-open proof). */
   loginLockoutShouldThrow = false;
 
@@ -1658,14 +1660,62 @@ export class TestApiStore implements ApiStore {
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   }
 
-  async countSnapshots(organizationId: string) {
+  /*
+   * FIDÈLE À `since`, délibérément.
+   *
+   * Ce double l'ignorait. Un double qui laisse tomber la contrainte rend le test
+   * VERT quel que soit le code : on ne peut plus distinguer « la fenêtre est
+   * respectée » de « la fenêtre n'existe pas ». Le quota d'instantanés était
+   * précisément un compteur À VIE, et aucun test ne pouvait l'attraper.
+   */
+  async countSnapshots(organizationId: string, since?: Date) {
     const projectIds = this.#orgProjectIds(organizationId);
-    return [...this.snapshots.values()].filter((snapshot) => projectIds.has(snapshot.projectId)).length;
+
+    return [...this.snapshots.values()].filter(
+      (snapshot) =>
+        projectIds.has(snapshot.projectId) && (!since || new Date(snapshot.createdAt).getTime() >= since.getTime()),
+    ).length;
   }
 
-  async countDeployments(organizationId: string) {
+  /*
+   * FIDÈLE au vrai magasin sur ses DEUX filtres, et ce n'était le cas sur
+   * aucun des deux.
+   *
+   * TypeScript ne signale rien quand un double déclare MOINS de paramètres que
+   * son interface : une méthode à un paramètre reste assignable à une signature
+   * à deux. Le `periodStart` que `app.ts` transmet était donc silencieusement
+   * jeté, et ce double rendait toujours un total À VIE.
+   *
+   * Conséquence : tout test du quota de déploiements écrit contre ce double
+   * était VERT quel que soit le comportement de production. Retirer
+   * `periodStart` du site d'appel — le défaut exact que le commentaire du vrai
+   * magasin décrit comme ayant « verrouillé tous les déploiements » — n'aurait
+   * fait rougir aucun test.
+   *
+   * Les deux filtres du vrai magasin, tous deux absents ici :
+   *   - `status: { notIn: ['FAILED', 'CANCELED'] }` — une construction ratée ne
+   *     consomme pas de quota, elle n'a produit aucun déploiement vivant ;
+   *   - `since` — borne le compte à la période d'usage courante ; sans lui,
+   *     c'est un total monotone à vie.
+   */
+  async countDeployments(organizationId: string, since?: Date) {
     const projectIds = this.#orgProjectIds(organizationId);
-    return [...this.deployments.values()].filter((deployment) => projectIds.has(deployment.projectId)).length;
+
+    return [...this.deployments.values()].filter((deployment) => {
+      if (!projectIds.has(deployment.projectId)) {
+        return false;
+      }
+
+      if (deployment.status === 'FAILED' || deployment.status === 'CANCELED') {
+        return false;
+      }
+
+      if (since && new Date((deployment as { createdAt?: string }).createdAt ?? 0) < since) {
+        return false;
+      }
+
+      return true;
+    }).length;
   }
 
   async countPublishedApps(organizationId: string, options: { excludeProjectId?: string } = {}) {
@@ -1770,8 +1820,24 @@ export class TestApiStore implements ApiStore {
     return this.snapshots.get(id);
   }
 
-  async listSnapshots(projectId: string) {
-    return [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId);
+  /*
+   * PANEL-PERF — même contrat que le magasin Prisma, et la projection vient de
+   * la MÊME fonction partagée : un garde-fou qui recopierait la règle ici
+   * resterait vert pendant que le produit diverge.
+   *
+   * `reverse()` avant le tri : `Array.prototype.sort` est stable, donc à
+   * `createdAt` égal (fréquent — plusieurs instantanés dans le même tour) les
+   * plus récemment insérés restent devant, comme le tri secondaire sur `id`
+   * côté Prisma.
+   */
+  async listSnapshots(projectId: string, options?: SnapshotListOptions) {
+    const toutes = [...this.snapshots.values()].filter((snapshot) => snapshot.projectId === projectId).reverse();
+    toutes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    const depart = options?.cursor ? toutes.findIndex((snapshot) => snapshot.id === options.cursor) + 1 : 0;
+    const fenetre = toutes.slice(depart, options?.take ? depart + options.take : undefined);
+
+    return fenetre.map((snapshot) => projectSnapshotManifest(snapshot, options?.manifest));
   }
 
   async putProjectStorageObject(input: {
@@ -2113,6 +2179,7 @@ export class TestApiStore implements ApiStore {
       environmentName: (deployment as any).environment,
       organizationId: project?.organizationId,
       planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+
       // P104: see store.ts — omitting this fails OPEN on the static-serve gate.
       metadata: deployment.metadata as Record<string, unknown> | undefined,
     };
@@ -2284,12 +2351,16 @@ export class TestApiStore implements ApiStore {
   async createProjectCheckpoint(input: { projectId: string; createdByUserId?: string }) {
     const row = { id: id('ckpt'), projectId: input.projectId, state: 'PREPARING', createdAt: now() };
     this.projectCheckpoints.set(row.id, row);
+
     return { id: row.id, state: row.state };
   }
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
     const row = this.projectCheckpoints.get(idv);
-    if (row) Object.assign(row, patch);
+
+    if (row) {
+      Object.assign(row, patch);
+    }
   }
 
   /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
@@ -2615,10 +2686,7 @@ export class TestApiStore implements ApiStore {
     return undefined;
   }
 
-  async putImportStagedFiles(
-    importJobId: string,
-    files: Array<{ path: string; content: string; encoding?: string }>,
-  ) {
+  async putImportStagedFiles(importJobId: string, files: Array<{ path: string; content: string; encoding?: string }>) {
     this.importStagedFiles.set(
       importJobId,
       files.map((file) => ({ ...file })),

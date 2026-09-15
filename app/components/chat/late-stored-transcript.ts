@@ -34,6 +34,29 @@ export interface EtatDeTranscription {
 
   /** Nombre de messages actuellement affichés. */
   messagesAffiches: number;
+
+  /**
+   * Cette transcription a-t-elle DÉJÀ été adoptée ?
+   *
+   * Sans cette garde, un fil vidé par « Effacer l'historique » se remplissait
+   * à nouveau : `initialMessages` gardait la transcription restaurée, le fil
+   * repassait à zéro message, et l'effet la réadoptait. Mesuré le 06/09 sur
+   * la maquette (sonde probe-clear.mjs) : quatre messages avant, quatre après
+   * confirmation, puis quatre re-persistés dans une conversation NEUVE.
+   */
+  dejaAdoptee?: boolean;
+
+  /**
+   * L'utilisateur a-t-il VIDÉ ce fil lui-même ?
+   *
+   * `dejaAdoptee` compare des identités : elle ne couvre que la transcription
+   * adoptée AVANT l'effacement. Une transcription qui arrive APRÈS (le repli
+   * serveur, sur un runner chargé — run E2E 1969 du 14/09, rouge 3 fois sur 3)
+   * porte une identité neuve et passait la garde : le fil « effacé » revenait.
+   * Un fil vidé à la main n'adopte plus jamais de transcription restaurée,
+   * quelle qu'en soit l'identité.
+   */
+  filVideParLUtilisateur?: boolean;
 }
 
 export function fautIlAdopterLaTranscriptionRestauree(etat: EtatDeTranscription): boolean {
@@ -46,5 +69,9 @@ export function fautIlAdopterLaTranscriptionRestauree(etat: EtatDeTranscription)
    * une hydratation qui a abouti, un message que l'utilisateur vient d'envoyer —
    * cet état est plus récent, et le remplacer serait le même défaut à l'envers.
    */
+  if (etat.dejaAdoptee || etat.filVideParLUtilisateur) {
+    return false;
+  }
+
   return etat.messagesRestaures > 0 && etat.messagesAffiches === 0;
 }
